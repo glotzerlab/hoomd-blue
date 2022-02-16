@@ -68,7 +68,6 @@ template<class evaluator> class PotentialSpecialPair : public ForceCompute
     protected:
     GPUArray<param_type> m_params;         //!< SpecialPair parameters per type
     std::shared_ptr<PairData> m_pair_data; //!< Data to use in computing particle pairs
-    std::string m_prof_name;               //!< Cached profiler name
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -86,7 +85,6 @@ PotentialSpecialPair<evaluator>::PotentialSpecialPair(std::shared_ptr<SystemDefi
 
     // access the pair data for later use
     m_pair_data = m_sysdef->getPairData();
-    m_prof_name = std::string("Special pair ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_pair_data->getNTypes(), m_exec_conf);
@@ -182,9 +180,6 @@ template<class evaluator> Scalar PotentialSpecialPair<evaluator>::getRCut(std::s
  */
 template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     assert(m_pdata);
 
     // access the particle data arrays
@@ -215,7 +210,7 @@ template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(ui
     // we are using the minimum image of the global box here
     // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
     // length)
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
@@ -350,9 +345,6 @@ template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(ui
             throw std::runtime_error("Error in special pair calculation");
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI

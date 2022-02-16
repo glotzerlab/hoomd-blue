@@ -12,8 +12,6 @@
 #include "CommunicatorGPU.h"
 #include "CommunicatorGPU.cuh"
 
-#include "hoomd/Profiler.h"
-
 #include <algorithm>
 
 namespace hoomd
@@ -160,9 +158,6 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
 
 void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("migrate");
-
     if (m_mpcd_pdata->getNVirtual() > 0)
         {
         m_exec_conf->msg->warning()
@@ -177,7 +172,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     m_offsets.resize(m_n_unique_neigh);
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
     setCommFlags(box);
 
     for (unsigned int stage = 0; stage < m_num_stages; stage++)
@@ -185,14 +180,8 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
         const unsigned int comm_mask = m_comm_mask[stage];
 
         // fill send buffer
-        if (m_prof)
-            m_prof->push(m_exec_conf, "pack");
         m_mpcd_pdata->removeParticlesGPU(m_sendbuf, comm_mask, timestep);
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
 
-        if (m_prof)
-            m_prof->push("sort");
         // pack the buffers for each neighbor rank in this stage
         std::fill(m_n_send_ptls.begin(), m_n_send_ptls.end(), 0);
         if (m_sendbuf.size() > 0)
@@ -246,8 +235,6 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
                 m_n_send_ptls[neigh] = h_num_send.data[i];
                 }
             }
-        if (m_prof)
-            m_prof->pop();
 
         // communicate total number of particles being sent and received from neighbor ranks
         unsigned int n_recv_tot = 0;
@@ -348,12 +335,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
             MPI_Waitall(nreq, m_reqs.data(), MPI_STATUSES_IGNORE);
             }
 
-        // wrap received particles through the global boundary
-        if (m_prof)
-            {
-            m_prof->push(m_exec_conf, "wrap");
-            }
-
+            // wrap received particles through the global boundary
             {
             ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf,
                                                                access_location::device,
@@ -363,20 +345,11 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
 
         // fill particle data with received particles
-        if (m_prof)
-            m_prof->push(m_exec_conf, "unpack");
         m_mpcd_pdata->addParticlesGPU(m_recvbuf, comm_mask, timestep);
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
 
         } // end communication stage
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -387,9 +360,6 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
  */
 void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "comm flags");
-
     ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(),
                                           access_location::device,
                                           access_mode::overwrite);
@@ -406,9 +376,6 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_flags_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*!

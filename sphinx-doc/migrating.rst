@@ -185,7 +185,6 @@ Not yet ported
 The following v2 functionalities have not yet been ported to the v3 API. They may be added in a
 future 3.x release:
 
-- Walls in HPMC.
 - HPMC box volume move size tuner.
 
 These contributed functionalities rely on the community for support. Please

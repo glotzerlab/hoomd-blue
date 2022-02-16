@@ -14,7 +14,6 @@
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
-#include "QuaternionMath.h"
 #include "hoomd/VectorMath.h"
 #include <iostream>
 /*! \file EvaluatorPairDipole.h

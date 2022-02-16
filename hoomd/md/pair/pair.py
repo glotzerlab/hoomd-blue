@@ -9,13 +9,10 @@ import warnings
 import hoomd
 from hoomd.md import _md
 from hoomd.md import force
-from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import numpy as np
-from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, nonnegative_real)
-
-validate_nlist = OnlyTypes(NList)
+from hoomd.data.typeconverter import OnlyFrom, nonnegative_real
 
 
 class Pair(force.Force):
@@ -155,6 +152,12 @@ class Pair(force.Force):
         Possible values: ``"none"``, ``"shift"``, ``"xplor"``
 
         Type: `str`
+
+    .. py:attribute:: nlist
+
+        Neighbor list used to compute the pair potential.
+
+        Type: `hoomd.md.nlist.NList`
     """
 
     # The accepted modes for the potential. Should be reset by subclasses with
@@ -163,7 +166,6 @@ class Pair(force.Force):
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         super().__init__()
-        self._nlist = validate_nlist(nlist)
         tp_r_cut = TypeParameter(
             'r_cut', 'particle_types',
             TypeParameterDict(nonnegative_real, len_keys=2))
@@ -180,8 +182,10 @@ class Pair(force.Force):
 
         self._extend_typeparam(type_params)
         self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(self._accepted_modes)))
+            ParameterDict(mode=OnlyFrom(self._accepted_modes),
+                          nlist=hoomd.md.nlist.NList))
         self.mode = mode
+        self.nlist = nlist
 
     def compute_energy(self, tags1, tags2):
         r"""Compute the energy between two sets of particles.
@@ -220,44 +224,41 @@ class Pair(force.Force):
         return self._cpp_obj.computeEnergyBetweenSets(tags1, tags2)
 
     def _add(self, simulation):
-        # if nlist was associated with multiple pair forces and is still
-        # attached, we need to deepcopy existing nlist.
-        nlist = self._nlist
-        if (not self._attached and nlist._attached
-                and nlist._simulation != simulation):
-            warnings.warn(
-                f"{self} object is creating a new equivalent neighbor list."
-                f" This is happending since the force is moving to a new "
-                f"simulation. To supress the warning explicitly set new nlist.",
-                RuntimeWarning)
-            self._nlist = copy.deepcopy(nlist)
+        super()._add(simulation)
+        self._add_nlist()
+
+    def _add_nlist(self):
+        nlist = self.nlist
+        deepcopy = False
+        if not isinstance(self._simulation, hoomd.Simulation):
+            if nlist._added:
+                deepcopy = True
+            else:
+                return
         # We need to check if the force is added since if it is not then this is
         # being called by a SyncedList object and a disagreement between the
         # simulation and nlist._simulation is an error. If the force is added
         # then the nlist is compatible. We cannot just check the nlist's _added
         # property because _add is also called when the SyncedList is synced.
-        elif (not self._added and nlist._added
-              and nlist._simulation != simulation):
-            raise RuntimeError(
-                f"NeighborList associated with {self} is associated with "
-                f"another simulation.")
-        super()._add(simulation)
-        # this ideopotent given the above check.
-        self._nlist._add(simulation)
+        if deepcopy or nlist._added and nlist._simulation != self._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. To supress the warning explicitly set new nlist.",
+                RuntimeWarning)
+            self.nlist = copy.deepcopy(nlist)
+        self.nlist._add(self._simulation)
         # This is ideopotent, but we need to ensure that if we change
         # neighbor list when not attached we handle correctly.
-        self._add_dependency(self._nlist)
+        self._add_dependency(self.nlist)
 
     def _attach(self):
-        # create the c++ mirror class
-        if not self._nlist._added:
-            self._nlist._add(self._simulation)
-        else:
-            if self._simulation != self._nlist._simulation:
-                raise RuntimeError("{} object's neighbor list is used in a "
-                                   "different simulation.".format(type(self)))
-        if not self.nlist._attached:
-            self.nlist._attach()
+        # This should never happen, but leaving it in case the logic for adding
+        # missed some edge case.
+        if self._simulation != self.nlist._simulation:
+            raise RuntimeError("{} object's neighbor list is used in a "
+                               "different simulation.".format(type(self)))
+        self.nlist._attach()
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
@@ -271,27 +272,20 @@ class Pair(force.Force):
 
         super()._attach()
 
-    @property
-    def nlist(self):
-        """Neighbor list used to compute the pair potential."""
-        return self._nlist
+    def _setattr_param(self, attr, value):
+        if attr == "nlist":
+            self._nlist_setter(value)
+            return
+        super()._setattr_param(attr, value)
 
-    @nlist.setter
-    def nlist(self, value):
+    def _nlist_setter(self, new_nlist):
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
-        nlist = validate_nlist(value)
+        old_nlist = self.nlist
+        self._param_dict._dict["nlist"] = new_nlist
         if self._added:
-            if nlist._added and self._simulation != nlist._simulation:
-                raise RuntimeError(
-                    "Neighbor lists and forces must belong to the same "
-                    "simulation or SyncedList.")
-            self._nlist._add(self._simulation)
-        self._nlist = nlist
-
-    @property
-    def _children(self):
-        return [self.nlist]
+            self._add_nlist()
+            old_nlist._remove_dependent(self)
 
 
 class LJ(Pair):
@@ -339,6 +333,12 @@ class LJ(Pair):
         Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
 
         Type: `str`
+
+    .. py:attribute:: tail_correction
+
+        Whether to apply the isotropic integrated long range tail correction.
+
+        Type: `bool`
 
     Example::
 
@@ -1690,7 +1690,7 @@ class DLVO(Pair):
         self._add_typeparam(params)
 
         # this potential needs diameter shifting on
-        self._nlist.diameter_shift = True
+        self.nlist.diameter_shift = True
 
 
 class Buckingham(Pair):

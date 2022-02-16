@@ -69,12 +69,6 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
 
     unsigned int group_size = m_group->getNumMembers();
 
-    // profile this step
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "NVT MTK step 1");
-        }
-
         {
         // access all the needed data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
@@ -161,10 +155,6 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
 
     // advance thermostat
     advanceThermostat(timestep, false);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -175,10 +165,6 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "NVT MTK step 2");
 
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                             access_location::device,
@@ -251,10 +237,6 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_tuner_angular_two->end();
         m_exec_conf->endMultiGPU();
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

@@ -11,15 +11,6 @@ from hoomd import _hoomd
 from hoomd.filter import ParticleFilter, All
 
 
-def _box_getter(param_dict, attr):
-    return param_dict._dict[attr]
-
-
-def _box_setter(param_dict, attr, value):
-    param_dict._dict[attr] = param_dict._type_converter[attr](value)
-    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
-
-
 class BoxResize(Updater):
     """Resizes the box between an initial and final box.
 
@@ -71,16 +62,14 @@ class BoxResize(Updater):
         params['variant'] = variant
         params['trigger'] = trigger
         params['filter'] = filter
-        for attr in ("box1", "box2"):
-            params._set_special_getset(attr, _box_getter, _box_setter)
         self._param_dict.update(params)
         super().__init__(trigger)
 
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
-            self._simulation.state._cpp_sys_def, self.box1, self.box2,
-            self.variant, group)
+            self._simulation.state._cpp_sys_def, self.box1._cpp_obj,
+            self.box2._cpp_obj, self.variant, group)
         super()._attach()
 
     def get_box(self, timestep):
@@ -113,6 +102,7 @@ class BoxResize(Updater):
                 update.
         """
         group = state._get_group(filter)
-        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, state.box, box,
+        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
+                                          state.box._cpp_obj, box._cpp_obj,
                                           Constant(1), group)
         updater.update(state._simulation.timestep)

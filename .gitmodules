@@ -1,6 +1,3 @@
-[submodule "hoomd/extern/libgetar"]
-	path = hoomd/extern/libgetar
-	url = https://github.com/glotzerlab/libgetar
 [submodule "hoomd/extern/upp11"]
 	path = hoomd/extern/upp11
 	url = https://github.com/glotzerlab/upp11.git

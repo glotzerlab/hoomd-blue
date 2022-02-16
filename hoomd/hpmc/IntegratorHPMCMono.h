@@ -653,7 +653,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters(m_implicit_count, access_location::host, access_mode::readwrite);
     std::copy(h_implicit_counters.data, h_implicit_counters.data + m_depletant_idx.getNumElements(), m_implicit_count_step_start.begin());
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
     #ifdef ENABLE_MPI
@@ -688,8 +688,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                       timestep,
                                                       this->m_sysdef->getSeed()),
                                           hoomd::Counter(this->m_exec_conf->getRank()));
-
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC update");
 
     uint16_t seed = m_sysdef->getSeed();
 
@@ -1072,8 +1070,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
         }
     #endif
 
-    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
-
     // migrate and exchange particles
     communicate(true);
 
@@ -1100,8 +1096,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     buildAABBTree();
     // update the image list
     updateImageList();
-
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC count overlaps");
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1196,8 +1190,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
             }
         } // end loop over particles
 
-    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
-
     #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
@@ -1230,8 +1222,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     buildAABBTree();
     // update the image list
     updateImageList();
-
-    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC compute patch energy");
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1325,8 +1315,6 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                 } // end loop over AABB nodes
             } // end loop over images
         } // end loop over particles
-
-    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
     #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
@@ -1466,8 +1454,6 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     // range = getMaxCoreDiameter() + box_circumsphere
     // while still adding images, examine successively larger blocks of images, checking the outermost against range
 
-    if (m_prof) m_prof->push(m_exec_conf, "HPMC image list");
-
     unsigned int ndim = m_sysdef->getNDimensions();
 
     m_image_list_valid = true;
@@ -1477,7 +1463,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     m_image_list_rebuilds++;
 
     // Get box vectors
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> e1 = vec3<Scalar>(box.getLatticeVector(0));
     vec3<Scalar> e2 = vec3<Scalar>(box.getLatticeVector(1));
     // 2D simulations don't necessarily have a zero-size z-dimension, but it is convenient for us if we assume one.
@@ -1652,8 +1638,6 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         }
 
     m_exec_conf->msg->notice(6) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
-    if (m_prof) m_prof->pop();
-
     return m_image_list;
     }
 
@@ -1742,7 +1726,6 @@ const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
     if (m_aabb_tree_invalid)
         {
         m_exec_conf->msg->notice(8) << "Building AABB tree: " << m_pdata->getN() << " ptls " << m_pdata->getNGhosts() << " ghosts" << std::endl;
-        if (this->m_prof) this->m_prof->push(this->m_exec_conf, "AABB tree build");
         // build the AABB tree
             {
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1772,7 +1755,6 @@ const hoomd::detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                 }
             }
 
-        if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
         }
 
     m_aabb_tree_invalid = false;

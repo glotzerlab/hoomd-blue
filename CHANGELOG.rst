@@ -7,10 +7,44 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.14 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 *Added*
 
-* ``hoomd.hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
+* ``hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
   the simulation box and orientations.
+* Support ``cereal`` 1.3.1
+* Guide on how to model molecular systems.
+* ``version.floating_point_precision`` - Floating point width in bits for the particle
+  properties and local calculations.
+* ``md.pair.LJ.tail_correction`` - Option to enable the isotropic integrated long range tail
+  correction.
+* ``md.Integrator.linear_momentum`` - Compute the total system linear momentum. Loggable.
+* ``md.bond.Table`` - Tabulated bond potential.
+* ``md.angle.Table`` - Tabulated angle potential.
+* ``md.dihedral.Table`` - Tabulated dihedral potential.
+* ``md.improper.Harmonic`` - Compute the harmonic improper potential and forces.
+* Tutorial on Organizing and executing simulations.
+* C++ and build system overview in ``ARCHITECTURE.md``.
+* ``hpmc.external.wall`` - Overlap checks between particles and wall surfaces.
+
+*Changed*
+
+* Support variant translational and rotational spring constants in ``hpmc.external.field.Harmonic``.
+* [breaking] Renamed ``md.angle.Cosinesq`` to ``md.angle.CosineSquared``.
+* [breaking] `hoomd.Box` no longer has a `matrix` property use ``to_matrix`` and ``from_matrix``.
+
+*Fixed*
+
+* Compilation errors on FreeBSD.
+* ``TypeError`` when instantiating special pair forces.
+* Inconsistent state when using the ``walls`` setter of a ``md.external.wall.WallPotential``.
+
+*Removed*
+
+* [breaking] Removed ``md.pair.SLJ`` potential and wall. Use ``md.pair.ExpandedLJ``.
+* [breaking] ``hoomd.Box.lattice_vectors`` property no longer exists.
 
 v3.0.0-beta.13 (2022-01-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -22,7 +56,7 @@ v3.0.0-beta.13 (2022-01-18)
 * ``wall`` - Define wall surfaces in the simulation box.
 * ``md.external.wall`` - Pair interactions between particles and wall surfaces.
 * ``Communicator.walltime`` - the wall clock time since creating the ``Communicator``.
-* ``hoomd.md.force.Custom`` - user defined forces in Python.
+* ``md.force.Custom`` - user defined forces in Python.
 
 *Changed*
 
@@ -91,13 +125,13 @@ v3.0.0-beta.10 (2021-10-25)
 
 *Added*
 
-- ``hoomd.md.minimize.FIRE`` - MD integrator that minimizes the system's potential energy.
+- ``md.minimize.FIRE`` - MD integrator that minimizes the system's potential energy.
 - Include example AKMA and MD unit conversion factors in the documentation.
 - ``BUILD_LLVM`` CMake option  (defaults off) to enable features that require LLVM.
-- ``hoomd.hpmc.pair.user.CPPPotential`` - user-defined pair potentials between particles in HPMC.
-- ``hoomd.hpmc.pair.user.CPPPotentialUnion`` - user-defined site-site pair potentials between shapes
+- ``hpmc.pair.user.CPPPotential`` - user-defined pair potentials between particles in HPMC.
+- ``hpmc.pair.user.CPPPotentialUnion`` - user-defined site-site pair potentials between shapes
   in HPMC.
-- ``hoomd.hpmc.external.user.CPPExternalPotential`` - user-defined external potentials in HPMC.
+- ``hpmc.external.user.CPPExternalPotential`` - user-defined external potentials in HPMC.
 - Support user-defined pair potentials in HPMC on the GPU.
 
 *Changed*
@@ -114,7 +148,7 @@ v3.0.0-beta.10 (2021-10-25)
 
 *Fixed*
 
-- Calling ``hoomd.Operations.__len__`` no longer raises a ``RecursionError``.
+- Calling ``Operations.__len__`` no longer raises a ``RecursionError``.
 - RATTLE integration methods execute on the GPU.
 - Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
 - Bug in setting zero sized ``ManagedArrays``.

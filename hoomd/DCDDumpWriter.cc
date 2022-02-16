@@ -147,9 +147,6 @@ DCDDumpWriter::~DCDDumpWriter()
 void DCDDumpWriter::analyze(uint64_t timestep)
     {
     Analyzer::analyze(timestep);
-    if (m_prof)
-        m_prof->push("Dump DCD");
-
     // take particle data snapshot
     SnapshotParticleData<Scalar> snapshot;
 
@@ -159,8 +156,6 @@ void DCDDumpWriter::analyze(uint64_t timestep)
     // if we are not the root processor, do not perform file I/O
     if (m_sysdef->isDomainDecomposed() && !m_exec_conf->isRoot())
         {
-        if (m_prof)
-            m_prof->pop();
         return;
         }
 #endif
@@ -182,9 +177,6 @@ void DCDDumpWriter::analyze(uint64_t timestep)
             << "DCD: not writing output at timestep " << timestep
             << " because the file reports that it already has data up to step "
             << m_last_written_step << endl;
-
-        if (m_prof)
-            m_prof->pop();
         return;
         }
 
@@ -203,9 +195,6 @@ void DCDDumpWriter::analyze(uint64_t timestep)
     // update the header with the number of frames written
     m_num_frames_written++;
     write_updated_header(m_file, timestep);
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param file File to write to

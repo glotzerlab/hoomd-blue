@@ -122,12 +122,6 @@ void Integrator::computeAccelerations(uint64_t timestep)
     {
     m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
 
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Sum accel");
-        }
-
     // now, get our own access to the arrays and calculate the accelerations
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
@@ -144,12 +138,6 @@ void Integrator::computeAccelerations(uint64_t timestep)
         h_accel.data[j].x = h_net_force.data[j].x * minv;
         h_accel.data[j].y = h_net_force.data[j].y * minv;
         h_accel.data[j].z = h_net_force.data[j].z * minv;
-        }
-
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
         }
     }
 
@@ -195,12 +183,6 @@ void Integrator::computeNetForce(uint64_t timestep)
     for (auto& force : m_forces)
         {
         force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Net force");
         }
 
     Scalar external_virial[6];
@@ -285,12 +267,6 @@ void Integrator::computeNetForce(uint64_t timestep)
 
     m_pdata->setExternalEnergy(external_energy);
 
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
-
     // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
@@ -308,12 +284,6 @@ void Integrator::computeNetForce(uint64_t timestep)
     for (auto& constraint_force : m_constraint_forces)
         {
         constraint_force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Net force");
         }
 
         {
@@ -379,12 +349,6 @@ void Integrator::computeNetForce(uint64_t timestep)
         }
 
     m_pdata->setExternalEnergy(external_energy);
-
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
     }
 
 #ifdef ENABLE_HIP
@@ -404,12 +368,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     for (auto& force : m_forces)
         {
         force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "Integrate");
-        m_prof->push(m_exec_conf, "Net force");
         }
 
     Scalar external_virial[6];
@@ -631,12 +589,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
     m_pdata->setExternalEnergy(external_energy);
 
-    if (m_prof)
-        {
-        m_prof->pop(m_exec_conf);
-        m_prof->pop(m_exec_conf);
-        }
-
     // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
@@ -653,12 +605,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     for (auto& constraint_force : m_constraint_forces)
         {
         constraint_force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push(m_exec_conf, "Net force");
         }
 
         {
@@ -858,12 +804,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
     m_pdata->setExternalEnergy(external_energy);
-
-    if (m_prof)
-        {
-        m_prof->pop(m_exec_conf);
-        m_prof->pop(m_exec_conf);
-        }
     }
 #endif
 

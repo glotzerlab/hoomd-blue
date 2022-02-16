@@ -212,6 +212,20 @@ class WallPotential(force.Force):
         if self._walls is wall_list:
             return
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_md_cpp_wall)
+        if self._attached:
+            self._walls._sync({
+                hoomd.wall.Sphere:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj,
+                                              hoomd.wall.Sphere)),
+                hoomd.wall.Cylinder:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj,
+                                              hoomd.wall.Cylinder)),
+                hoomd.wall.Plane:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
+            })
 
 
 class LJ(WallPotential):

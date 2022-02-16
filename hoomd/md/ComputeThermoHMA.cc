@@ -103,9 +103,6 @@ void ComputeThermoHMA::computeProperties()
 
     unsigned int group_size = m_group->getNumMembers();
 
-    if (m_prof)
-        m_prof->push("ThermoHMA");
-
     assert(m_pdata);
 
     // access the net force, pe, and virial
@@ -170,9 +167,6 @@ void ComputeThermoHMA::computeProperties()
     // in MPI, reduce extensive quantities only when they're needed
     m_properties_reduced = !m_pdata->getDomainDecomposition();
 #endif // ENABLE_MPI
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI

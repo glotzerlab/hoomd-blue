@@ -36,7 +36,7 @@ SystemDefinition::SystemDefinition() { }
      - All other data structures are default constructed.
 */
 SystemDefinition::SystemDefinition(unsigned int N,
-                                   const BoxDim& box,
+                                   const std::shared_ptr<BoxDim> box,
                                    unsigned int n_types,
                                    unsigned int n_bond_types,
                                    unsigned int n_angle_types,
@@ -45,6 +45,10 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    std::shared_ptr<DomainDecomposition> decomposition)
     {
+    if (!box)
+        {
+        throw std::runtime_error("Box cannot be null.");
+        }
     m_n_dimensions = 3;
     m_particle_data = std::shared_ptr<ParticleData>(
         new ParticleData(N, box, n_types, exec_conf, decomposition));
@@ -58,6 +62,42 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, 0));
     m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, 0));
     m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData());
+    }
+
+// Mostly exists as test pass a plain box rather than a std::shared_ptr.
+/*! \param N Number of particles to allocate
+    \param box Initial box particles are in
+    \param n_types Number of particle types to set
+    \param n_bond_types Number of bond types to create
+    \param n_angle_types Number of angle types to create
+    \param n_dihedral_types Number of dihedral types to create
+    \param n_improper_types Number of improper types to create
+    \param exec_conf The ExecutionConfiguration HOOMD is to be run on
+
+    Creating SystemDefinition with this constructor results in
+     - ParticleData constructed with the arguments \a N, \a box, \a n_types, and \a exec_conf->
+     - BondData constructed with the arguments \a n_bond_types
+     - All other data structures are default constructed.
+*/
+SystemDefinition::SystemDefinition(unsigned int N,
+                                   const BoxDim& box,
+                                   unsigned int n_types,
+                                   unsigned int n_bond_types,
+                                   unsigned int n_angle_types,
+                                   unsigned int n_dihedral_types,
+                                   unsigned int n_improper_types,
+                                   std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   std::shared_ptr<DomainDecomposition> decomposition)
+    : SystemDefinition::SystemDefinition(N,
+                                         std::make_shared<BoxDim>(box),
+                                         n_types,
+                                         n_bond_types,
+                                         n_angle_types,
+                                         n_dihedral_types,
+                                         n_improper_types,
+                                         exec_conf,
+                                         decomposition)
+    {
     }
 
 /*! Evaluates the snapshot and initializes the respective *Data classes using
@@ -129,7 +169,7 @@ template<class Real> std::shared_ptr<SnapshotSystemData<Real>> SystemDefinition:
     std::shared_ptr<SnapshotSystemData<Real>> snap(new SnapshotSystemData<Real>);
 
     snap->dimensions = m_n_dimensions;
-    snap->global_box = m_particle_data->getGlobalBox();
+    snap->global_box = std::make_shared<BoxDim>(m_particle_data->getGlobalBox());
 
     snap->map = m_particle_data->takeSnapshot(snap->particle_data);
     m_bond_data->takeSnapshot(snap->bond_data);
@@ -188,7 +228,7 @@ void export_SystemDefinition(pybind11::module& m)
     pybind11::class_<SystemDefinition, std::shared_ptr<SystemDefinition>>(m, "SystemDefinition")
         .def(pybind11::init<>())
         .def(pybind11::init<unsigned int,
-                            const BoxDim&,
+                            const std::shared_ptr<BoxDim>,
                             unsigned int,
                             unsigned int,
                             unsigned int,
@@ -196,7 +236,7 @@ void export_SystemDefinition(pybind11::module& m)
                             unsigned int,
                             std::shared_ptr<ExecutionConfiguration>>())
         .def(pybind11::init<unsigned int,
-                            const BoxDim&,
+                            const std::shared_ptr<BoxDim>,
                             unsigned int,
                             unsigned int,
                             unsigned int,

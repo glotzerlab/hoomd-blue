@@ -102,9 +102,6 @@ pybind11::dict HarmonicAngleForceCompute::getParams(std::string type)
  */
 void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Harmonic Angle");
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -265,9 +262,6 @@ void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += angle_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
