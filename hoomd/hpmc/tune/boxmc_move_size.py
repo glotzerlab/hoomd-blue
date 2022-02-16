@@ -42,10 +42,8 @@ class _MoveSizeTuneDefinition(mc_move_tune._MCTuneDefinition):
         super().__init__(target, domain)
 
     def get_ratio(self):
-        if self.attr.startswith("len"):
+        if self.attr.startswith("l"):
             attr = "volume"
-        elif self.attr.startswith("sh"):
-            attr = "shear"
         else:
             attr = self.attr
         return getattr(self.boxmc, attr + "_moves")

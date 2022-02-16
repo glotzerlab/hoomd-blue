@@ -29,10 +29,10 @@ def generate_move_definition(move=None):
 def get_move_acceptance_ratio(boxmc, attr):
     """Helps translate between tune move names and their acceptance ratio."""
     splits = attr.split("_")
+    if splits[0].startswith("l"):
+        return boxmc.volume_moves
     if len(splits) == 1:
         return getattr(boxmc, attr + "_moves")
-    if splits[0].startswith("len"):
-        return boxmc.volume_moves
     return boxmc.shear_moves
 
 
