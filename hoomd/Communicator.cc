@@ -20,7 +20,7 @@ using namespace std;
 
 namespace hoomd
     {
-template<class group_data>
+template<class group_data, bool inMesh>
 Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm,
                                                                std::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
@@ -29,12 +29,18 @@ Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& com
     assert(sizeof(unsigned int) * 8 >= group_data::size);
     }
 
-template<class group_data>
+template<class group_data, bool inMesh>
 void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                                                                 bool local_multiple)
     {
     if (m_gdata->getNGlobal())
         {
+        unsigned int group_size = group_data::size;
+        if (inMesh)
+            {
+            group_size /= 2;
+            }
+
         if (m_comm.m_prof)
             {
             m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
@@ -105,7 +111,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 bool update = false;
 
                 // iterate over group members
-                for (unsigned int i = 0; i < group_data::size; i++)
+                for (unsigned int i = 0; i < group_size; i++)
                     {
                     unsigned int tag = g.tag[i];
                     unsigned int pidx = h_rtag.data[tag];
@@ -198,7 +204,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                             send_map.insert(std::make_pair(h_unique_neighbors.data[ineigh], el));
                     else
                         // send to other ranks owning the bonded group
-                        for (unsigned int j = 0; j < group_data::size; ++j)
+                        for (unsigned int j = 0; j < group_size; ++j)
                             {
                             unsigned int rank = r.idx[j];
                             bool rank_updated = mask & (1 << j);
@@ -394,7 +400,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                     typename group_data::ranks_t new_ranks = el.ranks;
                     unsigned int mask = el.mask;
 
-                    for (unsigned int i = 0; i < group_data::size; ++i)
+                    for (unsigned int i = 0; i < group_size; ++i)
                         {
                         bool update = mask & (1 << i);
 
@@ -441,7 +447,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 typename group_data::members_t members = h_groups.data[group_idx];
 
                 bool send = false;
-                for (unsigned int i = 0; i < group_data::size; ++i)
+                for (unsigned int i = 0; i < group_size; ++i)
                     {
                     unsigned int tag = members.tag[i];
                     unsigned int pidx = h_rtag.data[tag];
@@ -462,7 +468,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                     el.group_tag = h_group_tag.data[group_idx];
                     el.ranks = h_group_ranks.data[group_idx];
 
-                    for (unsigned int i = 0; i < group_data::size; ++i)
+                    for (unsigned int i = 0; i < group_size; ++i)
                         // are we sending to this rank?
                         if (mask & (1 << i))
                             group_send_map.insert(std::make_pair(el.ranks.idx[i], el));
@@ -470,7 +476,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                     // does this group still have local members
                     bool is_local = false;
 
-                    for (unsigned int i = 0; i < group_data::size; ++i)
+                    for (unsigned int i = 0; i < group_size; ++i)
                         {
                         unsigned int tag = members.tag[i];
                         unsigned int pidx = h_rtag.data[tag];
@@ -782,7 +788,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 if (!local_multiple)
                     {
                     // only add if we own the first particle
-                    assert(group_data::size);
+                    assert(group_size);
                     if (el.ranks.idx[0] != myrank)
                         {
                         remove = true;
@@ -823,13 +829,19 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
     }
 
 //! Mark ghost particles
-template<class group_data>
+template<class group_data, bool inMesh>
 void Communicator::GroupCommunicator<group_data>::markGhostParticles(
     const GlobalVector<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
         {
+        unsigned int group_size = group_data::size;
+        if (inMesh)
+            {
+            group_size /= 2;
+            }
+
         ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(),
                                                              access_location::host,
                                                              access_mode::read);
@@ -862,7 +874,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
             typename group_data::ranks_t r = h_group_ranks.data[group_idx];
 
             // iterate over group members
-            for (unsigned int i = 0; i < group_data::size; ++i)
+            for (unsigned int i = 0; i < group_size; ++i)
                 {
                 unsigned int rank = r.idx[i];
 
@@ -897,7 +909,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
                     flags &= mask;
 
                     // Send all local members of the group to this neighbor
-                    for (unsigned int j = 0; j < group_data::size; ++j)
+                    for (unsigned int j = 0; j < group_size; ++j)
                         {
                         unsigned int tag_j = g.tag[j];
                         unsigned int rtag_j = h_rtag.data[tag_j];
@@ -941,7 +953,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
         }
     }
 
-template<class group_data>
+template<class group_data, bool inMesh>
 void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
     const GlobalArray<unsigned int>& plans,
     unsigned int mask)
@@ -950,6 +962,12 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
         {
         if (m_comm.m_prof)
             m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
+
+        unsigned int group_size = group_data::size;
+        if (inMesh)
+            {
+            group_size /= 2;
+            }
 
         // send plan for groups
         std::vector<unsigned int> group_plan(m_gdata->getN(), 0);
@@ -972,9 +990,9 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                 {
                 typename group_data::members_t members = h_groups.data[group_idx];
 
-                assert(group_data::size);
+                assert(group_size);
                 unsigned int plan = 0;
-                for (unsigned int i = 0; i < group_data::size; ++i)
+                for (unsigned int i = 0; i < group_size; ++i)
                     {
                     unsigned int tag = members.tag[i];
                     unsigned int pidx = h_rtag.data[tag];
@@ -1185,7 +1203,7 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                         continue;
 
                     bool has_nonlocal_members = false;
-                    for (unsigned int j = 0; j < group_data::size; ++j)
+                    for (unsigned int j = 0; j < group_size; ++j)
                         {
                         unsigned int tag = el.tags.tag[j];
                         assert(tag <= m_comm.m_pdata->getMaximumTag());

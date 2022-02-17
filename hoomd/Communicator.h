@@ -390,7 +390,7 @@ class PYBIND11_EXPORT Communicator
 
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
-    template<class group_data> class GroupCommunicator
+    template<class group_data, bool inMesh = false> class GroupCommunicator
         {
         public:
         typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
@@ -705,13 +705,13 @@ class PYBIND11_EXPORT Communicator
     friend class GroupCommunicator<PairData>;
 
     /* Communication of mesh bonded groups */
-    GroupCommunicator<MeshBondData> m_meshbond_comm; //!< Communication helper for mesh bonds
-    friend class GroupCommunicator<MeshBondData>;
+    GroupCommunicator<MeshBondData, true> m_meshbond_comm; //!< Communication helper for mesh bonds
+    friend class GroupCommunicator<MeshBondData, true>;
 
     /* Communication of mesh triangle groups */
-    GroupCommunicator<MeshTriangleData>
+    GroupCommunicator<MeshTriangleData, true>
         m_meshtriangle_comm; //!< Communication helper for mesh triangles
-    friend class GroupCommunicator<MeshTriangleData>;
+    friend class GroupCommunicator<MeshTriangleData, true>;
 
     //! Helper function to initialize adjacency arrays
     void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
