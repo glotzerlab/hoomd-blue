@@ -258,8 +258,6 @@ def _valid_params(particle_types=['A', 'B']):
         [(0.5, -0.5, -0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5),
          (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, 0.5),
          (-0.5, -0.5, -0.5)],
-        # ellipsoid
-        []
     ]
 
     # ALJ.get_ordered_vertices only works if coxeter can be imported, so we
@@ -267,7 +265,7 @@ def _valid_params(particle_types=['A', 'B']):
     # available tests.
 
     try:
-        alj_arg_dict = {
+        alj_arg_dict0 = {
             'params': ({
                 'epsilon': [0.5, 1.1, 0.147],
                 'sigma_i': [0.4, 0.12, 0.3],
@@ -280,12 +278,27 @@ def _valid_params(particle_types=['A', 'B']):
             'shape': ({
                 "vertices":
                     shape_vertices,
-                "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0),
-                                   (0.01, 0.1, 2.0)],
+                "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0)],
                 "faces": [
                     md.pair.aniso.ALJ.get_ordered_vertices(vertices)[1]
-                    for vertices in shape_vertices[:-1]
-                ] + [[]]
+                    for vertices in shape_vertices
+                ]
+            }, 1)
+        }
+        alj_arg_dict1 = {
+            'params': ({
+                'epsilon': [0.5, 1.1, 0.147],
+                'sigma_i': [0.4, 0.12, 0.3],
+                'sigma_j': [4., 1.2, 0.3],
+                'alpha': [0, 1, 3],
+                'contact_ratio_i': [0.15, 0.3, 0.145],
+                'contact_ratio_j': [0.15, 0.3, 0.145],
+                'average_simplices': [True, False, True]
+            }, 2),
+            'shape': ({
+                "vertices": [[], []],
+                "rounding_radii": [(0.1, 0.2, 0.15), (0.3, 0.3, 0.3)],
+                "faces": [[], []]
             }, 1)
         }
     except RuntimeError:
@@ -295,7 +308,11 @@ def _valid_params(particle_types=['A', 'B']):
         valid_params_list.append(
             make_aniso_spec(
                 md.pair.aniso.ALJ,
-                to_type_parameter_dicts(particle_types, alj_arg_dict)))
+                to_type_parameter_dicts(particle_types, alj_arg_dict0)))
+        valid_params_list.append(
+            make_aniso_spec(
+                md.pair.aniso.ALJ,
+                to_type_parameter_dicts(particle_types, alj_arg_dict1)))
         return valid_params_list
 
 
@@ -459,7 +476,6 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
-        assert_equivalent_data_structures(value, getattr(pair_potential, key))
 
     sim = make_two_particle_simulation(types=['A', 'B'],
                                        dimensions=3,
