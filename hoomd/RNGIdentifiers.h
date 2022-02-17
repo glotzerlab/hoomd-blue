@@ -64,6 +64,7 @@ struct RNGIdentifier
     static const uint8_t HPMCDepletantNumClusters = 38;
     static const uint8_t HPMCMonoPatch = 39;
     static const uint8_t UpdaterClusters2 = 40;
+    static const uint8_t PCNDAngleForceCompute = 41;
     };
 
     } // namespace hoomd
