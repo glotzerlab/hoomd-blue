@@ -268,9 +268,8 @@ def _valid_params(particle_types=['A', 'B']):
     }
 
     valid_params_list.append(
-        make_aniso_spec(
-            md.pair.aniso.ALJ,
-            to_type_parameter_dicts(particle_types, alj_arg_dict0)))
+        make_aniso_spec(md.pair.aniso.ALJ,
+                        to_type_parameter_dicts(particle_types, alj_arg_dict0)))
 
     shape_vertices = [
         # octahedron
