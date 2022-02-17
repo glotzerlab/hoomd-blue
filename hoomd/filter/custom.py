@@ -15,7 +15,7 @@ class CustomFilter(Hashable, Callable):
     Subclasses of this class must have ``__hash__``, ``__eq__``, and
     ``__call__`` methods. The ``__hash__`` and ``__eq__`` methods will be used
     to cache the particle tags associated with a filter, thus ``__eq__`` must
-    correctly disambiguity any filters that would choose different particles.
+    correctly disambiguate any filters that would choose different particles.
     For more information on the Python data model see
     `<https://docs.python.org/3/reference/datamodel.html#object.__hash__>`_ and
     `<https://docs.python.org/3/reference/datamodel.html#object.__eq__>`_.
@@ -35,7 +35,7 @@ class CustomFilter(Hashable, Callable):
                 return hash((self.min_mass, self.max_mass))
 
             def __eq__(self, other):
-                return (isinstance(other, DiameterFilter)
+                return (isinstance(other, MassFilter)
                         and self.min_mass == other.min_mass
                         and self.max_mass == other.max_mass)
 
@@ -47,7 +47,7 @@ class CustomFilter(Hashable, Callable):
                     return np.copy(snap.particles.tag[indices])
 
         # All particles with 1.0 < mass < 5.0
-        filter_ = DiameterFilter(1.0, 5.0)
+        filter_ = MassFilter(1.0, 5.0)
         gsd = hoomd.write.GSD('example.gsd', 100, filter=filter_)
 
     Warning:

@@ -87,8 +87,8 @@ class State:
 
     .. rubric:: Box
 
-    The simulation `box` describes the spatial extent that contains the
-    particles as a `Box` object.
+    The simulation `box` describes the space that contains the particles as a
+    `Box` object.
 
     .. rubric:: Particles
 
@@ -125,7 +125,7 @@ class State:
       elements of the diagonal moment of inertia tensor in the particle's local
       reference frame. The off-diagonal elements are 0.
 
-    - :math:`q`: charge :math:`[\\mathrm{charge}]`.
+    - :math:`q`: charge :math:`[\\mathrm{charge}]` - The particle's charge.
 
     - :math:`d`: diameter :math:`[\\mathrm{length}]` - Deprecated in v3.0.0.
       HOOMD-blue reads and writes particle diameters, but does not use them in
@@ -167,7 +167,7 @@ class State:
 
             \\vec{S} = \\frac{1}{2}im(\\mathbf{q}^* \\times \\mathbf{P_S})
 
-    .. rubric:: Bonds
+    .. rubric:: Bonded groups
 
     The state contains `N_bonds` bonds, `N_angles` angles, `N_dihedrals`
     dihedrals, `N_impropers` impropers, and `N_special_pairs` special pairs.
@@ -510,7 +510,7 @@ class State:
             return group
 
     def update_group_dof(self):
-        """Schedule an update the number of degrees of freedom in each group.
+        """Schedule an update to the number of degrees of freedom in each group.
 
         `update_group_dof` requests that `Simulation` update the degrees of
         freedom provided to each group by the Integrator. `Simulation` will

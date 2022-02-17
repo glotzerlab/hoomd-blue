@@ -33,7 +33,7 @@ class DataAccessError(RuntimeError):
 
 
 class TypeConversionError(ValueError):
-    """Error when validating TypeConverter subclasses fails."""
+    """Error when converting a parameter."""
     pass
 
 

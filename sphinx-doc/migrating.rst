@@ -179,7 +179,7 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
    * - Feature
      - Replace with
    * - DEM pair potentials
-     - ALJ pair potentials in `hoomd.md.pair.aniso`.
+     - ALJ pair potential in `hoomd.md.pair.aniso`.
 
 Not yet ported
 --------------

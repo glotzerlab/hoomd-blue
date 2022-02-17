@@ -36,11 +36,13 @@ class Communicator(object):
         ranks_per_partition (int): (MPI) Number of ranks to include in a
           partition.
 
-    `Communicator` initialize MPI communications for a `hoomd.Simulation`. To
-    use MPI, launch your Python script with an MPI launcher (e.g. ``mpirun`` or
-    ``mpiexec``). By default, `Communicator` uses all ranks provided by the
-    launcher ``num_launch_ranks`` for a single `hoomd.Simulation` object which
-    decomposes the state onto that many domains.
+
+    The `Communicator` class initializes MPI communications for a
+    `hoomd.Simulation` and exposes rank and partition information to the user as
+    properties. To use MPI, launch your Python script with an MPI launcher (e.g.
+    ``mpirun`` or ``mpiexec``). By default, `Communicator` uses all ranks
+    provided by the launcher ``num_launch_ranks`` for a single
+    `hoomd.Simulation` object which decomposes the state onto that many domains.
 
     Set ``ranks_per_partition`` to an integer to partition launched ranks into
     ``num_launch_ranks / ranks_per_partition`` communicators, each with their

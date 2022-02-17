@@ -3,7 +3,7 @@
 
 """Particle filters.
 
-Particle filters describe criteria to select subsets of the particle in the
+Particle filters describe criteria to select subsets of particles in the
 system for use by various operations throughout HOOMD. To maintain high
 performance, filters are **not** re-evaluated on every use. Instead, each unique
 particular filter (defined by the class name and hash) is mapped to a **group**,

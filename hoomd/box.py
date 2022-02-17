@@ -66,7 +66,7 @@ class Box:
 
     .. image:: box.svg
 
-    Particles in a simulation state exist in a triclinic simulation box with
+    Particles in a simulation exist in a triclinic box with
     periodic boundary conditions. A triclinic box is defined by six values: the
     extents :math:`L_x`, :math:`L_y` and :math:`L_z` of the box in the three
     directions, and three tilt factors :math:`xy`, :math:`xz` and :math:`yz`.
@@ -187,7 +187,8 @@ class Box:
     `square`, `from_matrix`, and `from_box`. See the method documentation for
     usage.
 
-    Examples:
+    .. rubric:: Examples
+
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
     * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``

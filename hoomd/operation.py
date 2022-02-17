@@ -354,7 +354,7 @@ class _TriggeredOperation(Operation):
 
 
 class Updater(_TriggeredOperation):
-    """Change the state of the simulation's state.
+    """Change the simulation's state.
 
     An updater is an operation which modifies a simulation's state.
 
@@ -368,7 +368,7 @@ class Updater(_TriggeredOperation):
 class Writer(_TriggeredOperation):
     """Write output that depends on the simulation's state.
 
-    An analyzer is an operation which writes out a simulation's state.
+    A writer is an operation which writes out a simulation's state.
 
     Note:
         This class should not be instantiated by users. The class can be used
@@ -408,10 +408,10 @@ class Tuner(Operation):
 class Integrator(Operation):
     """Advance the simulation state forward one time step.
 
-    An integrator is the primary operation that drives a simulation state
-    forward. In `hoomd.hpmc`, integrators perform particle based Monte Carlo
-    moves. In `hoomd.md`, the `hoomd.md.Integrator` class organizes the forces,
-    equations of motion, and other factors of the given simulation.
+    An integrator is the operation which evolves a simulation's state in time.
+    In `hoomd.hpmc`, integrators perform particle based Monte Carlo moves. In
+    `hoomd.md`, the `hoomd.md.Integrator` class organizes the forces, equations
+    of motion, and other factors of the given simulation.
 
     Note:
         This class should not be instantiated by users. The class can be used

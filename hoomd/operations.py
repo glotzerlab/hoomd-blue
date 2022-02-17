@@ -41,7 +41,7 @@ class Operations(Collection):
 
     The types of operations which can be added to an `Operations` object are
     tuners, updaters, integrators, writers, and computes. An `Operations`
-    instance can zero or one integrator and any number of tuners, updaters,
+    instance can have zero or one integrator and any number of tuners, updaters,
     writers, or computes. To see examples of these types of operations see
     `hoomd.tune` (tuners), `hoomd.update` (updaters), `hoomd.hpmc.integrate` or
     `hoomd.md.Integrator` (integrators), `hoomd.write` (writers), and
@@ -94,7 +94,7 @@ class Operations(Collection):
 
         Args:
             operation (`hoomd.operation.Operation`): A HOOMD-blue tuner,
-                updater, integrator, writer, or compute,  to add to the
+                updater, integrator, writer, or compute to add to the
                 collection.
 
         Raises:

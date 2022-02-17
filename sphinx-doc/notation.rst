@@ -30,6 +30,8 @@ General notation:
       - :math:`\sqrt{-1}` in some contexts.
     * - :math:`\mathrm{function}`
       - A mathematical function.
+    * - a :math:`[\mathrm{length}]^2`
+      - The quantity "a" has dimensions of :math:`\mathrm{length}^2`.
 
 Symbol definitions:
 

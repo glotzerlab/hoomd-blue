@@ -31,6 +31,7 @@ intersphinx_mapping = {
     'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
 }
 autodoc_docstring_signature = True
+autodoc_typehints_format = 'short'
 
 autodoc_mock_imports = [
     'hoomd._hoomd',
