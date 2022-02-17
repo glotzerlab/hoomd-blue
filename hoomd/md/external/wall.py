@@ -101,10 +101,12 @@ class WallPotential(force.Force):
     ``inside=True``.
 
     .. image:: md-wall-potential.svg
+       :alt: Example plot of wall potential.
 
     When ``inside=False`` the potential becomes,
 
     .. image:: md-wall-potential-outside.svg
+       :alt: Example plot of an outside wall potential.
 
     .. rubric: Extrapolated Mode:
 
@@ -141,6 +143,7 @@ class WallPotential(force.Force):
     potential with :math:`\epsilon=1, \sigma=1`.
 
     .. image:: md-wall-extrapolate.svg
+       :alt: Example plot demonstrating potential extrapolation.
 
     To use extrapolated mode ``r_extrap`` must be set per particle type.
 

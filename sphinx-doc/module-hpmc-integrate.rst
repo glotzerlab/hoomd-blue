@@ -57,6 +57,7 @@ hoomd.hpmc.integrate
         :members:
     .. autoclass:: HPMCIntegrator
         :inherited-members:
+        :show-inheritance:
     .. autoclass:: Polyhedron
         :show-inheritance:
         :members:
