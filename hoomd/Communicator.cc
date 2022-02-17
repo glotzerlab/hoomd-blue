@@ -1227,19 +1227,20 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 //! Constructor
 Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<DomainDecomposition> decomposition)
-    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_mpi_comm(m_exec_conf->getMPICommunicator()), m_decomposition(decomposition),
-      m_is_communicating(false), m_force_migrate(false), m_nneigh(0), m_n_unique_neigh(0),
-      m_pos_copybuf(m_exec_conf), m_charge_copybuf(m_exec_conf), m_diameter_copybuf(m_exec_conf),
-      m_body_copybuf(m_exec_conf), m_image_copybuf(m_exec_conf), m_velocity_copybuf(m_exec_conf),
-      m_orientation_copybuf(m_exec_conf), m_plan_copybuf(m_exec_conf), m_tag_copybuf(m_exec_conf),
-      m_netforce_copybuf(m_exec_conf), m_nettorque_copybuf(m_exec_conf),
-      m_netvirial_copybuf(m_exec_conf), m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf),
-      m_plan_reverse(m_exec_conf), m_tag_reverse(m_exec_conf),
-      m_netforce_reverse_copybuf(m_exec_conf), m_netforce_reverse_recvbuf(m_exec_conf),
-      m_r_ghost_max(Scalar(0.0)), m_r_extra_ghost_max(Scalar(0.0)), m_ghosts_added(0),
-      m_has_ghost_particles(false), m_last_flags(0), m_comm_pending(false),
-      m_bond_comm(*this, m_sysdef->getBondData()), m_angle_comm(*this, m_sysdef->getAngleData()),
+    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_meshdef(NULL),
+      m_exec_conf(m_pdata->getExecConf()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
+      m_decomposition(decomposition), m_is_communicating(false), m_force_migrate(false),
+      m_nneigh(0), m_n_unique_neigh(0), m_pos_copybuf(m_exec_conf), m_charge_copybuf(m_exec_conf),
+      m_diameter_copybuf(m_exec_conf), m_body_copybuf(m_exec_conf), m_image_copybuf(m_exec_conf),
+      m_velocity_copybuf(m_exec_conf), m_orientation_copybuf(m_exec_conf),
+      m_plan_copybuf(m_exec_conf), m_tag_copybuf(m_exec_conf), m_netforce_copybuf(m_exec_conf),
+      m_nettorque_copybuf(m_exec_conf), m_netvirial_copybuf(m_exec_conf),
+      m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf), m_plan_reverse(m_exec_conf),
+      m_tag_reverse(m_exec_conf), m_netforce_reverse_copybuf(m_exec_conf),
+      m_netforce_reverse_recvbuf(m_exec_conf), m_r_ghost_max(Scalar(0.0)),
+      m_r_extra_ghost_max(Scalar(0.0)), m_ghosts_added(0), m_has_ghost_particles(false),
+      m_last_flags(0), m_comm_pending(false), m_bond_comm(*this, m_sysdef->getBondData()),
+      m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
@@ -1416,7 +1417,37 @@ Communicator::~Communicator()
         ->getGroupNumChangeSignal()
         .disconnect<Communicator, &Communicator::setPairsChanged>(this);
 
+    if (m_meshdef != NULL)
+        {
+        m_meshdef->getMeshBondData()
+            ->getGroupNumChangeSignal()
+            .disconnect<Communicator, &Communicator::setMeshbondsChanged>(this);
+
+        m_meshdef->getMeshTriangleData()
+            ->getGroupNumChangeSignal()
+            .disconnect<Communicator, &Communicator::setMeshtrianglesChanged>(this);
+        }
+
     MPI_Type_free(&m_mpi_pdata_element);
+    }
+
+void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
+    {
+    m_meshdef = meshdef;
+
+    m_meshbond_comm = GroupCommunicator<MeshBondData>(*this, m_meshdef->getMeshBondData());
+    m_meshtriangle_comm
+        = GroupCommunicator<MeshTriangleData>(*this, m_meshdef->getMeshTriangleData());
+
+    m_meshbonds_changed = true;
+    m_meshdef->getMeshBondData()
+        ->getGroupNumChangeSignal()
+        .connect<Communicator, &Communicator::setMeshbondsChanged>(this);
+
+    m_meshtriangles_changed = true;
+    m_meshdef->getMeshTriangleData()
+        ->getGroupNumChangeSignal()
+        .connect<Communicator, &Communicator::setMeshtrianglesChanged>(this);
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1675,6 +1706,17 @@ void Communicator::migrateParticles()
         m_constraint_comm.migrateGroups(m_constraints_changed, true);
         m_constraints_changed = false;
 
+        if (m_meshdef != NULL)
+            {
+            // Meshbonds
+            m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
+            m_meshbonds_changed = false;
+
+            // Meshtriangles
+            m_meshtriangle_comm.migrateGroups(m_meshtriangles_changed, true);
+            m_meshtriangles_changed = false;
+            }
+
         // fill send buffer
         std::vector<unsigned int> comm_flag_out; // not currently used
         m_pdata->removeParticles(m_sendbuf, comm_flag_out);
@@ -1931,6 +1973,14 @@ void Communicator::exchangeGhosts()
     // constraints
     m_constraint_comm.markGhostParticles(m_plan, mask);
 
+    if (m_meshdef != NULL)
+        {
+        // meshbonds
+        m_meshbond_comm.markGhostParticles(m_plan, mask);
+
+        // meshtriangles
+        m_meshtriangle_comm.markGhostParticles(m_plan, mask);
+        }
     /*
      * Fill send buffers, exchange particles according to plans
      */
