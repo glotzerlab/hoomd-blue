@@ -21,8 +21,9 @@ using namespace std;
 namespace hoomd
     {
 template<class group_data, bool inMesh>
-Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm,
-                                                               std::shared_ptr<group_data> gdata)
+Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(
+    Communicator& comm,
+    std::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
     {
     // the size of the bit field must be larger or equal the group size
@@ -30,8 +31,8 @@ Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& com
     }
 
 template<class group_data, bool inMesh>
-void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
-                                                                bool local_multiple)
+void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool incomplete,
+                                                                        bool local_multiple)
     {
     if (m_gdata->getNGlobal())
         {
@@ -830,7 +831,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
 //! Mark ghost particles
 template<class group_data, bool inMesh>
-void Communicator::GroupCommunicator<group_data>::markGhostParticles(
+void Communicator::GroupCommunicator<group_data, inMesh>::markGhostParticles(
     const GlobalVector<unsigned int>& plans,
     unsigned int mask)
     {
@@ -954,7 +955,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
     }
 
 template<class group_data, bool inMesh>
-void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
+void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
     const GlobalArray<unsigned int>& plans,
     unsigned int mask)
     {
@@ -1453,9 +1454,9 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     {
     m_meshdef = meshdef;
 
-    m_meshbond_comm = GroupCommunicator<MeshBondData>(*this, m_meshdef->getMeshBondData());
+    m_meshbond_comm = GroupCommunicator<MeshBondData, true>(*this, m_meshdef->getMeshBondData());
     m_meshtriangle_comm
-        = GroupCommunicator<MeshTriangleData>(*this, m_meshdef->getMeshTriangleData());
+        = GroupCommunicator<MeshTriangleData, true>(*this, m_meshdef->getMeshTriangleData());
 
     m_meshbonds_changed = true;
     m_meshdef->getMeshBondData()

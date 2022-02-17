@@ -81,7 +81,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
 
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
-    template<class group_data> class GroupCommunicatorGPU
+    template<class group_data, bool inMesh = false> class GroupCommunicatorGPU
         {
         public:
         typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
@@ -189,6 +189,14 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
 
     GroupCommunicatorGPU<PairData> m_pair_comm; //!< Communication helper for pairs
     friend class GroupCommunicatorGPU<PairData>;
+
+    /* Communication of meshbonded groups */
+    GroupCommunicatorGPU<MeshBondData> m_meshbond_comm; //!< Communication helper for mesh bonds
+    friend class GroupCommunicatorGPU<MeshBondData>;
+
+    GroupCommunicatorGPU<MeshTriangleData>
+        m_meshtriangle_comm; //!< Communication helper for mesh triangles
+    friend class GroupCommunicatorGPU<MeshTriangleData>;
 
     /* Ghost communication */
     GlobalVector<unsigned int> m_tag_ghost_sendbuf; //!< Buffer for sending particle tags

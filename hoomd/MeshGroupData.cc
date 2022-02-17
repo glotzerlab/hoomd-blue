@@ -468,7 +468,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                         = static_cast<typeval_t>(this->m_group_typeval[cur_group]).type;
                     for (unsigned int j = group_size_half; j < group_size; ++j)
                         {
-                        h.idx[j - 2] = g.tag[j];
+                        h.idx[j - 1] = g.tag[j];
                         }
 
                     // list all group members j!=i in p.idx
