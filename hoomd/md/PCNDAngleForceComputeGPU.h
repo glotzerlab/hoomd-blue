@@ -1,23 +1,19 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: dnlebard
 #include "PCNDAngleForceCompute.h"
 #include "PCNDAngleForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
 #include <memory>
 
-/*! \file HarmonicAngleForceComputeGPU.h
-    \brief Declares the HarmonicAngleForceGPU class
+/*! \file PCNDAngleForceComputeGPU.h
+    \brief Declares the PCNDAngleForceGPU class
 */
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
-
-#include <pybind11/pybind11.h>
 
 #ifndef __PCNDANGLEFORCECOMPUTEGPU_H__
 #define __PCNDANGLEFORCECOMPUTEGPU_H__
@@ -42,8 +38,7 @@ class PYBIND11_EXPORT PCNDAngleForceComputeGPU : public PCNDAngleForceCompute
     {
     public:
         //! Constructs the compute
-        PCNDAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-			         std::shared_ptr<ParticleGroup> group);
+        PCNDAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~PCNDAngleForceComputeGPU();
 
@@ -59,14 +54,9 @@ class PYBIND11_EXPORT PCNDAngleForceComputeGPU : public PCNDAngleForceCompute
             }
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, uint16_t eps, Scalar sigma);
+        virtual void setParams(unsigned int type, Scalar Xi, Scalar Tau, unsigned int PCND_type, uint16_t particle_sum, Scalar particle_index);
 
-	std::shared_ptr<ParticleGroup>& getGroup()
-            {
-            return m_group;
-            }
-
-    protected:
+        protected:
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<Scalar2> m_params;           //!< k, t0 Parameters stored on the GPU
 
@@ -74,11 +64,9 @@ class PYBIND11_EXPORT PCNDAngleForceComputeGPU : public PCNDAngleForceCompute
         GPUArray<Scalar2>  m_PCNDsr;    //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
         GPUArray<Scalar4>  m_PCNDepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
 
-	std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
-
         //! Actually compute the forces
         virtual void computeForces(uint64_t timestep);
-    };
+        };
 
 namespace detail
     {
@@ -88,4 +76,5 @@ void export_PCNDAngleForceComputeGPU(pybind11::module& m);
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
+
 #endif

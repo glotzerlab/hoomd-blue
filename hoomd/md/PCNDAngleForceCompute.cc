@@ -1,11 +1,6 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: dnlebard
-
-
-
 #include "PCNDAngleForceCompute.h"
 
 #include <iostream>
@@ -30,41 +25,41 @@ namespace md
     \post Memory is allocated, and forces are zeroed.
 */
 PCNDAngleForceCompute::PCNDAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef), m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
+    : ForceCompute(sysdef), m_Xi(NULL), m_Tau(NULL), m_PCND_type(NULL), m_particle_sum(NULL), m_particle_index(NULL), m_rcut(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing PCNDAngleForceCompute" << endl;
 
     // access the angle data for later use
-    m_PCNDAngle_data = m_sysdef->getAngleData();
+    m_pcnd_angle_data = m_sysdef->getAngleData();
 
     // check for some silly errors a user could make
-    if (m_PCNDAngle_data->getNTypes() == 0)
+    if (m_pcnd_angle_data->getNTypes() == 0)
         {
         m_exec_conf->msg->error() << "angle.pcnd: No angle types specified" << endl;
         throw runtime_error("Error initializing PCNDAngleForceCompute");
         }
 
     // allocate the parameters
-    m_K = new Scalar[m_PCNDAngle_data->getNTypes()];
-    m_t_0 = new Scalar[m_PCNDAngle_data->getNTypes()];
-    m_eps =  new Scalar[m_PCNDAngle_data->getNTypes()];
-    m_sigma = new Scalar[m_PCNDAngle_data->getNTypes()];
-    m_rcut =  new Scalar[m_PCNDAngle_data->getNTypes()];
-    m_cg_type = new unsigned int[m_PCNDAngle_data->getNTypes()];
+    m_Xi = new Scalar[m_pcnd_angle_data->getNTypes()];
+    m_Tau = new Scalar[m_pcnd_angle_data->getNTypes()];
+    m_PCND_type= new unsigned int[m_pcnd_angle_data->getNTypes()];
+    m_particle_sum =  new uint16_t [m_pcnd_angle_data->getNTypes()];
+    m_particle_index = new Scalar[m_pcnd_angle_data->getNTypes()];
+    m_rcut =  new Scalar[m_pcnd_angle_data->getNTypes()];
 
-    assert(m_K);
-    assert(m_t_0);
-    assert(m_eps);
-    assert(m_sigma);
+    assert(m_Xi);
+    assert(m_Tau);
+    assert(m_PCND_type);
+    assert(m_particle_sum);
+    assert(m_particle_index);
     assert(m_rcut);
-    assert(m_cg_type);
 
-    memset((void*)m_K,0,sizeof(Scalar)*m_PCNDAngle_data->getNTypes());
-    memset((void*)m_t_0,0,sizeof(Scalar)*m_PCNDAngle_data->getNTypes());
-    memset((void*)m_eps,0,sizeof(Scalar)*m_PCNDAngle_data->getNTypes());
-    memset((void*)m_sigma,0,sizeof(Scalar)*m_PCNDAngle_data->getNTypes());
-    memset((void*)m_rcut,0,sizeof(Scalar)*m_PCNDAngle_data->getNTypes());
-    memset((void*)m_cg_type,0,sizeof(unsigned int)*m_PCNDAngle_data->getNTypes());
+    memset((void*)m_Xi,0,sizeof(Scalar)*m_pcnd_angle_data->getNTypes());
+    memset((void*)m_Tau,0,sizeof(Scalar)*m_pcnd_angle_data->getNTypes());
+    memset((void*)m_PCND_type,0,sizeof(unsigned int)*m_pcnd_angle_data->getNTypes());
+    memset((void*)m_particle_sum,0,sizeof(uint16_t)*m_pcnd_angle_data->getNTypes());
+    memset((void*)m_particle_index,0,sizeof(Scalar)*m_pcnd_angle_data->getNTypes());
+    memset((void*)m_rcut,0,sizeof(Scalar)*m_pcnd_angle_data->getNTypes());
 
     prefact[0] = Scalar(0.0);
     prefact[1] = Scalar(6.75);
@@ -86,17 +81,17 @@ PCNDAngleForceCompute::~PCNDAngleForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying PCNDAngleForceCompute" << endl;
 
-    delete[] m_K;
-    delete[] m_t_0;
-    delete[] m_cg_type;
-    delete[] m_eps;
-    delete[] m_sigma;
+    delete[] m_Xi;
+    delete[] m_Tau;
+    delete[] m_PCND_type;
+    delete[] m_particle_sum;
+    delete[] m_particle_index;
     delete[] m_rcut;
-    m_K = NULL;
-    m_t_0 = NULL;
-    m_cg_type = NULL;
-    m_eps = NULL;
-    m_sigma = NULL;
+    m_Xi = NULL;
+    m_Tau = NULL;
+    m_PCND_type = NULL;
+    m_particle_sum = NULL;
+    m_particle_index = NULL;
     m_rcut = NULL;
     }
 
@@ -109,25 +104,25 @@ PCNDAngleForceCompute::~PCNDAngleForceCompute()
 
     Sets parameters for the potential of a particular angle type
 */
-void PCNDAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, uint16_t eps, Scalar sigma)
+void PCNDAngleForceCompute::setParams(unsigned int type, Scalar Xi, Scalar Tau, unsigned int PCND_type, uint16_t particle_sum, Scalar particle_index)
     {
     // make sure the type is valid
-    if (type >= m_PCNDAngle_data->getNTypes())
+    if (type >= m_pcnd_angle_data->getNTypes())
         {
         m_exec_conf->msg->error() << "angle.pcnd: Invalid angle type specified" << endl;
         throw runtime_error("Error setting parameters in PCNDAngleForceCompute");
         }
 
-    const double myPow1 = cgPow1[cg_type];
-    const double myPow2 = cgPow2[cg_type];
+    const double myPow1 = cgPow1[PCND_type];
+    const double myPow2 = cgPow2[PCND_type];
 
-    Scalar my_rcut = sigma * ((Scalar) exp(1.0/(myPow1-myPow2)*log(myPow1/myPow2)));
+    Scalar my_rcut = particle_index * ((Scalar) exp(1.0 / (myPow1 - myPow2) * log(myPow1 / myPow2)));
 
-    m_K[type] = K;
-    m_t_0[type] = t_0;
-    m_cg_type[type] = cg_type;
-    m_eps[type] = eps;
-    m_sigma[type] = sigma;
+    m_Xi[type] = Xi;
+    m_Tau[type] = Tau;
+    m_PCND_type[type] = PCND_type;
+    m_particle_sum[type] = particle_sum;
+    m_particle_index[type] = particle_index;
     m_rcut[type] = my_rcut;
 
     // check for some silly errors a user could make
@@ -145,6 +140,29 @@ void PCNDAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, u
         */
     }
 
+void PCNDAngleForceCompute::setParamsPython(std::string type, pybind11::dict params)
+    {                                                                           
+    auto typ = m_pcnd_angle_data->getTypeByName(type);                               
+    auto _params = angle_pcnd_params(params);                               
+    setParams(typ, _params.Xi, _params.Tau, _params.PCND_type, _params.particle_sum, _params.particle_index);
+    }                                                                                 
+
+pybind11::dict PCNDAngleForceCompute::getParams(std::string type)           
+    {                                                                           
+    auto typ = m_pcnd_angle_data->getTypeByName(type);                               
+    if (typ >= m_pcnd_angle_data->getNTypes())                                       
+        {                                                                       
+        throw runtime_error("Invalid angle type.");                             
+        }                                                                       
+    pybind11::dict params;                                                      
+    params["Xi"] = m_Xi[typ];                                                     
+    params["Tau"] = m_Tau[typ];                                                  
+    params["PCND_type"] = m_PCND_type[typ];
+    params["particle_sum"] = m_particle_sum[typ];
+    params["particle_index"] = m_particle_index[typ];
+    return params;                                                              
+    }
+
 /*! PCNDAngleForceCompute provides
     - \c angle_pcnd_energy
 */
@@ -158,7 +176,7 @@ std::vector< std::string > PCNDAngleForceCompute::getProvidedLogQuantities()
 /*! \param quantity Name of the quantity to get the log value of
     \param timestep Current time step of the simulation
 */
-Scalar PCNDAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PCNDAngleForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("angle_pcnd_energy"))
         {
@@ -175,7 +193,7 @@ Scalar PCNDAngleForceCompute::getLogValue(const std::string& quantity, unsigned 
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void PCNDAngleForceCompute::computeForces(unsigned int timestep)
+void PCNDAngleForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("PCNDAngle");
 
@@ -186,11 +204,7 @@ void PCNDAngleForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    const unsigned int virial_pitch = m_virial.getPitch();
-
-    // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+    size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -198,26 +212,30 @@ void PCNDAngleForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
+    // Zero data for force calculation.
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
     // allocate forces
-    Scalar fab[3], fcb[3];
+    // Scalar fab[3], fcb[3];
     Scalar fac;
 
     Scalar eac;
     Scalar vac[6];
     // for each of the angles
-    const unsigned int size = (unsigned int)m_PCNDAngle_data->getN();
+    const unsigned int size = (unsigned int)m_pcnd_angle_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the angle
-        const AngleData::members_t& angle = m_PCNDAngle_data->getMembersByIndex(i);
+        const AngleData::members_t& angle = m_pcnd_angle_data->getMembersByIndex(i);
         assert(angle.tag[0] <= m_pdata->getMaximumTag());
         assert(angle.tag[1] <= m_pdata->getMaximumTag());
         assert(angle.tag[1] <= m_pdata->getMaximumTag());
 
-        // transform a, b, and c into indicies into the particle data arrays
+        // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[angle.tag[0]];
         unsigned int idx_b = h_rtag.data[angle.tag[1]];
@@ -261,97 +279,102 @@ void PCNDAngleForceCompute::computeForces(unsigned int timestep)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rsqab = dab.x*dab.x+dab.y*dab.y+dab.z*dab.z;
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
-        Scalar rsqcb = dcb.x*dcb.x+dcb.y*dcb.y+dcb.z*dcb.z;
+        Scalar rsqcb = dcb.x * dcb.x + dcb.y * dcb.y + dcb.z * dcb.z;
         Scalar rcb = sqrt(rsqcb);
-        Scalar rsqac = dac.x*dac.x+dac.y*dac.y+dac.z*dac.z;
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
         Scalar rac = sqrt(rsqac);
 
-        Scalar c_abbc = dab.x*dcb.x+dab.y*dcb.y+dab.z*dcb.z;
-        c_abbc /= rab*rcb;
+        Scalar c_abbc = dab.x * dcb.x + dab.y * dcb.y + dab.z * dcb.z;
+        c_abbc /= rab * rcb;
 
-        if (c_abbc > 1.0) c_abbc = 1.0;
-        if (c_abbc < -1.0) c_abbc = -1.0;
+        if (c_abbc > 1.0)
+            c_abbc = 1.0;
+        if (c_abbc < -1.0)
+	    c_abbc = -1.0;
 
-        Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);
-        if (s_abbc < SMALL) s_abbc = SMALL;
-        s_abbc = 1.0/s_abbc;
+        Scalar s_abbc = sqrt(1.0 - c_abbc * c_abbc);
+        if (s_abbc < SMALL)
+            s_abbc = SMALL;
+        s_abbc = 1.0 / s_abbc;
 
         //////////////////////////////////////////
         // THIS CODE DOES THE 1-3 LJ repulsions //
         //////////////////////////////////////////////////////////////////////////////
+        unsigned int angle_type = m_pcnd_angle_data->getTypeByIndex(i);
         fac = Scalar(0.0);
         eac = Scalar(0.0);
         for (int k = 0; k < 6; k++)
             vac[k] = Scalar(0.0);
 
-        unsigned int angle_type = m_PCNDAngle_data->getTypeByIndex(i);
         if (rac < m_rcut[angle_type])
             {
-            const unsigned int cg_type = m_cg_type[angle_type];
-            const Scalar cg_pow1 = cgPow1[cg_type];
-            const Scalar cg_pow2 = cgPow2[cg_type];
-            const Scalar cg_pref = prefact[cg_type];
+            const unsigned int PCND_type = m_PCND_type[angle_type];
+            const Scalar cg_pow1 = cgPow1[PCND_type];
+            const Scalar cg_pow2 = cgPow2[PCND_type];
+            const Scalar cg_pref = prefact[PCND_type];
 
-            const Scalar cg_ratio = m_sigma[angle_type]/rac;
-            const Scalar cg_eps   = m_eps[angle_type];
+            const Scalar cg_ratio = m_particle_index[angle_type]/rac;
+            const uint16_t cg_eps   = m_particle_sum[angle_type];
 
-            fac = cg_pref*cg_eps / rsqac * (cg_pow1*pow(cg_ratio,cg_pow1) - cg_pow2*pow(cg_ratio,cg_pow2));
-            eac = cg_eps + cg_pref*cg_eps * (pow(cg_ratio,cg_pow1) - pow(cg_ratio,cg_pow2));
+            fac = cg_pref * cg_eps / rsqac * (cg_pow1 * pow(cg_ratio, cg_pow1) - cg_pow2 * pow(cg_ratio ,cg_pow2));
+            eac = cg_eps + cg_pref * cg_eps * (pow(cg_ratio, cg_pow1) - pow(cg_ratio, cg_pow2));
 
-            vac[0] = fac * dac.x*dac.x;
-            vac[1] = fac * dac.x*dac.y;
-            vac[2] = fac * dac.x*dac.z;
-            vac[3] = fac * dac.y*dac.y;
-            vac[4] = fac * dac.y*dac.z;
-            vac[5] = fac * dac.z*dac.z;
+            vac[0] = fac * dac.x * dac.x;
+            vac[1] = fac * dac.x * dac.y;
+            vac[2] = fac * dac.x * dac.z;
+            vac[3] = fac * dac.y * dac.y;
+            vac[4] = fac * dac.y * dac.z;
+            vac[5] = fac * dac.z * dac.z;
             }
         //////////////////////////////////////////////////////////////////////////////
 
         // actually calculate the force
-        Scalar dth = acos(c_abbc) - m_t_0[angle_type];
-        Scalar tk = m_K[angle_type]*dth;
+	Scalar dth = acos(c_abbc) - m_Tau[angle_type];
+        Scalar tk = m_Xi[angle_type] * dth;
 
         Scalar a = -1.0 * tk * s_abbc;
-        Scalar a11 = a*c_abbc/rsqab;
-        Scalar a12 = -a / (rab*rcb);
-        Scalar a22 = a*c_abbc / rsqcb;
+        Scalar a11 = a * c_abbc / rsqab;
+        Scalar a12 = -a / (rab * rcb);
+        Scalar a22 = a * c_abbc / rsqcb;
 
-        fab[0] = a11*dab.x + a12*dcb.x;
-        fab[1] = a11*dab.y + a12*dcb.y;
-        fab[2] = a11*dab.z + a12*dcb.z;
+        Scalar fab[3], fcb[3];
 
-        fcb[0] = a22*dcb.x + a12*dab.x;
-        fcb[1] = a22*dcb.y + a12*dab.y;
-        fcb[2] = a22*dcb.z + a12*dab.z;
+        fab[0] = a11 * dab.x + a12 * dcb.x;
+        fab[1] = a11 * dab.y + a12 * dcb.y;
+        fab[2] = a11 * dab.z + a12 * dcb.z;
+
+        fcb[0] = a22 * dcb.x + a12 * dab.x;
+        fcb[1] = a22 * dcb.y + a12 * dab.y;
+        fcb[2] = a22 * dcb.z + a12 * dab.z;
 
         // compute 1/3 of the energy, 1/3 for each atom in the angle
-        Scalar angle_eng = (0.5*tk*dth + eac)*Scalar(1.0/3.0);
+        Scalar angle_eng = (tk * dth + eac) * Scalar(1.0/6.0);
 
         // compute 1/3 of the virial, 1/3 for each atom in the angle
         // upper triangular version of virial tensor
         Scalar angle_virial[6];
-        angle_virial[0] = Scalar(1./3.) * ( dab.x*fab[0] + dcb.x*fcb[0] );
-        angle_virial[1] = Scalar(1./3.) * ( dab.y*fab[0] + dcb.y*fcb[0] );
-        angle_virial[2] = Scalar(1./3.) * ( dab.z*fab[0] + dcb.z*fcb[0] );
-        angle_virial[3] = Scalar(1./3.) * ( dab.y*fab[1] + dcb.y*fcb[1] );
-        angle_virial[4] = Scalar(1./3.) * ( dab.z*fab[1] + dcb.z*fcb[1] );
-        angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
+        angle_virial[0] = Scalar(1. /3.) * (dab.x * fab[0] + dcb.x * fcb[0]);
+        angle_virial[1] = Scalar(1. /3.) * (dab.y * fab[0] + dcb.y * fcb[0]);
+        angle_virial[2] = Scalar(1. /3.) * (dab.z * fab[0] + dcb.z * fcb[0]);
+        angle_virial[3] = Scalar(1. /3.) * (dab.y * fab[1] + dcb.y * fcb[1]);
+        angle_virial[4] = Scalar(1. /3.) * (dab.z * fab[1] + dcb.z * fcb[1]);
+        angle_virial[5] = Scalar(1. /3.) * (dab.z * fab[2] + dcb.z * fcb[2]);
         Scalar virial[6];
         for (unsigned int k=0; k < 6; k++)
-            virial[k] = angle_virial[k] + Scalar(1./3.)*vac[k];
+            virial[k] = angle_virial[k] + Scalar(1. /3.) * vac[k];
 
-        // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
+        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
         // only apply force to local particles
         if (idx_a < m_pdata->getN())
             {
-            h_force.data[idx_a].x += fab[0] + fac*dac.x;
-            h_force.data[idx_a].y += fab[1] + fac*dac.y;
-            h_force.data[idx_a].z += fab[2] + fac*dac.z;
+            h_force.data[idx_a].x += fab[0] + fac * dac.x;
+            h_force.data[idx_a].y += fab[1] + fac * dac.y;
+            h_force.data[idx_a].z += fab[2] + fac * dac.z;
             h_force.data[idx_a].w += angle_eng;
             for (int k = 0; k < 6; k++)
-                h_virial.data[k*virial_pitch+idx_a] += virial[k];
+                h_virial.data[k * virial_pitch + idx_a] += virial[k];
             }
 
         if (idx_b < m_pdata->getN())
@@ -361,7 +384,7 @@ void PCNDAngleForceCompute::computeForces(unsigned int timestep)
             h_force.data[idx_b].z -= fab[2] + fcb[2];
             h_force.data[idx_b].w += angle_eng;
             for (int k = 0; k < 6; k++)
-                h_virial.data[k*virial_pitch+idx_b] += virial[k];
+                h_virial.data[k * virial_pitch + idx_b] += virial[k];
             }
 
         if (idx_c < m_pdata->getN())
@@ -371,20 +394,23 @@ void PCNDAngleForceCompute::computeForces(unsigned int timestep)
             h_force.data[idx_c].z += fcb[2] - fac*dac.z;
             h_force.data[idx_c].w += angle_eng;
             for (int k = 0; k < 6; k++)
-                h_virial.data[k*virial_pitch+idx_c] += virial[k];
+                h_virial.data[k * virial_pitch + idx_c] += virial[k];
             }
         }
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
 namespace detail
     {
 void export_PCNDAngleForceCompute(pybind11::module& m)
     {
-    pybind11::class_<PCNDAngleForceCompute, std::shared_ptr<PCNDAngleForceCompute> >(m, "PCNDAngleForceCompute", pybind11::base<ForceCompute>())
-    .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
-    .def("setParams", &PCNDAngleForceCompute::setParams)
-    ;
+    pybind11::class_<PCNDAngleForceCompute,
+	             ForceCompute,
+	             std::shared_ptr<PCNDAngleForceCompute>>(m, "PCNDAngleForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setParams", &PCNDAngleForceCompute::setParamsPython)
+	.def("getParams", &PCNDAngleForceCompute::getParams);
     }
 
     } // end namespace detail

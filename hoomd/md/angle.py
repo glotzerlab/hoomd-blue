@@ -8,6 +8,7 @@ from hoomd.md.force import Force
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 import hoomd
+import numpy
 
 
 class Angle(Force):
@@ -77,10 +78,10 @@ class Harmonic(Angle):
         self._add_typeparam(params)
 
 
-class Cosinesq(Angle):
+class CosineSquared(Angle):
     r"""Cosine squared angle potential.
 
-    :py:class:`Cosinesq` specifies a cosine squared potential energy
+    :py:class:`CosineSquared` specifies a cosine squared potential energy
     between every triplet of particles with an angle specified between them.
 
     .. math::
@@ -110,7 +111,7 @@ class Cosinesq(Angle):
 
     Examples::
 
-        cosinesq = angle.Cosinesq()
+        cosinesq = angle.CosineSquared()
         cosinesq.params['polymer'] = dict(k=3.0, t0=0.7851)
         cosinesq.params['backbone'] = dict(k=100.0, t0=1.0)
     """
@@ -124,64 +125,113 @@ class Cosinesq(Angle):
         self._add_typeparam(params)
 
 
+class Table(Angle):
+    """Tabulated bond potential.
+
+    Args:
+        width (int): Number of points in the table.
+
+    `Table` computes a user-defined potential and force applied to each angle.
+
+    The torque :math:`\\tau` is:
+
+    .. math::
+        \\tau(\\theta) = \\tau_\\mathrm{table}(\\theta)
+
+    and the potential :math:`V(\\theta)` is:
+
+    .. math::
+        V(\\theta) =V_\\mathrm{table}(\\theta)
+
+    where :math:`\\theta` is the angle between the vectors
+    :math:`\\vec{r}_A - \\vec{r}_B` and :math:`\\vec{r}_C - \\vec{r}_B` for
+    particles A,B,C in the angle.
+
+    Provide :math:`\\tau_\\mathrm{table}(\\theta)` and
+    :math:`V_\\mathrm{table}(\\theta)` on evenly spaced grid points points
+    in the range :math:`\\theta \\in [0,\\pi]`. `Table` linearly
+    interpolates values when :math:`\\theta` lies between grid points. The
+    torque must be specificed commensurate with the potential: :math:`\\tau =
+    -\\frac{\\partial V}{\\partial \\theta}`.
+
+    Attributes:
+        params (`TypeParameter` [``angle type``, `dict`]):
+          The potential parameters. The dictionary has the following keys:
+
+          * ``V`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated energy values :math:`[\\mathrm{energy}]`. Must have
+            a size equal to `width`.
+
+          * ``tau`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated torque values :math:`[\\mathrm{force} \\cdot
+            \\mathrm{length}]`. Must have a size equal to `width`.
+
+        width (int): Number of points in the table.
+    """
+
+    def __init__(self, width):
+        super().__init__()
+        param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
+        param_dict['width'] = width
+        self._param_dict = param_dict
+
+        params = TypeParameter(
+            "params", "angle_types",
+            TypeParameterDict(
+                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                len_keys=1))
+        self._add_typeparam(params)
+
+    def _attach(self):
+        """Create the c++ mirror class."""
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = _md.TableAngleForceCompute
+        else:
+            cpp_cls = _md.TableAngleForceComputeGPU
+
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
+
+        Force._attach(self)
+
+
 class PCND(Angle):
-    R""" PCND angle potential.
+    r"""Protracted colored noise dynamics.
 
-    The command angle.pcnd defines a regular harmonic potential energy between every defined triplet
-    of particles in the simulation, but in addition in adds the repulsive part of a PCND pair potential
-    between the first and the third particle.
-
-    `B. Levine et. al. 2011 <http://dx.doi.org/10.1021/ct2005193>`_ describes the PCND implementation details in
-    HOOMD-blue. Cite it if you utilize the PCND potential in your work.
-
-    The total potential is thus:
+    :py:class:`Harmonic` specifies a harmonic potential energy between
+    every triplet of particles with an angle specified between them.
 
     .. math::
 
         V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
 
-    where :math:`\theta` is the current angle between the three particles
-    and either:
+    where :math:`\theta` is the angle between the triplet of particles.
 
-    .. math::
+    Attributes:
+        params (TypeParameter[``angle type``, dict]):
+            The parameter of the harmonic bonds for each particle type.
+            The dictionary has the following keys:
 
-        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[
-        \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right]
-        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}}
+            * ``k`` (`float`, **required**) - potential constant :math:`k`
+              :math:`[\mathrm{energy} \cdot \mathrm{radians}^{-2}]`
 
+            * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
+              :math:`[\mathrm{radians}]`
 
-    .. math::
+            * ``cg_type`` (`int`, **required**) - identifies the type of system
+              that PCND will act on. 1 == individual, 2 == particle, and 3 == chain.
+    Examples::
 
-        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
-        V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
-        \left( \frac{\sigma}{r} \right)^{6} \right]
-        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}
+        harmonic = angle.Harmonic()
+        harmonic.params['polymer'] = dict(k=3.0, t0=0.7851)
+        harmonic.params['backbone'] = dict(k=100.0, t0=1.0)
 
-
-    .. math::
-
-        V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
-        V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-        \left( \frac{\sigma}{r} \right)^{4} \right]
-        \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}}
-
-    with :math:`r_{13}` being the distance between the two outer particles of the angle.
-
-    Coefficients:
-
-    - :math:`\theta_0` - rest angle ``t0`` (in radians)
-    - :math:`k` - potential constant ``k`` (in units of energy/radians^2)
-    - :math:`\varepsilon` - strength of potential ``epsilon`` (in energy units)
-    - :math:`\sigma` - distance of interaction ``sigma`` (in distance units)
-
-    Coefficients :math:`k, \theta_0, \varepsilon``, and :math:`\sigma` and Lennard-Jones exponents pair must be set for
-    each type of angle in the simulation using :py:meth:`set_coeff()`.
     """
-    
-    __cpp_class_name = 'PCNDAngleForceCompute'
+
+    _cpp_class_name = 'PCNDAngleForceCompute'
 
     def __init__(self):
         super().__init__()
         params = TypeParameter('params', 'angle_types',
-                               TypeParameterDict(Xi=float, tau=float, len_keys=1))
+                               TypeParameterDict(Xi=float, Tau=float, PCND_type=int, particle_sum=float, particle_index=float, len_keys=1))
         self._add_typeparam(params)
