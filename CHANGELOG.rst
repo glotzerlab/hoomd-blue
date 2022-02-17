@@ -7,8 +7,8 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.14 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.14 (2022-02-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -33,7 +33,8 @@ v3.0.0-beta.14 (not yet released)
 
 * Support variant translational and rotational spring constants in ``hpmc.external.field.Harmonic``.
 * [breaking] Renamed ``md.angle.Cosinesq`` to ``md.angle.CosineSquared``.
-* [breaking] `hoomd.Box` no longer has a `matrix` property use ``to_matrix`` and ``from_matrix``.
+* [breaking] ``hoomd.Box`` no longer has a ``matrix`` property use ``to_matrix`` and
+  ``from_matrix``.
 
 *Fixed*
 
