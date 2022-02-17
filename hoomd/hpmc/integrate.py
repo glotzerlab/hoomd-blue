@@ -630,10 +630,6 @@ class Sphere(HPMCIntegrator):
     Tip:
         Use `Sphere` in a 2D simulation to perform Monte Carlo on hard disks.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
-
     .. rubric:: Wall support.
 
     `integrate.Sphere` supports all `hoomd.wall` geometries.
@@ -727,10 +723,6 @@ class ConvexPolygon(HPMCIntegrator):
 
     See Also:
         Use `SimplePolygon` for concave polygons.
-
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
 
     .. rubric:: Wall support.
 
@@ -838,10 +830,6 @@ class ConvexSpheropolygon(HPMCIntegrator):
         A 1-vertex spheropolygon is a disk and a 2-vertex spheropolygon is a
         rectangle with half disk caps.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
-
     .. rubric:: Wall support.
 
     `integrate.ConvexSpheropolygon` supports no `hoomd.wall`
@@ -947,10 +935,6 @@ class SimplePolygon(HPMCIntegrator):
     See Also:
         Use `ConvexPolygon` for faster performance with convex polygons.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
-
     .. rubric:: Wall support.
 
     `integrate.SimplePolygon` supports no `hoomd.wall` geometries.
@@ -1050,10 +1034,6 @@ class Polyhedron(HPMCIntegrator):
         Depending on the number of constituent faces in the tree, different
         values of the number of faces per leaf node may yield different
         optimal performance. The capacity of leaf nodes is configurable.
-
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
 
     .. rubric:: Wall support.
 
@@ -1230,10 +1210,6 @@ class ConvexPolyhedron(HPMCIntegrator):
     See Also:
         Use `Polyhedron` for concave polyhedra.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
-
     .. rubric:: Wall support.
 
     `integrate.ConvexPolyhedron` supports all `hoomd.wall`
@@ -1343,10 +1319,6 @@ class FacetedEllipsoid(HPMCIntegrator):
         \vec{n}_i\cdot \vec{r} + b_i \le 0
 
     where :math:`\vec{n}_i` is the face normal, and :math:`b_i` is  the offset.
-
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
 
     .. rubric:: Wall support.
 
@@ -1492,10 +1464,6 @@ class Sphinx(HPMCIntegrator):
     the center given in `shape` and :math:`S_k` is the set of points in a sphere
     or diameter :math:`|d_k|`.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
-
     .. rubric:: Wall support.
 
     `integrate.Sphinx` supports no `hoomd.wall` geometries.
@@ -1572,10 +1540,6 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
     Tip:
         A 1-vertex spheropolygon is a sphere and a 2-vertex spheropolygon is a
         spherocylinder.
-
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
 
     .. rubric:: Wall support.
 
@@ -1690,10 +1654,6 @@ class Ellipsoid(HPMCIntegrator):
     :math:`\\vec{r}`, and the parameters :math:`a`, :math:`b`, and
     :math:`c` are the half axes of the ellipsoid set in `shape`.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
-
     .. rubric:: Wall support.
 
     `integrate.Ellipsoid` supports no `hoomd.wall`  geometries.
@@ -1792,10 +1752,6 @@ class SphereUnion(HPMCIntegrator):
         Depending on the number of constituent spheres in the tree, different
         values of the number of spheres per leaf node may yield different
         performance. The capacity of leaf nodes is configurable.
-
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
 
     .. rubric:: Wall support.
 
@@ -1935,10 +1891,6 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         different values of the number of spheropolyhedra per leaf node may
         yield different performance. The capacity of leaf nodes is configurable.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
-
     .. rubric:: Wall support.
 
     `integrate.ConvexSpheropolyhedronUnion` supports no `hoomd.wall`
@@ -2065,10 +2017,6 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         Depending on the number of constituent faceted ellipsoids in the tree,
         different values of the number of faceted ellipsoids per leaf node may
         yield different performance. The capacity of leaf nodes is configurable.
-
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
 
     .. rubric:: Wall support.
 
