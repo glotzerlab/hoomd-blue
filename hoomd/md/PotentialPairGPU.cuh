@@ -82,7 +82,7 @@ struct pair_args_t
     const Scalar4* d_pos;      //!< particle positions
     const Scalar* d_diameter;  //!< particle diameters
     const Scalar* d_charge;    //!< particle charges
-    const BoxDim& box;         //!< Simulation box in GPU format
+    const BoxDim box;          //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;                //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist;  //!< Device array listing the neighbors of each particle

@@ -46,7 +46,6 @@ namespace hoomd
     {
 //! Forward declarations for some classes
 class SystemDefinition;
-class Profiler;
 struct BoxDim;
 class ParticleData;
 
@@ -157,14 +156,6 @@ class PYBIND11_EXPORT Communicator
 
     //! \name accessor methods
     //@{
-
-    //! Set the profiler.
-    /*! \param prof Profiler to use with this class
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
 
     //! Subscribe to list of functions that determine when the particles are migrated
     /*! This method keeps track of all functions that may request particle migration.
@@ -466,7 +457,6 @@ class PYBIND11_EXPORT Communicator
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
-    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
     bool m_is_communicating; //!< Whether we are currently communicating
     bool m_force_migrate;    //!< True if particle migration is forced

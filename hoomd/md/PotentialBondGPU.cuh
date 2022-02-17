@@ -55,7 +55,7 @@ struct bond_args_t
     const Scalar4* d_pos;                   //!< particle positions
     const Scalar* d_charge;                 //!< particle charges
     const Scalar* d_diameter;               //!< particle diameters
-    const BoxDim& box;                      //!< Simulation box in GPU format
+    const BoxDim box;                       //!< Simulation box in GPU format
     const group_storage<2>* d_gpu_bondlist; //!< List of bonds stored on the GPU
     const Index2D& gpu_table_indexer;       //!< Indexer of 2D bond list
     const unsigned int* d_gpu_n_bonds;      //!< List of number of bonds stored on the GPU

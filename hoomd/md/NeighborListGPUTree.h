@@ -124,7 +124,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     //! Compute the LBVH domain from the current box
     BoxDim getLBVHBox() const
         {
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
 
         // ghost layer padding
         Scalar ghost_layer_width(0.0);

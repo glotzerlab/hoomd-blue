@@ -36,26 +36,6 @@ mpcd::Integrator::~Integrator()
     }
 
 /*!
- * \param prof The profiler to set
- * Sets the profiler both for this class and all of the contained integration methods
- */
-void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    IntegratorTwoStep::setProfiler(prof);
-    m_mpcd_sys->setProfiler(prof);
-    if (m_collide)
-        m_collide->setProfiler(prof);
-    if (m_stream)
-        m_stream->setProfiler(prof);
-    if (m_sorter)
-        m_sorter->setProfiler(prof);
-#ifdef ENABLE_MPI
-    if (m_mpcd_comm)
-        m_mpcd_comm->setProfiler(prof);
-#endif // ENABLE_MPI
-    }
-
-/*!
  * \param timestep Current time step of the simulation
  * \post All integration methods previously added with addIntegrationMethod() are applied in order
  * to move the system state variables forward to \a timestep+1. \post Internally, all forces added
@@ -103,12 +83,8 @@ void mpcd::Integrator::update(uint64_t timestep)
         m_collide->collide(timestep);
 
     // perform the first MD integration step
-    if (m_prof)
-        m_prof->push("Integrate");
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
-    if (m_prof)
-        m_prof->pop();
 
 // MD communication / rigid body updates
 #ifdef ENABLE_MPI
@@ -138,12 +114,8 @@ void mpcd::Integrator::update(uint64_t timestep)
         computeNetForce(timestep + 1);
 
     // perform the second step of the MD integration
-    if (m_prof)
-        m_prof->push("Integrate");
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!

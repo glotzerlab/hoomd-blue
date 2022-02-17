@@ -34,12 +34,10 @@ namespace hoomd
     \param initial_tstep Initial time step of the simulation
 
     \post The System is constructed with no attached computes, updaters,
-    analyzers or integrators. Profiling defaults to disabled and
-    statistics are printed every 10 seconds.
+    analyzers or integrators.
 */
 System::System(std::shared_ptr<SystemDefinition> sysdef, uint64_t initial_tstep)
-    : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
-      m_profile(false)
+    : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep)
     {
     // sanity check
     assert(m_sysdef);
@@ -88,7 +86,6 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
     // initialize the last status time
     m_initial_time = m_clk.getTime();
-    setupProfiling();
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
     // info they need but set the flags before prepRun, as prepRun may remove some flags that it
@@ -201,13 +198,6 @@ void System::updateTPS()
     m_last_TPS = double(m_cur_tstep - m_start_tstep) / m_last_walltime;
     }
 
-/*! \param enable Set to true to enable profiling during calls to run()
- */
-void System::enableProfiler(bool enable)
-    {
-    m_profile = enable;
-    }
-
 /*! \param enable Enable/disable autotuning
     \param period period (approximate) in time steps when returning occurs
 */
@@ -236,47 +226,6 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
     }
 
 // --------- Steps in the simulation run implemented in helper functions
-
-void System::setupProfiling()
-    {
-    if (m_profile)
-        m_profiler = std::shared_ptr<Profiler>(new Profiler("Simulation"));
-    else
-        m_profiler = std::shared_ptr<Profiler>();
-
-    // set the profiler on everything
-    if (m_integrator)
-        m_integrator->setProfiler(m_profiler);
-    m_sysdef->getParticleData()->setProfiler(m_profiler);
-    m_sysdef->getBondData()->setProfiler(m_profiler);
-    m_sysdef->getPairData()->setProfiler(m_profiler);
-    m_sysdef->getAngleData()->setProfiler(m_profiler);
-    m_sysdef->getDihedralData()->setProfiler(m_profiler);
-    m_sysdef->getImproperData()->setProfiler(m_profiler);
-    m_sysdef->getConstraintData()->setProfiler(m_profiler);
-
-    // analyzers
-    for (auto& analyzer_trigger_pair : m_analyzers)
-        analyzer_trigger_pair.first->setProfiler(m_profiler);
-
-    // updaters
-    for (auto& updater_trigger_pair : m_updaters)
-        {
-        if (!updater_trigger_pair.first)
-            throw runtime_error("Invalid updater_trigger_pair");
-        updater_trigger_pair.first->setProfiler(m_profiler);
-        }
-
-    // computes
-    for (auto compute : m_computes)
-        compute->setProfiler(m_profiler);
-
-#ifdef ENABLE_MPI
-    // communicator
-    if (m_sysdef->isDomainDecomposed())
-        m_comm->setProfiler(m_profiler);
-#endif
-    }
 
 void System::resetStats()
     {
@@ -368,7 +317,6 @@ void export_System(pybind11::module& m)
         .def("getIntegrator", &System::getIntegrator)
 
         .def("setAutotunerParams", &System::setAutotunerParams)
-        .def("enableProfiler", &System::enableProfiler)
         .def("run", &System::run)
 
         .def("getLastTPS", &System::getLastTPS)

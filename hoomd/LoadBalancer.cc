@@ -81,9 +81,6 @@ void LoadBalancer::update(uint64_t timestep)
     if (!m_sysdef->isDomainDecomposed())
         return;
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "balance");
-
     // no adjustment has been made yet, so set m_N_own to the number of particles on the rank
     resetNOwn(m_pdata->getN());
 
@@ -179,9 +176,6 @@ void LoadBalancer::update(uint64_t timestep)
             ++m_n_rebalances;
             }
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
 #endif // ENABLE_MPI
     }
 

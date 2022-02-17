@@ -66,10 +66,6 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "EAM pair");
-
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = m_nlist->getStorageMode() == md::NeighborList::half;
     if (third_law)
@@ -138,9 +134,6 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

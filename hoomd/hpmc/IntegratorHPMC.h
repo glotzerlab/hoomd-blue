@@ -93,7 +93,7 @@ struct hpmc_patch_args_t
     const uint64_t timestep;               //!< Current timestep
     const unsigned int select;
     const unsigned int num_types;              //!< Number of particle types
-    const BoxDim& box;                         //!< Current simulation box
+    const BoxDim box;                          //!< Current simulation box
     const unsigned int* d_excell_idx;          //!< Expanded cell list
     const unsigned int* d_excell_size;         //!< Size of expanded cells
     const Index2D& excli;                      //!< Excell indexer

@@ -426,9 +426,6 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
 
 template<class Shape> void UpdaterClustersGPU<Shape>::connectedComponents()
     {
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "connected components");
-
     // this will contain the number of strongly connected components
     unsigned int num_components = 0;
 
@@ -500,9 +497,6 @@ template<class Shape> void UpdaterClustersGPU<Shape>::connectedComponents()
     // count clusters
     this->m_count_total.n_particles_in_clusters += this->m_pdata->getN();
     this->m_count_total.n_clusters += num_components;
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape> void UpdaterClustersGPU<Shape>::initializeExcellMem()
@@ -609,9 +603,6 @@ void UpdaterClustersGPU<Shape>::transform(const quat<Scalar>& q,
                                           const vec3<Scalar>& pivot,
                                           bool line)
     {
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "Transform");
-
     ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::readwrite);
@@ -642,16 +633,10 @@ void UpdaterClustersGPU<Shape>::transform(const quat<Scalar>& q,
         CHECK_CUDA_ERROR();
     m_tuner_transform->end();
     this->m_exec_conf->endMultiGPU();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape> void UpdaterClustersGPU<Shape>::flip(uint64_t timestep)
     {
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "flip");
-
     ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::readwrite);
@@ -692,9 +677,6 @@ template<class Shape> void UpdaterClustersGPU<Shape>::flip(uint64_t timestep)
         CHECK_CUDA_ERROR();
     m_tuner_flip->end();
     this->m_exec_conf->endMultiGPU();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape>
@@ -704,10 +686,6 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                                                  bool line)
     {
     const auto& params = this->m_mc->getParams();
-
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "Interactions");
 
     if (this->m_pdata->getN() > 0)
         {
@@ -1009,10 +987,6 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
             reallocate = checkReallocate();
             } while (reallocate);
         }
-
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape> bool UpdaterClustersGPU<Shape>::checkReallocate()

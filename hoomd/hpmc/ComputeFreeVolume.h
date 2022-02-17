@@ -136,9 +136,6 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
 
     uint16_t seed = m_sysdef->getSeed();
 
-    if (m_prof)
-        m_prof->push("Free volume");
-
     // only check if AABB tree is populated
     if (m_pdata->getN() + m_pdata->getNGhosts())
         {
@@ -149,7 +146,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,
                                            access_mode::read);
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
 
         // access parameters and interaction matrix
         const std::vector<typename Shape::param_type,
@@ -272,9 +269,6 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
         }
 #endif
 
-    if (m_prof)
-        m_prof->pop();
-
     ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all,
                                               access_location::host,
                                               access_mode::overwrite);
@@ -299,7 +293,7 @@ template<class Shape> Scalar ComputeFreeVolume<Shape>::getFreeVolume()
 #endif
 
     // total free volume
-    const BoxDim& global_box = this->m_pdata->getGlobalBox();
+    const BoxDim global_box = this->m_pdata->getGlobalBox();
     Scalar V_free
         = (Scalar)(n_sample - *h_n_overlap_all.data) / (Scalar)n_sample * global_box.getVolume();
 

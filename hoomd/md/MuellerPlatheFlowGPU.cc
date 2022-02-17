@@ -64,8 +64,6 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
         return;
     if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlowGPU::search");
     const ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                      access_location::device,
                                      access_mode::read);
@@ -106,15 +104,10 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     m_tuner->end();
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
     {
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlowGPU::update");
     const ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
                                            access_location::device,
                                            access_mode::read);
@@ -132,9 +125,6 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

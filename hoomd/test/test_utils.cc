@@ -7,13 +7,12 @@
 #include <iostream>
 
 #include "hoomd/ClockSource.h"
-#include "hoomd/Profiler.h"
 #include <math.h>
 
 #include "upp11_config.h"
 
 /*! \file utils_test.cc
-    \brief Unit tests for ClockSource, Profiler, and Variant
+    \brief Unit tests for ClockSource, and Variant
     \ingroup unit_tests
 */
 
@@ -73,73 +72,3 @@ for (int i = 0; i < 100; i++)
     UP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(65)), string("00:01:05"));
     UP_ASSERT_EQUAL(ClockSource::formatHMS(int64_t(1000000000)*int64_t(3678)), string("01:01:18"));
     }*/
-
-//! perform some simple checks on the profiler code
-UP_TEST(Profiler_test)
-    {
-    // ProfileDataElem tests
-    // constructor test
-    ProfileDataElem p;
-    UP_ASSERT(p.getChildElapsedTime() == 0);
-    UP_ASSERT(p.getTotalFlopCount() == 0);
-    UP_ASSERT(p.getTotalMemByteCount() == 0);
-
-    // build up a tree and test its getTotal members
-    p.m_elapsed_time = 1;
-    p.m_flop_count = 2;
-    p.m_mem_byte_count = 3;
-    UP_ASSERT(p.getChildElapsedTime() == 0);
-    UP_ASSERT(p.getTotalFlopCount() == 2);
-    UP_ASSERT(p.getTotalMemByteCount() == 3);
-
-    p.m_children["A"].m_elapsed_time = 4;
-    p.m_children["A"].m_flop_count = 5;
-    p.m_children["A"].m_mem_byte_count = 6;
-    UP_ASSERT(p.getChildElapsedTime() == 4);
-    UP_ASSERT(p.getTotalFlopCount() == 7);
-    UP_ASSERT(p.getTotalMemByteCount() == 9);
-
-    p.m_children["B"].m_elapsed_time = 7;
-    p.m_children["B"].m_flop_count = 8;
-    p.m_children["B"].m_mem_byte_count = 9;
-    UP_ASSERT(p.getChildElapsedTime() == 4 + 7);
-    UP_ASSERT(p.getTotalFlopCount() == 7 + 8);
-    UP_ASSERT(p.getTotalMemByteCount() == 9 + 9);
-
-    p.m_children["A"].m_children["C"].m_elapsed_time = 10;
-    p.m_children["A"].m_children["C"].m_flop_count = 11;
-    p.m_children["A"].m_children["C"].m_mem_byte_count = 12;
-    UP_ASSERT(p.getChildElapsedTime() == 4 + 7);
-    UP_ASSERT(p.getTotalFlopCount() == 7 + 8 + 11);
-    UP_ASSERT(p.getTotalMemByteCount() == 9 + 9 + 12);
-
-    Profiler prof("Main");
-    prof.push("Loading");
-    Sleep(500);
-    prof.pop();
-    prof.push("Neighbor");
-    Sleep(1000);
-    prof.pop(int64_t(1e6), int64_t(1e6));
-
-    prof.push("Pair");
-    prof.push("Load");
-    Sleep(1000);
-    prof.pop(int64_t(1e9), int64_t(1e9));
-    prof.push("Work");
-    Sleep(1000);
-    prof.pop(int64_t(10e9), int64_t(100));
-    prof.push("Unload");
-    Sleep(1000);
-    prof.pop(int64_t(100), int64_t(1e9));
-    prof.pop();
-
-    std::cout << prof;
-
-    // This code attempts to reproduce the problem found in ticket #50
-    Profiler prof2("test");
-    prof2.push("test1");
-    // Changing this slep value much lower than 100 results in the bug.
-    Sleep(000);
-    prof2.pop(100, 100);
-    std::cout << prof2;
-    }

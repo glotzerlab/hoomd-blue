@@ -244,11 +244,6 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
 
 void mpcd::CellThermoComputeGPU::computeNetProperties()
     {
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "MPCD thermo");
-        }
-
         // first reduce the properties on the rank
         {
         const Index3D& ci = m_cl->getCellIndexer();
@@ -361,8 +356,6 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         }
 
     m_needs_net_reduce = false;
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)

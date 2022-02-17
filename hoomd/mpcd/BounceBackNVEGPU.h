@@ -74,8 +74,6 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepOne(uint6
                                         << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
-    if (this->m_prof)
-        this->m_prof->push("Bounce NVE step 1");
 
     if (this->m_validate_geom)
         this->validate();
@@ -93,7 +91,7 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepOne(uint6
     ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(),
                                  access_location::device,
                                  access_mode::read);
-    const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim box = this->m_pdata->getBox();
 
     // group members
     const unsigned int group_size = this->m_group->getNumMembers();
@@ -116,9 +114,6 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepOne(uint6
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner_1->end();
-
-    if (this->m_prof)
-        this->m_prof->pop();
     }
 
 template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepTwo(uint64_t timestep)
@@ -130,8 +125,6 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepTwo(uint6
                                         << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
-    if (this->m_prof)
-        this->m_prof->push("Bounce NVE step 2");
 
     ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(),
                                access_location::device,
@@ -159,9 +152,6 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepTwo(uint6
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner_2->end();
-
-    if (this->m_prof)
-        this->m_prof->pop();
     }
 
 namespace detail

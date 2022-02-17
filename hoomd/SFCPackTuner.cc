@@ -95,9 +95,6 @@ void SFCPackTuner::update(uint64_t timestep)
         }
 #endif
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "SFCPack");
-
     // figure out the sort order we need to apply
     if (m_sysdef->getNDimensions() == 2)
         getSortedOrder2D();
@@ -117,9 +114,6 @@ void SFCPackTuner::update(uint64_t timestep)
         m_comm->communicate(timestep);
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void SFCPackTuner::applySortOrder()

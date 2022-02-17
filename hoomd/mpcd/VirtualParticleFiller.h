@@ -44,12 +44,6 @@ class PYBIND11_EXPORT VirtualParticleFiller
     //! Fill up virtual particles
     void fill(uint64_t timestep);
 
-    //! Sets the profiler for the integration method to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Set autotuner parameters
     /*!
      * \param enable Enable/disable autotuning
@@ -77,7 +71,6 @@ class PYBIND11_EXPORT VirtualParticleFiller
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
-    std::shared_ptr<Profiler> m_prof;                          //!< System profiler;
 
     Scalar m_density;             //!< Fill density
     unsigned int m_type;          //!< Fill type
