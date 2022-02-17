@@ -642,14 +642,6 @@ class Sphere(HPMCIntegrator):
         mc.shape["C"] = dict(diameter=1.0, orientable=True)
         print('diameter = ', mc.shape["A"]["diameter"])
 
-    Depletants Example::
-
-        mc = hoomd.hpmc.integrate.Sphere(default_d=0.3, default_a=0.4,
-                                        nselect=8)
-        mc.shape["A"] = dict(diameter=1.0)
-        mc.shape["B"] = dict(diameter=1.0)
-        mc.depletant_fugacity["B"] = 3.0
-
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
@@ -1065,41 +1057,6 @@ class Polyhedron(HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
         print('faces = ', mc.shape["A"]["faces"])
 
-    Depletants Example::
-
-        mc = hpmc.integrate.Polyhedron(default_d=0.3, default_a=0.4, nselect=1)
-        cube_verts = [(-0.5, -0.5, -0.5),
-                      (-0.5, -0.5, 0.5),
-                      (-0.5, 0.5, -0.5),
-                      (-0.5, 0.5, 0.5),
-                      (0.5, -0.5, -0.5),
-                      (0.5, -0.5, 0.5),
-                      (0.5, 0.5, -0.5),
-                      (0.5, 0.5, 0.5)];
-        cube_faces = [[0, 2, 6],
-                      [6, 4, 0],
-                      [5, 0, 4],
-                      [5,1,0],
-                      [5,4,6],
-                      [5,6,7],
-                      [3,2,0],
-                      [3,0,1],
-                      [3,6,2],
-                      [3,7,6],
-                      [3,1,5],
-                      [3,5,7]]
-        tetra_verts = [(0.5, 0.5, 0.5),
-                       (0.5, -0.5, -0.5),
-                       (-0.5, 0.5, -0.5),
-                       (-0.5, -0.5, 0.5)];
-        tetra_faces = [[0, 1, 2], [3, 0, 2], [3, 2, 1], [3,1,0]];
-
-        mc.shape["A"] = dict(vertices=cube_verts, faces=cube_faces);
-        mc.shape["B"] = dict(vertices=tetra_verts,
-                             faces=tetra_faces,
-                             origin = (0,0,0));
-        mc.depletant_fugacity["B"] = 3.0
-
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
@@ -1224,21 +1181,6 @@ class ConvexPolyhedron(HPMCIntegrator):
                                        (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape["A"]["vertices"])
 
-    Depletants Example::
-
-        mc = hpmc.integrate.ConvexPolyhedron(default_d=0.3,
-                                             default_a=0.4,
-                                             nselect=1)
-        mc.shape["A"] = dict(vertices=[(0.5, 0.5, 0.5),
-                                       (0.5, -0.5, -0.5),
-                                       (-0.5, 0.5, -0.5),
-                                       (-0.5, -0.5, 0.5)]);
-        mc.shape["B"] = dict(vertices=[(0.05, 0.05, 0.05),
-                                       (0.05, -0.05, -0.05),
-                                       (-0.05, 0.05, -0.05),
-                                       (-0.05, -0.05, 0.05)]);
-        mc.depletant_fugacity["B"] = 3.0
-
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
@@ -1352,22 +1294,6 @@ class FacetedEllipsoid(HPMCIntegrator):
         print('a = {}, b = {}, c = {}',
               mc.shape["A"]["a"], mc.shape["A"]["b"], mc.shape["A"]["c"])
 
-    Depletants Example::
-
-        mc = hpmc.integrate.FacetedEllipsoid(default_d=0.3, default_a=0.4)
-        mc.shape["A"] = dict(normals=[(-1,0,0),
-                                      (1,0,0),
-                                      (0,-1,0),
-                                      (0,1,0),
-                                      (0,0,-1),
-                                      (0,0,1)],
-                             a=1.0,
-                             b=0.5,
-                             c=0.25);
-        # depletant sphere
-        mc.shape["B"] = dict(normals=[], a=0.1, b=0.1, c=0.1);
-        mc.depletant_fugacity["B"] = 3.0
-
     Attributes:
         shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
@@ -1473,13 +1399,6 @@ class Sphinx(HPMCIntegrator):
         mc = hpmc.integrate.Sphinx(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
         print('diameters = ', mc.shape["A"]["diameters"])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.Sphinx(default_d=0.3, default_a=0.4, nselect=1)
-        mc.shape["A"] = dict(centers=[(0,0,0), (1,0,0)], diameters=[1, -.25])
-        mc.shape["B"] = dict(centers=[(0,0,0)], diameters=[.15])
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
@@ -1667,13 +1586,6 @@ class Ellipsoid(HPMCIntegrator):
               mc.shape["A"]["b"],
               mc.shape["A"]["c"])
 
-    Depletants Example::
-
-        mc = hpmc.integrate.Ellipsoid(default_d=0.3, default_a=0.4, nselect=1)
-        mc.shape["A"] = dict(a=0.5, b=0.25, c=0.125);
-        mc.shape["B"] = dict(a=0.05, b=0.05, c=0.05);
-        mc.depletant_fugacity["B"] = 3.0
-
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
@@ -1769,15 +1681,6 @@ class SphereUnion(HPMCIntegrator):
         print('diameter of the first sphere = ',
               mc.shape["A"]["shapes"][0]["diameter"])
         print('center of the first sphere = ', mc.shape["A"]["positions"][0])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.SphereUnion(default_d=0.3, default_a=0.4, nselect=1)
-        mc.shape["A"] = dict(diameters=[1.0, 1.0],
-                             centers=[(-0.25, 0.0, 0.0),
-                                      (0.25, 0.0, 0.0)]);
-        mc.shape["B"] = dict(diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
