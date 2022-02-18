@@ -84,12 +84,13 @@ class _InternalMoveSize(mc_move_tune._TuneMCMove):
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
-        param_dict = ParameterDict(moves=OnlyIf(to_type_converter(
-            [OnlyFrom(['a', 'd'])]),
-                                                postprocess=self._update_moves),
-                                   types=OnlyIf(to_type_converter([str]),
-                                                postprocess=self._update_types,
-                                                allow_none=True))
+        param_dict = ParameterDict(
+            moves=OnlyIf(to_type_converter([OnlyFrom(['a', 'd'])]),
+                         postprocess=self._update_moves),
+            types=OnlyIf(to_type_converter([str]),
+                         postprocess=self._update_types,
+                         allow_none=True),
+        )
 
         self._param_dict.update(param_dict)
         self.target = target
