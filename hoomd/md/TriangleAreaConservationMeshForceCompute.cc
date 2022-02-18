@@ -294,6 +294,93 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         m_prof->pop();
     }
 
+Scalar TriangleAreaConservationMeshForceCompute::energyDiff(unsigned int idx_a,
+                                                            unsigned int idx_b,
+                                                            unsigned int idx_c,
+                                                            unsigned int idx_d,
+                                                            unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    // calculate d\vec{r}
+    Scalar3 dab;
+    dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+    dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+    dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+
+    Scalar3 dac;
+    dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+    dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+    dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+
+    Scalar3 dbd;
+    dbd.x = h_pos.data[idx_d].x - h_pos.data[idx_b].x;
+    dbd.y = h_pos.data[idx_d].y - h_pos.data[idx_b].y;
+    dbd.z = h_pos.data[idx_d].z - h_pos.data[idx_b].z;
+
+    Scalar3 ddc;
+    ddc.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
+    ddc.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
+    ddc.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
+
+    // apply minimum image conventions to all 3 vectors
+    dab = box.minImage(dab);
+    dac = box.minImage(dac);
+    dbd = box.minImage(dbd);
+    ddc = box.minImage(ddc);
+
+    Scalar rab = sqrt(dab.x * dab.x + dab.y * dab.y + dab.z * dab.z);
+    Scalar rac = sqrt(dac.x * dac.x + dac.y * dac.y + dac.z * dac.z);
+    Scalar rbd = sqrt(dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z);
+    Scalar rdc = sqrt(ddc.x * ddc.x + ddc.y * ddc.y + ddc.z * ddc.z);
+
+    Scalar3 nab = dab / rab;
+    Scalar3 nac = dac / rac;
+    Scalar3 nbd = dbd / rbd;
+    Scalar3 ndc = ddc / rdc;
+
+    Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+    if (c_baac > 1.0)
+        c_baac = 1.0;
+    if (c_baac < -1.0)
+        c_baac = -1.0;
+
+    Scalar c_abbd = -(nab.x * nbd.x + nab.y * nbd.y + nab.z * nbd.z);
+    if (c_abbd > 1.0)
+        c_abbd = 1.0;
+    if (c_abbd < -1.0)
+        c_abbd = -1.0;
+
+    Scalar c_dcca = ndc.x * nac.x + ndc.y * nac.y + ndc.z * nac.z;
+    if (c_dcca > 1.0)
+        c_dcca = 1.0;
+    if (c_dcca < -1.0)
+        c_dcca = -1.0;
+
+    Scalar c_bddc = -(ndc.x * nbd.x + ndc.y * nbd.y + ndc.z * nbd.z);
+    if (c_bddc > 1.0)
+        c_bddc = 1.0;
+    if (c_bddc < -1.0)
+        c_bddc = -1.0;
+
+    Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
+    Scalar s_abbd = sqrt(1.0 - c_abbd * c_abbd);
+    Scalar s_dcca = sqrt(1.0 - c_dcca * c_dcca);
+    Scalar s_bddc = sqrt(1.0 - c_bddc * c_bddc);
+
+    Scalar energy_old1 = rab * rac * s_baac / 2.0 - m_Amesh[type_id];
+    Scalar energy_old2 = rab * rbd * s_abbd / 2.0 - m_Amesh[type_id];
+
+    Scalar energy_new1 = rac * rdc * s_dcca / 2.0 - m_Amesh[type_id];
+    Scalar energy_new2 = rdc * rbd * s_bddc / 2.0 - m_Amesh[type_id];
+
+    return m_K[0] / (2.0 * m_Amesh[0])
+           * (energy_new1 * energy_new1 + energy_new2 * energy_new2 - energy_old1 * energy_old1
+              - energy_old2 * energy_old2);
+    }
+
 namespace detail
     {
 void export_TriangleAreaConservationMeshForceCompute(pybind11::module& m)
