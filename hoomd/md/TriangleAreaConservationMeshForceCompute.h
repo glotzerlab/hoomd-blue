@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hoomd/ForceCompute.h"
 #include "hoomd/MeshDefinition.h"
 
@@ -8,8 +10,8 @@
 
 #include <vector>
 
-/*! \file AreaConservationMeshForceCompute.h
-    \brief Declares a class for computing area constraint forces
+/*! \file MeshAreaConservationForceCompute.h
+    \brief Declares a class for computing area conservation forces
 */
 
 #ifdef __HIPCC__
@@ -18,22 +20,22 @@
 
 #include <pybind11/pybind11.h>
 
-#ifndef __AREACONSERVATIONMESHFORCECOMPUTE_H__
-#define __AREACONSERVATIONMESHFORCECOMPUTE_H__
+#ifndef __TRIANGLEAREACONSERVATIONMESHFORCECOMPUTE_H__
+#define __TRIANGLEAREACONSERVATIONMESHFORCECOMPUTE_H__
 
 namespace hoomd
     {
 namespace md
     {
-struct aconstraint_params
+struct triangle_area_conservation_params
     {
     Scalar k;
     Scalar A_mesh;
 
 #ifndef __HIPCC__
-    aconstraint_params() : k(0), A_mesh(0) { }
+    triangle_area_conservation_params() : k(0), A_mesh(0) { }
 
-    aconstraint_params(pybind11::dict params)
+    triangle_area_conservation_params(pybind11::dict params)
         : k(params["k"].cast<Scalar>()), A_mesh(params["A_mesh"].cast<Scalar>())
         {
         }
@@ -53,20 +55,19 @@ struct aconstraint_params
     __attribute__((aligned(16)));
 #endif
 
-//! Computes area constraint forces on the mesh
-/*! Area constraint forces are computed on every particle in a mesh.
-
+//! Computes area conservation forces on the mesh
+/*! Triangle Area Conservation forces are computed on every triangle in a mesh.
     \ingroup computes
 */
-class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
+class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCompute
     {
     public:
     //! Constructs the compute
-    AreaConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                     std::shared_ptr<MeshDefinition> meshdef);
+    TriangleAreaConservationMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                             std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
-    virtual ~AreaConservationMeshForceCompute();
+    virtual ~TriangleAreaConservationMeshForceCompute();
 
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);
@@ -76,7 +77,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
-    Scalar getArea()
+    virtual Scalar getArea()
         {
         return m_area;
         };
@@ -96,26 +97,14 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 
     protected:
     Scalar* m_K; //!< K parameter for multiple mesh triangles
-
     Scalar* m_Amesh;
+    Scalar m_area;
 
-    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
-
-    Scalar m_area; //! sum of the triangle areas within the mesh
-
-    Scalar m_area_diff;
+    std::shared_ptr<MeshDefinition>
+        m_mesh_data; //!< Mesh data to use in computing area conservation energy
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    //! compute areas
-    virtual void precomputeParameter();
-
-    virtual void
-    postcompute(unsigned int idx_a, unsigned int idx_b, unsigned int idx_c, unsigned int idx_d)
-        {
-        m_area += m_area_diff;
-        };
 
     virtual Scalar energyDiff(unsigned int idx_a,
                               unsigned int idx_b,
@@ -126,8 +115,8 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 
 namespace detail
     {
-//! Exports the AreaConservationMeshForceCompute class to python
-void export_AreaConservationMeshForceCompute(pybind11::module& m);
+//! Exports the TriangleAreaConservationMeshForceCompute class to python
+void export_TriangleAreaConservationMeshForceCompute(pybind11::module& m);
 
     } // end namespace detail
     } // end namespace md
