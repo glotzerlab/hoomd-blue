@@ -9,8 +9,8 @@ from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.logging import log
 
 
-class Area(MeshPotential):
-    r"""Area conservation potential.
+class TriangleArea(MeshPotential):
+    r"""Triangle Area conservation potential.
 
     :py:class:`AreaConservation` specifies a area conservation energy of each
     triangle mesh unit applied to all particles within the mesh.
@@ -25,14 +25,16 @@ class Area(MeshPotential):
             to be stated. The dictionary has the following keys:
             * ``k`` (`float`, **required**) - area conservation coefficient
               :math:`[\mathrm{energy}]`
-            * ``A0`` (`float`, **required**) - desired total sureface area
+            * ``A_mesh`` (`float`, **required**) - desired total sureface area
+              of the whole mesh
               :math:`[\mathrm{length}]^2`
 
     Examples::
-        area_conservation_potential = mesh.bond.AreaConservation(mesh)
-        area_conservation_potential.parameter = dict(k=10.0, A0=250)
+        tringle_area_conservation_potential =
+        mesh.conservation.TriangleArea(mesh)
+        tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
     """
-    _cpp_class_name = "AreaConservationMeshForceCompute"
+    _cpp_class_name = "TriangleAreaConservationMeshForceCompute"
 
     def __init__(self, mesh):
         params = TypeParameter("params", "types",
