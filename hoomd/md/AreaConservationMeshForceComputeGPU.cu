@@ -56,8 +56,6 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
         int n_triangles = n_triangles_list[idx];
         Scalar4 postype = __ldg(d_pos + idx);
         Scalar3 pos_a = make_scalar3(postype.x, postype.y, postype.z);
-        int3 image_a = d_image[idx];
-        pos_a = box.shift(pos_a, image_a);
 
         area_transfer = 0;
 

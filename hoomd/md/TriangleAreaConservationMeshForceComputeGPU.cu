@@ -117,7 +117,7 @@ gpu_compute_TriangleAreaConservation_area_kernel(Scalar* d_partial_sum_area,
     \param num_blocks Number of blocks to execute
 */
 __global__ void
-gpu_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
+gpu_triangle_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -195,7 +195,7 @@ hipError_t gpu_compute_TriangleAreaConservation_area(Scalar* d_sum_area,
                        tlist_idx,
                        n_triangles_list);
 
-    hipLaunchKernelGGL((gpu_area_reduce_partial_sum_kernel),
+    hipLaunchKernelGGL((gpu_triangle_area_reduce_partial_sum_kernel),
                        dim3(grid1),
                        dim3(threads),
                        block_size * sizeof(Scalar),
