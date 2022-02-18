@@ -53,6 +53,7 @@
 #include "QuaternionMath.h"
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
+#include "TriangleAreaConservationMeshForceCompute.h"
 #include "TwoStepBD.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepLangevin.h"
@@ -98,6 +99,7 @@
 #include "PotentialTersoffGPU.h"
 #include "TableAngleForceComputeGPU.h"
 #include "TableDihedralForceComputeGPU.h"
+#include "TriangleAreaConservationMeshForceComputeGPU.h"
 #include "TwoStepBDGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepLangevinGPU.h"
@@ -243,6 +245,7 @@ PYBIND11_MODULE(_md, m)
 
     export_HelfrichMeshForceCompute(m);
     export_MeshDynamicBondUpdater(m);
+    export_TriangleAreaConservationMeshForceCompute(m);
     export_AreaConservationMeshForceCompute(m);
     export_CustomForceCompute(m);
     export_NeighborList(m);
@@ -407,6 +410,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
+    export_TriangleAreaConservationMeshForceComputeGPU(m);
     export_AreaConservationMeshForceComputeGPU(m);
 #endif
 

@@ -48,8 +48,14 @@ _VolumeConservation_arg_list = [
 
 _AreaConservation_args = {
     'k': [1.0, 20.0, 100.0],
-    'A0': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
+    'A_mesh': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
 }
+_TriangleAreaConservation_arg_list = [
+    (hoomd.md.mesh.conservation.TriangleArea,
+     dict(zip(_AreaConservation_args, val)))
+    for val in zip(*_AreaConservation_args.values())
+]
+
 _AreaConservation_arg_list = [(hoomd.md.mesh.conservation.Area,
                                dict(zip(_AreaConservation_args, val)))
                               for val in zip(*_AreaConservation_args.values())]
@@ -58,7 +64,7 @@ _AreaConservation_arg_list = [(hoomd.md.mesh.conservation.Area,
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
             + _Helfrich_arg_list + _VolumeConservation_arg_list
-            + _AreaConservation_arg_list)
+            + _TriangleAreaConservation_arg_list + _AreaConservation_arg_list)
 
 
 def get_mesh_potential_args_forces_and_energies():
@@ -126,6 +132,7 @@ def get_mesh_potential_args_forces_and_energies():
     Tether_args_and_vals = []
     Helfrich_args_and_vals = []
     VolumeConservation_args_and_vals = []
+    TriangleAreaConservation_args_and_vals = []
     AreaConservation_args_and_vals = []
     for i in range(3):
         harmonic_args_and_vals.append(
@@ -139,11 +146,15 @@ def get_mesh_potential_args_forces_and_energies():
         VolumeConservation_args_and_vals.append(
             (*_VolumeConservation_arg_list[i], VolumeConservation_forces[i],
              VolumeConservation_energies[i]))
+        TriangleAreaConservation_args_and_vals.append(
+            (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
+             AreaConservation_energies[i]))
         AreaConservation_args_and_vals.append(
             (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
              AreaConservation_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
             + Helfrich_args_and_vals + VolumeConservation_args_and_vals
+            + TriangleAreaConservation_args_and_vals
             + AreaConservation_args_and_vals)
 
 
@@ -288,6 +299,34 @@ def test_volume(simulation_factory, tetrahedron_snapshot_factory):
                         abs_tol=1e-5)
 
 
+def test_triangle_area(simulation_factory, tetrahedron_snapshot_factory):
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh(name=["tetrahedron"])
+    mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+
+    mesh_potential = hoomd.md.mesh.conservation.TriangleArea(mesh)
+    mesh_potential.params["tetrahedron"] = dict(k=1, A_mesh=1)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    assert math.isclose(mesh_potential.area,
+                        1.62633,
+                        rel_tol=1e-2,
+                        abs_tol=1e-5)
+
+
 def test_area(simulation_factory, tetrahedron_snapshot_factory):
     snap = tetrahedron_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
@@ -296,7 +335,7 @@ def test_area(simulation_factory, tetrahedron_snapshot_factory):
     mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
     mesh_potential = hoomd.md.mesh.conservation.Area(mesh)
-    mesh_potential.params["tetrahedron"] = dict(k=1, A0=1)
+    mesh_potential.params["tetrahedron"] = dict(k=1, A_mesh=1)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
