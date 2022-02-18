@@ -3,6 +3,7 @@
 
 """Implement Mesh."""
 
+import hoomd
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
@@ -50,6 +51,14 @@ class Mesh(_HOOMDBaseObject):
             self._simulation.state._cpp_sys_def)
 
         self.triangles = self._triangles
+
+        if hoomd.version.mpi_enabled:
+            pdata = self._simulation.state._cpp_sys_def.getParticleData()
+            decomposition = pdata.getDomainDecomposition()
+            if decomposition is not None:
+                # create the c++ Communicator
+                self._simulation._system_communicator.addMeshDefinition(
+                    self._cpp_obj)
 
         super()._attach()
 
