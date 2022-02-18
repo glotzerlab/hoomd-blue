@@ -173,21 +173,33 @@ class BoxMCMoveSize(_InternalCustomTuner):
     `BoxMCMoveSize.secant_solver` and `BoxMCMoveSize.scale_solver`
     respectively.
 
+    The tuner will continue tuning despite being ``tuned``. Thus, if simulation
+    conditions change the move sizes will continue to change and the tuner will
+    no longer be ``tuned``. The changes to the move size are completely
+    controlled by the given `hoomd.tune.SolverStep` instance. See the
+    doumentation at `hoomd.tune` for more information.
+
+    Warning:
+        The tuner should be removed from the simulation once tuned to prevent
+        invalid results due to the breaking of balance.
+
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
         boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC` object to
             tune.
         moves (list[str]): A list of types of moves to tune. Available options
-            are 'delta'.
+            are 'volume', 'aspect', 'shear_{x,y,z}', and 'length_{x,y,z}' where
+            brackets denote multiple options. For shear and length moves each
+            dimension is tuned independently.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
         solver (`hoomd.tune.SolverStep`): A solver that tunes move sizes to
             reach the specified target.
-        types (list[str]): A list of string particle types to tune the move
-            size for, defaults to None which upon attaching will tune all types
-            in the system currently.
-        max_move_size (float): The maximum volume move size to attempt.
+        max_move_size (`dict` [`str`, `float` ], optional): The maximum volume
+            move size to attempt for each move time. See the available moves in
+            the `moves` attribute documentation. Defaults to no maximum ``None``
+            for each move type.
 
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -195,20 +207,25 @@ class BoxMCMoveSize(_InternalCustomTuner):
         boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC` object to
             tune.
         moves (list[str]): A list of types of moves to tune. Available options
-            are 'a' and 'd'.
+            are 'volume', 'aspect', 'shear_{x,y,z}', and 'length_{x,y,z}' where
+            brackets denote multiple options. For shear and length moves each
+            dimension is tuned independently.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
         solver (hoomd.tune.SolverStep): A solver that tunes move sizes to
             reach the specified target.
-        types (list[str]): A list of string particle
-            types to tune the move size for, defaults to None which upon
-            attaching will tune all types in the system currently.
-        max_move_size (float): The maximum value of a volume move
-            size to attempt.
+        max_move_size (float): The maximum volume move size
+            to attempt for each move time. See the available moves in the
+            `moves` attribute documentation.
 
     Warning:
         Over-limiting the maximum move sizes can lead to the inability to
         converge to the desired acceptance rate.
+
+    Warning:
+        Since each dimension of length and shear moves are tuned independently
+        but the acceptance statistics are collected collectively, the reachable
+        target acceptance rates is limited by the other dimensions.
     """
     _internal_class = _InternalBoxMCMoveSize
 
@@ -233,9 +250,6 @@ class BoxMCMoveSize(_InternalCustomTuner):
                 options are 'a' and 'd'.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
-            types (list[str]): A list of string particle types to tune the
-                move size for, defaults to None which upon attaching will tune
-                all types in the system currently.
             max_move_size (float): The maximum value of a volume
                 move size to attempt.
             max_scale (float): Maximum scale factor.
@@ -276,9 +290,6 @@ class BoxMCMoveSize(_InternalCustomTuner):
                 options are 'a' and 'd'.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
-            types (list[str]): A list of string
-                particle types to tune the move size for, defaults to None which
-                upon attaching will tune all types in the system currently.
             max_move_size (float): The maximum value of a volume
                 move size to attempt, defaults to ``None`` which represents no
                 maximum move size.
