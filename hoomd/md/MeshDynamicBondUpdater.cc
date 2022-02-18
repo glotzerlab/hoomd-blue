@@ -274,7 +274,7 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 }
             }
         }
-    std::cout << float(zahl) / size << std::endl;
+    //std::cout << float(zahl) / size << std::endl;
     }
 
 namespace detail

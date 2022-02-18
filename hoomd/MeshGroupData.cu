@@ -90,7 +90,7 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
     // construct compact group representation, excluding particle pidx
     group_t p;
 
-    p.idx[group_size - 1] = d_group_typeval[group_idx].type;
+    p.idx[group_size - 1] = 0;
 
     for (unsigned int k = group_size_half; k < group_size; ++k)
         {
