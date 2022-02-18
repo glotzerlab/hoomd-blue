@@ -2,7 +2,6 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from math import isclose
-import numpy as np
 import pytest
 
 from hoomd import hpmc
@@ -13,10 +12,8 @@ from hoomd.hpmc.tune.boxmc_move_size import (_MoveSizeTuneDefinition,
 MOVE_TYPES = ("aspect", "volume", "shear_x", "shear_y", "shear_z", "length_x",
               "length_y", "length_z")
 
-rng = np.random.default_rng(56456264)
 
-
-def generate_move_definition(move=None):
+def generate_move_definition(rng, move=None):
     if move is None:
         move = rng.choose(MOVE_TYPES)
     target = rng.random()
@@ -37,8 +34,8 @@ def get_move_acceptance_ratio(boxmc, attr):
 
 
 @pytest.fixture(params=MOVE_TYPES)
-def move_definition_dict(request):
-    return generate_move_definition(request.param)
+def move_definition_dict(rng, request):
+    return generate_move_definition(rng, request.param)
 
 
 @pytest.fixture
@@ -112,7 +109,7 @@ class TestMoveSizeTuneDefinition:
         calc_acceptance_rate = accepted / (accepted + rejected)
         assert isclose(move_size_definition.y, calc_acceptance_rate)
 
-    def test_getting_setting_move_size(self, boxmc, move_size_definition,
+    def test_getting_setting_move_size(self, rng, boxmc, move_size_definition,
                                        simulation):
         attr = move_size_definition.attr
 
@@ -161,7 +158,7 @@ class TestMoveSizeTuneDefinition:
 
 
 @pytest.fixture(params=MOVE_TYPES)
-def boxmc_tuner_method_and_kwargs(request):
+def boxmc_tuner_method_and_kwargs(request, rng):
     cls_methods = (BoxMCMoveSize.secant_solver, BoxMCMoveSize.scale_solver)
     cls = cls_methods[rng.integers(2)]
     return cls, {
@@ -173,7 +170,7 @@ def boxmc_tuner_method_and_kwargs(request):
 
 
 @pytest.fixture
-def boxmc_with_tuner(boxmc_tuner_method_and_kwargs):
+def boxmc_with_tuner(rng, boxmc_tuner_method_and_kwargs):
     cls, move_size_kwargs = boxmc_tuner_method_and_kwargs
     move = move_size_kwargs["moves"][0]
     boxmc = hpmc.update.BoxMC(1, betaP=1.0)
