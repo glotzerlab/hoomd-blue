@@ -62,13 +62,15 @@ TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceCo
                                 this->m_exec_conf));
     }
 
-void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A0)
+void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type,
+                                                            Scalar K,
+                                                            Scalar A_mesh)
     {
-    TriangleAreaConservationMeshForceCompute::setParams(type, K, A0);
+    TriangleAreaConservationMeshForceCompute::setParams(type, K, A_mesh);
 
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar2(K, A0);
+    h_params.data[type] = make_scalar2(K, A_mesh);
     }
 
 void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)

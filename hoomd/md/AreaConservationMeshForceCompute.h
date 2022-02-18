@@ -8,8 +8,8 @@
 
 #include <vector>
 
-/*! \file MeshAreaConservationForceCompute.h
-    \brief Declares a class for computing area conservation forces
+/*! \file AreaConservationMeshForceCompute.h
+    \brief Declares a class for computing area constraint forces
 */
 
 #ifdef __HIPCC__
@@ -25,16 +25,16 @@ namespace hoomd
     {
 namespace md
     {
-struct area_conservation_params
+struct aconstraint_params
     {
     Scalar k;
-    Scalar A0;
+    Scalar A_mesh;
 
 #ifndef __HIPCC__
-    area_conservation_params() : k(0), A0(0) { }
+    aconstraint_params() : k(0), A_mesh(0) { }
 
-    area_conservation_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>()), A0(params["A0"].cast<Scalar>())
+    aconstraint_params(pybind11::dict params)
+        : k(params["k"].cast<Scalar>()), A_mesh(params["A_mesh"].cast<Scalar>())
         {
         }
 
@@ -42,7 +42,7 @@ struct area_conservation_params
         {
         pybind11::dict v;
         v["k"] = k;
-        v["A0"] = A0;
+        v["A_mesh"] = A_mesh;
         return v;
         }
 #endif
@@ -53,8 +53,9 @@ struct area_conservation_params
     __attribute__((aligned(16)));
 #endif
 
-//! Computes area conservation forces on the mesh
-/*! Area Conservation forces are computed on every triangle in a mesh.
+//! Computes area constraint forces on the mesh
+/*! Area constraint forces are computed on every particle in a mesh.
+
     \ingroup computes
 */
 class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
@@ -68,14 +69,14 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     virtual ~AreaConservationMeshForceCompute();
 
     //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar K, Scalar A0);
+    virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
-    virtual Scalar getArea()
+    Scalar getArea()
         {
         return m_area;
         };
@@ -95,14 +96,32 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
 
     protected:
     Scalar* m_K; //!< K parameter for multiple mesh triangles
-    Scalar* m_A0;
-    Scalar m_area;
 
-    std::shared_ptr<MeshDefinition>
-        m_mesh_data; //!< Mesh data to use in computing area conservation energy
+    Scalar* m_Amesh;
+
+    std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
+
+    Scalar m_area; //! sum of the triangle areas within the mesh
+
+    Scalar m_area_diff;
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
+
+    //! compute areas
+    virtual void precomputeParameter();
+
+    virtual void
+    postcompute(unsigned int idx_a, unsigned int idx_b, unsigned int idx_c, unsigned int idx_d)
+        {
+        m_area += m_area_diff;
+        };
+
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id);
     };
 
 namespace detail

@@ -6,7 +6,7 @@
 using namespace std;
 
 /*! \file AreaConservationMeshForceComputeGPU.cc
-    \brief Contains code for the AreaConservationhMeshForceComputeGPU class
+    \brief Contains code for the AreaConservationMeshForceComputeGPU class
 */
 
 namespace hoomd
@@ -30,8 +30,7 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(),
-                             this->m_exec_conf);
+    GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
     // allocate flags storage on the GPU
@@ -57,27 +56,34 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
                                 warp_size,
                                 5,
                                 100000,
-                                "AreaConservation_forces",
+                                "vconstraint_forces",
                                 this->m_exec_conf));
     }
 
-void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A0)
+void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A_mesh)
     {
-    AreaConservationMeshForceCompute::setParams(type, K, A0);
+    AreaConservationMeshForceCompute::setParams(type, K, A_mesh);
 
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar2(K, A0);
+    h_params.data[type] = make_scalar2(K, A_mesh);
     }
 
+/*! Actually perform the force computation
+    \param timestep Current time step
+ */
 void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
+    precomputeParameter();
+
     // start the profile
     if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "AreaConservationForce");
+        this->m_prof->push(this->m_exec_conf, "AreaConstraint");
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+
+    BoxDim box = this->m_pdata->getGlobalBox();
 
     const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list
         = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
@@ -87,18 +93,14 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
                                                                          access_location::device,
                                                                          access_mode::read);
-
     ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(
         m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
         access_location::device,
         access_mode::read);
-
     ArrayHandle<unsigned int> d_gpu_n_meshtriangle(
         this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),
         access_location::device,
         access_mode::read);
-
-    BoxDim box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
@@ -108,21 +110,21 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
     m_tuner->begin();
-    kernel::gpu_compute_AreaConservation_force(d_force.data,
-                                               d_virial.data,
-                                               m_virial.getPitch(),
-                                               m_pdata->getN(),
-                                               m_mesh_data->getMeshTriangleData()->getN(),
-                                               d_pos.data,
-                                               box,
-                                               d_gpu_meshtrianglelist.data,
-                                               d_gpu_meshtriangle_pos_list.data,
-                                               gpu_table_indexer,
-                                               d_gpu_n_meshtriangle.data,
-                                               d_params.data,
-                                               m_mesh_data->getMeshTriangleData()->getNTypes(),
-                                               m_tuner->getParam(),
-                                               d_flags.data);
+    kernel::gpu_compute_area_constraint_force(d_force.data,
+                                              d_virial.data,
+                                              m_virial.getPitch(),
+                                              m_pdata->getN(),
+                                              d_pos.data,
+                                              box,
+                                              m_area,
+                                              d_gpu_meshtrianglelist.data,
+                                              d_gpu_meshtriangle_pos_list.data,
+                                              gpu_table_indexer,
+                                              d_gpu_n_meshtriangle.data,
+                                              d_params.data,
+                                              m_mesh_data->getMeshTriangleData()->getNTypes(),
+                                              m_tuner->getParam(),
+                                              d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -133,7 +135,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 
         if (h_flags.data[0] & 1)
             {
-            this->m_exec_conf->msg->error() << "AreaConservation: triangle out of bounds ("
+            this->m_exec_conf->msg->error() << "area constraint: triangle out of bounds ("
                                             << h_flags.data[0] << ")" << std::endl
                                             << std::endl;
             throw std::runtime_error("Error in meshtriangle calculation");
@@ -145,14 +147,21 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
         this->m_prof->pop(this->m_exec_conf);
     }
 
-void AreaConservationMeshForceComputeGPU::computeArea()
+/*! Actually perform the force computation
+    \param timestep Current time step
+ */
+void AreaConservationMeshForceComputeGPU::precomputeParameter()
     {
     // start the profile
     if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "AreaConservationArea");
+        this->m_prof->push(this->m_exec_conf, "AreaCalculation");
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+
+    BoxDim box = this->m_pdata->getGlobalBox();
+
+    m_num_blocks = m_pdata->getN() / m_block_size + 1;
 
     const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list
         = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
@@ -162,50 +171,50 @@ void AreaConservationMeshForceComputeGPU::computeArea()
     ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
                                                                          access_location::device,
                                                                          access_mode::read);
-
+    ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(
+        m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
+        access_location::device,
+        access_mode::read);
     ArrayHandle<unsigned int> d_gpu_n_meshtriangle(
         this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),
         access_location::device,
         access_mode::read);
 
-    BoxDim box = this->m_pdata->getGlobalBox();
+    ArrayHandle<Scalar> d_partial_sumArea(m_partial_sum,
+                                          access_location::device,
+                                          access_mode::overwrite);
+    ArrayHandle<Scalar> d_sumArea(m_sum, access_location::device, access_mode::overwrite);
 
-    m_num_blocks = m_pdata->getN() / m_block_size + 1;
-
-    ArrayHandle<Scalar> d_partial_sumA(m_partial_sum,
-                                       access_location::device,
-                                       access_mode::overwrite);
-    ArrayHandle<Scalar> d_sumA(m_sum, access_location::device, access_mode::overwrite);
-
-    kernel::gpu_compute_AreaConservation_area(d_sumA.data,
-                                               d_partial_sumA.data,
-                                               m_pdata->getN(),
-                                               d_pos.data,
-                                               box,
-                                               d_gpu_meshtrianglelist.data,
-                                               gpu_table_indexer,
-                                               d_gpu_n_meshtriangle.data,
-                                               m_block_size,
-                                               m_num_blocks);
+    kernel::gpu_compute_area_constraint_area(d_sumArea.data,
+                                             d_partial_sumArea.data,
+                                             m_pdata->getN(),
+                                             d_pos.data,
+                                             box,
+                                             d_gpu_meshtrianglelist.data,
+                                             d_gpu_meshtriangle_pos_list.data,
+                                             gpu_table_indexer,
+                                             d_gpu_n_meshtriangle.data,
+                                             m_block_size,
+                                             m_num_blocks);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
         CHECK_CUDA_ERROR();
         }
 
-    ArrayHandle<Scalar> h_sumA(m_sum, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_sumArea(m_sum, access_location::host, access_mode::read);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
-                      &h_sumA.data[0],
+                      &h_sumArea.data[0],
                       1,
                       MPI_HOOMD_SCALAR,
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-    m_area = h_sumA.data[0];
+    m_area = h_sumArea.data[0];
 
     if (this->m_prof)
         this->m_prof->pop(this->m_exec_conf);

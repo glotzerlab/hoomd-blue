@@ -3,7 +3,7 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
-                   TriangleAreaConservationMeshForceCompute.cc
+                   AreaConservationMeshForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -36,6 +36,7 @@ set(_md_sources module-md.cc
                    PPPMForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
+                   TriangleAreaConservationMeshForceCompute.cc
                    TwoStepBD.cc
                    TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
@@ -62,9 +63,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
-                TriangleAreaConservationMeshForceCompute.h
-                TriangleAreaConservationMeshForceComputeGPU.h
-                TriangleAreaConservationMeshForceComputeGPU.cuh
+                AreaConservationMeshForceCompute.h
+                AreaConservationMeshForceComputeGPU.h
+                AreaConservationMeshForceComputeGPU.cuh
                 BondTablePotentialGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
@@ -172,6 +173,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
                 TableDihedralForceCompute.h
+                TriangleAreaConservationMeshForceCompute.h
+                TriangleAreaConservationMeshForceComputeGPU.h
+                TriangleAreaConservationMeshForceComputeGPU.cuh
                 TwoStepBDGPU.h
                 TwoStepRATTLEBDGPU.h
                 TwoStepRATTLEBDGPU.cuh
@@ -200,7 +204,7 @@ set(_md_headers ActiveForceComputeGPU.h
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
-                           TriangleAreaConservationMeshForceComputeGPU.cc
+                           AreaConservationMeshForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
@@ -220,6 +224,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
+                           TriangleAreaConservationMeshForceComputeGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepBerendsenGPU.cc
                            TwoStepLangevinGPU.cc
@@ -235,7 +240,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverAnisoPotentialPairGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
-                      TriangleAreaConservationMeshForceComputeGPU.cu
+                      AreaConservationMeshForceComputeGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
@@ -280,6 +285,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
+                      TriangleAreaConservationMeshForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu

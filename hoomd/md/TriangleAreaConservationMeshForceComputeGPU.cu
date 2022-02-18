@@ -218,7 +218,7 @@ hipError_t gpu_compute_TriangleAreaConservation_area(Scalar* d_sum_area,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param tlist List of mesh triangles stored on the GPU
     \param n_triangles_list List of numbers of mesh triangles stored on the GPU
-    \param d_params K,A0 params packed as Scalar variables
+    \param d_params K,A_mesh params packed as Scalar variables
     \param n_triangle_type number of mesh triangle types
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 */
@@ -293,8 +293,8 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
                 }
             else
                 {
-                dab = pos_b - pos_c;
-                dac = pos_a - pos_c;
+                dab = pos_c - pos_b;
+                dac = pos_a - pos_b;
                 }
             }
 
@@ -326,8 +326,8 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
 
         Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
-        Scalar A0 = params.y;
-        Scalar At = A0 / N_tri;
+        Scalar A_mesh = params.y;
+        Scalar At = A_mesh / N_tri;
 
         Scalar3 dc_dra;
         if (cur_triangle_abc == 0)
@@ -355,20 +355,16 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
 
         if (cur_triangle_abc == 0)
             {
-            Fa = -K / (2 * At) * numerator_base
-                 * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
             Fa = -nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac;
             }
         else
             {
             if (cur_triangle_abc == 1)
                 {
-                Fa = -K / (2 * At) * numerator_base * (nab * rac * s_baac + ds_dra * rab * rac);
                 Fa = nab * rac * s_baac + ds_dra * rab * rac;
                 }
             else
                 {
-                Fa = -K / (2 * At) * numerator_base * (nac * rab * s_baac + ds_dra * rab * rac);
                 Fa = nac * rab * s_baac + ds_dra * rab * rac;
                 }
             }
@@ -416,7 +412,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param tlist List of mesh triangles stored on the GPU
     \param n_triangles_list List of numbers of mesh triangles stored on the GPU
-    \param d_params K, A0 params packed as Scalar variables
+    \param d_params K, A_mesh params packed as Scalar variables
     \param n_triangle_type number of mesh triangle types
     \param block_size Block size to use when performing calculations
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be

@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hoomd/ForceCompute.h"
 #include "hoomd/MeshDefinition.h"
 
@@ -28,13 +30,13 @@ namespace md
 struct triangle_area_conservation_params
     {
     Scalar k;
-    Scalar A0;
+    Scalar A_mesh;
 
 #ifndef __HIPCC__
-    triangle_area_conservation_params() : k(0), A0(0) { }
+    triangle_area_conservation_params() : k(0), A_mesh(0) { }
 
     triangle_area_conservation_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>()), A0(params["A0"].cast<Scalar>())
+        : k(params["k"].cast<Scalar>()), A_mesh(params["A_mesh"].cast<Scalar>())
         {
         }
 
@@ -42,7 +44,7 @@ struct triangle_area_conservation_params
         {
         pybind11::dict v;
         v["k"] = k;
-        v["A0"] = A0;
+        v["A_mesh"] = A_mesh;
         return v;
         }
 #endif
@@ -68,7 +70,7 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
     virtual ~TriangleAreaConservationMeshForceCompute();
 
     //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar K, Scalar A0);
+    virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
@@ -95,7 +97,7 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceCompute : public ForceCom
 
     protected:
     Scalar* m_K; //!< K parameter for multiple mesh triangles
-    Scalar* m_A0;
+    Scalar* m_Amesh;
     Scalar m_area;
 
     std::shared_ptr<MeshDefinition>

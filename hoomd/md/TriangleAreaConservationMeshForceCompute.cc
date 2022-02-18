@@ -27,13 +27,13 @@ namespace md
 TriangleAreaConservationMeshForceCompute::TriangleAreaConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef), m_K(NULL), m_A0(NULL), m_mesh_data(meshdef)
+    : ForceCompute(sysdef), m_K(NULL), m_Amesh(NULL), m_mesh_data(meshdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing TriangleAreaConservationhMeshForceCompute" << endl;
 
     // allocate the parameters
     m_K = new Scalar[m_pdata->getNTypes()];
-    m_A0 = new Scalar[m_pdata->getNTypes()];
+    m_Amesh = new Scalar[m_pdata->getNTypes()];
     }
 
 TriangleAreaConservationMeshForceCompute::~TriangleAreaConservationMeshForceCompute()
@@ -41,28 +41,28 @@ TriangleAreaConservationMeshForceCompute::~TriangleAreaConservationMeshForceComp
     m_exec_conf->msg->notice(5) << "Destroying TriangleAreaConservationMeshForceCompute" << endl;
 
     delete[] m_K;
-    delete[] m_A0;
+    delete[] m_Amesh;
     m_K = NULL;
-    m_A0 = NULL;
+    m_Amesh = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
     \param K Stiffness parameter for the force computation
-    \param A0 desired surface area to maintain for the force computation
+    \param A_mesh desired surface area to maintain for the force computation
 
     Sets parameters for the potential of a particular angle type
 */
-void TriangleAreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
+void TriangleAreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A_mesh)
     {
     m_K[type] = K;
-    m_A0[type] = A0;
+    m_Amesh[type] = A_mesh;
 
     // check for some silly errors a user could make
     if (K <= 0)
         m_exec_conf->msg->warning() << "TriangleAreaConservation: specified K <= 0" << endl;
 
-    if (A0 <= 0)
-        m_exec_conf->msg->warning() << "TriangleAreaConservation: specified A0 <= 0" << endl;
+    if (A_mesh <= 0)
+        m_exec_conf->msg->warning() << "TriangleAreaConservation: specified A_mesh <= 0" << endl;
     }
 
 void TriangleAreaConservationMeshForceCompute::setParamsPython(std::string type,
@@ -70,7 +70,7 @@ void TriangleAreaConservationMeshForceCompute::setParamsPython(std::string type,
     {
     auto typ = m_mesh_data->getMeshTriangleData()->getTypeByName(type);
     auto _params = triangle_area_conservation_params(params);
-    setParams(typ, _params.k, _params.A0);
+    setParams(typ, _params.k, _params.A_mesh);
     }
 
 pybind11::dict TriangleAreaConservationMeshForceCompute::getParams(std::string type)
@@ -83,7 +83,7 @@ pybind11::dict TriangleAreaConservationMeshForceCompute::getParams(std::string t
         }
     pybind11::dict params;
     params["k"] = m_K[typ];
-    params["A0"] = m_A0[typ];
+    params["A_mesh"] = m_Amesh[typ];
     return params;
     }
 
@@ -93,7 +93,7 @@ pybind11::dict TriangleAreaConservationMeshForceCompute::getParams(std::string t
 void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof)
-        m_prof->push("Area Conservation in Mesh");
+        m_prof->push("Triangle Area Conservation in Mesh");
 
     assert(m_pdata);
     // access the particle data arrays
@@ -134,8 +134,8 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     // for each of the triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
 
-    // from whole surface area A0 to the surface of individual triangle A0 -> At
-    Scalar At = m_A0[0] / size;
+    // from whole surface area A_mesh to the surface of individual triangle A_mesh -> At
+    Scalar At = m_Amesh[0] / size;
 
     m_area = 0;
 
