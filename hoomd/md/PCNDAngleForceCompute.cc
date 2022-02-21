@@ -315,10 +315,10 @@ void PCNDAngleForceCompute::computeForces(uint64_t timestep)
             const Scalar cg_pow2 = cgPow2[PCND_type];
             const Scalar cg_pref = prefact[PCND_type];
 
-            const Scalar cg_ratio = m_particle_index[angle_type]/rac;
+            const Scalar cg_ratio = m_particle_index[angle_type] / rac;
             const uint16_t cg_eps   = m_particle_sum[angle_type];
 
-            fac = cg_pref * cg_eps / rsqac * (cg_pow1 * pow(cg_ratio, cg_pow1) - cg_pow2 * pow(cg_ratio ,cg_pow2));
+            fac = cg_pref * cg_eps / rsqac * (cg_pow1 * pow(cg_ratio, cg_pow1) - cg_pow2 * pow(cg_ratio, cg_pow2));
             eac = cg_eps + cg_pref * cg_eps * (pow(cg_ratio, cg_pow1) - pow(cg_ratio, cg_pow2));
 
             vac[0] = fac * dac.x * dac.x;

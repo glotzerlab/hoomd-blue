@@ -1,9 +1,6 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: dnlebard
-
 /*! \file PCNDAngleForceComputeGPU.cc
     \brief Defines PCNDAngleForceComputeGPU
 */
@@ -213,7 +210,7 @@ void export_PCNDAngleForceComputeGPU(pybind11::module& m)
 	             PCNDAngleForceCompute,
 	             std::shared_ptr<PCNDAngleForceComputeGPU>>(m,
 				                                "PCNDAngleForceComputeGPU")
-    .def(pybind11::init<std::shared_ptr<SystemDefinition> >());
+    .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
     } // end namespace detail

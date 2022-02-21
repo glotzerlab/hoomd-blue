@@ -82,9 +82,9 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
 	{
-	int cur_angle_abc = apos_list[pitch*angle_idx + idx];
+	int cur_angle_abc = apos_list[pitch * angle_idx + idx];
 			
-	if (cur_angle_abc ==1)
+	if (cur_angle_abc == 1)
 	    {
 	    counter += 1;
 	    //printf("forcew=%f\n",force_idx.w);
