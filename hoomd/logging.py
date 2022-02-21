@@ -403,6 +403,20 @@ def log(func=None,
         helps to prevent naming conflicts, and automate the logging
         specification for developers and users.
 
+    Example::
+
+        # Metaclass specification is not necessary for
+        # subclasses of HOOMD classes as they already use this
+        # metaclass.
+        class LogExample(metaclass=hoomd.logging.Loggable)
+            @log(category="string")
+            def loggable(self):
+                return "log_me"
+
+            @log(is_property=False, default=False)
+            def not_property(self, a=4):
+                return 2 ** a
+
     See Also:
         Tutorial: :doc:`tutorial/04-Custom-Actions-In-Python/00-index`
     """
