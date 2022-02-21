@@ -32,36 +32,35 @@ class LoggerCategories(Flag):
     categories to use for limiting what data is logged, user specified logged
     quantities, and custom actions (`hoomd.custom.Action`).
 
-    Flags:
+    Attributes:
+        scalar: 1 `float` or `int` objects (i.e. numbers)
 
-        scalar: `float` or `int` objects (i.e. numbers)
+        sequence: 2 sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers
+            of the same type.
 
-        sequence: sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers of
-        the same type.
+        string: 4 a single Python `str` object
 
-        string: a single Python `str` object
+        strings: 8 a sequence of Python `str` objects
 
-        strings: a sequence of Python `str` objects
+        object: 16 any Python object outside a sequence, string, or scalar.
 
-        object: any Python object outside a sequence, string, or scalar.
+        angle: 32 per-angle quantity
 
-        angle: per-angle quantity
+        bond: 64 per-bond quantity
 
-        bond: per-bond quantity
+        constraint: 128 per-constraint quantity
 
-        constraint: per-constraint quantity
+        dihedral: 256 per-dihedral quantity
 
-        dihedral: per-dihedral quantity
+        improper: 512 per-improper quantity
 
-        improper: per-improper quantity
+        pair: 1024 per-pair quantity
 
-        pair: per-pair quantity
+        particle: 2048 per-particle quantity
 
-        particle: per-particle quantity
+        ALL: 4095 a combination of all other categories
 
-        ALL: a combination of all other categories
-
-        NONE: represents no category
+        NONE: 0 represents no category
     """
     NONE = 0
     scalar = auto()
@@ -82,7 +81,7 @@ class LoggerCategories(Flag):
         """Return a LoggerCategories enum representing any of the categories.
 
         Args:
-            categories (list[str] or list[`LoggerCategories`]):
+            categories (`list` [`str` ] or `list` [`LoggerCategories`]):
                 A list of `str` or `LoggerCategories` objects that should be
                 represented by the returned `LoggerCategories` object.
 
