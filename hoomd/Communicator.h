@@ -17,6 +17,7 @@
 #include "HOOMDMath.h"
 #include "MeshGroupData.h"
 #include "ParticleData.h"
+#include "MeshDefinition.h"
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
@@ -47,7 +48,6 @@ namespace hoomd
     {
 //! Forward declarations for some classes
 class SystemDefinition;
-class MeshDefinition;
 class Profiler;
 struct BoxDim;
 class ParticleData;
@@ -397,7 +397,11 @@ class PYBIND11_EXPORT Communicator
         typedef typename group_data::packed_t group_element_t;
 
         //! Constructor
+        GroupCommunicator(Communicator& comm);
+
         GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata);
+
+        void setGroupData(std::shared_ptr<group_data> gdata);
 
         //! Migrate groups
         /*! \param incomplete If true, mark all groups that have non-local members and update local

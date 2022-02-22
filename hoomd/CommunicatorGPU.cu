@@ -1406,7 +1406,7 @@ __global__ void gpu_mark_received_ghost_groups_kernel(unsigned int nrecv,
     d_keep[buf_idx] = keep;
     }
 
-template<unsigned int size, class members_t, class ranks_t, class group_element_t>
+template<unsigned int size, bool inMesh, class members_t, class ranks_t, class group_element_t>
 void gpu_exchange_ghost_groups_copy_buf(unsigned int nrecv,
                                         const group_element_t* d_groups_recvbuf,
                                         unsigned int* d_group_tag,
@@ -2926,6 +2926,23 @@ template void gpu_mark_bonded_ghosts<4, true>(unsigned int n_groups,
  */
 
 template void
+gpu_mark_groups<6, false, group_storage<6>, group_storage<6>>(unsigned int N,
+                                                             const unsigned int* d_comm_flags,
+                                                             unsigned int n_groups,
+                                                             const group_storage<6>* d_members,
+                                                             group_storage<6>* d_group_ranks,
+                                                             unsigned int* d_rank_mask,
+                                                             const unsigned int* d_rtag,
+                                                             unsigned int* d_marked_groups,
+                                                             unsigned int* d_scan,
+                                                             unsigned int& n_out,
+                                                             const Index3D di,
+                                                             uint3 my_pos,
+                                                             const unsigned int* d_cart_ranks,
+                                                             bool incomplete,
+                                                             CachedAllocator& alloc);
+
+template void
 gpu_mark_groups<6, true, group_storage<6>, group_storage<6>>(unsigned int N,
                                                              const unsigned int* d_comm_flags,
                                                              unsigned int n_groups,
@@ -2943,6 +2960,20 @@ gpu_mark_groups<6, true, group_storage<6>, group_storage<6>>(unsigned int N,
                                                              CachedAllocator& alloc);
 
 template void
+gpu_scatter_ranks_and_mark_send_groups<6, false>(unsigned int n_groups,
+                                                const unsigned int* d_group_tag,
+                                                const group_storage<6>* d_group_ranks,
+                                                unsigned int* d_rank_mask,
+                                                const group_storage<6>* d_groups,
+                                                const unsigned int* d_rtag,
+                                                const unsigned int* d_comm_flags,
+                                                unsigned int* d_marked_send_groups,
+                                                unsigned int* d_scan,
+                                                unsigned int& n_send,
+                                                rank_element<group_storage<6>>* d_out_ranks,
+                                                CachedAllocator& alloc);
+
+template void
 gpu_scatter_ranks_and_mark_send_groups<6, true>(unsigned int n_groups,
                                                 const unsigned int* d_group_tag,
                                                 const group_storage<6>* d_group_ranks,
@@ -2957,11 +2988,35 @@ gpu_scatter_ranks_and_mark_send_groups<6, true>(unsigned int n_groups,
                                                 CachedAllocator& alloc);
 
 template void
+gpu_update_ranks_table<6, false>(unsigned int n_groups,
+                                group_storage<6>* d_group_ranks,
+                                unsigned int* d_group_rtag,
+                                unsigned int n_recv,
+                                const rank_element<group_storage<6>>* d_ranks_recvbuf);
+
+template void
 gpu_update_ranks_table<6, true>(unsigned int n_groups,
                                 group_storage<6>* d_group_ranks,
                                 unsigned int* d_group_rtag,
                                 unsigned int n_recv,
                                 const rank_element<group_storage<6>>* d_ranks_recvbuf);
+
+template void
+gpu_scatter_and_mark_groups_for_removal<6, false>(unsigned int n_groups,
+                                                 const group_storage<6>* d_groups,
+                                                 const typeval_union* d_group_typeval,
+                                                 const unsigned int* d_group_tag,
+                                                 unsigned int* d_group_rtag,
+                                                 const group_storage<6>* d_group_ranks,
+                                                 unsigned int* d_rank_mask,
+                                                 const unsigned int* d_rtag,
+                                                 const unsigned int* d_comm_flags,
+                                                 unsigned int my_rank,
+                                                 const unsigned int* d_scan,
+                                                 unsigned int* d_marked_groups,
+                                                 packed_storage<6>* d_out_groups,
+                                                 unsigned int* d_out_rank_mask,
+                                                 bool local_multiple);
 
 template void
 gpu_scatter_and_mark_groups_for_removal<6, true>(unsigned int n_groups,
@@ -3023,10 +3078,23 @@ template void gpu_mark_bonded_ghosts<6, true>(unsigned int n_groups,
                                               unsigned int my_rank,
                                               unsigned int mask);
 
+template void gpu_mark_bonded_ghosts<6, false>(unsigned int n_groups,
+                                              group_storage<6>* d_groups,
+                                              group_storage<6>* d_ranks,
+                                              const Scalar4* d_postype,
+                                              const BoxDim& box,
+                                              const unsigned int* d_rtag,
+                                              unsigned int* d_plan,
+                                              Index3D& di,
+                                              uint3 my_pos,
+                                              const unsigned int* d_cart_ranks,
+                                              unsigned int my_rank,
+                                              unsigned int mask);
+
 /*
  *! Explicit template instantiations for ConstraintData (n=2)
  */
-template void gpu_make_ghost_group_exchange_plan<2>(unsigned int* d_ghost_group_plan,
+template void gpu_make_ghost_group_exchange_plan<2,false>(unsigned int* d_ghost_group_plan,
                                                     const group_storage<2>* d_groups,
                                                     unsigned int N,
                                                     const unsigned int* d_rtag,
@@ -3041,7 +3109,7 @@ template void gpu_exchange_ghost_groups_pack(unsigned int n_out,
                                              const group_storage<2>* d_group_ranks,
                                              packed_storage<2>* d_groups_sendbuf);
 
-template void gpu_exchange_ghost_groups_copy_buf<2>(unsigned int nrecv,
+template void gpu_exchange_ghost_groups_copy_buf<2,false>(unsigned int nrecv,
                                                     const packed_storage<2>* d_groups_recvbuf,
                                                     unsigned int* d_group_tag,
                                                     group_storage<2>* d_groups,

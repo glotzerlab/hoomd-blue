@@ -31,6 +31,22 @@ Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(
     }
 
 template<class group_data, bool inMesh>
+Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(
+    Communicator& comm)
+    : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(NULL)
+    {
+    }
+
+template<class group_data, bool inMesh>
+void Communicator::GroupCommunicator<group_data, inMesh>::setGroupData(std::shared_ptr<group_data> gdata)
+    {
+    m_gdata = gdata;
+
+    // the size of the bit field must be larger or equal the group size
+    assert(sizeof(unsigned int) * 8 >= group_data::size);
+    }
+
+template<class group_data, bool inMesh>
 void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool incomplete,
                                                                         bool local_multiple)
     {
@@ -1263,7 +1279,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
-      m_pair_comm(*this, m_sysdef->getPairData())
+      m_pair_comm(*this, m_sysdef->getPairData()),
+      m_meshbond_comm(*this),
+      m_meshtriangle_comm(*this)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -1438,9 +1456,7 @@ Communicator::~Communicator()
 
     if (m_meshdef != NULL)
         {
-        m_meshdef->getMeshBondData()
-            ->getGroupNumChangeSignal()
-            .disconnect<Communicator, &Communicator::setMeshbondsChanged>(this);
+        m_meshdef->getMeshBondData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setMeshbondsChanged>(this);
 
         m_meshdef->getMeshTriangleData()
             ->getGroupNumChangeSignal()
@@ -1454,9 +1470,8 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     {
     m_meshdef = meshdef;
 
-    m_meshbond_comm = GroupCommunicator<MeshBondData, true>(*this, m_meshdef->getMeshBondData());
-    m_meshtriangle_comm
-        = GroupCommunicator<MeshTriangleData, true>(*this, m_meshdef->getMeshTriangleData());
+    m_meshbond_comm.setGroupData(m_meshdef->getMeshBondData());
+    m_meshtriangle_comm.setGroupData(m_meshdef->getMeshTriangleData());
 
     m_meshbonds_changed = true;
     m_meshdef->getMeshBondData()
