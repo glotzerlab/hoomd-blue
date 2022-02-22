@@ -1,7 +1,14 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""HPMC updaters."""
+"""HPMC updaters.
+
+HPMC updaters work with the `hpmc.integrate.HPMCIntegrator` to apply changes to
+the system consistent with the particle shape and defined interaction energies.
+The `BoxMC`, `Clusters`, and `MuVT` updaters apply trial moves that enable
+enhanced sampling or the equilibration of different ensembles. `QuickCompress`
+helps prepare non-overlapping configurations of particles in a given box shape.
+"""
 
 from . import _hpmc
 from . import integrate
@@ -25,16 +32,185 @@ class BoxMC(Updater):
             trial moves.
 
     Use `BoxMC` in conjunction with an HPMC integrator to allow the simulation
-    box to undergo random fluctuations at constant pressure. `BoxMC` supports
-    both isotropic (all box sides changed equally) and anisotropic volume change
-    moves as well as shearing of the simulation box. Multiple types of box moves
-    can be applied simultaneously during a simulation. For this purpose, each
-    type of box move has an associated weight that determines the relative
-    frequency of a box move happening relative to the others. By default, no
-    moves are applied (*weight* values for all move types default to 0). After
-    a box trial move is proposed, all the particle positions are scaled into the
-    new box. Trial moves are then accepted, if they do not produce an overlap,
-    according to standard Metropolis criterion and rejected otherwise.
+    box to undergo random fluctuations at constant pressure, or random
+    deformations at constant volume. `BoxMC` supports both isotropic and
+    anisotropic volume change moves as well as shearing of the simulation box. A
+    single `BoxMC` instance may apply multiple types of box moves during a
+    simulation run.
+
+    .. rubric:: Box move types
+
+    By default, no moves are applied (the *weight* values for
+    all move types default to 0). In a given timestep, the type of move is
+    selected randomly with probability:
+
+    .. math::
+
+        p = \frac{w_k}{\sum_k w_k}
+
+    where :math:`w_k` is the weight of the move type.
+
+    A given box move proposes a trial simulation box :math:`(L_x^t, L_y^t,
+    L_z^t, xy^t, xz^t, yz^t)` as a change from the current box: :math:`(L_x,
+    L_y, L_z, xy, xz, yz)`. The form of the change depends on the selected
+    move type:
+
+    * `volume` (``mode='standard'``): Change the volume (or area in 2D) of the
+      simulation box while maining fixed aspect ratios :math:`Lx/Ly`,
+      :math:`Lx/Lz`. In 3D:
+
+      .. math::
+
+          V^t &= V + u \\
+          L_x^t &= \left( \frac{Lx}{Ly} \frac{Lx}{Lz} V^t \right)^{1/3} \\
+          L_y^t &= L_x^t \frac{Ly}{Lx} \\
+          L_z^t &= L_x^t \frac{Lz}{Lx} \\
+          xy^t &= xy \\
+          xz^t &= xz \\
+          yz^t &= yz \\
+
+      where :math:`u` is a random value uniformly distributed in the interval
+      :math:`[-\delta_\mathrm{volume}, \delta_\mathrm{volume}]`.
+
+      In 2D:
+
+      .. math::
+
+          V^t &= V + u \\
+          L_x^t &= \left( \frac{Lx}{Ly} V^t \right)^{1/2} \\
+          L_y^t &= L_x^t \frac{Ly}{Lx} \\
+          xy^t &= xy \\
+
+    * `volume` (``mode='ln'``): Change the volume (or area in 2D) of the
+      simulation box while maining fixed aspect ratios :math:`Lx/Ly`,
+      :math:`Lx/Lz`. In 3D:
+
+      .. math::
+
+          V^t &= V e^u \\
+          L_x^t &= \left( \frac{Lx}{Ly} \frac{Lx}{Lz} V^t \right)^{1/3} \\
+          L_y^t &= L_x^t \frac{Ly}{Lx} \\
+          L_z^t &= L_x^t \frac{Lz}{Lx} \\
+          xy^t &= xy \\
+          xz^t &= xz \\
+          yz^t &= yz \\
+
+      where :math:`u` is a random value uniformly distributed in the interval
+      :math:`[-\delta_\mathrm{volume}, \delta_\mathrm{volume}]`.
+
+      In 2D:
+
+      .. math::
+
+          V^t &= V + u \\
+          L_x^t &= \left( \frac{Lx}{Ly} V^t \right)^{1/2} \\
+          L_y^t &= L_x^t \frac{Ly}{Lx} \\
+          xy^t &= xy \\
+    * `aspect`: Change the aspect ratio of the simulation box while maintaining
+      a fixed volume. In 3D:
+
+      .. math::
+
+          L_k^t & = \begin{cases} L_k(1 + a) & u < 0.5 \\
+                                L_k \frac{1}{1+a}  & u \ge 0.5
+                  \end{cases} \\
+          L_{m \ne k}^t & = L_m \sqrt{\frac{L_k}{L_k^t}} &
+          xy^t &= xy \\
+          xz^t &= xz \\
+          yz^t &= yz \\
+
+      where :math:`u` is a random value uniformly distributed in the interval
+      :math:`[0, 1]`, :math:`a` is a random value uniformly distributed in the
+      interval :math:`[0, \delta_\mathrm{aspect}]` and :math:`k` is randomly
+      chosen uniformly from the set :math:`\{x, y, z\}`.
+
+      In 2D:
+
+      .. math::
+
+          L_k^t & = \begin{cases} L_k(1 + a) & u < 0.5 \\
+                                L_k \frac{1}{1+a}  & u \ge 0.5
+                    \end{cases} \\
+          L_{m \ne k}^t & = L_m \frac{L_k}{L_k^t} \\
+          xy^t &= xy \\
+    * `length`: Change the box lengths:
+
+      .. math::
+
+          L_k^t =  L_k + u
+
+      where :math:`u` is a random value uniformly distributed in the interval
+      :math:`[-\delta_{\mathrm{length},k}, -\delta_{\mathrm{length},k}]`,
+      and :math:`k` is randomly chosen uniformly from the set
+      :math:`\{a : a \in \{x, y, z\}, \delta_{\mathrm{length},a} \ne 0 \}`.
+    * `shear`: Change the box shear parameters. In 3D:
+
+      .. math::
+
+          (xy^t, xz^t, yz^t) =
+          \begin{cases}
+          \left(xy + s_{xy},
+                \enspace xz,
+                \enspace yz \right) & u < \frac{1}{3} \\
+          \left( xy^t = xy,
+                \enspace xz + s_{xz},
+                \enspace yz \right) & \frac{1}{3} \le u < \frac{2}{3} \\
+          \left( xy^t = xy,
+                \enspace xz,
+                \enspace yz + s_{yz} \right) & \frac{2}{3} \le u \le 1 \\
+          \end{cases} \\
+
+      where :math:`u` is a random value uniformly distributed in the interval
+      :math:`[0, 1]` and :math:`s_k` is a random value uniformly distributed in
+      the interval :math:`[-\delta_{\mathrm{shear},k},
+      \delta_{\mathrm{shear},k}]`.
+
+      In 2D:
+
+      .. math::
+
+         xy^t = xy + s_{xy}
+
+    .. rubric:: Acceptance
+
+    All particle particle positions are scaled into the trial box to form the
+    trial configuration :math:`C^t`:
+
+    .. math::
+
+        \vec{r}_i^t = s_x \vec{a}_1^t + s_y \vec{a}_2^t +
+                               s_z \vec{a}_3^t -
+                    \frac{\vec{a}_1^t + \vec{a}_2^t + \vec{a}_3^t}{2}
+
+    where :math:`\vec{a}_k^t` are the new box vectors determined by
+    :math:`(L_x^t, L_y^t, L_z^t, xy^t, xz^t, yz^t)` and the scale factors are
+    determined by the current particle position :math:`\vec{r}_i` and the box
+    vectors :math:`\vec{a}_k`:
+
+    .. math::
+
+        \vec{r}_i = s_x \vec{a}_1 + s_y \vec{a}_2 + s_z \vec{a}_3 -
+                    \frac{\vec{a}_1 + \vec{a}_2 + \vec{a}_3}{2}
+
+    The trial move is accepted with the probability:
+
+    .. math::
+
+        p_\mathrm{accept} =
+        \begin{cases}
+        \exp(-(\beta \Delta H + \beta \Delta U)) &
+        \beta \Delta H + \beta \Delta U > 0 \\
+        1 & \beta \Delta H + \beta \Delta U \le 0 \\
+        \end{cases}
+
+    where :math:`\Delta U = U^t - U` is the difference in potential energy,
+    :math:`\beta \Delta H = \beta P (V^t - V) - N_\mathrm{particles} \cdot
+    \ln(V^t / V)` for most move types. It is :math:`\beta P (V^t - V) -
+    (N_\mathrm{particles}+1) \cdot \ln(V^t / V)` for ln volume moves.
+
+    When the trial move is accepted, the system state is set to the the trial
+    configuration. When it is not accepted, the move is rejected and the state
+    is not modified.
 
     .. rubric:: Mixed precision
 
@@ -51,14 +227,15 @@ class BoxMC(Updater):
               and ``ln`` proposes changes to the logarithm of the volume.
               Initially starts off in 'standard' mode.
             * ``delta`` (float) - Maximum change in **V** or **ln(V)** where V
-              is box area (2D) or volume (3D).
+              is box area (2D) or volume (3D) :math:`\delta_\mathrm{volume}`.
 
         aspect (dict):
             Parameters for isovolume aspect ratio moves. The dictionary has the
             following keys:
 
             * ``weight`` (float) - Relative weight of aspect box moves.
-            * ``delta`` (float) - Maximum relative change of box aspect ratio.
+            * ``delta`` (float) - Maximum relative change of box aspect ratio
+              :math:`\delta_\mathrm{aspect} [\mathrm{dimensionless}]`.
 
         length (dict):
             Parameters for isobaric box length moves that change box lengths
@@ -67,7 +244,9 @@ class BoxMC(Updater):
             * ``weight`` (float) - Maximum change of HOOMD-blue box parameters
               Lx, Ly, and Lz.
             * ``delta`` (tuple[float, float, float]) - Maximum change of the
-              box lengths ``(Lx, Ly, Lz)`` :math:`[\mathrm{length}]`.
+              box lengths :math:`(\delta_{\mathrm{length},x},
+              \delta_{\mathrm{length},y}, \delta_{\mathrm{length},z})
+              [\mathrm{length}]`.
 
         shear (dict):
             Parameters for isovolume box shear moves. The dictionary has the
@@ -75,7 +254,9 @@ class BoxMC(Updater):
 
             * ``weight`` (float) - Relative weight of shear box moves.
             * ``delta`` (tuple[float, float, float]) -  maximum change of the
-              box tilt factor ``(xy, xz, yz)``.
+              box tilt factor :math:`(\delta_{\mathrm{shear},xy},
+              \delta_{\mathrm{shear},xz}, \delta_{\mathrm{shear},yz})
+              [\mathrm{dimensionless}]`.
             * ``reduce`` (float) - Maximum number of lattice vectors of shear
               to allow before applying lattice reduction. Values less than 0.5
               disable shear reduction.
@@ -211,16 +392,21 @@ class MuVT(Updater):
     The muVT (or grand-canonical) ensemble simulates a system at constant
     fugacity.
 
-    Gibbs ensemble simulations are also supported, where particles and volumeare
-    swapped between two or more boxes.  Every box correspond to one MPI
+    Gibbs ensemble simulations are also supported, where particles and volume
+    are swapped between two or more boxes.  Every box correspond to one MPI
     partition, and can therefore run on multiple ranks. Use the
     ``ranks_per_partition`` argument of `hoomd.communicator.Communicator` to
     enable partitioned simulations.
 
+    .. rubric:: Mixed precision
+
+    `MuVT` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
+
     Note:
         Multiple Gibbs ensembles are also supported in a single parallel job,
-        with the ngibbs option to update.muvt(), where the number of partitions
-        can be a multiple of ngibbs.
+        with the ``ngibbs`` option to update.muvt(), where the number of
+        partitions can be a multiple of ``ngibbs``.
 
     Attributes:
         trigger (int): Select the timesteps on which to perform cluster moves.
@@ -317,7 +503,7 @@ class MuVT(Updater):
     def N(self):  # noqa: N802 - allow N as a function name
         """dict: Map of number of particles per type.
 
-        None when not attached
+        None when not attached.
         """
         N_dict = None
         if self._attached:
@@ -339,10 +525,8 @@ class Clusters(Updater):
 
     The GCA as described in Liu and Lujten (2004),
     http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
-    interactions and depletants.
-
-    Implicit depletants are supported and simulated on-the-fly, as if they were
-    present in the actual system.
+    interactions and depletants. Implicit depletants are supported and simulated
+    on-the-fly, as if they were present in the actual system.
 
     Supported moves include pivot moves (point reflection) and line reflections
     (pi rotation around an axis).  With anisotropic particles, the pivot move
