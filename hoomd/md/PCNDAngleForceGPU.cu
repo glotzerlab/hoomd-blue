@@ -120,7 +120,7 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
 	   force_idx.y = Xi * sqrt(-2 * log(a_y)) * cosf(2 * 3.1415926535897 * b_y);
 	   force_idx.z = Xi * sqrt(-2 * log(a_z)) * cosf(2 * 3.1415926535897 * b_z);
 
-           force_idx.w += sqrt(force_idx.x * force_idx.x + force_idx.y * force_idx.y + force_idx.z * force_idx.z);
+           force_idx.w = sqrt(force_idx.x * force_idx.x + force_idx.y * force_idx.y + force_idx.z * force_idx.z);
            d_force[idx] = force_idx;
 	   }
         else if (cur_angle_abc == 1 && PCNDtimestep != 0)
@@ -163,7 +163,7 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
 	    force_idx.y = E * magy + hy;
 	    force_idx.z = E * magz + hz;
         
-	    force_idx.w += sqrt(force_idx.x * force_idx.x + force_idx.y * force_idx.y + force_idx.z * force_idx.z);
+	    force_idx.w = sqrt(force_idx.x * force_idx.x + force_idx.y * force_idx.y + force_idx.z * force_idx.z);
             d_force[idx] = force_idx;
 	   }
         }
