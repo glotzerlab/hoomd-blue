@@ -42,12 +42,11 @@ class LoadBalancer(Tuner):
 
     Simulations with interfaces (so that there is a particle density gradient)
     or clustering should benefit from load balancing. The potential speedup is
-    roughly :math:`I-1.0`, so that if the largest imbalance is 1.4, then the
-    user can expect a roughly 40% speedup in the simulation. This is of course
-    an estimate that assumes that all algorithms are roughly linear in
-    :math:`N`, all GPUs are fully occupied, and the simulation is limited by the
-    speed of the slowest processor. It also assumes that all particles roughly
-    equal. If you have a simulation where, for example, some particles have
+    :math:`I-1.0`, so that if the largest imbalance is 1.4, then the user can
+    expect a 40% speedup in the simulation. This is of course an estimate that
+    assumes that all algorithms are linear in :math:`N`, all GPUs are fully
+    occupied, and the simulation is limited by the speed of the slowest
+    processor. If you have a simulation where, for example, some particles have
     significantly more pair force neighbors than others, this estimate of the
     load imbalance may not produce the optimal results.
 

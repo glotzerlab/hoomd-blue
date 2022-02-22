@@ -192,8 +192,8 @@ class Stencil(NList):
     are first spatially sorted into cells with the given width `cell_width`.
 
     `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
-    describes this neighbor list implementation in HOOMD-blue. Cite it if you
-    utilize this neighbor list style in your work.
+    describes this neighbor list implementation. Cite it if you utilize this
+    neighbor list style in your work.
 
     This neighbor list style differs from `Cell` in how the adjacent cells are
     searched for particles. One stencil is computed per particle type based on

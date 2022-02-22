@@ -19,5 +19,8 @@ hoomd.logging
 
 .. automodule:: hoomd.logging
     :synopsis: Classes for logging data.
-    :members: log, Logger, LoggerCategories
+    :members: log, Logger
     :undoc-members:
+
+    .. autoclass:: LoggerCategories
+        :members: any

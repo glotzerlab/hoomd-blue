@@ -4,7 +4,7 @@
 import hoomd
 
 
-class FakeIntegrator(hoomd.integrate.BaseIntegrator):
+class FakeIntegrator(hoomd.operation.Integrator):
     pass
 
 
