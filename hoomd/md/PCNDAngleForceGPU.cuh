@@ -4,6 +4,7 @@
 #include "hoomd/BondedGroupData.cuh"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
+#include <hip/hip_runtime.h>
 
 /*! \file PCNDAngleForceGPU.cuh
     \brief Declares GPU kernel code for calculating the PCND angle forces. Used by PCNDAngleForceComputeGPU.
@@ -22,6 +23,7 @@ namespace kernel
 hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          Scalar* d_virial,
                                          const size_t virial_pitch,
+					 const unsigned int* d_tag,
                                          const unsigned int N,
                                          const Scalar4* d_pos,
                                          const BoxDim& box,
@@ -31,12 +33,12 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          const unsigned int* n_angles_list,
                                          Scalar2* d_params,
                                          Scalar2* d_PCNDsr,
-                                         Scalar4* d_PCNDepow,
+                                         uint16_t* d_PCNDepow,
                                          unsigned int n_angle_types,
                                          int block_size,
                                          //const unsigned int compute_capability,
                                          uint64_t timestep,
-                                         float* hostData,
+                                         //float* hostData,
                                          uint64_t PCNDtimestep,
                                          float* hostCarryover);
 

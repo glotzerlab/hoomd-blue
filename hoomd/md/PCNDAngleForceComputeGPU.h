@@ -62,7 +62,7 @@ class PYBIND11_EXPORT PCNDAngleForceComputeGPU : public PCNDAngleForceCompute
 
         // below are just for the PCND angle potential
         GPUArray<Scalar2>  m_PCNDsr;    //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
-        GPUArray<Scalar4>  m_PCNDepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
+        GPUArray<uint16_t>  m_PCNDepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
 
         //! Actually compute the forces
         virtual void computeForces(uint64_t timestep);

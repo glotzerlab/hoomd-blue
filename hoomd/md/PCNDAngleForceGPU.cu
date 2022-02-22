@@ -3,11 +3,12 @@
 
 #include "hip/hip_runtime.h"
 #include "PCNDAngleForceGPU.cuh"
+
 #include "hoomd/TextureTools.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
-//#include <cuda.h>
-//#include <curand_kernel.h>
+
+using namespace hoomd;
 
 #include <assert.h>
 
@@ -46,6 +47,7 @@ namespace kernel
 */
 __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
                                                      Scalar* d_virial,
+						     const unsigned int* d_tag,
                                                      const size_t virial_pitch,
                                                      const unsigned int N,
                                                      const Scalar4* d_pos,
@@ -56,11 +58,11 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
                                                      const unsigned int* n_angles_list,
                                                      Scalar2* d_params,
                                                      Scalar2* d_PCNDsr,
-                                                     Scalar4* d_PCNDepow,
+                                                     uint16_t* d_PCNDepow,
                                                      uint64_t timestep,
-                                                     float* devData,
+                                                     //float* devData,
                                                      uint64_t PCNDtimestep,
-                                                     float *devCarryover)
+                                                     float* devCarryover)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -110,26 +112,35 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
 				
             /////////////get eps param
             //const Scalar4 cgEPOW = texFetchScalar4(d_CGCMMepow, angle_CGCMMepow_tex, cur_angle_type);
-            const Scalar4 cgEPOW = __ldg(d_PCNDepow + cur_angle_type);
+            const uint16_t cgEPOW = __ldg(d_PCNDepow + cur_angle_type);
+	    uint16_t seed = cgEPOW;
 
+	    // read in the tag of our particle.
+	    unsigned int ptag = d_tag[idx];
 	    // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
 	    //int seed = cgEPOW.x; //get parameter seed (epsilon)
             //Scalar cgpow1 = cgEPOW.y;
             //Scalar cgpow2 = cgEPOW.z;
             //Scalar cgpref = cgEPOW.w;
             //////////////////////////////////////////////////////////////
-	    float R1 = devData[(number) * 6];
-	    float R2 = devData[(number) * 6 + 1];
-	    float R3 = devData[(number) * 6 + 2];
-	    float R4 = devData[(number) * 6 + 3];
-	    float R5 = devData[(number) * 6 + 4];
-	    float R6 = devData[(number) * 6 + 5];
+
+	    // Initialize the Random Number Generator and generate the 6 random numbers
+	    RandomGenerator rng(hoomd::Seed(RNGIdentifier::PCNDAngleForceCompute, timestep, seed),
+			       hoomd::Counter(ptag));
+	    UniformDistribution<Scalar> uniform(Scalar(0), Scalar(1));
+
+	    Scalar a_x = uniform(rng);
+	    Scalar b_x = uniform(rng);
+	    Scalar a_y = uniform(rng);
+	    Scalar b_y = uniform(rng);
+	    Scalar a_z = uniform(rng);
+	    Scalar b_z = uniform(rng);
 						
 	    if (PCNDtimestep == 0)
 	        {
-		devCarryover[(number) * 6 + counter * 3] = Xi * sqrt(-2 * log(R1)) * cosf(2 * 3.1415926535897 * R2);
-		devCarryover[(number) * 6 + 1 + counter * 3] = Xi * sqrt(-2 * log(R3)) * cosf(2 * 3.1415926535897 * R4);
-		devCarryover[(number) * 6 + 2 + counter * 3] = Xi * sqrt(-2 * log(R5)) * cosf(2 * 3.1415926535897 * R6);				
+		devCarryover[(number) * 6 + counter * 3] = Xi * sqrt(-2 * log(a_x)) * cosf(2 * 3.1415926535897 * b_x);
+		devCarryover[(number) * 6 + 1 + counter * 3] = Xi * sqrt(-2 * log(a_y)) * cosf(2 * 3.1415926535897 * b_y);
+		devCarryover[(number) * 6 + 2 + counter * 3] = Xi * sqrt(-2 * log(a_z)) * cosf(2 * 3.1415926535897 * b_z);				
 		force_idx.x += devCarryover[(number) * 6 + counter * 3];
 		force_idx.y += devCarryover[(number) * 6 + 1 + counter * 3];
 		force_idx.z += devCarryover[(number) * 6 + 2 + counter * 3];
@@ -140,9 +151,9 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
 		Scalar magy = devCarryover[(number) * 6 + 1 + counter * 3];
 		Scalar magz = devCarryover[(number) * 6 + 2 + counter * 3];
 	        Scalar E = exp(-1 / Tau);
-		Scalar hx = Xi * sqrt(-2 * (1 - E * E) * log(R1)) * cosf(2 * 3.1415926535897 * R2);
-		Scalar hy = Xi * sqrt(-2 * (1 - E * E) * log(R3)) * cosf(2 * 3.1415926535897 * R4);
-	        Scalar hz = Xi * sqrt(-2 * (1 - E * E) * log(R5)) * cosf(2 * 3.1415926535897 * R6);
+		Scalar hx = Xi * sqrt(-2 * (1 - E * E) * log(a_x)) * cosf(2 * 3.1415926535897 * b_x);
+		Scalar hy = Xi * sqrt(-2 * (1 - E * E) * log(a_y)) * cosf(2 * 3.1415926535897 * b_y);
+	        Scalar hz = Xi * sqrt(-2 * (1 - E * E) * log(a_z)) * cosf(2 * 3.1415926535897 * b_z);
 		
 		if (hx > Xi * sqrt(-2 * log(0.001)))
 		    {
@@ -218,6 +229,7 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
 hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          Scalar* d_virial,
                                          const size_t virial_pitch,
+					 const unsigned int* d_tag,
                                          const unsigned int N,
                                          const Scalar4* d_pos,
                                          const BoxDim& box,
@@ -227,12 +239,12 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          const unsigned int* n_angles_list,
                                          Scalar2* d_params,
                                          Scalar2* d_PCNDsr,
-                                         Scalar4* d_PCNDepow,
+                                         uint16_t* d_PCNDepow,
                                          unsigned int n_angle_types,
                                          int block_size,
                                          //const unsigned int compute_capability,
                                          uint64_t timestep,
-                                         float* devData,
+                                         //float* devData,
                                          uint64_t PCNDtimestep,
                                          float* devCarryover)
     {
@@ -278,6 +290,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
 			0,
 			d_force,
                         d_virial,
+			d_tag,
                         virial_pitch,
                         N,
                         d_pos,
@@ -290,7 +303,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                         d_PCNDsr,
                         d_PCNDepow,
                         timestep,
-                        devData,
+                        //devData,
                         PCNDtimestep,
                         devCarryover);
 

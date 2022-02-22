@@ -6,14 +6,8 @@
 */
 
 #include "PCNDAngleForceComputeGPU.h"
-#include <cuda.h>
-//#include <curand.h>
-#include "hoomd/RNGIdentifiers.h"
-#include "hoomd/RandomNumbers.h"
-#include <time.h>
 
-//curandGenerator_t gen;
-float *devData, *hostData, *devCarryover, *hostCarryover;
+float *devCarryover, *hostCarryover;
 uint16_t seed;
 uint16_t seed2;
 uint64_t PCNDtimestep;
@@ -57,7 +51,7 @@ PCNDAngleForceComputeGPU::PCNDAngleForceComputeGPU(std::shared_ptr<SystemDefinit
     m_params.swap(params);
     GPUArray<Scalar2> PCNDsr(m_pcnd_angle_data->getNTypes(), m_exec_conf);
     m_PCNDsr.swap(PCNDsr);
-    GPUArray<Scalar4> PCNDepow(m_pcnd_angle_data->getNTypes(), m_exec_conf);
+    GPUArray<uint16_t> PCNDepow(m_pcnd_angle_data->getNTypes(), m_exec_conf);
     m_PCNDepow.swap(PCNDepow);
 
     unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
@@ -83,25 +77,25 @@ void PCNDAngleForceComputeGPU::setParams(unsigned int type, Scalar Xi, Scalar Ta
 
     const Scalar myPow1 = cgPow1[PCND_type];
     const Scalar myPow2 = cgPow2[PCND_type];
-    const Scalar myPref = prefact[PCND_type];
+    //const Scalar myPref = prefact[PCND_type];
 
     Scalar my_rcut = particle_index * exp(Scalar(1.0) / (myPow1 - myPow2) * log(myPow1 / myPow2));
 
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar2> h_PCNDsr(m_PCNDsr, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_PCNDepow(m_PCNDepow, access_location::host, access_mode::readwrite);
+    ArrayHandle<uint16_t> h_PCNDepow(m_PCNDepow, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
     h_params.data[type] = make_scalar2(Xi, Tau);
     h_PCNDsr.data[type] = make_scalar2(particle_index, my_rcut);
-    h_PCNDepow.data[type] = make_scalar4(particle_sum, myPow1, myPow2, myPref);
+    h_PCNDepow.data[type] = particle_sum;
     
-    seed = 7 * particle_sum;
+    //seed = 7 * particle_sum;
     
     /* Allocate n floats on host */
-    hostData = (float *)calloc(seed, sizeof(float));
+    //hostData = (float *)calloc(seed, sizeof(float));
 
     /* Allocate n floats on device */
-    cudaMalloc((void **)&devData, seed*sizeof(float));
+    //cudaMalloc((void **)&devData, seed*sizeof(float));
     
     //curandCreateGenerator(&gen,CURAND_RNG_PSEUDO_DEFAULT);
     //curandSetPseudoRandomGeneratorSeed(gen,time(NULL));
@@ -109,10 +103,10 @@ void PCNDAngleForceComputeGPU::setParams(unsigned int type, Scalar Xi, Scalar Ta
     
     //allocate space to carryover data
     /* Allocate n floats on host */
-    seed2 = 7 * (particle_sum + 1);
-    hostCarryover = (float *)calloc(seed2, sizeof(float));
+    //seed2 = 7 * (particle_sum + 1);
+    //hostCarryover = (float *)calloc(seed2, sizeof(float));
     /* Allocate n floats on device */
-    cudaMalloc((void **)&devCarryover, seed2*sizeof(float));
+    //cudaMalloc((void **)&devCarryover, seed2*sizeof(float));
                 
     }
 	
@@ -130,12 +124,12 @@ void PCNDAngleForceComputeGPU::computeForces(uint64_t timestep)
         //ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         
 	//unsigned int ptag = h_tag.data;
-        RandomGenerator rng(hoomd::Seed(RNGIdentifier::PCNDAngleForceCompute, timestep, seed),
-		            hoomd::Counter(0));
+        //RandomGenerator rng(hoomd::Seed(RNGIdentifier::PCNDAngleForceCompute, timestep, seed),
+		            //hoomd::Counter(0));
 	
-	UniformDistribution<Scalar> uniform(Scalar(0), Scalar(1));
+	//UniformDistribution<Scalar> uniform(Scalar(0), Scalar(1));
 	
-	cudaMemcpy(hostData, devData, seed * sizeof(float),cudaMemcpyDeviceToHost);
+	//cudaMemcpy(hostData, devData, seed * sizeof(float),cudaMemcpyDeviceToHost);
 	//int i;
 	//for(i = 0; i < seed; i++) {
         //printf("%1.4f ", hostData[i]);
@@ -148,6 +142,7 @@ void PCNDAngleForceComputeGPU::computeForces(uint64_t timestep)
 
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getGlobalBox();
 
@@ -158,7 +153,7 @@ void PCNDAngleForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
     ArrayHandle<Scalar2> d_PCNDsr(m_PCNDsr, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_PCNDepow(m_PCNDepow, access_location::device, access_mode::read);
+    ArrayHandle<uint16_t> d_PCNDepow(m_PCNDepow, access_location::device, access_mode::read);
 
     ArrayHandle<AngleData::members_t> d_gpu_anglelist(m_pcnd_angle_data->getGPUTable(),
 		                                      access_location::device,
@@ -175,7 +170,8 @@ void PCNDAngleForceComputeGPU::computeForces(uint64_t timestep)
     kernel::gpu_compute_PCND_angle_forces(d_force.data,
                                    d_virial.data,
                                    m_virial.getPitch(),
-                                   m_pdata->getN(),
+                                   d_tag.data,
+				   m_pdata->getN(),
                                    d_pos.data,
                                    box,
                                    d_gpu_anglelist.data,
@@ -189,7 +185,7 @@ void PCNDAngleForceComputeGPU::computeForces(uint64_t timestep)
                                    m_tuner->getParam(),
                                    //m_exec_conf->getComputeCapability(),
                                    timestep,
-                                   devData,
+                                   //devData,
                                    PCNDtimestep,
                                    devCarryover);
     PCNDtimestep=PCNDtimestep+1;
