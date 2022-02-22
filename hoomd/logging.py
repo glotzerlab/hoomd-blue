@@ -33,34 +33,34 @@ class LoggerCategories(Flag):
     quantities, and custom actions (`hoomd.custom.Action`).
 
     Attributes:
-        scalar: 1 `float` or `int` objects (i.e. numbers)
+        scalar: `float` or `int` object.
 
-        sequence: 2 sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers
+        sequence: Sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers
             of the same type.
 
-        string: 4 a single Python `str` object
+        string: A single Python `str` object.
 
-        strings: 8 a sequence of Python `str` objects
+        strings: A sequence of Python `str` objects.
 
-        object: 16 any Python object outside a sequence, string, or scalar.
+        object: Any Python object outside a sequence, string, or scalar.
 
-        angle: 32 per-angle quantity
+        angle: Per-angle quantity.
 
-        bond: 64 per-bond quantity
+        bond: Per-bond quantity.
 
-        constraint: 128 per-constraint quantity
+        constraint: Per-constraint quantity.
 
-        dihedral: 256 per-dihedral quantity
+        dihedral: Per-dihedral quantity.
 
-        improper: 512 per-improper quantity
+        improper: Per-improper quantity.
 
-        pair: 1024 per-pair quantity
+        pair: Per-pair quantity.
 
-        particle: 2048 per-particle quantity
+        particle: Per-particle quantity.
 
-        ALL: 4095 a combination of all other categories
+        ALL: A combination of all other categories.
 
-        NONE: 0 represents no category
+        NONE: Represents no category.
     """
     NONE = 0
     scalar = auto()
