@@ -7,9 +7,6 @@
 
 #include "PCNDAngleForceComputeGPU.h"
 
-float *devCarryover, *hostCarryover;
-uint16_t seed;
-uint16_t seed2;
 uint64_t PCNDtimestep;
 
 using namespace std;
@@ -186,8 +183,7 @@ void PCNDAngleForceComputeGPU::computeForces(uint64_t timestep)
                                    //m_exec_conf->getComputeCapability(),
                                    timestep,
                                    //devData,
-                                   PCNDtimestep,
-                                   devCarryover);
+                                   PCNDtimestep);
     PCNDtimestep=PCNDtimestep+1;
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())

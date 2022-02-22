@@ -61,8 +61,7 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
                                                      uint16_t* d_PCNDepow,
                                                      uint64_t timestep,
                                                      //float* devData,
-                                                     uint64_t PCNDtimestep,
-                                                     float* devCarryover)
+                                                     uint64_t PCNDtimestep)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -78,131 +77,97 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
      
-    //make counter for number of loops
-    int counter = 0;
-		
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
-	{
+        {
 	int cur_angle_abc = apos_list[pitch * angle_idx + idx];
 			
-	if (cur_angle_abc == 1)
-	    {
-	    counter += 1;
-	    //printf("forcew=%f\n",force_idx.w);
-	    ////////////////////////////////////////////////////////////Get params
-            group_storage<3> cur_angle = alist[pitch * angle_idx + idx];
-
-	    //int cur_angle_x_idx = cur_angle.idx[0];
-	    //int cur_angle_y_idx = cur_angle.idx[1];
-	    int cur_angle_type = cur_angle.idx[2];
+        group_storage<3> cur_angle = alist[pitch * angle_idx + idx];
+        int cur_angle_type = cur_angle.idx[2];
 				
-	    // get the angle parameters (MEM TRANSFER: 8 bytes)
-	    //Scalar2 params = texFetchScalar2(d_params, angle_params_tex, cur_angle_type);
-	    Scalar2 params = __ldg(d_params + cur_angle_type);
-	    Scalar Xi = params.x; //K
-	    Scalar Tau = params.y;//t_0
+        // get the angle parameters (MEM TRANSFER: 8 bytes)
+	Scalar2 params = __ldg(d_params + cur_angle_type);
+	Scalar Xi = params.x; //Xi
+	Scalar Tau = params.y;//Tau
 				
-	    ////////////////// get sig params
-	    //const Scalar2 cgSR = texFetchScalar2(d_CGCMMsr, angle_CGCMMsr_tex, cur_angle_type);
-            const Scalar2 cgSR = __ldg(d_PCNDsr + cur_angle_type);
-
-	    int number = cgSR.x;//sigma//number
-	    //Scalar cgrcut = cgSR.y;
+	////////////////// get index params
+	//const Scalar2 cgSR = texFetchScalar2(d_CGCMMsr, angle_CGCMMsr_tex, cur_angle_type);
+        const Scalar2 cgSR = __ldg(d_PCNDsr + cur_angle_type);
+        int number = cgSR.x;//sigma//number
 				
-            /////////////get eps param
-            //const Scalar4 cgEPOW = texFetchScalar4(d_CGCMMepow, angle_CGCMMepow_tex, cur_angle_type);
-            const uint16_t cgEPOW = __ldg(d_PCNDepow + cur_angle_type);
-	    uint16_t seed = cgEPOW;
+        /////////////get eps param
+        const uint16_t cgEPOW = __ldg(d_PCNDepow + cur_angle_type);
+	uint16_t seed = cgEPOW;
 
-	    // read in the tag of our particle.
-	    unsigned int ptag = d_tag[idx];
-	    // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
-	    //int seed = cgEPOW.x; //get parameter seed (epsilon)
-            //Scalar cgpow1 = cgEPOW.y;
-            //Scalar cgpow2 = cgEPOW.z;
-            //Scalar cgpref = cgEPOW.w;
-            //////////////////////////////////////////////////////////////
+	// read in the tag of our particle.
+	unsigned int ptag = d_tag[idx];
 
-	    // Initialize the Random Number Generator and generate the 6 random numbers
-	    RandomGenerator rng(hoomd::Seed(RNGIdentifier::PCNDAngleForceCompute, timestep, seed),
-			       hoomd::Counter(ptag));
-	    UniformDistribution<Scalar> uniform(Scalar(0), Scalar(1));
+	// Initialize the Random Number Generator and generate the 6 random numbers
+	RandomGenerator rng(hoomd::Seed(RNGIdentifier::PCNDAngleForceCompute, timestep, seed),
+			    hoomd::Counter(ptag));
+	UniformDistribution<Scalar> uniform(Scalar(0), Scalar(1));
 
-	    Scalar a_x = uniform(rng);
-	    Scalar b_x = uniform(rng);
-	    Scalar a_y = uniform(rng);
-	    Scalar b_y = uniform(rng);
-	    Scalar a_z = uniform(rng);
-	    Scalar b_z = uniform(rng);
+	Scalar a_x = uniform(rng);
+	Scalar b_x = uniform(rng);
+	Scalar a_y = uniform(rng);
+	Scalar b_y = uniform(rng);
+	Scalar a_z = uniform(rng);
+	Scalar b_z = uniform(rng);
 						
-	    if (PCNDtimestep == 0)
-	        {
-		devCarryover[(number) * 6 + counter * 3] = Xi * sqrt(-2 * log(a_x)) * cosf(2 * 3.1415926535897 * b_x);
-		devCarryover[(number) * 6 + 1 + counter * 3] = Xi * sqrt(-2 * log(a_y)) * cosf(2 * 3.1415926535897 * b_y);
-		devCarryover[(number) * 6 + 2 + counter * 3] = Xi * sqrt(-2 * log(a_z)) * cosf(2 * 3.1415926535897 * b_z);				
-		force_idx.x += devCarryover[(number) * 6 + counter * 3];
-		force_idx.y += devCarryover[(number) * 6 + 1 + counter * 3];
-		force_idx.z += devCarryover[(number) * 6 + 2 + counter * 3];
-	        }
-	    else if (PCNDtimestep != 0)
-	        {
-		Scalar magx = devCarryover[(number) * 6 + counter * 3];
-		Scalar magy = devCarryover[(number) * 6 + 1 + counter * 3];
-		Scalar magz = devCarryover[(number) * 6 + 2 + counter * 3];
-	        Scalar E = exp(-1 / Tau);
-		Scalar hx = Xi * sqrt(-2 * (1 - E * E) * log(a_x)) * cosf(2 * 3.1415926535897 * b_x);
-		Scalar hy = Xi * sqrt(-2 * (1 - E * E) * log(a_y)) * cosf(2 * 3.1415926535897 * b_y);
-	        Scalar hz = Xi * sqrt(-2 * (1 - E * E) * log(a_z)) * cosf(2 * 3.1415926535897 * b_z);
+	if (cur_angle_abc == 1 && PCNDtimestep == 0)
+	   {
+           force_idx.x = Xi * sqrt(-2 * log(a_x)) * cosf(2 * 3.1415926535897 * b_x);
+	   force_idx.y = Xi * sqrt(-2 * log(a_y)) * cosf(2 * 3.1415926535897 * b_y);
+	   force_idx.z = Xi * sqrt(-2 * log(a_z)) * cosf(2 * 3.1415926535897 * b_z);
+
+           force_idx.w += sqrt(force_idx.x * force_idx.x + force_idx.y * force_idx.y + force_idx.z * force_idx.z);
+           d_force[idx] = force_idx;
+	   }
+        else if (cur_angle_abc == 1 && PCNDtimestep != 0)
+	   {
+           Scalar magx = d_force[idx].x;
+	   Scalar magy = d_force[idx].y;
+           Scalar magz = d_force[idx].z;
+
+	   Scalar E = exp(-1 / Tau);
+           Scalar hx = Xi * sqrt(-2 * (1 - E * E) * log(a_x)) * cosf(2 * 3.1415926535897 * b_x);
+	   Scalar hy = Xi * sqrt(-2 * (1 - E * E) * log(a_y)) * cosf(2 * 3.1415926535897 * b_y);
+	   Scalar hz = Xi * sqrt(-2 * (1 - E * E) * log(a_z)) * cosf(2 * 3.1415926535897 * b_z);
 		
-		if (hx > Xi * sqrt(-2 * log(0.001)))
-		    {
-		    hx = Xi * sqrt(-2 * log(0.001));
-		    }
-		else if (hx <- Xi * sqrt(-2 * log(0.001)))
-		    {
-		    hx = -Xi * sqrt(-2 * log(0.001));
-		    }
-		if (hy > Xi * sqrt(-2 * log(0.001)))
-		    {
-		    hy = Xi * sqrt(-2 * log(0.001));
-		    }
-		else if (hy <- Xi * sqrt(-2 * log(0.001)))
-		    {
-		    hy = -Xi * sqrt(-2 * log(0.001));
-		    }
-		if (hz > Xi * sqrt(-2 * log(0.001)))
-		    {
-		    hz = Xi * sqrt(-2 * log(0.001));
-		    }
-		else if (hz <- Xi * sqrt(-2 * log(0.001)))
-		    {
-		    hz= -Xi * sqrt(-2 * log(0.001));
-		    }
-	        if (idx == 70 && timestep <10)
-		    {
-		    Scalar carryx = devCarryover[(number) * 6 + 0 + counter * 3];
-		    Scalar carryy = devCarryover[(number) * 6 + 1 + counter * 3];
-		    Scalar carryz = devCarryover[(number) * 6 + 2 + counter * 3];
-		    //printf("timestep = %i magx=%f carryover=%f counter=%i, hx=%f, R1=%f, R2=%f\n",timestep,magx,carryx,counter,hx,R1,R2);
-		    //printf("timestep = %i magy=%f carryover=%f counter=%i, hy=%f, R3=%f, R4=%f\n",timestep,magy,carryy,counter,hy,R3,R4);
-		    //printf("timestep = %i magz=%f carryover=%f counter=%i, hz=%f, R5=%f, R6=%f\n",timestep,magz,carryz,counter,hz,R5,R6);
-		    printf("forcex=%f forcey=%f forcez=%f counter=%i\n",force_idx.x,force_idx.y,force_idx.z,counter);
-		    } 
-					
-		devCarryover[(number) * 6 + counter * 3] = E * magx + hx;
-		devCarryover[(number) * 6 + 1 + counter * 3] = E * magy + hy;
-		devCarryover[(number) * 6 + 2 + counter * 3] = E * magz + hz;
-		force_idx.x += devCarryover[(number) * 6 + counter * 3];
-		force_idx.y += devCarryover[(number) * 6 + 1 + counter * 3];
-		force_idx.z += devCarryover[(number) * 6 + 2 + counter * 3];
-		}
-	    }
+	   if (hx > Xi * sqrt(-2 * log(0.001)))
+	      {
+              hx = Xi * sqrt(-2 * log(0.001));
+	      }
+	   else if (hx <- Xi * sqrt(-2 * log(0.001)))
+	      {
+	      hx = -Xi * sqrt(-2 * log(0.001));
+	      }
+	   if (hy > Xi * sqrt(-2 * log(0.001)))
+	      {
+	      hy = Xi * sqrt(-2 * log(0.001));
+	      }
+           else if (hy <- Xi * sqrt(-2 * log(0.001)))
+	      {
+	      hy = -Xi * sqrt(-2 * log(0.001));
+	      }
+           if (hz > Xi * sqrt(-2 * log(0.001)))
+	      {
+	      hz = Xi * sqrt(-2 * log(0.001));
+	      }
+           else if (hz <- Xi * sqrt(-2 * log(0.001)))
+	      {
+	      hz= -Xi * sqrt(-2 * log(0.001));
+	      }
+
+	    force_idx.x = E * magx + hx;
+	    force_idx.y = E * magy + hy;
+	    force_idx.z = E * magz + hz;
+        
+	    force_idx.w += sqrt(force_idx.x * force_idx.x + force_idx.y * force_idx.y + force_idx.z * force_idx.z);
+            d_force[idx] = force_idx;
+	   }
         }
-        force_idx.w += sqrt(force_idx.x * force_idx.x + force_idx.y * force_idx.y + force_idx.z * force_idx.z);
-        d_force[idx] = force_idx;
     }
-    
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -245,8 +210,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          //const unsigned int compute_capability,
                                          uint64_t timestep,
                                          //float* devData,
-                                         uint64_t PCNDtimestep,
-                                         float* devCarryover)
+                                         uint64_t PCNDtimestep)
     {
     assert(d_params);
     assert(d_PCNDsr);
@@ -304,8 +268,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                         d_PCNDepow,
                         timestep,
                         //devData,
-                        PCNDtimestep,
-                        devCarryover);
+                        PCNDtimestep);
 
     return hipSuccess;
     }

@@ -39,8 +39,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          //const unsigned int compute_capability,
                                          uint64_t timestep,
                                          //float* hostData,
-                                         uint64_t PCNDtimestep,
-                                         float* hostCarryover);
+                                         uint64_t PCNDtimestep);
 
     } // end namespace kernel
     } // end namespace md
