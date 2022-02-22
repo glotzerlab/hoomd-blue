@@ -1,7 +1,15 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""User-defined pair potentials for HPMC simulations."""
+"""User-defined pair potentials for HPMC simulations.
+
+Set :math:`U_{\\mathrm{pair},ij}` evaluated in
+`hoomd.hpmc.integrate.HPMCIntegrator` to a user-defined expression.
+
+See Also:
+    :doc:`features` explains the compile time options needed for user defined
+    pair potentials.
+"""
 
 import hoomd
 from hoomd import _compile
@@ -20,7 +28,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
     """Base class for interaction between pairs of particles given in C++.
 
     Pair potential energies define energetic interactions between pairs of
-    particles in :py:mod:`hpmc <hoomd.hpmc>` integrators.  Particles within a
+    particles in `hoomd.hpmc.integrate.HPMCIntegrator`.  Particles within a
     cutoff distance interact with an energy that is a function the
     type and orientation of the particles and the vector pointing from the *i*
     particle to the *j* particle center.
@@ -35,8 +43,9 @@ class CPPPotentialBase(_HOOMDBaseObject):
     .. rubric:: C++ code
 
     Classes derived from :py:class:`CPPPotentialBase` will compile the code
-    provided by the user and call it to evaluate patch energies. The text
-    provided is the body of a function with the following signature:
+    provided by the user and call it to evaluate the energy
+    :math:`U_{\\mathrm{pair},ij}`. The text provided is the body of a function
+    with the following signature:
 
     .. code::
 
@@ -82,6 +91,12 @@ class CPPPotentialBase(_HOOMDBaseObject):
     @log(requires_run=True)
     def energy(self):
         """float: Total interaction energy of the system in the current state.
+
+        .. math::
+
+            U = \\sum_{i=0}^\\mathrm{N_particles-1}
+            \\sum_{j=0}^\\mathrm{N_particles-1}
+            U_{\\mathrm{pair},ij}
 
         Returns `None` when the patch object and integrator are not
         attached.
@@ -187,7 +202,7 @@ class CPPPotential(CPPPotentialBase):
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which
-            all pair interactions are assumed 0.
+            all pair interactions are 0.
         code (str): C++ code defining the function body for pair interactions
             between particles.
         param_array (list[float]): Parameter values to make available in
@@ -293,8 +308,7 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     Args:
         r_cut_constituent (`float`): Constituent particle center to center
-                distance cutoff beyond which all pair interactions are assumed
-                0.
+                distance cutoff beyond which all pair interactions are 0.
         code_constituent (`str`): C++ code defining the custom pair
                 interactions between constituent particles.
         r_cut_isotropic (`float`): Cut-off for isotropic interaction between

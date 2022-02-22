@@ -21,3 +21,4 @@ hoomd.hpmc.update
 .. automodule:: hoomd.hpmc.update
     :synopsis: HPMC updaters.
     :members: BoxMC, Clusters, MuVT, QuickCompress
+    :show-inheritance:

@@ -95,8 +95,8 @@ class WallPotential(ExternalField):
 
     .. math::
 
-        U_{\mathrm{walls}} = \sum_{i=0}^{N_{\mathrm{particles}}}
-        \sum_{j=0}^{N_{\mathrm{walls}}} U_{i,j},
+        U_{\mathrm{walls}} = \sum_{i=0}^{N_{\mathrm{particles}-1}}
+        \sum_{j=0}^{N_{\mathrm{walls}-1}} U_{i,j},
 
 
     where the energy of interaction :math:`U_{i,j}` between particle :math:`i`
@@ -121,10 +121,10 @@ class WallPotential(ExternalField):
 
 
     Walls are enforced by the HPMC integrator. Assign a `WallPotential` instance
-    to the `hpmc.integrate.HPMCIntegrator.external_potential` to activate the
-    wall potential. Not all combinations of HPMC integrators and wall geometries
-    have overlap checks implemented, and a `NotImplementedError` is raised if a
-    wall geometry is attached to a simulation with a specific HPMC integrator
+    to `hpmc.integrate.HPMCIntegrator.external_potential` to activate the wall
+    potential. Not all combinations of HPMC integrators and wall geometries have
+    overlap checks implemented, and a `NotImplementedError` is raised if a wall
+    geometry is attached to a simulation with a specific HPMC integrator
     attached and the overlap checks between the specific shape and wall geometry
     are not implemented. See the individual subclasses of
     `hoomd.hpmc.integrate.HPMCIntegrator` for their wall support.

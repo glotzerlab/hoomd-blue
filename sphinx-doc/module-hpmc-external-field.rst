@@ -11,10 +11,12 @@ hoomd.hpmc.external.field
 .. autosummary::
     :nosignatures:
 
+    ExternalField
     Harmonic
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.external.field
     :synopsis: External fields.
-    :members: Harmonic
+    :members: ExternalField, Harmonic
+    :show-inheritance:

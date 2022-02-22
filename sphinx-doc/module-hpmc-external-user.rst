@@ -18,3 +18,4 @@ hoomd.hpmc.external.user
 .. automodule:: hoomd.hpmc.external.user
     :synopsis: User defined fields for Monte Carlo.
     :members: CPPExternalPotential
+    :show-inheritance:

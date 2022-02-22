@@ -4,6 +4,9 @@
 hoomd.hpmc.external
 -------------------
 
+.. automodule:: hoomd.hpmc.external
+    :synopsis: External potentials for HPMC.
+
 .. rubric:: Modules
 
 .. toctree::

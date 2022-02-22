@@ -78,6 +78,7 @@ IGNORE_CLASSES = [
     '_HOOMDGetSetAttrBase',
     '_InternalCustomWriter',
     '_WriterProperty',
+    '_HOOMDBaseObject',
 ]
 
 

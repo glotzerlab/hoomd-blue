@@ -18,3 +18,4 @@ hoomd.hpmc.external.wall
 .. automodule:: hoomd.hpmc.external.wall
     :synopsis: HPMC walls.
     :members: WallPotential
+    :show-inheritance:

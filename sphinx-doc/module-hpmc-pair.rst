@@ -4,6 +4,9 @@
 hoomd.hpmc.pair
 ---------------
 
+.. automodule:: hoomd.hpmc.pair
+    :synopsis: Pair potentials for HPMC.
+
 .. rubric:: Modules
 
 .. toctree::
