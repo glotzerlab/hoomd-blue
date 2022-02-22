@@ -4,16 +4,17 @@
 Deprecated
 ==========
 
-Features deprecated in v3.0.0-beta.x may be removed in a future beta release and will be removed
-before the final 3.0.0 release.
+Features deprecated in v3.x may be removed in a future v4.0.0 release.
 
-v3.0.0-beta.13
---------------
+v3.x
+----
 
 .. list-table::
    :header-rows: 1
 
    * - Feature
      - Replace with
-   * - ``md.pair.SLJ``
-     - ``md.pair.ExpandedLJ``
+     - Deprecated in
+   * - Nothing deprecated yet.
+     -
+     - v3.0.0
