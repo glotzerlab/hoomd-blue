@@ -14,6 +14,10 @@ MD updaters (`hoomd.md.update`) perform additional operations during the
 simulation, including rotational diffusion and establishing shear flow.
 Use MD computes (`hoomd.md.compute`) to compute the thermodynamic properties of
 the system state.
+
+See Also:
+
+    Tutorial: :doc:`tutorial/01-Introducing-Molecular-Dynamics/00-index`
 """
 
 from hoomd.md import angle

@@ -142,18 +142,16 @@ class _DynamicIntegrator(BaseIntegrator):
 
 
 class Integrator(_DynamicIntegrator):
-    """Molecular dynamics time integration.
+    r"""Molecular dynamics time integration.
 
     Args:
-        dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
+        dt (float): Integrator time step size :math:`[\mathrm{time}]`.
 
         methods (Sequence[hoomd.md.methods.Method]): Sequence of integration
-            methods. Each integration method can be applied to only a specific
-            subset of particles. The intersection of the subsets must be null.
-            The default value of ``None`` initializes an empty list.
+            methods. The default value of ``None`` initializes an empty list.
 
         forces (Sequence[hoomd.md.force.Force]): Sequence of forces applied to
-            the particles in the system. All the forces are summed together.
+            the particles in the system.
             The default value of ``None`` initializes an empty list.
 
         integrate_rotational_dof (bool): When True, integrate rotational degrees
@@ -172,6 +170,28 @@ class Integrator(_DynamicIntegrator):
     step in molecular dynamics simulations. The integration `methods` define
     the equations of motion to integrate under the influence of the given
     `forces` and `constraints`.
+
+    Each method applies the given equations of motion to a subset of particles
+    in the simulation state. See the documentation for each method for details
+    on what equations of motion it solves. The intersection of the subsets must
+    be null.
+
+    `Integrator` computes the net force and torque on each particle as a sum
+    of the forces and torques applied by `hoomd.md.force.Force` objects in the
+    `forces` and `constraints` lists:
+
+    .. math::
+
+        \vec{F}_\mathrm{net,i} &= \sum_{f \in \mathrm{forces}} \vec{F}_i^f \\
+        \vec{\tau}_\mathrm{net,i} &= \sum_{f \in \mathrm{forces}} \vec{\tau}_i^f
+
+    Constraints are a special type of force used to enforce specific constraints
+    on the system state, such as distances between particles with
+    `hoomd.md.constrain.Distance`. `Integrator` handles rigid bodies as a
+    special case, as it only integrates the degrees of freedom of each body's
+    center of mass. See `hoomd.md.constrain.Rigid` for details.
+
+    .. rubric:: Classes
 
     Classes of the following modules can be used as elements in `methods`:
 
@@ -210,11 +230,9 @@ class Integrator(_DynamicIntegrator):
         dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
 
         methods (list[hoomd.md.methods.Method]): List of integration methods.
-            Each integration method can be applied to only a specific subset of
-            particles.
 
         forces (list[hoomd.md.force.Force]): List of forces applied to
-            the particles in the system. All the forces are summed together.
+            the particles in the system.
 
         integrate_rotational_dof (bool): When True, integrate rotational degrees
             of freedom.

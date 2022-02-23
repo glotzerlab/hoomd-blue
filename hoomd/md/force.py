@@ -17,20 +17,15 @@ from hoomd.md.manifold import Manifold
 import numpy
 
 
-class _force:  # noqa - This will be removed eventually. Needed to build docs.
-    pass
-
-
 class Force(_HOOMDBaseObject):
-    """Defines a force.
+    r"""Defines a force for molecular dynamics simulations.
 
-    Pair, angle, bond, and other forces are subclasses of this class.
+    A `Force` class computes the force and torque on each particle in the
+    simulation state :math:`\vec{F}_i` and :math:`\vec{\tau}_i`.
 
     Note:
-        :py:class:`Force` is the base class for all loggable forces.
+        :py:class:`Force` is the base class for all molecular dynamics forces.
         Users should not instantiate this class directly.
-
-    Initializes some loggable quantities.
     """
 
     def __init__(self):
