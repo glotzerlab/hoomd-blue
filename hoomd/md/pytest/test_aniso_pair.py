@@ -300,19 +300,15 @@ def _valid_params(particle_types=['A', 'B']):
             'average_simplices': [True, False, True]
         }, 2),
         'shape': ({
-            "vertices":
-                shape_vertices,
+            "vertices": shape_vertices,
             "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0)],
             "faces": shape_faces
         }, 1)
     }
 
     valid_params_list.append(
-        make_aniso_spec(
-            md.pair.aniso.ALJ,
-            to_type_parameter_dicts(particle_types, alj_arg_dict1)
-        )
-    )
+        make_aniso_spec(md.pair.aniso.ALJ,
+                        to_type_parameter_dicts(particle_types, alj_arg_dict1)))
 
     return valid_params_list
 
