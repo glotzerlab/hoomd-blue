@@ -26,7 +26,6 @@ namespace md
     {
 namespace kernel
     {
-
 //! Kernel for caculating PCND angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
