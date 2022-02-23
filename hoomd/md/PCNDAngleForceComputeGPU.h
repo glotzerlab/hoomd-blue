@@ -27,10 +27,10 @@ namespace md
     but executing on the GPU.
 
     Per-type parameters are stored in a simple global memory area pointed to by
-    \a m_gpu_params. They are stored as Scalar2's with the \a x component being K and the
-    \a y component being t_0.
+    \a m_gpu_params. They are stored as Scalar2's with the \a x component being Xi and the
+    \a y component being Tau.
 
-    The GPU kernel can be found in angleforce_kernel.cu.
+    The GPU kernel can be found in PCNDAngleForceGPU.cu.
 
     \ingroup computes
 */
@@ -54,15 +54,11 @@ class PYBIND11_EXPORT PCNDAngleForceComputeGPU : public PCNDAngleForceCompute
             }
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar Xi, Scalar Tau, unsigned int PCND_type, uint16_t particle_sum, Scalar particle_index);
+        virtual void setParams(unsigned int type, Scalar Xi, Scalar Tau);
 
         protected:
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
-        GPUArray<Scalar2> m_params;           //!< k, t0 Parameters stored on the GPU
-
-        // below are just for the PCND angle potential
-        GPUArray<Scalar2>  m_PCNDsr;    //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
-        GPUArray<uint16_t>  m_PCNDepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
+        GPUArray<Scalar2> m_params;           //!< Xi, Tau Parameters stored on the GPU
 
         //! Actually compute the forces
         virtual void computeForces(uint64_t timestep);

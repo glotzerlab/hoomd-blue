@@ -32,13 +32,9 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          const unsigned int pitch,
                                          const unsigned int* n_angles_list,
                                          Scalar2* d_params,
-                                         Scalar2* d_PCNDsr,
-                                         uint16_t* d_PCNDepow,
                                          unsigned int n_angle_types,
                                          int block_size,
-                                         //const unsigned int compute_capability,
                                          uint64_t timestep,
-                                         //float* hostData,
                                          uint64_t PCNDtimestep);
 
     } // end namespace kernel

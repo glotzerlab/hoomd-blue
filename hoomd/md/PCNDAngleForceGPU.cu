@@ -16,7 +16,8 @@ using namespace hoomd;
 #define SMALL Scalar(0.001)
 
 /*! \file PCNDAngleForceGPU.cu
-    \brief Defines GPU kernel code for calculating the PCND angle forces. Used by PCNDAngleForceComputeGPU.
+    \brief Defines GPU kernel code for calculating the PCND angle forces. Used by
+    PCNDAngleForceComputeGPU.
 */
 
 namespace hoomd
@@ -25,14 +26,6 @@ namespace md
     {
 namespace kernel
     {
-//! Texture for reading angle parameters
-// scalar2_tex_t angle_params_tex;
-
-//! Texture for reading angle CGCMM S-R parameters
-// scalar2_tex_t angle_CGCMMsr_tex; // MISSING EPSILON!!! sigma=.x, rcut=.y
-
-//! Texture for reading angle CGCMM Epsilon-pow/pref parameters
-// scalar4_tex_t angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
 
 //! Kernel for caculating PCND angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -57,10 +50,7 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
                                                      const unsigned int pitch,
                                                      const unsigned int* n_angles_list,
                                                      Scalar2* d_params,
-                                                     Scalar2* d_PCNDsr,
-                                                     uint16_t* d_PCNDepow,
                                                      uint64_t timestep,
-                                                     //float* devData,
                                                      uint64_t PCNDtimestep)
     {
     // start by identifying which particle we are to handle
@@ -68,8 +58,6 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
     
     if (idx >= N)
         return;
-    //curandState localState = state[idx];
-    //curandState localState;  local state of generator
 	
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_angles = n_angles_list[idx];
@@ -79,26 +67,18 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
      
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
-        {
-	int cur_angle_abc = apos_list[pitch * angle_idx + idx];
-			
+        {		
         group_storage<3> cur_angle = alist[pitch * angle_idx + idx];
-        int cur_angle_type = cur_angle.idx[2];
-				
+        
+	int cur_angle_type = cur_angle.idx[2];
+	int cur_angle_abc = apos_list[pitch * angle_idx + idx];
         // get the angle parameters (MEM TRANSFER: 8 bytes)
 	Scalar2 params = __ldg(d_params + cur_angle_type);
-	Scalar Xi = params.x; //Xi
-	Scalar Tau = params.y;//Tau
+	Scalar Xi = params.x;
+	Scalar Tau = params.y;
 				
-	////////////////// get index params
-	//const Scalar2 cgSR = texFetchScalar2(d_CGCMMsr, angle_CGCMMsr_tex, cur_angle_type);
-        const Scalar2 cgSR = __ldg(d_PCNDsr + cur_angle_type);
-        int number = cgSR.x;//sigma//number
-				
-        /////////////get eps param
-        const uint16_t cgEPOW = __ldg(d_PCNDepow + cur_angle_type);
-	uint16_t seed = cgEPOW;
-
+        uint16_t seed = N;
+	
 	// read in the tag of our particle.
 	unsigned int ptag = d_tag[idx];
 
@@ -178,18 +158,15 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
     \param atable List of angles stored on the GPU
     \param pitch Pitch of 2D angles list
     \param n_angles_list List of numbers of angles stored on the GPU
-    \param d_params K and t_0 params packed as Scalar2 variables
-    \param d_PCNDsr sigma, and rcut packed as Scalar2 variables
-    \param d_PCNDepow epsilon, pow1, pow2, and prefactor packed as Scalar4 variables
+    \param d_params Xi and Tau params packed as Scalar2 variables
     \param n_angle_types Number of angle types in d_params
     \param block_size Block size to use when performing calculations
-    \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 
-    \a d_params should include one Scalar2 element per angle type. The x component contains K
-    the spring constant and the y component contains t_0 the equilibrium angle.
+    \a d_params should include one Scalar2 element per angle type. The x component contains Xi
+    the RMS force magnitude and the y component contains Tau the correlation time.
 */
 hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          Scalar* d_virial,
@@ -203,21 +180,14 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          const unsigned int pitch,
                                          const unsigned int* n_angles_list,
                                          Scalar2* d_params,
-                                         Scalar2* d_PCNDsr,
-                                         uint16_t* d_PCNDepow,
                                          unsigned int n_angle_types,
                                          int block_size,
-                                         //const unsigned int compute_capability,
                                          uint64_t timestep,
-                                         //float* devData,
                                          uint64_t PCNDtimestep)
     {
     assert(d_params);
     assert(d_PCNDsr);
     assert(d_PCNDepow);
-    
-    //float *lookupArray;
-    //cudaMemcpyToSymbol(lookupArray,(void*)hostData,100*sizeof(float),0);
     
     static unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -230,22 +200,6 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
     dim3 grid(N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    // bind the textures on pre sm 35 arches
-    /* if (compute_capability < 350)
-        {
-        cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, angle_CGCMMsr_tex, d_CGCMMsr, sizeof(Scalar2) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-
-        error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
-        if (error != cudaSuccess)
-            return error;
-        }
-    */
     // run the kernel
     hipLaunchKernelGGL((gpu_compute_PCND_angle_forces_kernel),
 		        dim3(grid),
@@ -264,10 +218,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                         pitch,
                         n_angles_list,
                         d_params,
-                        d_PCNDsr,
-                        d_PCNDepow,
                         timestep,
-                        //devData,
                         PCNDtimestep);
 
     return hipSuccess;

@@ -29,17 +29,12 @@ struct angle_pcnd_params
     {
     Scalar Xi;
     Scalar Tau;
-    unsigned int PCND_type;
-    uint16_t particle_sum;
-    Scalar particle_index;
 
 #ifndef __HIPCC__
-    angle_pcnd_params() : Xi(0), Tau(0), PCND_type(0), particle_sum(0), particle_index(0) { }
+    angle_pcnd_params() : Xi(0), Tau(0) { }
 
     angle_pcnd_params(pybind11::dict params)
-	    : Xi(params["Xi"].cast<Scalar>()), Tau(params["Tau"].cast<Scalar>()),
-	      PCND_type(params["PCND_type"].cast<unsigned int>()), particle_sum(params["particle_sum"].cast<uint16_t>()),
-	      particle_index(params["particle_index"].cast<Scalar>())
+	    : Xi(params["Xi"].cast<Scalar>()), Tau(params["Tau"].cast<Scalar>())
 	    {
             }
     
@@ -48,9 +43,6 @@ struct angle_pcnd_params
             pybind11::dict v;
             v["Xi"] = Xi;
 	    v["Tau"] = Tau;
-	    v["PCND_type"] = PCND_type;
-	    v["particle_sum"] = particle_sum;
-            v["particle_index"] = particle_index;
 	    return v;
 	    }
 #endif
@@ -61,8 +53,8 @@ struct angle_pcnd_params
     __attribute__((aligned(16)));
 #endif
 
-//! Computes harmonic angle forces for PCND-enabled systems.
-/*! Harmonic angle forces are computed on every particle in the simulation.
+//! Computes PCND angle forces on the central particle of each angle in PCND-enabled systems.
+/*! PCND angle forces are computed on every particle in the simulation, OTHER THAN POLYMER END BEADS.
 
     The angles which forces are computed on are accessed from ParticleData::getAngleData
     \ingroup computes
@@ -77,7 +69,7 @@ class PYBIND11_EXPORT PCNDAngleForceCompute : public ForceCompute
     virtual ~PCNDAngleForceCompute();
 
     //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar Xi, Scalar Tau, unsigned int PCND_type, uint16_t particle_sum, Scalar particle_index);
+    virtual void setParams(unsigned int type, Scalar Xi, Scalar Tau);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
@@ -96,27 +88,11 @@ class PYBIND11_EXPORT PCNDAngleForceCompute : public ForceCompute
 	return flags;                                                           
         }                                                                       
 #endif 
-    
-    //! Returns a list of log quantities this compute calculates
-    virtual std::vector< std::string > getProvidedLogQuantities();
-
-    //! Calculates the requested log value and returns it
-    virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
     protected:
-    Scalar* m_Xi;    //!< K parameter for multiple angle tyes
-    Scalar* m_Tau;  //!< t_0 parameter for multiple angle types
-
-    // THESE ARE NEW FOR GC ANGLES
-    unsigned int* m_PCND_type; //!< coarse grain angle type index (0-3)
-    uint16_t* m_particle_sum;  //!< epsilon parameter for 1-3 repulsion of multiple angle tyes
-    Scalar* m_particle_index;//!< sigma parameter for 1-3 repulsion of multiple angle types
-    Scalar* m_rcut;//!< cutoff parameter for 1-3 repulsion of multiple angle types
-
-    Scalar prefact[4]; //!< prefact precomputed prefactors for CG-CMM angles
-    Scalar cgPow1[4];  //!< list of 1st powers for CG-CMM angles
-    Scalar cgPow2[4];  //!< list of 2nd powers for CG-CMM angles
-
+    Scalar* m_Xi;    //!< Xi parameter for multiple angle tyes
+    Scalar* m_Tau;  //!< Tau parameter for multiple angle types
+    
     std::shared_ptr<AngleData> m_pcnd_angle_data; //!< Angle data to use in computing angles
 
     //! Actually compute the forces
