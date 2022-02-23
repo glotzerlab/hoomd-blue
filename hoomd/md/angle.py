@@ -198,33 +198,31 @@ class Table(Angle):
 class PCND(Angle):
     r"""Protracted colored noise dynamics.
 
-    :py:class:`Harmonic` specifies a harmonic potential energy between
-    every triplet of particles with an angle specified between them.
+    :py:class:`PCND` specifies a correlated stochastic force acting on the central particle of 
+    every triplet of particles directed along the backbone of a polymer chain. The magnitude of 
+    the time-correlated noise \epsilon (t) is obtained via the following equation.
 
     .. math::
 
-        V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
+            \frac{d\epsilon (t)}{dt} = \frac{\xi \sqrt{\tau} \eta (t) - \epsilon(t)}{\tau}
 
-    where :math:`\theta` is the angle between the triplet of particles.
+    where :math:`\xi` is the root mean square magnitude of the forces, :math:`\tau` is the
+    correlation time, and :math:`\eta (t)` is white noise which is uncorrelated in time.
 
     Attributes:
         params (TypeParameter[``angle type``, dict]):
-            The parameter of the harmonic bonds for each particle type.
+            The parameter of the PCND bonds for each particle type.
             The dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant :math:`k`
-              :math:`[\mathrm{energy} \cdot \mathrm{radians}^{-2}]`
+            * ``Xi`` (`float`, **required**) - RMS force magnitude :math:`\Xi`
 
-            * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
-              :math:`[\mathrm{radians}]`
+            * ``Tau`` (`float`, **required**) - correlation time :math:`\tau`
+              :math:`[\mathrm{time}]`
 
-            * ``cg_type`` (`int`, **required**) - identifies the type of system
-              that PCND will act on. 1 == individual, 2 == particle, and 3 == chain.
-    Examples::
+    Example::
 
-        harmonic = angle.Harmonic()
-        harmonic.params['polymer'] = dict(k=3.0, t0=0.7851)
-        harmonic.params['backbone'] = dict(k=100.0, t0=1.0)
+        PCND = angle.PCND()
+        PCND.params['polymer'] = dict(Xi=0.1, Tau=1000.0)
 
     """
 
@@ -233,5 +231,5 @@ class PCND(Angle):
     def __init__(self):
         super().__init__()
         params = TypeParameter('params', 'angle_types',
-                               TypeParameterDict(Xi=float, Tau=float, PCND_type=int, particle_sum=float, particle_index=float, len_keys=1))
+                               TypeParameterDict(Xi=float, Tau=float, len_keys=1))
         self._add_typeparam(params)
