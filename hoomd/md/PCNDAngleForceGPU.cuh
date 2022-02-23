@@ -36,6 +36,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          int block_size,
                                          uint64_t timestep,
                                          uint64_t PCNDtimestep);
+					 //uint16_t seed);
 
     } // end namespace kernel
     } // end namespace md

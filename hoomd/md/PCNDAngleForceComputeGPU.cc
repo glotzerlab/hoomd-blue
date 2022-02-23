@@ -112,6 +112,7 @@ void PCNDAngleForceComputeGPU::computeForces(uint64_t timestep)
                                    m_tuner->getParam(),
                                    timestep,
                                    PCNDtimestep);
+				   //m_sysdef->getSeed());
     PCNDtimestep=PCNDtimestep+1;
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())

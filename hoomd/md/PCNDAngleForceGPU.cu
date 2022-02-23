@@ -36,6 +36,7 @@ namespace kernel
     \param alist Angle data to use in calculating the forces
     \param pitch Pitch of 2D angles list
     \param n_angles_list List of numbers of angles stored on the GPU
+    \param seed User chosen random number seed
 */
 __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
                                                      Scalar* d_virial,
@@ -51,6 +52,7 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
                                                      Scalar2* d_params,
                                                      uint64_t timestep,
                                                      uint64_t PCNDtimestep)
+						     //uint16_t seed)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -75,11 +77,11 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
 	Scalar2 params = __ldg(d_params + cur_angle_type);
 	Scalar Xi = params.x;
 	Scalar Tau = params.y;
-				
-        uint16_t seed = N;
 	
 	// read in the tag of our particle.
 	unsigned int ptag = d_tag[idx];
+
+	uint16_t seed = 1;
 
 	// Initialize the Random Number Generator and generate the 6 random numbers
 	RandomGenerator rng(hoomd::Seed(RNGIdentifier::PCNDAngleForceCompute, timestep, seed),
@@ -160,6 +162,7 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
     \param d_params Xi and Tau params packed as Scalar2 variables
     \param n_angle_types Number of angle types in d_params
     \param block_size Block size to use when performing calculations
+    \param seed User chosen random number seed
 
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
@@ -183,6 +186,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                                          int block_size,
                                          uint64_t timestep,
                                          uint64_t PCNDtimestep)
+					 //uint16_t seed)
     {
     assert(d_params);
     assert(d_PCNDsr);
@@ -219,6 +223,7 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
                         d_params,
                         timestep,
                         PCNDtimestep);
+			//seed);
 
     return hipSuccess;
     }

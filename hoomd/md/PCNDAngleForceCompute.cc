@@ -119,7 +119,7 @@ void PCNDAngleForceCompute::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    size_t virial_pitch = m_virial.getPitch();
+    //size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -132,7 +132,9 @@ void PCNDAngleForceCompute::computeForces(uint64_t timestep)
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getGlobalBox();
+    //const BoxDim& box = m_pdata->getGlobalBox();
+    
+    //uint16_t seed = m_sysdef->getSeed();
     }
 
 namespace detail
