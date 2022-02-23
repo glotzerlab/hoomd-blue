@@ -89,10 +89,11 @@ defaults to 4). To achieve detailed balance at the level of a timestep,
 particles in forward index or reverse index order (random selection severely
 degrades performance due to cache incoherency). In the GPU and MPI
 implementations, trial moves are performed in parallel for particles in active
-domains while leaving particles on the border fixed (see the paper for a full
-description). As a consequence, a single timestep may perform more or less than
-``nselect`` trial moves per particle when using the parallel code paths. Monitor
-the number of trial moves performed with `HPMCIntegrator.translate_moves` and
+domains while leaving particles on the border fixed (see `Anderson 2016
+<https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_ for a full description). As a
+consequence, a single timestep may perform more or less than ``nselect`` trial
+moves per particle when using the parallel code paths. Monitor the number of
+trial moves performed with `HPMCIntegrator.translate_moves` and
 `HPMCIntegrator.rotate_moves`.
 
 .. rubric:: Random numbers
@@ -114,9 +115,42 @@ Note:
 
 .. math::
 
-    U = \sum_{i=0}^\mathrm{N_particles-1} \sum_{j=0}^\mathrm{N_particles-1}
-        ( U_{\mathrm{pair},ij} + U_{\mathrm{shape},ij} ) +
-        \sum_{i=0}^\mathrm{N_particles-1} U_{\mathrm{external},i}
+    U = U_{\mathrm{pair}} + U_{\mathrm{shape}} + U_{\mathrm{external}}
+
+To enable simulations of small systems, the pair and shape energies evaluate
+interactions between pairs of particles in multiple box images:
+
+.. math::
+
+    U_{\mathrm{pair}} = &
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i+1}^{N_\mathrm{particles}-1}
+            U_{\mathrm{pair},ij}(\vec{r}_j - \vec{r}_i,
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j) \\
+            + & \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i}^{N_\mathrm{particles}-1}
+            \sum_{\vec{A} \in B_\mathrm{images}, \vec{A} \ne \vec{0}}
+            U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j)
+
+where :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
+translates by periodic box images and the set of box images includes all image
+vectors necessary to find interactions between particles in the primary image
+with particles in periodic images The first sum evaluates interactions between
+particle :math:`i` with other particles (not itself) in the primary box image.
+The second sum evaluates interactions between particle :math:`i` and all
+potentially interacting periodic images of all particles (including itself).
+`HPMCIntegrator` computes :math:`U_{\mathrm{shape}}` similarly (see below).
+
+External potentials apply to each particle individually:
+
+.. math::
+
+    U_\mathrm{external} =
+        \sum_{i=0}^\mathrm{N_particles-1} U_{\mathrm{external},i}(\vec{r}_i,
+                                                                 \mathbf{q}_i)
 
 Potential classes in :doc:`module-hpmc-pair` evaluate
 :math:`U_{\mathrm{pair},ij}`. Assign a class instance to
@@ -128,7 +162,7 @@ potential classes in :doc:`module-hpmc-external` evaluate
 .. rubric:: Shape overlap tests
 
 `HPMCIntegrator` performs shape overlap tests to evaluate
-:math:`U_{\mathrm{shape},ij}`. Let :math:`S` be the set of all points inside the
+:math:`U_{\mathrm{shape}}`. Let :math:`S` be the set of all points inside the
 shape in the local coordinate system of the shape:
 
 .. math::
@@ -170,39 +204,32 @@ particle 1:
     \mathrm{overlap}(S_1(\mathbf{q}_1), S_2(\mathbf{q}_2,
                                             \vec{r}_2 - \vec{r}_1))
 
-The hard shape interaction energy between the particles :math:`i` and :math:`j`
-in the simulation box is:
+The complete hard shape interaction energy for a given configuration is:
 
 .. math::
 
     U_{\mathrm{shape},ij} = \quad & \infty
             \cdot
-            \sum_{i=0, i \ne j}^{N_\mathrm{particles}-1}
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i+1}^{N_\mathrm{particles}-1}
             \left[
             \mathrm{overlap}\left(
             S_i(\mathbf{q}_i),
-            S_t(\mathbf{q}^t_j, \vec{r}^t_j - \vec{r}_i)
+            S_j(\mathbf{q}_j, \vec{r}_j - \vec{r}_i)
             \right) \ne \emptyset
             \right]
             \\
             + & \infty \cdot \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i}^{N_\mathrm{particles}-1}
             \sum_{\vec{A} \in B_\mathrm{images}, \vec{A} \ne \vec{0}}
             \left[
             \mathrm{overlap}\left(
             S_i(\mathbf{q}_i),
-            S_t(\mathbf{q}^t_j, \vec{r}^t_j - (\vec{r}_i + \vec{A}))
+            S_j(\mathbf{q}_j, \vec{r}_j - (\vec{r}_i + \vec{A}))
             \right) \ne \emptyset
             \right]
 
-where :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
-translates by periodic box images, the set of box images includes all image
-vectors necessary to find overlaps between particles in the primary image with
-particles in periodic images, and the square brackets denote the Iverson
-bracket. The first sum evaluates overlaps between particle :math:`i` with other
-particles (not itself) in the primary box image. The second sum evaluates
-overlaps between particle :math:`i` and all potentially interacting periodic
-images of all particles (including itself). This enables simulations of small
-simulation boxes.
+where the square brackets denote the Iverson bracket.
 
 Note:
     While this notation is written in as sums over all particles
