@@ -1,7 +1,24 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""MPI communicator."""
+"""MPI communicator.
+
+When compiled without MPI support, `Communicator` acts as if there is one MPI
+rank and 1 partition. To use MPI, :doc:`compile HOOMD-blue <building>` with the
+option ``ENABLE_MPI=on`` and use the appropriate MPI launcher to launch Python.
+Then the `Communicator` class will configure and query MPI ranks and partitions.
+By default, `Communicator` starts with the ``MPI_COMM_WOLRD`` MPI communicator,
+and the communicator is not available for user scripts.
+
+`Communicator` also accepts MPI communicators from ``mpi4py``. Use this to
+implement workflows with multiple simulations that communicate using ``mpi4py``
+calls in user code (e.g. genetic algorithms, umbrella sampling).
+
+See Also:
+    :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
+
+    :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`
+"""
 
 from hoomd import _hoomd
 import hoomd
@@ -19,11 +36,13 @@ class Communicator(object):
         ranks_per_partition (int): (MPI) Number of ranks to include in a
           partition.
 
-    `Communicator` initialize MPI communications for a `hoomd.Simulation`. To
-    use MPI, launch your Python script with an MPI launcher (e.g. ``mpirun`` or
-    ``mpiexec``). By default, `Communicator` uses all ranks provided by the
-    launcher ``num_launch_ranks`` for a single `hoomd.Simulation` object which
-    decomposes the state onto that many domains.
+
+    The `Communicator` class initializes MPI communications for a
+    `hoomd.Simulation` and exposes rank and partition information to the user as
+    properties. To use MPI, launch your Python script with an MPI launcher (e.g.
+    ``mpirun`` or ``mpiexec``). By default, `Communicator` uses all ranks
+    provided by the launcher ``num_launch_ranks`` for a single
+    `hoomd.Simulation` object which decomposes the state onto that many domains.
 
     Set ``ranks_per_partition`` to an integer to partition launched ranks into
     ``num_launch_ranks / ranks_per_partition`` communicators, each with their

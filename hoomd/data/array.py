@@ -355,26 +355,29 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
     but there is some overhead. This is mitigated by returning a
     ``numpy.ndarray`` whenever possible. If every ounce of performance is
     necessary, ``HOOMDArray._coerce_to_ndarray`` can provide a ``numpy.ndarray``
-    object inside the context manager. **References to a ``HOOMDArray`` object's
+    object inside the context manager. **References to a HOOMDArray object's
     buffer after leaving the context manager is UNSAFE.** It can cause SEGFAULTs
     and cause your program to crash. Use this function only if absolutely
     necessary.
 
-    Performance Tips:
-        *Assume* ``a`` *represents a* `HOOMDArray` *for examples given.*
+    .. rubric:: Performance Tips
 
-        * Place the ``HOOMDArray`` to the left of the expression
-          (e.g. ``a + b + c`` is faster than ``b + a + c``). This has to do with
-          the mechanisms ``HOOMDArray`` has to do to hook into NumPy's
-          functionality.
-        * If a copy will need to be made, do it as early as possible. In other
-          words, if you will need access outside the context manager, use
-          ``numpy.array(a, copy=True)`` before doing any calculations.
-        * If you know that your access of the internal buffer is safe and we
-          cannot detect this (i.e. we return a ``HOOMDArray``), using
-          ``HOOMDArray._coerce_to_ndarray`` should help. Note that for large
-          arrays this only gives minimal performance improvements at greater
-          risk of breaking your program.
+    *Assume* ``a`` *represents a* `HOOMDArray` *for examples given.*
+
+    * Place the ``HOOMDArray`` to the left of the expression
+      (e.g. ``a + b + c`` is faster than ``b + a + c``). This has to do with
+      the mechanisms ``HOOMDArray`` has to do to hook into NumPy's
+      functionality.
+
+    * If a copy will need to be made, do it as early as possible. In other
+      words, if you will need access outside the context manager, use
+      ``numpy.array(a, copy=True)`` before doing any calculations.
+
+    * If you know that your access of the internal buffer is safe and we
+      cannot detect this (i.e. we return a ``HOOMDArray``), using
+      ``HOOMDArray._coerce_to_ndarray`` should help. Note that for large
+      arrays this only gives minimal performance improvements at greater
+      risk of breaking your program.
     """
 
     def __init__(self, buffer, callback, read_only=None):

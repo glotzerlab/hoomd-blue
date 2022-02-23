@@ -9,13 +9,13 @@ from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.error import DataAccessError
 from hoomd.hpmc import _hpmc
-from hoomd.integrate import BaseIntegrator
+from hoomd.operation import Integrator
 from hoomd.logging import log
 import hoomd
 import json
 
 
-class HPMCIntegrator(BaseIntegrator):
+class HPMCIntegrator(Integrator):
     """Base class hard particle Monte Carlo integrator.
 
     Note:
@@ -126,8 +126,8 @@ class HPMCIntegrator(BaseIntegrator):
 
     .. rubric:: Attributes
     """
-    _remove_for_pickling = BaseIntegrator._remove_for_pickling + ('_cpp_cell',)
-    _skip_for_equality = BaseIntegrator._skip_for_equality | {'_cpp_cell'}
+    _remove_for_pickling = Integrator._remove_for_pickling + ('_cpp_cell',)
+    _skip_for_equality = Integrator._skip_for_equality | {'_cpp_cell'}
     _cpp_cls = None
 
     def __init__(self, default_d, default_a, translation_move_probability,

@@ -845,8 +845,8 @@ class DPD(Pair):
     uniformly distributed random number in the range [-1, 1].
 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    describes the DPD implementation details in HOOMD-blue. Cite it if you
-    utilize the DPD functionality in your work.
+    describes the DPD implementation details. Cite it if you utilize the DPD
+    functionality in your work.
 
     `DPD` does not implement any energy shift / smoothing modes due to the
     function of the force.
@@ -996,8 +996,8 @@ class DPDLJ(Pair):
     simulation.
 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    describes the DPD implementation details in HOOMD-blue. Cite it if you
-    utilize the DPD functionality in your work.
+    describes the DPD implementation details. Cite it if you utilize the DPD
+    functionality in your work.
 
     .. math::
         :nowrap:

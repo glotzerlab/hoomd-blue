@@ -40,7 +40,6 @@ hoomd
    module-hoomd-device
    module-hoomd-error
    module-hoomd-filter
-   module-hoomd-integrate
    module-hoomd-logging
    module-hoomd-operation
    module-hoomd-triggers

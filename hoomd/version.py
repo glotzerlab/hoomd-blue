@@ -3,8 +3,13 @@
 
 """Version and build information.
 
+Use the values in `hoomd.version` to query properties of the package set at
+compile time.
+
 See Also:
     `features`
+
+    `building`
 
 Attributes:
     build_dir (str): The directory where this build was compiled.
