@@ -307,6 +307,12 @@ def numpy_random_seed():
     numpy.random.seed(42)
 
 
+@pytest.fixture(scope="module")
+def rng():
+    """Return a NumPy random generator."""
+    return numpy.random.default_rng(564)
+
+
 def pytest_configure(config):
     """Add markers to pytest configuration."""
     config.addinivalue_line(
