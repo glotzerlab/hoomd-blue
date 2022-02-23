@@ -1,8 +1,8 @@
 .. Copyright (c) 2009-2022 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-hpmc.integrate
---------------
+hoomd.hpmc.integrate
+--------------------
 
 .. rubric:: Overview
 
@@ -11,7 +11,6 @@ hpmc.integrate
 .. autosummary::
     :nosignatures:
 
-    HPMCIntegrator
     ConvexPolygon
     ConvexPolyhedron
     ConvexSpheropolygon
@@ -20,6 +19,7 @@ hpmc.integrate
     Ellipsoid
     FacetedEllipsoid
     FacetedEllipsoidUnion
+    HPMCIntegrator
     Polyhedron
     SimplePolygon
     Sphere
@@ -31,8 +31,6 @@ hpmc.integrate
 .. automodule:: hoomd.hpmc.integrate
     :synopsis: HPMC integrators.
 
-    .. autoclass:: HPMCIntegrator
-        :inherited-members:
     .. autoclass:: ConvexPolygon
         :show-inheritance:
         :members:
@@ -57,6 +55,9 @@ hpmc.integrate
     .. autoclass:: FacetedEllipsoidUnion
         :show-inheritance:
         :members:
+    .. autoclass:: HPMCIntegrator
+        :inherited-members:
+        :show-inheritance:
     .. autoclass:: Polyhedron
         :show-inheritance:
         :members:

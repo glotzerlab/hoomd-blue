@@ -185,7 +185,7 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
                 shape_i.orientation = generateRandomOrientation(rng_i, ndim);
                 }
 
-            // check for overlaps with neighboring particle's positions
+            // check for overlaps with particles in the system state
             bool overlap = false;
             hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
 

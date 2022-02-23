@@ -65,6 +65,7 @@ class Box:
         yz (float): tilt factor yz :math:`[\\mathrm{dimensionless}]`.
 
     .. image:: box.svg
+       :alt: Example simulation box labelled with lengths and vectors.
 
     Particles in a simulation exist in a triclinic box with
     periodic boundary conditions. A triclinic box is defined by six values: the

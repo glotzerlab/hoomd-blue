@@ -100,6 +100,7 @@
             "cpptools",
             "cuda",
             "dtype",
+            "enthalpic",
             "eqnarray",
             "Frenkel",
             "GPUs",
@@ -109,6 +110,7 @@
             "hpmc",
             "infty",
             "itertools",
+            "Iverson",
             "Jens",
             "joaander",
             "Jupyter",
@@ -116,6 +118,7 @@
             "Kamberaj",
             "Ladd",
             "langevin",
+            "mathbb",
             "mathbf",
             "mathrm",
             "mpcd",
@@ -158,6 +161,7 @@
             "verts",
             "virial",
             "virials",
+            "xmax",
             "yapf",
             "Yoneya"
         ]
