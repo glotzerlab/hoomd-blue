@@ -35,7 +35,7 @@ randomly with the probability of a translation move set by
 
 The form of the trial move depends on the dimensionality of the system.
 Let :math:`u` be a random value in the interval :math:`[0,1]`, :math:`\vec{v}`
-be a random vector uniformly distributed in the ball of radius 1, and
+be a random vector uniformly distributed within the ball of radius 1, and
 :math:`\mathbf{w}` be a random unit quaternion from the set of uniformly
 distributed rotations. Then the 3D trial move for particle :math:`i` is:
 
@@ -57,7 +57,7 @@ where :math:`d_i` is the translation move size for particle :math:`i` (set by
 particle type with `HPMCIntegrator.d`) and :math:`a_i` is the rotation move size
 (set by particle type with `HPMCIntegrator.a`).
 
-In 2D boxes, let :math:`\vec{v}` be a random vector uniformly distributed in the
+In 2D boxes, let :math:`\vec{v}` be a random vector uniformly distributed within the
 disk of radius 1 in the x,y plane and :math:`\alpha` be a random angle in
 radians in the interval :math:`[-a_i,a_i]`. Form a quaternion that rotates about
 the z axis by :math:`\alpha`: :math:`\mathbf{w} = (\cos(\alpha/2), 0, 0,
