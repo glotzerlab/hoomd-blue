@@ -915,7 +915,7 @@ class SimplePolygon(HPMCIntegrator):
             timestep.
 
     Perform hard particle Monte Carlo of simple polygons. The shape :math:`S` of
-    a convex polygon includes the points inside and on the surface of the simple
+    a simple polygon includes the points inside and on the surface of the simple
     polygon defined by the vertices (see `shape`). For example:
 
     .. image:: simple-polygon.svg

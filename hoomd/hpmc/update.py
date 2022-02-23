@@ -102,7 +102,7 @@ class BoxMC(Updater):
 
       .. math::
 
-          V^t &= V + u \\
+          V^t &= V e^u \\
           L_x^t &= \left( \frac{Lx}{Ly} V^t \right)^{1/2} \\
           L_y^t &= L_x^t \frac{Ly}{Lx} \\
           xy^t &= xy \\
@@ -163,7 +163,8 @@ class BoxMC(Updater):
       where :math:`u` is a random value uniformly distributed in the interval
       :math:`[0, 1]` and :math:`s_k` is a random value uniformly distributed in
       the interval :math:`[-\delta_{\mathrm{shear},k},
-      \delta_{\mathrm{shear},k}]`.
+      \delta_{\mathrm{shear},k}]`. `BoxMC` attempts and records trial moves for
+      shear parameters even when :math:`\delta_{\mathrm{shear},k}=0`.
 
       In 2D:
 
