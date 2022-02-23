@@ -30,7 +30,7 @@ in the angle group:
     U_l = \frac{1}{3} \sum_{(i,j,k) \in \mathrm{angles}}
     U_{ijk}(\theta) [l=i \lor l=j \lor l=k]
 
-and similarly assign for virials.
+and similarlyfor virials.
 """
 
 from hoomd.md import _md
@@ -107,7 +107,7 @@ class Harmonic(Angle):
 
 
 class CosineSquared(Angle):
-    r"""Cosine squared angle potential.
+    r"""Cosine squared angle force.
 
     :py:class:`CosineSquared` computes forces, virials, and energies on all
     angles in the simulation state with:
@@ -146,7 +146,7 @@ class CosineSquared(Angle):
 
 
 class Table(Angle):
-    """Tabulated bond potential.
+    """Tabulated bond force.
 
     Args:
         width (int): Number of points in the table.

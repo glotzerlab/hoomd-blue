@@ -103,13 +103,11 @@ class WallPotential(ExternalField):
     and wall :math:`j` is given by
 
     .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        U_{i,j} &=& \infty \,\,\,\text{if } \,\, d_{i,j} <= 0 \\
-                &=& 0; \,\,\, \text{if } \,\, d_{i,j} > 0,
-        \end{eqnarray*}
-
+        U_{i,j} =
+        \begin{cases}
+        \infty & d_{i,j} <= 0 \\
+        0 & d_{i,j} > 0 \\
+        \end{cases}
 
     where :math:`d_{i,j} = \min{\{(\vec{r}_i - \vec{r}_j) \cdot \vec{n}_j :
     \vec{r}_i \in V_I, \vec{r}_j \in W_J\}}` is the minimum signed distance
