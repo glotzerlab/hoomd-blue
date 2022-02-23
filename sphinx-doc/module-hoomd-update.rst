@@ -22,3 +22,4 @@ hoomd.update
     :synopsis: Modify the system state periodically.
     :members: BoxResize, CustomUpdater, FilterUpdater, RemoveDrift
     :imported-members:
+    :show-inheritance:

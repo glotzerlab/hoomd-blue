@@ -1,7 +1,22 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement data classes for supporting HOOMD walls."""
+"""Wall geometries.
+
+Walls define an oriented surface in space. Walls exist only in the primary box
+image and are not replicated across the periodic boundary conditions. Points on
+one side of the surface have a positive signed distance to that surface, and
+points on the other side have a negative signed distance.
+
+Define individual walls with `Cylinder`, `Plane`, and `Sphere`. Create lists of
+these `WallGeometry` objects to describe more complex geometries. Use walls to
+confine particles to specific regions of space in HPMC and MD simulations.
+
+See Also:
+    `hoomd.hpmc.external.wall`
+
+    `hoomd.md.external.wall`
+"""
 
 from abc import ABC, abstractmethod
 from copy import copy
@@ -35,7 +50,7 @@ class WallGeometry(ABC, _HOOMDGetSetAttrBase):
 
 
 class Sphere(WallGeometry):
-    r"""Define a circle/sphere in 2D/3D Euclidean space.
+    r"""A sphere.
 
     Args:
         radius (`float`):
@@ -44,16 +59,13 @@ class Sphere(WallGeometry):
             The origin of the sphere, defaults to ``(0, 0, 0)``
             :math:`[\mathrm{length}]`.
         inside (`bool`, optional):
-            Whether particles are restricted to the space inside or outside the
+            Whether positive signed distances are inside or outside the
             sphere, defaults to ``True``.
         open (`bool`, optional):
             Whether to include the surface of the sphere in the space. ``True``
             means do not include the surface, defaults to ``True``.
 
-    Whether the wall is interpreted as a sphere or circle is dependent on the
-    dimension of the system the wall is applied to.
-
-    The signed distance from the wall is
+    The signed distance from the wall surface is:
 
     .. math::
 
@@ -77,7 +89,7 @@ class Sphere(WallGeometry):
         origin (`tuple` [`float`, `float`, `float`]):
             The origin of the sphere :math:`[\mathrm{length}]`.
         inside (bool):
-            Whether particles are restricted to the space inside or outside the
+            Whether positive signed distances are inside or outside the
             sphere.
         open (bool):
             Whether to include the surface of the sphere in the space. Open
@@ -119,20 +131,19 @@ class Sphere(WallGeometry):
 
 
 class Cylinder(WallGeometry):
-    r"""Define a cylinder in 3D Euclidean space.
+    r"""A right circular cylinder.
 
     Args:
         radius (`float`):
             The radius of the circle faces of the cylinder
             :math:`[\mathrm{length}]`.
         axis (`tuple` [`float`, `float`, `float`]):
-            A vector perpendicular to the circular faces. The magnitude of this
-            vector doesn't matter.
+            A vector perpendicular to the circular faces.
         origin (`tuple` [`float`, `float`, `float`], optional):
-            The origin of the cylinder defined as the center of the bisecting
-            circle along the cylinder's axis :math:`[\mathrm{length}]`.
+            The origin of the cylinder defined as the center of the circle along
+            the cylinder's axis :math:`[\mathrm{length}]`.
         inside (`bool`, optional):
-            Whether particles are restricted to the space inside or outside the
+            Whether positive signed distances are inside or outside the
             cylinder.
         open (`bool`, optional):
             Whether to include the surface of the cylinder in the space.
@@ -141,7 +152,7 @@ class Cylinder(WallGeometry):
     Cylinder walls in HOOMD span the simulation box in the direction given by
     the ``axis`` attribute.
 
-    The signed distance from the wall is
+    The signed distance from the wall surface is
 
     .. math::
 
@@ -167,12 +178,12 @@ class Cylinder(WallGeometry):
             The radius of the circle faces of the cylinder
             :math:`[\mathrm{length}]`.
         origin (`tuple` [`float`, `float`, `float`]):
-            The origin of the cylinder defined as the center of the bisecting
-            circle along the cylinder's axis :math:`[\mathrm{length}]`.
+            The origin of the cylinder defined as the center of the circle along
+            the cylinder's axis :math:`[\mathrm{length}]`.
         axis (`tuple` [`float`, `float`, `float`]):
             A vector perpendicular to the circular faces.
         inside (bool):
-            Whether particles are restricted to the space inside or outside the
+            Whether positive signed distances are inside or outside the
             cylinder.
         open (`bool`, optional):
             Whether to include the surface of the cylinder in the space.
@@ -222,23 +233,19 @@ class Cylinder(WallGeometry):
 
 
 class Plane(WallGeometry):
-    r"""Define a plane in 3D Euclidean space.
+    r"""A plane.
 
     Args:
         origin (`tuple` [`float`, `float`, `float`]):
-            A point that lies on the plane used with ``normal`` to fully specify
-            the plane :math:`[\mathrm{length}]`.
+            A point that lies on the plane :math:`[\mathrm{length}]`.
         normal (`tuple` [`float`, `float`, `float`]):
             The normal vector to the plane. The vector will be converted to a
-            unit vector.
+            unit vector :math:`[\mathrm{dimensionless}]`.
         open (`bool`, optional):
             Whether to include the surface of the plane in the space. ``True``
             means do not include the surface, defaults to ``True``.
 
-    The normal points toward the points with a positive signed distance to the
-    plane.
-
-    The signed distance from the wall is
+    The signed distance from the wall surface is:
 
     .. math::
 
@@ -246,6 +253,8 @@ class Plane(WallGeometry):
 
     where :math:`\vec{r}` is the particle position, :math:`\vec{r}_o` is the
     origin of the plane, and :math:`\hat{n}` is the plane's unit normal.
+    The normal points toward the points with a positive signed distance to the
+    plane.
 
     Warning:
         When running MD simulations in 2D simulation boxes, set
@@ -257,11 +266,9 @@ class Plane(WallGeometry):
 
     Attributes:
         origin (`tuple` [`float`, `float`, `float`]):
-            A point that lies on the plane used with ``normal`` to fully specify
-            the plane :math:`[\mathrm{length}]`.
+            A point that lies on the plane :math:`[\mathrm{length}]`.
         normal (`tuple` [`float`, `float`, `float`]):
-            The normal vector to the plane. The vector will be converted to an
-            unit vector.
+            The unit normal vector to the plane.
         open (bool):
             Whether to include the surface of the plane in the space. ``True``
             means do not include the surface.
@@ -297,7 +304,7 @@ class Plane(WallGeometry):
 class _MetaListIndex:
     """Index and type information between frontend and backend lists.
 
-    This class faciliates mantaining order between the user exposed list in
+    This class facilitates maintaining order between the user exposed list in
     `_WallsMetaList` and the backend lists used in C++. This is essentially a
     dataclass (we cannot use a dataclass since it requires Python 3.7 and we
     support prior versions.

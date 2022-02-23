@@ -15,6 +15,6 @@ v3.x
    * - Feature
      - Replace with
      - Deprecated in
-   * - Nothing deprecated yet.
-     -
+   * - Particle diameters
+     - Potentials such as `md.pair.ExpandedLJ`.
      - v3.0.0
