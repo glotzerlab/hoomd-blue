@@ -176,17 +176,30 @@ class Integrator(_DynamicIntegrator):
     on what equations of motion it solves. The intersection of the subsets must
     be null.
 
-    `Integrator` computes the net force and torque on each particle as a sum
-    of the forces and torques applied by `hoomd.md.force.Force` objects in the
+    `Integrator` computes the net force, torque, energy, and virial on each
+    particle as a sum of those applied by `hoomd.md.force.Force` objects in the
     `forces` and `constraints` lists:
 
     .. math::
 
-        \vec{F}_\mathrm{net,i} &= \sum_{f \in \mathrm{forces}} \vec{F}_i^f \\
-        \vec{\tau}_\mathrm{net,i} &= \sum_{f \in \mathrm{forces}} \vec{\tau}_i^f
+        \vec{F}_\mathrm{{net},i} &= \sum_{f \in \mathrm{forces}} \vec{F}_i^f \\
+        \vec{\tau}_\mathrm{{net},i} &=
+        \sum_{f \in \mathrm{forces}} \vec{\tau}_i^f \\
+        U_\mathrm{{net},i} &= \sum_{f \in \mathrm{forces}} U_i^f \\
+        W_\mathrm{{net},i} &= \sum_{f \in \mathrm{forces}} W_i^f \\
 
-    Constraints are a special type of force used to enforce specific constraints
-    on the system state, such as distances between particles with
+    `Integrator` also computes the net additional energy and virial
+
+    .. math::
+
+        U_{\mathrm{net},\mathrm{additional}} &= \sum_{f \in \mathrm{forces}}
+        U_\mathrm{additional}^f \\
+        W_{\mathrm{net},\mathrm{additional}} &= \sum_{f \in \mathrm{forces}}
+        W_\mathrm{additional}^f \\
+
+    See `md.force.Force` for definitions of these terms. Constraints are a
+    special type of force used to enforce specific constraints on the system
+    state, such as distances between particles with
     `hoomd.md.constrain.Distance`. `Integrator` handles rigid bodies as a
     special case, as it only integrates the degrees of freedom of each body's
     center of mass. See `hoomd.md.constrain.Rigid` for details.

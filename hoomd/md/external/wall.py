@@ -108,7 +108,7 @@ class WallPotential(force.Force):
     .. image:: md-wall-potential-outside.svg
        :alt: Example plot of an outside wall potential.
 
-    .. rubric: Extrapolated Mode:
+    .. rubric:: Extrapolated Mode:
 
     The wall potential can be linearly extrapolated starting at
     :math:`d = r_{\mathrm{extrap}}` on the active side and continuing to the
