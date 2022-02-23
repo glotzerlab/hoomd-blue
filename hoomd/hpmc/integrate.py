@@ -256,52 +256,6 @@ class HPMCIntegrator(Integrator):
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
-    def test_overlap(self,
-                     type_i,
-                     type_j,
-                     rij,
-                     qi,
-                     qj,
-                     use_images=True,
-                     exclude_self=False):
-        """Test overlap between two particles.
-
-        Args:
-            type_i (str): Type of first particle
-            type_j (str): Type of second particle
-            rij (tuple): Separation vector **rj**-**ri** between the particle
-              centers
-            qi (tuple): Orientation quaternion of first particle
-            qj (tuple): Orientation quaternion of second particle
-            use_images (bool): If True, check for overlap between the periodic
-              images of the particles by adding
-              the image vector to the separation vector
-            exclude_self (bool): If both **use_images** and **exclude_self** are
-              true, exclude the primary image
-
-        For two-dimensional shapes, pass the third dimension of **rij** as zero.
-
-        Attention:
-            `test_overlap` is not yet implemented in HOOMD v3.x.
-
-        Returns:
-            True if the particles overlap.
-        """
-        raise NotImplementedError("map_energies will be implemented in a future"
-                                  "release.")
-        self.update_forces()
-
-        ti = hoomd.context.current.system_definition.getParticleData(
-        ).getTypeByName(type_i)
-        tj = hoomd.context.current.system_definition.getParticleData(
-        ).getTypeByName(type_j)
-
-        rij = hoomd.util.listify(rij)
-        qi = hoomd.util.listify(qi)
-        qj = hoomd.util.listify(qj)
-        return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
-                                             exclude_self)
-
     @log(category='sequence', requires_run=True)
     def translate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected translate moves.
