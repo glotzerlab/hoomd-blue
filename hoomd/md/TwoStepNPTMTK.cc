@@ -192,7 +192,7 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
                                    access_mode::readwrite);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = m_thermostat[1];
+        Scalar xi_trans = m_thermostat[0];
         Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
 
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
@@ -419,7 +419,7 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = m_thermostat[1];
+        Scalar xi_trans = m_thermostat[0];
         Scalar mtk = (nuxx + nuyy + nuzz) / (Scalar)m_ndof;
         Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
 
@@ -474,7 +474,7 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
                                            access_mode::read);
 
             // precompute loop invariant quantity
-            Scalar xi_rot = m_thermostat[3];
+            Scalar xi_rot = m_thermostat[2];
             Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
             // apply rotational (NO_SQUISH) equations of motion
@@ -797,8 +797,8 @@ void TwoStepNPTMTK::advanceBarostat(uint64_t timestep)
 
 void TwoStepNPTMTK::advanceThermostat(uint64_t timestep)
     {
-    Scalar& eta = m_thermostat[0];
-    Scalar& xi = m_thermostat[1];
+    Scalar& eta = m_thermostat[1];
+    Scalar& xi = m_thermostat[0];
 
     // compute the current thermodynamic properties
     m_thermo_half_step->compute(timestep);
@@ -815,8 +815,8 @@ void TwoStepNPTMTK::advanceThermostat(uint64_t timestep)
     if (m_aniso)
         {
         // update thermostat for rotational DOF
-        Scalar& xi_rot = m_thermostat[3];
-        Scalar& eta_rot = m_thermostat[2];
+        Scalar& xi_rot = m_thermostat[2];
+        Scalar& eta_rot = m_thermostat[3];
 
         Scalar curr_ke_rot = m_thermo_half_step->getRotationalKineticEnergy();
         Scalar ndof_rot = m_group->getRotationalDOF();
@@ -962,7 +962,7 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
     if (!m_nph)
         {
         // randomize thermostat variables
-        Scalar& xi = m_thermostat[1];
+        Scalar& xi = m_thermostat[0];
 
         Scalar g = m_group->getTranslationalDOF();
         Scalar sigmasq_t = Scalar(1.0) / (g * m_tau * m_tau);
@@ -976,7 +976,7 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
         if (m_aniso)
             {
             // update thermostat for rotational DOF
-            Scalar& xi_rot = m_thermostat[3];
+            Scalar& xi_rot = m_thermostat[2];
             Scalar sigmasq_r = Scalar(1.0) / ((Scalar)m_group->getRotationalDOF() * m_tau * m_tau);
 
             if (master)
@@ -1067,8 +1067,8 @@ pybind11::tuple TwoStepNPTMTK::getTranslationalThermostatDOF()
     {
     pybind11::list result;
 
-    Scalar& eta = m_thermostat[0];
-    Scalar& xi = m_thermostat[1];
+    Scalar& eta = m_thermostat[1];
+    Scalar& xi = m_thermostat[0];
 
     result.append(xi);
     result.append(eta);
@@ -1083,8 +1083,8 @@ void TwoStepNPTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
         throw std::length_error("translational_thermostat_dof must have length 2");
         }
 
-    Scalar& eta = m_thermostat[0];
-    Scalar& xi = m_thermostat[1];
+    Scalar& eta = m_thermostat[1];
+    Scalar& xi = m_thermostat[0];
 
     xi = pybind11::cast<Scalar>(v[0]);
     eta = pybind11::cast<Scalar>(v[1]);
@@ -1093,8 +1093,8 @@ void TwoStepNPTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
 pybind11::tuple TwoStepNPTMTK::getRotationalThermostatDOF()
     {
     pybind11::list result;
-    Scalar& xi_rot = m_thermostat[3];
-    Scalar& eta_rot = m_thermostat[2];
+    Scalar& xi_rot = m_thermostat[2];
+    Scalar& eta_rot = m_thermostat[3];
 
     result.append(xi_rot);
     result.append(eta_rot);
@@ -1109,8 +1109,8 @@ void TwoStepNPTMTK::setRotationalThermostatDOF(pybind11::tuple v)
         throw std::length_error("rotational_thermostat_dof must have length 2");
         }
 
-    Scalar& xi_rot = m_thermostat[3];
-    Scalar& eta_rot = m_thermostat[2];
+    Scalar& xi_rot = m_thermostat[2];
+    Scalar& eta_rot = m_thermostat[3];
 
     xi_rot = pybind11::cast<Scalar>(v[0]);
     eta_rot = pybind11::cast<Scalar>(v[1]);
@@ -1118,16 +1118,16 @@ void TwoStepNPTMTK::setRotationalThermostatDOF(pybind11::tuple v)
 
 Scalar TwoStepNPTMTK::getThermostatEnergy(uint64_t timestep)
     {
-    Scalar eta = m_thermostat[0];
-    Scalar xi = m_thermostat[1];
+    Scalar eta = m_thermostat[1];
+    Scalar xi = m_thermostat[0];
 
     Scalar thermostat_energy = m_group->getTranslationalDOF() * (*m_T)(timestep)
                                * (eta + m_tau * m_tau * xi * xi / Scalar(2.0));
 
     if (m_aniso)
         {
-        Scalar eta_rot = m_thermostat[2];
-        Scalar xi_rot = m_thermostat[3];
+        Scalar eta_rot = m_thermostat[3];
+        Scalar xi_rot = m_thermostat[2];
         thermostat_energy += m_group->getRotationalDOF() * (*m_T)(timestep)
                              * (eta_rot + m_tau * m_tau * xi_rot * xi_rot / Scalar(2.0));
         }
