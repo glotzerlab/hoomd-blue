@@ -40,7 +40,7 @@ def move_definition_dict(rng, request):
 
 @pytest.fixture
 def simulation(simulation_factory, lattice_snapshot_factory):
-    snap = lattice_snapshot_factory(dimensions=2, r=1e-3, n=20)  # 400 particles
+    snap = lattice_snapshot_factory(dimensions=3, r=1e-3, n=4)  # 64 particles
     sim = simulation_factory(snap)
     integrator = hpmc.integrate.Sphere(default_d=0.01)
     integrator.shape["A"] = dict(diameter=0.9)
@@ -165,7 +165,7 @@ def boxmc_tuner_method_and_kwargs(request, rng):
         "trigger": 100,
         "moves": [request.param],
         "tol": 0.05,
-        "target": rng.uniform(0.3, 0.5)
+        "target": rng.uniform(0.2, 0.4)
     }
 
 
@@ -175,17 +175,19 @@ def boxmc_with_tuner(rng, boxmc_tuner_method_and_kwargs):
     move = move_size_kwargs["moves"][0]
     boxmc = hpmc.update.BoxMC(1, betaP=1.0)
     if move == "aspect":
-        boxmc.aspect = {"weight": 1.0, "delta": 0.0008}
+        boxmc.aspect = {"weight": 1.0, "delta": 0.01}
     elif move == "volume":
-        boxmc.volume = {"weight": 1.0, "delta": 0.1, "mode": "standard"}
-    else:
+        boxmc.volume = {"weight": 1.0, "delta": 5.0, "mode": "standard"}
+    elif move.startswith("l"):
+        delta = [0.0, 0.0, 0.0]
+        delta[["x", "y", "z"].index(move[-1])] = 0.4
         setattr(boxmc,
                 move.split("_")[0], {
                     "weight": 1.0,
-                    "delta": (1e-1,) * 3
+                    "delta": tuple(delta)
                 })
-    if move.startswith("sh"):
-        boxmc.shear["reduce"] = 1.0
+    else:
+        boxmc.shear = {"weight": 1.0, "delta": (1e-1,) * 3, "reduce": 1.0}
     cls_methods = (BoxMCMoveSize.secant_solver, BoxMCMoveSize.scale_solver)
     cls = cls_methods[rng.integers(2)]
     return boxmc, cls(**move_size_kwargs, boxmc=boxmc)
@@ -260,12 +262,14 @@ class TestMoveSize:
         simulation.operations.tuners.append(move_size_tuner)
         simulation.operations += boxmc
         cnt = 0
-        steps = 1601 if move_size_tuner.moves[0].startswith("l") else 1001
-        while not move_size_tuner.tuned and cnt < 5:
+        max_count = 10 if move_size_tuner.moves[0].startswith("l") else 3
+        steps = 1001
+        while not move_size_tuner.tuned and cnt < max_count:
             simulation.run(steps)
             cnt += 1
         assert move_size_tuner.tuned
-        simulation.run(1_100)
+        simulation.operations.tuners.pop()
+        simulation.run(500)
         move_counts = get_move_acceptance_ratio(boxmc, move_size_tuner.moves[0])
         acceptance_rate = move_counts[0] / sum(move_counts)
         # We must increase tolerance a bit since tuning to a tolerance is noisy
