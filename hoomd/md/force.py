@@ -41,6 +41,21 @@ class Force(_HOOMDBaseObject):
 
         (W^{xx}, W^{xy}, W^{xz}, W^{yy}, W^{yz}, W^{zz}).
 
+    The components of the virial tensor for a force on a single particle are:
+
+    .. math::
+
+        W^{kl}_i = F^k \cdot r_i^l
+
+    where the superscripts select the x,y, and z components of the vectors.
+    To properly account for periodic boundary conditions, pairwise interactions
+    evaluate the virial:
+
+    .. math::
+
+        W^{kl}_i = \sum_j F^k_{ij} \cdot
+        \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
+
     Note:
         :py:class:`Force` is the base class for all molecular dynamics forces
         and provides common methods. Users should not instantiate this class
