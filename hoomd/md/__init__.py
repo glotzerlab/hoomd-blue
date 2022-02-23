@@ -16,7 +16,6 @@ Use MD computes (`hoomd.md.compute`) to compute the thermodynamic properties of
 the system state.
 
 See Also:
-
     Tutorial: :doc:`tutorial/01-Introducing-Molecular-Dynamics/00-index`
 """
 

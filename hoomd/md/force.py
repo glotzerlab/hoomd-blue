@@ -68,8 +68,7 @@ class Force(_HOOMDBaseObject):
     @log(requires_run=True)
     def energy(self):
         """float: The potential energy :math:`U` of the system from this force \
-        :math:`[\\mathrm{energy}]`.
-        """
+        :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.calcEnergySum()
 
