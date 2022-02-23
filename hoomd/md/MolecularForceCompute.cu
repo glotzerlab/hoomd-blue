@@ -17,6 +17,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
+#include <thrust/iterator/constant_iterator.h>
 
 #if __CUDACC_VER_MAJOR__ >= 11
 #include <cub/cub.cuh>
