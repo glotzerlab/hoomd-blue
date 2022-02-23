@@ -32,36 +32,35 @@ class LoggerCategories(Flag):
     categories to use for limiting what data is logged, user specified logged
     quantities, and custom actions (`hoomd.custom.Action`).
 
-    Flags:
+    Attributes:
+        scalar: `float` or `int` object.
 
-        scalar: `float` or `int` objects (i.e. numbers)
+        sequence: Sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers
+            of the same type.
 
-        sequence: sequence (e.g. `list`, `tuple`, `numpy.ndarray`) of numbers of
-        the same type.
+        string: A single Python `str` object.
 
-        string: a single Python `str` object
+        strings: A sequence of Python `str` objects.
 
-        strings: a sequence of Python `str` objects
+        object: Any Python object outside a sequence, string, or scalar.
 
-        object: any Python object outside a sequence, string, or scalar.
+        angle: Per-angle quantity.
 
-        angle: per-angle quantity
+        bond: Per-bond quantity.
 
-        bond: per-bond quantity
+        constraint: Per-constraint quantity.
 
-        constraint: per-constraint quantity
+        dihedral: Per-dihedral quantity.
 
-        dihedral: per-dihedral quantity
+        improper: Per-improper quantity.
 
-        improper: per-improper quantity
+        pair: Per-pair quantity.
 
-        pair: per-pair quantity
+        particle: Per-particle quantity.
 
-        particle: per-particle quantity
+        ALL: A combination of all other categories.
 
-        ALL: a combination of all other categories
-
-        NONE: represents no category
+        NONE: Represents no category.
     """
     NONE = 0
     scalar = auto()
@@ -82,7 +81,7 @@ class LoggerCategories(Flag):
         """Return a LoggerCategories enum representing any of the categories.
 
         Args:
-            categories (list[str] or list[`LoggerCategories`]):
+            categories (`list` [`str` ] or `list` [`LoggerCategories`]):
                 A list of `str` or `LoggerCategories` objects that should be
                 represented by the returned `LoggerCategories` object.
 
@@ -402,6 +401,20 @@ def log(func=None,
         the namespace used will be ``('user', 'custom', 'action', 'Foo')``. This
         helps to prevent naming conflicts, and automate the logging
         specification for developers and users.
+
+    Example::
+
+        # Metaclass specification is not necessary for
+        # subclasses of HOOMD classes as they already use this
+        # metaclass.
+        class LogExample(metaclass=hoomd.logging.Loggable)
+            @log(category="string")
+            def loggable(self):
+                return "log_me"
+
+            @log(is_property=False, default=False)
+            def not_property(self, a=4):
+                return 2 ** a
 
     See Also:
         Tutorial: :doc:`tutorial/04-Custom-Actions-In-Python/00-index`

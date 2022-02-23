@@ -153,10 +153,6 @@ pybind11::dict BondTablePotential::getParams(std::string type)
 */
 void BondTablePotential::computeForces(uint64_t timestep)
     {
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push("Bond Table pair");
-
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
@@ -287,8 +283,6 @@ void BondTablePotential::computeForces(uint64_t timestep)
             throw std::runtime_error("Error in bond calculation");
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

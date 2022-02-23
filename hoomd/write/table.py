@@ -348,8 +348,10 @@ class Table(_InternalCustomWriter):
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
         output (``file-like`` object , optional): A file-like object to output
-            the data from, defaults to standard out. The object must have write
-            and flush methods and a mode attribute.
+            the data from, defaults to standard out. The object must have
+            ``write`` and ``flush`` methods and a ``mode`` attribute. Examples
+            include `sys.stdout`, `sys.stderr` and the return value of
+            :py:func:`open`.
         header_sep (`str`, optional): String to use to separate names in
             the logger's namespace, defaults to ``'.'``. For example, if logging
             the total energy of an `hoomd.md.pair.LJ` pair force object, the
@@ -380,8 +382,8 @@ class Table(_InternalCustomWriter):
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
         output (``file-like`` object): A file-like object to output
-            the data from. The object must have write and flush methods and a
-            mode attribute.
+            the data from. The object must have ``write`` and ``flush`` methods
+            and a ``mode`` attribute.
         header_sep (str): String to use to separate names in
             the logger's namespace.'. For example, if logging the total energy
             of an `hoomd.md.pair.LJ` pair force object, the default header would

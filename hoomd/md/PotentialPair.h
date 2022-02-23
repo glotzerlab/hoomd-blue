@@ -81,10 +81,6 @@ namespace md
    values are stored in GlobalArray for easy access on the GPU by a derived class. The type of the
    parameters is defined by \a param_type in the potential evaluator class passed in. See the
    appropriate documentation for the evaluator for the definition of each element of the parameters.
-
-    For profiling PotentialPair needs to know the name of the potential. For
-    now, that will be queried from the evaluator.
-    \sa export_PotentialPair()
 */
 template<class evaluator> class PotentialPair : public ForceCompute
     {
@@ -228,7 +224,6 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     /// Per type pair potential parameters
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
-    std::string m_prof_name; //!< Cached profiler name
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
@@ -408,9 +403,6 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
             }
         }
 #endif
-
-    // initialize name
-    m_prof_name = std::string("Pair ") + evaluator::getName();
 
     // get number of each type of particle, needed for energy and pressure correction
     m_num_particles_by_type.resize(m_pdata->getNTypes());
@@ -609,10 +601,6 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push(m_prof_name);
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
@@ -827,9 +815,6 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
         }
 
     computeTailCorrection();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
@@ -864,10 +849,6 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
                                                                InputIterator last2,
                                                                Scalar& energy)
     {
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     if (first1 == last1 || first2 == last2)
         return;
 
@@ -1031,9 +1012,6 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 //! Calculates the energy between two lists of particles.

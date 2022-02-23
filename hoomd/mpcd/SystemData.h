@@ -66,16 +66,6 @@ class PYBIND11_EXPORT SystemData
     //! Re-initialize the system from a snapshot
     void initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
 
-    //! Sets the profiler for the particle data to use
-    /*
-     * \param prof System profiler to use, nullptr if profiling is disabled
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_particles->setProfiler(prof);
-        m_cl->setProfiler(prof);
-        }
-
     //! Set autotuner parameters
     /*!
      * \param enable Enable / disable autotuning

@@ -136,9 +136,6 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
 
     uint16_t seed = m_sysdef->getSeed();
 
-    if (m_prof)
-        m_prof->push("Free volume");
-
     // only check if AABB tree is populated
     if (m_pdata->getN() + m_pdata->getNGhosts())
         {
@@ -271,9 +268,6 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop();
 
     ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all,
                                               access_location::host,

@@ -88,9 +88,6 @@ pybind11::dict HarmonicImproperForceCompute::getParams(std::string type)
  */
 void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Harmonic Improper");
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -294,9 +291,6 @@ void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[k * virial_pitch + idx_d] += improper_virial[k];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

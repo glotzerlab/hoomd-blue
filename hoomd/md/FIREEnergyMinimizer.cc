@@ -16,7 +16,7 @@ namespace md
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param dt maximum step size
 
-    \post The method is constructed with the given particle data and a NULL profiler.
+    \post The method is constructed with the given particle data.
 */
 FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
     : IntegratorTwoStep(sysdef, dt), m_nmin(5), m_finc(Scalar(1.1)), m_fdec(Scalar(0.5)),

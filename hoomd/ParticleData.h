@@ -67,9 +67,6 @@
 
 namespace hoomd
     {
-// Forward declaration of Profiler
-class Profiler;
-
 // Forward declaration of IntegratorData
 class IntegratorData;
 
@@ -878,14 +875,6 @@ class PYBIND11_EXPORT ParticleData
         m_inertia.swap(m_inertia_alt);
         }
 
-    //! Set the profiler to profile CPU<-->GPU memory copies
-    /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Connects a function to be called every time the particles are rearranged in memory
     Nano::Signal<void()>& getParticleSortSignal()
         {
@@ -1386,8 +1375,6 @@ class PYBIND11_EXPORT ParticleData
     GlobalArray<Scalar4> m_net_force_alt;  //!< Net force (swap-in)
     GlobalArray<Scalar> m_net_virial_alt;  //!< Net virial (swap-in)
     GlobalArray<Scalar4> m_net_torque_alt; //!< Net torque (swap-in)
-
-    std::shared_ptr<Profiler> m_prof; //!< Pointer to the profiler. NULL if there is no profiler.
 
     GlobalArray<Scalar4> m_net_force;  //!< Net force calculated for each particle
     GlobalArray<Scalar> m_net_virial;  //!< Net virial calculated for each particle (2D GPU array of

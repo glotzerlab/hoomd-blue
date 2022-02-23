@@ -257,7 +257,9 @@ def _valid_params(particle_types=['A', 'B']):
         # cube
         [(0.5, -0.5, -0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5),
          (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, 0.5),
-         (-0.5, -0.5, -0.5)]
+         (-0.5, -0.5, -0.5)],
+        # ellipsoid
+        []
     ]
 
     # ALJ.get_ordered_vertices only works if coxeter can be imported, so we
@@ -282,8 +284,8 @@ def _valid_params(particle_types=['A', 'B']):
                                    (0.01, 0.1, 2.0)],
                 "faces": [
                     md.pair.aniso.ALJ.get_ordered_vertices(vertices)[1]
-                    for vertices in shape_vertices
-                ]
+                    for vertices in shape_vertices[:-1]
+                ] + [[]]
             }, 1)
         }
     except RuntimeError:

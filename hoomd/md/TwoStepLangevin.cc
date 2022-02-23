@@ -39,10 +39,6 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    // profile this step
-    if (m_prof)
-        m_prof->push("Langevin step 1");
-
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
@@ -202,10 +198,6 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -216,10 +208,6 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("Langevin step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -430,10 +418,6 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
         m_reservoir_energy -= bd_energy_transfer * m_deltaT;
         m_extra_energy_overdeltaT = 0.5 * bd_energy_transfer;
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

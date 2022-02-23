@@ -40,8 +40,6 @@ UpdaterQuickCompress::~UpdaterQuickCompress()
 void UpdaterQuickCompress::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    if (m_prof)
-        m_prof->push("UpdaterQuickCompress");
     m_exec_conf->msg->notice(10) << "UpdaterQuickCompress: " << timestep << std::endl;
 
     // count the number of overlaps in the current configuration
@@ -52,9 +50,6 @@ void UpdaterQuickCompress::update(uint64_t timestep)
         {
         performBoxScale(timestep);
         }
-
-    if (m_prof)
-        m_prof->pop();
 
     // The compression is complete when we have reached the target box and there are no overlaps.
     if (n_overlaps == 0 && current_box == *m_target_box)

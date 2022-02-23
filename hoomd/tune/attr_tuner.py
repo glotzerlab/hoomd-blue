@@ -125,10 +125,10 @@ class _TuneDefinition(metaclass=ABCMeta):
         """tuple[``any``, ``any``]: A tuple pair of the minimum and maximum \
             accepted values of x.
 
-        When, the domain is ``None`` then any value of x is accepted. Either
-        the minimum or maximum can be set to ``None`` as well which means
-        there is no maximum or minimum. The domain is used to wrap values
-        within the specified domain when setting x.
+        When the domain is None, any value of x is accepted. Either the minimum
+        or maximum can be set to ``None`` as well which means there is no
+        maximum or minimum. The domain is used to wrap values within the
+        specified domain when setting x.
         """
         if self._domain is not None:
             return tuple(self._domain)

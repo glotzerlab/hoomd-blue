@@ -246,8 +246,6 @@ void MuellerPlatheFlow::searchMinMaxVelocity(void)
         return;
     if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlow::search");
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -308,14 +306,10 @@ void MuellerPlatheFlow::searchMinMaxVelocity(void)
                 }
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 void MuellerPlatheFlow::updateMinMaxVelocity(void)
     {
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlow::update");
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     const unsigned int min_tag = __scalar_as_int(m_last_min_vel.z);
     const unsigned int min_idx = h_rtag.data[min_tag];
@@ -362,8 +356,6 @@ void MuellerPlatheFlow::updateMinMaxVelocity(void)
                 }
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 void MuellerPlatheFlow::verifyOrthorhombicBox(void)

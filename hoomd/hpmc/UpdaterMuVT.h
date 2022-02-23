@@ -583,9 +583,6 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
         // update the image list
         const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
 
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "HPMC implicit volume move ");
-
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
                                        access_location::host,
@@ -864,9 +861,6 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                 break;
             } // end loop over depletant types
 
-        if (this->m_prof)
-            this->m_prof->pop(this->m_exec_conf);
-
         overlap = overlap_count;
         }
 
@@ -878,9 +872,6 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
     Updater::update(timestep);
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
-
-    if (m_prof)
-        m_prof->push("update muVT");
 
     m_exec_conf->msg->notice(10) << "UpdaterMuVT update: " << timestep << std::endl;
 
@@ -1645,9 +1636,6 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
         m_mc->communicate(false);
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Shape>

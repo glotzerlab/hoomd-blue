@@ -89,9 +89,6 @@ template<class evaluator> PotentialExternal<evaluator>::~PotentialExternal() { }
 */
 template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("PotentialExternal");
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -149,9 +146,6 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         for (int k = 0; k < 6; k++)
             h_virial.data[k * m_virial_pitch + idx] = virial[k];
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class evaluator>

@@ -21,7 +21,7 @@ namespace md
     {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \post The method is constructed with the given particle data and a NULL profiler.
+    \post The method is constructed with the given particle.
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group)
@@ -35,20 +35,6 @@ IntegrationMethodTwoStep::IntegrationMethodTwoStep(std::shared_ptr<SystemDefinit
     assert(m_group);
 
     m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
-    }
-
-/*! It is useful for the user to know where computation time is spent, so all integration methods
-    should profile themselves. This method sets the profiler for them to use.
-    This method does not need to be called, as Computes will not profile themselves
-    on a NULL profiler
-    \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (std::shared_ptr<Profiler>()) to stop the
-        analyzer from profiling itself.
-    \note Derived classes MUST check if m_prof is set before calling any profiler methods.
-*/
-void IntegrationMethodTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    m_prof = prof;
     }
 
 /*! \param deltaT New time step to set
