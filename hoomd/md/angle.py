@@ -162,20 +162,20 @@ class Table(Angle):
     and the potential :math:`V(\\theta)` is:
 
     .. math::
-        V(\\theta) =V_\\mathrm{table}(\\theta)
+        U(\\theta) =U_\\mathrm{table}(\\theta)
 
     Provide :math:`\\tau_\\mathrm{table}(\\theta)` and
-    :math:`V_\\mathrm{table}(\\theta)` on evenly spaced grid points points
+    :math:`U_\\mathrm{table}(\\theta)` on evenly spaced grid points points
     in the range :math:`\\theta \\in [0,\\pi]`. `Table` linearly
     interpolates values when :math:`\\theta` lies between grid points. The
     torque must be specificed commensurate with the potential: :math:`\\tau =
-    -\\frac{\\partial V}{\\partial \\theta}`.
+    -\\frac{\\partial U}{\\partial \\theta}`.
 
     Attributes:
         params (`TypeParameter` [``angle type``, `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``V`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+          * ``U`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
             the tabulated energy values :math:`[\\mathrm{energy}]`. Must have
             a size equal to `width`.
 
@@ -195,7 +195,7 @@ class Table(Angle):
         params = TypeParameter(
             "params", "angle_types",
             TypeParameterDict(
-                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                U=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 len_keys=1))
         self._add_typeparam(params)
