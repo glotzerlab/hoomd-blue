@@ -195,16 +195,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         return flags;
         }
 
-    //! Initialize integrator variables
-    virtual void initializeIntegratorVariables()
-        {
-        IntegratorVariables v = getIntegratorVariables();
-        v.type = "npt_mtk";
-        v.variable.clear();
-        v.variable.resize(10, Scalar(0.0));
-        setIntegratorVariables(v);
-        }
-
     /// Randomize the thermostat and barostat variables
     void thermalizeThermostatAndBarostatDOF(uint64_t timestep);
 
@@ -254,6 +244,9 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     bool m_rescale_all; //!< If true, rescale all particles in the system irrespective of group
 
     Scalar m_gamma; //!< Optional damping factor for box degrees of freedom
+
+    std::vector<Scalar> m_thermostat; //!< thermostat degrees of freedom
+    std::vector<Scalar> m_barostat;   //!< barostat degrees of freedom
 
     //! Helper function to advance the barostat parameters
     void advanceBarostat(uint64_t timestep);

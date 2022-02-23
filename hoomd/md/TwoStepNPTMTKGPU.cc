@@ -128,13 +128,12 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(timestep);
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
-    Scalar nuxy = v.variable[3]; // Barostat tensor, xy component
-    Scalar nuxz = v.variable[4]; // Barostat tensor, xz component
-    Scalar nuyy = v.variable[5]; // Barostat tensor, yy component
-    Scalar nuyz = v.variable[6]; // Barostat tensor, yz component
-    Scalar nuzz = v.variable[7]; // Barostat tensor, zz component
+    Scalar nuxx = m_barostat[0]; // Barostat tensor, xx component
+    Scalar nuxy = m_barostat[1]; // Barostat tensor, xy component
+    Scalar nuxz = m_barostat[2]; // Barostat tensor, xz component
+    Scalar nuyy = m_barostat[3]; // Barostat tensor, yy component
+    Scalar nuyz = m_barostat[4]; // Barostat tensor, yz component
+    Scalar nuzz = m_barostat[5]; // Barostat tensor, zz component
 
     // Martyna-Tobias-Klein correction
     Scalar mtk = (nuxx + nuyy + nuzz) / (Scalar)m_ndof;
@@ -225,7 +224,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = v.variable[1];
+        Scalar xi_trans = m_thermostat[1];
         Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
 
         // perform the particle update on the GPU
@@ -297,7 +296,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_rot = v.variable[8];
+        Scalar xi_rot = m_thermostat[3];
         Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
@@ -329,9 +328,8 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
-        v = getIntegratorVariables();
-        MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        setIntegratorVariables(v);
+        MPI_Bcast(&m_thermostat.front(), 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_barostat.front(), 6, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
     }
@@ -343,10 +341,9 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
-    Scalar nuyy = v.variable[5]; // Barostat tensor, yy component
-    Scalar nuzz = v.variable[7]; // Barostat tensor, zz component
+    Scalar nuxx = m_barostat[0]; // Barostat tensor, xx component
+    Scalar nuyy = m_barostat[3]; // Barostat tensor, yy component
+    Scalar nuzz = m_barostat[5]; // Barostat tensor, zz component
 
     // Martyna-Tobias-Klein correction
     Scalar mtk = (nuxx + nuyy + nuzz) / (Scalar)m_ndof;
@@ -365,7 +362,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = v.variable[1];
+        Scalar xi_trans = m_thermostat[1];
         Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
 
         // perform second half step of NPT integration (update velocities and accelerations)
@@ -409,7 +406,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_rot = v.variable[8];
+        Scalar xi_rot = m_thermostat[3];
         Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();

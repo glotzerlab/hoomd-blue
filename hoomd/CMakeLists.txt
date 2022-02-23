@@ -73,7 +73,6 @@ set(_hoomd_sources Analyzer.cc
                    HOOMDVersion.cc
                    Initializers.cc
                    Integrator.cc
-                   IntegratorData.cc
                    LoadBalancer.cc
                    Messenger.cc
                    MemoryTraceback.cc
@@ -153,7 +152,6 @@ set(_hoomd_headers
     Index1D.h
     Initializers.h
     Integrator.cuh
-    IntegratorData.h
     Integrator.h
     LoadBalancerGPU.cuh
     LoadBalancerGPU.h

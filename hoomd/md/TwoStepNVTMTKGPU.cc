@@ -131,8 +131,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar xi_rot = v.variable[2];
+        Scalar xi_rot = m_thermostat[2];
         Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
 
         m_exec_conf->beginMultiGPU();
@@ -216,8 +215,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
                                        access_location::device,
                                        access_mode::read);
 
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar xi_rot = v.variable[2];
+        Scalar xi_rot = m_thermostat[2];
         Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
 
         m_exec_conf->beginMultiGPU();
