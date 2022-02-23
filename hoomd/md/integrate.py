@@ -142,7 +142,7 @@ class _DynamicIntegrator(BaseIntegrator):
 
 
 class Integrator(_DynamicIntegrator):
-    """Enables a variety of standard integration methods.
+    """Molecular dynamics time integration.
 
     Args:
         dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
@@ -165,32 +165,35 @@ class Integrator(_DynamicIntegrator):
             objects (i.e. `hoomd.md.constrain.Rigid`) are not allowed in the
             list.
 
-        rigid (hoomd.md.constrain.Rigid): A rigid bodies object defining the
-            rigid bodies in the simulation.
+        rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
+            the simulation.
 
+    `Integrator` is the top level class that orchestrates the time integration
+    step in molecular dynamics simulations. The integration `methods` define
+    the equations of motion to integrate under the influence of the given
+    `forces` and `constraints`.
 
     Classes of the following modules can be used as elements in `methods`:
 
     - `hoomd.md.methods`
     - `hoomd.md.methods.rattle`
 
-    The classes of following modules can be used as elements in `forces`
+    The classes of following modules can be used as elements in `forces`:
 
     - `hoomd.md.angle`
     - `hoomd.md.bond`
-    - `hoomd.md.long_range.pppm`
     - `hoomd.md.dihedral`
-    - `hoomd.md.external.field`
-    - `hoomd.md.force`
+    - `hoomd.md.external`
     - `hoomd.md.improper`
+    - `hoomd.md.long_range`
     - `hoomd.md.pair`
-    - `hoomd.md.external.wall`
     - `hoomd.md.special_pair`
+    - `hoomd.md.many_body`.
 
-    The classes of the following module can be used as elements in `constraints`
+    The classes of the following module can be used as elements in
+    `constraints`:
 
     - `hoomd.md.constrain`
-
 
     Examples::
 
@@ -260,7 +263,7 @@ class Integrator(_DynamicIntegrator):
 
         .. math::
 
-            \\vec{p} = \\sum_{i=0}^\\mathrm{N_particles} m_i \\vec{v}_i
+            \\vec{p} = \\sum_{i=0}^\\mathrm{N_particles-1} m_i \\vec{v}_i
         """
         v = self._cpp_obj.computeLinearMomentum()
         return (v.x, v.y, v.z)
