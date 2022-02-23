@@ -129,7 +129,6 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
 
 
 def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
-    pytest.importorskip("coxeter")
     alj = md.pair.aniso.ALJ(md.nlist.Cell(buffer=0.1))
     sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
     sim.operations.integrator = md.Integrator(0.005, forces=[alj])
@@ -137,7 +136,8 @@ def test_type_shapes(simulation_factory, two_particle_snapshot_factory):
     alj.r_cut.default = 2.5
     octahedron = [(0.5, 0, 0), (-0.5, 0, 0), (0, 0.5, 0), (0, -0.5, 0),
                   (0, 0, 0.5), (0, 0, -0.5)]
-    faces = md.pair.aniso.ALJ.get_ordered_vertices(octahedron)[1]
+    faces = [[5, 3, 1], [0, 3, 5], [1, 3, 4], [4, 3, 0], [5, 2, 0], [1, 2, 5],
+             [0, 2, 4], [4, 2, 1]]
     rounding_radius = 0.1
     alj.shape["A"] = {
         "vertices": octahedron,

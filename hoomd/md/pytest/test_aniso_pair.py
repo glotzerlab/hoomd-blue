@@ -280,41 +280,41 @@ def _valid_params(particle_types=['A', 'B']):
          (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, 0.5),
          (-0.5, -0.5, -0.5)],
     ]
+    shape_faces = [
+        # octahedron
+        [[5, 3, 1], [0, 3, 5], [1, 3, 4], [4, 3, 0], [5, 2, 0], [1, 2, 5],
+         [0, 2, 4], [4, 2, 1]],
+        # cube
+        [[4, 3, 2, 1], [0, 1, 2, 6], [2, 3, 5, 6], [7, 4, 1, 0], [6, 5, 7, 0],
+         [3, 4, 7, 5]]
+    ]
 
-    # ALJ.get_ordered_vertices only works if coxeter can be imported, so we
-    # check the RuntimeError and don't add it to the list for the available
-    # tests if coxeter is not available.
+    alj_arg_dict1 = {
+        'params': ({
+            'epsilon': [0.5, 1.1, 0.147],
+            'sigma_i': [0.4, 0.12, 0.3],
+            'sigma_j': [4., 1.2, 0.3],
+            'alpha': [0, 1, 3],
+            'contact_ratio_i': [0.15, 0.3, 0.145],
+            'contact_ratio_j': [0.15, 0.3, 0.145],
+            'average_simplices': [True, False, True]
+        }, 2),
+        'shape': ({
+            "vertices":
+                shape_vertices,
+            "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0)],
+            "faces": shape_faces
+        }, 1)
+    }
 
-    try:
-        alj_arg_dict1 = {
-            'params': ({
-                'epsilon': [0.5, 1.1, 0.147],
-                'sigma_i': [0.4, 0.12, 0.3],
-                'sigma_j': [4., 1.2, 0.3],
-                'alpha': [0, 1, 3],
-                'contact_ratio_i': [0.15, 0.3, 0.145],
-                'contact_ratio_j': [0.15, 0.3, 0.145],
-                'average_simplices': [True, False, True]
-            }, 2),
-            'shape': ({
-                "vertices":
-                    shape_vertices,
-                "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0)],
-                "faces": [
-                    md.pair.aniso.ALJ.get_ordered_vertices(vertices)[1]
-                    for vertices in shape_vertices
-                ]
-            }, 1)
-        }
-    except RuntimeError:
-        return valid_params_list
+    valid_params_list.append(
+        make_aniso_spec(
+            md.pair.aniso.ALJ,
+            to_type_parameter_dicts(particle_types, alj_arg_dict1)
+        )
+    )
 
-    else:
-        valid_params_list.append(
-            make_aniso_spec(
-                md.pair.aniso.ALJ,
-                to_type_parameter_dicts(particle_types, alj_arg_dict1)))
-        return valid_params_list
+    return valid_params_list
 
 
 class PotentialId:
