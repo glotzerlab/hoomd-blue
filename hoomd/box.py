@@ -268,7 +268,7 @@ class Box:
 
     @classmethod
     def from_box(cls, box):
-        R"""Initialize a Box instance from a box-like object.
+        r"""Initialize a Box instance from a box-like object.
 
         Args:
             box:
@@ -485,7 +485,7 @@ class Box:
         return np.array([[Lx, xy * Ly, xz * Lz], [0, Ly, yz * Lz], [0, 0, Lz]])
 
     def scale(self, s):
-        R"""Scale box dimensions.
+        r"""Scale box dimensions.
 
         Scales the box in place by the given scale factors. Tilt factors are not
         modified.
