@@ -43,6 +43,26 @@ namespace md
 class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     {
     public:
+    /// Thermostat variables
+    struct Thermostat
+        {
+        Scalar xi = 0;
+        Scalar eta = 0;
+        Scalar xi_rot = 0;
+        Scalar eta_rot = 0;
+        };
+
+    /// Barostat variables
+    struct Barostat
+        {
+        Scalar nu_xx;
+        Scalar nu_xy;
+        Scalar nu_xz;
+        Scalar nu_yy;
+        Scalar nu_yz;
+        Scalar nu_zz;
+        };
+
     //! Specify possible couplings between the diagonal elements of the pressure tensor
     enum couplingMode
         {
@@ -245,8 +265,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
     Scalar m_gamma; //!< Optional damping factor for box degrees of freedom
 
-    std::array<Scalar, 4> m_thermostat; //!< thermostat degrees of freedom
-    std::array<Scalar, 6> m_barostat;   //!< barostat degrees of freedom
+    Thermostat m_thermostat; //!< thermostat degrees of freedom
+    Barostat m_barostat;     //!< barostat degrees of freedom
 
     //! Helper function to advance the barostat parameters
     void advanceBarostat(uint64_t timestep);
@@ -258,8 +278,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     void advanceThermostat(uint64_t timestep);
 
     //! Helper function to update the propagator elements
-    void
-    updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
+    void updatePropagator();
 
     //! Get the relevant couplings for the active box degrees of freedom
     couplingMode getRelevantCouplings();

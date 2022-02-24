@@ -41,6 +41,14 @@ namespace md
 class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     {
     public:
+    struct Thermostat
+        {
+        Scalar xi = 0;
+        Scalar eta = 0;
+        Scalar xi_rot = 0;
+        Scalar eta_rot = 0;
+        };
+
     //! Constructs the integration method and associates it with the system
     TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
                   std::shared_ptr<ParticleGroup> group,
@@ -80,7 +88,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     //! Set the value of xi (for unit tests)
     void setXi(Scalar new_xi)
         {
-        m_thermostat[0] = new_xi;
+        m_thermostat.xi = new_xi;
         }
 
     //! Performs the first step of the integration
@@ -123,8 +131,8 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     Scalar m_tau;                 //!< tau value for Nose-Hoover
     std::shared_ptr<Variant> m_T; //!< Temperature set point
 
-    Scalar m_exp_thermo_fac;                                   //!< Thermostat rescaling factor
-    std::array<Scalar, 4> m_thermostat = {0.0, 0.0, 0.0, 0.0}; //!< Thermostat degrees of freedom
+    Scalar m_exp_thermo_fac; //!< Thermostat rescaling factor
+    Thermostat m_thermostat; //!< Thermostat degrees of freedom
 
     //! advance the thermostat
     /*!\param timestep The time step
