@@ -104,11 +104,6 @@ class TestMoveSizeTuneDefinition:
         # We do this twice to ensure that when the counter doesn"t change our
         # return value does not change either.
         assert isclose(move_size_definition.y, calc_acceptance_rate)
-        simulation.run(10)
-        assert not isclose(move_size_definition.y, calc_acceptance_rate)
-        accepted, rejected = get_move_acceptance_ratio(boxmc, attr)
-        calc_acceptance_rate = accepted / (accepted + rejected)
-        assert isclose(move_size_definition.y, calc_acceptance_rate)
 
     def test_getting_setting_move_size(self, rng, boxmc, move_size_definition,
                                        simulation):
