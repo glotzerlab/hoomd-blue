@@ -415,6 +415,7 @@ class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
                 validated_item = self._validate(item)
                 self._children.add(validated_item)
                 self._data.append(validated_item)
+        return self
 
     def __le__(self, other):
         if isinstance(other, _HOOMDSyncedCollection):

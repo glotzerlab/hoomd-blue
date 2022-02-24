@@ -22,7 +22,7 @@ class _force:  # noqa - This will be removed eventually. Needed to build docs.
 
 
 class Force(_HOOMDBaseObject):
-    """Defines a force in HOOMD-blue.
+    """Defines a force.
 
     Pair, angle, bond, and other forces are subclasses of this class.
 

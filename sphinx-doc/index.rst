@@ -171,6 +171,7 @@ Molecular dynamics:
    :maxdepth: 1
    :caption: Reference
 
+   notation
    units
    deprecated
    license

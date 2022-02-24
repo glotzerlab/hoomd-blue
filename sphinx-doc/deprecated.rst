@@ -4,6 +4,20 @@
 Deprecated
 ==========
 
+Features deprecated
+
+v3.x
+____
+
+.. list-table::
+
+   * - Feature
+     - Replace with
+     - Deprecated in
+   * - Particle diameters
+     - Potentials such as `md.pair.ExpandedLJ`.
+     - v3.0.0
+
 Features deprecated in v3.0.0-beta.x may be removed in a future beta release and will be removed
 before the final 3.0.0 release.
 

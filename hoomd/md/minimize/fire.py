@@ -266,6 +266,9 @@ class FIRE(_DynamicIntegrator):
     @log(default=False)
     def converged(self):
         """bool: True when the minimizer has converged, else False."""
+        if not self._attached:
+            return False
+
         return self._cpp_obj.converged
 
     def reset(self):
