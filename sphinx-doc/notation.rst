@@ -22,6 +22,8 @@ General notation:
       - Matrix.
     * - :math:`\mathbf{b}`
       - Quaternion.
+    * - :math:`\vert \mathbf{b} \vert`
+      - Magnitude of a quaternion.
     * - :math:`i`, :math:`j`, :math:`k`
       - Indices.
     * - :math:`i`
@@ -61,6 +63,8 @@ Symbol definitions:
       - Pressure.
     * - :math:`\rho`
       - Number density.
+    * - :math:`\vec{a}_1`, :math:`\vec{a}_2`, :math:`\vec{a}_3`
+      - Box unit cell vectors.
     * - :math:`\vec{F}`
       - Force.
     * - :math:`\vec{\tau}`

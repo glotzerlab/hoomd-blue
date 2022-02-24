@@ -111,6 +111,7 @@ class Ramp(_hoomd.VariantRamp, Variant):
     *A* to *B* over *t_ramp* steps and holds the value *B*.
 
     .. image:: variant-ramp.svg
+       :alt: Example plot of a ramp variant.
 
     Attributes:
         A (float): The start value.
@@ -146,6 +147,7 @@ class Cycle(_hoomd.VariantCycle, Variant):
     starting with *t_A*. :py:class:`Cycle` repeats this cycle indefinitely.
 
     .. image:: variant-cycle.svg
+       :alt: Example plot of a cycle variant.
 
     Attributes:
         A (float): The first value.
@@ -184,6 +186,7 @@ class Power(_hoomd.VariantPower, Variant):
         p = Power(A=2, B-8, power=1 / 10, t_start=10, t_ramp=20)
 
     .. image:: variant-power.svg
+       :alt: Example plot of a power variant.
 
     Attributes:
         A (float): The start value.
