@@ -337,7 +337,6 @@ set(files box.py
           device.py
           __init__.py
           error.py
-          integrate.py
           operation.py
           operations.py
           pytest_plugin_validate.py

@@ -6,14 +6,16 @@ hoomd.variant
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd.variant
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.variant.Constant
-    hoomd.variant.Cycle
-    hoomd.variant.Power
-    hoomd.variant.Ramp
-    hoomd.variant.Variant
+    Constant
+    Cycle
+    Power
+    Ramp
+    Variant
 
 .. rubric:: Details
 
@@ -23,10 +25,15 @@ hoomd.variant
 
     .. autoclass:: Constant(value)
         :members: __eq__
+        :show-inheritance:
     .. autoclass:: Cycle(A, B, t_start, t_A, t_AB, t_B, t_BA)
         :members: __eq__
+        :show-inheritance:
     .. autoclass:: Power(A, B, power, t_start, t_ramp)
         :members: __eq__
+        :show-inheritance:
     .. autoclass:: Ramp(A, B, t_start, t_ramp)
         :members: __eq__
+        :show-inheritance:
     .. autoclass:: Variant()
+        :members: min, max, __getstate__, __setstate__

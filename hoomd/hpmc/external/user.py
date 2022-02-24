@@ -1,7 +1,15 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""User-defined external fields for HPMC simulations."""
+"""User-defined external fields for HPMC simulations.
+
+Set :math:`U_{\\mathrm{external},i}` evaluated in
+`hoomd.hpmc.integrate.HPMCIntegrator` to a user-defined expression.
+
+See Also:
+    :doc:`features` explains the compile time options needed for user defined
+    external potentials.
+"""
 
 import hoomd
 from hoomd import _compile
@@ -21,7 +29,7 @@ class CPPExternalPotential(ExternalField):
         code (str): C++ function body to compile.
 
     Potentials added using :py:class:`CPPExternalPotential` are added to the
-    total energy calculation in :py:mod:`hpmc <hoomd.hpmc>` integrators.
+    total energy calculation in `hoomd.hpmc.integrate.HPMCIntegrator`.
     :py:class:`CPPExternalPotential` takes C++ code, compiles it at runtime, and
     executes the code natively in the MC loop with full performance. It enables
     researchers to quickly and easily implement custom energetic field
@@ -59,9 +67,9 @@ class CPPExternalPotential(ExternalField):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.13/hoomd/VectorMath.h
+            v3.0.0-beta.14/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.13/hoomd/BoxDim.h
+            v3.0.0-beta.14/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
@@ -175,6 +183,11 @@ class CPPExternalPotential(ExternalField):
     @log(requires_run=True)
     def energy(self):
         """float: Total field energy of the system in the current state.
+
+        .. math::
+
+            U = \\sum_{i=0}^\\mathrm{N_particles-1}
+            U_{\\mathrm{external},i}
 
         Returns `None` when the patch object and integrator are not attached.
         """

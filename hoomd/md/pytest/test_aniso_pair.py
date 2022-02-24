@@ -250,6 +250,27 @@ def _valid_params(particle_types=['A', 'B']):
             md.pair.aniso.GayBerne,
             to_type_parameter_dicts(particle_types, gay_berne_arg_dict)))
 
+    alj_arg_dict0 = {
+        'params': ({
+            'epsilon': [0.5, 1.1, 0.147],
+            'sigma_i': [0.4, 0.12, 0.3],
+            'sigma_j': [4., 1.2, 0.3],
+            'alpha': [0, 1, 3],
+            'contact_ratio_i': [0.15, 0.3, 0.145],
+            'contact_ratio_j': [0.15, 0.3, 0.145],
+            'average_simplices': [True, False, True]
+        }, 2),
+        'shape': ({
+            "vertices": [[], []],
+            "rounding_radii": [(0.1, 0.2, 0.15), (0.3, 0.3, 0.3)],
+            "faces": [[], []]
+        }, 1)
+    }
+
+    valid_params_list.append(
+        make_aniso_spec(md.pair.aniso.ALJ,
+                        to_type_parameter_dicts(particle_types, alj_arg_dict0)))
+
     shape_vertices = [
         # octahedron
         [(0.5, 0, 0), (-0.5, 0, 0), (0, 0.5, 0), (0, -0.5, 0), (0, 0, 0.5),
@@ -257,44 +278,39 @@ def _valid_params(particle_types=['A', 'B']):
         # cube
         [(0.5, -0.5, -0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5),
          (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, 0.5),
-         (-0.5, -0.5, -0.5)]
+         (-0.5, -0.5, -0.5)],
+    ]
+    shape_faces = [
+        # octahedron
+        [[5, 3, 1], [0, 3, 5], [1, 3, 4], [4, 3, 0], [5, 2, 0], [1, 2, 5],
+         [0, 2, 4], [4, 2, 1]],
+        # cube
+        [[4, 3, 2, 1], [0, 1, 2, 6], [2, 3, 5, 6], [7, 4, 1, 0], [6, 5, 7, 0],
+         [3, 4, 7, 5]]
     ]
 
-    # ALJ.get_ordered_vertices only works if coxeter can be imported, so we
-    # check the ModuleNotFoundError and don't add it to the list for the
-    # available tests.
+    alj_arg_dict1 = {
+        'params': ({
+            'epsilon': [0.5, 1.1, 0.147],
+            'sigma_i': [0.4, 0.12, 0.3],
+            'sigma_j': [4., 1.2, 0.3],
+            'alpha': [0, 1, 3],
+            'contact_ratio_i': [0.15, 0.3, 0.145],
+            'contact_ratio_j': [0.15, 0.3, 0.145],
+            'average_simplices': [True, False, True]
+        }, 2),
+        'shape': ({
+            "vertices": shape_vertices,
+            "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0)],
+            "faces": shape_faces
+        }, 1)
+    }
 
-    try:
-        alj_arg_dict = {
-            'params': ({
-                'epsilon': [0.5, 1.1, 0.147],
-                'sigma_i': [0.4, 0.12, 0.3],
-                'sigma_j': [4., 1.2, 0.3],
-                'alpha': [0, 1, 3],
-                'contact_ratio_i': [0.15, 0.3, 0.145],
-                'contact_ratio_j': [0.15, 0.3, 0.145],
-                'average_simplices': [True, False, True]
-            }, 2),
-            'shape': ({
-                "vertices":
-                    shape_vertices,
-                "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0),
-                                   (0.01, 0.1, 2.0)],
-                "faces": [
-                    md.pair.aniso.ALJ.get_ordered_vertices(vertices)[1]
-                    for vertices in shape_vertices
-                ]
-            }, 1)
-        }
-    except RuntimeError:
-        return valid_params_list
+    valid_params_list.append(
+        make_aniso_spec(md.pair.aniso.ALJ,
+                        to_type_parameter_dicts(particle_types, alj_arg_dict1)))
 
-    else:
-        valid_params_list.append(
-            make_aniso_spec(
-                md.pair.aniso.ALJ,
-                to_type_parameter_dicts(particle_types, alj_arg_dict)))
-        return valid_params_list
+    return valid_params_list
 
 
 class PotentialId:
@@ -457,7 +473,6 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
-        assert_equivalent_data_structures(value, getattr(pair_potential, key))
 
     sim = make_two_particle_simulation(types=['A', 'B'],
                                        dimensions=3,

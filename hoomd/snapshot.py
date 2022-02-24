@@ -39,11 +39,11 @@ class Snapshot:
     """Self-contained copy of the simulation `State`.
 
     Args:
-        communicator (Communicator): MPI communicator to be used with the
-          simulation.
+        communicator (Communicator): MPI communicator to be used when accessing
+            the snapshot.
 
-    Attributes:
-        communicator (Communicator): MPI communicator.
+    See `State` and `gsd.hoomd.Snapshot` for detailed documentation on the
+    components of `Snapshot`.
 
     Note:
         `Snapshot` is duck-type compatible with `gsd.hoomd.Snapshot` except
@@ -66,6 +66,9 @@ class Snapshot:
         `State.get_snapshot`
 
         `State.set_snapshot`
+
+    Attributes:
+        communicator (Communicator): MPI communicator.
     """
 
     def __init__(self, communicator=None):
@@ -87,6 +90,9 @@ class Snapshot:
 
         Note:
             ``box`` accepts any values that `Box.from_box` allows when setting.
+
+        See Also:
+            `Box`
         """
         return _ConfigurationData(self._cpp_obj)
 
@@ -326,6 +332,10 @@ class Snapshot:
             communicator (hoomd.communicator.Communicator): The MPI communicator
                 to use for the snapshot. This prevents the snapshot from being
                 stored on every rank.
+
+        Tip:
+            Use `Simulation.create_state_from_gsd` to efficiently initialize
+            the system state from a GSD file.
 
         Note:
             `from_gsd_snapshot` only accesses the ``gsd_snap`` argument on rank

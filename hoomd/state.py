@@ -71,25 +71,24 @@ def _create_domain_decomposition(device, box, domain_decomposition):
 
 
 class State:
-    """The state of a `hoomd.Simulation` object.
+    """The state of a `Simulation` object.
 
     Note:
         This object cannot be directly instantiated. Use
-        `hoomd.Simulation.create_state_from_gsd` and
-        `hoomd.Simulation.create_state_from_snapshot` to instantiate a `State`
+        `Simulation.create_state_from_gsd` and
+        `Simulation.create_state_from_snapshot` to instantiate a `State`
         object as part of a simulation.
 
     .. rubric:: Overview
 
     `State` stores the data that describes the thermodynamic microstate of a
-    `hoomd.Simulation` object. This data consists of the box, particles, bonds,
+    `Simulation` object. This data consists of the box, particles, bonds,
     angles, dihedrals, impropers, special pairs, and constraints.
 
     .. rubric:: Box
 
-    The simulation `box` describes the area in space that contains the particles
-    and the periodic boundary conditions to apply. See `Box` for a full
-    description.
+    The simulation `box` describes the space that contains the particles as a
+    `Box` object.
 
     .. rubric:: Particles
 
@@ -97,44 +96,57 @@ class State:
     orientation, type id, body, mass, moment of inertia, charge, diameter,
     velocity, angular momentum, image, and tag:
 
-    - :math:`\\vec{r}`: position :math:`[\\mathrm{length}]` - x,y,z cartesian
-      coordinates defining the position of the particle in the box
-    - :math:`\\mathbf{q}`: orientation :math:`[\\mathrm{dimensionless}]` - (s,
-      :math:`\\vec{a}`), unit quaternion defining the rotation from the
-      particle's local reference frame to the box reference frame.
-    - :math:`t_\\mathrm{id}`: type id :math:`[\\mathrm{dimensionless}]` -
-      integer in the range ``[0,len(particle_types)``) that identifies the
+    - :math:`\\vec{r}`: position :math:`[\\mathrm{length}]` - X,Y,Z cartesian
+      coordinates defining the position of the particle in the box.
+
+    - :math:`\\mathbf{q}`: orientation :math:`[\\mathrm{dimensionless}]` -
+      Unit quaternion defining the rotation from the particle's local reference
+      frame to the box reference frame. The four components are in the order
+      :math:`s`, :math:`a_x`, :math:`a_y`, :math:`a_z` for the in complex
+      notation :math:`s + a_x i + a_y j + a_z k`.
+
+    - ``particle_typeid``: type id :math:`[\\mathrm{dimensionless}]` -
+      An integer in the interval ``[0,len(particle_types)``) that identifies the
       particle's type. `particle_types` maps type ids to names with:
-      ``name = particle_types[t_id]``.
-    - :math:`b_\\mathrm{id}`: body id :math:`[\\mathrm{dimensionless}]` -
-      integer that identifies the particle's rigid body. A value of ``-1``
-      indicates that this particle does not belong to a body. A positive value
-      indicates that the particle belongs to the body :math:`b_\\mathrm{id}`.
-      This particle is the central particle of a body when the body id is equal
-      to the tag :math:`b_\\mathrm{id} = p_\\mathrm{tag}`. (used by
-      `md.constrain.Rigid`)
-    - :math:`m`: mass :math:`[\\mathrm{mass}]` - the particle's mass.
+      ``name = particle_types[particle_typeid]``.
+
+    - ``particle_body``: body id :math:`[\\mathrm{dimensionless}]` - An integer
+      that identifies the particle's rigid body. A value of ``-1`` indicates
+      that this particle does not belong to a body. A positive value indicates
+      that the particle belongs to the body ``particle_body``. This particle is
+      the central particle of a body when the body id is equal to the tag
+      :math:`\\mathrm{particle\\_body} = \\mathrm{particle\\_tag}`. (used by
+      `hoomd.md.constrain.Rigid`)
+
+    - :math:`m`: mass :math:`[\\mathrm{mass}]` - The particle's mass.
+
     - :math:`I`: moment of inertia :math:`[\\mathrm{mass} \\cdot
       \\mathrm{length}^2]` - :math:`I_{xx}`, :math:`I_{yy}`, :math:`I_{zz}`
       elements of the diagonal moment of inertia tensor in the particle's local
       reference frame. The off-diagonal elements are 0.
-    - :math:`q`: charge :math:`[\\mathrm{charge}]`
-    - :math:`d`: diameter :math:`[\\mathrm{length}]` - deprecated in v3.0.0.
+
+    - :math:`q`: charge :math:`[\\mathrm{charge}]` - The particle's charge.
+
+    - :math:`d`: diameter :math:`[\\mathrm{length}]` - Deprecated in v3.0.0.
       HOOMD-blue reads and writes particle diameters, but does not use them in
       any computations.
-    - :math:`\\vec{v}``: velocity :math:`[\\mathrm{velocity}]` - x,y,z
+
+    - :math:`\\vec{v}``: velocity :math:`[\\mathrm{velocity}]` - X,Y,Z
       components of the particle's velocity in the box's reference frame.
+
     - :math:`\\mathbf{P_S}``: angular momentum :math:`[\\mathrm{mass} \\cdot
-      \\mathrm{velocity} \\cdot \\mathrm{length}]` - in a quaternion
-      representation (see note).
-    - :math:`\\vec{n}` : image :math:`[\\mathrm{dimensionless}]` - integers
+      \\mathrm{velocity} \\cdot \\mathrm{length}]` - Quaternion defining the
+      particle's angular momentum (see note).
+
+    - :math:`\\vec{n}` : image :math:`[\\mathrm{dimensionless}]` - Integers
       x,y,z that record how many times the particle has crossed each of the
       periodic box boundaries.
-    - :math:`p_\\mathrm{tag}`` : tag :math:`[\\mathrm{dimensionless}]` -
-      integer that uniquely identifies a given particle. The particles are in
-      tag order when writing and initializing to/from a GSD file or snapshot:
-      :math:`p_\\mathrm{tag,i} = i`. When accessing data in local snapshots,
-      particles may be in any order.
+
+    - ``particle_tag`` : tag :math:`[\\mathrm{dimensionless}]` -
+      An integer that uniquely identifies a given particle. The particles are
+      stored in tag order when writing and initializing to/from a GSD file or
+      snapshot: :math:`\\mathrm{particle\\_tag}_i = i`. When accessing data in
+      local snapshots, particles may be in any order.
 
     Note:
         HOOMD stores angular momentum as a quaternion because that is the form
@@ -155,14 +167,14 @@ class State:
 
             \\vec{S} = \\frac{1}{2}im(\\mathbf{q}^* \\times \\mathbf{P_S})
 
-    .. rubric:: Bonds
+    .. rubric:: Bonded groups
 
     The state contains `N_bonds` bonds, `N_angles` angles, `N_dihedrals`
     dihedrals, `N_impropers` impropers, and `N_special_pairs` special pairs.
     Each of these data structures is similar, differing in the number of
     particles in the group and what operations use them. Bonds, angles,
     dihedrals, and impropers contain 2, 3, 4, and 4 particles per group
-    respectively. Bonds specify the toplogy used when computing energies and
+    respectively. Bonds define the connectivity used when computing energies and
     forces in `md.bond`, angles define the same for `md.angle`, dihedrals for
     `md.dihedral` and impropers for `md.improper`. These collectively implement
     bonding potentials used in molecular dynamics force fields. Like bonds,
@@ -171,44 +183,50 @@ class State:
     dynamics force fields: see `md.special_pair`. Each bonded group is defined
     by a type id, the group members, and a tag.
 
-    - :math:`t_\\mathrm{id}`: type id :math:`[\\mathrm{dimensionless}]` -
-      integer in the range ``[0,len(bond_types)``) that identifies the
+    - ``bond_typeid``: type id :math:`[\\mathrm{dimensionless}]` -
+      An integer in the interval ``[0,len(bond_types))`` that identifies the
       bond's type. `bond_types` maps type ids to names with:
-      ``name = bond_types[t_id]``. Similarly, `angle_types` lists the
+      ``name = bond_types[bond_typeid]``. Similarly, `angle_types` lists the
       angle types, `dihedral_types` lists the dihedral types, `improper_types`
       lists the improper types, and `special_pair_types` lists the special pair
       types.
-    - group members: a list of integers in the range ``[0,max(p_tag)]`` that
-      defines the tags of the particles in the bond (2), angle (3), dihedral
-      (4), improper (4), or special pair (2).
-    - :math:`b_\\mathrm{tag}`` : tag :math:`[\\mathrm{dimensionless}]` -
-      integer that uniquely identifies a given bond. The bonds are in
-      tag order when writing and initializing to/from a GSD file or snapshot
-      :math:`b_\\mathrm{tag,i} = i`. When accessing data in local snapshots,
-      bonds may be in any order.
+    - ``bond_group``: A list of integers in the interval
+      :math:`[0, \\max(\\mathrm{particle\\_tag})]`` that defines the tags of the
+      particles in the bond (2), angle in ``angle_group`` (3), dihedral
+      in ``dihedral_group`` (4), improper in ``improper_group`` (4), or
+      special pair in ``pair_group`` (2).
+    - ``bond_tag`` : tag :math:`[\\mathrm{dimensionless}]` -
+      An integer that uniquely identifies a given bond. The bonds are in tag
+      order when writing and initializing to/from a GSD file or snapshot
+      :math:`\\mathrm{bond\\_tag}_i = i`. When accessing data in local
+      snapshots, bonds may be in any order. The same applies to angles with
+      ``angle_tag``, dihedrals with ``dihedral_tag``, impropers with
+      ``improper_tag``, and special pairs with ``pair_tag``.
 
     .. rubric:: Constraints
 
     The state contains `N_constraints` distance constraints between particles.
-    These constraints are enforced by `md.constrain.Distance`. Each distance
+    These constraints are used by `hoomd.md.constrain.Distance`. Each distance
     constraint consists of a distance value and the group members.
 
-    - group members: a list of 2 integers in the range ``[0,max(p_tag)]`` that
-      defines the tags of the particles in the constraint.
-    - :math:`d`: constraint value :math:`[\\mathrm{length}]` - the distance
+    - ``constraint_group``: A list of 2 integers in the interval
+      :math:`[0, \\max(\\mathrm{particle\\_tag})]` that identifies the tags of
+      the particles in the constraint.
+    - :math:`d`: constraint value :math:`[\\mathrm{length}]` - The distance
       between particles in the constraint.
 
-    .. rubric:: MPI
+    .. rubric:: MPI domain decomposition
 
     When running in serial or on 1 MPI rank, the entire simulation state is
     stored in that process. When using more than 1 MPI rank, HOOMD-blue employs
     a domain decomposition approach to split the simulation box an integer
-    number of times in the x, y, and z directions. Each MPI rank stores and
-    operates on the particles local to that rank, those contained within the
-    region defined by the split planes. Each MPI rank communicates with its
-    neighbors to obtain the properties of particles near the boundary between
-    ranks (ghost particles) so that it can compute interactions across the
-    boundary.
+    number of times in the x, y, and z directions (`domain_decomposition`). Each
+    MPI rank stores and operates on the particles local to that rank. Local
+    particles are those contained within the region defined by the split planes
+    (`domain_decomposition_split_fractions`). Each MPI rank communicates with
+    its neighbors to obtain the properties of particles near the boundary
+    between ranks (ghost particles) so that it can compute interactions across
+    the boundary.
 
     .. rubric:: Accessing Data
 
@@ -216,8 +234,11 @@ class State:
     that access data directly available on the local MPI rank (including the
     local and ghost particles) and *global* snapshots that collect the entire
     state on rank 0. See `State.cpu_local_snapshot`, `State.gpu_local_snapshot`,
-    `State.get_snapshot`, and `State.set_snapshot` for information about
-    these data access patterns.
+    `get_snapshot`, and `set_snapshot` for information about these data access
+    patterns.
+
+    See Also:
+        To write the simulation to disk, use `write.GSD`.
 
     .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
     """
@@ -251,7 +272,7 @@ class State:
         """Make a copy of the simulation current state.
 
         `State.get_snapshot` makes a copy of the simulation state and
-        makes it available in a single object. `State.set_snapshot` resets
+        makes it available in a single object. `set_snapshot` resets
         the internal state to that in the given snapshot. Use these methods
         to implement techniques like hybrid MD/MC or umbrella sampling where
         entire system configurations need to be reset to a previous one after a
@@ -271,7 +292,7 @@ class State:
             `set_snapshot`
 
         Returns:
-            hoomd.Snapshot: The current simulation state
+            Snapshot: The current simulation state
         """
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
@@ -284,7 +305,7 @@ class State:
         system with the new state.
 
         Args:
-            snapshot (hoomd.Snapshot): Snapshot of the system from
+            snapshot (Snapshot): Snapshot of the system from
               `get_snapshot`
 
         Warning:
@@ -294,9 +315,9 @@ class State:
             particle/bond/etc.. types.
 
         Note:
-            `State.set_snapshot` is an order :math:`O(N_{particles} +
-            N_{bonds} + \\ldots)` operation and is very expensive when the
-            simulation device is a GPU.
+            `set_snapshot` is an order :math:`O(N_{particles} + N_{bonds} +
+            \\ldots)` operation and is very expensive when the simulation device
+            is a GPU.
 
         See Also:
             `get_snapshot`
@@ -357,10 +378,9 @@ class State:
     def types(self):
         """dict[str, list[str]]: dictionary of all types in the state.
 
-        Combines the data from `State.particle_types`, `State.bond_types`,
-        `State.angle_types`, `State.dihedral_types`, `State.improper_types`, and
-        `State.special_pair_types` into a dictionary with keys matching the
-        property names.
+        Combines the data from `particle_types`, `bond_types`, `angle_types`,
+        `dihedral_types`, `improper_types`, and `special_pair_types` into a
+        dictionary with keys matching the property names.
         """
         return dict(particle_types=self.particle_types,
                     bond_types=self.bond_types,
@@ -490,7 +510,7 @@ class State:
             return group
 
     def update_group_dof(self):
-        """Schedule an update the number of degrees of freedom in each group.
+        """Schedule an update to the number of degrees of freedom in each group.
 
         `update_group_dof` requests that `Simulation` update the degrees of
         freedom provided to each group by the Integrator. `Simulation` will
@@ -500,9 +520,9 @@ class State:
         This method is called automatically when:
 
         * An Integrator is assigned to the `Simulation`'s operations.
-        * The `md.Integrator` ``integrate_rotational_dof`` parameter is set.
-        * `State.set_snapshot` is called.
-        * On timesteps where a `update.FilterUpdater` triggers.
+        * The `hoomd.md.Integrator.integrate_rotational_dof` parameter is set.
+        * `set_snapshot` is called.
+        * On timesteps where a `hoomd.update.FilterUpdater` triggers.
 
         Call `update_group_dof` manually to force an update, such as when
         you modify particle moments of inertia with `cpu_local_snapshot`.
@@ -519,7 +539,7 @@ class State:
         `hoomd.data.LocalSnapshot` object is only usable within a context
         manager (i.e. ``with sim.state.cpu_local_snapshot as data:``). Attempts
         to assess data outside the context manager will result in errors. The
-        local snapshot interface is similar to that of `hoomd.Snapshot`.
+        local snapshot interface is similar to that of `Snapshot`.
 
         The `hoomd.data.LocalSnapshot` data access is mediated through
         `hoomd.data.array.HOOMDArray` objects. This lets us ensure memory safety
@@ -561,7 +581,7 @@ class State:
         `hoomd.data.LocalSnapshotGPU` object is only usable within a context
         manager (i.e. ``with sim.state.gpu_local_snapshot as data:``). Attempts
         to assess data outside the context manager will result in errors. The
-        local snapshot interface is similar to that of `hoomd.Snapshot`.
+        local snapshot interface is similar to that of `Snapshot`.
 
         The `hoomd.data.LocalSnapshotGPU` data access is mediated through
         `hoomd.data.array.HOOMDGPUArray` objects. This helps us maintain memory
