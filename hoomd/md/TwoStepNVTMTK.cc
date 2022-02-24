@@ -34,7 +34,7 @@ TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
                              Scalar tau,
                              std::shared_ptr<Variant> T)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T),
-      m_exp_thermo_fac(1.0), m_thermostat(4, 0.0)
+      m_exp_thermo_fac(1.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTMTK" << endl;
 

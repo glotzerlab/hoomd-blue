@@ -245,8 +245,8 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
     Scalar m_gamma; //!< Optional damping factor for box degrees of freedom
 
-    std::vector<Scalar> m_thermostat; //!< thermostat degrees of freedom
-    std::vector<Scalar> m_barostat;   //!< barostat degrees of freedom
+    std::array<Scalar, 4> m_thermostat; //!< thermostat degrees of freedom
+    std::array<Scalar, 6> m_barostat;   //!< barostat degrees of freedom
 
     //! Helper function to advance the barostat parameters
     void advanceBarostat(uint64_t timestep);

@@ -123,8 +123,8 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     Scalar m_tau;                 //!< tau value for Nose-Hoover
     std::shared_ptr<Variant> m_T; //!< Temperature set point
 
-    Scalar m_exp_thermo_fac;          //!< Thermostat rescaling factor
-    std::vector<Scalar> m_thermostat; //!< Thermostat degrees of freedom
+    Scalar m_exp_thermo_fac;                                   //!< Thermostat rescaling factor
+    std::array<Scalar, 4> m_thermostat = {0.0, 0.0, 0.0, 0.0}; //!< Thermostat degrees of freedom
 
     //! advance the thermostat
     /*!\param timestep The time step

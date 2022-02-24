@@ -63,7 +63,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                              const bool nph)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_half_step(thermo_half_step),
       m_thermo_full_step(thermo_full_step), m_ndof(0), m_tau(tau), m_tauS(tauS), m_T(T), m_S(S),
-      m_nph(nph), m_rescale_all(false), m_gamma(0.0), m_thermostat(4, 0.0), m_barostat(6, 0.0)
+      m_nph(nph), m_rescale_all(false), m_gamma(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
