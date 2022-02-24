@@ -40,7 +40,8 @@ def move_definition_dict(rng, request):
 
 @pytest.fixture
 def simulation(simulation_factory, lattice_snapshot_factory):
-    snap = lattice_snapshot_factory(dimensions=3, r=1e-3, n=4)  # 64 particles
+    snap = lattice_snapshot_factory(dimensions=3, r=1e-2, n=4,
+                                    a=2)  # 64 particles
     sim = simulation_factory(snap)
     integrator = hpmc.integrate.Sphere(default_d=0.01)
     integrator.shape["A"] = dict(diameter=0.9)
