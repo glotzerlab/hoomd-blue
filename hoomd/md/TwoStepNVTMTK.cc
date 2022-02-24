@@ -120,7 +120,7 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     if (m_aniso)
         {
         // thermostat factor
-        Scalar xi_rot = m_thermostat[2];
+        const Scalar xi_rot = m_thermostat[2];
         Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
 
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -299,7 +299,7 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
 
     if (m_aniso)
         {
-        Scalar xi_rot = m_thermostat[2];
+        const Scalar xi_rot = m_thermostat[2];
         Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
 
         // angular degrees of freedom
@@ -355,75 +355,58 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
 
 void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     {
-    Scalar& xi = m_thermostat[0];
-    Scalar& eta = m_thermostat[1];
-
     // compute the current thermodynamic properties
     m_thermo->compute(timestep + 1);
 
     Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
 
     // update the state variables Xi and eta
-    Scalar xi_prime = xi
+    Scalar xi_prime = m_thermostat[0]
                       + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
                             * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
-    xi = xi_prime
-         + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
-               * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
-    eta += xi_prime * m_deltaT;
+    m_thermostat[0] = xi_prime
+                      + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                            * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
+    m_thermostat[1] += xi_prime * m_deltaT;
 
     // update loop-invariant quantity
-    m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * xi * m_deltaT);
+    m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * m_thermostat[0] * m_deltaT);
+
+    if (m_aniso)
+        {
+        // update thermostat for rotational DOF
+        Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
+        Scalar ndof_rot = m_group->getRotationalDOF();
+
+        Scalar xi_prime_rot
+            = m_thermostat[2]
+              + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                    * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
+        m_thermostat[2]
+            = xi_prime_rot
+              + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                    * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
+
+        m_thermostat[3] += xi_prime_rot * m_deltaT;
+        }
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed() && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(m_thermostat.begin(), 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (m_aniso)
-        {
-        // update thermostat for rotational DOF
-        Scalar& xi_rot = m_thermostat[2];
-        Scalar& eta_rot = m_thermostat[3];
-
-        Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
-        Scalar ndof_rot = m_group->getRotationalDOF();
-
-        Scalar xi_prime_rot
-            = xi_rot
-              + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
-                    * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
-        xi_rot = xi_prime_rot
-                 + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
-                       * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
-
-        eta_rot += xi_prime_rot * m_deltaT;
-
-#ifdef ENABLE_MPI
-        if (m_sysdef->isDomainDecomposed())
-            {
-            // broadcast integrator variables from rank 0 to other processors
-            MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-            MPI_Bcast(&eta_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-            }
-#endif
-        }
     }
 
 void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 
-    Scalar& xi = m_thermostat[0];
-
     Scalar g = m_group->getTranslationalDOF();
     Scalar sigmasq_t = Scalar(1.0) / ((Scalar)g * m_tau * m_tau);
 
-    bool master = m_exec_conf->getRank() == 0;
+    bool root = m_exec_conf->getRank() == 0;
 
     unsigned int instance_id = 0;
     if (m_group->getNumMembersGlobal() > 0)
@@ -433,36 +416,39 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
         hoomd::Seed(hoomd::RNGIdentifier::TwoStepNVTMTK, timestep, m_sysdef->getSeed()),
         hoomd::Counter(instance_id));
 
-    if (master)
+    if (root)
         {
         // draw a random Gaussian thermostat variable on rank 0
-        xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
+        m_thermostat[0] = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
         }
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(m_thermostat.begin(), 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
     if (m_aniso)
         {
         // update thermostat for rotational DOF
-        Scalar& xi_rot = m_thermostat[2];
         Scalar sigmasq_r = Scalar(1.0) / ((Scalar)m_group->getRotationalDOF() * m_tau * m_tau);
 
-        if (master)
+        if (root)
             {
-            xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
+            m_thermostat[2] = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
             }
 
 #ifdef ENABLE_MPI
         if (m_sysdef->isDomainDecomposed())
             {
             // broadcast integrator variables from rank 0 to other processors
-            MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+            MPI_Bcast(m_thermostat.begin() + 2,
+                      1,
+                      MPI_HOOMD_SCALAR,
+                      0,
+                      m_exec_conf->getMPICommunicator());
             }
 #endif
         }
@@ -470,15 +456,7 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
 
 pybind11::tuple TwoStepNVTMTK::getTranslationalThermostatDOF()
     {
-    pybind11::list result;
-
-    Scalar& xi = m_thermostat[0];
-    Scalar& eta = m_thermostat[1];
-
-    result.append(xi);
-    result.append(eta);
-
-    return pybind11::tuple(result);
+    return pybind11::make_tuple(m_thermostat[0], m_thermostat[1]);
     }
 
 void TwoStepNVTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
@@ -487,25 +465,13 @@ void TwoStepNVTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
         {
         throw std::length_error("translational_thermostat_dof must have length 2");
         }
-
-    Scalar& xi = m_thermostat[0];
-    Scalar& eta = m_thermostat[1];
-
-    xi = pybind11::cast<Scalar>(v[0]);
-    eta = pybind11::cast<Scalar>(v[1]);
+    m_thermostat[0] = v[0].cast<Scalar>();
+    m_thermostat[1] = v[1].cast<Scalar>();
     }
 
 pybind11::tuple TwoStepNVTMTK::getRotationalThermostatDOF()
     {
-    pybind11::list result;
-
-    Scalar& xi_rot = m_thermostat[2];
-    Scalar& eta_rot = m_thermostat[3];
-
-    result.append(xi_rot);
-    result.append(eta_rot);
-
-    return pybind11::tuple(result);
+    return pybind11::make_tuple(m_thermostat[2], m_thermostat[3]);
     }
 
 void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
@@ -514,26 +480,22 @@ void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
         {
         throw std::length_error("rotational_thermostat_dof must have length 2");
         }
-
-    Scalar& xi_rot = m_thermostat[2];
-    Scalar& eta_rot = m_thermostat[3];
-
-    xi_rot = pybind11::cast<Scalar>(v[0]);
-    eta_rot = pybind11::cast<Scalar>(v[1]);
+    m_thermostat[2] = v[0].cast<Scalar>();
+    m_thermostat[3] = v[1].cast<Scalar>();
     }
 
 Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
     {
     Scalar translation_dof = m_group->getTranslationalDOF();
-    Scalar& xi = m_thermostat[0];
-    Scalar& eta = m_thermostat[1];
+    const Scalar xi = m_thermostat[0];
+    const Scalar eta = m_thermostat[1];
     Scalar thermostat_energy = static_cast<Scalar>(translation_dof) * (*m_T)(timestep)
                                * ((xi * xi * m_tau * m_tau / Scalar(2.0)) + eta);
 
     if (m_aniso)
         {
-        Scalar& xi_rot = m_thermostat[2];
-        Scalar& eta_rot = m_thermostat[3];
+        const Scalar xi_rot = m_thermostat[2];
+        const Scalar eta_rot = m_thermostat[3];
         thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF()) * (*m_T)(timestep)
                              * (eta_rot + (m_tau * m_tau * xi_rot * xi_rot / Scalar(2.0)));
         }
