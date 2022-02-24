@@ -120,10 +120,6 @@ Install prerequisites
 
 - LLVM >= 10.0, < 13
 
-**To use** `md.pair.aniso.ALJ.get_ordered_vertices`:
-
-- coxeter
-
 **To build the documentation:**
 
 - sphinx
