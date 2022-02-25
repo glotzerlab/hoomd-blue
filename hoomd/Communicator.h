@@ -377,11 +377,10 @@ class PYBIND11_EXPORT Communicator
 
         Derived classes should override this to set the parameters of their autotuners.
     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { };
+    virtual void setAutotunerParams(bool enable, unsigned int period) {};
 
     //! Helper function to initialize adjacency arrays
     void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
-
 
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
