@@ -127,6 +127,7 @@
             "nosignatures",
             "nselect",
             "numpy",
+            "OPLS",
             "OVITO",
             "parameterdicts",
             "pdata",

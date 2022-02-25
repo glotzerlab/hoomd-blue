@@ -30,7 +30,7 @@ in the angle group:
     U_l = \frac{1}{3} \sum_{(i,j,k) \in \mathrm{angles}}
     U_{ijk}(\theta) [l=i \lor l=j \lor l=k]
 
-and similarlyfor virials.
+and similarly for virials.
 """
 
 from hoomd.md import _md
