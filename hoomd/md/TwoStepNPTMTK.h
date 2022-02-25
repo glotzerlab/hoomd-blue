@@ -43,26 +43,6 @@ namespace md
 class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     {
     public:
-    /// Thermostat variables
-    struct Thermostat
-        {
-        Scalar xi = 0;
-        Scalar eta = 0;
-        Scalar xi_rot = 0;
-        Scalar eta_rot = 0;
-        };
-
-    /// Barostat variables
-    struct Barostat
-        {
-        Scalar nu_xx;
-        Scalar nu_xy;
-        Scalar nu_xz;
-        Scalar nu_yy;
-        Scalar nu_yz;
-        Scalar nu_zz;
-        };
-
     //! Specify possible couplings between the diagonal elements of the pressure tensor
     enum couplingMode
         {
@@ -241,6 +221,26 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     Scalar getBarostatEnergy(uint64_t timestep);
 
     protected:
+    /// Thermostat variables
+    struct Thermostat
+        {
+        Scalar xi = 0;
+        Scalar eta = 0;
+        Scalar xi_rot = 0;
+        Scalar eta_rot = 0;
+        };
+
+    /// Barostat variables
+    struct Barostat
+        {
+        Scalar nu_xx;
+        Scalar nu_xy;
+        Scalar nu_xz;
+        Scalar nu_yy;
+        Scalar nu_yz;
+        Scalar nu_zz;
+        };
+
     std::shared_ptr<ComputeThermo>
         m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t+dt/2
     std::shared_ptr<ComputeThermo>

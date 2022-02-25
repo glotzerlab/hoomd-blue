@@ -41,14 +41,6 @@ namespace md
 class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     {
     public:
-    struct Thermostat
-        {
-        Scalar xi = 0;
-        Scalar eta = 0;
-        Scalar xi_rot = 0;
-        Scalar eta_rot = 0;
-        };
-
     //! Constructs the integration method and associates it with the system
     TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
                   std::shared_ptr<ParticleGroup> group,
@@ -126,6 +118,15 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     Scalar getThermostatEnergy(uint64_t timestep);
 
     protected:
+    /// Thermostat degrees of freedom
+    struct Thermostat
+        {
+        Scalar xi = 0;
+        Scalar eta = 0;
+        Scalar xi_rot = 0;
+        Scalar eta_rot = 0;
+        };
+
     std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
 
     Scalar m_tau;                 //!< tau value for Nose-Hoover
