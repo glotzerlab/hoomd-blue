@@ -342,8 +342,9 @@ class ALJ(AnisotropicPair):
           **required**) - The semimajor axes of a rounding ellipsoid. If a
           single value is specified, the rounding ellipsoid is a sphere.
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
-          polyhedron specified as a list of list of integers.  The vertices
-          must be ordered.
+          polyhedron specified as a list of list of integers.  The indices
+          corresponding to the vertices must be ordered counterclockwise with
+          respect to the face normal vector pointing outward from the origin.
 
         Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
 
@@ -387,9 +388,9 @@ class ALJ(AnisotropicPair):
                               faces=cube_faces,
                               rounding_radii=1)
 
-    The following example shows how to easily get the faces for a shape with
-    known vertices by using the `coxeter <https://coxeter.readthedocs.io/>`_
-    package:
+    The following example shows how to easily get the faces, with vertex indices
+    properly ordered, for a shape with known vertices by using the
+    `coxeter <https://coxeter.readthedocs.io/>`_ package:
 
     Example::
 
