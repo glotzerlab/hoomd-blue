@@ -296,7 +296,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
             properties for.
         kT (float): Temperature of the system :math:`[\\mathrm{energy}]`.
         harmonic_pressure (float): Harmonic contribution to the pressure
-            :math:`[\\mathrm{pressure}]`. If ommitted, the HMA pressure can
+            :math:`[\\mathrm{pressure}]`. If omitted, the HMA pressure can
             still be computed, but will be similar in precision to
             the conventional pressure.
 
