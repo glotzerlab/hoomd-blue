@@ -182,11 +182,11 @@ class Integrator(_DynamicIntegrator):
 
     .. math::
 
-        \vec{F}_\mathrm{{net},i} &= \sum_{f \in \mathrm{forces}} \vec{F}_i^f \\
-        \vec{\tau}_\mathrm{{net},i} &=
+        \vec{F}_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} \vec{F}_i^f \\
+        \vec{\tau}_{\mathrm{net},i} &=
         \sum_{f \in \mathrm{forces}} \vec{\tau}_i^f \\
-        U_\mathrm{{net},i} &= \sum_{f \in \mathrm{forces}} U_i^f \\
-        W_\mathrm{{net},i} &= \sum_{f \in \mathrm{forces}} W_i^f \\
+        U_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} U_i^f \\
+        W_{\mathrm{net},i} &= \sum_{f \in \mathrm{forces}} W_i^f \\
 
     `Integrator` also computes the net additional energy and virial
 

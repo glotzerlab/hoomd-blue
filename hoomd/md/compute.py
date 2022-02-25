@@ -1,9 +1,12 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# features
+"""Compute properties of molecular dynamics simulations.
 
-"""Compute system properties."""
+The MD compute classes compute instantaneous properties of the simulation state
+and provide results as loggable quantities for use with `hoomd.logging.Logger`
+or by direct access via the Python API.
+"""
 
 from hoomd.md import _md
 from hoomd.operation import Compute
@@ -12,24 +15,24 @@ from hoomd.logging import log
 import hoomd
 
 
-class _Thermo(Compute):
-
-    def __init__(self, filter):
-        self._filter = filter
-
-
-class ThermodynamicQuantities(_Thermo):
-    """Compute thermodynamic properties of a group of particles.
+class ThermodynamicQuantities(Compute):
+    """Compute thermodynamic properties of a subset of the system.
 
     Args:
-        filter (``hoomd.filter``): Particle filter to compute thermodynamic
+        filter (`hoomd.filter`): Particle filter to compute thermodynamic
             properties for.
 
-    :py:class:`ThermodynamicQuantities` acts on a given group of particles and
-    calculates thermodynamic properties of those particles when requested. All
-    specified :py:class:`ThermodynamicQuantities` objects can be added to a
-    logger for logging during a simulation,
-    see :py:class:`hoomd.logging.Logger` for more details.
+    :py:class:`ThermodynamicQuantities` acts on a subset of particles in the
+    system and calculates thermodynamic properties of those particles. Add a
+    :py:class:`ThermodynamicQuantities` instance to a logger to save these
+    quantities to a file, see :py:class:`hoomd.logging.Logger` for more details.
+
+    Note:
+        For compatibility with `hoomd.md.constrain.Rigid`,
+        `ThermodynamicQuantities` performs all sums
+        :math:`\\sum_{i \\in \\mathrm{filter}}` over free particles and
+        rigid body centers - ignoring constituent particles to avoid double
+        counting.
 
     Examples::
 
@@ -38,7 +41,8 @@ class ThermodynamicQuantities(_Thermo):
     """
 
     def __init__(self, filter):
-        super().__init__(filter)
+        super().__init__()
+        self._filter = filter
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -51,12 +55,10 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(requires_run=True)
     def kinetic_temperature(self):
-        """:math:`kT_k`, instantaneous thermal energy of the group \
+        """Instantaneous thermal energy :math:`kT_k` of the subset \
         :math:`[\\mathrm{energy}]`.
 
-        Calculated as:
-
-          .. math::
+        .. math::
 
             kT_k = 2 \\cdot \\frac{K}{N_{\\mathrm{dof}}}
         """
@@ -65,97 +67,99 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(requires_run=True)
     def pressure(self):
-        """:math:`P`, instantaneous pressure of the group \
+        """Instantaneous pressure :math:`P` of the subset \
         :math:`[\\mathrm{pressure}]`.
 
-        Calculated as:
-
         .. math::
 
-            P = \\frac{ 2 \\cdot K_{\\mathrm{trans}} + W }{D \\cdot V},
+            P = \\frac{ 2 \\cdot K_{\\mathrm{translational}}
+                + W_\\mathrm{isotropic} }{D \\cdot V},
 
         where :math:`D` is the dimensionality of the system, :math:`V` is the
-        total volume of the simulation box (or area in 2D), and :math:`W` is
-        calculated as:
+        volume of the simulation box (or area in 2D), and
+        :math:`W_\\mathrm{isotropic}` is the isotropic virial:
 
         .. math::
 
-            W = \\frac{1}{2} \\sum_{i \\in \\mathrm{filter}} \\sum_{j}
-            \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot
-            \\vec{r_{k}},
+            W_\\mathrm{isotropic} = & \\frac{1}{D} \\left(
+            W_{\\mathrm{net},\\mathrm{additional}}^{xx}
+            + W_{\\mathrm{net},\\mathrm{additional}}^{yy}
+            + W_{\\mathrm{net},\\mathrm{additional}}^{zz} \\right) \\\\
+            + & \\frac{1}{D} \\sum_{i \\in \\mathrm{filter}}
+            \\left( W_\\mathrm{{net},i}^{xx}
+            + W_\\mathrm{{net},i}^{yy}
+            + W_\\mathrm{{net},i}^{zz}
+            \\right)
 
-        where :math:`i` and :math:`j` are particle tags, :math:`\\vec{F}_{ij}`
-        are pairwise forces between particles and :math:`\\vec{F}_k` are forces
-        due to explicit constraints, implicit rigid body constraints, external
-        walls, and fields.
+        where the net virial terms are computed by `hoomd.md.Integrator`
+        over all of the forces in `hoomd.md.Integrator.forces` and
+        :math:`W^{zz}=0` in 2D simulations.
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.pressure
 
     @log(category='sequence', requires_run=True)
     def pressure_tensor(self):
-        """Instantaneous pressure tensor of the group \
+        """Instantaneous pressure tensor of the subset \
         :math:`[\\mathrm{pressure}]`.
 
-        (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`,
-        :math:`P_{yz}`, :math:`P_{zz}`). calculated as:
+        The six components of the pressure tensor are given in the order:
+        (:math:`P^{xx}`, :math:`P^{xy}`, :math:`P^{xz}`, :math:`P^{yy}`,
+        :math:`P^{yz}`, :math:`P^{zz}`):
 
           .. math::
 
-              P_{ij} = \\left[\\sum_{k \\in \\mathrm{filter}} m_k
-              \\vec{v}_{k,i} \\cdot \\vec{v}_{k,j} + \\sum_{k \\in
-              \\mathrm{filter}} \\sum_{l} \\frac{1}{2} \\left(\\vec{r}_{kl,i}
-              \\cdot \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\cdot \\vec{F}_{kl,i}
-              \\right) \\right]/V
+              P^{kl} = \\frac{1}{V} \\left(
+              W_{\\mathrm{net},\\mathrm{additional}}^{kl}
+              + \\sum_{i \\in \\mathrm{filter}} m_i
+              \\cdot v_i^k \\cdot v_i^l +
+              W_{\\mathrm{net},i}^{kl}
+              \\right),
 
-        where :math:`V` is the total simulation box volume (or area in 2D).
+        where the net virial terms are computed by `hoomd.md.Integrator` over
+        all of the forces in `hoomd.md.Integrator.forces`, :math:`v_i^k` is the
+        k-th component of the velocity of particle :math:`i` and :math:`V` is
+        the total simulation box volume (or area in 2D).
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.pressure_tensor
 
     @log(requires_run=True)
     def kinetic_energy(self):
-        """:math:`K`, total kinetic energy of particles in the group \
+        """Total kinetic energy :math:`K` of the subset \
         :math:`[\\mathrm{energy}]`.
 
         .. math::
 
-            K = K_{\\mathrm{rot}} + K_{\\mathrm{trans}}
-
+            K = K_\\mathrm{rotational} + K_\\mathrm{translational}
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.kinetic_energy
 
     @log(requires_run=True)
     def translational_kinetic_energy(self):
-        r""":math:`K_{\mathrm{trans}}`.
-
-        Translational kinetic energy of all particles in the group
-        :math:`[\mathrm{energy}]`.
+        """Translational kinetic energy :math:`K_{\\mathrm{translational}}` \
+        of the subset :math:`[\\mathrm{energy}]`.
 
         .. math::
 
-            K_{\mathrm{trans}} = \frac{1}{2}\sum_{i \in \mathrm{filter}}
-            m_i|\vec{v}_i|^2
-
+            K_\\mathrm{translational} = \\frac{1}{2}
+            \\sum_{i \\in \\mathrm{filter}} m_i v_i^2
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.translational_kinetic_energy
 
     @log(requires_run=True)
     def rotational_kinetic_energy(self):
-        r""":math:`K_{\mathrm{rot}}`.
-
-        Rotational kinetic energy of all particles in the group
-        :math:`[\mathrm{energy}]`.
-
-        Calculated as:
+        """Rotational kinetic energy :math:`K_\\mathrm{rotational}` of  \
+        the subset :math:`[\\mathrm{energy}]`.
 
         .. math::
 
-            K_{\mathrm{rot}} = \frac{1}{2} \sum_{i \in \mathrm{filter}}
-            \frac{L_{x,i}^2}{I_{x,i}} + \frac{L_{y,i}^2}{I_{y,i}} +
-            \frac{L_{z,i}^2}{I_{z,i}},
+            K_\\mathrm{rotational} = \\frac{1}{2}
+            \\sum_{i \\in \\mathrm{filter}}
+            \\frac{L_{x,i}^2}{I_{x,i}} + \\frac{L_{y,i}^2}{I_{y,i}} +
+            \\frac{L_{z,i}^2}{I_{z,i}},
 
         where :math:`I` is the moment of inertia and :math:`L` is the angular
         momentum in the (diagonal) reference frame of the particle.
@@ -165,112 +169,122 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(requires_run=True)
     def potential_energy(self):
-        r""":math:`U`.
-
-        Potential energy that the group contributes to the entire system
-        :math:`[\mathrm{energy}]`.
-
-        The potential energy is calculated as a sum of per-particle energy
-        contributions:
+        """Potential energy :math:`U` that the subset contributes to the \
+        system :math:`[\\mathrm{energy}]`.
 
         .. math::
 
-            U = \sum_{i \in \mathrm{filter}} U_i,
+            U = U_{\\mathrm{net},\\mathrm{additional}}
+                + \\sum_{i \\in \\mathrm{filter}} U_{\\mathrm{net},i},
 
-        where :math:`U_i` is defined as:
-
-        .. math::
-
-            U_i = U_{\mathrm{pair}, i} + U_{\mathrm{bond}, i} +
-            U_{\mathrm{angle}, i} + U_{\mathrm{dihedral}, i} +
-            U_{\mathrm{improper}, i} + U_{\mathrm{external}, i} +
-            U_{\mathrm{other}, i}
-
-        and each term on the RHS is calculated as:
-
-        .. math::
-
-            U_{\mathrm{pair}, i} &= \frac{1}{2} \sum_j V_{\mathrm{pair}, ij}
-
-            U_{\mathrm{bond}, i} &= \frac{1}{2} \sum_{(j, k) \in
-            \mathrm{bonds}} V_{\mathrm{bond}, jk}
-
-            U_{\mathrm{angle}, i} &= \frac{1}{3} \sum_{(j, k, l) \in
-            \mathrm{angles}} V_{\mathrm{angle}, jkl}
-
-            U_{\mathrm{dihedral}, i} &= \frac{1}{4} \sum_{(j, k, l, m) \in
-            \mathrm{dihedrals}} V_{\mathrm{dihedral}, jklm}
-
-            U_{\mathrm{improper}, i} &= \frac{1}{4} \sum_{(j, k, l, m) \in
-            \mathrm{impropers}} V_{\mathrm{improper}, jklm}
-
-        In each summation above, the indices go over all particles and we only
-        use terms where one of the summation indices (:math:`j`, :math:`k`,
-        :math:`l`, or :math:`m`) is equal to :math:`i`. External and other
-        potentials are summed similar to the other terms using per-particle
-        contributions.
+        where the net energy terms are computed by `hoomd.md.Integrator` over
+        all of the forces in `hoomd.md.Integrator.forces`.
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.potential_energy
 
     @log(requires_run=True)
     def degrees_of_freedom(self):
-        r""":math:`N_{\mathrm{dof}}`.
-
-        Number of degrees of freedom given to the group by its integration
-        method.
-
-        Calculated as:
+        r"""Number of degrees of freedom in the subset :math:`N_{\mathrm{dof}}`.
 
         .. math::
 
-            N_{\mathrm{dof}} = N_{\mathrm{dof, trans}}
-                                + N_{\mathrm{dof, rot}}
+            N_\mathrm{dof} = N_\mathrm{dof, translational}
+                             + N_\mathrm{dof, rotational}
+
+        See Also:
+            `hoomd.State.update_group_dof` describes when
+            :math:`N_{\mathrm{dof}}` is updated.
         """
         return self._cpp_obj.degrees_of_freedom
 
     @log(requires_run=True)
     def translational_degrees_of_freedom(self):
-        r""":math:`N_{\mathrm{dof, trans}}`.
+        """Number of translational degrees of freedom in the subset \
+        :math:`N_{\\mathrm{dof, translational}}`.
 
-        Number of translational degrees of freedom given to the group by its
-        integration method.
+        When using a single integration method on all particles that is momentum
+        conserving, the center of mass motion is conserved and the number of
+        translational degrees of freedom is:
 
-        When using a single integration method that is momentum conserving and
-        operates on all particles,
-        :math:`N_{\mathrm{dof, trans}} = DN - D - N_{constraints}`, where
-        :math:`D` is the dimensionality of the system.
+        .. math::
 
-        Note:
-            The removal of :math:`D` degrees of freedom accounts for the fixed
-            center of mass in using periodic boundary conditions. When the
-            *filter* in :py:class:`ThermodynamicQuantities` selects a subset
-            of all particles, the removed degrees of freedom are spread
-            proportionately.
+            N_\\mathrm{dof, translational} = DN
+            - D\\frac{N}{N_\\mathrm{particles}}
+            - N_\\mathrm{constraints}(\\mathrm{filter})
+
+        where :math:`D` is the dimensionality of the system and
+        :math:`N_\\mathrm{constraints}(\\mathrm{filter})` is the number of
+        degrees of freedom removed by constraints (`hoomd.md.constrain`) in the
+        subset. The fraction :math:`\\frac{N}{N_\\mathrm{particles}}`
+        distributes the momentum conservation constraint evenly when
+        `ThermodynamicQuantities` is applied to multiple subsets.
+
+        When using multiple integration methods, a single integration method
+        on fewer than all particles, or a single integration method that is
+        not momentum conserving, `hoomd.md.Integrator` assumes that linear
+        momentum is not conserved and counts the center of mass motion in the
+        degrees of freedom:
+
+        .. math::
+
+            N_{\\mathrm{dof, translational}} = DN
+            - N_\\mathrm{constraints}(\\mathrm{filter})
         """
         return self._cpp_obj.translational_degrees_of_freedom
 
     @log(requires_run=True)
     def rotational_degrees_of_freedom(self):
-        r""":math:`N_{\mathrm{dof, rot}}`.
+        """Number of rotational degrees of freedom in the subset \
+        :math:`N_\\mathrm{dof, rotational}`.
 
-        Number of rotational degrees of freedom given to the group by its
-        integration method.
+        Integration methods (`hoomd.md.methods`) determine the number of degrees
+        of freedom they give to each particle. Each integration method operates
+        on a subset of the system :math:`\\mathrm{filter}_m` that may be
+        distinct from the subset from the subset given to
+        `ThermodynamicQuantities`.
+
+        When `hoomd.md.Integrator.integrate_rotational_dof` is ``False``,
+        :math:`N_\\mathrm{dof, rotational} = 0`. When it is ``True``, the
+        given degrees of freedom depend on the dimensionality of the system.
+
+        In 2D:
+
+        .. math::
+
+            N_\\mathrm{dof, rotational} =
+            \\sum_{m \\in \\mathrm{methods}} \\;
+            \\sum_{i \\in \\mathrm{filter} \\cup \\mathrm{filter}_m}
+            \\left[ I_{z,i} > 0 \\right]
+
+        where :math:`I` is the particles's moment of inertia.
+
+        In 3D:
+
+        .. math::
+
+            N_\\mathrm{dof, rotational} =
+            \\sum_{m \\in \\mathrm{methods}} \\;
+            \\sum_{i \\in \\mathrm{filter} \\cup \\mathrm{filter}_m}
+            \\left[ I_{x,i} > 0 \\right]
+            + \\left[ I_{y,i} > 0 \\right]
+            + \\left[ I_{z,i} > 0 \\right]
+
+        See Also:
+            `hoomd.State.update_group_dof` describes when
+            :math:`N_{\\mathrm{dof, rotational}}` is updated.
         """
         return self._cpp_obj.rotational_degrees_of_freedom
 
     @log(requires_run=True)
     def num_particles(self):
-        """:math:`N`, number of particles in the group."""
+        """Number of particles :math:`N` in the subset."""
         return self._cpp_obj.num_particles
 
     @log(requires_run=True)
     def volume(self):
-        """:math:`V`, volume of the simulation box (area in 2D) \
-        :math:`[\\mathrm{length}^{d}]`.
-
-        Where :math:`d` is the dimensionality of the system.
-        """
+        """Volume :math:`V` of the simulation box (area in 2D) \
+        :math:`[\\mathrm{length}^{D}]`."""
         return self._cpp_obj.volume
 
 
@@ -286,7 +300,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
             still be computed, but will be similar in precision to
             the conventional pressure.
 
-    :py:class:`HarmonicAveragedThermodynamicQuantities` acts on a given group
+    :py:class:`HarmonicAveragedThermodynamicQuantities` acts on a given subset
     of particles and calculates harmonically mapped average (HMA) properties
     of those particles when requested. HMA computes properties more precisely
     (with less variance) for atomic crystals in NVT simulations.  The presence

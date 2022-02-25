@@ -190,10 +190,10 @@ class Table(Bond):
         \\vec{F}(\\vec{r}) =
         \\begin{cases}
         0 & r < r_{\\mathrm{min}} \\\\
-        F_\\mathrm{table}(r)\\hat{r};
+        F_\\mathrm{table}(r)\\hat{r}
         & r_{\\mathrm{min}} \\le r < r_{\\mathrm{max}} \\\\
         0 & r \\ge r_{\\mathrm{max}} \\\\
-        \end{cases}
+        \\end{cases}
 
     and the potential :math:`U(r)` is:
 
