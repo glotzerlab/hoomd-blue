@@ -19,7 +19,6 @@
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"

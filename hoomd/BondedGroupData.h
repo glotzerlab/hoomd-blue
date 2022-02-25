@@ -21,7 +21,6 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
@@ -595,14 +594,6 @@ class BondedGroupData
      */
     void removeBondedGroup(unsigned int group_tag);
 
-    //! Set the profiler
-    /*! \param prof The profiler
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Connects a function to be called every time the global number of bonded groups changes
     Nano::Signal<void()>& getGroupNumChangeSignal()
         {
@@ -677,7 +668,6 @@ class BondedGroupData
     GPUVector<unsigned int>
         m_cached_tag_set;       //!< Cached constant-time lookup table for tags by active index
     bool m_invalid_cached_tags; //!< true if m_cached_tag_set needs to be rebuilt
-    std::shared_ptr<Profiler> m_prof; //!< Profiler
 
     Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
                                                     //!< added or deleted (globally)

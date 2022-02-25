@@ -1,10 +1,34 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""HOOMD-blue python API.
+"""HOOMD-blue python package.
 
-:py:mod:`hoomd` provides a high level user interface for defining and executing
-simulations using HOOMD.
+`hoomd` is the top level HOOMD-blue Python package. It consists of the common
+code shared among all types of HOOMD-blue simulations. The core data structures
+used to construct a simulation include:
+
+* `Simulation`
+
+  * `hoomd.device.Device`
+  * `hoomd.State`
+  * `hoomd.Operations`
+
+    * `hoomd.operation.Integrator`
+    * `hoomd.operation.Compute`
+    * `hoomd.operation.Tuner`
+    * `hoomd.operation.Updater`
+    * `hoomd.operation.Writer`
+
+See the table of contents or the modules section for a full list of classes,
+methods, and variables in the API.
+
+`hoomd` also contains subpackages that implement specific types of simulations:
+
+* `hoomd.hpmc` - Hard particle Monte Carlo.
+* `hoomd.md` - Molecular dynamics.
+
+See Also:
+    Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
 """
 import sys
 import pathlib
@@ -35,7 +59,6 @@ from hoomd import device
 from hoomd import error
 from hoomd import mesh
 from hoomd import update
-from hoomd import integrate
 from hoomd import communicator
 from hoomd import util
 from hoomd import write
@@ -45,8 +68,6 @@ if version.md_built:
     from hoomd import md
 if version.hpmc_built:
     from hoomd import hpmc
-if version.dem_built and version.md_built:
-    from hoomd import dem
 # if version.metal_built:
 #     from hoomd import metal
 # if version.mpcd_built:

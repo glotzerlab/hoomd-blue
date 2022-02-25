@@ -71,12 +71,6 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
     unsigned int group_size = m_group->getNumMembers();
 
-    // profile this step
-    if (m_prof)
-        {
-        m_prof->push("NVT step 1");
-        }
-
         // scope array handles for proper releasing before calling the thermo compute
         {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
@@ -263,10 +257,6 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
     // get temperature and advance thermostat
     advanceThermostat(timestep);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -277,10 +267,6 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVT step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -378,10 +364,6 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)

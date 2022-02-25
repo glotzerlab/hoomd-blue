@@ -63,9 +63,6 @@ MolecularForceCompute::~MolecularForceCompute()
 #ifdef ENABLE_HIP
 void MolecularForceCompute::initMoleculesGPU()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "init molecules");
-
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
 
     unsigned int n_local_molecules = 0;
@@ -251,9 +248,6 @@ void MolecularForceCompute::initMoleculesGPU()
         CHECK_CUDA_ERROR();
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 #endif
 
@@ -274,9 +268,6 @@ void MolecularForceCompute::initMolecules()
         return;
         }
 #endif
-
-    if (m_prof)
-        m_prof->push("init molecules");
 
     // construct local molecule table
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
@@ -431,9 +422,6 @@ void MolecularForceCompute::initMolecules()
             }
         i_mol++;
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

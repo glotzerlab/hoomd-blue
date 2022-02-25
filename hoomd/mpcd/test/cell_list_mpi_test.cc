@@ -35,7 +35,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         return;
 
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(5.0);
+    snap->global_box = std::make_shared<BoxDim>(5.0);
     snap->particle_data.type_mapping.push_back("A");
 
     // configure domain decompsition
@@ -58,7 +58,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         }
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), n_req_ranks);
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), fx, fy, fz));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), fx, fy, fz));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
@@ -228,7 +228,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                             [&] { cl->setGridShift(make_scalar3(0.51, 0.51, 0.51)); });
 
         // check coverage box
-        const BoxDim& coverage = cl->getCoverageBox();
+        const BoxDim coverage = cl->getCoverageBox();
         if (mpi_x)
             {
             if (pos.x)
@@ -447,7 +447,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         UP_ASSERT_EXCEPTION(std::runtime_error,
                             [&] { cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
 
-        const BoxDim& coverage = cl->getCoverageBox();
+        const BoxDim coverage = cl->getCoverageBox();
         if (mpi_x)
             {
             if (pos.x)
@@ -662,7 +662,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         UP_ASSERT_EXCEPTION(std::runtime_error,
                             [&] { cl->setGridShift(make_scalar3(0.3, 0.3, 0.3)); });
 
-        const BoxDim& coverage = cl->getCoverageBox();
+        const BoxDim coverage = cl->getCoverageBox();
         if (mpi_x)
             {
             if (pos.x)
@@ -728,10 +728,10 @@ template<class CL> void celllist_basic_test(std::shared_ptr<ExecutionConfigurati
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(6.0);
+    snap->global_box = std::make_shared<BoxDim>(6.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
@@ -956,13 +956,13 @@ template<class CL> void celllist_edge_test(std::shared_ptr<ExecutionConfiguratio
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(5.0);
+    snap->global_box = std::make_shared<BoxDim>(5.0);
     snap->particle_data.type_mapping.push_back("A");
     std::vector<Scalar> fx {0.5};
     std::vector<Scalar> fy {0.45};
     std::vector<Scalar> fz {0.55};
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), fx, fy, fz));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), fx, fy, fz));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);

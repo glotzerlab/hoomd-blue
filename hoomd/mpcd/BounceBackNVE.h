@@ -114,9 +114,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
 
-    if (m_prof)
-        m_prof->push("Bounce NVE step 1");
-
     if (m_validate_geom)
         validate();
 
@@ -131,7 +128,7 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
                                  access_mode::read);
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
 
     // group members
     const unsigned int group_size = m_group->getNumMembers();
@@ -173,9 +170,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
         h_pos.data[pid] = make_scalar4(pos.x, pos.y, pos.z, type);
         h_vel.data[pid] = make_scalar4(vel.x, vel.y, vel.z, mass);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
@@ -187,9 +181,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
                                   << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
-    if (m_prof)
-        m_prof->push("Bounce NVE step 2");
-
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
@@ -225,15 +216,12 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
         h_vel.data[pid] = vel;
         h_accel.data[pid] = accel;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Geometry> void BounceBackNVE<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     if (!m_geom->validateBox(box, 0.))
         {
         m_exec_conf->msg->error() << "BounceBackNVE: box too small for " << Geometry::getName()

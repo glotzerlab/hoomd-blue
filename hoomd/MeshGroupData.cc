@@ -383,9 +383,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
     else
 #endif
         {
-        if (this->m_prof)
-            this->m_prof->push("update " + std::string(name) + " table");
-
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(),
                                          access_location::host,
                                          access_mode::read);
@@ -488,9 +485,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                     }
                 }
             }
-
-        if (this->m_prof)
-            this->m_prof->pop();
         }
     }
 
@@ -498,9 +492,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
     {
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "update " + std::string(name) + " table");
-
     // resize groups counter
     this->m_gpu_n_groups.resize(this->m_pdata->getN() + this->m_pdata->getNGhosts());
 
@@ -583,9 +574,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
         else
             done = true;
         }
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 #endif
 
@@ -774,7 +762,6 @@ void export_MeshGroupData(pybind11::module& m,
         .def("getNameByType", &T::getNameByType)
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)
-        .def("setProfiler", &T::setProfiler)
         .def("getTypes", &T::getTypesPy);
     }
 

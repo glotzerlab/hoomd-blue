@@ -31,14 +31,14 @@ Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(
     }
 
 template<class group_data, bool inMesh>
-Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(
-    Communicator& comm)
+Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(Communicator& comm)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(NULL)
     {
     }
 
 template<class group_data, bool inMesh>
-void Communicator::GroupCommunicator<group_data, inMesh>::setGroupData(std::shared_ptr<group_data> gdata)
+void Communicator::GroupCommunicator<group_data, inMesh>::setGroupData(
+    std::shared_ptr<group_data> gdata)
     {
     m_gdata = gdata;
 
@@ -56,11 +56,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
         if (inMesh)
             {
             group_size /= 2;
-            }
-
-        if (m_comm.m_prof)
-            {
-            m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
             }
 
             {
@@ -282,8 +277,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
 
             unsigned int send_bytes = 0;
             unsigned int recv_bytes = 0;
-            if (m_comm.m_prof)
-                m_comm.m_prof->push("MPI send/recv");
 
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
@@ -330,9 +323,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
 
                 n_recv_tot += n_recv_groups[ineigh];
                 }
-
-            if (m_comm.m_prof)
-                m_comm.m_prof->pop(0, send_bytes + recv_bytes);
             }
 
         // Resize receive buffer
@@ -346,9 +336,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
             ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-            if (m_comm.m_prof)
-                m_comm.m_prof->push("MPI send/recv");
 
             std::vector<MPI_Request> reqs;
             MPI_Request req;
@@ -392,9 +379,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
 
             std::vector<MPI_Status> stats(reqs.size());
             MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
-
-            if (m_comm.m_prof)
-                m_comm.m_prof->pop(0, send_bytes + recv_bytes);
             }
 
             {
@@ -632,8 +616,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
 
             unsigned int send_bytes = 0;
             unsigned int recv_bytes = 0;
-            if (m_comm.m_prof)
-                m_comm.m_prof->push("MPI send/recv");
 
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
@@ -680,9 +662,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
 
                 n_recv_tot += n_recv_groups[ineigh];
                 }
-
-            if (m_comm.m_prof)
-                m_comm.m_prof->pop(0, send_bytes + recv_bytes);
             }
 
         // Resize receive buffer
@@ -696,9 +675,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
             ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-            if (m_comm.m_prof)
-                m_comm.m_prof->push("MPI send/recv");
 
             std::vector<MPI_Request> reqs;
             MPI_Request req;
@@ -742,9 +718,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
 
             std::vector<MPI_Status> stats(reqs.size());
             MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
-
-            if (m_comm.m_prof)
-                m_comm.m_prof->pop(0, send_bytes + recv_bytes);
             }
 
         // use a std::map, i.e. single-key, to filter out duplicate groups in input buffer
@@ -839,9 +812,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
 
         // resize arrays to final size
         m_gdata->removeGroups(nremove);
-
-        if (m_comm.m_prof)
-            m_comm.m_prof->pop();
         }
     }
 
@@ -977,9 +947,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
     {
     if (m_gdata->getNGlobal())
         {
-        if (m_comm.m_prof)
-            m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
-
         unsigned int group_size = group_data::size;
         if (inMesh)
             {
@@ -1104,9 +1071,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
                     }
                 }
 
-            if (m_comm.m_prof)
-                m_comm.m_prof->push("MPI send/recv");
-
             // communicate size of the message that will contain the particle data
             MPI_Request reqs[4];
             MPI_Status status[4];
@@ -1127,9 +1091,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
                       &reqs[1]);
             MPI_Waitall(2, reqs, status);
 
-            if (m_comm.m_prof)
-                m_comm.m_prof->pop();
-
             // append ghosts at the end of particle data array
             unsigned int start_idx = m_gdata->getN() + m_gdata->getNGhosts();
 
@@ -1139,12 +1100,7 @@ void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
             // resize recv buf
             m_groups_recvbuf.resize(num_recv_ghosts);
 
-            // exchange group data, write directly to the particle data arrays
-            if (m_comm.m_prof)
-                {
-                m_comm.m_prof->push("MPI send/recv");
-                }
-
+                // exchange group data, write directly to the particle data arrays
                 {
                 MPI_Isend(&plan_copybuf.front(),
                           int(num_copy_ghosts * sizeof(unsigned int)),
@@ -1177,9 +1133,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
                           &reqs[3]);
                 MPI_Waitall(4, reqs, status);
                 }
-
-            if (m_comm.m_prof)
-                m_comm.m_prof->pop();
 
             unsigned int old_n_ghost = m_gdata->getNGhosts();
 
@@ -1250,9 +1203,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
             m_gdata->addGhostGroups(old_n_ghost + added_groups);
             } // end loop over direction
 
-        if (m_comm.m_prof)
-            m_comm.m_prof->pop();
-
         // notify subscribers that group order has changed
         m_gdata->notifyGroupReorder();
 
@@ -1279,8 +1229,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
-      m_pair_comm(*this, m_sysdef->getPairData()),
-      m_meshbond_comm(*this),
+      m_pair_comm(*this, m_sysdef->getPairData()), m_meshbond_comm(*this),
       m_meshtriangle_comm(*this)
     {
     // initialize array of neighbor processor ids
@@ -1456,7 +1405,9 @@ Communicator::~Communicator()
 
     if (m_meshdef != NULL)
         {
-        m_meshdef->getMeshBondData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setMeshbondsChanged>(this);
+        m_meshdef->getMeshBondData()
+            ->getGroupNumChangeSignal()
+            .disconnect<Communicator, &Communicator::setMeshbondsChanged>(this);
 
         m_meshdef->getMeshTriangleData()
             ->getGroupNumChangeSignal()
@@ -1660,9 +1611,6 @@ void Communicator::migrateParticles()
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
 
-    if (m_prof)
-        m_prof->push("comm_migrate");
-
     // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
@@ -1764,9 +1712,6 @@ void Communicator::migrateParticles()
         else
             recv_neighbor = m_decomposition->getNeighborRank(dir - 1);
 
-        if (m_prof)
-            m_prof->push("MPI send/recv");
-
         unsigned int n_recv_ptls;
 
         // communicate size of the message that will contain the particle data
@@ -1801,9 +1746,6 @@ void Communicator::migrateParticles()
                   &m_reqs[1]);
         MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
-        if (m_prof)
-            m_prof->pop();
-
         // wrap received particles across a global boundary back into global box
         const BoxDim shifted_box = getShiftedBox();
         for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
@@ -1818,9 +1760,6 @@ void Communicator::migrateParticles()
         // remove particles that were sent and fill particle data with received particles
         m_pdata->addParticles(m_recvbuf);
         } // end dir loop
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void Communicator::updateGhostWidth()
@@ -1893,9 +1832,6 @@ void Communicator::exchangeGhosts()
     {
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
-
-    if (m_prof)
-        m_prof->push("comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "Communicator: exchange ghosts" << std::endl;
 
@@ -2151,9 +2087,6 @@ void Communicator::exchangeGhosts()
         else
             recv_neighbor = m_decomposition->getNeighborRank(dir - 1);
 
-        if (m_prof)
-            m_prof->push("MPI send/recv");
-
         m_reqs.clear();
         m_stats.clear();
         MPI_Request req;
@@ -2178,9 +2111,6 @@ void Communicator::exchangeGhosts()
         m_stats.resize(2);
         MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
 
-        if (m_prof)
-            m_prof->pop();
-
         // append ghosts at the end of particle data array
         unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
 
@@ -2190,12 +2120,7 @@ void Communicator::exchangeGhosts()
         // resize plan array
         m_plan.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
-        // exchange particle data, write directly to the particle data arrays
-        if (m_prof)
-            {
-            m_prof->push("MPI send/recv");
-            }
-
+            // exchange particle data, write directly to the particle data arrays
             {
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir],
                                                     access_location::host,
@@ -2433,9 +2358,6 @@ void Communicator::exchangeGhosts()
             MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
             }
 
-        if (m_prof)
-            m_prof->pop();
-
         // wrap particle positions
         if (flags[comm_flag::position])
             {
@@ -2626,9 +2548,6 @@ void Communicator::exchangeGhosts()
             else
                 recv_neighbor = m_decomposition->getNeighborRank(dir - 1);
 
-            if (m_prof)
-                m_prof->push("MPI send/recv");
-
             // communicate size of the message that will contain the particle data
             m_reqs.clear();
             m_stats.clear();
@@ -2673,9 +2592,6 @@ void Communicator::exchangeGhosts()
             m_stats.resize(m_reqs.size());
             MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
 
-            if (m_prof)
-                m_prof->pop();
-
             // append ghosts at the end of particle data array
             unsigned int start_idx_plan = n_ghosts_init + n_reverse_ghosts_recv;
             unsigned int start_idx_tag = n_reverse_ghosts_recv;
@@ -2689,12 +2605,7 @@ void Communicator::exchangeGhosts()
             m_plan_reverse.resize(n_ghosts_init + n_reverse_ghosts_recv);
             m_tag_reverse.resize(n_reverse_ghosts_recv);
 
-            // exchange particle data, write directly to the particle data arrays
-            if (m_prof)
-                {
-                m_prof->push("MPI send/recv");
-                }
-
+                // exchange particle data, write directly to the particle data arrays
                 // Now forward the ghosts
                 {
                 ArrayHandle<unsigned int> h_plan_reverse_copybuf(m_plan_reverse_copybuf[dir],
@@ -2753,14 +2664,8 @@ void Communicator::exchangeGhosts()
                 MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
                 }
 
-            if (m_prof)
-                m_prof->pop();
-
             } // end dir loop
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 //! update positions of ghost particles
@@ -2768,9 +2673,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
     {
     // we have a current m_copy_ghosts liss which contain the indices of particles
     // to send to neighboring processors
-    if (m_prof)
-        m_prof->push("comm_ghost_update");
-
     m_exec_conf->msg->notice(7) << "Communicator: update ghosts" << std::endl;
 
     // update data in these arrays
@@ -2876,9 +2778,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
 
         unsigned int start_idx;
 
-        if (m_prof)
-            m_prof->push("MPI send/recv");
-
         start_idx = m_pdata->getN() + num_tot_recv_ghosts;
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
@@ -2982,9 +2881,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
             sz += sizeof(Scalar4);
             }
 
-        if (m_prof)
-            m_prof->pop(0, (m_num_recv_ghosts[dir] + m_num_copy_ghosts[dir]) * sz);
-
         // wrap particle positions (only if copying positions)
         if (flags[comm_flag::position])
             {
@@ -3004,9 +2900,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
             }
 
         } // end dir loop
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void Communicator::updateNetForce(uint64_t timestep)
@@ -3018,9 +2911,6 @@ void Communicator::updateNetForce(uint64_t timestep)
 
     // we have a current m_copy_ghosts list which contain the indices of particles
     // to send to neighboring processors
-    if (m_prof)
-        m_prof->push("comm_ghost_net_force");
-
     std::ostringstream oss;
     oss << "Communicator: update net ";
     if (flags[comm_flag::net_force])
@@ -3242,9 +3132,6 @@ void Communicator::updateNetForce(uint64_t timestep)
 
         unsigned int start_idx;
 
-        if (m_prof)
-            m_prof->push("MPI send/recv");
-
         start_idx = m_pdata->getN() + num_tot_recv_ghosts;
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
@@ -3426,9 +3313,6 @@ void Communicator::updateNetForce(uint64_t timestep)
             sz += 6 * sizeof(Scalar);
             }
 
-        if (m_prof)
-            m_prof->pop(0, (m_num_recv_ghosts[dir] + m_num_copy_ghosts[dir]) * sz);
-
         if (flags[comm_flag::net_virial])
             {
             unsigned int pitch = (unsigned int)(m_pdata->getNetVirial().getPitch());
@@ -3452,9 +3336,6 @@ void Communicator::updateNetForce(uint64_t timestep)
                 }
             }
         } // end dir loop
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void Communicator::removeGhostParticleTags()

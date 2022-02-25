@@ -129,6 +129,8 @@ def test_run_minimization(lattice_snapshot_factory, simulation_factory):
                             min_steps_conv=3)
 
     sim.operations.integrator = fire
+    assert not fire.converged
+
     sim.run(0)
 
     initial_energy = fire.energy

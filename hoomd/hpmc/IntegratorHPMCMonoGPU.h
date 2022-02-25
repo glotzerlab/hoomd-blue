@@ -890,10 +890,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
         // update the cell list
         this->m_cl->compute(timestep);
 
-        // start the profile
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "HPMC");
-
         // if the cell list is a different size than last time, reinitialize the expanded cell list
         uint3 cur_dim = this->m_cl->getDim();
         if (m_last_dim.x != cur_dim.x || m_last_dim.y != cur_dim.y || m_last_dim.z != cur_dim.z
@@ -2105,9 +2101,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 
     // update the particle data origin
     this->m_pdata->translateOrigin(shift);
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
 
     this->communicate(true);
 

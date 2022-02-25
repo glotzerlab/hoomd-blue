@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -44,7 +43,6 @@ void export_sphere(pybind11::module& m)
     export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
-    export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
 
 #ifdef ENABLE_HIP

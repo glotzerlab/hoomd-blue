@@ -158,7 +158,7 @@ class Rigid(Constraint):
 
     .. rubric:: Integrating bodies
 
-    Most integrators in HOOMD support the integration of rotational degrees of
+    Most integration methods support the integration of rotational degrees of
     freedom. When there are rigid bodies present in the system, do not apply
     integrators to the constituent particles, only the central and non-rigid
     particles.

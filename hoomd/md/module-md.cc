@@ -47,7 +47,6 @@
 #include "PotentialPair.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialTersoff.h"
-#include "QuaternionMath.h"
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "TwoStepBD.h"
@@ -196,7 +195,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairLJ1208>(m, "PotentialPairLJ1208");
     export_PotentialPair<PotentialPairLJ0804>(m, "PotentialPairLJ0804");
     export_PotentialPair<PotentialPairGauss>(m, "PotentialPairGauss");
-    export_PotentialPair<PotentialPairSLJ>(m, "PotentialPairSLJ");
     export_PotentialPair<PotentialPairExpandedLJ>(m, "PotentialPairExpandedLJ");
     export_PotentialPair<PotentialPairExpandedMie>(m, "PotentialPairExpandedMie");
     export_PotentialPair<PotentialPairYukawa>(m, "PotentialPairYukawa");
@@ -214,6 +212,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
+    export_AnisoPotentialPair<AnisoPotentialPairALJ2D>(m, "AnisoPotentialPairALJ2D");
+    export_AnisoPotentialPair<AnisoPotentialPairALJ3D>(m, "AnisoPotentialPairALJ3D");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
@@ -248,7 +248,6 @@ PYBIND11_MODULE(_md, m)
     export_wall_field(m);
     export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
     export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_WallPotential<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
     export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
     export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
     export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
@@ -269,7 +268,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairLJ0804GPU, PotentialPairLJ0804>(m,
                                                                          "PotentialPairLJ0804GPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
-    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairExpandedLJGPU, PotentialPairExpandedLJ>(
         m,
         "PotentialPairExpandedLJGPU");
@@ -315,6 +313,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
         "PotentialPairDPDLJThermoDPDGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ2DGPU, AnisoPotentialPairALJ2D>(
+        m,
+        "AnisoPotentialPairALJ2DGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ3DGPU, AnisoPotentialPairALJ3D>(
+        m,
+        "AnisoPotentialPairALJ3DGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(
         m,
         "AnisoPotentialPairGBGPU");
@@ -384,7 +388,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
         "WallsPotentialYukawaGPU");
-    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>(m, "WallsPotentialSLJGPU");
     export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
         m,
         "WallsPotentialForceShiftedLJGPU");

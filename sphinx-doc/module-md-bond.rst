@@ -14,6 +14,7 @@ md.bond
     Bond
     FENEWCA
     Harmonic
+    Table
     Tether
 
 .. rubric:: Details
@@ -23,6 +24,7 @@ md.bond
     :members: Bond,
               FENEWCA,
               Harmonic,
+              Table,
               Tether
     :no-inherited-members:
     :show-inheritance:

@@ -580,7 +580,7 @@ class PYBIND11_EXPORT VariantPower : public Variant
     /// starting timestep
     uint64_t m_t_start;
 
-    /// length of apporach to m_B
+    /// length of approach to m_B
     uint64_t m_t_ramp;
 
     /// offset from given positions allows for negative values

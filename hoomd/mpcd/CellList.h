@@ -137,7 +137,7 @@ class PYBIND11_EXPORT CellList : public Compute
      * In MPI simulations, this results in a calculation of the cell list
      * dimension. In non-MPI simulations, the box is returned.
      */
-    const BoxDim& getCoverageBox()
+    const BoxDim getCoverageBox()
         {
 #ifdef ENABLE_MPI
         computeDimensions();

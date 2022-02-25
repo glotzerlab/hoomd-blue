@@ -68,8 +68,6 @@ mpcd::CellList::~CellList()
 void mpcd::CellList::compute(uint64_t timestep)
     {
     Compute::compute(timestep);
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD cell list");
 
     if (m_virtual_change)
         {
@@ -92,17 +90,12 @@ void mpcd::CellList::compute(uint64_t timestep)
     if (peekCompute(timestep))
         {
 #ifdef ENABLE_MPI
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
-
         // exchange embedded particles if necessary
         if (m_sysdef->isDomainDecomposed() && needsEmbedMigrate(timestep))
             {
             m_comm->forceMigrate();
             m_comm->communicate(timestep);
             }
-        if (m_prof)
-            m_prof->push(m_exec_conf, "MPCD cell list");
 #endif // ENABLE_MPI
 
         // resize to be able to hold the number of embedded particles
@@ -133,9 +126,6 @@ void mpcd::CellList::compute(uint64_t timestep)
         // signal to the ParticleData that the cell list cache is now valid
         m_mpcd_pdata->validateCellCache();
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::CellList::reallocate()
@@ -846,7 +836,7 @@ bool mpcd::CellList::checkConditions()
             << "x: " << m_grid_shift.x << " y: " << m_grid_shift.y << " z: " << m_grid_shift.z
             << std::endl;
 
-        const BoxDim& cover_box = getCoverageBox();
+        const BoxDim cover_box = getCoverageBox();
         Scalar3 lo = cover_box.getLo();
         Scalar3 hi = cover_box.getHi();
         uchar3 periodic = cover_box.getPeriodic();
