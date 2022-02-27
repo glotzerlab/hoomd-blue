@@ -36,6 +36,7 @@ namespace kernel
     \param alist Angle data to use in calculating the forces
     \param pitch Pitch of 2D angles list
     \param n_angles_list List of numbers of angles stored on the GPU
+    \param d_params Parameters for the PCND force
     \param seed User chosen random number seed
 */
 __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
@@ -63,6 +64,11 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_angles = n_angles_list[idx];
 
+    // read in the position of our b-particle from the a-b-c-triplet. (MEM TRANSFER: 16 bytes)
+    Scalar4 idx_postype = d_pos[idx]; // we can be either a, b, or c in the a-b-c triplet
+    Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
+    Scalar3 a_pos, b_pos, c_pos; // allocate space for the a, b, and c atom in the a-b-c triplet
+
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
      
@@ -70,14 +76,71 @@ __global__ void gpu_compute_PCND_angle_forces_kernel(Scalar4* d_force,
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
         {		
         group_storage<3> cur_angle = alist[pitch * angle_idx + idx];
-        
+        int cur_angle_x_idx = cur_angle.idx[0];
+	int cur_angle_y_idx = cur_angle.idx[1];
 	int cur_angle_type = cur_angle.idx[2];
+
 	int cur_angle_abc = apos_list[pitch * angle_idx + idx];
+
+	// get the a-particle's position (MEM TRANSFER: 16 bytes)
+	Scalar4 x_postype = d_pos[cur_angle_x_idx];
+	Scalar3 x_pos = make_scalar3(x_postype.x, x_postype.y, x_postype.z);
+	// get the c-particle's position (MEM TRANSFER:16 bytes)
+	Scalar4 y_postype = d_pos[cur_angle_y_idx];
+	Scalar3 y_pos = make_scalar3(y_postype.x, y_postype.y, y_postype.z);
+
+	if (cur_angle_abc == 0)
+	    {
+	    a_pos = idx_pos;
+	    b_pos = x_pos;
+	    c_pos = y_pos;
+	    }
+	if (cur_angle_abc == 1)
+	    {
+	    b_pos = idx_pos;
+	    a_pos = x_pos;
+	    c_pos = y_pos;
+	    }
+	if (cur_angle_abc == 2)
+            {
+	    c_pos = idx_pos;
+	    a_pos = x_pos;
+	    b_pos = y_pos;
+	    }
+
+	// calculate dr for a-b, c-b, and a-c
+	Scalar3 dab = a_pos - b_pos;
+	Scalar3 dcb = c_pos - b_pos;
+	Scalar3 dac = a_pos - c_pos;
+
+	// apply periodic boundary conditions
+	dab = box.minImage(dab);
+	dcb = box.minImage(dcb);
+	dac = box.minImage(dac);
+
         // get the angle parameters (MEM TRANSFER: 8 bytes)
 	Scalar2 params = __ldg(d_params + cur_angle_type);
 	Scalar Xi = params.x;
 	Scalar Tau = params.y;
 	
+	Scalar rsqab = dot(dab, dab);
+	Scalar rab = sqrtf(rsqab);
+	Scalar rsqcb = dot(dcb, dcb);
+	Scalar rcb = sqrtf(rsqcb);
+
+	Scalar c_abbc = dot(dab, dcb);
+	c_abbc /= rab * rcb;
+
+	if (c_abbc > Scalar(1.0))
+	    c_abbc = Scalar(1.0);
+	if (c_abbc < -Scalar(1.0));
+	    c_abbc = - Scalar(1.0);
+
+	Scalar s_abbc = sqrtf(Scalar(1.0) - c_abbc * c_abbc);
+	if (s_abbc < SMALL)
+	    s_abbc = SMALL;
+	s_abbc = Scalar(1.0) / s_abbc;
+
 	// read in the tag of our particle.
 	unsigned int ptag = d_tag[idx];
 
@@ -189,8 +252,6 @@ hipError_t gpu_compute_PCND_angle_forces(Scalar4* d_force,
 					 //uint16_t seed)
     {
     assert(d_params);
-    assert(d_PCNDsr);
-    assert(d_PCNDepow);
     
     static unsigned int max_block_size;
     hipFuncAttributes attr;

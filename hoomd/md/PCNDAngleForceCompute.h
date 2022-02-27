@@ -96,7 +96,7 @@ class PYBIND11_EXPORT PCNDAngleForceCompute : public ForceCompute
     std::shared_ptr<AngleData> m_pcnd_angle_data; //!< Angle data to use in computing angles
 
     //! Actually compute the forces
-    virtual void computeForces(uint64_t timestep);
+    virtual void computeForces(uint64_t timestep, uint64_t PCNDtimestep);
     };
 
 namespace detail
