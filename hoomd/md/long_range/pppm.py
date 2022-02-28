@@ -84,9 +84,9 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
         Add both of these forces to the integrator.
 
     Warning:
-        `make_pppm_coulomb_forces` sets all parameters for the returned
-        `Force` objects appropriately. Do not change the parameters of
-        ``real_space_force`` directly.
+        `make_pppm_coulomb_forces` sets all parameters for the returned `Force`
+        objects given the input resolution and order. Do not change the
+        parameters of the returned objects directly.
 
     .. _J. W. Eastwood, R. W. Hockney, and D. N. Lawrence 1980:
       https://doi.org/10.1063/1.464397
