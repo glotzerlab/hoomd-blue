@@ -161,7 +161,7 @@ def boxmc_tuner_method_and_kwargs(request, rng):
         "trigger": 100,
         "moves": [request.param],
         "tol": 0.05,
-        "target": rng.uniform(0.2, 0.4)
+        "target": 0.2
     }
 
 
@@ -171,12 +171,12 @@ def boxmc_with_tuner(rng, boxmc_tuner_method_and_kwargs):
     move = move_size_kwargs["moves"][0]
     boxmc = hpmc.update.BoxMC(1, betaP=1.0)
     if move == "aspect":
-        boxmc.aspect = {"weight": 1.0, "delta": 0.01}
+        boxmc.aspect = {"weight": 1.0, "delta": 0.4}
     elif move == "volume":
-        boxmc.volume = {"weight": 1.0, "delta": 5.0, "mode": "standard"}
+        boxmc.volume = {"weight": 1.0, "delta": 6.5, "mode": "standard"}
     elif move.startswith("l"):
         delta = [0.0, 0.0, 0.0]
-        delta[["x", "y", "z"].index(move[-1])] = 0.4
+        delta[["x", "y", "z"].index(move[-1])] = 0.05
         setattr(boxmc,
                 move.split("_")[0], {
                     "weight": 1.0,
@@ -254,12 +254,12 @@ class TestMoveSize:
         boxmc, move_size_tuner = boxmc_with_tuner
         if move_size_tuner.moves[0].startswith("sh"):
             pytest.skip("Do not test shear with validation.")
-        simulation.run(1500)
+        simulation.run(1_000)
         simulation.operations.tuners.append(move_size_tuner)
         simulation.operations += boxmc
         cnt = 0
-        max_count = 10 if move_size_tuner.moves[0].startswith("l") else 3
-        steps = 1001
+        max_count = 10
+        steps = 1501
         while not move_size_tuner.tuned and cnt < max_count:
             simulation.run(steps)
             cnt += 1
