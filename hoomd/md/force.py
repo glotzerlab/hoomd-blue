@@ -300,14 +300,18 @@ class Active(Force):
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
 
-    :py:class:`Active` specifies that an active force should be added to
-    particles selected by the filter.  particles.  Obeys :math:`\delta {\bf r}_i
-    = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
-    :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force
-    vector for particle :math:`i`.  The active force and the active torque
-    vectors in the particle frame stay constant during the simulation. Hence,
-    the active forces in the system frame are composed of the forces in particle
-    frame and the current orientation of the particle.
+    :py:class:`Active` computes an active force and torque on all
+    particles selected by the filter:
+
+    .. math::
+
+        \vec{F}_i = \mathbf{q}_i \vec{f}_i \mathbf{q}_i^* \\
+        \vec{\tau}_i = \mathbf{q}_i \vec{u}_i \mathbf{q}_i^*,
+
+    where :math:`\vec{f}_i` is the active force in the local particle
+    coordinate system (set by type `active_force`) and :math:`\vec{u}_i`
+    is the active torque in the local particle coordinate system (set by type
+    in `active_torque`.
 
     Note:
         To introduce rotational diffusion to the particle orientations, use
@@ -328,6 +332,10 @@ class Active(Force):
         rotational_diffusion_updater = active.create_diffusion_updater(
             trigger=10)
         sim.operations += rotational_diffusion_updater
+
+    Note:
+
+        The energy and virial associated with the active force are 0.
 
     Attributes:
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
@@ -424,15 +432,23 @@ class ActiveOnManifold(Active):
             apply active forces.
         manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
 
-    :py:class:`ActiveOnManifold` specifies that a constrained active force
-    should be added to particles selected by the filter similar to
-    :py:class:`Active`. The active force vector :math:`\hat{p}_i` is restricted
-    to the local tangent plane of the manifold constraint at point :math:`{\bf
-    r}_i`. For more information see :py:class:`Active`.
+    :py:class:`ActiveOnManifold` computes a constrained active force and torque
+    on all particles selected by the filter similar to :py:class:`Active`.
+    `ActiveOnManifold` restricts the forces to the local tangent plane of the
+    manifold constraint. For more information see :py:class:`Active`.
 
     Hint:
         Use `ActiveOnManifold` with a `md.methods.rattle` integration method
         with the same manifold constraint.
+
+    Note:
+        To introduce rotational diffusion to the particle orientations, use
+        `create_diffusion_updater`. The rotational diffusion occurs in the local
+        tangent plane of the manifold.
+
+        .. seealso::
+
+            `hoomd.md.update.ActiveRotationalDiffusion`
 
     Examples::
 
