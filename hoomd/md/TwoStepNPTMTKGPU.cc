@@ -217,8 +217,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = m_thermostat.eta;
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform the particle update on the GPU
         m_exec_conf->beginMultiGPU();
@@ -289,8 +288,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_rot = m_thermostat.eta_rot;
-        Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
+        Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
@@ -351,8 +349,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = m_thermostat.eta;
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform second half step of NPT integration (update velocities and accelerations)
         m_exec_conf->beginMultiGPU();
@@ -395,8 +392,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_rot = m_thermostat.eta_rot;
-        Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
+        Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
