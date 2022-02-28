@@ -143,7 +143,7 @@ class NVE(MethodRATTLE):
 
         self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),
-                                 self.manifold_constraint._cpp_obj, False,
+                                 self.manifold_constraint._cpp_obj,
                                  self.tolerance)
 
         # Attach param_dict and typeparam_dict

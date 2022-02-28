@@ -67,9 +67,6 @@
 
 namespace hoomd
     {
-// Forward declaration of IntegratorData
-class IntegratorData;
-
 //! List of optional fields that can be enabled in ParticleData
 struct pdata_flag
     {
