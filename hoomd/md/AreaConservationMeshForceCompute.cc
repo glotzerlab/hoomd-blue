@@ -133,7 +133,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
     Scalar energy = m_K[0] * AreaDiff * AreaDiff / (2 * m_Amesh[0] * m_pdata->getN());
 
-    AreaDiff = -m_K[0] / m_Amesh[0] * AreaDiff / 2.0;
+    AreaDiff = -m_K[0] / (2 * m_Amesh[0]) * AreaDiff;
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
@@ -178,37 +178,15 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        Scalar rac = sqrt(rsqac);
 
-        Scalar3 nab, nac;
-        nab = dab / rab;
-        nac = dac / rac;
+        Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
 
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-
-        if (c_baac > 1.0)
-            c_baac = 1.0;
-        if (c_baac < -1.0)
-            c_baac = -1.0;
-
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        Scalar inv_s_baac = 1.0 / s_baac;
-
-        Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a
-        dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
-        dc_drb = nac / rab - c_baac / rab * nab;
-        dc_drc = nab / rac - c_baac / rac * nac;
-
-        Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a
-        ds_dra = -c_baac * inv_s_baac * dc_dra;
-        ds_drb = -c_baac * inv_s_baac * dc_drb;
-        ds_drc = -c_baac * inv_s_baac * dc_drc;
+        Scalar area2 = sqrt(rsqab * rsqac - rabrac * rabrac);
 
         Scalar3 Fa, Fb, Fc;
 
-        Fa = AreaDiff * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
+        Fa = AreaDiff / area2 * ((rabrac - rsqac) * dab + (rabrac - rsqab) * dac);
 
         if (compute_virial)
             {
@@ -232,7 +210,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_a] += area_virial[j];
             }
 
-        Fb = AreaDiff * (nab * rac * s_baac + ds_drb * rab * rac);
+        Fb = AreaDiff / area2 * (rsqac * dab - rabrac * dac);
 
         if (compute_virial)
             {
@@ -254,7 +232,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_b] += area_virial[j];
             }
 
-        Fc = AreaDiff * (nac * rab * s_baac + ds_drc * rab * rac);
+        Fc = AreaDiff / area2 * (rsqab * dac - rabrac * dab);
 
         if (compute_virial)
             {
@@ -334,23 +312,11 @@ void AreaConservationMeshForceCompute::precomputeParameter()
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        Scalar rac = sqrt(rsqac);
 
-        Scalar3 nab, nac;
-        nab = dab / rab;
-        nac = dac / rac;
+        Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
 
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-
-        if (c_baac > 1.0)
-            c_baac = 1.0;
-        if (c_baac < -1.0)
-            c_baac = -1.0;
-
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        Scalar area_tri = rab * rac * s_baac / 2.0;
+        Scalar area_tri = sqrt(rsqab * rsqac - rabrac * rabrac) / 2.0;
 
         m_area += area_tri;
         }

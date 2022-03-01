@@ -91,26 +91,14 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             dab = box.minImage(dab);
             dac = box.minImage(dac);
 
-            Scalar rab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-            rab = sqrt(rab);
-            Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-            rac = sqrt(rac);
+            Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+            Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
 
-            Scalar3 nab, nac;
-            nab = dab / rab;
-            nac = dac / rac;
+            Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
 
-            Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+            Scalar Area_3 = sqrt(rsqab * rsqac - rabrac * rabrac) / 6.0;
 
-            if (c_baac > 1.0)
-                c_baac = 1.0;
-            if (c_baac < -1.0)
-                c_baac = -1.0;
-
-            Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-
-            Scalar Area = rab * rac * s_baac / 6.0;
-            area_transfer += Area;
+            area_transfer += Area_3;
             }
         }
 
@@ -302,7 +290,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * N);
 
-        AreaDiff = -K / A_mesh * AreaDiff / 2.0;
+        AreaDiff = -K / (2 * A_mesh) * AreaDiff;
 
         int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
 
@@ -337,65 +325,34 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
-        Scalar rab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        rab = sqrt(rab);
-        Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        rac = sqrt(rac);
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
 
-        Scalar3 nab, nac;
-        nab = dab / rab;
-        nac = dac / rac;
+        Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
 
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-
-        if (c_baac > 1.0)
-            c_baac = 1.0;
-        if (c_baac < -1.0)
-            c_baac = -1.0;
-
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        Scalar inv_s_baac = 1.0 / s_baac;
-
-        Scalar3 dc_dra;
-        if (cur_triangle_abc == 0)
-            {
-            dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
-            }
-        else
-            {
-            if (cur_triangle_abc == 1)
-                {
-                dc_dra = nac / rab - c_baac / rab * nab;
-                }
-            else
-                {
-                dc_dra = nab / rac - c_baac / rac * nac;
-                }
-            }
-
-        Scalar3 ds_dra = -c_baac * inv_s_baac * dc_dra;
+        Scalar area2 = sqrt(rsqab * rsqac - rabrac * rabrac);
 
         Scalar3 Fa;
 
         if (cur_triangle_abc == 0)
             {
-            Fa = -nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac;
+            Fa = (rabrac - rsqac) * dab + (rabrac - rsqab) * dac;
             }
         else
             {
             if (cur_triangle_abc == 1)
                 {
-                Fa = nab * rac * s_baac + ds_dra * rab * rac;
+                Fa = rsqac * dab - rabrac * dac;
                 }
             else
                 {
-                Fa = nac * rab * s_baac + ds_dra * rab * rac;
+                Fa = rsqab * dac - rabrac * dab;
                 }
             }
 
-        Fa.x = AreaDiff * Fa.x;
-        Fa.y = AreaDiff * Fa.y;
-        Fa.z = AreaDiff * Fa.z;
+        Fa.x = AreaDiff / area2 * Fa.x;
+        Fa.y = AreaDiff / area2 * Fa.y;
+        Fa.z = AreaDiff / area2 * Fa.z;
 
         force.x += Fa.x;
         force.y += Fa.y;

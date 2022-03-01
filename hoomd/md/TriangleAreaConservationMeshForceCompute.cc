@@ -187,43 +187,22 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        Scalar rac = sqrt(rsqac);
 
-        Scalar3 nab, nac;
-        nab = dab / rab;
-        nac = dac / rac;
+        Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
 
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+        Scalar area2 = sqrt(rsqab * rsqac - rabrac * rabrac);
 
-        if (c_baac > 1.0)
-            c_baac = 1.0;
-        if (c_baac < -1.0)
-            c_baac = -1.0;
+        Scalar prefactor = -m_K[0] / (2 * At * area2) * (area2 / 2 - At);
 
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        Scalar inv_s_baac = 1.0 / s_baac;
+        Scalar energy_pp = m_K[0] / (6.0 * At) * (area2 / 2 - At) * (area2 / 2 - At);
 
-        Scalar3 dc_dra, dc_drb, dc_drc; // dcos_baac / dr_a
-        dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
-        dc_drb = nac / rab - c_baac / rab * nab;
-        dc_drc = nab / rac - c_baac / rac * nac;
-
-        Scalar3 ds_dra, ds_drb, ds_drc; // dsin_baac / dr_a
-        ds_dra = -c_baac * inv_s_baac * dc_dra;
-        ds_drb = -c_baac * inv_s_baac * dc_drb;
-        ds_drc = -c_baac * inv_s_baac * dc_drc;
-
-        Scalar Ut;
-        m_area += rab * rac * s_baac / 2;
-        Ut = rab * rac * s_baac / 2 - At;
+        m_area += area2 / 2;
 
         Scalar3 Fa, Fb, Fc;
-        Fa = -m_K[0] / (2 * At) * Ut
-             * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
-        Fb = -m_K[0] / (2 * At) * Ut * (nab * rac * s_baac + ds_drb * rab * rac);
-        Fc = -m_K[0] / (2 * At) * Ut * (nac * rab * s_baac + ds_drc * rab * rac);
+        Fa = prefactor * ((rabrac - rsqac) * dab + (rabrac - rsqab) * dac);
+        Fb = prefactor * (rsqac * dab - rabrac * dac);
+        Fc = prefactor * (rsqab * dac - rabrac * dab);
 
         if (compute_virial)
             {
@@ -242,7 +221,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w += m_K[0] / (6.0 * At) * Ut * Ut; // divided by 3 because of three
+            h_force.data[idx_a].w += energy_pp; // divided by 3 because of three
                                                                     // particles sharing the energy
 
             for (int j = 0; j < 6; j++)
@@ -264,7 +243,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x += Fb.x;
             h_force.data[idx_b].y += Fb.y;
             h_force.data[idx_b].z += Fb.z;
-            h_force.data[idx_b].w += m_K[0] / (6.0 * At) * Ut * Ut;
+            h_force.data[idx_b].w += energy_pp;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += triangle_area_conservation_virial[j];
             }
@@ -284,7 +263,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x += Fc.x;
             h_force.data[idx_c].y += Fc.y;
             h_force.data[idx_c].z += Fc.z;
-            h_force.data[idx_c].w += m_K[0] / (6.0 * At) * Ut * Ut;
+            h_force.data[idx_c].w += energy_pp;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += triangle_area_conservation_virial[j];
             }
