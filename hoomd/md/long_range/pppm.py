@@ -56,7 +56,7 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
         U_\\mathrm{coulomb} = U_\\mathrm{real\\ space}
           + U_\\mathrm{reciprocal\\ space}
 
-    `md.pair.Ewald` to computes the real space term directly.
+    `md.pair.Ewald` to computes the real space term directly and
     `md.long_range.pppm.Coulomb` computes  the reciprocal space term using fast
     Fourier transforms performed on a charge density grid. The accuracy of the
     method is sensitive to the cutoff for the real space part, the order of
@@ -67,6 +67,32 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     * `D. LeBard et. al. 2012`_ describes the implementation in
       HOOMD-blue. Please cite it if you utilize this functionality in your work.
 
+    .. rubric:: Exclusions
+
+    When ``nlist`` contains exclusions, `md.pair.Ewald` skips the computation of
+    the excluded real space particle-particle interactions.
+    `md.long_range.pppm.Coulomb` must correct the reciprocal space computation
+    for this. The full energy (``Coulomb.energy + Ewald.energy``) is the sum of
+    the following terms:
+
+    * :math:`U_\\mathrm{coulomb,additional}` (``Coulomb.additional_energy``):
+      Energy from the reciprocal space calculation plus any correction due to
+      ``'body'`` exclusions in the neighbor list.
+    * :math:`U_{\\mathrm{coulomb},i}` (``Coulomb.energies``): Energies from the
+      non-body neighbor list exclusions.
+    * :math:`U_\\mathrm{ewald,additional}`
+      (``Ewald.additional_energy``): 0.
+    * :math:`U_\\mathrm{ewald,i}` (``Ewald.additional_energy``):
+      Energies from the real space calculation for non-excluded particle pairs.
+
+    Warning:
+        Do not apply bonds, angles, dihedrals, or impropers between particles
+        in the same rigid body. Doing so will cause the exclusions to be double
+        counted (once in :math:`U_\\mathrm{coulomb,additional}` and again in
+        :math:`U_{\\mathrm{coulomb},i}`).
+
+    .. rubric:: Screening
+
     The Debye screening parameter :math:`\\alpha` enables the screening of
     electrostatic interactions with the same functional form as the short range
     `md.pair.Yukawa` potential. Use `md.long_range.pppm.Coulomb` with a non-zeo
@@ -74,7 +100,7 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     cutoff is so large that the short ranged interactions are inefficient. See
     `Salin, G and Caillol, J. 2000`_ for details.
 
-    Warning:
+    Important:
         In MPI simulations with multiple ranks, the grid resolution must be a
         power of two in each dimension.
 
