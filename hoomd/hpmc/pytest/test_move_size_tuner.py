@@ -190,17 +190,16 @@ class TestMoveSize:
     def test_act(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
         cnt = 0
-        while not move_size_tuner.tuned and cnt < 4:
-            simulation.run(2000)
+        while not move_size_tuner.tuned and cnt < 8:
+            simulation.run(1000)
             cnt += 1
         assert move_size_tuner.tuned
         simulation.run(10000)
-        print(move_size_tuner._tunables[0].y)
         move_counts = simulation.operations.integrator.translate_moves
         acceptance_rate = move_counts[0] / sum(move_counts)
-        tolerance = move_size_tuner.solver.tol
+        # Allow for a slight deviation to tolerance due to random fluctuations
+        tolerance = 2 * move_size_tuner.solver.tol
         assert abs(acceptance_rate - move_size_tuner.target) <= tolerance
-        print(simulation.timestep)
 
     def test_pickling(self, move_size_tuner, simulation):
         operation_pickling_check(move_size_tuner, simulation)
