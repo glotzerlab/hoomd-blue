@@ -52,7 +52,7 @@ class TestMoveSizeTuneDefinition:
         simulation.operations._schedule()
         # needed to set previous values need to to calculate acceptance rate
         assert move_size_definition.y is None
-        simulation.run(1000)
+        simulation.run(10)
         accepted, rejected = integrator.translate_moves
         calc_acceptance_rate = (accepted) / (accepted + rejected)
         assert isclose(move_size_definition.y, calc_acceptance_rate)
