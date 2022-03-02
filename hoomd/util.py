@@ -1,11 +1,10 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Utilities."""
 
 import io
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from copy import deepcopy
 
 
@@ -151,17 +150,24 @@ def dict_filter(dict_, filter_):
     return new_dict
 
 
-class _NamespaceDict:
-    """A nested dictionary when can be nested indexed by tuples."""
+def _keys_helper(dict_, key=()):
+    for k in dict_:
+        if isinstance(dict_[k], dict):
+            yield from _keys_helper(dict_[k], key + (k,))
+        yield key + (k,)
+
+
+class _NamespaceDict(MutableMapping):
+    """A nested dictionary which can be nested indexed by tuples."""
 
     def __init__(self, dict_=None):
-        self._dict = dict() if dict_ is None else dict_
+        self._dict = {} if dict_ is None else dict_
 
     def __len__(self):
         return dict_fold(self._dict, lambda x, incr: incr + 1, 0)
 
-    def keys(self):
-        raise NotImplementedError
+    def __iter__(self):
+        yield from _keys_helper(self._dict)
 
     def _pop_namespace(self, namespace):
         return (namespace[-1], namespace[:-1])

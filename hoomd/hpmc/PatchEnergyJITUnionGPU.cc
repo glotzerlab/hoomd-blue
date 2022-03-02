@@ -1,9 +1,16 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifdef ENABLE_HIP
 #include "PatchEnergyJITUnionGPU.h"
 
 #include "hoomd/hpmc/EvaluatorUnionGPU.cuh"
 #include <pybind11/stl.h>
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
 void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
     {
@@ -155,6 +162,8 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
 #endif
     }
 
+namespace detail
+    {
 void export_PatchEnergyJITUnionGPU(pybind11::module& m)
     {
     pybind11::class_<PatchEnergyJITUnionGPU,
@@ -175,4 +184,8 @@ void export_PatchEnergyJITUnionGPU(pybind11::module& m)
                             const std::string&,
                             unsigned int>());
     }
+
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif

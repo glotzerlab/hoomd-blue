@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
@@ -17,7 +15,6 @@
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
-namespace py = pybind11;
 
 #include <algorithm>
 #include <iomanip>
@@ -36,6 +33,8 @@ using namespace std;
     \brief Defines ExecutionConfiguration and related classes
 */
 
+namespace hoomd
+    {
 // initialize static variables
 bool ExecutionConfiguration::s_gpu_scan_complete = false;
 std::vector<std::string> ExecutionConfiguration::s_gpu_scan_messages;
@@ -334,7 +333,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
         }
     else
         {
-        // initialize the default CUDA context from one of the capable GPUs
+            // initialize the default CUDA context from one of the capable GPUs
 #ifdef __HIP_PLATFORM_NVCC__
         cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
 #endif
@@ -655,15 +654,17 @@ int ExecutionConfiguration::guessLocalRank(bool& found)
 #endif
     }
 
-void export_ExecutionConfiguration(py::module& m)
+namespace detail
     {
-    py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>>
+void export_ExecutionConfiguration(pybind11::module& m)
+    {
+    pybind11::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>>
         executionconfiguration(m, "ExecutionConfiguration");
     executionconfiguration
-        .def(py::init<ExecutionConfiguration::executionMode,
-                      std::vector<int>,
-                      std::shared_ptr<MPIConfiguration>,
-                      std::shared_ptr<Messenger>>())
+        .def(pybind11::init<ExecutionConfiguration::executionMode,
+                            std::vector<int>,
+                            std::shared_ptr<MPIConfiguration>,
+                            std::shared_ptr<Messenger>>())
         .def("getMPIConfig", &ExecutionConfiguration::getMPIConfig)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
@@ -689,9 +690,12 @@ void export_ExecutionConfiguration(py::module& m)
         .def_static("getScanMessages", &ExecutionConfiguration::getScanMessages)
         .def("getActiveDevices", &ExecutionConfiguration::getActiveDevices);
 
-    py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration, "executionMode")
+    pybind11::enum_<ExecutionConfiguration::executionMode>(executionconfiguration, "executionMode")
         .value("GPU", ExecutionConfiguration::executionMode::GPU)
         .value("CPU", ExecutionConfiguration::executionMode::CPU)
         .value("AUTO", ExecutionConfiguration::executionMode::AUTO)
         .export_values();
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

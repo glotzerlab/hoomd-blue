@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -36,6 +36,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -887,10 +889,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 
         // update the cell list
         this->m_cl->compute(timestep);
-
-        // start the profile
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "HPMC");
 
         // if the cell list is a different size than last time, reinitialize the expanded cell list
         uint3 cur_dim = this->m_cl->getDim();
@@ -2104,9 +2102,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
     // update the particle data origin
     this->m_pdata->translateOrigin(shift);
 
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
-
     this->communicate(true);
 
     // all particle have been moved, the aabb tree is now invalid
@@ -2225,6 +2220,8 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
         }
     }
 
+namespace detail
+    {
 //! Export this hpmc integrator to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -2243,6 +2240,8 @@ void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
         ;
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

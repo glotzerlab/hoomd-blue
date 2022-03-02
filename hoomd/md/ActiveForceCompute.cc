@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceCompute.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -9,8 +7,10 @@
 
 #include <vector>
 
-using namespace hoomd;
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \file ActiveForceCompute.cc
     \brief Contains code for the ActiveForceCompute class
 */
@@ -304,20 +304,16 @@ void ActiveForceCompute::rotationalDiffusion(Scalar rotational_diffusion, uint64
 */
 void ActiveForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "ActiveForceCompute");
-
     setForces(); // set forces for particles
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
+namespace detail
+    {
 void export_ActiveForceCompute(pybind11::module& m)
     {
     pybind11::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
@@ -332,3 +328,7 @@ void export_ActiveForceCompute(pybind11::module& m)
                                [](ActiveForceCompute& force)
                                { return force.getGroup()->getFilter(); });
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

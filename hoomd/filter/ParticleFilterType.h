@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PARTICLE_FILTER_TYPE_H__
 #define __PARTICLE_FILTER_TYPE_H__
 
@@ -6,6 +9,8 @@
 #include <string>
 #include <unordered_set>
 
+namespace hoomd
+    {
 //! Select particles based on their type
 class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
     {
@@ -67,4 +72,6 @@ class PYBIND11_EXPORT ParticleFilterType : public ParticleFilter
     protected:
     std::unordered_set<std::string> m_types; ///< Set of types to select
     };
+
+    } // end namespace hoomd
 #endif

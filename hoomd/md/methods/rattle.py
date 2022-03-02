@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods with manifold constraints."""
 
@@ -51,15 +50,6 @@ class MethodRATTLE(Method):
     def _attach_constraint(self, sim):
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach()
-
-    def _getattr_param(self, attr):
-        if self._attached:
-            if attr == "manifold_constraint":
-                return self._param_dict["manifold_constraint"]
-            parameter = getattr(self._cpp_obj, attr)
-            return parameter
-        else:
-            return self._param_dict[attr]
 
     def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":

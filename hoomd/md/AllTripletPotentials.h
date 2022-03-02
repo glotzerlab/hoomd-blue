@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __TRIPLET_POTENTIALS__H__
 #define __TRIPLET_POTENTIALS__H__
@@ -23,6 +23,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Three-body potential force compute for Tersoff forces
 typedef PotentialTersoff<EvaluatorTersoff> PotentialTripletTersoff;
 
@@ -34,14 +38,17 @@ typedef PotentialTersoff<EvaluatorRevCross> PotentialTripletRevCross;
 
 #ifdef ENABLE_HIP
 //! Three-body potential force compute for Tersoff forces on the GPU
-typedef PotentialTersoffGPU<EvaluatorTersoff, gpu_compute_tersoff_forces>
+typedef PotentialTersoffGPU<EvaluatorTersoff, kernel::gpu_compute_tersoff_forces>
     PotentialTripletTersoffGPU;
 //! Three-body potential force compute for Tersoff forces on the GPU
-typedef PotentialTersoffGPU<EvaluatorSquareDensity, gpu_compute_sq_density_forces>
+typedef PotentialTersoffGPU<EvaluatorSquareDensity, kernel::gpu_compute_sq_density_forces>
     PotentialTripletSquareDensityGPU;
 //! Three-body potential force compute for RevCross forces on the GPU
-typedef PotentialTersoffGPU<EvaluatorRevCross, gpu_compute_revcross_forces>
+typedef PotentialTersoffGPU<EvaluatorRevCross, kernel::gpu_compute_revcross_forces>
     PotentialTripletRevCrossGPU;
 #endif // ENABLE_HIP
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __TRIPLET_POTENTIALS_H__

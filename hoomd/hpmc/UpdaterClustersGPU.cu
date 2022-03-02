@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Moves.h"
 #include "UpdaterClustersGPU.cuh"
@@ -25,6 +25,8 @@
     \brief Implements a connected components algorithm on the GPU
 */
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -365,3 +367,4 @@ void connected_components(uint2* d_adj,
 
     } // end namespace gpu
     } // end namespace hpmc
+    } // end namespace hoomd

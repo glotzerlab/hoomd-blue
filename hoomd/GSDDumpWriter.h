@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -21,6 +21,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! Analyzer for writing out GSD dump files
 /*! GSDDumpWriter writes out the current state of the system to a GSD file
     every time analyze() is called. When a group is specified, only write out the
@@ -201,5 +203,11 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     friend void export_GSDDumpWriter(pybind11::module& m);
     };
 
+namespace detail
+    {
 //! Exports the GSDDumpWriter class to python
 void export_GSDDumpWriter(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

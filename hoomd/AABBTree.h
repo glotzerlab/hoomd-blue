@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
@@ -26,14 +24,10 @@
 #define DEVICE
 #endif
 
-namespace hpmc
+namespace hoomd
     {
 namespace detail
     {
-/*! \addtogroup overlap
-    @{
-*/
-
 const unsigned int NODE_CAPACITY = 16;        //!< Maximum number of particles in a node
 const unsigned int INVALID_NODE = 0xffffffff; //!< Invalid node index sentinel
 
@@ -628,6 +622,6 @@ inline unsigned int AABBTree::allocateNode()
 
     }; // end namespace detail
 
-    }; // end namespace hpmc
+    }; // end namespace hoomd
 
 #endif //__AABB_TREE_H__

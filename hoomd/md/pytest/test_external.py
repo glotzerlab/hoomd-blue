@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import copy as cp
 import numpy as np
 import numpy.testing as npt
@@ -14,7 +17,7 @@ def _evaluate_periodic(snapshot, params):
     i = params['i']
     w = params['w']
     p = params['p']
-    a1, a2, a3 = box.lattice_vectors
+    a1, a2, a3 = box.to_matrix().T
     V = np.dot(a1, np.cross(a2, a3))
     b1 = 2 * np.pi / V * np.cross(a2, a3)
     b2 = 2 * np.pi / V * np.cross(a3, a1)

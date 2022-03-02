@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "GSDDumpWriter.h"
 #include "Filesystem.h"
@@ -20,8 +20,9 @@
 #include <string.h>
 using namespace std;
 using namespace hoomd::detail;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 std::list<std::string> GSDDumpWriter::particle_chunks {"particles/typeid",
                                                        "particles/mass",
                                                        "particles/charge",
@@ -150,9 +151,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     int retval;
     bool root = true;
 
-    if (m_prof)
-        m_prof->push("Dump GSD");
-
     // take particle data snapshot
     m_exec_conf->msg->notice(10) << "GSD: taking particle data snapshot" << endl;
     SnapshotParticleData<float> snapshot;
@@ -246,9 +244,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         retval = gsd_end_frame(&m_handle);
         GSDUtils::checkError(retval, m_fname);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping)
@@ -1111,16 +1106,18 @@ void GSDDumpWriter::populateNonDefault()
     gsd_close(&m_handle);
     }
 
-void export_GSDDumpWriter(py::module& m)
+namespace detail
     {
-    py::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
+void export_GSDDumpWriter(pybind11::module& m)
+    {
+    pybind11::bind_map<std::map<std::string, pybind11::function>>(m, "MapStringFunction");
 
-    py::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::string,
-                      std::shared_ptr<ParticleGroup>,
-                      std::string,
-                      bool>())
+    pybind11::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::string,
+                            std::shared_ptr<ParticleGroup>,
+                            std::string,
+                            bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)
@@ -1135,3 +1132,7 @@ void export_GSDDumpWriter(py::module& m)
                                [](const std::shared_ptr<GSDDumpWriter> gsd)
                                { return gsd->getGroup()->getFilter(); });
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

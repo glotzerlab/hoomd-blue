@@ -1,13 +1,11 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement BoxResize."""
 
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyTypes, box_preprocessing
 from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
 from hoomd.filter import ParticleFilter, All
@@ -55,10 +53,8 @@ class BoxResize(Updater):
     """
 
     def __init__(self, trigger, box1, box2, variant, filter=All()):
-        params = ParameterDict(box1=OnlyTypes(Box,
-                                              preprocess=box_preprocessing),
-                               box2=OnlyTypes(Box,
-                                              preprocess=box_preprocessing),
+        params = ParameterDict(box1=Box,
+                               box2=Box,
                                variant=Variant,
                                filter=ParticleFilter)
         params['box1'] = box1
@@ -72,8 +68,8 @@ class BoxResize(Updater):
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
-            self._simulation.state._cpp_sys_def, self.box1, self.box2,
-            self.variant, group)
+            self._simulation.state._cpp_sys_def, self.box1._cpp_obj,
+            self.box2._cpp_obj, self.variant, group)
         super()._attach()
 
     def get_box(self, timestep):
@@ -106,6 +102,7 @@ class BoxResize(Updater):
                 update.
         """
         group = state._get_group(filter)
-        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, state.box, box,
+        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
+                                          state.box._cpp_obj, box._cpp_obj,
                                           Constant(1), group)
         updater.update(state._simulation.timestep)

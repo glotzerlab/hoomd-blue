@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SFCPackTuner.cc
     \brief Defines the SFCPackTuner class
@@ -17,8 +15,9 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \param sysdef System to perform sorts on
  */
 SFCPackTuner::SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
@@ -96,9 +95,6 @@ void SFCPackTuner::update(uint64_t timestep)
         }
 #endif
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "SFCPack");
-
     // figure out the sort order we need to apply
     if (m_sysdef->getNDimensions() == 2)
         getSortedOrder2D();
@@ -118,9 +114,6 @@ void SFCPackTuner::update(uint64_t timestep)
         m_comm->communicate(timestep);
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void SFCPackTuner::applySortOrder()
@@ -208,7 +201,7 @@ void SFCPackTuner::applySortOrder()
         h_inertia.data[i] = scal3_tmp[i];
         }
 
-    // in case anyone access it from frame to frame, sort the net virial
+        // in case anyone access it from frame to frame, sort the net virial
         {
         ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(),
                                          access_location::host,
@@ -224,7 +217,7 @@ void SFCPackTuner::applySortOrder()
             }
         }
 
-    // sort net force, net torque, and orientation
+        // sort net force, net torque, and orientation
         {
         ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(),
                                          access_location::host,
@@ -291,6 +284,8 @@ void SFCPackTuner::applySortOrder()
     delete[] int3_tmp;
     }
 
+namespace detail
+    {
 //! x walking table for the hilbert curve
 static int istep[] = {0, 0, 0, 0, 1, 1, 1, 1};
 //! y walking table for the hilbert curve
@@ -443,6 +438,8 @@ void permute(unsigned int result[8], const unsigned int in[8], int p)
         }
     }
 
+    } // end namespace detail
+
 //! recursive function for generating hilbert curve traversal order
 /*! \param i Current x coordinate in grid
     \param j Current y coordinate in grid
@@ -478,12 +475,12 @@ void SFCPackTuner::generateTraversalOrder(int i,
         for (int m = 0; m < 8; m++)
             {
             unsigned int cur_cell = cell_order[m];
-            int ic = i + w * istep[cur_cell];
-            int jc = j + w * jstep[cur_cell];
-            int kc = k + w * kstep[cur_cell];
+            int ic = i + w * detail::istep[cur_cell];
+            int jc = j + w * detail::jstep[cur_cell];
+            int kc = k + w * detail::kstep[cur_cell];
 
             unsigned int child_cell_order[8];
-            permute(child_cell_order, cell_order, m);
+            detail::permute(child_cell_order, cell_order, m);
             generateTraversalOrder(ic, jc, kc, w, Mx, child_cell_order, traversal_order);
             }
         }
@@ -498,7 +495,7 @@ void SFCPackTuner::getSortedOrder2D()
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
 
-    // put the particles in the bins
+        // put the particles in the bins
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
@@ -686,9 +683,15 @@ void SFCPackTuner::writeTraversalOrder(const std::string& fname,
         }
     }
 
-void export_SFCPackTuner(py::module& m)
+namespace detail
     {
-    py::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner>>(m, "SFCPackTuner")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
+void export_SFCPackTuner(pybind11::module& m)
+    {
+    pybind11::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner>>(m, "SFCPackTuner")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("grid", &SFCPackTuner::getGrid, &SFCPackTuner::setGridPython);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

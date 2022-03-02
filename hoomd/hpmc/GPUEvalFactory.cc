@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifdef ENABLE_HIP
 
 #include "hoomd/ExecutionConfiguration.h"
@@ -19,6 +22,10 @@
 #include <nvrtc.h>
 #endif
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 void GPUEvalFactory::compileGPU(const std::string& code,
                                 const std::string& kernel_name,
                                 const std::vector<std::string>& options,
@@ -72,4 +79,7 @@ void GPUEvalFactory::compileGPU(const std::string& code,
 
 #endif
     }
+
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif

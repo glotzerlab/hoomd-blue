@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -13,6 +13,10 @@
 #include <cfloat>
 #include <memory>
 
+namespace hoomd
+    {
+namespace md
+    {
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
 
@@ -222,5 +226,11 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 #endif // ENABLE_MPI
     };
 
+namespace detail
+    {
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlow(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

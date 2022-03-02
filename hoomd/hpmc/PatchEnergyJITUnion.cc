@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "PatchEnergyJITUnion.h"
 
 #include "hoomd/hpmc/OBBTree.h"
@@ -7,6 +10,10 @@
 #include <tbb/parallel_reduce.h>
 #endif
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 // Builds OBB tree based on geometric properties of the constituent particles
 void PatchEnergyJITUnion::buildOBBTree(unsigned int type)
     {
@@ -220,6 +227,8 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
     return energy;
     }
 
+namespace detail
+    {
 void export_PatchEnergyJITUnion(pybind11::module& m)
     {
     pybind11::class_<PatchEnergyJITUnion, PatchEnergyJIT, std::shared_ptr<PatchEnergyJITUnion>>(
@@ -259,3 +268,7 @@ void export_PatchEnergyJITUnion(pybind11::module& m)
         .def_property_readonly("param_array_constituent",
                                &PatchEnergyJITUnion::getParamArrayConstituent);
     }
+
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd

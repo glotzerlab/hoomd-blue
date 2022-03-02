@@ -1,14 +1,9 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
-#include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
-
-namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -20,9 +15,13 @@ using namespace std;
     \brief Contains code for the IntegrationMethodTwoStep class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \post The method is constructed with the given particle data and a NULL profiler.
+    \post The method is constructed with the given particle.
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group)
@@ -36,20 +35,6 @@ IntegrationMethodTwoStep::IntegrationMethodTwoStep(std::shared_ptr<SystemDefinit
     assert(m_group);
 
     m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
-    }
-
-/*! It is useful for the user to know where computation time is spent, so all integration methods
-    should profile themselves. This method sets the profiler for them to use.
-    This method does not need to be called, as Computes will not profile themselves
-    on a NULL profiler
-    \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (std::shared_ptr<Profiler>()) to stop the
-        analyzer from profiling itself.
-    \note Derived classes MUST check if m_prof is set before calling any profiler methods.
-*/
-void IntegrationMethodTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    m_prof = prof;
     }
 
 /*! \param deltaT New time step to set
@@ -128,18 +113,18 @@ Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup>
             {
             if (dimension == 3)
                 {
-                if (fabs(h_moment_inertia.data[j].x) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].x) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].y) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].y) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             else
                 {
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             }
@@ -194,14 +179,20 @@ void IntegrationMethodTwoStep::validateGroup()
         }
     }
 
-void export_IntegrationMethodTwoStep(py::module& m)
+namespace detail
     {
-    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
+void export_IntegrationMethodTwoStep(pybind11::module& m)
+    {
+    pybind11::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
         m,
         "IntegrationMethodTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<IntegrationMethodTwoStep> method)
                                { return method->getGroup()->getFilter(); });
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

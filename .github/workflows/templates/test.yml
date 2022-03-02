@@ -49,7 +49,7 @@ env:
 <% endmacro %>
 <% set build_steps %>
     - name: Checkout
-      uses: actions/checkout@v2.3.5
+      uses: actions/checkout@v2.4.0
       with:
         path: code
         submodules: true
@@ -84,13 +84,13 @@ env:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v2.3.1
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v2.3.1
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -98,7 +98,7 @@ env:
 <% endset %>
 <% set download_build_steps %>
     - name: Download build
-      uses: actions/download-artifact@v2.0.10
+      uses: actions/download-artifact@v2.1.0
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -106,7 +106,7 @@ env:
 <% endset %>
 <% set download_install_steps %>
     - name: Download install
-      uses: actions/download-artifact@v2.0.10
+      uses: actions/download-artifact@v2.1.0
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install

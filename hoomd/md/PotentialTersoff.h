@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_TERSOFF_H__
 #define __POTENTIAL_TERSOFF_H__
@@ -27,6 +27,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
     PotentialTersoff computes standard three-body potentials and forces between all particles in the
@@ -60,9 +64,6 @@
    values are stored in GPUArray for easy access on the GPU by a derived class. The type of the
    parameters is defined by \a param_type in the potential evaluator class passed in. See the
    appropriate documentation for the evaluator for the definition of each element of the parameters.
-
-    For profiling PotentialTersoff needs to know the name of the potential. For
-    now, that will be queried from the evaluator.
 
     \sa export_PotentialTersoff()
 */
@@ -111,7 +112,6 @@ template<class evaluator> class PotentialTersoff : public ForceCompute
     Index2D m_typpair_idx;                 //!< Helper class for indexing per type pair arrays
     GPUArray<Scalar> m_rcutsq;             //!< Cutoff radius squared per type pair
     GPUArray<param_type> m_params;         //!< Pair parameters per type pair
-    std::string m_prof_name;               //!< Cached profiler name
 
     // track whether we are attached to the simulation
     bool m_attached = true;
@@ -144,9 +144,6 @@ PotentialTersoff<evaluator>::PotentialTersoff(std::shared_ptr<SystemDefinition> 
     m_r_cut_nlist
         = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
-
-    // initialize name
-    m_prof_name = std::string("Triplet ") + evaluator::getName();
     }
 
 template<class evaluator> PotentialTersoff<evaluator>::~PotentialTersoff()
@@ -266,10 +263,6 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         // start by updating the neighborlist
         m_nlist->compute(timestep);
 
-        // start the profile for this compute
-        if (m_prof)
-            m_prof->push(m_prof_name);
-
         // The three-body potentials can't handle a half neighbor list, so check now.
         bool third_law = m_nlist->getStorageMode() == NeighborList::half;
         if (third_law)
@@ -287,9 +280,9 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                              access_location::host,
-                                              access_mode::read);
+        ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                        access_location::host,
+                                        access_mode::read);
 
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
@@ -302,7 +295,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -316,7 +309,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
             // access the particle's position and type (MEM TRANSFER: 4 scalars)
             Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
             unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-            const unsigned int head_i = h_head_list.data[i];
+            const size_t head_i = h_head_list.data[i];
             // sanity check
             assert(typei < m_pdata->getNTypes());
 
@@ -533,10 +526,6 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         // start by updating the neighborlist
         m_nlist->compute(timestep);
 
-        // start the profile for this compute
-        if (m_prof)
-            m_prof->push(m_prof_name);
-
         // The three-body potentials can't handle a half neighbor list, so check now.
         bool third_law = m_nlist->getStorageMode() == NeighborList::half;
         if (third_law)
@@ -554,9 +543,9 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
                                           access_location::host,
                                           access_mode::read);
-        ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                              access_location::host,
-                                              access_mode::read);
+        ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                        access_location::host,
+                                        access_mode::read);
 
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
@@ -569,7 +558,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -585,7 +574,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
             // access the particle's position and type (MEM TRANSFER: 4 scalars)
             Scalar3 posi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
             unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-            const unsigned int head_i = h_head_list.data[i];
+            const size_t head_i = h_head_list.data[i];
             // sanity check
             assert(typei < m_pdata->getNTypes());
 
@@ -963,9 +952,6 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                 }
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
@@ -988,6 +974,8 @@ CommFlags PotentialTersoff<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
+namespace detail
+    {
 //! Export this triplet potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
@@ -1001,5 +989,9 @@ template<class T> void export_PotentialTersoff(pybind11::module& m, const std::s
         .def("setRCut", &T::setRCutPython)
         .def("getRCut", &T::getRCut);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

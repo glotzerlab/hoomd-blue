@@ -1,18 +1,19 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepNVE.h"
 #include "hoomd/VectorMath.h"
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepNVE.h
     \brief Contains code for the TwoStepNVE class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
@@ -97,10 +98,6 @@ void TwoStepNVE::setZeroForce(bool zero_force)
 void TwoStepNVE::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVE step 1");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -192,9 +189,9 @@ void TwoStepNVE::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -281,10 +278,6 @@ void TwoStepNVE::integrateStepOne(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -295,10 +288,6 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVE step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -376,9 +365,9 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -394,16 +383,20 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
-void export_TwoStepNVE(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(m, "TwoStepNVE")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
+void export_TwoStepNVE(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(
+        m,
+        "TwoStepNVE")
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
         .def_property("limit", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
         .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

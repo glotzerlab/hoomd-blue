@@ -1,4 +1,4 @@
-# Maintainer: joaander
+
 
 set(_hpmc_gpu_shapes ShapeSphere
                  ShapeConvexPolygon
@@ -23,7 +23,6 @@ set(_hpmc_gpu_union_shapes ShapeSphere
    )
 
 set(_hpmc_sources   module.cc
-                    module_external_field.cc
                     module_sphere.cc
                     module_convex_polygon.cc
                     module_simple_polygon.cc
@@ -37,6 +36,7 @@ set(_hpmc_sources   module.cc
                     module_union_sphere.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
+                    ExternalFieldWall.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
@@ -49,7 +49,7 @@ set(_hpmc_headers
     ComputeSDF.h
     ExternalFieldComposite.h
     ExternalField.h
-    ExternalFieldLattice.h
+    ExternalFieldHarmonic.h
     ExternalFieldWall.h
     GSDHPMCSchema.h
     GPUHelpers.cuh
@@ -89,7 +89,6 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterClustersGPU.cuh
     UpdaterClustersGPUDepletants.cuh
-    UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterQuickCompress.h
     XenoCollide2D.h
@@ -119,7 +118,7 @@ if(ENABLE_HIP)
             set(SHAPE_INCLUDE ${SHAPE}.h)
             set(IS_UNION_SHAPE FALSE)
             set(_kernel_cu ${KERNEL}_${SHAPE}.cu)
-            configure_file(${KERNEL}.cu.in ${_kernel_cu} @ONLY)
+            configure_file(${KERNEL}.cu.inc ${_kernel_cu} @ONLY)
             set(_hpmc_cu_sources ${_hpmc_cu_sources} ${_kernel_cu})
         endforeach()
 
@@ -127,7 +126,7 @@ if(ENABLE_HIP)
             set(SHAPE_INCLUDE ${SHAPE}.h)
             set(_kernel_cu ${KERNEL}_union_${SHAPE}.cu)
             set(IS_UNION_SHAPE TRUE)
-            configure_file(${KERNEL}.cu.in ${_kernel_cu} @ONLY)
+            configure_file(${KERNEL}.cu.inc ${_kernel_cu} @ONLY)
             set(_hpmc_cu_sources ${_hpmc_cu_sources} ${_kernel_cu})
         endforeach()
     endforeach()
@@ -171,7 +170,6 @@ set(files   compute.py
             __init__.py
             integrate.py
             update.py
-            field.py
     )
 
 install(FILES ${files}

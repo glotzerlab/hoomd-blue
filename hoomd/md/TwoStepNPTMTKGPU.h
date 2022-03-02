@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermo.h"
 #include "TwoStepNPTMTK.h"
@@ -23,6 +21,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! This is a version of TwoStepNPTMTK that runs on the GPU.
  *
@@ -82,7 +84,12 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
     std::unique_ptr<Autotuner> m_tuner_angular_two; //!< Autotuner for angular step two
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNPTMTKGPU class to python
 void export_TwoStepNPTMTKGPU(pybind11::module& m);
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_GPU_H__

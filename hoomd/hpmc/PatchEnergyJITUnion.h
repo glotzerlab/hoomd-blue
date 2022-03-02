@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _PATCH_ENERGY_JIT_UNION_H_
 #define _PATCH_ENERGY_JIT_UNION_H_
 
@@ -6,6 +9,10 @@
 #include "hoomd/hpmc/GPUTree.h"
 #include "hoomd/managed_allocator.h"
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code, using a tree accelerator structure for
 //! unions of particles
 class PatchEnergyJITUnion : public PatchEnergyJIT
@@ -31,9 +38,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                          param_array_isotropic,
                          true),
           m_r_cut_constituent(r_cut_constituent),
-          m_param_array_constituent(param_array_constituent.data(),
-                                    param_array_constituent.data() + param_array_constituent.size(),
-                                    managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
+          m_param_array_constituent(
+              param_array_constituent.data(),
+              param_array_constituent.data() + param_array_constituent.size(),
+              hoomd::detail::managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
         {
         // build the JIT.
         EvalFactory* factory_constituent
@@ -334,10 +342,16 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     EvalFactory::EvalFnPtr
         m_eval_constituent;     //!< Pointer to evaluator function inside the JIT module
     Scalar m_r_cut_constituent; //!< Cutoff on constituent particles
-    std::vector<float, managed_allocator<float>>
+    std::vector<float, hoomd::detail::managed_allocator<float>>
         m_param_array_constituent; //!< Data array for constituent particles
     };
 
+namespace detail
+    {
 //! Exports the PatchEnergyJITUnion class to python
 void export_PatchEnergyJITUnion(pybind11::module& m);
+
+    }  // end namespace detail
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 #endif // _PATCH_ENERGY_JIT_UNION_H_

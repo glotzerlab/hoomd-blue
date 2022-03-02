@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _EXTERNAL_FIELD_ENERGY_JIT_H_
 #define _EXTERNAL_FIELD_ENERGY_JIT_H_
 
@@ -11,6 +14,10 @@
 
 #define EXTERNAL_FIELD_JIT_LOG_NAME "jit_energy"
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate external field forces via runtime generated code
 /*! This class enables the widest possible use-cases of external fields in HPMC with low energy
    barriers for users to add custom forces that execute with high performance. It provides a generic
@@ -48,8 +55,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
 
         if (!m_eval)
             {
-            exec_conf->msg->error() << factory->getError() << std::endl;
-            throw std::runtime_error("Error compiling JIT code.");
+            throw std::runtime_error("Error compiling JIT code.\n" + factory->getError());
             }
         m_factory = std::shared_ptr<ExternalFieldEvalFactory>(factory);
         }
@@ -89,7 +95,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                                      access_location::host,
                                      access_mode::read);
 
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
 
         double total_energy = 0.0;
         for (size_t i = 0; i < this->m_pdata->getN(); i++)
@@ -120,9 +126,10 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         return total_energy;
         }
 
-    virtual double calculateDeltaE(const Scalar4* const position_old_arg,
+    virtual double calculateDeltaE(uint64_t timestep,
+                                   const Scalar4* const position_old_arg,
                                    const Scalar4* const orientation_old_arg,
-                                   const BoxDim* const box_old_arg)
+                                   const BoxDim& box_old)
         {
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
                                        access_location::host,
@@ -136,9 +143,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
                                      access_location::host,
                                      access_mode::read);
-        const BoxDim& box_new = this->m_pdata->getGlobalBox();
+        const BoxDim box_new = this->m_pdata->getGlobalBox();
         const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
-        const BoxDim* box_old = box_old_arg;
         if (!position_old)
             {
             const Scalar4* const position_new = h_postype.data;
@@ -148,10 +154,6 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
             {
             const Scalar4* const orientation_new = h_orientation.data;
             orientation_old = orientation_new;
-            }
-        if (!box_old)
-            {
-            box_old = &box_new;
             }
         double dE = 0.0;
         for (size_t i = 0; i < this->m_pdata->getN(); i++)
@@ -166,7 +168,7 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
                          quat<Scalar>(h_orientation.data[i]),
                          h_diameter.data[i],
                          h_charge.data[i]);
-            dE -= energy(*box_old,
+            dE -= energy(box_old,
                          typ_i,
                          vec3<Scalar>(*(position_old + i)),
                          quat<Scalar>(*(orientation_old + i)),
@@ -188,7 +190,8 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         }
 
     //! method to calculate the energy difference for the proposed move.
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
@@ -248,4 +251,7 @@ template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::str
                             const std::vector<std::string>&>())
         .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
+
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

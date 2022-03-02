@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file test_warp_tools.cc
@@ -13,6 +11,10 @@
 #include "hoomd/GPUArray.h"
 
 #include "upp11_config.h"
+
+using namespace hoomd;
+using namespace hoomd::test;
+
 HOOMD_UP_MAIN();
 
 //! Runs the warp reduce tests using different number of threads per row.
@@ -57,14 +59,14 @@ void test_warp_reduce(const unsigned int tpp)
         warp_reduce(params);
         }
 
-    // sums should always be the same regardless of the number of threads in the scan
+        // sums should always be the same regardless of the number of threads in the scan
         {
         ArrayHandle<int> h_sum(sum, access_location::host, access_mode::read);
         UP_ASSERT_EQUAL(h_sum.data[0], 15);
         UP_ASSERT_EQUAL(h_sum.data[1], 2);
         }
 
-    // test reduce output, which depends on tpp
+        // test reduce output, which depends on tpp
         {
         ArrayHandle<int> h_vec(vec, access_location::host, access_mode::read);
         ArrayHandle<int> h_reduce(reduce, access_location::host, access_mode::read);
@@ -132,14 +134,14 @@ void test_warp_scan(const unsigned int tpp)
         warp_scan(params);
         }
 
-    // sums should always be the same regardless of the number of threads in the scan
+        // sums should always be the same regardless of the number of threads in the scan
         {
         ArrayHandle<int> h_sum(sum, access_location::host, access_mode::read);
         UP_ASSERT_EQUAL(h_sum.data[0], 15);
         UP_ASSERT_EQUAL(h_sum.data[1], 2);
         }
 
-    // test scan output, which depends on tpp
+        // test scan output, which depends on tpp
         {
         ArrayHandle<int> h_vec(vec, access_location::host, access_mode::read);
         ArrayHandle<int> h_scan(scan, access_location::host, access_mode::read);

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SlitGeometryFillerGPU.cc
@@ -11,11 +9,13 @@
 #include "SlitGeometryFillerGPU.h"
 #include "SlitGeometryFillerGPU.cuh"
 
+namespace hoomd
+    {
 mpcd::SlitGeometryFillerGPU::SlitGeometryFillerGPU(
     std::shared_ptr<mpcd::SystemData> sysdata,
     Scalar density,
     unsigned int type,
-    std::shared_ptr<::Variant> T,
+    std::shared_ptr<Variant> T,
     std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
     : mpcd::SlitGeometryFiller(sysdata, density, type, T, geom)
     {
@@ -69,13 +69,14 @@ void mpcd::SlitGeometryFillerGPU::drawParticles(uint64_t timestep)
  */
 void mpcd::detail::export_SlitGeometryFillerGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SlitGeometryFillerGPU,
-               mpcd::SlitGeometryFiller,
-               std::shared_ptr<mpcd::SlitGeometryFillerGPU>>(m, "SlitGeometryFillerGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      Scalar,
-                      unsigned int,
-                      std::shared_ptr<::Variant>,
-                      std::shared_ptr<const mpcd::detail::SlitGeometry>>());
+    pybind11::class_<mpcd::SlitGeometryFillerGPU,
+                     mpcd::SlitGeometryFiller,
+                     std::shared_ptr<mpcd::SlitGeometryFillerGPU>>(m, "SlitGeometryFillerGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            Scalar,
+                            unsigned int,
+                            std::shared_ptr<Variant>,
+                            std::shared_ptr<const mpcd::detail::SlitGeometry>>());
     }
+
+    } // end namespace hoomd

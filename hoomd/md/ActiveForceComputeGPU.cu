@@ -1,13 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceComputeGPU.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/TextureTools.h"
-using namespace hoomd;
 
 #include <assert.h>
 
@@ -16,6 +13,12 @@ using namespace hoomd;
    ActiveForceComputeGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel for setting active force vectors on the GPU
 /*! \param group_size number of particles
     \param d_index_array stores list to convert group index to global tag
@@ -199,3 +202,7 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                        seed);
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceCompute.h"
 #include "ParticleGroup.h"
@@ -22,6 +20,8 @@
 #ifndef __CONSTFORCECOMPUTE_H__
 #define __CONSTFORCECOMPUTE_H__
 
+namespace hoomd
+    {
 //! Adds a constant force to a number of particles
 /*! \ingroup computes
  */
@@ -105,7 +105,11 @@ class PYBIND11_EXPORT ConstForceCompute : public ForceCompute
     pybind11::object m_callback;
     };
 
+namespace detail
+    {
 //! Exports the ConstForceComputeClass to python
 void export_ConstForceCompute(pybind11::module& m);
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

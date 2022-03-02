@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander, grva, baschult
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ForceCompute.cc
     \brief Defines the ForceCompute class
@@ -18,17 +16,17 @@ using namespace std;
 
 #include <pybind11/numpy.h>
 
-namespace py = pybind11;
-
 #include <memory>
 
+namespace hoomd
+    {
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
 ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : Compute(sysdef), m_particles_sorted(false)
+    : Compute(sysdef), m_particles_sorted(false), m_buffers_writeable(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
@@ -660,10 +658,12 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     return result;
     }
 
-void export_ForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_ForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("getForce", &ForceCompute::getForce)
         .def("getTorque", &ForceCompute::getTorque)
         .def("getVirial", &ForceCompute::getVirial)
@@ -676,3 +676,6 @@ void export_ForceCompute(py::module& m)
         .def("getTorques", &ForceCompute::getTorquesPython)
         .def("getVirials", &ForceCompute::getVirialsPython);
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

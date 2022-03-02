@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PYTHON_LOCAL_DATA_ACCESS_H__
 #define __PYTHON_LOCAL_DATA_ACCESS_H__
 
@@ -8,6 +11,8 @@
 #include <type_traits>
 #include <utility>
 
+namespace hoomd
+    {
 /// Base class for buffers for LocalDataAccess template class type checking.
 /** In addition, this class allows for a uniform way of specifying a CPU(Host)
  *  or GPU(Device) buffer.  HOOMDBuffer classes need to implement a templated
@@ -233,6 +238,9 @@ template<class Output, class Data> class LocalDataAccess
      *  get_array_func: the method of m_data to use to access the array.
      *  flag: indications whether to get data on ghost particles and/or
      *  standard particles.
+     *  bufferWriteable: Whether this buffer should be read-only or not. If false,
+     *  the exposed buffer is read-only. If true, the buffer is writeable only
+     *  if the ghost data flag is standard.
      *  second_dimension_size: the size of the second dimension (defaults to
      *  0)
      *  offset: the offset in bytes from the start of the array to the
@@ -244,13 +252,18 @@ template<class Output, class Data> class LocalDataAccess
     Output getBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
                      const U<T>& (Data::*get_array_func)() const,
                      GhostDataFlag flag,
+                     bool bufferWriteable,
                      unsigned int second_dimension_size = 0,
                      ssize_t offset = 0,
                      std::vector<ssize_t> strides = {})
         {
         checkManager();
 
-        bool read_only = flag != GhostDataFlag::standard;
+        bool read_only = !bufferWriteable;
+        if (flag != GhostDataFlag::standard && read_only == false)
+            {
+            read_only = false;
+            }
 
         updateHandle(handle, get_array_func, read_only);
 
@@ -355,6 +368,8 @@ template<class Output, class Data> class LocalDataAccess
     bool m_in_manager;
     };
 
+namespace detail
+    {
 void export_HOOMDHostBuffer(pybind11::module& m);
 
 void export_GhostDataFlag(pybind11::module& m);
@@ -362,5 +377,9 @@ void export_GhostDataFlag(pybind11::module& m);
 #if ENABLE_HIP
 void export_HOOMDDeviceBuffer(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

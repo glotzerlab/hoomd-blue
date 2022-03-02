@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_THERMO_TYPES_H_
 #define _COMPUTE_THERMO_TYPES_H_
@@ -11,6 +9,10 @@
     \brief Data structures common to both CPU and GPU implementations of ComputeThermo
     */
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Enum for indexing the GPUArray of computed values
 struct thermo_index
     {
@@ -42,4 +44,7 @@ struct PressureTensor
     Scalar yz; //!< yz component
     Scalar zz; //!< zz component
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 #endif

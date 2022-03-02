@@ -1,18 +1,19 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraint.h"
 
 #include <string.h>
 using namespace Eigen;
-namespace py = pybind11;
 
 /*! \file ForceDistanceConstraint.cc
     \brief Contains code for the ForceDistanceConstraint class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef)
@@ -110,14 +111,9 @@ Scalar ForceDistanceConstraint::getNDOFRemoved(std::shared_ptr<ParticleGroup> qu
 */
 void ForceDistanceConstraint::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Dist constraint");
-
     if (m_cdata->getNGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "constrain.distance() called with no constraints defined!\n"
-                                  << std::endl;
-        throw std::runtime_error("Error computing constraints.\n");
+        throw std::runtime_error("No constraints in the system.");
         }
 
     // reallocate through amortized resizin
@@ -136,9 +132,6 @@ void ForceDistanceConstraint::computeForces(uint64_t timestep)
 
     // compute forces
     computeConstraintForces(timestep);
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void ForceDistanceConstraint::fillMatrixVector(uint64_t timestep)
@@ -350,9 +343,6 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
     if (n_constraint == 0)
         return;
 
-    if (m_prof)
-        m_prof->push("solve");
-
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);
 
@@ -365,9 +355,6 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
         // reset flags
         m_condition.resetFlags(0);
-
-        if (m_prof)
-            m_prof->push("LU");
 
         // access matrix
         ArrayHandle<double> h_cmatrix(m_cmatrix, access_location::host, access_mode::read);
@@ -416,13 +403,7 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
         // Compute the ordering permutation vector from the structural pattern of A
         m_sparse_solver.analyzePattern(m_sparse);
-
-        if (m_prof)
-            m_prof->pop();
         }
-
-    if (m_prof)
-        m_prof->push("refactor/solve");
 
     // Compute the numerical factorization
     m_sparse_solver.factorize(m_sparse);
@@ -440,12 +421,6 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
     // Use the factors to solve the linear system
     map_lagrange = m_sparse_solver.solve(map_vec);
-
-    if (m_prof)
-        m_prof->pop();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void ForceDistanceConstraint::computeConstraintForces(uint64_t timestep)
@@ -673,13 +648,19 @@ void ForceDistanceConstraint::assignMoleculeTags()
     m_n_molecules_global = molecule;
     }
 
-void export_ForceDistanceConstraint(py::module& m)
+namespace detail
     {
-    py::class_<ForceDistanceConstraint,
-               MolecularForceCompute,
-               std::shared_ptr<ForceDistanceConstraint>>(m, "ForceDistanceConstraint")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_ForceDistanceConstraint(pybind11::module& m)
+    {
+    pybind11::class_<ForceDistanceConstraint,
+                     MolecularForceCompute,
+                     std::shared_ptr<ForceDistanceConstraint>>(m, "ForceDistanceConstraint")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def_property("tolerance",
                       &ForceDistanceConstraint::getRelativeTolerance,
                       &ForceDistanceConstraint::setRelativeTolerance);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

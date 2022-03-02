@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """User-defined pair potentials for HPMC simulations."""
 
@@ -68,10 +67,15 @@ class CPPPotentialBase(_HOOMDBaseObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.10/hoomd/VectorMath.h
+            v3.0.0-beta.14/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
+
+    .. rubric:: Mixed precision
+
+    `CPPPotentialBase` uses 32-bit precision floating point arithmetic when
+    computing energies in the local particle reference frame.
 
     """
 
@@ -107,6 +111,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         // allocated by the library
                         float *param_array{param_array_suffix};
                         {constituent_param_array}
+
+                        using namespace hoomd;
 
                         extern "C"
                         {{
@@ -145,6 +151,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
                         #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
+
+                        using namespace hoomd;
 
                         // param_array (singlet class) or param_array_isotropic
                         // and param_array_constituent (union class) are
@@ -292,7 +300,7 @@ class CPPPotentialUnion(CPPPotentialBase):
         r_cut_isotropic (`float`): Cut-off for isotropic interaction between
                 centers of union particles.
         code_isotropic (`str`): C++ code for isotropic part of the interaction.
-                Must be `''` when executing on a GPU.
+                Must be ``''`` when executing on a GPU.
         param_array_constituent (list[float]): Parameter values to make
             available in ``float *param_array_constituent`` in the compiled
             code.  Pass an empty array if no adjustable parameters are needed
@@ -305,7 +313,7 @@ class CPPPotentialUnion(CPPPotentialBase):
     Note:
         Code passed into ``code_isotropic`` is not used when executing on the
         GPU. A `RuntimeError` is raised on attachment if the value of this
-        argument is anything besides `''` on the GPU.
+        argument is anything besides ``''`` on the GPU.
 
     Note:
         This class uses an internal OBB tree for fast interaction queries
@@ -321,6 +329,9 @@ class CPPPotentialUnion(CPPPotentialBase):
         `CPPPotentialUnion` is **experimental** and subject to change in future
         minor releases.
 
+    .. rubric:: Threading
+
+    CPPPotentialUnion uses threaded execution on multiple CPU cores.
 
     .. py:attribute:: positions
 

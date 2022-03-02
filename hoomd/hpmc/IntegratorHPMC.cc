@@ -1,9 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMC.h"
-
-namespace py = pybind11;
 
 #include "hoomd/VectorMath.h"
 #include <sstream>
@@ -14,6 +12,8 @@ using namespace std;
     \brief Definition of common methods for HPMC integrators
 */
 
+namespace hoomd
+    {
 namespace hpmc
     {
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
@@ -128,7 +128,7 @@ bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     // Get old and new boxes;
     BoxDim curBox = m_pdata->getGlobalBox();
 
-    // Use lexical scope block to make sure ArrayHandles get cleaned up
+        // Use lexical scope block to make sure ArrayHandles get cleaned up
         {
         // Get particle positions
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -227,10 +227,13 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
     return result;
     }
 
-void export_IntegratorHPMC(py::module& m)
+namespace detail
     {
-    py::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m, "IntegratorHPMC")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_IntegratorHPMC(pybind11::module& m)
+    {
+    pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m,
+                                                                                  "IntegratorHPMC")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)
         .def("setTranslationMoveProbability", &IntegratorHPMC::setTranslationMoveProbability)
@@ -250,11 +253,13 @@ void export_IntegratorHPMC(py::module& m)
                       &IntegratorHPMC::getTranslationMoveProbability,
                       &IntegratorHPMC::setTranslationMoveProbability);
 
-    py::class_<hpmc_counters_t>(m, "hpmc_counters_t")
+    pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
         .def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
         .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)
         .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd

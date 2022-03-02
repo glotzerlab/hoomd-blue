@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: ajs42
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ComputeThermoHMA.cc
     \brief Contains code for the ComputeThermoHMA class
@@ -15,12 +13,14 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
-
 #include <iomanip>
 #include <iostream>
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
@@ -103,9 +103,6 @@ void ComputeThermoHMA::computeProperties()
 
     unsigned int group_size = m_group->getNumMembers();
 
-    if (m_prof)
-        m_prof->push("ThermoHMA");
-
     assert(m_pdata);
 
     // access the net force, pe, and virial
@@ -170,9 +167,6 @@ void ComputeThermoHMA::computeProperties()
     // in MPI, reduce extensive quantities only when they're needed
     m_properties_reduced = !m_pdata->getDomainDecomposition();
 #endif // ENABLE_MPI
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
@@ -194,13 +188,17 @@ void ComputeThermoHMA::reduceProperties()
     }
 #endif
 
-void export_ComputeThermoHMA(py::module& m)
+namespace detail
     {
-    py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA>>(m, "ComputeThermoHMA")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      const double,
-                      const double>())
+void export_ComputeThermoHMA(pybind11::module& m)
+    {
+    pybind11::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA>>(
+        m,
+        "ComputeThermoHMA")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            const double,
+                            const double>())
         .def_property("kT", &ComputeThermoHMA::getTemperature, &ComputeThermoHMA::setTemperature)
         .def_property("harmonic_pressure",
                       &ComputeThermoHMA::getHarmonicPressure,
@@ -208,3 +206,7 @@ void export_ComputeThermoHMA(py::module& m)
         .def_property_readonly("potential_energy", &ComputeThermoHMA::getPotentialEnergyHMA)
         .def_property_readonly("pressure", &ComputeThermoHMA::getPressureHMA);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

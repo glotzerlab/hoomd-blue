@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepNVTMTK.h"
 
@@ -13,12 +13,15 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepNVTMTK.h
     \brief Contains code for the TwoStepNVTMTK class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo compute for thermodynamic quantities
@@ -63,19 +66,12 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "integrate.nvt(): Integration group empty." << std::endl;
-        throw std::runtime_error("Error during NVT integration.");
+        throw std::runtime_error("Empty integration group.");
         }
 
     unsigned int group_size = m_group->getNumMembers();
 
-    // profile this step
-    if (m_prof)
-        {
-        m_prof->push("NVT step 1");
-        }
-
-    // scope array handles for proper releasing before calling the thermo compute
+        // scope array handles for proper releasing before calling the thermo compute
         {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                    access_location::host,
@@ -166,9 +162,9 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -261,10 +257,6 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
     // get temperature and advance thermostat
     advanceThermostat(timestep);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -275,10 +267,6 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVT step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -355,9 +343,9 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -376,10 +364,6 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
@@ -587,16 +571,18 @@ Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
     return thermostat_energy;
     }
 
-void export_TwoStepNVTMTK(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
+void export_TwoStepNVTMTK(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
         m,
         "TwoStepNVTMTK")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTMTK::setT)
         .def("setTau", &TwoStepNVTMTK::setTau)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
@@ -610,3 +596,7 @@ void export_TwoStepNVTMTK(py::module& m)
                       &TwoStepNVTMTK::setRotationalThermostatDOF)
         .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

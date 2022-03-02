@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "EvaluatorExternalElectricField.h"
 #include "EvaluatorExternalPeriodic.h"
@@ -8,12 +8,17 @@
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairMorse.h"
-#include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorWalls.h"
 #include "PotentialExternalGPU.cuh"
 #include "WallData.h"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // Instantiate external evaluator templates
 //! Evaluator for External Periodic potentials.
 template hipError_t __attribute__((visibility("default")))
@@ -43,12 +48,6 @@ gpu_cpef<EvaluatorWalls<EvaluatorPairYukawa>>(
     const external_potential_args_t& external_potential_args,
     const typename EvaluatorWalls<EvaluatorPairYukawa>::param_type* d_params,
     const typename EvaluatorWalls<EvaluatorPairYukawa>::field_type* d_field);
-//! Evaluator for Shifted Lennard-Jones pair potential.
-template hipError_t __attribute__((visibility("default")))
-gpu_cpef<EvaluatorWalls<EvaluatorPairSLJ>>(
-    const external_potential_args_t& external_potential_args,
-    const typename EvaluatorWalls<EvaluatorPairSLJ>::param_type* d_params,
-    const typename EvaluatorWalls<EvaluatorPairSLJ>::field_type* d_field);
 //! Evaluator for Morse pair potential.
 template hipError_t __attribute__((visibility("default")))
 gpu_cpef<EvaluatorWalls<EvaluatorPairMorse>>(
@@ -67,3 +66,7 @@ gpu_cpef<EvaluatorWalls<EvaluatorPairMie>>(
     const external_potential_args_t& external_potential_args,
     const typename EvaluatorWalls<EvaluatorPairMie>::param_type* d_params,
     const typename EvaluatorWalls<EvaluatorPairMie>::field_type* d_field);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

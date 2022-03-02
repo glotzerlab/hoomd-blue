@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterRemoveDrift.h
     \brief Declares an updater that removes the average drift from the particles
@@ -17,6 +15,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 /** This updater removes the average particle drift from the reference positions.
  * The minimum image convention is applied to each particle displacement from the
  * reference configuration before averaging over N_particles. The particles are
@@ -95,7 +95,7 @@ class UpdaterRemoveDrift : public Updater
         ArrayHandle<int3> h_image(this->m_pdata->getImages(),
                                   access_location::host,
                                   access_mode::readwrite);
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
         const vec3<Scalar> origin(this->m_pdata->getOrigin());
         vec3<Scalar> rshift;
         rshift.x = rshift.y = rshift.z = 0.0f;
@@ -143,6 +143,8 @@ class UpdaterRemoveDrift : public Updater
     std::vector<vec3<Scalar>> m_ref_positions;
     };
 
+namespace detail
+    {
 /// Export the UpdaterRemoveDrift to python
 void export_UpdaterRemoveDrift(pybind11::module& m)
     {
@@ -154,5 +156,9 @@ void export_UpdaterRemoveDrift(pybind11::module& m)
                       &UpdaterRemoveDrift::getReferencePositions,
                       &UpdaterRemoveDrift::setReferencePositions);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // _REMOVE_DRIFT_UPDATER_H_

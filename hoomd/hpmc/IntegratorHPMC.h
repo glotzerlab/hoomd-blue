@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
 #ifndef _INTEGRATOR_HPMC_H_
@@ -29,6 +29,8 @@
 #include "hoomd/GPUPartition.cuh"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -91,7 +93,7 @@ struct hpmc_patch_args_t
     const uint64_t timestep;               //!< Current timestep
     const unsigned int select;
     const unsigned int num_types;              //!< Number of particle types
-    const BoxDim& box;                         //!< Current simulation box
+    const BoxDim box;                          //!< Current simulation box
     const unsigned int* d_excell_idx;          //!< Expanded cell list
     const unsigned int* d_excell_size;         //!< Size of expanded cells
     const Index2D& excli;                      //!< Excell indexer
@@ -189,7 +191,7 @@ class PatchEnergy
 
     protected:
     std::shared_ptr<SystemDefinition> m_sysdef; // HOOMD's system definition
-    };                                              // end class PatchEnergy
+    };                                          // end class PatchEnergy
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
@@ -428,6 +430,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     //! Prepare for the run
     virtual void prepRun(uint64_t timestep)
         {
+        Integrator::prepRun(timestep);
         m_past_first_run = true;
         }
 
@@ -491,9 +494,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     hpmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
     };
 
+namespace detail
+    {
 //! Export the IntegratorHPMC class to python
 void export_IntegratorHPMC(pybind11::module& m);
 
+    } // end namespace detail
+
     } // end namespace hpmc
 
+    }  // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_

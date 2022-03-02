@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
 #include "hoomd/CellList.h"
@@ -20,6 +18,10 @@
 #ifndef __NEIGHBORLISTSTENCIL_H__
 #define __NEIGHBORLISTSTENCIL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the CPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the CPU using a cell list with multiple bin stencils.
 
@@ -84,7 +86,13 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     void updateRStencil();
     };
 
+namespace detail
+    {
 //! Exports NeighborListStencil to python
 void export_NeighborListStencil(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __NEIGHBORLISTSTENCIL_H__

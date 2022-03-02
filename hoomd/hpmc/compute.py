@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Compute properties of hard particle configurations."""
 
@@ -52,6 +51,11 @@ class FreeVolume(Compute):
 
         `FreeVolume` respects the ``interaction_matrix`` set in the HPMC
         integrator.
+
+    .. rubric:: Mixed precision
+
+    `FreeVolume` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Examples::
 
@@ -145,6 +149,11 @@ class SDF(Compute):
 
     Note:
         `SDF` runs on the CPU even in GPU simulations.
+
+    .. rubric:: Mixed precision
+
+    `SDF` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Attributes:
         xmax (float): Maximum *x* value at the right hand side of the rightmost

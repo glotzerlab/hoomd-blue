@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.snapshot import Snapshot
 from hoomd import Box
 import numpy
@@ -129,7 +132,7 @@ def test_configuration(s):
 def generate_outside(box, interior_points, unwrap_images, initial_images):
     """Generate test cases from interior points by adding box vectors."""
     box = Box.from_box(box)
-    matrix = box.matrix
+    matrix = box.to_matrix()
     input_points = numpy.zeros(
         (len(interior_points), len(unwrap_images), len(initial_images), 3))
     check_points = numpy.zeros_like(input_points)

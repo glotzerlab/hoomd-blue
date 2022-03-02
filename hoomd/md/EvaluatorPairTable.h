@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ManagedArray.h"
 #include <memory>
@@ -19,6 +19,10 @@
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes the result of a tabulated pair potential
 /*! The potential and force values are provided the tables V(r) and F(r) at N_table discreet \a r
     values between \a rmin and \a rcut. Evaluations are performed by simple linear interpolation.
@@ -106,9 +110,9 @@ class EvaluatorPairTable
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -199,6 +203,16 @@ class EvaluatorPairTable
         return true;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -222,5 +236,8 @@ class EvaluatorPairTable
     ManagedArray<Scalar> V_table; //!< the tabulated energy
     ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

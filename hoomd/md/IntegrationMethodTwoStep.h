@@ -1,10 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ParticleGroup.h"
-#include "hoomd/Profiler.h"
 #include "hoomd/SystemDefinition.h"
 
 #include <memory>
@@ -27,6 +24,10 @@ class Communicator;
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps
 /*! \b Overview
     A large class of integrators can be implemented in two steps:
@@ -121,9 +122,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
      */
     virtual void includeRATTLEForce(uint64_t timestep) { }
 
-    //! Sets the profiler for the integration method to use
-    void setProfiler(std::shared_ptr<Profiler> prof);
-
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
         \param period period (approximate) in time steps when returning occurs
@@ -196,8 +194,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         m_sysdef; //!< The system definition this method is associated with
     const std::shared_ptr<ParticleGroup> m_group; //!< The group of particles this method works on
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this method is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this method is to use
+        m_pdata; //!< The particle data this method is associated with
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     bool m_aniso;    //!< True if anisotropic integration is requested
@@ -231,7 +228,13 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     bool m_valid_restart;         //!< True if the restart info was valid when loading
     };
 
+namespace detail
+    {
 //! Exports the IntegrationMethodTwoStep class to python
 void export_IntegrationMethodTwoStep(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__

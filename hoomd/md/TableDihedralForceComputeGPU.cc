@@ -1,11 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TableDihedralForceComputeGPU.h"
-
-namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -15,6 +11,10 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -48,10 +48,6 @@ Calls gpu_compute_bondtable_forces to do the leg work
 */
 void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Dihedral Table");
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
@@ -76,20 +72,20 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
 
         // run the kernel on all GPUs in parallel
         m_tuner->begin();
-        gpu_compute_table_dihedral_forces(d_force.data,
-                                          d_virial.data,
-                                          m_virial.getPitch(),
-                                          m_pdata->getN(),
-                                          d_pos.data,
-                                          box,
-                                          d_gpu_dihedrallist.data,
-                                          d_dihedrals_ABCD.data,
-                                          m_dihedral_data->getGPUTableIndexer().getW(),
-                                          d_gpu_n_dihedrals.data,
-                                          d_tables.data,
-                                          m_table_width,
-                                          m_table_value,
-                                          m_tuner->getParam());
+        kernel::gpu_compute_table_dihedral_forces(d_force.data,
+                                                  d_virial.data,
+                                                  m_virial.getPitch(),
+                                                  m_pdata->getN(),
+                                                  d_pos.data,
+                                                  box,
+                                                  d_gpu_dihedrallist.data,
+                                                  d_dihedrals_ABCD.data,
+                                                  m_dihedral_data->getGPUTableIndexer().getW(),
+                                                  d_gpu_n_dihedrals.data,
+                                                  d_tables.data,
+                                                  m_table_width,
+                                                  m_table_value,
+                                                  m_tuner->getParam());
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -98,15 +94,19 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
         }
 
     m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_TableDihedralForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<TableDihedralForceComputeGPU,
-               TableDihedralForceCompute,
-               std::shared_ptr<TableDihedralForceComputeGPU>>(m, "TableDihedralForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+void export_TableDihedralForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<TableDihedralForceComputeGPU,
+                     TableDihedralForceCompute,
+                     std::shared_ptr<TableDihedralForceComputeGPU>>(m,
+                                                                    "TableDihedralForceComputeGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

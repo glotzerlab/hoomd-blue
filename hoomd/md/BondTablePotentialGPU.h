@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BondTablePotential.h"
 #include "BondTablePotentialGPU.cuh"
@@ -20,6 +18,10 @@
 #ifndef __BONDTABLEPOTENTIALGPU_H__
 #define __BONDTABLEPOTENTIALGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Compute table based bond potentials on the GPU
 /*! Calculates exactly the same thing as BondTablePotential, but on the GPU
 
@@ -53,8 +55,13 @@ class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
-
+namespace detail
+    {
 //! Exports the BondTablePotentialGPU class to python
 void export_BondTablePotentialGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

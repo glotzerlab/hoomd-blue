@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -18,6 +21,12 @@
 #ifndef __POTENTIAL_TERSOFF_GPU_CUH__
 #define __POTENTIAL_TERSOFF_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Maximum number of threads (width of a warp)
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
@@ -40,7 +49,7 @@ struct tersoff_args_t
                    const BoxDim& _box,
                    const unsigned int* _d_n_neigh,
                    const unsigned int* _d_nlist,
-                   const unsigned int* _d_head_list,
+                   const size_t* _d_head_list,
                    const Scalar* _d_rcutsq,
                    const size_t _size_nlist,
                    const unsigned int _ntypes,
@@ -60,17 +69,17 @@ struct tersoff_args_t
     const size_t virial_pitch;  //!< Pitch for N*6 virial array
     bool compute_virial;        //!< True if we are supposed to compute the virial
     const Scalar4* d_pos;       //!< particle positions
-    const BoxDim& box;          //!< Simulation box in GPU format
+    const BoxDim box;           //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const unsigned int* d_head_list; //!< Indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const size_t size_nlist;         //!< Number of elements in the neighborlist
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const unsigned int tpp;          //!< Threads per particle
-    const hipDeviceProp_t& devprop;  //!< CUDA device properties
+    const size_t* d_head_list;   //!< Indexes for accessing d_nlist
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const size_t size_nlist;     //!< Number of elements in the neighborlist
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;  //!< Block size to execute
+    const unsigned int tpp;         //!< Threads per particle
+    const hipDeviceProp_t& devprop; //!< CUDA device properties
     };
 
 #ifdef __HIPCC__
@@ -168,7 +177,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                                                   const BoxDim box,
                                                   const unsigned int* d_n_neigh,
                                                   const unsigned int* d_nlist,
-                                                  const unsigned int* d_head_list,
+                                                  const size_t* d_head_list,
                                                   const typename evaluator::param_type* d_params,
                                                   const Scalar* d_rcutsq,
                                                   const unsigned int ntypes)
@@ -230,10 +239,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
         {
         // this is the RevCross potential
         // prefetch neighbor index
-        const unsigned int head_idx = d_head_list[idx];
+        const size_t head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
-        unsigned int my_head = d_head_list[idx];
+        size_t my_head = d_head_list[idx];
 
         next_j = threadIdx.x % tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x % tpp) : 0;
 
@@ -449,10 +458,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
         if (evaluator::hasPerParticleEnergy())
             {
             // prefetch neighbor index
-            const unsigned int head_idx = d_head_list[idx];
+            const size_t head_idx = d_head_list[idx];
             unsigned int cur_j = 0;
             unsigned int next_j(0);
-            unsigned int my_head = d_head_list[idx];
+            size_t my_head = d_head_list[idx];
 
             next_j = threadIdx.x % tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x % tpp) : 0;
 
@@ -521,10 +530,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             }
 
         // prefetch neighbor index
-        const unsigned int head_idx = d_head_list[idx];
+        const size_t head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
-        unsigned int my_head = d_head_list[idx];
+        size_t my_head = d_head_list[idx];
 
         next_j = threadIdx.x % tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x % tpp) : 0;
 
@@ -1025,5 +1034,9 @@ hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     return hipSuccess;
     }
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_TERSOFF_GPU_CUH__

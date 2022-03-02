@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ATCollisionMethod.h
@@ -19,7 +17,8 @@
 #include "CollisionMethod.h"
 
 #include "hoomd/Variant.h"
-
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Implements the Anderson thermostat collision rule for MPCD.
@@ -33,13 +32,13 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
                       int phase,
                       std::shared_ptr<mpcd::CellThermoCompute> thermo,
                       std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-                      std::shared_ptr<::Variant> T);
+                      std::shared_ptr<Variant> T);
 
     //! Destructor
     virtual ~ATCollisionMethod();
 
     //! Set the temperature and enable the thermostat
-    void setTemperature(std::shared_ptr<::Variant> T)
+    void setTemperature(std::shared_ptr<Variant> T)
         {
         m_T = T;
         }
@@ -47,7 +46,7 @@ class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     protected:
     std::shared_ptr<mpcd::CellThermoCompute> m_thermo;      //!< Cell thermo
     std::shared_ptr<mpcd::CellThermoCompute> m_rand_thermo; //!< Cell thermo for random velocities
-    std::shared_ptr<::Variant> m_T;                         //!< Temperature for thermostat
+    std::shared_ptr<Variant> m_T;                           //!< Temperature for thermostat
 
     //! Implementation of the collision rule
     virtual void rule(uint64_t timestep);
@@ -65,6 +64,6 @@ namespace detail
 void export_ATCollisionMethod(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_H_

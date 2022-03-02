@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: ksil
 
 #include "OPLSDihedralForceGPU.cuh"
 #include "hoomd/TextureTools.h"
@@ -14,6 +15,12 @@
    OPLSDihedralForceComputeGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel for calculating OPLS dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -27,18 +34,17 @@
     \param pitch Pitch of 2D dihedral list
     \param n_dihedrals_list List of numbers of dihedrals per atom
 */
-extern "C" __global__ void
-gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
-                                        Scalar* d_virial,
-                                        const size_t virial_pitch,
-                                        const unsigned int N,
-                                        const Scalar4* d_pos,
-                                        const Scalar4* d_params,
-                                        BoxDim box,
-                                        const group_storage<4>* tlist,
-                                        const unsigned int* dihedral_ABCD,
-                                        const unsigned int pitch,
-                                        const unsigned int* n_dihedrals_list)
+__global__ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
+                                                        Scalar* d_virial,
+                                                        const size_t virial_pitch,
+                                                        const unsigned int N,
+                                                        const Scalar4* d_pos,
+                                                        const Scalar4* d_params,
+                                                        BoxDim box,
+                                                        const group_storage<4>* tlist,
+                                                        const unsigned int* dihedral_ABCD,
+                                                        const unsigned int pitch,
+                                                        const unsigned int* n_dihedrals_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -364,3 +370,7 @@ hipError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/Sorter.h"
 #ifdef ENABLE_HIP
@@ -14,12 +12,14 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for basic MPCD sort functions
 template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
         {
         // embed one particle
@@ -81,7 +81,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<T> sorter = std::make_shared<T>(mpcd_sys, 0, 1);
     sorter->update(0);
 
-    // check that all particles are properly ordered
+        // check that all particles are properly ordered
         {
         std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
 
@@ -171,7 +171,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[7].w), 7);
         }
 
-    // check that the cell list has been updated as well
+        // check that the cell list has been updated as well
         {
         auto cl = mpcd_sys->getCellList();
         ArrayHandle<unsigned int> h_cl(cl->getCellList(), access_location::host, access_mode::read);
@@ -212,7 +212,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
     {
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -282,7 +282,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
     std::shared_ptr<T> sorter = std::make_shared<T>(mpcd_sys, 0, 1);
     sorter->update(0);
 
-    // check that all particles are properly ordered
+        // check that all particles are properly ordered
         {
         // tag order should be reversed, with virtual particles at the end unsorted
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
@@ -376,7 +376,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[7].w), 3);
         }
 
-    // check that the cell list has been updated as well
+        // check that the cell list has been updated as well
         {
         auto cl = mpcd_sys->getCellList();
         ArrayHandle<unsigned int> h_cl(cl->getCellList(), access_location::host, access_mode::read);

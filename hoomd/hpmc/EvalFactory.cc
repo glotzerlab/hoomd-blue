@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "EvalFactory.h"
 #include "ClangCompiler.h"
 
@@ -19,6 +22,10 @@
 
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! C'tor
 EvalFactory::EvalFactory(const std::string& cpp_code,
                          const std::vector<std::string>& compiler_args,
@@ -116,3 +123,6 @@ EvalFactory::EvalFactory(const std::string& cpp_code,
     /// 2) trying to use static_cast or reinterpret_cast gives compilation errors
     m_eval = (EvalFnPtr)(long unsigned int)(eval->getAddress());
     }
+
+    } // end namespace hpmc
+    } // end namespace hoomd

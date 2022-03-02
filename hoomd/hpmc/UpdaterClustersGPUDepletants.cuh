@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterClustersGPUDepletants.cuh
     \brief Implements the depletant kernels for the geometric cluster algorithm the GPU
@@ -29,6 +29,8 @@
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -110,7 +112,7 @@ __launch_bounds__(max_threads)
     unsigned int* s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int* s_queue_didx = (unsigned int*)(s_queue_gid + max_queue_size);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -263,7 +265,8 @@ __launch_bounds__(max_threads)
 
             // advance depletant idx
             i_dep += group_size * n_groups * blocks_per_particle;
-            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
+            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep <
+              // n_depletants)
 
         __syncthreads();
 
@@ -967,6 +970,7 @@ void hpmc_clusters_depletants(const cluster_args_t& args,
 
     } // end namespace gpu
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE

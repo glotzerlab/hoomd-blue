@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from math import isclose
 import numpy as np
 from pytest import fixture
@@ -71,15 +74,6 @@ def test_dimensions(base_box):
         assert base_box.dimensions == 3
 
 
-def test_lattice_vectors(base_box):
-    expected_vectors = np.array([[1, 0, 0], [2, 2, 0], [6, 9, 3]],
-                                dtype=np.float64)
-    assert np.allclose(base_box.lattice_vectors, expected_vectors)
-    box = Box.cube(4)
-    lattice_vectors = np.array([[4, 0, 0], [0, 4, 0], [0, 0, 4]])
-    assert np.allclose(box.lattice_vectors, lattice_vectors)
-
-
 def get_aspect(L):
     return np.array([L[0] / L[1], L[0] / L[2], L[1] / L[2]])
 
@@ -133,13 +127,13 @@ def expected_matrix(box_dict):
 
 
 def test_matrix(base_box, expected_matrix):
-    assert np.allclose(base_box.matrix, expected_matrix)
+    assert np.allclose(base_box.to_matrix(), expected_matrix)
     base_box.xy *= 2
-    assert isclose(base_box.matrix[0, 1], 2 * expected_matrix[0, 1])
+    assert isclose(base_box.to_matrix()[0, 1], 2 * expected_matrix[0, 1])
     base_box.yz *= 0.5
-    assert isclose(base_box.matrix[1, 2], 0.5 * expected_matrix[1, 2])
+    assert isclose(base_box.to_matrix()[1, 2], 0.5 * expected_matrix[1, 2])
     base_box.Lx *= 3
-    assert isclose(base_box.matrix[0, 0], 3 * expected_matrix[0, 0])
+    assert isclose(base_box.to_matrix()[0, 0], 3 * expected_matrix[0, 0])
 
 
 @fixture
@@ -149,19 +143,6 @@ def new_box_matrix_dict():
     new_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
                                [0, 0, Lz]])
     return dict(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz, matrix=new_box_matrix)
-
-
-def test_matrix_setting(base_box, new_box_matrix_dict):
-    base_box.matrix = new_box_matrix_dict['matrix']
-    assert np.allclose(new_box_matrix_dict['matrix'], base_box.matrix)
-    assert np.allclose(base_box.L, [
-        new_box_matrix_dict['Lx'], new_box_matrix_dict['Ly'],
-        new_box_matrix_dict['Lz']
-    ])
-    assert np.allclose(base_box.tilts, [
-        new_box_matrix_dict['xy'], new_box_matrix_dict['xz'],
-        new_box_matrix_dict['yz']
-    ])
 
 
 def test_cube():
@@ -180,7 +161,7 @@ def test_square():
 
 def test_from_matrix(new_box_matrix_dict):
     box = Box.from_matrix(new_box_matrix_dict['matrix'])
-    assert np.allclose(new_box_matrix_dict['matrix'], box.matrix)
+    assert np.allclose(new_box_matrix_dict['matrix'], box.to_matrix())
     assert np.allclose(box.L, [
         new_box_matrix_dict['Lx'], new_box_matrix_dict['Ly'],
         new_box_matrix_dict['Lz']

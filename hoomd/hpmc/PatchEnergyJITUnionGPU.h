@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #pragma once
 
 #ifdef ENABLE_HIP
@@ -9,6 +12,10 @@
 
 #include <vector>
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code, GPU version
 class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     {
@@ -43,9 +50,10 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
                         options,
                         cuda_devrt_library_path,
                         compute_arch),
-          m_d_union_params(m_sysdef->getParticleData()->getNTypes(),
-                           jit::union_params_t(),
-                           managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
+          m_d_union_params(
+              m_sysdef->getParticleData()->getNTypes(),
+              jit::union_params_t(),
+              hoomd::detail::managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
         {
         m_gpu_factory.setAlphaPtr(m_param_array.data(), this->m_is_union);
         m_gpu_factory.setAlphaUnionPtr(m_param_array_constituent.data());
@@ -184,10 +192,16 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
     private:
     GPUEvalFactory m_gpu_factory; //!< JIT implementation
 
-    std::vector<jit::union_params_t, managed_allocator<jit::union_params_t>>
+    std::vector<jit::union_params_t, hoomd::detail::managed_allocator<jit::union_params_t>>
         m_d_union_params; //!< Parameters for each particle type on GPU
     };
 
+namespace detail
+    {
 //! Exports the PatchEnergyJITUnionGPU class to python
 void export_PatchEnergyJITUnionGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif

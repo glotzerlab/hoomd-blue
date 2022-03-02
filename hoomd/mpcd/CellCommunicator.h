@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellCommunicator.h
@@ -34,6 +32,8 @@
 #include <map>
 #include <set>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Communicates properties across the MPCD cell list
@@ -113,7 +113,7 @@ class PYBIND11_EXPORT CellCommunicator
     const unsigned int m_id;           //!< Id for this communicator to use in tags
 
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
-    std::shared_ptr<::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     const MPI_Comm m_mpi_comm;                                 //!< MPI Communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
@@ -220,7 +220,7 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
         packBuffer(props, op);
         }
 
-    // make the MPI calls
+        // make the MPI calls
         {
         // determine whether to use CPU or GPU CUDA buffers
         access_location::Enum mpi_loc;
@@ -465,6 +465,8 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
     m_tuner_unpack->end();
     }
 #endif // ENABLE_HIP
+
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_COMMUNICATOR_H_
 

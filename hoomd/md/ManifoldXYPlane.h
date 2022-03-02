@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: pschoenhoefer
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __MANIFOLD_CLASS_XY_PLANE_H__
 #define __MANIFOLD_CLASS_XY_PLANE_H__
@@ -23,6 +21,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for constructing the XYPlane surface
 /*! <b>General Overview</b>
 
@@ -97,7 +99,13 @@ class ManifoldXYPlane
     Scalar shift;
     };
 
+namespace detail
+    {
 //! Exports the XYPlane manifold class to python
 void export_ManifoldXYPlane(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_XY_PLANE_H__

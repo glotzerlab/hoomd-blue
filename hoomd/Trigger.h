@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <vector>
 
+namespace hoomd
+    {
 /** Defines on what time steps operations should be performed
  *
  *  System schedules Analyzer and Updater instances to be executed only on specific time steps.
@@ -310,5 +312,11 @@ class PYBIND11_EXPORT OrTrigger : public Trigger
     std::vector<std::shared_ptr<Trigger>> m_triggers;
     };
 
+namespace detail
+    {
 /// Export Trigger classes to Python
 void export_Trigger(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

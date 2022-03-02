@@ -1,19 +1,21 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
-
-namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::IntegrationMethodTwoStep>>);
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false)
     {
@@ -41,17 +43,6 @@ IntegratorTwoStep::~IntegratorTwoStep()
 #endif
     }
 
-/*! \param prof The profiler to set
-    Sets the profiler both for this class and all of the contained integration methods
-*/
-void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    Integrator::setProfiler(prof);
-
-    for (auto& method : m_methods)
-        method->setProfiler(prof);
-    }
-
 /*! \param timestep Current time step of the simulation
     \post All integration methods in m_methods are applied in order to move the system state
     variables forward to \a timestep+1.
@@ -71,9 +62,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // ensure that prepRun() has been called
     assert(m_prepared);
 
-    if (m_prof)
-        m_prof->push("Integrate");
-
     // perform the first step of the integration on all groups
     for (auto& method : m_methods)
         {
@@ -83,9 +71,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
         method->setDeltaT(m_deltaT);
         method->integrateStepOne(timestep);
         }
-
-    if (m_prof)
-        m_prof->pop();
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -118,9 +103,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
         m_half_step_hook->update(timestep + 1);
         }
 
-    if (m_prof)
-        m_prof->push("Integrate");
-
     // perform the second step of the integration on all groups
     for (auto& method : m_methods)
         {
@@ -136,9 +118,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
 
        TODO: check this assumptions holds for all integrators
      */
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param deltaT new deltaT to set
@@ -405,19 +384,25 @@ bool IntegratorTwoStep::areForcesAnisotropic()
     return is_anisotropic;
     }
 
-void export_IntegratorTwoStep(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
+void export_IntegratorTwoStep(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
         m,
         "IntegrationMethodList");
 
-    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
+    pybind11::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
         m,
         "IntegratorTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("integrate_rotational_dof",
                       &IntegratorTwoStep::getIntegrateRotationalDOF,
                       &IntegratorTwoStep::setIntegrateRotationalDOF);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

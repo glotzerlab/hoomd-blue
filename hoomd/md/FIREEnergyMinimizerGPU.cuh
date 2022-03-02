@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: askeys
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
@@ -13,6 +11,12 @@
     \brief Defines the interface to GPU kernel drivers used by FIREEnergyMinimizerGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver for zeroing velocities called by FIREEnergyMinimizerGPU
 hipError_t gpu_fire_zero_v(Scalar4* d_vel, unsigned int* d_group_members, unsigned int group_size);
 
@@ -71,5 +75,9 @@ hipError_t gpu_fire_update_angmom(const Scalar4* d_net_torque,
                                   unsigned int group_size,
                                   Scalar alpha,
                                   Scalar factor_r);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__FIRE_ENERGY_MINIMIZER_GPU_CUH__

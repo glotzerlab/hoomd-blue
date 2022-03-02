@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef _PATCH_ENERGY_JIT_GPU_H_
 #define _PATCH_ENERGY_JIT_GPU_H_
 
@@ -11,6 +14,10 @@
 
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Evaluate patch energies via runtime generated code, GPU version
 class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
     {
@@ -83,6 +90,8 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
     GPUEvalFactory m_gpu_factory; //!< JIT implementation
     };
 
+namespace detail
+    {
 //! Exports the PatchEnergyJIT class to python
 inline void export_PatchEnergyJITGPU(pybind11::module& m)
     {
@@ -101,5 +110,9 @@ inline void export_PatchEnergyJITGPU(pybind11::module& m)
                             const std::string&,
                             unsigned int>());
     }
+
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif
 #endif // _PATCH_ENERGY_JIT_GPU_H_

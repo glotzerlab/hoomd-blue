@@ -1,18 +1,17 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement many body potentials."""
 
+import copy
+import warnings
+
 import hoomd
-from hoomd.data.parameterdicts import TypeParameterDict
-from hoomd.data.typeconverter import OnlyTypes, positive_real
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeconverter import positive_real
 from hoomd.data.typeparam import TypeParameter
 from hoomd.md import _md
 from hoomd.md.force import Force
-from hoomd.md.nlist import NList
-
-validate_nlist = OnlyTypes(NList)
 
 
 class Triplet(Force):
@@ -53,6 +52,12 @@ class Triplet(Force):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
 
+    .. py:attribute:: nlist
+
+        Neighbor list used to compute the triplet potential.
+
+        Type: `hoomd.md.nlist.NList`
+
     Warning:
         Currently HOOMD does not support reverse force communication between MPI
         domains on the GPU. Since reverse force communication is required for
@@ -61,25 +66,66 @@ class Triplet(Force):
     """
 
     def __init__(self, nlist, default_r_cut=None):
-        self._nlist = validate_nlist(nlist)
+        super().__init__()
         r_cut_param = TypeParameter(
             'r_cut', 'particle_types',
             TypeParameterDict(positive_real, len_keys=2))
         if default_r_cut is not None:
             r_cut_param.default = default_r_cut
         self._add_typeparam(r_cut_param)
+        self._param_dict.update(ParameterDict(nlist=hoomd.md.nlist.NList))
+        self.nlist = nlist
+
+    def _add(self, simulation):
+        super()._add(simulation)
+        self._add_nlist()
+
+    def _add_nlist(self):
+        nlist = self.nlist
+        deepcopy = False
+        if not isinstance(self._simulation, hoomd.Simulation):
+            if nlist._added:
+                deepcopy = True
+            else:
+                return
+        # We need to check if the force is added since if it is not then this is
+        # being called by a SyncedList object and a disagreement between the
+        # simulation and nlist._simulation is an error. If the force is added
+        # then the nlist is compatible. We cannot just check the nlist's _added
+        # property because _add is also called when the SyncedList is synced.
+        if deepcopy or nlist._added and nlist._simulation != self._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. To supress the warning explicitly set new nlist.",
+                RuntimeWarning)
+            self.nlist = copy.deepcopy(nlist)
+        self.nlist._add(self._simulation)
+        # This is ideopotent, but we need to ensure that if we change
+        # neighbor list when not attached we handle correctly.
+        self._add_dependency(self.nlist)
+
+    def _setattr_param(self, attr, value):
+        if attr == "nlist":
+            self._nlist_setter(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _nlist_setter(self, new_nlist):
+        if self._attached:
+            raise RuntimeError("nlist cannot be set after scheduling.")
+        old_nlist = self.nlist
+        self._param_dict._dict["nlist"] = new_nlist
+        if self._added:
+            self._add_nlist()
+            old_nlist._remove_dependent(self)
 
     def _attach(self):
-        if not self._nlist._added:
-            self._nlist._add(self._simulation)
-        else:
-            if self._simulation != self._nlist._simulation:
-                raise RuntimeError("{} object's neighbor list is used in a "
-                                   "different simulation.".format(type(self)))
-        if not self.nlist._attached:
-            self.nlist._attach()
+        if self._simulation != self.nlist._simulation:
+            raise RuntimeError("{} object's neighbor list is used in a "
+                               "different simulation.".format(type(self)))
+        self.nlist._attach()
         self.nlist._cpp_obj.setStorageMode(_md.NeighborList.storageMode.full)
-
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
@@ -89,22 +135,6 @@ class Triplet(Force):
                             self.nlist._cpp_obj)
 
         super()._attach()
-
-    @property
-    def nlist(self):
-        """Neighbor list used to compute the pair potential."""
-        return self._nlist
-
-    @nlist.setter
-    def nlist(self, value):
-        if self._attached:
-            raise RuntimeError("nlist cannot be set after scheduling.")
-        else:
-            self._nlist = validate_nlist(value)
-
-    @property
-    def _children(self):
-        return [self._nlist]
 
 
 class Tersoff(Triplet):

@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 //! This file is only included once in JIT compilation
 
 #include "hoomd/BoxDim.h"
@@ -13,6 +16,8 @@
 
 #include <cstdint>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -401,3 +406,4 @@ __launch_bounds__(max_threads) __global__
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

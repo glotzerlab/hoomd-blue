@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
@@ -20,6 +20,10 @@
 #ifndef __POTENTIALBOND_H__
 #define __POTENTIALBOND_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Bond potential with evaluator support
 
     \ingroup computes
@@ -54,7 +58,6 @@ template<class evaluator> class PotentialBond : public ForceCompute
     protected:
     GPUArray<param_type> m_params;         //!< Bond parameters per type
     std::shared_ptr<BondData> m_bond_data; //!< Bond data to use in computing bonds
-    std::string m_prof_name;               //!< Cached profiler name
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -72,7 +75,6 @@ PotentialBond<evaluator>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef
 
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
@@ -142,9 +144,6 @@ template<class evaluator> pybind11::dict PotentialBond<evaluator>::getParams(std
  */
 template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     assert(m_pdata);
 
     // access the particle data arrays
@@ -175,7 +174,7 @@ template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t 
     // we are using the minimum image of the global box here
     // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
     // length)
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
@@ -308,9 +307,6 @@ template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t 
             throw std::runtime_error("Error in bond calculation");
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
@@ -335,6 +331,8 @@ CommFlags PotentialBond<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
+namespace detail
+    {
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
@@ -346,5 +344,9 @@ template<class T> void export_PotentialBond(pybind11::module& m, const std::stri
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

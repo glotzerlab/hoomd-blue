@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
 
@@ -17,6 +15,7 @@
 #include <functional>
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef std::function<std::shared_ptr<mpcd::Communicator>(
@@ -44,11 +43,11 @@ void test_communicator_migrate(communicator_creator comm_creator,
 
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = dest_box;
+    snap->global_box = std::make_shared<BoxDim>(dest_box);
     snap->particle_data.type_mapping.push_back("A");
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
@@ -108,7 +107,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
     UP_ASSERT_EQUAL(pdata->getN(), 1);
     const unsigned int my_rank = exec_conf->getRank();
 
-    // verify all particles were initialized correctly
+        // verify all particles were initialized correctly
         {
         const unsigned int tag = pdata->getTag(0);
         const Scalar3 pos = DEST_TO_REF(pdata->getPosition(0));
@@ -294,7 +293,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             };
         }
 
-    // move particles to new ranks
+        // move particles to new ranks
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -435,7 +434,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             };
         }
 
-    // move particles through the global boundary
+        // move particles through the global boundary
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -712,11 +711,11 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
 
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(4.0, 2.0, 1.0);
+    snap->global_box = std::make_shared<BoxDim>(4.0, 2.0, 1.0);
     snap->particle_data.type_mapping.push_back("A");
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 4, 2, 1));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 4, 2, 1));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
@@ -748,7 +747,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     UP_ASSERT_EQUAL(pdata->getN(), 1);
     UP_ASSERT_EQUAL(pdata->getTag(0), exec_conf->getRank());
 
-    // move particles to new ranks
+        // move particles to new ranks
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -839,7 +838,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
         UP_ASSERT_EQUAL(pdata->getN(), 0);
         }
 
-    // now send multiple particles out from each rank in different directions
+        // now send multiple particles out from each rank in different directions
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -919,11 +918,11 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
 
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(4.0);
+    snap->global_box = std::make_shared<BoxDim>(4.0);
     snap->particle_data.type_mapping.push_back("A");
 
     auto decomposition
-        = std::make_shared<DomainDecomposition>(exec_conf, snap->global_box.getL(), nx, ny, nz);
+        = std::make_shared<DomainDecomposition>(exec_conf, snap->global_box->getL(), nx, ny, nz);
     auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
 
     // empty MPCD system
@@ -986,34 +985,28 @@ UP_TEST(mpcd_communicator_migrate_ortho_test)
 
 UP_TEST(mpcd_communicator_overdecompose_test)
     {
-    // two ranks in any direction
+        // two ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>(),
-                                                                  false,
-                                                                  false);
+                                                                  std::vector<int>());
         exec_conf->getMPIConfig()->splitPartitions(2);
         test_communicator_overdecompose(exec_conf, 2, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 1, 2, false);
         }
-    // four ranks in any direction
+        // four ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>(),
-                                                                  false,
-                                                                  false);
+                                                                  std::vector<int>());
         exec_conf->getMPIConfig()->splitPartitions(4);
         test_communicator_overdecompose(exec_conf, 4, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 1, 4, false);
         }
-    // eight ranks in any direction
+        // eight ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>(),
-                                                                  false,
-                                                                  false);
+                                                                  std::vector<int>());
         exec_conf->getMPIConfig()->splitPartitions(8);
         test_communicator_overdecompose(exec_conf, 8, 1, 1, true);
         test_communicator_overdecompose(exec_conf, 1, 8, 1, true);

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PPPM_FORCE_COMPUTE_H__
 #define __PPPM_FORCE_COMPUTE_H__
@@ -18,8 +18,11 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 
+namespace hoomd
+    {
+namespace md
+    {
 const Scalar EPS_HOC(1.0e-7);
-
 const unsigned int PPPM_MAX_ORDER = 7;
 
 /*! Compute the long-ranged part of the particle-particle particle-mesh Ewald sum (PPPM)
@@ -245,6 +248,12 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     Scalar gf_denom(Scalar x, Scalar y, Scalar z);
     };
 
+namespace detail
+    {
 void export_PPPMForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Building from source
 ====================
 
@@ -31,7 +34,7 @@ To build the documentation from source (optional):
 
 .. note::
 
-   `nbsphinx` requires `pandoc>=1.12.1`, which you may need to install separately.
+   ``nbsphinx`` requires ``pandoc>=1.12.1``, which you may need to install separately.
 
 2. `Build the documentation`_::
 
@@ -74,7 +77,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12)
+- C++17 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12, 13)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
@@ -106,7 +109,7 @@ Install prerequisites
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
    1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The `mpcd` component is disabled on AMD GPUs.
+   2. The ``mpcd`` component is disabled on AMD GPUs.
    3. Multi-GPU execution via unified memory is not available.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
@@ -115,7 +118,11 @@ Install prerequisites
 
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 10.0
+- LLVM >= 10.0, < 13
+
+**To use** `md.pair.aniso.ALJ.get_ordered_vertices`:
+
+- coxeter
 
 **To build the documentation:**
 

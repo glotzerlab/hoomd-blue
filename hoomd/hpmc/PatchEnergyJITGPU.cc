@@ -1,11 +1,15 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_HIP
 
 #include "PatchEnergyJITGPU.h"
 #include "hoomd/hpmc/IntegratorHPMC.h"
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
 void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
     {
@@ -144,4 +148,6 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 #endif
     }
 
+    } // end namespace hpmc
+    } // end namespace hoomd
 #endif

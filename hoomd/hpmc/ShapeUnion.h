@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -22,6 +22,8 @@
 #include <iostream>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -195,7 +197,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
         diameter = OverlapReal(0.0);
 
         // compute a tight fitting AABB in the body frame
-        detail::AABB local_aabb(vec3<OverlapReal>(0, 0, 0), OverlapReal(0.0));
+        hoomd::detail::AABB local_aabb(vec3<OverlapReal>(0, 0, 0), OverlapReal(0.0));
 
         for (unsigned int i = 0; i < N; i++)
             {
@@ -256,7 +258,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
 
             obbs[i].mask = moverlap[i];
 
-            detail::AABB my_aabb = dummy.getAABB(pos);
+            hoomd::detail::AABB my_aabb = dummy.getAABB(pos);
             local_aabb = merge(local_aabb, my_aabb);
             }
 
@@ -408,7 +410,7 @@ template<class Shape> struct ShapeUnion
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         return getOBB(pos).getAABB();
         }
@@ -1526,6 +1528,6 @@ template<> inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere
 #endif
 
     } // end namespace hpmc
-
+    } // end namespace hoomd
 #undef DEVICE
 #undef HOSTDEVICE

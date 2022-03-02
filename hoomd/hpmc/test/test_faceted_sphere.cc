@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hoomd/BoxDim.h"
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/HOOMDMath.h"
@@ -13,7 +16,8 @@ HOOMD_UP_MAIN();
 
 #include <pybind11/pybind11.h>
 
-using namespace hpmc;
+using namespace hoomd;
+using namespace hoomd::hpmc;
 
 unsigned int err_count;
 
@@ -24,7 +28,7 @@ UP_TEST(construction)
     o = o * (Scalar)(Scalar(1.0) / sqrt(norm2(o)));
     Scalar radius = 1.25;
 
-    detail::FacetedEllipsoidParams p(0, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(0, false);
     p.N = 0;
     p.a = p.b = p.c = OverlapReal(radius);
     p.ignore = 0;
@@ -60,7 +64,7 @@ UP_TEST(overlap)
     BoxDim box(100);
 
     // place test spheres
-    detail::FacetedEllipsoidParams p(0, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(0, false);
     p.a = p.b = p.c = 1.25;
     p.ignore = 0;
     p.verts.N = 0;
@@ -70,7 +74,7 @@ UP_TEST(overlap)
     ShapeFacetedEllipsoid a(o, p);
     r_i = vec3<Scalar>(1, 2, 3);
 
-    detail::FacetedEllipsoidParams p2(0, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p2(0, false);
     p2.a = p2.b = p2.c = 1.75;
     p2.ignore = 0;
     p2.verts.N = 0;
@@ -109,7 +113,7 @@ UP_TEST(overlap_boundaries)
     vec3<Scalar> rij = pos_b - pos_a;
     rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
 
-    detail::FacetedEllipsoidParams p(0, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(0, false);
     p.a = p.b = p.c = 1.00;
     p.ignore = 0;
     p.verts.N = 0;
@@ -138,7 +142,7 @@ UP_TEST(overlap_faceted)
     BoxDim box(100);
 
     // place test spheres
-    detail::FacetedEllipsoidParams p(1, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(1, false);
     p.a = p.b = p.c = 0.5;
     p.n[0] = vec3<OverlapReal>(1, 0, 0);
     p.offset[0] = OverlapReal(-.3);
@@ -149,7 +153,7 @@ UP_TEST(overlap_faceted)
 
     ShapeFacetedEllipsoid a(o, p);
 
-    detail::FacetedEllipsoidParams p2(1, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p2(1, false);
     p2.N = 0;
     p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
@@ -213,7 +217,7 @@ UP_TEST(overlap_faceted)
         }
 
     // get a vertex on the intersection circle of sphere a
-    hpmc::detail::SupportFuncFacetedEllipsoid S_a(p, 0.0);
+    hoomd::hpmc::detail::SupportFuncFacetedEllipsoid S_a(p, 0.0);
     vec3<OverlapReal> v_or = S_a(vec3<OverlapReal>(1, OverlapReal(-.3), 0));
     vec3<Scalar> v(v_or.x, v_or.y, v_or.z);
 
@@ -242,7 +246,7 @@ UP_TEST(overlap_faceted_twofacets)
     BoxDim box(100);
 
     // place test spheres
-    detail::FacetedEllipsoidParams p(2, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(2, false);
     p.a = p.b = p.c = 0.5;
     p.ignore = 0;
     p.verts.N = 0;
@@ -258,7 +262,7 @@ UP_TEST(overlap_faceted_twofacets)
     p.initializeVertices();
     ShapeFacetedEllipsoid a(o, p);
 
-    detail::FacetedEllipsoidParams p2(0, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p2(0, false);
     p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
     p2.verts.N = 0;
@@ -293,7 +297,7 @@ UP_TEST(overlap_faceted_threefacets)
     BoxDim box(100);
 
     // place test spheres
-    detail::FacetedEllipsoidParams p(3, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(3, false);
     p.a = p.b = p.c = 0.5;
     p.ignore = 0;
     p.origin = vec3<OverlapReal>(0, 0, 0);
@@ -308,7 +312,7 @@ UP_TEST(overlap_faceted_threefacets)
     p.n[2] = vec3<OverlapReal>(sin(theta) * cos(2 * phi), sin(theta) * sin(2 * phi), cos(theta));
     p.offset[2] = OverlapReal(-0.9 * cos(theta) / 2.0);
 
-    p.verts = detail::PolyhedronVertices(1, false);
+    p.verts = hoomd::hpmc::detail::PolyhedronVertices(1, false);
     p.verts.diameter = 1.0;
     p.verts.x[0] = 0;
     p.verts.y[0] = 0;
@@ -318,7 +322,7 @@ UP_TEST(overlap_faceted_threefacets)
 
     ShapeFacetedEllipsoid a(o, p);
 
-    detail::FacetedEllipsoidParams p2(0, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p2(0, false);
     p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
     p2.verts.N = 0;
@@ -361,7 +365,7 @@ UP_TEST(overlap_faceted_offset)
     BoxDim box(100);
 
     // place test spheres
-    detail::FacetedEllipsoidParams p(1, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(1, false);
     p.a = p.b = p.c = 0.5;
     p.n[0] = vec3<OverlapReal>(1, 0, 0);
     p.ignore = 0;
@@ -371,7 +375,7 @@ UP_TEST(overlap_faceted_offset)
 
     ShapeFacetedEllipsoid a(o, p);
 
-    detail::FacetedEllipsoidParams p2(0, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p2(0, false);
     p2.a = p2.b = p2.c = 0.5;
     p2.ignore = 0;
     p2.verts.N = 0;
@@ -411,7 +415,7 @@ UP_TEST(overlap_faceted_offset)
 
 UP_TEST(random_support_test)
     {
-    detail::FacetedEllipsoidParams p(6, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(6, false);
     p.a = p.b = p.c = 0.5;
     p.ignore = 0;
     p.verts.N = 0;
@@ -438,7 +442,7 @@ UP_TEST(random_support_test)
 
     hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2), hoomd::Counter(4, 5, 6));
 
-    detail::SupportFuncFacetedEllipsoid support(p, 0.0);
+    hoomd::hpmc::detail::SupportFuncFacetedEllipsoid support(p, 0.0);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
@@ -460,7 +464,7 @@ UP_TEST(random_support_test)
 
 UP_TEST(random_support_test_2)
     {
-    detail::FacetedEllipsoidParams p(2, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(2, false);
     p.a = p.b = p.c = 0.5;
     p.ignore = 0;
     p.verts.N = 0;
@@ -485,7 +489,7 @@ UP_TEST(random_support_test_2)
 
     hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2), hoomd::Counter(4, 5, 6));
 
-    detail::SupportFuncFacetedEllipsoid support(p, 0.0);
+    hoomd::hpmc::detail::SupportFuncFacetedEllipsoid support(p, 0.0);
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
@@ -510,7 +514,7 @@ UP_TEST(overlap_special_case)
     // parameters
     BoxDim box(100);
 
-    detail::FacetedEllipsoidParams p(2, false);
+    hoomd::hpmc::detail::FacetedEllipsoidParams p(2, false);
     p.a = p.b = p.c = 0.5;
     p.ignore = 0;
     p.verts.N = 0;
