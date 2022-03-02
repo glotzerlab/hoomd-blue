@@ -130,7 +130,12 @@ class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
             self._update_tunables()
         if self._update_move_sizes:
             for tunable in self._tunables:
-                max_move_size = self.max_move_size[tunable.attr]
+                if tunable.index >= 0:
+                    direction = ("x", "y", "z")[tunable.index]
+                    move_size_attr = f"{tunable.attr}_{direction}"
+                else:
+                    move_size_attr = tunable.attr
+                max_move_size = self.max_move_size[move_size_attr]
                 tunable.domain = (self._min_move_size, max_move_size)
         super().act(timestep)
 
