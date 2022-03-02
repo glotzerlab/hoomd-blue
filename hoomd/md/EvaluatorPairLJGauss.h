@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
+// Copyright (c) 2009-2022 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jproc
@@ -17,9 +17,9 @@
     \details .....
 */
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
-// compiler
+// need to declare these class methods with __device__ qualifiers when building
+// in nvcc DEVICE is __host__ __device__ when included in nvcc and blank when
+// included into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -27,6 +27,11 @@
 #define DEVICE
 #define HOSTDEVICE
 #endif
+
+namespace hoomd
+    {
+namespace md
+    {
 
 //! Class for evaluating the LJGauss pair potential
 /*! <b>General Overview</b>
@@ -157,6 +162,16 @@ class EvaluatorPairLJGauss
         else
             return false;
         }
+        
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
 
 #ifndef __HIPCC__
     //! Get the name of this potential
@@ -181,5 +196,8 @@ class EvaluatorPairLJGauss
     Scalar sigma2;  //!< sigma^2 parameter extracted from the params passed to the constructor
     Scalar r0;      //!< r0 prarameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJGAUSS_H__
