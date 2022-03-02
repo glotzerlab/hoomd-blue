@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file test_warp_tools.cu
@@ -19,6 +17,10 @@
 #define MAX_TPP 32
 #endif
 
+namespace hoomd
+    {
+namespace test
+    {
 //! Performs an iterative warp reduction on a data set using \a tpp threads per row.
 /*!
  * \param d_data Data to scan as a N x width matrix.
@@ -271,3 +273,6 @@ void warp_scan(const scan_params& params)
     hipMemset(params.sum, 0, params.N * sizeof(int));
     warp_scan_launcher<MAX_TPP>(params);
     }
+
+    } // end namespace test
+    } // end namespace hoomd

@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.0.0-beta.10")
+set(HOOMD_VERSION_RAW "3.0.0-beta.14")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -56,14 +56,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+# Since we support the last two major releases of the CUDA toolkit, we cannot
+# use C++17 as the CUDA standard until CUDA 12.
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 endif()
 
@@ -95,7 +97,6 @@ else ()
 option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
-option(BUILD_DEM "Build the dem package" on)
 
 # Optionally use TBB for threading
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
@@ -126,8 +127,6 @@ if (Eigen3_FOUND)
     find_package_message(EIGEN3 "Found eigen: ${Eigen3_DIR} ${EIGEN3_INCLUDE_DIR} (version ${Eigen3_VERSION})" "[${Eigen3_DIR}][${EIGEN3_INCLUDE_DIR}]")
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
-
 #########################################
 # Check for submodules
 if (
@@ -154,16 +153,6 @@ if (
                             "must be provided.")
     endif()
 endif()
-
-find_package(libgetar)
-
-if (libgetar_DIR)
-  set(LIBGETAR_SHARED TRUE)
-  add_subdirectory(${libgetar_DIR} EXCLUDE_FROM_ALL)
-else (libgetar_DIR)
-  message(FATAL_ERROR "Libgetar was not found in hoomd/extern/libgetar. Please "
-                      "pull the libgetar source, i.e. via `git submodule update`.")
-endif (libgetar_DIR)
 
 #######################
 ## Get the compile date

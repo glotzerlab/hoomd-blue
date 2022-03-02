@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander / Everyone is free to add additional potentials
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file AllDriverPotentialPairGPU.cuh
     \brief Declares driver functions for computing all types of pair forces on the GPU
@@ -15,6 +13,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairExpandedLJ.h"
 #include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairFourier.h"
@@ -28,7 +27,6 @@
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairReactionField.h"
-#include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairTWF.h"
 #include "EvaluatorPairTable.h"
 #include "EvaluatorPairYukawa.h"
@@ -36,6 +34,12 @@
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "PotentialPairGPU.cuh"
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
@@ -46,9 +50,10 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_gauss_forces(const pair_args_t& pair_args,
                          const EvaluatorPairGauss::param_type* d_params);
 
-//! Compute slj pair forces on the GPU with PairEvaluatorGauss
+//! Compute expanded lj pair forces on the GPU with PairEvaluatorExpandedLJ
 hipError_t __attribute__((visibility("default")))
-gpu_compute_slj_forces(const pair_args_t& pair_args, const EvaluatorPairSLJ::param_type* d_params);
+gpu_compute_expanded_lj_forces(const pair_args_t& pair_args,
+                               const EvaluatorPairExpandedLJ::param_type* d_params);
 
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
@@ -154,5 +159,9 @@ gpu_compute_twf_forces(const pair_args_t& pair_args, const EvaluatorPairTWF::par
 hipError_t __attribute__((visibility("default")))
 gpu_compute_lj_gauss_forces(const pair_args_t& pair_args,
                             const EvaluatorPairLJGauss::param_type* d_params);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

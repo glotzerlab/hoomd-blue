@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_CALLBACK_H_
 #define _EXTERNAL_CALLBACK_H_
@@ -18,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 template<class Shape>
@@ -48,11 +50,12 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     //! Compute DeltaU = Unew-Uold
     /*! \param position_old_arg Old (local) positions
         \param orientation_old_arg Old (local) orientations
-        \param box_old_arg Old (global) box
+        \param box_old Old (global) box
      */
-    double calculateDeltaE(const Scalar4* const position_old_arg,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim* const box_old_arg)
+                           const BoxDim& box_old)
         {
         auto snap = takeSnapshot();
         double energy_new = getEnergy(snap);
@@ -60,7 +63,7 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
         // update snapshot with old configuration
         // FIXME: this will not work in MPI, we will have to broadcast to root and modify snapshot
         // there
-        snap->global_box = *box_old_arg;
+        snap->global_box = std::make_shared<BoxDim>(box_old);
         unsigned int N = this->m_pdata->getN();
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
                                         access_location::host,
@@ -83,7 +86,8 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     void compute(uint64_t timestep) { }
 
     // Compute the energy difference for a proposed move on a single particle
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
@@ -145,6 +149,8 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     pybind11::object callback; //! The python callback
     };
 
+namespace detail
+    {
 template<class Shape> void export_ExternalCallback(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ExternalCallback<Shape>,
@@ -153,6 +159,7 @@ template<class Shape> void export_ExternalCallback(pybind11::module& m, const st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
     }
 
-    } // namespace hpmc
-
+    }  // end namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // _EXTERNAL_FIELD_LATTICE_H_

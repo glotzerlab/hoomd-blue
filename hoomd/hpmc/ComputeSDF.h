@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_SDF__H__
 #define __COMPUTE_SDF__H__
@@ -27,6 +27,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -218,9 +220,6 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     {
     zeroHistogram();
 
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "SDF");
-
     countHistogram(timestep);
 
     std::vector<unsigned int> hist_total(m_hist);
@@ -245,9 +244,6 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
         {
         m_sdf[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
         }
-
-    if (this->m_prof)
-        this->m_prof->pop();
     }
 
 // \return the sdf histogram
@@ -284,7 +280,7 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
 template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
     // update the aabb tree
-    const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
@@ -298,7 +294,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                        access_location::host,
                                        access_mode::read);
 
-    const std::vector<param_type, managed_allocator<param_type>>& params = m_mc->getParams();
+    const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
+        = m_mc->getParams();
 
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -313,14 +310,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
-                                  shape_i.getCircumsphereDiameter() / Scalar(2) + extra_width);
+        hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
+                                         shape_i.getCircumsphereDiameter() / Scalar(2)
+                                             + extra_width);
 
         size_t n_images = image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-            detail::AABB aabb = aabb_i_local;
+            hoomd::detail::AABB aabb = aabb_i_local;
             aabb.translate(pos_i_image);
 
             // stackless search
@@ -436,6 +434,8 @@ size_t ComputeSDF<Shape>::computeBin(const vec3<Scalar>& r_ij,
     return L;
     }
 
+namespace detail
+    {
 //! Export this hpmc compute to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of ComputeSDFe<Shape> will be exported
@@ -453,6 +453,9 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // __COMPUTE_SDF__H__

@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Snapshot."""
 
@@ -329,9 +328,9 @@ class Snapshot:
                 stored on every rank.
 
         Note:
-            `from_gsd_snapshot` only accesses the `gsd_snap` argument on rank 0.
-            In MPI simulations, avoid duplicating memory and file reads by
-            reading GSD files only on rank 0 and passing `gsd_snap=None` on
+            `from_gsd_snapshot` only accesses the ``gsd_snap`` argument on rank
+            0. In MPI simulations, avoid duplicating memory and file reads by
+            reading GSD files only on rank 0 and passing ``gsd_snap=None`` on
             other ranks.
         """
         snap = cls(communicator=communicator)

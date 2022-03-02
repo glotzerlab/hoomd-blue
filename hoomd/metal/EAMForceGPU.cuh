@@ -1,8 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: Lin Yang, Alex Travesset
-// Previous Maintainer: Morozov
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -15,6 +12,12 @@
 #ifndef __EAMTexInterForceGPU_CUH__
 #define __EAMTexInterForceGPU_CUH__
 
+namespace hoomd
+    {
+namespace metal
+    {
+namespace kernel
+    {
 //! Collection of parameters for EAM force GPU kernels
 struct EAMTexInterData
     {
@@ -38,7 +41,7 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const BoxDim& box,
                                             const unsigned int* d_n_neigh,
                                             const unsigned int* d_nlist,
-                                            const unsigned int* d_head_list,
+                                            const size_t* d_head_list,
                                             const size_t size_nlist,
                                             const EAMTexInterData* d_eam_data,
                                             Scalar* d_dFdP,
@@ -49,5 +52,9 @@ hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
                                             const Scalar4* d_drho,
                                             const Scalar4* d_drphi,
                                             const unsigned int block_size);
+
+    } // end namespace kernel
+    } // end namespace metal
+    } // end namespace hoomd
 
 #endif

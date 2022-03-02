@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
@@ -13,11 +13,10 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -26,15 +25,14 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-namespace py = pybind11;
-using namespace hpmc;
-
-using namespace hpmc::detail;
-
+namespace hoomd
+    {
 namespace hpmc
     {
+namespace detail
+    {
 //! Export the base HPMCMono integrators
-void export_polyhedron(py::module& m)
+void export_polyhedron(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedron");
     export_ComputeFreeVolume<ShapePolyhedron>(m, "ComputeFreeVolumePolyhedron");
@@ -43,10 +41,9 @@ void export_polyhedron(py::module& m)
     export_UpdaterClusters<ShapePolyhedron>(m, "UpdaterClustersPolyhedron");
 
     export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
-    export_LatticeField<ShapePolyhedron>(m, "ExternalFieldLatticePolyhedron");
+    export_HarmonicField<ShapePolyhedron>(m, "ExternalFieldHarmonicPolyhedron");
     export_ExternalFieldComposite<ShapePolyhedron>(m, "ExternalFieldCompositePolyhedron");
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
-    export_UpdaterExternalFieldWall<ShapePolyhedron>(m, "UpdaterExternalFieldWallPolyhedron");
     export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
 #ifdef ENABLE_HIP
@@ -56,4 +53,6 @@ void export_polyhedron(py::module& m)
 #endif
     }
 
+    } // namespace detail
     } // namespace hpmc
+    } // namespace hoomd

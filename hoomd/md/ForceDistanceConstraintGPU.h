@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraint.h"
 
@@ -36,6 +34,10 @@
 
 #include "hoomd/GPUVector.h"
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements a pairwise distance constraint on the GPU
 
     See Integrator for detailed documentation on constraint force implementation.
@@ -122,7 +124,13 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     virtual void computeConstraintForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the ForceDistanceConstraint to python
 void export_ForceDistanceConstraintGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

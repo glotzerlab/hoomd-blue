@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_DPDLJ_H__
 #define __PAIR_EVALUATOR_DPDLJ_H__
@@ -30,6 +28,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the DPD Thermostat pair potential
 /*! <b>General Overview</b>
 
@@ -83,8 +85,8 @@ class EvaluatorPairDPDLJThermo
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar lj1;
-        Scalar lj2;
+        Scalar sigma_6;
+        Scalar epsilon_x_4;
         Scalar gamma;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
@@ -100,14 +102,14 @@ class EvaluatorPairDPDLJThermo
 #endif
 
 #ifndef __HIPCC__
-        param_type() : lj1(0), lj2(0), gamma(0) { }
+        param_type() : sigma_6(0), epsilon_x_4(0), gamma(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
-            lj1 = 4.0 * epsilon * pow(sigma, 12.0);
-            lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+            sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
+            epsilon_x_4 = Scalar(4.0) * epsilon;
             gamma = v["gamma"].cast<Scalar>();
             if (gamma == 0)
                 throw std::invalid_argument(
@@ -117,9 +119,8 @@ class EvaluatorPairDPDLJThermo
         pybind11::dict asDict()
             {
             pybind11::dict v;
-            auto sigma6 = lj1 / lj2;
-            v["sigma"] = pow(sigma6, 1. / 6.);
-            v["epsilon"] = lj2 / (sigma6 * 4);
+            v["sigma"] = pow(sigma_6, 1. / 6.);
+            v["epsilon"] = epsilon_x_4 / 4.0;
             v["gamma"] = gamma;
             return v;
             }
@@ -132,7 +133,8 @@ class EvaluatorPairDPDLJThermo
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairDPDLJThermo(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2), gamma(_params.gamma)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6), gamma(_params.gamma)
         {
         }
 
@@ -293,6 +295,16 @@ class EvaluatorPairDPDLJThermo
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -324,5 +336,8 @@ class EvaluatorPairDPDLJThermo
     };
 
 #undef DEVICE
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DPDLJ_H__

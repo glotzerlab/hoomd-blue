@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_PERIODIC_H__
 #define __EVALUATOR_EXTERNAL_PERIODIC_H__
@@ -27,6 +25,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
     EvaluatorExternalPeriodic is an evaluator to induce a periodic modulation on the concentration
@@ -79,7 +81,7 @@ class EvaluatorExternalPeriodic
 #endif
         } __attribute__((aligned(16)));
 
-    typedef Scalar field_type; // dummy type
+    typedef void* field_type; // dummy type
 
     //! Constructs the constraint evaluator
     /*! \param X position of particle
@@ -197,5 +199,8 @@ class EvaluatorExternalPeriodic
     Scalar m_interfaceWidth;    //!< width of interface between lamellae (relative to box length)
     unsigned int m_periodicity; //!< number of lamellae of each type
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

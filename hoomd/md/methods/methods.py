@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods."""
 
@@ -23,7 +22,14 @@ class Method(_HOOMDBaseObject):
     Note:
         Users should use the subclasses and not instantiate `Method` directly.
     """
-    pass
+
+    def _attach(self):
+        self._simulation.state.update_group_dof()
+        super()._attach()
+
+    def _detach(self):
+        self._simulation.state.update_group_dof()
+        super()._detach()
 
 
 class NVT(Method):
@@ -131,13 +137,14 @@ class NVT(Method):
     def thermalize_thermostat_dof(self):
         r"""Set the thermostat momenta to random values.
 
-        `thermalize_extra_dof` sets a random value for the momentum :math:`\xi`.
-        When `Integrator.aniso` is `True`, it also sets a random value for the
-        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
-        `thermalize_extra_dof` to set a new random state for the thermostat.
+        `thermalize_thermostat_dof` sets a random value for the momentum
+        :math:`\xi`. When `Integrator.integrate_rotational_dof` is `True`, it
+        also sets a random value for the rotational thermostat momentum
+        :math:`\xi_{\mathrm{rot}}`. Call `thermalize_thermostat_dof` to set a
+        new random state for the thermostat.
 
         .. important::
-            You must call `Simulation.run` before `thermalize_extra_dof`.
+            You must call `Simulation.run` before `thermalize_thermostat_dof`.
             Call ``run(steps=0)`` to prepare a newly created `hoomd.Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
@@ -423,10 +430,10 @@ class NPT(Method):
 
         `thermalize_thermostat_and_barostat_dof` sets a random value for the
         momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
-        `Integrator.aniso` is `True`, it also sets a random value for the
-        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
-        `thermalize_thermostat_and_barostat_dof` to set a new random state for
-        the thermostat and barostat.
+        `Integrator.integrate_rotational_dof` is `True`, it also sets a random
+        value for the rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`.
+        Call `thermalize_thermostat_and_barostat_dof` to set a new random state
+        for the thermostat and barostat.
 
         .. important::
             You must call `Simulation.run` before
@@ -917,8 +924,8 @@ class Brownian(Method):
     In Brownian dynamics, particle velocities are completely decoupled from
     positions. At each time step, `Brownian` draws a new velocity
     distribution consistent with the current set temperature so that
-    `hoomd.compute.thermo` will report appropriate temperatures and
-    pressures if logged or needed by other commands.
+    `hoomd.md.compute.ThermodynamicQuantities` will report appropriate
+    temperatures and pressures when logged or used by other methods.
 
     Brownian dynamics neglects the acceleration term in the Langevin equation.
     This assumption is valid when overdamped:

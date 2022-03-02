@@ -1,11 +1,9 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement type conversion helpers."""
 
 import numpy as np
-from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from inspect import isclass
@@ -110,16 +108,38 @@ class _HelpValidate(ABC):
         self._allow_none = allow_none
 
     def __call__(self, value):
+        if value is RequiredArg:
+            return value
         if value is None:
             if not self._allow_none:
                 raise ValueError("None is not allowed.")
             else:
                 return None
-        return self._postprocess(self._validate(self._preprocess(value)))
+        try:
+            return self._postprocess(self._validate(self._preprocess(value)))
+        except Exception as err:
+            if isinstance(err, TypeConversionError):
+                raise err
+            raise TypeConversionError(
+                f"Error raised in conversion: {str(err)}") from err
 
     @abstractmethod
     def _validate(self, value):
         pass
+
+
+class Any(_HelpValidate):
+    """Accept any input."""
+
+    def __init__(self, preprocess=None, postprocess=None):
+        super().__init__(preprocess, postprocess)
+
+    def _validate(self, value):
+        return value
+
+    def __str__(self):
+        """str: String representation of the validator."""
+        return "Any()"
 
 
 class Either(_HelpValidate):
@@ -203,7 +223,8 @@ class OnlyTypes(_HelpValidate):
 
     def _validate(self, value):
         if isinstance(value, self.disallow_types):
-            raise ValueError(f"Value {value} cannot be of type {type(value)}")
+            raise TypeConversionError(
+                f"Value {value} cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
@@ -289,9 +310,14 @@ class TypeConverter(ABC):
     def __init__(self, *args, **kwargs):
         pass
 
-    @abstractmethod
     def __call__(self, value):
         """Called when values are set."""
+        if value is RequiredArg:
+            return value
+        return self._validate(value)
+
+    @abstractmethod
+    def _validate(self, value):
         pass
 
 
@@ -353,40 +379,8 @@ class NDArrayValidator(_HelpValidate):
         return typed_and_ordered
 
 
-class TypeConverterValue(TypeConverter):
-    """Represents a scalar value of some kind.
-
-    Parameters:
-        value (Any): Whatever defines the validation. Many ways to specify the
-        validation exist.
-
-    Attributes:
-        _conversion_func_dict (dict[type, Callable[Any]): A dictionary of type
-        (e.g. list, str) - callable mappings. The callable is the default
-        validation for a given type.
-
-    Specification:
-        The initialization specification goes through the following process. If
-        the value is of a type in `self._conversion_func_dict` or is a type
-        in `self._conversion_func_dict` then we use the mapping validation
-        function. Otherwise if the value is a class we use `OnlyTypes(value)`.
-        Generic callables just get used directly, and finally if no check passes
-        we use `OnlyTypes(type(value))`.
-
-        Examples of valid ways to specify an integer specification,
-
-        .. code-block:: python
-
-            TypeConverterValue(1)
-            TypeConverterValue(int)
-
-            def natural_number(value):
-                if i < 1:
-                    raise ValueError(
-                        f"Value {value} must be a natural number.")
-
-            TypeConverterValue(OnlyTypes(int, postprocess=natural_number))
-    """
+class _BaseConverter:
+    """Get the base level (i.e. no deeper level exists) validator."""
     _conversion_func_dict = {
         Variant:
             OnlyTypes(Variant, preprocess=variant_preprocessing),
@@ -396,47 +390,37 @@ class TypeConverterValue(TypeConverter):
             OnlyTypes(str, strict=True),
         Trigger:
             OnlyTypes(Trigger, preprocess=trigger_preprocessing),
+        hoomd.Box:
+            OnlyTypes(hoomd.Box, preprocess=box_preprocessing),
         # arrays default to float of one dimension of arbitrary length and
         # ordering
         np.ndarray:
             NDArrayValidator(float),
     }
 
-    def __init__(self, value):
-        # If the value is a class object
-        if isclass(value):
+    @classmethod
+    def to_base_converter(cls, schema):
+        # If the schema is a class object
+        if isclass(schema):
             # if constructor with special default setting logic
-            for cls in self._conversion_func_dict:
-                if issubclass(value, cls):
-                    self.converter = self._conversion_func_dict[cls]
-                    return None
+            for special_class in cls._conversion_func_dict:
+                if issubclass(schema, special_class):
+                    return cls._conversion_func_dict[special_class]
             # constructor with no special logic
-            self.converter = OnlyTypes(value)
-            return None
+            return OnlyTypes(schema)
 
-        # If the value is a class instance
-        # if value is a subtype of a type with special value setting logic
-        for cls in self._conversion_func_dict:
-            if isinstance(value, cls):
-                self.converter = self._conversion_func_dict[cls]
-                return None
+        # If the schema is a special_class instance
+        # if schema is a subtype of a type with special schema setting logic
+        for special_class in cls._conversion_func_dict:
+            if isinstance(schema, special_class):
+                return cls._conversion_func_dict[special_class]
 
-        # if value is a callable assume that it is the validation function
-        if callable(value):
-            self.converter = value
+        # if schema is a callable assume that it is the validation function
+        if callable(schema):
+            return schema
         # if any other object
         else:
-            self.converter = OnlyTypes(type(value))
-
-    def __call__(self, value):
-        """Called when the value is set."""
-        try:
-            return self.converter(value)
-        except (TypeError, ValueError) as err:
-            raise TypeConversionError(
-                f"Value {value} of type {type(value)} cannot be converted "
-                f"using {str(self.converter)}. Raised error: {str(err)}"
-            ) from err
+            return OnlyTypes(type(schema))
 
 
 class TypeConverterSequence(TypeConverter):
@@ -446,30 +430,26 @@ class TypeConverterSequence(TypeConverter):
     the inputted sequence, a corresponding `TypeConverter` object is
     constructed.
 
-    Parameters:
-        sequence (Sequence[Any]): Any sequence or iterator, anything else passed
-            is an error.
+    Args:
+         coverter (TypeConverter): Any object compatible with the type converter
+            API.
 
     Specification:
-        When validating, if a single element was given that element is repeated
-        for every element of the inputed sequence. Otherwise, we cycle through
-        the given values. This makes this class unsuited for fix length
-        sequences (`TypeConverterFixedLengthSequence` exists for this). Examples
-        include,
+        When validating, the given element was given that element is repeated
+        for every element of the inputed sequence. This class is unsuited for
+        fix length sequences (`TypeConverterFixedLengthSequence` exists for
+        this). An Example,
 
         .. code-block:: python
 
             # All elements should be floats
-            TypeConverterSequence([float])
-
-            # All elements should be in a float int ordering
-            TypeConverterSequence([float, int])
+            TypeConverterSequence(float)
     """
 
-    def __init__(self, sequence):
-        self.converter = [to_type_converter(item) for item in sequence]
+    def __init__(self, converter):
+        self.converter = to_type_converter(converter)
 
-    def __call__(self, sequence):
+    def _validate(self, sequence):
         """Called when the value is set."""
         if not _is_iterable(sequence):
             raise TypeConversionError(
@@ -478,19 +458,12 @@ class TypeConverterSequence(TypeConverter):
         else:
             new_sequence = []
             try:
-                for i, (v, c) in enumerate(zip(sequence, self)):
-                    new_sequence.append(c(v))
+                for i, v in enumerate(sequence):
+                    new_sequence.append(self.converter(v))
             except (ValueError, TypeError) as err:
                 raise TypeConversionError(
-                    "In list item number {i}: {str(err)}") from err
+                    f"In list item number {i}: {str(err)}") from err
             return new_sequence
-
-    def __iter__(self):
-        """Iterate over converters in the sequence."""
-        if len(self.converter) == 1:
-            yield from repeat(self.converter[0])
-        else:
-            yield from cycle(self.converter)
 
 
 class TypeConverterFixedLengthSequence(TypeConverter):
@@ -520,7 +493,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
     def __init__(self, sequence):
         self.converter = tuple([to_type_converter(item) for item in sequence])
 
-    def __call__(self, sequence):
+    def _validate(self, sequence):
         """Called when the value is set."""
         if not _is_iterable(sequence):
             raise TypeConversionError(
@@ -543,6 +516,10 @@ class TypeConverterFixedLengthSequence(TypeConverter):
     def __iter__(self):
         """Iterate over converters in the sequence."""
         yield from self.converter
+
+    def __getitem__(self, index):
+        """Return the index-th converter."""
+        return self.converter[index]
 
 
 class TypeConverterMapping(TypeConverter, MutableMapping):
@@ -578,22 +555,23 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
             key: to_type_converter(value) for key, value in mapping.items()
         }
 
-    def __call__(self, mapping):
+    def _validate(self, mapping):
         """Called when the value is set."""
         if not isinstance(mapping, Mapping):
             raise TypeConversionError(
                 f"Expected a dict like value. Recieved {mapping} of type "
                 f"{type(mapping)}.")
 
-        new_mapping = dict()
-        try:
-            for key, value in mapping.items():
-                if key in self:
+        new_mapping = {}
+        for key, value in mapping.items():
+            if key in self:
+                try:
                     new_mapping[key] = self.converter[key](value)
-                else:
-                    new_mapping[key] = value
-        except (ValueError, TypeError) as err:
-            raise TypeConversionError(f"In key {key}: {str(err)}") from err
+                except (ValueError, TypeError) as err:
+                    raise TypeConversionError(
+                        f"In key {key}: {str(err)}") from err
+            else:
+                new_mapping[key] = value
         return new_mapping
 
     def __iter__(self):
@@ -632,8 +610,10 @@ def to_type_converter(value):
     if isinstance(value, tuple):
         return TypeConverterFixedLengthSequence(value)
     if _is_iterable(value):
-        return TypeConverterSequence(value)
+        if len(value) == 0:
+            return TypeConverterSequence(Any())
+        return TypeConverterSequence(value[0])
     elif isinstance(value, Mapping):
         return TypeConverterMapping(value)
     else:
-        return TypeConverterValue(value)
+        return _BaseConverter.to_base_converter(value)

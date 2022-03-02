@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
 #include "NeighborList.h"
@@ -20,6 +18,10 @@
 #ifndef __ForceCompositeGPU_H__
 #define __ForceCompositeGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     {
     public:
@@ -88,7 +90,13 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     GlobalVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
     };
 
+namespace detail
+    {
 //! Exports the ForceCompositeGPU to python
 void export_ForceCompositeGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

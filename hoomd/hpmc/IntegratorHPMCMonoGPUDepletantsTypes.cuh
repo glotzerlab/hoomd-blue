@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -15,6 +15,8 @@
 // base data types
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -92,3 +94,4 @@ void reduce_counters(const unsigned int ngpu,
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

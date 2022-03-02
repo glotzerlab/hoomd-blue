@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__
 #define __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__
@@ -30,6 +28,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the force shifted LJ pair potential
 /*! This evaluator is a variant of the Lennard-Jones pair potential, for which the force goes
    smoothly to zero at \f$ r = r_{\mathrm{cut}} \f$.
@@ -67,7 +69,8 @@ class EvaluatorPairForceShiftedLJ
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairForceShiftedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
+          lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
         }
 
@@ -132,6 +135,16 @@ class EvaluatorPairForceShiftedLJ
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -153,5 +166,8 @@ class EvaluatorPairForceShiftedLJ
     Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__

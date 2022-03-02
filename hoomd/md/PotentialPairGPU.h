@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_GPU_H__
 #define __POTENTIAL_PAIR_GPU_H__
@@ -26,6 +24,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials on the GPU
 /*! Derived from PotentialPair, this class provides exactly the same interface for computing pair
    potentials and forces. In the same way as PotentialPair, this class serves as a shell dealing
@@ -44,7 +46,7 @@
     \sa export_PotentialPairGPU()
 */
 template<class evaluator,
-         hipError_t gpu_cgpf(const pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
@@ -85,7 +87,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     };
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                         std::shared_ptr<NeighborList> nlist)
@@ -122,15 +124,11 @@ PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDe
     }
 
 template<class evaluator,
-         hipError_t gpu_cgpf(const pair_args_t& pair_args,
+         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
                              const typename evaluator::param_type* d_params)>
 void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
-
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, this->m_prof_name);
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
@@ -148,9 +146,9 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
-                                          access_location::device,
-                                          access_mode::read);
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
+                                    access_location::device,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -182,28 +180,28 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_cgpf(pair_args_t(d_force.data,
-                         d_virial.data,
-                         this->m_virial.getPitch(),
-                         this->m_pdata->getN(),
-                         this->m_pdata->getMaxN(),
-                         d_pos.data,
-                         d_diameter.data,
-                         d_charge.data,
-                         box,
-                         d_n_neigh.data,
-                         d_nlist.data,
-                         d_head_list.data,
-                         d_rcutsq.data,
-                         d_ronsq.data,
-                         this->m_nlist->getNListArray().getPitch(),
-                         this->m_pdata->getNTypes(),
-                         block_size,
-                         this->m_shift_mode,
-                         flags[pdata_flag::pressure_tensor],
-                         threads_per_particle,
-                         this->m_pdata->getGPUPartition(),
-                         this->m_exec_conf->dev_prop),
+    gpu_cgpf(kernel::pair_args_t(d_force.data,
+                                 d_virial.data,
+                                 this->m_virial.getPitch(),
+                                 this->m_pdata->getN(),
+                                 this->m_pdata->getMaxN(),
+                                 d_pos.data,
+                                 d_diameter.data,
+                                 d_charge.data,
+                                 box,
+                                 d_n_neigh.data,
+                                 d_nlist.data,
+                                 d_head_list.data,
+                                 d_rcutsq.data,
+                                 d_ronsq.data,
+                                 this->m_nlist->getNListArray().getPitch(),
+                                 this->m_pdata->getNTypes(),
+                                 block_size,
+                                 this->m_shift_mode,
+                                 flags[pdata_flag::pressure_tensor],
+                                 threads_per_particle,
+                                 this->m_pdata->getGPUPartition(),
+                                 this->m_exec_conf->dev_prop),
              this->m_params.data());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -213,10 +211,12 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
 
     this->m_exec_conf->endMultiGPU();
 
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
+    // energy and pressure corrections
+    this->computeTailCorrection();
     }
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
@@ -230,6 +230,10 @@ void export_PotentialPairGPU(pybind11::module& m, const std::string& name)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setTuningParam", &T::setTuningParam);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_GPU_H__

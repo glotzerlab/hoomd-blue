@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Communicator.h"
 #include "hoomd/mpcd/CellCommunicator.h"
@@ -16,6 +14,8 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for correct calculation of MPCD grid dimensions
 void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    bool mpi_x,
@@ -26,7 +26,7 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
         return;
 
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(5.0);
+    snap->global_box = std::make_shared<BoxDim>(5.0);
     snap->particle_data.type_mapping.push_back("A");
     snap->particle_data.resize(0);
 
@@ -50,7 +50,7 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
         }
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), n_req_ranks);
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), fx, fy, fz));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), fx, fy, fz));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
@@ -149,11 +149,11 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(6.0);
+    snap->global_box = std::make_shared<BoxDim>(6.0);
     snap->particle_data.type_mapping.push_back("A");
     snap->particle_data.resize(0);
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
@@ -224,21 +224,21 @@ UP_TEST(mpcd_cell_communicator)
             new ExecutionConfiguration(ExecutionConfiguration::CPU));
         }
 
-    // mpi in 1d
+        // mpi in 1d
         {
         exec_conf_cpu->getMPIConfig()->splitPartitions(2);
         cell_communicator_reduce_test(exec_conf_cpu, true, false, false);
         cell_communicator_reduce_test(exec_conf_cpu, false, true, false);
         cell_communicator_reduce_test(exec_conf_cpu, false, false, true);
         }
-    // mpi in 2d
+        // mpi in 2d
         {
         exec_conf_cpu->getMPIConfig()->splitPartitions(4);
         cell_communicator_reduce_test(exec_conf_cpu, true, true, false);
         cell_communicator_reduce_test(exec_conf_cpu, true, false, true);
         cell_communicator_reduce_test(exec_conf_cpu, false, true, true);
         }
-    // mpi in 3d
+        // mpi in 3d
         {
         exec_conf_cpu->getMPIConfig()->splitPartitions(8);
         cell_communicator_reduce_test(exec_conf_cpu, true, true, true);
@@ -264,21 +264,21 @@ UP_TEST(mpcd_cell_communicator_gpu)
             new ExecutionConfiguration(ExecutionConfiguration::GPU));
         }
 
-    // mpi in 1d
+        // mpi in 1d
         {
         exec_conf_gpu->getMPIConfig()->splitPartitions(2);
         cell_communicator_reduce_test(exec_conf_gpu, true, false, false);
         cell_communicator_reduce_test(exec_conf_gpu, false, true, false);
         cell_communicator_reduce_test(exec_conf_gpu, false, false, true);
         }
-    // mpi in 2d
+        // mpi in 2d
         {
         exec_conf_gpu->getMPIConfig()->splitPartitions(4);
         cell_communicator_reduce_test(exec_conf_gpu, true, true, false);
         cell_communicator_reduce_test(exec_conf_gpu, true, false, true);
         cell_communicator_reduce_test(exec_conf_gpu, false, true, true);
         }
-    // mpi in 3d
+        // mpi in 3d
         {
         exec_conf_gpu->getMPIConfig()->splitPartitions(8);
         cell_communicator_reduce_test(exec_conf_gpu, true, true, true);

@@ -8,13 +8,18 @@ if (ENABLE_MPI)
     find_package(cereal CONFIG)
     if (cereal_FOUND)
         find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
+
+        if (NOT TARGET cereal::cereal AND TARGET cereal)
+            message(STATUS "Found cereal target, adding cereal::cereal alias.")
+            add_library(cereal::cereal ALIAS cereal)
+        endif()
     else()
         # work around missing ceralConfig.cmake
 
         find_path(cereal_INCLUDE_DIR NAMES cereal/cereal.hpp
             PATHS ${CMAKE_INSTALL_PREFIX}/include)
-        add_library(cereal INTERFACE IMPORTED)
-        set_target_properties(cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
+        add_library(cereal::cereal INTERFACE IMPORTED)
+        set_target_properties(cereal::cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
         find_package_message(cereal "Could not find cereal, assuming it is on a default path" "[${cereal_INCLUDE_DIR}]")
     endif()
 

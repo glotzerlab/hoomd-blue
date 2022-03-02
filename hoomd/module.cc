@@ -1,24 +1,19 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander All developers are free to add the calls needed to export their modules
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
-#include "CallbackAnalyzer.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ClockSource.h"
 #include "Compute.h"
-#include "ConstForceCompute.h"
 #include "DCDDumpWriter.h"
 #include "ExecutionConfiguration.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "GSDDumpWriter.h"
 #include "GSDReader.h"
-#include "GetarDumpWriter.h"
-#include "GetarInitializer.h"
 #include "HOOMDMath.h"
 #include "Initializers.h"
 #include "Integrator.h"
@@ -26,7 +21,6 @@
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"
-#include "Profiler.h"
 #include "PythonAnalyzer.h"
 #include "PythonLocalDataAccess.h"
 #include "PythonTuner.h"
@@ -70,8 +64,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-using namespace std;
-using namespace hoomd;
 
 #ifdef ENABLE_TBB
 #include <tbb/task_arena.h>
@@ -81,6 +73,10 @@ using namespace hoomd;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
+namespace hoomd
+    {
+namespace detail
+    {
 void mpi_barrier_world()
     {
 #ifdef ENABLE_MPI
@@ -113,12 +109,12 @@ int initialize_mpi()
     }
 
 //! Get the processor name associated to this rank
-string get_mpi_proc_name()
+std::string get_mpi_proc_name()
     {
     char proc_name[MPI_MAX_PROCESSOR_NAME];
     int name_len;
     MPI_Get_processor_name(proc_name, &name_len);
-    return string(proc_name);
+    return std::string(proc_name);
     }
 
 //! Finalize MPI environment
@@ -155,6 +151,14 @@ std::string mpi_bcast_str(pybind11::object string,
 #endif
     }
 
+    } // end namespace detail
+
+    } // end namespace hoomd
+
+using namespace std;
+using namespace hoomd;
+using namespace hoomd::detail;
+
 //! Create the python module
 /*! each class sets up its own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -187,7 +191,8 @@ PYBIND11_MODULE(_hoomd, m)
         .def_static("getEnableTBB", BuildInfo::getEnableTBB)
         .def_static("getEnableMPI", BuildInfo::getEnableMPI)
         .def_static("getSourceDir", BuildInfo::getSourceDir)
-        .def_static("getInstallDir", BuildInfo::getInstallDir);
+        .def_static("getInstallDir", BuildInfo::getInstallDir)
+        .def_static("getFloatingPointPrecision", BuildInfo::getFloatingPointPrecision);
 
     pybind11::bind_vector<std::vector<Scalar>>(m, "std_vector_scalar");
     pybind11::bind_vector<std::vector<string>>(m, "std_vector_string");
@@ -202,7 +207,6 @@ PYBIND11_MODULE(_hoomd, m)
     // utils
     export_hoomd_math_functions(m);
     export_ClockSource(m);
-    export_Profiler(m);
 
     // data structures
     export_HOOMDHostBuffer(m);
@@ -250,15 +254,17 @@ PYBIND11_MODULE(_hoomd, m)
 
     // initializers
     export_GSDReader(m);
-    getardump::export_GetarInitializer(m);
 
     // computes
     export_Compute(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
+    export_LocalForceComputeData<HOOMDHostBuffer>(m, "LocalForceComputeDataHost");
+#ifdef ENABLE_HIP
+    export_LocalForceComputeData<HOOMDDeviceBuffer>(m, "LocalForceComputeDataDevice");
+#endif
     export_ForceConstraint(m);
-    export_ConstForceCompute(m);
 
 #ifdef ENABLE_HIP
     export_CellListGPU(m);
@@ -268,9 +274,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_Analyzer(m);
     export_PythonAnalyzer(m);
     export_DCDDumpWriter(m);
-    getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
-    export_CallbackAnalyzer(m);
 
     // updaters
     export_Updater(m);

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Initializers.h
     \brief Declares a few initializers for setting up ParticleData instances
@@ -16,6 +14,8 @@
 #ifndef __INITIALIZERS_H__
 #define __INITIALIZERS_H__
 
+namespace hoomd
+    {
 //! Forward declaration of SnapshotSystemData
 template<class Real> struct SnapshotSystemData;
 
@@ -36,10 +36,10 @@ class PYBIND11_EXPORT SimpleCubicInitializer
     virtual std::shared_ptr<SnapshotSystemData<Scalar>> getSnapshot() const;
 
     private:
-    unsigned int m_M;        //!< Number of particles wide to make the box
-    Scalar m_spacing;        //!< Spacing between particles
-    BoxDim box;              //!< Precalculated box
-    std::string m_type_name; //!< Name of the particle type created
+    unsigned int m_M;            //!< Number of particles wide to make the box
+    Scalar m_spacing;            //!< Spacing between particles
+    std::shared_ptr<BoxDim> box; //!< Precalculated box
+    std::string m_type_name;     //!< Name of the particle type created
     };
 
 //! Inits a ParticleData with randomly placed particles in a cube
@@ -62,11 +62,13 @@ class PYBIND11_EXPORT RandomInitializer
     void setSeed(unsigned int seed);
 
     protected:
-    unsigned int m_N;        //!< Number of particles to generate
-    Scalar m_phi_p;          //!< Packing fraction to generate the particles at
-    Scalar m_min_dist;       //!< Minimum distance to separate particles by
-    BoxDim m_box;            //!< Box to put the particles in
-    std::string m_type_name; //!< Name of the particle type created
+    unsigned int m_N;              //!< Number of particles to generate
+    Scalar m_phi_p;                //!< Packing fraction to generate the particles at
+    Scalar m_min_dist;             //!< Minimum distance to separate particles by
+    std::shared_ptr<BoxDim> m_box; //!< Box to put the particles in
+    std::string m_type_name;       //!< Name of the particle type created
     };
+
+    } // end namespace hoomd
 
 #endif

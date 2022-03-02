@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Box."""
 
@@ -151,9 +150,14 @@ class Box:
         Returns:
             hoomd.Box: The created box.
         """
-        b = cls(0, 0)
-        b.matrix = box_matrix
-        return b
+        box_matrix = np.asarray(box_matrix)
+        if box_matrix.shape != (3, 3):
+            raise ValueError("Box matrix must be a 3x3 matrix.")
+        if not np.allclose(box_matrix, np.triu(box_matrix)):
+            raise ValueError("Box matrix must be upper triangular.")
+        L = np.diag(box_matrix)
+        return cls(*L, box_matrix[0, 1] / L[1], box_matrix[0, 2] / L[2],
+                   box_matrix[1, 2] / L[2])
 
     @classmethod
     def _from_cpp(cls, cpp_obj):
@@ -353,16 +357,6 @@ class Box:
         return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
-    def lattice_vectors(self):
-        """(3, 3) `numpy.ndarray` of `float`: Box lattice vectors.
-
-        The lattice vectors are read-only.
-        """
-        return np.concatenate([
-            _vec3_to_array(self._cpp_obj.getLatticeVector(i)) for i in range(3)
-        ]).reshape(3, 3)
-
-    @property
     def volume(self):
         """float: Volume of the box.
 
@@ -378,13 +372,9 @@ class Box:
     def volume(self, volume):
         self.scale((volume / self.volume)**(1 / self.dimensions))
 
-    @property
-    def matrix(self):
+    def to_matrix(self):
         """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that \
         defines the box.
-
-        Can be used to set the box to one defined by an upper triangular
-        matrix.
 
         .. code-block:: python
 
@@ -396,19 +386,6 @@ class Box:
         Lx, Ly, Lz = self.L
         xy, xz, yz = self.tilts
         return np.array([[Lx, xy * Ly, xz * Lz], [0, Ly, yz * Lz], [0, 0, Lz]])
-
-    @matrix.setter
-    def matrix(self, box_matrix):
-        box_matrix = np.asarray(box_matrix)
-        if not np.allclose(box_matrix, np.triu(box_matrix)):
-            raise ValueError("Box matrix must be upper triangular.")
-        if box_matrix.shape != (3, 3):
-            raise ValueError("Box matrix must be a 3x3 matrix.")
-        L = np.diag(box_matrix)
-        self.L = L
-        self.xy = box_matrix[0, 1] / L[1]
-        self.xz = box_matrix[0, 2] / L[2]
-        self.yz = box_matrix[1, 2] / L[2]
 
     def scale(self, s):
         R"""Scale box dimensions.

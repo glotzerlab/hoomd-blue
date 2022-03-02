@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SRDCollisionMethod.h
@@ -20,6 +18,8 @@
 
 #include "hoomd/Variant.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
@@ -64,7 +64,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
         }
 
     //! Set the temperature and enable the thermostat
-    void setTemperature(std::shared_ptr<::Variant> T)
+    void setTemperature(std::shared_ptr<Variant> T)
         {
         m_T = T;
         }
@@ -72,7 +72,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     //! Unset the temperature
     void unsetTemperature()
         {
-        m_T = std::shared_ptr<::Variant>();
+        m_T = std::shared_ptr<Variant>();
         }
 
     //! Get the requested thermo flags
@@ -90,8 +90,8 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     GPUVector<double3> m_rotvec;                       //!< MPCD rotation vectors
     double m_angle;                                    //!< MPCD rotation angle (radians)
 
-    std::shared_ptr<::Variant> m_T; //!< Temperature for thermostat
-    GPUVector<double> m_factors;    //!< Cell-level rescale factors
+    std::shared_ptr<Variant> m_T; //!< Temperature for thermostat
+    GPUVector<double> m_factors;  //!< Cell-level rescale factors
 
     //! Implementation of the collision rule
     virtual void rule(uint64_t timestep);
@@ -109,6 +109,6 @@ namespace detail
 void export_SRDCollisionMethod(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SRD_COLLISION_METHOD_H_

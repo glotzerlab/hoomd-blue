@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/SlitGeometryFiller.h"
 #ifdef ENABLE_HIP
@@ -13,10 +11,12 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(20.0);
+    snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -37,7 +37,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     auto slit = std::make_shared<const mpcd::detail::SlitGeometry>(5.0,
                                                                    1.0,
                                                                    mpcd::detail::boundary::no_slip);
-    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConstant>(1.5);
+    std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.5);
     std::shared_ptr<mpcd::SlitGeometryFiller> filler
         = std::make_shared<F>(mpcd_sys, 2.0, 1, kT, slit);
 
@@ -47,7 +47,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     filler->fill(0);
     // volume to fill is from 5->7 (2) on + side, with cross section of 20^2, mirrored on bottom
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (2 * 20 * 20) * 2);
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
@@ -87,7 +87,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
      */
     filler->fill(1);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * 2 * (2 * 20 * 20) * 2);
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
@@ -119,7 +119,7 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     filler->fill(2);
     // volume to fill is now from 5->5.5 on + side, same other parameters
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 2 * (20 * 20 / 2) * 2);
-    // count that particles have been placed on the right sides
+        // count that particles have been placed on the right sides
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         unsigned int N_lo(0), N_hi(0);

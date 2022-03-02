@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN();
@@ -12,8 +15,8 @@ HOOMD_UP_MAIN();
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/VectorMath.h"
 
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd;
+using namespace hoomd::detail;
 
 bool in(unsigned int i, const std::vector<unsigned int>& v)
     {

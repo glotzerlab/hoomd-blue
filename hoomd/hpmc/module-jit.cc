@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PatchEnergyJIT.h"
 #include "PatchEnergyJITUnion.h"
@@ -30,8 +30,8 @@
 
 #include <pybind11/pybind11.h>
 
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd::hpmc;
+using namespace hoomd::hpmc::detail;
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName

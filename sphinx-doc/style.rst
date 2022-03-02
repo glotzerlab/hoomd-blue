@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Code style
 ==========
 
@@ -78,10 +81,6 @@ Tools
 ^^^^^
 
 * Autoformatter: `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_.
-
-  * Run: ``pre-commit run --all-files --hook-stage manual`` to apply changes to
-    the whole repository. You must have a ``conda`` installation in your
-    ``PATH`` to run this.
 
 Documentation
 ^^^^^^^^^^^^^

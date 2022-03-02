@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Analyzer.h"
 #include "Compute.h"
@@ -17,11 +15,6 @@
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
-#ifdef ENABLE_MPI
-//! Forward declarations
-class Communicator;
-#endif
-
 /*! \file System.h
     \brief Declares the System class and associated helper classes
 */
@@ -31,6 +24,13 @@ class Communicator;
 #endif
 
 #include <pybind11/pybind11.h>
+
+namespace hoomd
+    {
+#ifdef ENABLE_MPI
+//! Forward declarations
+class Communicator;
+#endif
 
 //! Ties Analyzers, Updaters, and Computes together to run a full MD simulation
 /*! The System class is responsible for making all the time steps in an MD simulation.
@@ -92,9 +92,6 @@ class PYBIND11_EXPORT System
             loop
     */
     void run(uint64_t nsteps, bool write_at_start = false);
-
-    //! Configures profiling of runs
-    void enableProfiler(bool enable);
 
     //! Get the average TPS from the last run
     Scalar getLastTPS() const
@@ -163,7 +160,22 @@ class PYBIND11_EXPORT System
         return m_default_flags[pdata_flag::pressure_tensor];
         }
 
+    /// Get the particle group cache.
+    std::vector<std::shared_ptr<ParticleGroup>>& getGroupCache()
+        {
+        return m_group_cache;
+        }
+
+    /// Trigger an update of the group degrees of freedom.
+    void updateGroupDOFOnNextStep()
+        {
+        m_update_group_dof_next_step = true;
+        }
+
     private:
+    /// Update the number of degrees of freedom in cached groups
+    void updateGroupDOF();
+
     std::vector<std::pair<std::shared_ptr<Analyzer>,
                           std::shared_ptr<Trigger>>>
         m_analyzers; //!< List of analyzers belonging to this System
@@ -178,7 +190,6 @@ class PYBIND11_EXPORT System
 
     std::shared_ptr<Integrator> m_integrator;   //!< Integrator that advances time in this System
     std::shared_ptr<SystemDefinition> m_sysdef; //!< SystemDefinition for this System
-    std::shared_ptr<Profiler> m_profiler;       //!< Profiler to profile runs
 
 #ifdef ENABLE_MPI
     /// The system's communicator.
@@ -191,15 +202,10 @@ class PYBIND11_EXPORT System
 
     ClockSource m_clk; //!< A clock counting time from the beginning of the run
 
-    bool m_profile; //!< True if runs should be profiled
-
     /// Particle data flags to always set
     PDataFlags m_default_flags;
 
     // --------- Steps in the simulation run implemented in helper functions
-    //! Sets up m_profiler and attaches/detaches to/from all computes, updaters, and analyzers
-    void setupProfiling();
-
     //! Resets stats for all contained classes
     void resetStats();
 
@@ -220,9 +226,21 @@ class PYBIND11_EXPORT System
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
+
+    /// Cache of ParticleGroup objects
+    std::vector<std::shared_ptr<ParticleGroup>> m_group_cache;
+
+    /// Flag to trigger update of group degrees of freedom
+    bool m_update_group_dof_next_step = false;
     };
 
+namespace detail
+    {
 //! Exports the System class to python
 void export_System(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

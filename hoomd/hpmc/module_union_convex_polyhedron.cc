@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
@@ -12,11 +12,10 @@
 
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -25,16 +24,14 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-namespace py = pybind11;
-
-using namespace hpmc;
-
-using namespace hpmc::detail;
-
+namespace hoomd
+    {
 namespace hpmc
     {
+namespace detail
+    {
 //! Export the base HPMCMono integrators
-void export_union_convex_polyhedron(py::module& m)
+void export_union_convex_polyhedron(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
@@ -53,16 +50,14 @@ void export_union_convex_polyhedron(py::module& m)
     export_ExternalFieldInterface<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "ExternalFieldConvexPolyhedronUnion");
-    export_LatticeField<ShapeUnion<ShapeSpheropolyhedron>>(
+    export_HarmonicField<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
-        "ExternalFieldLatticeConvexPolyhedronUnion");
+        "ExternalFieldHarmonicConvexPolyhedronUnion");
     export_ExternalFieldComposite<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
         "ExternalFieldCompositeConvexPolyhedronUnion");
-    export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(m, "WallConvexPolyhedronUnion");
-    export_UpdaterExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(
-        m,
-        "UpdaterExternalFieldWallConvexPolyhedronUnion");
+    export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(m,
+                                                                "WallConvexSpheropolyhedronUnion");
 
 #ifdef ENABLE_HIP
 
@@ -79,4 +74,6 @@ void export_union_convex_polyhedron(py::module& m)
 #endif
     }
 
+    } // namespace detail
     } // namespace hpmc
+    } // namespace hoomd

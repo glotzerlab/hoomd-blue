@@ -3,25 +3,30 @@
 # - config: a string encoded list containing the docker image name and any number of build options.
 # - The build options are `mpi`, `tbb`, and `llvm`.
 unit_test_configurations:
-- config: "[clang12_py39, mpi, tbb, llvm]"
-- config: "[gcc11_py39]"
-- config: "[cuda11_gcc9_py38, mpi, llvm]"
-- config: "[cuda11_gcc9_py38]"
+- config: "[clang12_py310, mpi, tbb, llvm]"
+- config: "[gcc11_py310]"
+- config: "[cuda115_gcc9_py38, mpi, llvm]"
+- config: "[cuda115_gcc9_py38]"
 
 
 # Configurations on which to run longer validation tests. Must be a subset of
 # `unit_test_configurations`
 validate_configurations:
-- config: "[clang12_py39, mpi, tbb, llvm]"
-- config: "[gcc11_py39]"
-- config: "[cuda11_gcc9_py38, mpi, llvm]"
-- config: "[cuda11_gcc9_py38]"
+- config: "[clang12_py310, mpi, tbb, llvm]"
+- config: "[gcc11_py310]"
+- config: "[cuda115_gcc9_py38, mpi, llvm]"
+- config: "[cuda115_gcc9_py38]"
 
 # Configurations to build and test only rarely, such as just before a release.
 # There should be no overlap between this list and `unit_test_configurations`
 release_test_configurations:
+- config: "[clang13_py310]"
 - config: "[clang11_py39, llvm]"
 - config: "[gcc10_py39]"
+- config: "[cuda114_gcc9_py38, mpi, llvm]"
+- config: "[cuda113_gcc9_py38, mpi, llvm]"
+- config: "[cuda112_gcc9_py38, mpi, llvm]"
+- config: "[cuda111_gcc9_py38, mpi, llvm]"
 - config: "[cuda10_gcc7_py37, llvm]"
 - config: "[clang10_py38, llvm]"
 - config: "[gcc9_py38]"

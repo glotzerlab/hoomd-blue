@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepNPTMTK.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -7,12 +7,15 @@
 #include "hoomd/VectorMath.h"
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Coefficients of f(x) = sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 *
 //! x^10
 const Scalar f_coeff[] = {Scalar(1.0),
@@ -103,8 +106,7 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "integrate.npt(): Integration group empty." << std::endl;
-        throw std::runtime_error("Error during NPT integration.");
+        throw std::runtime_error("Invalid NPT coupling mode.");
         }
 
     // update box dimensions
@@ -113,10 +115,6 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
     m_V = m_pdata->getGlobalBox().getVolume(is_two_dimensions); // current volume
 
     unsigned int group_size = m_group->getNumMembers();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 1");
 
     // update degrees of freedom for MTK term
     m_ndof = m_group->getTranslationalDOF();
@@ -302,9 +300,9 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -409,10 +407,6 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
         setIntegratorVariables(v);
         }
 #endif
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -423,10 +417,6 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 2");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
@@ -516,9 +506,9 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
 
                 // check for zero moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero)
@@ -541,10 +531,6 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(timestep + 1);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param nuxx Barostat matrix, xx element
@@ -770,9 +756,7 @@ void TwoStepNPTMTK::advanceBarostat(uint64_t timestep)
         }
     else
         {
-        m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl
-                                  << std::endl;
-        throw std::runtime_error("Error in NPT integration");
+        throw std::runtime_error("Invalid NPT coupling mode.");
         }
 
     // update barostat matrix
@@ -1086,9 +1070,7 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
             nuxx = nuyy = nuzz;
             break;
         default:
-            m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl
-                                      << std::endl;
-            throw std::runtime_error("Error in NPT integration");
+            throw std::runtime_error("Invalid NPT coupling mode.");
             }
         }
 
@@ -1241,22 +1223,24 @@ Scalar TwoStepNPTMTK::getBarostatEnergy(uint64_t timestep)
     return barostat_energy;
     }
 
-void export_TwoStepNPTMTK(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
+void export_TwoStepNPTMTK(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
         twostepnptmtk(m, "TwoStepNPTMTK");
     twostepnptmtk
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      Scalar,
-                      std::shared_ptr<Variant>,
-                      const std::vector<std::shared_ptr<Variant>>&,
-                      const string&,
-                      const std::vector<bool>&,
-                      const bool>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            Scalar,
+                            std::shared_ptr<Variant>,
+                            const std::vector<std::shared_ptr<Variant>>&,
+                            const string&,
+                            const std::vector<bool>&,
+                            const bool>())
         .def_property("kT", &TwoStepNPTMTK::getT, &TwoStepNPTMTK::setT)
         .def_property("S", &TwoStepNPTMTK::getS, &TwoStepNPTMTK::setS)
         .def_property("tau", &TwoStepNPTMTK::getTau, &TwoStepNPTMTK::setTau)
@@ -1279,3 +1263,7 @@ void export_TwoStepNPTMTK(py::module& m)
         .def("getThermostatEnergy", &TwoStepNPTMTK::getThermostatEnergy)
         .def("getBarostatEnergy", &TwoStepNPTMTK::getBarostatEnergy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

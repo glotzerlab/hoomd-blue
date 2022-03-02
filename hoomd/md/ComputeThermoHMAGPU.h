@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: ajs42
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermoHMA.h"
 
@@ -18,6 +16,10 @@
 #ifndef __COMPUTE_THERMO_HMA_GPU_H__
 #define __COMPUTE_THERMO_HMA_GPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes HMA thermodynamic properties of a group of particles on the GPU
 /*! ComputeThermoHMAGPU is a GPU accelerated implementation of ComputeThermoHMA
     \ingroup computes
@@ -41,7 +43,13 @@ class PYBIND11_EXPORT ComputeThermoHMAGPU : public ComputeThermoHMA
     virtual void computeProperties();
     };
 
+namespace detail
+    {
 //! Exports the ComputeThermoHMAGPU class to python
 void export_ComputeThermoHMAGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

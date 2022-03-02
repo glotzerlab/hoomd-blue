@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -8,6 +11,10 @@
     \brief CUDA kernels for ExampleUpdater
 */
 
+namespace hoomd
+    {
+namespace kernel
+    {
 // First, the kernel code for zeroing the velocities on the GPU
 //! Kernel that zeroes velocities on the GPU
 /*! \param d_vel Velocity-mass array from the ParticleData
@@ -16,7 +23,7 @@
     This kernel executes one thread per particle and zeros the velocity of each. It can be run with
    any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
-extern "C" __global__ void gpu_zero_velocities_kernel(Scalar4* d_vel, unsigned int N)
+__global__ void gpu_zero_velocities_kernel(Scalar4* d_vel, unsigned int N)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -47,3 +54,6 @@ hipError_t gpu_zero_velocities(Scalar4* d_vel, unsigned int N)
     // error code if not hipSuccess
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace hoomd

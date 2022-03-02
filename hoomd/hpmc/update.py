@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HPMC updaters."""
 
@@ -36,6 +35,11 @@ class BoxMC(Updater):
     a box trial move is proposed, all the particle positions are scaled into the
     new box. Trial moves are then accepted, if they do not produce an overlap,
     according to standard Metropolis criterion and rejected otherwise.
+
+    .. rubric:: Mixed precision
+
+    `BoxMC` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Attributes:
         volume (dict):
@@ -188,152 +192,6 @@ class BoxMC(Updater):
             return (0, 0)
         else:
             return counter.aspect
-
-
-class wall:  # noqa - will be rewritten for v3
-    """Apply wall updates with a user-provided python callback.
-
-    Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be
-          updated
-        py_updater (`callable`): the python callback that performs the update
-          moves. This must be a python method that is a function of the
-          timestep of the simulation. It must actually update the
-          :py:class:`hoomd.hpmc.field.wall`) managed object.
-        move_probability (float): the probability with which an update move is
-          attempted
-        seed (int): the seed of the pseudo-random number generator that
-          determines whether or not an update move is attempted
-        period (int): the number of timesteps between update move attempt
-          attempts Every *period* steps, a walls update move is tried with
-          probability *move_probability*. This update move is provided by the
-          *py_updater* callback. Then, update.wall only accepts an update move
-          provided by the python callback if it maintains confinement conditions
-          associated with all walls. Otherwise, it reverts back to a non-updated
-          copy of the walls.
-
-    Once initialized, the update provides the following log quantities that can
-    be logged via ``hoomd.analyze.log``:
-
-    * **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update
-      moves
-
-    Example::
-
-        mc = hpmc.integrate.sphere(seed = 415236);
-        ext_wall = hpmc.compute.wall(mc);
-        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                 inside = True);
-        def perturb(timestep):
-          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                     param = "rsq"));
-          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                   origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                        move_probability = 0.5, seed = 27,
-                                        period = 50);
-        log = analyze.log(quantities=['hpmc_wall_acceptance_ratio'],
-                          period=100, filename='log.dat', overwrite=True);
-
-    Example::
-
-        mc = hpmc.integrate.sphere(seed = 415236);
-        ext_wall = hpmc.compute.wall(mc);
-        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                 inside = True);
-        def perturb(timestep):
-          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                     param = "rsq"));
-          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                   origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                        move_probability = 0.5,
-                                        seed = 27, period = 50);
-
-    """
-
-    def __init__(self, mc, walls, py_updater, move_probability, seed, period=1):
-
-        # initialize base class
-        # _updater.__init__(self)
-
-        cls = None
-        if isinstance(mc, integrate.sphere):
-            cls = _hpmc.UpdaterExternalFieldWallSphere
-        elif isinstance(mc, integrate.convex_polyhedron):
-            cls = _hpmc.UpdaterExternalFieldWallConvexPolyhedron
-        elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.UpdaterExternalFieldWallSpheropolyhedron
-        else:
-            hoomd.context.current.device.cpp_msg.error(
-                "update.wall: Unsupported integrator.\n")
-            raise RuntimeError("Error initializing update.wall")
-
-        self.cpp_updater = cls(hoomd.context.current.system_definition,
-                               mc.cpp_integrator, walls.cpp_compute, py_updater,
-                               move_probability, seed)
-        self.setupUpdater(period)
-
-    def get_accepted_count(self, mode=0):
-        r"""Get the number of accepted wall update moves.
-
-        Args:
-            mode (int): specify the type of count to return. If mode!=0,
-              return absolute quantities. If mode=0, return quantities relative
-              to the start of the run. DEFAULTS to 0.
-
-        Returns:
-           the number of accepted wall update moves
-
-        Example::
-
-            mc = hpmc.integrate.sphere(seed = 415236);
-            ext_wall = hpmc.compute.wall(mc);
-            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                     inside = True);
-            def perturb(timestep):
-              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                         param = "rsq"));
-              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                       origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                            move_probability = 0.5, seed = 27,
-                                            period = 50);
-            run(100);
-            acc_count = wall_updater.get_accepted_count(mode = 0);
-        """
-        return self.cpp_updater.getAcceptedCount(mode)
-
-    def get_total_count(self, mode=0):
-        r"""Get the number of attempted wall update moves.
-
-        Args:
-            mode (int): specify the type of count to return. If mode!=0,
-              return absolute quantities. If mode=0, return quantities relative
-              to the start of the run. DEFAULTS to 0.
-
-        Returns:
-           the number of attempted wall update moves
-
-        Example::
-
-            mc = hpmc.integrate.sphere(seed = 415236);
-            ext_wall = hpmc.compute.wall(mc);
-            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
-                                     inside = True);
-            def perturb(timestep):
-              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
-                                                         param = "rsq"));
-              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
-                                       origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
-                                            move_probability = 0.5, seed = 27,
-                                            period = 50);
-            run(100);
-            tot_count = wall_updater.get_total_count(mode = 0);
-        """
-        return self.cpp_updater.getTotalCount(mode)
 
 
 class MuVT(Updater):
@@ -497,10 +355,10 @@ class Clusters(Updater):
     algorithm is then no longer ergodic for those and needs to be combined with
     local moves.
 
+    .. rubric:: Mixed precision
 
-    .. rubric:: Threading
-
-    The `Clusters` updater support threaded execution on multiple CPU cores.
+    `Clusters` uses reduced precision floating point arithmetic when checking
+    for particle overlaps in the local particle reference frame.
 
     Attributes:
         pivot_move_probability (float): Set the probability for attempting a
@@ -616,13 +474,18 @@ class QuickCompress(Updater):
     of the largest particle type.
 
     Tip:
-        Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
+        Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
     Warning:
         When the smallest MC translational move size is 0, `QuickCompress`
         will scale the box by 1.0 and not progress toward the target box.
+
+    .. rubric:: Mixed precision
+
+    `QuickCompress` uses reduced precision floating point arithmetic when
+    checking for particle overlaps in the local particle reference frame.
 
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
@@ -649,13 +512,10 @@ class QuickCompress(Updater):
                  min_scale=0.99):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(
-            max_overlaps_per_particle=float,
-            min_scale=float,
-            target_box=hoomd.data.typeconverter.OnlyTypes(
-                hoomd.Box,
-                preprocess=hoomd.data.typeconverter.box_preprocessing),
-            instance=int)
+        param_dict = ParameterDict(max_overlaps_per_particle=float,
+                                   min_scale=float,
+                                   target_box=hoomd.Box,
+                                   instance=int)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
@@ -684,7 +544,8 @@ class QuickCompress(Updater):
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, integrator._cpp_obj,
-            self.max_overlaps_per_particle, self.min_scale, self.target_box)
+            self.max_overlaps_per_particle, self.min_scale,
+            self.target_box._cpp_obj)
         super()._attach()
 
     @property

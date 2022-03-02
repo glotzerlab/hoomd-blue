@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
 #include "hoomd/VectorMath.h"
@@ -9,12 +7,15 @@
 #include <map>
 #include <sstream>
 #include <string.h>
-namespace py = pybind11;
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
@@ -136,7 +137,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     bool body_len_changed = false;
 
-    // detect if bodies have changed
+        // detect if bodies have changed
 
         {
         ArrayHandle<unsigned int> h_body_type(m_body_types,
@@ -1017,15 +1018,21 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         }
     }
 
-void export_ForceComposite(py::module& m)
+namespace detail
     {
-    py::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
+void export_ForceComposite(pybind11::module& m)
+    {
+    pybind11::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
         m,
         "ForceComposite")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setBody", &ForceComposite::setBody)
         .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
         .def("createRigidBodies", &ForceComposite::createRigidBodies)
         .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

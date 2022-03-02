@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """HOOMD-blue python API.
 
@@ -39,13 +38,12 @@ from hoomd import integrate
 from hoomd import communicator
 from hoomd import util
 from hoomd import write
+from hoomd import wall
 from hoomd import _hoomd
 if version.md_built:
     from hoomd import md
 if version.hpmc_built:
     from hoomd import hpmc
-if version.dem_built and version.md_built:
-    from hoomd import dem
 # if version.metal_built:
 #     from hoomd import metal
 # if version.mpcd_built:

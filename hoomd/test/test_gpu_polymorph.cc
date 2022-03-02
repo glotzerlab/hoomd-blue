@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file test_gpu_polymorph.cc
@@ -46,7 +44,7 @@ void test_gpu_polymorph(const ExecutionConfiguration::executionMode mode)
         UP_ASSERT(times_op->get(access_location::device) != nullptr);
 
         GPUArray<int> result(2, exec_conf);
-        // addition operator
+            // addition operator
             {
             ArrayHandle<int> d_result(result, access_location::device, access_mode::overwrite);
             test_operator(d_result.data, add_op.get(access_location::device), 2);
@@ -56,7 +54,7 @@ void test_gpu_polymorph(const ExecutionConfiguration::executionMode mode)
             UP_ASSERT_EQUAL(h_result.data[0], 7);
             UP_ASSERT_EQUAL(h_result.data[1], 8);
             }
-        // multiplication operator
+            // multiplication operator
             {
             ArrayHandle<int> d_result(result, access_location::device, access_mode::overwrite);
             test_operator(d_result.data, times_op->get(access_location::device), 2);

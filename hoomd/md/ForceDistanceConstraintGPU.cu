@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraintGPU.cuh"
 
@@ -11,6 +9,12 @@
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel to fill the matrix for the linear constraint equation
 __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
                                               unsigned int nptl_local,
@@ -418,3 +422,7 @@ hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_H__
 #define __POTENTIAL_PAIR_H__
@@ -39,6 +37,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     PotentialPair computes standard pair potentials (and forces) between all particle pairs in the
@@ -79,10 +81,6 @@
    values are stored in GlobalArray for easy access on the GPU by a derived class. The type of the
    parameters is defined by \a param_type in the potential evaluator class passed in. See the
    appropriate documentation for the evaluator for the definition of each element of the parameters.
-
-    For profiling PotentialPair needs to know the name of the potential. For
-    now, that will be queried from the evaluator.
-    \sa export_PotentialPair()
 */
 template<class evaluator, typename extra_pkg = std::nullptr_t>
 class PotentialPair : public ForceCompute
@@ -179,6 +177,17 @@ class PotentialPair : public ForceCompute
         m_attached = false;
         }
 
+    //! Set whether analytical tail correction is enabled
+    void setTailCorrectionEnabled(bool enable)
+        {
+        m_tail_correction_enabled = enable;
+        }
+
+    bool getTailCorrectionEnabled()
+        {
+        return m_tail_correction_enabled;
+        }
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);
@@ -201,7 +210,7 @@ class PotentialPair : public ForceCompute
         std::vector<std::string> type_shape_mapping(m_pdata->getNTypes());
         for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
             {
-            evaluator eval(Scalar(0.0), Scalar(0.0), m_params[m_typpair_idx(i, i)]);
+            evaluator eval(Scalar(0.0), Scalar(0.0), this->m_params[m_typpair_idx(i, i)]);
             type_shape_mapping[i] = eval.getShapeSpec();
             }
         return type_shape_mapping;
@@ -215,14 +224,17 @@ class PotentialPair : public ForceCompute
     GlobalArray<Scalar> m_ronsq;  //!< ron squared per type pair
 
     /// Per type pair potential parameters
-    std::vector<param_type, managed_allocator<param_type>> m_params;
-    std::string m_prof_name; //!< Cached profiler name
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
 
+    bool m_tail_correction_enabled = false;
     /// r_cut (not squared) given to the neighbor list
     std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
+
+    /// Keep track of number of each type of particle
+    std::vector<unsigned int> m_num_particles_by_type;
 
 #ifdef ENABLE_MPI
     /// The system's communicator.
@@ -248,106 +260,97 @@ class PotentialPair : public ForceCompute
 
     virtual inline void pkgFinalize(extra_pkg&) {};
 
-    //! Method to be called when number of types changes
-    virtual void slotNumTypesChange()
+    //! Compute the long-range corrections to energy and pressure to account for truncating the pair
+    //! potentials
+    virtual void computeTailCorrection()
         {
-        Index2D new_type_pair_idx = Index2D(m_pdata->getNTypes());
-        std::vector<param_type, managed_allocator<param_type>> new_params(
-            new_type_pair_idx.getNumElements(),
-            param_type(),
-            managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
-
-        // allocate new parameter arrays
-        GlobalArray<Scalar> new_rcutsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<Scalar> new_r_cut_nlist(new_type_pair_idx.getNumElements(), m_exec_conf);
-        GlobalArray<Scalar> new_ronsq(new_type_pair_idx.getNumElements(), m_exec_conf);
-
+        // early exit if tail correction not enabled
+        if (!m_tail_correction_enabled)
             {
-            // copy existing data into them
-            ArrayHandle<Scalar> h_new_rcutsq(new_rcutsq,
-                                             access_location::host,
-                                             access_mode::overwrite);
-            ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
-                                                  access_location::host,
-                                                  access_mode::overwrite);
-            ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
-                                              access_location::host,
-                                              access_mode::overwrite);
-            ArrayHandle<Scalar> h_new_ronsq(new_ronsq,
-                                            access_location::host,
-                                            access_mode::overwrite);
-            ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::overwrite);
+            return;
+            }
 
-            // copy over entries that are valid in both the new and old matrices
-            unsigned int copy_w = std::min(new_type_pair_idx.getW(), m_typpair_idx.getW());
-            unsigned int copy_h = std::min(new_type_pair_idx.getH(), m_typpair_idx.getH());
+        // tail correction only valid with no potential shifting, throw error if shift and tail
+        // correction enabled
+        if (m_shift_mode != no_shift)
+            {
+            throw std::runtime_error(
+                "Pair potential shift mode must be \"none\" to apply tail corrections.");
+            }
 
-            for (unsigned int i = 0; i < copy_w; i++)
+        // Only compute pressure correction if we need pressure on this timestep
+        PDataFlags flags = this->m_pdata->getFlags();
+        bool compute_virial = flags[pdata_flag::pressure_tensor];
+
+        BoxDim box = m_pdata->getGlobalBox();
+        int dimension = m_sysdef->getNDimensions();
+        bool is_two_dimensions = dimension == 2;
+        Scalar volume = box.getVolume(is_two_dimensions);
+        ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+        // compute energy correction and store in m_external_energy; this is done on every step
+        m_external_energy = Scalar(0.0);
+        const unsigned int my_rank = m_exec_conf->getRank();
+        if (my_rank == 0)
+            {
+            for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
                 {
-                for (unsigned int j = 0; j < copy_h; j++)
+                for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
                     {
-                    h_new_rcutsq.data[new_type_pair_idx(i, j)] = h_rcutsq.data[m_typpair_idx(i, j)];
-                    h_new_r_cut_nlist.data[new_type_pair_idx(i, j)]
-                        = h_r_cut_nlist.data[m_typpair_idx(i, j)];
-                    h_new_ronsq.data[new_type_pair_idx(i, j)] = h_ronsq.data[m_typpair_idx(i, j)];
-                    new_params[new_type_pair_idx(i, j)] = m_params[m_typpair_idx(i, j)];
+                    // rho is the number density
+                    Scalar rho_j = m_num_particles_by_type[type_j] / volume;
+                    evaluator eval(Scalar(0.0),
+                                   h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                   m_params[m_typpair_idx(type_i, type_j)]);
+                    m_external_energy += Scalar(2.0) * m_num_particles_by_type[type_i] * M_PI
+                                         * rho_j * eval.evalEnergyLRCIntegral();
                     }
                 }
             }
 
-        // swap the new arrays in
-        m_rcutsq.swap(new_rcutsq);
-        m_ronsq.swap(new_ronsq);
-        m_params.swap(new_params);
-
-        // except for the r_cut_nlist which the nlist also refers to, copy the new data over
-        *m_r_cut_nlist = new_r_cut_nlist;
-
-        // set the new type pair indexer
-        m_typpair_idx = new_type_pair_idx;
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-        if (m_pdata->getExecConf()->isCUDAEnabled()
-            && m_pdata->getExecConf()->allConcurrentManagedAccess())
+        // compute the virial
+        if (compute_virial)
             {
-            cudaMemAdvise(m_rcutsq.get(),
-                          m_rcutsq.getNumElements() * sizeof(Scalar),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            cudaMemAdvise(m_ronsq.get(),
-                          m_ronsq.getNumElements() * sizeof(Scalar),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            cudaMemAdvise(m_params.data(),
-                          m_params.size() * sizeof(param_type),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-
-            // prefetch
-            auto& gpu_map = m_exec_conf->getGPUIds();
-
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            // zero out the entire external virial tensor
+            for (unsigned int i = 0; i < 6; i++)
                 {
-                // prefetch data on all GPUs
-                cudaMemPrefetchAsync(m_rcutsq.get(),
-                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                     gpu_map[idev]);
-                cudaMemPrefetchAsync(m_ronsq.get(),
-                                     sizeof(Scalar) * m_ronsq.getNumElements(),
-                                     gpu_map[idev]);
-                cudaMemPrefetchAsync(m_params.data(),
-                                     sizeof(param_type) * m_params.size(),
-                                     gpu_map[idev]);
+                m_external_virial[i] = Scalar(0.0);
                 }
-            CHECK_CUDA_ERROR();
-            }
-#endif
 
-        // notify the neighbor list that we have changed r_cut values
-        m_nlist->notifyRCutMatrixChange();
-        }
-    };
+            if (my_rank == 0)
+                {
+                for (unsigned int type_i = 0; type_i < m_pdata->getNTypes(); type_i++)
+                    {
+                    // rho is the number density
+                    Scalar rho_i = m_num_particles_by_type[type_i] / volume;
+                    for (unsigned int type_j = 0; type_j < m_pdata->getNTypes(); type_j++)
+                        {
+                        Scalar rho_j = m_num_particles_by_type[type_j] / volume;
+                        evaluator eval(Scalar(0.0),
+                                       h_rcutsq.data[m_typpair_idx(type_i, type_j)],
+                                       m_params[m_typpair_idx(type_i, type_j)]);
+                        // The pressure LRC, where
+                        // P = \frac{2 \cdot K_{trans} + W}{D \cdot  V}
+                        Scalar delta_pressure = Scalar(4.0) / Scalar(6.0) * rho_i * rho_j * M_PI
+                                                * eval.evalPressureLRCIntegral();
+                        // \Delta W = \Delta P (D \cdot V)
+                        // We will assume that the contribution to pressure is equal
+                        // in x, y, and z, so we will add 1/3 \Delta W on the diagonal
+                        // Note that 0, 3, and 5 are the indices of m_external_virial corresponding
+                        // to the diagonal elements
+                        Scalar delta_virial = dimension * volume * delta_pressure / Scalar(3.0);
+                        m_external_virial[0] += delta_virial;
+                        m_external_virial[3] += delta_virial;
+                        m_external_virial[5] += delta_virial;
+                        }
+                    }
+                }
+
+            } // end if (compute_virial)
+
+        } // end void computeTailCorrection()
+
+    }; // end class PotentialPair
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
@@ -368,52 +371,80 @@ PotentialPair<evaluator, extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinit
     m_rcutsq.swap(rcutsq);
     GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    m_params = std::vector<param_type, managed_allocator<param_type>>(
+    m_params = std::vector<param_type, hoomd::detail::managed_allocator<param_type>>(
         m_typpair_idx.getNumElements(),
         param_type(),
-        managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+        hoomd::detail::managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_r_cut_nlist
         = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_pdata->getExecConf()->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+    if (m_pdata->getExecConf()->isCUDAEnabled())
         {
-        cudaMemAdvise(m_rcutsq.get(),
-                      m_rcutsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        cudaMemAdvise(m_ronsq.get(),
-                      m_ronsq.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
+        // m_params is _always_ in unified memory, so memadvise and prefetch
         cudaMemAdvise(m_params.data(),
                       m_params.size() * sizeof(param_type),
                       cudaMemAdviseSetReadMostly,
                       0);
-
-        // prefetch
         auto& gpu_map = m_exec_conf->getGPUIds();
-
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            // prefetch data on all GPUs
-            cudaMemPrefetchAsync(m_rcutsq.get(),
-                                 sizeof(Scalar) * m_rcutsq.getNumElements(),
-                                 gpu_map[idev]);
-            cudaMemPrefetchAsync(m_ronsq.get(),
-                                 sizeof(Scalar) * m_ronsq.getNumElements(),
-                                 gpu_map[idev]);
             cudaMemPrefetchAsync(m_params.data(),
                                  sizeof(param_type) * m_params.size(),
                                  gpu_map[idev]);
             }
+
+        // m_rcutsq and m_ronsq only in unified memory if allConcurrentManagedAccess
+        if (m_exec_conf->allConcurrentManagedAccess())
+            {
+            cudaMemAdvise(m_rcutsq.get(),
+                          m_rcutsq.getNumElements() * sizeof(Scalar),
+                          cudaMemAdviseSetReadMostly,
+                          0);
+            cudaMemAdvise(m_ronsq.get(),
+                          m_ronsq.getNumElements() * sizeof(Scalar),
+                          cudaMemAdviseSetReadMostly,
+                          0);
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                // prefetch data on all GPUs
+                cudaMemPrefetchAsync(m_rcutsq.get(),
+                                     sizeof(Scalar) * m_rcutsq.getNumElements(),
+                                     gpu_map[idev]);
+                cudaMemPrefetchAsync(m_ronsq.get(),
+                                     sizeof(Scalar) * m_ronsq.getNumElements(),
+                                     gpu_map[idev]);
+                }
+            }
         }
 #endif
 
-    // initialize name
-    m_prof_name = std::string("Pair ") + evaluator::getName();
+    // get number of each type of particle, needed for energy and pressure correction
+    m_num_particles_by_type.resize(m_pdata->getNTypes());
+    std::fill(m_num_particles_by_type.begin(), m_num_particles_by_type.end(), 0);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        unsigned int typeid_i = __scalar_as_int(h_postype.data[i].w);
+        m_num_particles_by_type[typeid_i] += 1;
+        }
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        // reduce number of each type of particle on all processors
+        MPI_Allreduce(MPI_IN_PLACE,
+                      m_num_particles_by_type.data(),
+                      m_pdata->getNTypes(),
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -576,7 +607,7 @@ void PotentialPair<evaluator, extra_pkg>::connectGSDShapeSpec(std::shared_ptr<GS
 template<class evaluator, typename extra_pkg>
 int PotentialPair<evaluator, extra_pkg>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
-    GSDShapeSpecWriter shapespec(m_exec_conf);
+    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: "
                                  << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping());
@@ -594,10 +625,6 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -610,9 +637,9 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
                                       access_location::host,
                                       access_mode::read);
     //     Index2D nli = m_nlist->getNListIndexer();
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
-                                          access_location::host,
-                                          access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
@@ -624,7 +651,7 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
 
@@ -666,7 +693,7 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
         Scalar virialzzi = 0.0;
 
         // loop over all of the neighbors of this particle
-        const unsigned int myHead = h_head_list.data[i];
+        const size_t myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
@@ -815,8 +842,7 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
         }
     pkgFinalize(pkg);
 
-    if (m_prof)
-        m_prof->pop();
+    computeTailCorrection();
     }
 
 #ifdef ENABLE_MPI
@@ -851,10 +877,6 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
                                                                           InputIterator last2,
                                                                           Scalar& energy)
     {
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     if (first1 == last1 || first2 == last2)
         return;
 
@@ -890,7 +912,7 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
                                    access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
 
@@ -1023,9 +1045,6 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 //! Calculates the energy between two lists of particles.
@@ -1046,6 +1065,8 @@ Scalar PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSetsPythonList(
     return eng;
     }
 
+namespace detail
+    {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
@@ -1062,9 +1083,14 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def("setROn", &T::setROnPython)
         .def("getROn", &T::getROn)
         .def_property("mode", &T::getShiftMode, &T::setShiftModePython)
+        .def_property("tail_correction", &T::getTailCorrectionEnabled, &T::setTailCorrectionEnabled)
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_H__

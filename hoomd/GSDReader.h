@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -15,6 +15,8 @@
 #ifndef __GSD_INITIALIZER_H__
 #define __GSD_INITIALIZER_H__
 
+namespace hoomd
+    {
 //! Forward declarations
 template<class Real> struct SnapshotSystemData;
 
@@ -135,7 +137,13 @@ class PYBIND11_EXPORT GSDStateReader
     gsd_handle m_handle;
     };
 
+namespace detail
+    {
 /// Exports GSDReader and GSDStateReader to python
 void export_GSDReader(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

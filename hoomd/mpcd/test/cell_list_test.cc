@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
 #ifdef ENABLE_HIP
@@ -15,11 +13,13 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for correct calculation of MPCD grid dimensions
 template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(6.0, 8.0, 10.0);
+    snap->global_box = std::make_shared<BoxDim>(6.0, 8.0, 10.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -97,7 +97,7 @@ template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfigu
 template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -122,7 +122,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata_9));
     cl->compute(0);
 
-    // check that each particle is in the proper bin (cell list and velocity)
+        // check that each particle is in the proper bin (cell list and velocity)
         {
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
@@ -169,7 +169,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         CHECK_EQUAL_UINT(__scalar_as_int(h_vel.data[8].w), ci(0, 0, 0));
         }
 
-    // condense particles into two bins
+        // condense particles into two bins
         {
         ArrayHandle<Scalar4> h_pos(pdata_9->getPositions(),
                                    access_location::host,
@@ -231,8 +231,8 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
             }
         }
 
-    // bring all particles into one box, which triggers a resize, and check that all particles are
-    // in this bin
+        // bring all particles into one box, which triggers a resize, and check that all particles
+        // are in this bin
         {
         ArrayHandle<Scalar4> h_pos(pdata_9->getPositions(),
                                    access_location::host,
@@ -259,7 +259,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         CHECK_EQUAL_UINT(h_cell_np.data[ci(1, 1, 1)], 0);
         }
 
-    // send a particle out of bounds and check that an exception is raised
+        // send a particle out of bounds and check that an exception is raised
         {
         ArrayHandle<Scalar4> h_pos(pdata_9->getPositions(),
                                    access_location::host,
@@ -267,7 +267,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
         h_pos.data[0] = make_scalar4(2.1, 2.1, 2.1, __int_as_scalar(0));
         }
     UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->compute(3); });
-    // check the other side as well
+        // check the other side as well
         {
         ArrayHandle<Scalar4> h_pos(pdata_9->getPositions(),
                                    access_location::host,
@@ -281,7 +281,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
 template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(6.0);
+    snap->global_box = std::make_shared<BoxDim>(6.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -313,7 +313,7 @@ template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfig
         CHECK_EQUAL_UINT(h_cell_np.data[ci(2, 2, 2)], 1);
         }
 
-    // move to the other side and retry
+        // move to the other side and retry
         {
         ArrayHandle<Scalar4> h_pos(pdata_1->getPositions(),
                                    access_location::host,
@@ -330,7 +330,7 @@ template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfig
         CHECK_EQUAL_UINT(h_cell_np.data[ci(3, 3, 3)], 1);
         }
 
-    // check for cell periodic wrapping by putting particles near the box boundary
+        // check for cell periodic wrapping by putting particles near the box boundary
         {
         ArrayHandle<Scalar4> h_pos(pdata_1->getPositions(),
                                    access_location::host,
@@ -347,7 +347,7 @@ template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfig
         CHECK_EQUAL_UINT(h_cell_np.data[ci(5, 5, 5)], 1);
         }
 
-    // and the other way
+        // and the other way
         {
         ArrayHandle<Scalar4> h_pos(pdata_1->getPositions(),
                                    access_location::host,
@@ -376,7 +376,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
     {
     // setup a system where both MD and MPCD particles are in each of the cells
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
         {
         SnapshotParticleData<Scalar>& pdata_snap = snap->particle_data;
         pdata_snap.type_mapping.push_back("A");
@@ -419,7 +419,8 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata_8));
     cl->compute(0);
 
-    // at first, there is no embedded particle, so everything should just look like the test before
+        // at first, there is no embedded particle, so everything should just look like the test
+        // before
         {
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
@@ -471,7 +472,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
     cl->setEmbeddedGroup(group_B);
     cl->compute(1);
 
-    // now there should be a second particle in the cell
+        // now there should be a second particle in the cell
         {
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
@@ -497,7 +498,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
         CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 0, 1))], 4);
         CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 0))], 2);
         CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 1))], 6);
-        // check two particles in cell (1,0,0)
+            // check two particles in cell (1,0,0)
             {
             std::vector<unsigned int> result(2);
             result[0] = h_cell_list.data[cli(0, ci(1, 0, 0))];
@@ -505,7 +506,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
             sort(result.begin(), result.end());
             UP_ASSERT_EQUAL(result, std::vector<unsigned int> {1, 8});
             }
-        // check two particles in cell (1,0,1)
+            // check two particles in cell (1,0,1)
             {
             std::vector<unsigned int> result(2);
             result[0] = h_cell_list.data[cli(0, ci(1, 0, 1))];
@@ -513,7 +514,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
             sort(result.begin(), result.end());
             UP_ASSERT_EQUAL(result, std::vector<unsigned int> {5, 10});
             }
-        // check two particles in cell (1,1,0)
+            // check two particles in cell (1,1,0)
             {
             std::vector<unsigned int> result(2);
             result[0] = h_cell_list.data[cli(0, ci(1, 1, 0))];
@@ -521,7 +522,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
             sort(result.begin(), result.end());
             UP_ASSERT_EQUAL(result, std::vector<unsigned int> {3, 9});
             }
-        // check two particles in cell (1,1,1)
+            // check two particles in cell (1,1,1)
             {
             std::vector<unsigned int> result(2);
             result[0] = h_cell_list.data[cli(0, ci(1, 1, 1))];
@@ -564,8 +565,8 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
         CHECK_CLOSE(h_embed_vel.data[7].w, 1.0, tol);
         }
 
-    // pick a particle up and put it in a different cell, now there will be an extra embedded
-    // particle
+        // pick a particle up and put it in a different cell, now there will be an extra embedded
+        // particle
         {
         ArrayHandle<Scalar4> h_embed_pos(embed_pdata->getPositions(),
                                          access_location::host,
@@ -573,7 +574,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
         h_embed_pos.data[1] = make_scalar4(0.5, 0.5, -0.5, __int_as_scalar(1));
         }
     cl->compute(2);
-    // now there should be a second particle in the cell
+        // now there should be a second particle in the cell
         {
         ArrayHandle<unsigned int> h_cell_np(cl->getCellSizeArray(),
                                             access_location::host,
@@ -600,7 +601,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
         CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 0))], 2);
         CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(1, 0, 0))], 1);
         CHECK_EQUAL_UINT(h_cell_list.data[cli(0, ci(0, 1, 1))], 6);
-        // check two particles in cell (1,0,1)
+            // check two particles in cell (1,0,1)
             {
             std::vector<unsigned int> result(2);
             result[0] = h_cell_list.data[cli(0, ci(1, 0, 1))];
@@ -608,7 +609,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
             sort(result.begin(), result.end());
             UP_ASSERT_EQUAL(result, std::vector<unsigned int> {5, 10});
             }
-        // check two particles in cell (1,1,0)
+            // check two particles in cell (1,1,0)
             {
             std::vector<unsigned int> result(3);
             result[0] = h_cell_list.data[cli(0, ci(1, 1, 0))];
@@ -617,7 +618,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
             sort(result.begin(), result.end());
             UP_ASSERT_EQUAL(result, std::vector<unsigned int> {3, 8, 9});
             }
-        // check two particles in cell (1,1,1)
+            // check two particles in cell (1,1,1)
             {
             std::vector<unsigned int> result(2);
             result[0] = h_cell_list.data[cli(0, ci(1, 1, 1))];

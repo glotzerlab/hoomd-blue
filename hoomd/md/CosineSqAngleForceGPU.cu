@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -7,14 +10,17 @@
 
 #include <assert.h>
 
-// SMALL a relatively small number
-#define SMALL Scalar(0.001)
-
 /*! \file CosineSqAngleForceGPU.cu
     \brief Defines GPU kernel code for calculating the cosine squared angle forces. Used by
     CosineSqAngleForceComputeGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel for calculating cosine squared angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -27,18 +33,17 @@
     \param pitch Pitch of 2D angles list
     \param n_angles_list List of numbers of angles stored on the GPU
 */
-extern "C" __global__ void
-gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_force,
-                                         Scalar* d_virial,
-                                         const size_t virial_pitch,
-                                         const unsigned int N,
-                                         const Scalar4* d_pos,
-                                         const Scalar2* d_params,
-                                         BoxDim box,
-                                         const group_storage<3>* alist,
-                                         const unsigned int* apos_list,
-                                         const unsigned int pitch,
-                                         const unsigned int* n_angles_list)
+__global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_force,
+                                                         Scalar* d_virial,
+                                                         const size_t virial_pitch,
+                                                         const unsigned int N,
+                                                         const Scalar4* d_pos,
+                                                         const Scalar2* d_params,
+                                                         BoxDim box,
+                                                         const group_storage<3>* alist,
+                                                         const unsigned int* apos_list,
+                                                         const unsigned int pitch,
+                                                         const unsigned int* n_angles_list)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -257,3 +262,7 @@ hipError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

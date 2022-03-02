@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -25,6 +25,8 @@
 #endif
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -744,7 +746,7 @@ struct ShapeConvexPolyhedron
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB around the polyhedron
         // detail::SupportFuncConvexPolyhedron sfunc(verts);
@@ -765,10 +767,10 @@ struct ShapeConvexPolyhedron
         // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
         // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, pos.z + s_neg_z.z);
 
-        // return detail::AABB(lower, upper);
+        // return hoomd::detail::AABB(lower, upper);
 
         // ^^^^^^^ The above method is slow, just use a box that bounds the circumsphere
-        return detail::AABB(pos, getCircumsphereDiameter() / Scalar(2));
+        return hoomd::detail::AABB(pos, getCircumsphereDiameter() / Scalar(2));
         }
 
     /// Return a tight fitting OBB around the shape
@@ -863,7 +865,8 @@ template<> inline std::string getShapeSpec(const ShapeConvexPolyhedron& poly)
     }
 #endif
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hpmc.pair.user
 --------------
 
@@ -18,7 +21,6 @@ hpmc.pair.user
     :synopsis: User defined pair potentials for Monte Carlo.
 
     .. autoclass:: CPPPotentialBase
-        :show-inheritance:
     .. autoclass:: CPPPotential
         :show-inheritance:
     .. autoclass:: CPPPotentialUnion

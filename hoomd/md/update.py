@@ -1,8 +1,6 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
 # features
 
 """Update particle properties.
@@ -93,8 +91,8 @@ class ReversePerturbationFlow(Updater):
             for. If set < 0 the value is set to its default 0.
 
     Attention:
-        * This updater uses `hoomd.trigger.Periodic(1)` as a trigger, meaning it
-          is applied every timestep.
+        * This updater uses ``hoomd.trigger.Periodic(1)`` as a trigger, meaning
+          it is applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
 
@@ -288,11 +286,6 @@ class ActiveRotationalDiffusion(Updater):
         raise SimulationDefinitionError(
             "The active force this updater is dependent on is being removed. "
             "Remove this updater first to avoid error.")
-
-    def _getattr_param(self, attr):
-        if attr == "active_force":
-            return self._param_dict[attr]
-        return super()._getattr_param(attr)
 
     def _setattr_param(self, attr, value):
         if attr == "active_force":

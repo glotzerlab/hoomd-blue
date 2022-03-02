@@ -1,3 +1,5 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ExecutionConfiguration.h"
 
@@ -18,9 +20,10 @@ HOOMD_UP_MAIN();
 #include <memory>
 #include <pybind11/pybind11.h>
 
+using namespace hoomd;
 using namespace std;
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd::hpmc;
+using namespace hoomd::hpmc::detail;
 
 struct ShapeDummy
     {

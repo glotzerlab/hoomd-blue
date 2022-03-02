@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ActiveRotationalDiffusionUpdater.h
     \brief Declares an updater that actively diffuses particle orientations
@@ -18,6 +18,10 @@
 
 #pragma once
 
+namespace hoomd
+    {
+namespace md
+    {
 /// Updates particle's orientations based on a given diffusion constant.
 /** The updater accepts a variant rotational diffusion and updates the particle orientations of the
  * associated ActiveForceCompute's group (by calling m_active_force.rotationalDiffusion).
@@ -62,5 +66,11 @@ class PYBIND11_EXPORT ActiveRotationalDiffusionUpdater : public Updater
         m_active_force; //!< Active force to call rotationalDiffusion on
     };
 
+namespace detail
+    {
 /// Export the ActiveRotationalDiffusionUpdater to python
 void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

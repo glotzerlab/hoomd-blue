@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "ExternalFieldEvalFactory.h"
 #include "ClangCompiler.h"
 
@@ -19,6 +22,10 @@
 
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace hpmc
+    {
 //! C'tor
 ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
                                                    const std::vector<std::string>& compiler_args)
@@ -75,3 +82,6 @@ ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& cpp_code,
 
     m_eval = (ExternalFieldEvalFnPtr)(long unsigned int)(eval->getAddress());
     }
+
+    } // end namespace hpmc
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SorterGPU.h
@@ -19,6 +17,8 @@
 #include "hoomd/Autotuner.h"
 #include "hoomd/GPUFlags.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Sorts MPCD particles on the GPU
@@ -67,7 +67,7 @@ namespace detail
     {
 //! Exports the mpcd::SorterGPU to python
 void export_SorterGPU(pybind11::module& m);
-    } // end namespace detail
-    } // end namespace mpcd
-
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SORTER_GPU_H_

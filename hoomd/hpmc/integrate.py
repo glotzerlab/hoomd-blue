@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Hard particle Monte Carlo integrators."""
 
@@ -59,9 +58,9 @@ class HPMCIntegrator(BaseIntegrator):
     between specific particle types. `interaction_matrix` is a particle types
     by particle types matrix allowing for non-additive systems.
 
-    The `fugacity` parameter enables implicit depletants when non-zero.
-    TODO: Describe implicit depletants algorithm. No need to write this now,
-    as Jens is rewriting the implementation.
+    The `depletant_fugacity` parameter enables implicit depletants when
+    non-zero. TODO: Describe implicit depletants algorithm. No need to write
+    this now, as Jens is rewriting the implementation.
 
     .. rubric:: Writing type_shapes to GSD files.
 
@@ -74,14 +73,24 @@ class HPMCIntegrator(BaseIntegrator):
         gsd = hoomd.write.GSD(
             'trajectory.gsd', hoomd.trigger.Periodic(1000), log=log)
 
+    .. rubric:: Threading
+
+    HPMC integrators use threaded execution on multiple CPU cores only when
+    placing implicit depletants (``depletant_fugacity != 0``).
+
+    .. rubric:: Mixed precision
+
+    All HPMC integrators use reduced precision floating point arithmetic when
+    checking for particle overlaps in the local particle reference frame.
+
     .. rubric:: Parameters
 
     Attributes:
-        default_a (`TypeParameter` [``particle type``, `float`]):
+        a (`TypeParameter` [``particle type``, `float`]):
             Maximum size of rotation trial moves
             :math:`[\\mathrm{dimensionless}]`.
 
-        default_d (`TypeParameter` [``particle type``, `float`]):
+        d (`TypeParameter` [``particle type``, `float`]):
             Maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
@@ -91,7 +100,7 @@ class HPMCIntegrator(BaseIntegrator):
             Depletant fugacity
             :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
 
-            Allows setting the fugacity per particle type, e.g. `('A','A')`
+            Allows setting the fugacity per particle type, e.g. ``('A','A')``
             refers to a depletant of type **A**. The option to set a type pair
             is temporary and will be removed in the release version.
 
@@ -198,6 +207,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._external_potential is not None:
             self._external_potential._attach()
             self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
+
         if self._pair_potential is not None:
             self._pair_potential._attach()
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
@@ -217,14 +227,6 @@ class HPMCIntegrator(BaseIntegrator):
         super()._remove()
 
     # TODO need to validate somewhere that quaternions are normalized
-
-    @property
-    def type_shapes(self):
-        """list[dict]: Description of shapes in ``type_shapes`` format."""
-        raise NotImplementedError(
-            "You are using a shape type that is not implemented! "
-            "If you want it, please modify the "
-            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
         type_shapes = self._cpp_obj.getTypeShapesPy()
@@ -382,9 +384,9 @@ class HPMCIntegrator(BaseIntegrator):
     @external_potential.setter
     def external_potential(self, new_external_potential):
         if not isinstance(new_external_potential,
-                          hoomd.hpmc.external.user.CPPExternalPotential):
+                          hoomd.hpmc.external.field.ExternalField):
             msg = 'External potentials should be an instance of '
-            msg += 'CPPExternalPotential'
+            msg += 'hoomd.hpmc.field.external.ExternalField.'
             raise TypeError(msg)
         if self._added:
             new_external_potential._add(self._simulation)
@@ -454,6 +456,11 @@ class Sphere(HPMCIntegrator):
               `True` to ignore tracked statistics.
             * ``orientable`` (`bool`, **default:** `False`) - set to `True` to
               allow rotation moves on this particle type.
+
+    .. rubric:: Wall support.
+
+    `integrate.Sphere` supports all `hoomd.wall` geometries.
+
     """
     _cpp_cls = 'IntegratorHPMCMonoSphere'
 
@@ -548,6 +555,10 @@ class ConvexPolygon(HPMCIntegrator):
           Warning:
               HPMC does not check that all vertex requirements are met.
               Undefined behavior **will result** when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexPolygon` supports no `hoomd.wall` geometries.
 
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
@@ -651,6 +662,12 @@ class ConvexSpheropolygon(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexSpheropolygon` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSpheropolygon'
@@ -746,6 +763,11 @@ class SimplePolygon(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+
+    .. rubric:: Wall support.
+
+    `integrate.SimplePolygon` supports no `hoomd.wall` geometries.
 
     """
 
@@ -916,6 +938,11 @@ class Polyhedron(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.Polyhedron` supports no `hoomd.wall` geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoPolyhedron'
@@ -1030,6 +1057,12 @@ class ConvexPolyhedron(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexPolyhedron` supports all `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
@@ -1172,6 +1205,12 @@ class FacetedEllipsoid(HPMCIntegrator):
                 specified, the half-space intersection of the normals must match
                 the convex polyhedron defined by the vertices (if non-empty),
                 the half-space intersection is **not** calculated automatically.
+
+    .. rubric:: Wall support.
+
+    `integrate.FacetedEllipsoid` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoid'
@@ -1251,6 +1290,11 @@ class Sphinx(HPMCIntegrator):
               :math:`[\\mathrm{length}]`.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.Sphinx` supports no `hoomd.wall` geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
@@ -1345,6 +1389,12 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexSpheropolyhedron` supports the
+    `hoomd.wall.Sphere` and `hoomd.wall.Plane` geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSpheropolyhedron'
@@ -1430,6 +1480,11 @@ class Ellipsoid(HPMCIntegrator):
               direction :math:`[\\mathrm{length}]`
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.Ellipsoid` supports no `hoomd.wall`  geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
@@ -1540,6 +1595,11 @@ class SphereUnion(HPMCIntegrator):
               particles per leaf node to adjust performance.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.SphereUnion` supports no `hoomd.wall`  geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
@@ -1654,7 +1714,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
               **required**) - Position of each spheropolyhedron in the union.
               :math:`[\\mathrm{length}]`
-            * ``orientations`` (`list[ `tuple[`float`, `float`, `float`,\
+            * ``orientations`` (`list` [ `tuple` [`float`, `float`, `float`,\
               `float`]], **default:** None) - Orientation of each
               spheropolyhedron in the union. When not `None`,
               ``orientations`` must have a length equal to that of
@@ -1670,6 +1730,12 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
               particles per leaf node to adjust performance.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.ConvexSpheropolyhedronUnion` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
@@ -1790,7 +1856,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``shapes`` (`list`[ `dict`], **required**) -
+            * ``shapes`` (`list` [ `dict`], **required**) -
               Shape parameters for each faceted ellipsoid in the union. See
               `FacetedEllipsoid.shape` for the accepted parameters.
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
@@ -1812,6 +1878,12 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
               particles per leaf node to adjust performance.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
+
+    .. rubric:: Wall support.
+
+    `integrate.FacetedEllipsoidUnion` supports no `hoomd.wall`
+    geometries.
+
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
@@ -1836,7 +1908,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                      normals=[(float, float, float)],
                      offsets=[float],
                      vertices=[(float, float, float)],
-                     origin=tuple,
+                     origin=(float, float, float),
                      ignore_statistics=False)
             ],
                                          positions=[(float, float, float)],

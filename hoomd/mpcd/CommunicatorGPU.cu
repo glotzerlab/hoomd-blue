@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CommunicatorGPU.cu
@@ -28,6 +26,8 @@
 #include "hoomd/extern/cub/cub/device/device_reduce.cuh"
 #endif
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -313,4 +313,6 @@ void mpcd::gpu::wrap_particles(const unsigned int n_recv,
     // Apply box wrap to input buffer
     thrust::transform(in_ptr, in_ptr + n_recv, in_ptr, mpcd::gpu::wrap_particle_op(box));
     }
+    } // end namespace hoomd
+
 #endif // ENABLE_MPI
