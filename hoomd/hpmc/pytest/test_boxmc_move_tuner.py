@@ -4,6 +4,7 @@
 from math import isclose
 import pytest
 
+import hoomd
 from hoomd import hpmc
 from hoomd.conftest import operation_pickling_check
 from hoomd.hpmc.tune.boxmc_move_size import (_MoveSizeTuneDefinition,
@@ -39,8 +40,12 @@ def move_definition_dict(rng, request):
 
 
 @pytest.fixture
-def simulation(simulation_factory, lattice_snapshot_factory):
-    snap = lattice_snapshot_factory(dimensions=3, r=1e-2, n=(3, 3, 8),
+def simulation(device, simulation_factory, lattice_snapshot_factory):
+    if isinstance(device, hoomd.device.CPU):
+        n = (4, 4, 8)
+    else:
+        n = (6, 6, 8)
+    snap = lattice_snapshot_factory(dimensions=3, r=1e-2, n=n,
                                     a=2)  # 72 particles
     sim = simulation_factory(snap)
     integrator = hpmc.integrate.Sphere(default_d=0.01)
@@ -157,11 +162,15 @@ class TestMoveSizeTuneDefinition:
 def boxmc_tuner_method_and_kwargs(request, rng):
     cls_methods = (BoxMCMoveSize.secant_solver, BoxMCMoveSize.scale_solver)
     cls = cls_methods[rng.integers(2)]
+    max_move_sizes = {"volume": 10.0, "aspect": 1.0}
+    max_move_sizes.update({f"shear_{x}": 1.0 for x in ("x", "y", "z")})
+    max_move_sizes.update({f"length_{x}": 1.0 for x in ("x", "y", "z")})
     return cls, {
         "trigger": 100,
         "moves": [request.param],
         "tol": 0.05,
-        "target": 0.2
+        "target": 0.2,
+        "max_move_size": max_move_sizes,
     }
 
 
@@ -270,7 +279,7 @@ class TestMoveSize:
         acceptance_rate = move_counts[0] / sum(move_counts)
         # We must increase tolerance a bit since tuning to a tolerance is noisy
         # for BoxMC. Particularly shear move tuning.
-        tolerance = 2.0 * move_size_tuner.solver.tol
+        tolerance = 2.5 * move_size_tuner.solver.tol
         assert abs(acceptance_rate - move_size_tuner.target) <= tolerance
 
     def test_pickling(self, boxmc_with_tuner, simulation):
