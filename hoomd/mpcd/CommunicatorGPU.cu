@@ -18,6 +18,7 @@
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 #include <thrust/transform.h>
+#include <thrust/iterator/constant_iterator.h>
 
 #if __CUDACC_VER_MAJOR__ >= 11
 #include <cub/device/device_reduce.cuh>
