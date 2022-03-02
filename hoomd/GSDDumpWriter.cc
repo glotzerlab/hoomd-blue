@@ -48,12 +48,13 @@ std::list<std::string> GSDDumpWriter::particle_chunks {"particles/typeid",
    file.
 */
 GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<Trigger> trigger,
                              const std::string& fname,
                              std::shared_ptr<ParticleGroup> group,
                              std::string mode,
                              bool truncate)
-    : Analyzer(sysdef), m_fname(fname), m_mode(mode), m_truncate(truncate), m_is_initialized(false),
-      m_group(group)
+    : Analyzer(sysdef, trigger), m_fname(fname), m_mode(mode), m_truncate(truncate),
+      m_is_initialized(false), m_group(group)
     {
     m_exec_conf->msg->notice(5) << "Constructing GSDDumpWriter: " << m_fname << " " << mode << " "
                                 << truncate << endl;
@@ -1114,6 +1115,7 @@ void export_GSDDumpWriter(pybind11::module& m)
 
     pybind11::class_<GSDDumpWriter, Analyzer, std::shared_ptr<GSDDumpWriter>>(m, "GSDDumpWriter")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::string,
                             std::shared_ptr<ParticleGroup>,
                             std::string,

@@ -40,7 +40,7 @@ class ZeroMomentum(Updater):
     def _attach(self):
         # create the c++ mirror class
         self._cpp_obj = _md.ZeroMomentumUpdater(
-            self._simulation.state._cpp_sys_def)
+            self._simulation.state._cpp_sys_def, self.trigger)
         super()._attach()
 
 
@@ -198,14 +198,14 @@ class ReversePerturbationFlow(Updater):
         sys_def = self._simulation.state._cpp_sys_def
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.MuellerPlatheFlow(
-                sys_def, group, self.flow_target, self.slab_direction,
-                self.flow_direction, self.n_slabs, self.min_slab, self.max_slab,
-                self.flow_epsilon)
+                sys_def, self.trigger, group, self.flow_target,
+                self.slab_direction, self.flow_direction, self.n_slabs,
+                self.min_slab, self.max_slab, self.flow_epsilon)
         else:
             self._cpp_obj = _md.MuellerPlatheFlowGPU(
-                sys_def, group, self.flow_target, self.slab_direction,
-                self.flow_direction, self.n_slabs, self.min_slab, self.max_slab,
-                self.flow_epsilon)
+                sys_def, self.trigger, group, self.flow_target,
+                self.slab_direction, self.flow_direction, self.n_slabs,
+                self.min_slab, self.max_slab, self.flow_epsilon)
         super()._attach()
 
     @log(category="scalar", requires_run=True)
@@ -278,8 +278,8 @@ class ActiveRotationalDiffusion(Updater):
                 "Active force for ActiveRotationalDiffusion object belongs to "
                 "another simulation.")
         self._cpp_obj = _md.ActiveRotationalDiffusionUpdater(
-            self._simulation.state._cpp_sys_def, self.rotational_diffusion,
-            self.active_force._cpp_obj)
+            self._simulation.state._cpp_sys_def, self.trigger,
+            self.rotational_diffusion, self.active_force._cpp_obj)
         # No need to call super
 
     def _handle_removed_dependency(self, active_force):

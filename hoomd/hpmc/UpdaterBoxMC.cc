@@ -15,9 +15,10 @@ namespace hoomd
 namespace hpmc
     {
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<Trigger> trigger,
                            std::shared_ptr<IntegratorHPMC> mc,
                            std::shared_ptr<Variant> P)
-    : Updater(sysdef), m_mc(mc), m_beta_P(P), m_volume_delta(0.0), m_volume_weight(0.0),
+    : Updater(sysdef, trigger), m_mc(mc), m_beta_P(P), m_volume_delta(0.0), m_volume_weight(0.0),
       m_ln_volume_delta(0.0), m_ln_volume_weight(0.0), m_volume_mode("standard"), m_volume_A1(0.0),
       m_volume_A2(0.0), m_length_delta {0.0, 0.0, 0.0},
       m_length_weight(0.0), m_shear_delta {0.0, 0.0, 0.0}, m_shear_weight(0.0), m_shear_reduce(0.0),
@@ -808,6 +809,7 @@ void export_UpdaterBoxMC(pybind11::module& m)
     {
     pybind11::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMC>,
                             std::shared_ptr<Variant>>())
         .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)

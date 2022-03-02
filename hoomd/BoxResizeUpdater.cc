@@ -24,11 +24,12 @@ namespace hoomd
 */
 
 BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<Trigger> trigger,
                                    std::shared_ptr<BoxDim> box1,
                                    std::shared_ptr<BoxDim> box2,
                                    std::shared_ptr<Variant> variant,
                                    std::shared_ptr<ParticleGroup> group)
-    : Updater(sysdef), m_box1(box1), m_box2(box2), m_variant(variant), m_group(group)
+    : Updater(sysdef, trigger), m_box1(box1), m_box2(box2), m_variant(variant), m_group(group)
     {
     assert(m_pdata);
     assert(m_variant);
@@ -159,6 +160,7 @@ void export_BoxResizeUpdater(pybind11::module& m)
         m,
         "BoxResizeUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<BoxDim>,
                             std::shared_ptr<BoxDim>,
                             std::shared_ptr<Variant>,

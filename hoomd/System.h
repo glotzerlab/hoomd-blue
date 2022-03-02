@@ -4,7 +4,6 @@
 #include "Analyzer.h"
 #include "Compute.h"
 #include "Integrator.h"
-#include "Trigger.h"
 #include "Tuner.h"
 #include "Updater.h"
 
@@ -128,12 +127,12 @@ class PYBIND11_EXPORT System
     //! Set autotuner parameters
     void setAutotunerParams(bool enable, unsigned int period);
 
-    std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>& getAnalyzers()
+    std::vector<std::shared_ptr<Analyzer>>& getAnalyzers()
         {
         return m_analyzers;
         }
 
-    std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>& getUpdaters()
+    std::vector<std::shared_ptr<Updater>>& getUpdaters()
         {
         return m_updaters;
         }
@@ -176,13 +175,10 @@ class PYBIND11_EXPORT System
     /// Update the number of degrees of freedom in cached groups
     void updateGroupDOF();
 
-    std::vector<std::pair<std::shared_ptr<Analyzer>,
-                          std::shared_ptr<Trigger>>>
+    std::vector<std::shared_ptr<Analyzer>>
         m_analyzers; //!< List of analyzers belonging to this System
 
-    std::vector<std::pair<std::shared_ptr<Updater>,
-                          std::shared_ptr<Trigger>>>
-        m_updaters; //!< List of updaters belonging to this System
+    std::vector<std::shared_ptr<Updater>> m_updaters; //!< List of updaters belonging to this System
 
     std::vector<std::shared_ptr<Tuner>> m_tuners; //!< List of tuners belonging to the System
 

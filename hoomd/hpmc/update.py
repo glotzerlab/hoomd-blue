@@ -309,7 +309,8 @@ class BoxMC(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
-                                           integrator._cpp_obj, self.betaP)
+                                           self.trigger, integrator._cpp_obj,
+                                           self.betaP)
         super()._attach()
 
     @property
@@ -457,7 +458,7 @@ class MuVT(Updater):
         cpp_cls = getattr(_hpmc, cpp_cls_name)
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj, self.ngibbs)
+                                self.trigger, integrator._cpp_obj, self.ngibbs)
         super()._attach()
 
     @log(category='sequence', requires_run=True)
@@ -600,10 +601,11 @@ class Clusters(Updater):
             sys_def = self._simulation.state._cpp_sys_def
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                    integrator._cpp_obj, self._cpp_cell)
+                                    self.trigger, integrator._cpp_obj,
+                                    self._cpp_cell)
         else:
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                    integrator._cpp_obj)
+                                    self.trigger, integrator._cpp_obj)
         super()._attach()
 
     @log(requires_run=True)
@@ -728,8 +730,8 @@ class QuickCompress(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
-            self._simulation.state._cpp_sys_def, integrator._cpp_obj,
-            self.max_overlaps_per_particle, self.min_scale,
+            self._simulation.state._cpp_sys_def, self.trigger,
+            integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
             self.target_box._cpp_obj)
         super()._attach()
 

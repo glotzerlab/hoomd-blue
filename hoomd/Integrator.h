@@ -11,6 +11,7 @@
 #include "ForceConstraint.h"
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
+#include "Trigger.h"
 #include "Updater.h"
 #include <pybind11/pybind11.h>
 #include <string>
@@ -138,6 +139,7 @@ class PYBIND11_EXPORT Integrator : public Updater
     protected:
     /// The step size
     Scalar m_deltaT;
+    std::shared_ptr<Trigger> trigger = std::make_shared<PeriodicTrigger>(1, 0);
 
     /// List of all the force computes
     std::vector<std::shared_ptr<ForceCompute>> m_forces;

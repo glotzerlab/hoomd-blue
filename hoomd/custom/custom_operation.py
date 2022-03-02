@@ -6,14 +6,13 @@
 from abc import abstractmethod
 import itertools
 
-from hoomd.operation import _TriggeredOperation
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.custom.custom_action import Action, _AbstractLoggable
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 
 
-class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
+class CustomOperation(metaclass=_AbstractLoggable):
     """User defined operation.
 
     This is the parent class for `hoomd.tune.CustomTuner`,
@@ -82,7 +81,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
                 on.
         """
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
-            self._simulation.state._cpp_sys_def, self._action)
+            self._simulation.state._cpp_sys_def, self.trigger, self._action)
 
         super()._attach()
         self._action.attach(self._simulation)

@@ -35,6 +35,7 @@ class UpdaterQuickCompress : public Updater
         @param target_box The target box
     */
     UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<Trigger> trigger,
                          std::shared_ptr<IntegratorHPMC> mc,
                          double max_overlaps_per_particle,
                          double min_scale,

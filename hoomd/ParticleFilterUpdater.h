@@ -30,6 +30,7 @@ class PYBIND11_EXPORT ParticleFilterUpdater : public Updater
     public:
     /// Constructor
     ParticleFilterUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                          std::shared_ptr<Trigger> trigger,
                           std::vector<std::shared_ptr<ParticleGroup>> groups = {});
 
     /// Destructor
