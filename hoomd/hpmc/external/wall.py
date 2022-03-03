@@ -127,6 +127,9 @@ class WallPotential(ExternalField):
     are not implemented. See the individual subclasses of
     `hoomd.hpmc.integrate.HPMCIntegrator` for their wall support.
 
+    Note:
+        `WallPotential` does not support execution on GPUs.
+
     See Also:
         `hoomd.wall`
 

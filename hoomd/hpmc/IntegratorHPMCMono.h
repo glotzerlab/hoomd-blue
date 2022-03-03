@@ -295,21 +295,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<std::pair<unsigned int, unsigned int> > mapOverlaps();
 
-        //! Test overlap for a given pair of particle coordinates
-        /*! \param type_i Type of first particle
-            \param type_j Type of second particle
-            \param rij Separation vector rj-ri
-            \param qi Orientation quaternion of first particle
-            \param qj Orientation quaternion of second particle
-            \param use_images if true, take into account periodic boundary conditions
-            \param exclude_self if true, exclude the self-image
-
-            \returns true if particles overlap
-         */
-        virtual bool py_test_overlap(unsigned int type_i, unsigned int type_j,
-            pybind11::list rij, pybind11::list qi, pybind11::list qj,
-            bool use_images, bool exclude_self);
-
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth(unsigned int type)
             {
@@ -1976,63 +1961,6 @@ bool IntegratorHPMCMono<Shape>::restoreStateGSD( std::shared_ptr<GSDReader> read
     return success;
     }
 
-template<class Shape>
-bool IntegratorHPMCMono<Shape>::py_test_overlap(unsigned int type_i, unsigned int type_j,
-    pybind11::list rij, pybind11::list qi, pybind11::list qj,
-    bool use_images, bool exclude_self)
-    {
-    if (len(rij) != 3)
-        throw std::runtime_error("rij needs to be a 3d vector.\n");
-    if (len(qi) != 4 || len(qj) != 4)
-        throw std::runtime_error("qi and qj need to be quaternions.\n");
-
-    assert(type_i <= m_pdata->getNTypes());
-    assert(type_j <= m_pdata->getNTypes());
-
-    vec3<Scalar> dr(pybind11::cast<Scalar>(rij[0]), pybind11::cast<Scalar>(rij[1]), pybind11::cast<Scalar>(rij[2]));
-    quat<Scalar> quat_i(pybind11::cast<Scalar>(qi[0]),
-        vec3<Scalar>(pybind11::cast<Scalar>(qi[1]), pybind11::cast<Scalar>(qi[2]), pybind11::cast<Scalar>(qi[3])));
-    quat<Scalar> quat_j(pybind11::cast<Scalar>(qj[0]),
-        vec3<Scalar>(pybind11::cast<Scalar>(qj[1]), pybind11::cast<Scalar>(qj[2]), pybind11::cast<Scalar>(qj[3])));
-
-    Shape shape_i(quat_i, m_params[type_i]);
-    Shape shape_j(quat_j, m_params[type_j]);
-
-    unsigned int err = 0;
-    bool overlap = false;
-    if (use_images)
-        {
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            throw std::runtime_error("test_overlap does not support MPI parallel jobs");
-            }
-        #endif
-
-        updateImageList();
-
-        const unsigned int n_images = (unsigned int)m_image_list.size();
-        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-            {
-            if (exclude_self && cur_image == 0)
-                continue;
-
-            if (check_circumsphere_overlap(dr + m_image_list[cur_image], shape_i, shape_j) &&
-                test_overlap(dr + m_image_list[cur_image], shape_i, shape_j, err))
-                overlap = true;
-            }
-        }
-    else
-        {
-        overlap = check_circumsphere_overlap(dr, shape_i, shape_j) && test_overlap(dr, shape_i, shape_j, err);
-        }
-
-    if (err)
-        m_exec_conf->msg->warning() << "test_overlap() reports an error due to finite numerical precision." << std::endl;
-
-    return overlap;
-    }
-
 /*! \param i The particle id in the list
     \param pos_i Particle position being tested
     \param shape_i Particle shape (including orientation) being tested
@@ -3062,7 +2990,6 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("connectGSDStateSignal", &IntegratorHPMCMono<Shape>::connectGSDStateSignal)
           .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
-          .def("py_test_overlap", &IntegratorHPMCMono<Shape>::py_test_overlap)
           .def("getImplicitCounters", &IntegratorHPMCMono<Shape>::getImplicitCounters)
           .def("getDepletantNtrial", &IntegratorHPMCMono<Shape>::getNtrialPy)
           .def("setDepletantNtrial", &IntegratorHPMCMono<Shape>::setNtrialPy)

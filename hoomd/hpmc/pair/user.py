@@ -220,10 +220,11 @@ class CPPPotential(CPPPotentialBase):
         code (str): The C++ code that defines the body of the patch energy
             function. After running zero or more steps, this property cannot be
             changed.
-        param_array (``ndarray<float>``): Numpy array containing dynamically
-                adjustable elements in the potential energy function as
-                defined by the user. After running zero or more steps, the array
-                cannot be set, although individual values can still be changed.
+        param_array ((*N*, ) `numpy.ndarray` of ``float``): Numpy
+            array containing dynamically adjustable elements in the potential
+            energy function as defined by the user. After running zero or more
+            steps, the array cannot be set, although individual values can still
+            be changed.
         energy (float): The potential energy resulting from the interactions
             defind in the C++ code at the current timestep.
 
@@ -382,17 +383,17 @@ class CPPPotentialUnion(CPPPotentialBase):
             energy function between the centers of the particles. This property
             cannot be modified after running for zero or more steps.
 
-        param_array_isotropic (``ndarray<float>``): Numpy array containing
-                dynamically adjustable elements in the isotropic part of the
-                potential as defined by the user. After running zero or more
-                steps, the array cannot be set, although individual values can
-                still be changed.
+        param_array_isotropic ((*N*, ) `numpy.ndarray` of ``float``): Numpy
+            array containing dynamically adjustable elements in the isotropic
+            part of the potential as defined by the user. After running zero or
+            more steps, the array cannot be set, although individual values can
+            still be changed.
 
-        param_array_constituent (``ndarray<float>``): Numpy array containing
-                dynamically adjustable elements in the constituent part of the
-                potential part of the potential as defined by the user. After
-                running zero or more steps, the array cannot be set, although
-                individual values can still be changed.
+        param_array_constituent ((*N*, ) `numpy.ndarray` of ``float``): Numpy
+            array containing dynamically adjustable elements in the constituent
+            part of the potential part of the potential as defined by the user.
+            After running zero or more steps, the array cannot be set, although
+            individual values can still be changed.
         energy (float): The potential energy resulting from the interactions
             defind in the C++ code at the current timestep.
 

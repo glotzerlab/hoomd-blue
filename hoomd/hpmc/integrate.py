@@ -35,7 +35,7 @@ randomly with the probability of a translation move set by
 
 The form of the trial move depends on the dimensionality of the system.
 Let :math:`u` be a random value in the interval :math:`[0,1]`, :math:`\vec{v}`
-be a random vector uniformly distributed in the ball of radius 1, and
+be a random vector uniformly distributed within the ball of radius 1, and
 :math:`\mathbf{w}` be a random unit quaternion from the set of uniformly
 distributed rotations. Then the 3D trial move for particle :math:`i` is:
 
@@ -57,8 +57,8 @@ where :math:`d_i` is the translation move size for particle :math:`i` (set by
 particle type with `HPMCIntegrator.d`) and :math:`a_i` is the rotation move size
 (set by particle type with `HPMCIntegrator.a`).
 
-In 2D boxes, let :math:`\vec{v}` be a random vector uniformly distributed in the
-disk of radius 1 in the x,y plane and :math:`\alpha` be a random angle in
+In 2D boxes, let :math:`\vec{v}` be a random vector uniformly distributed within
+the disk of radius 1 in the x,y plane and :math:`\alpha` be a random angle in
 radians in the interval :math:`[-a_i,a_i]`. Form a quaternion that rotates about
 the z axis by :math:`\alpha`: :math:`\mathbf{w} = (\cos(\alpha/2), 0, 0,
 \sin(\alpha/2))`. The 2D trial move for particle :math:`i` is:
@@ -89,10 +89,11 @@ defaults to 4). To achieve detailed balance at the level of a timestep,
 particles in forward index or reverse index order (random selection severely
 degrades performance due to cache incoherency). In the GPU and MPI
 implementations, trial moves are performed in parallel for particles in active
-domains while leaving particles on the border fixed (see the paper for a full
-description). As a consequence, a single timestep may perform more or less than
-``nselect`` trial moves per particle when using the parallel code paths. Monitor
-the number of trial moves performed with `HPMCIntegrator.translate_moves` and
+domains while leaving particles on the border fixed (see `Anderson 2016
+<https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_ for a full description). As a
+consequence, a single timestep may perform more or less than ``nselect`` trial
+moves per particle when using the parallel code paths. Monitor the number of
+trial moves performed with `HPMCIntegrator.translate_moves` and
 `HPMCIntegrator.rotate_moves`.
 
 .. rubric:: Random numbers
@@ -114,9 +115,42 @@ Note:
 
 .. math::
 
-    U = \sum_{i=0}^\mathrm{N_particles-1} \sum_{j=0}^\mathrm{N_particles-1}
-        ( U_{\mathrm{pair},ij} + U_{\mathrm{shape},ij} ) +
-        \sum_{i=0}^\mathrm{N_particles-1} U_{\mathrm{external},i}
+    U = U_{\mathrm{pair}} + U_{\mathrm{shape}} + U_{\mathrm{external}}
+
+To enable simulations of small systems, the pair and shape energies evaluate
+interactions between pairs of particles in multiple box images:
+
+.. math::
+
+    U_{\mathrm{pair}} = &
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i+1}^{N_\mathrm{particles}-1}
+            U_{\mathrm{pair},ij}(\vec{r}_j - \vec{r}_i,
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j) \\
+            + & \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i}^{N_\mathrm{particles}-1}
+            \sum_{\vec{A} \in B_\mathrm{images}, \vec{A} \ne \vec{0}}
+            U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j)
+
+where :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
+translates by periodic box images and the set of box images includes all image
+vectors necessary to find interactions between particles in the primary image
+with particles in periodic images The first sum evaluates interactions between
+particle :math:`i` with other particles (not itself) in the primary box image.
+The second sum evaluates interactions between particle :math:`i` and all
+potentially interacting periodic images of all particles (including itself).
+`HPMCIntegrator` computes :math:`U_{\mathrm{shape}}` similarly (see below).
+
+External potentials apply to each particle individually:
+
+.. math::
+
+    U_\mathrm{external} =
+        \sum_{i=0}^\mathrm{N_particles-1} U_{\mathrm{external},i}(\vec{r}_i,
+                                                                 \mathbf{q}_i)
 
 Potential classes in :doc:`module-hpmc-pair` evaluate
 :math:`U_{\mathrm{pair},ij}`. Assign a class instance to
@@ -128,7 +162,7 @@ potential classes in :doc:`module-hpmc-external` evaluate
 .. rubric:: Shape overlap tests
 
 `HPMCIntegrator` performs shape overlap tests to evaluate
-:math:`U_{\mathrm{shape},ij}`. Let :math:`S` be the set of all points inside the
+:math:`U_{\mathrm{shape}}`. Let :math:`S` be the set of all points inside the
 shape in the local coordinate system of the shape:
 
 .. math::
@@ -170,39 +204,32 @@ particle 1:
     \mathrm{overlap}(S_1(\mathbf{q}_1), S_2(\mathbf{q}_2,
                                             \vec{r}_2 - \vec{r}_1))
 
-The hard shape interaction energy between the particles :math:`i` and :math:`j`
-in the simulation box is:
+The complete hard shape interaction energy for a given configuration is:
 
 .. math::
 
     U_{\mathrm{shape},ij} = \quad & \infty
             \cdot
-            \sum_{i=0, i \ne j}^{N_\mathrm{particles}-1}
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i+1}^{N_\mathrm{particles}-1}
             \left[
             \mathrm{overlap}\left(
             S_i(\mathbf{q}_i),
-            S_t(\mathbf{q}^t_j, \vec{r}^t_j - \vec{r}_i)
+            S_j(\mathbf{q}_j, \vec{r}_j - \vec{r}_i)
             \right) \ne \emptyset
             \right]
             \\
             + & \infty \cdot \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i}^{N_\mathrm{particles}-1}
             \sum_{\vec{A} \in B_\mathrm{images}, \vec{A} \ne \vec{0}}
             \left[
             \mathrm{overlap}\left(
             S_i(\mathbf{q}_i),
-            S_t(\mathbf{q}^t_j, \vec{r}^t_j - (\vec{r}_i + \vec{A}))
+            S_j(\mathbf{q}_j, \vec{r}_j - (\vec{r}_i + \vec{A}))
             \right) \ne \emptyset
             \right]
 
-where :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
-translates by periodic box images, the set of box images includes all image
-vectors necessary to find overlaps between particles in the primary image with
-particles in periodic images, and the square brackets denote the Iverson
-bracket. The first sum evaluates overlaps between particle :math:`i` with other
-particles (not itself) in the primary box image. The second sum evaluates
-overlaps between particle :math:`i` and all potentially interacting periodic
-images of all particles (including itself). This enables simulations of small
-simulation boxes.
+where the square brackets denote the Iverson bracket.
 
 Note:
     While this notation is written in as sums over all particles
@@ -444,52 +471,6 @@ class HPMCIntegrator(Integrator):
         """int: Number of overlapping particle pairs."""
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
-
-    def test_overlap(self,
-                     type_i,
-                     type_j,
-                     rij,
-                     qi,
-                     qj,
-                     use_images=True,
-                     exclude_self=False):
-        """Test overlap between two particles.
-
-        Args:
-            type_i (str): Type of first particle
-            type_j (str): Type of second particle
-            rij (tuple): Separation vector **rj**-**ri** between the particle
-              centers
-            qi (tuple): Orientation quaternion of first particle
-            qj (tuple): Orientation quaternion of second particle
-            use_images (bool): If True, check for overlap between the periodic
-              images of the particles by adding
-              the image vector to the separation vector
-            exclude_self (bool): If both **use_images** and **exclude_self** are
-              true, exclude the primary image
-
-        For two-dimensional shapes, pass the third dimension of **rij** as zero.
-
-        Attention:
-            `test_overlap` is not yet implemented in HOOMD v3.x.
-
-        Returns:
-            True if the particles overlap.
-        """
-        raise NotImplementedError("map_energies will be implemented in a future"
-                                  "release.")
-        self.update_forces()
-
-        ti = hoomd.context.current.system_definition.getParticleData(
-        ).getTypeByName(type_i)
-        tj = hoomd.context.current.system_definition.getParticleData(
-        ).getTypeByName(type_j)
-
-        rij = hoomd.util.listify(rij)
-        qi = hoomd.util.listify(qi)
-        qj = hoomd.util.listify(qj)
-        return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
-                                             exclude_self)
 
     @log(category='sequence', requires_run=True)
     def translate_moves(self):
@@ -915,7 +896,7 @@ class SimplePolygon(HPMCIntegrator):
             timestep.
 
     Perform hard particle Monte Carlo of simple polygons. The shape :math:`S` of
-    a convex polygon includes the points inside and on the surface of the simple
+    a simple polygon includes the points inside and on the surface of the simple
     polygon defined by the vertices (see `shape`). For example:
 
     .. image:: simple-polygon.svg

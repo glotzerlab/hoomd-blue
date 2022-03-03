@@ -48,6 +48,8 @@ v3.0.0-beta.14 (2022-02-18)
 
 *Removed*
 
+* [developers] Removed ``IntegratorData`` class. It is replaced by structs that are defined in the
+  integrator classes.
 * [breaking] Removed ``hoomd.md.pair.SLJ`` potential and wall. Use ``hoomd.md.pair.ExpandedLJ``.
 * [breaking] ``hoomd.Box.lattice_vectors`` property no longer exists.
 

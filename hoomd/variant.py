@@ -186,7 +186,7 @@ class Power(_hoomd.VariantPower, Variant):
         p = Power(A=2, B-8, power=1 / 10, t_start=10, t_ramp=20)
 
     .. image:: variant-power.svg
-       :alt: Example plot of a cycle variant.
+       :alt: Example plot of a power variant.
 
     Attributes:
         A (float): The start value.
