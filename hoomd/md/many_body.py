@@ -1,7 +1,41 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement many body potentials."""
+r"""Implement many body potentials.
+
+Triplet force classes apply a force and virial on every particle in the
+simulation state commensurate with the potential energy:
+
+.. math::
+
+    U_\mathrm{many-body} = \frac{1}{2} \sum_{i=0}^\mathrm{N_particles-1}
+                           \sum_{j \ne i}
+                           \sum_{j \ne k} U(\vec{r}_{ij}, \vec{r}_{ik})
+
+where :math:`\vec{r}_{ij} = \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)`.
+`Triplet` applies a short range cutoff for performance and assumes that both
+:math`U(\vec{r}_{ij}, \vec{r}_{ik})` and its derivatives are 0 when
+:math:`\vec r_{ij} > r_\mathrm{cut}` or :math:`\vec r_{ik} > r_\mathrm{cut}`.
+
+Specifically, the force :math:`\vec{F}` applied to each particle :math:`i` is:
+
+.. math::
+    \vec{F_i} =
+    \begin{cases}
+     -\nabla V(\vec r_{ij}, \vec r_{ik})
+            & r_{ij} < r_{\mathrm{cut}}
+            \land r_{ik} < r_{\mathrm{cut}} \\
+        0 & \mathrm{otherwise}
+    \end{cases}
+
+The per particle energy terms are:
+
+.. math::
+
+    U_i = \frac{1}{2} \sum_{j \ne i}
+          \sum_{j \ne k} U(\vec{r}_{ij}, \vec{r}_{ik})
+          [r_{ij} < r_{\mathrm{cut}} \land r_{ik} < r_{\mathrm{cut}}]
+"""
 
 import copy
 import warnings
@@ -15,34 +49,11 @@ from hoomd.md.force import Force
 
 
 class Triplet(Force):
-    r"""Common three body potential documentation.
+    """Base class triplet force.
 
-    Users should not invoke :py:class:`Triplet` directly. It is a base class
-    that provides common features to all standard triplet forces. Common
-    documentation for all three-body potentials is documented here.
-
-    All triplet force commands specify that a given force be computed on all
-    particles which have at least two other particles within a short range
-    cutoff distance :math:`r_{\mathrm{cut}}`.
-
-    The force :math:`\vec{F}` applied to each particle :math:`i` is:
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray}
-        \vec{F_i}
-            =& -\nabla V(\vec r_{ij}, \vec r_{ik});
-             & r_{ij} < r_{\mathrm{cut}}
-                \textrm{ and } r_{ik} < r_{\mathrm{cut}} \\
-           =& 0; & otherwise
-        \end{eqnarray}
-
-    Where
-    :math:`\vec r_{\alpha \beta} = \vec r_{\alpha} - \vec r_{\beta}`.
-
-    The following coefficients must be set per unique pair of particle types.
-    See :class:`hoomd.md.many_body` for information on how to set coefficients.
+    Note:
+        :py:class:`Triplet` is the base class for many-body triplet forces.
+        Users should not instantiate this class directly.
 
     .. py:attribute:: r_cut
 
@@ -59,10 +70,10 @@ class Triplet(Force):
         Type: `hoomd.md.nlist.NList`
 
     Warning:
-        Currently HOOMD does not support reverse force communication between MPI
-        domains on the GPU. Since reverse force communication is required for
-        the calculation of three-body potentials, attempting to use this
-        potential on the GPU with MPI will result in an error.
+        Currently HOOMD-blue does not support reverse force communication
+        between MPI domains on the GPU. Since reverse force communication is
+        required for the calculation of three-body forces, attempting to use
+        this potential on the GPU with MPI will result in an error.
     """
 
     def __init__(self, nlist, default_r_cut=None):
@@ -97,7 +108,7 @@ class Triplet(Force):
             warnings.warn(
                 f"{self} object is creating a new equivalent neighbor list."
                 f" This is happending since the force is moving to a new "
-                f"simulation. To supress the warning explicitly set new nlist.",
+                f"simulation. Explicitly set the nlist to hide this warning.",
                 RuntimeWarning)
             self.nlist = copy.deepcopy(nlist)
         self.nlist._add(self._simulation)
@@ -138,7 +149,7 @@ class Triplet(Force):
 
 
 class Tersoff(Triplet):
-    r"""Tersoff Potential.
+    r"""Tersoff force.
 
     Args:
         nlist (:py:class:`hoomd.md.nlist.NList`): Neighbor list
@@ -154,15 +165,14 @@ class Tersoff(Triplet):
 
     .. _paper: https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902
 
-    :py:class:`Tersoff` specifies that the Tersoff three-body potential should
-    be applied to every non-bonded particle pair in the simulation. Despite the
-    fact that the Tersoff potential accounts for the effects of third bodies,
-    the species of the third body is irrelevant. It can thus use type-pair
-    parameters similar to those of the pair potentials.
+    `Tersoff` computes the Tersoff three-body force on every particle in the
+    simulation state. Despite the fact that the Tersoff potential accounts for
+    the effects of third bodies, the species of the third body is irrelevant. It
+    can thus use type-pair parameters similar to those of the pair potentials:
 
     .. math::
 
-        V_{ij}(r) = \frac{1}{2} f_C(r_{ij})
+        U_{ij}(r) = \frac{1}{2} f_C(r_{ij})
             \left[f_R(r_{ij}) + b_{ij}f_A(r_{ij})\right]
 
     where
@@ -174,17 +184,13 @@ class Tersoff(Triplet):
         f_A(r) = A_2e^{\lambda_2(r_D-r)}
 
     .. math::
-        :nowrap:
-
-        \begin{equation}
-            f_C(r) =
-            \begin{cases}
-                1 & r < r_{\mathrm{cut}} - r_{CT} \\
-                \exp \left[-\alpha\frac{x(r)^3}{x(r)^3 - 1} \right]
-                  & r_{\mathrm{cut}} - r_{CT} < r < r_{\mathrm{cut}} \\
-                0 & r > r_{\mathrm{cut}}
-            \end{cases}
-        \end{equation}
+        f_C(r) =
+        \begin{cases}
+            1 & r < r_{\mathrm{cut}} - r_{CT} \\
+            \exp \left[-\alpha\frac{x(r)^3}{x(r)^3 - 1} \right]
+                & r_{\mathrm{cut}} - r_{CT} < r < r_{\mathrm{cut}} \\
+            0 & r > r_{\mathrm{cut}}
+        \end{cases}
 
     .. math::
 
@@ -209,9 +215,6 @@ class Tersoff(Triplet):
 
         g(\theta_{ijk}) = 1 + \frac{c^2}{d^2}
                            - \frac{c^2}{d^2 + |m - \cos(\theta_{ijk})|^2}
-
-    The parameters of this potential are set via the ``params`` dictionary,
-    they must be set for each unique pair of particle types.
 
     .. py:attribute:: params
 
@@ -277,18 +280,17 @@ class Tersoff(Triplet):
 
 
 class RevCross(Triplet):
-    r"""Reversible crosslinker three-body potential to model bond swaps.
+    r"""Reversible crosslinker three-body force.
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
-    :py:class:`RevCross` specifies that the revcross three-body potential
-    should be applied to every non-bonded particle pair in the simulation.
-    Despite the fact that the revcross potential accounts for the effects of
-    third bodies, it is actually just a combination of two body potential terms.
-    It can thus use type-pair parameters similar to those of the pair
-    potentials.
+    `RevCross` computes the revcross three-body force on every particle in the
+    simulation state. Despite the fact that the revcross potential accounts for
+    the effects of third bodies, it is actually just a combination of two body
+    potential terms. It can thus use type-pair parameters similar to those of
+    the pair potentials.
 
     The RevCross potential has been described in detail in
     `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_.
@@ -296,42 +298,36 @@ class RevCross(Triplet):
     between interacting particles:
 
     .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        V_{ij}(r)  =  4 \varepsilon \left[
+        U_{ij}(r) =
+        \begin{cases}
+        4 \varepsilon \left[
             \left( \dfrac{ \sigma}{r_{ij}} \right)^{2n}
             - \left( \dfrac{ \sigma}{r_{ij}} \right)^{n}
-        \right]; \qquad r < r_{cut}
-        \end{eqnarray*}
+        \right] & r < r_\mathrm{cut} \\
+        0 & r \ge r_\mathrm{cut}
+        \end{cases}
 
     Then an additional three-body repulsion is evaluated to compensate the bond
     energies imposing single bond per particle condition:
 
     .. math::
-        :nowrap:
 
-            \begin{eqnarray*}
-            v^{\left( 3b \right)}_{ijk} = \lambda \epsilon\,
-                \hat{v}^{ \left( 2b \right)}_{ij}
-            \left(\vec{r}_{ij}\right)
-                \cdot \hat{v}^{ \left( 2b \right)}_{ik}
-            \left(\vec{r}_{ik}\right)~,\
-            \end{eqnarray*}
+        v^{\left( 3b \right)}_{ijk} = \lambda \epsilon
+        \hat{v}^{ \left( 2b \right)}_{ij}
+        \left(\vec{r}_{ij}\right)
+        \cdot \hat{v}^{ \left( 2b \right)}_{ik}
+        \left(\vec{r}_{ik}\right)~,
 
     where the two body potential is rewritten as:
 
     .. math::
-        :nowrap:
 
-            \begin{eqnarray*}
-            \hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) =
-            \begin{cases}
-            1; & r \le r_{min} \\
-            - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon};
-              & r > r_{min} \\
-            \end{cases}
-            \end{eqnarray*}
+        \hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) =
+        \begin{cases}
+        1 & r \le r_{min} \\
+        - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon}
+            & r > r_{min} \\
+        \end{cases}
 
     .. attention::
 
@@ -352,19 +348,16 @@ class RevCross(Triplet):
 
     This three-body term also tunes the energy required for a bond swap through
     the coefficient:- :math:`\lambda` - *lambda3* (unitless)
-    in S. Ciarella and W.G. Ellenbroek 2019
-    (`paper link <https://arxiv.org/abs/1912.08569>`__)
+    in `S. Ciarella and W.G. Ellenbroek 2019
+    <https://arxiv.org/abs/1912.08569>`__
     is explained that setting :math:`\lambda=1` corresponds to no energy
     requirement to initiate bond swap, while this energy barrier scales roughly
     as :math:`\beta \Delta E_\text{sw} =\beta \varepsilon(\lambda-1)`.
 
     Note:
-        Choosing :math:`\lambda=1` pushes the system towards clusterization
-        because the three-body term is not enough to compensate the energy of
-        multiple bonds, so it may cause unphysical situations.
-
-    Use ``params`` dictionary to set potential coefficients. The coefficients
-    must be set per unique pair of particle types.
+        Choosing :math:`\lambda=1` pushes the system to cluster because the
+        three-body term is not enough to compensate the energy of multiple
+        bonds, so it may cause nonphysical situations.
 
     .. py:attribute:: params
 
@@ -411,23 +404,22 @@ class RevCross(Triplet):
 
 
 class SquareDensity(Triplet):
-    r"""Soft potential for simulating a van der Waals liquid.
+    r"""Soft force for simulating a van der Waals liquid.
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
-    :py:class:`SquareDensity` specifies that the three-body potential should be
-    applied to every non-bonded particle pair in the simulation, that is
-    harmonic in the local density.
+    `SquareDensity` that the square density three-body force should on every
+    particle in the simulation state.
 
-    The self energy per particle takes the form
+    The self energy per particle takes the form:
 
     .. math::
 
         \Psi^{ex} = B (\rho - A)^2
 
-    which gives a pair-wise additive, three-body force
+    which gives a pair-wise additive, three-body force:
 
     .. math::
 
@@ -447,9 +439,6 @@ class SquareDensity(Triplet):
 
         n_i = \sum\limits_{j\neq i} w_{ij}
               \left(\big| \vec r_i - \vec r_j \big|\right)
-
-    Use `params` dictionary to set potential coefficients. The coefficients
-    must be set per unique pair of particle types.
 
     .. py:attribute:: params
 
