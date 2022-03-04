@@ -49,7 +49,7 @@ class TestMoveSizeTuneDefinition:
     def test_getting_acceptance_rate(self, move_size_definition, simulation):
         integrator = simulation.operations.integrator
         move_size_definition.integrator = integrator
-        simulation.run()
+        simulation.run(0)
         # needed to set previous values need to to calculate acceptance rate
         assert move_size_definition.y is None
         simulation.run(10)
