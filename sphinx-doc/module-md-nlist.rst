@@ -22,3 +22,4 @@ md.nlist
     :synopsis: Neighbor list acceleration structures.
     :members: NeighborList, Cell, Stencil, Tree
     :no-inherited-members:
+    :show-inheritance:
