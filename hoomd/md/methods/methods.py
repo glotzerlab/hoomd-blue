@@ -33,7 +33,7 @@ class Method(_HOOMDBaseObject):
 
 
 class NVT(Method):
-    r"""NVT Integration via the Nosé-Hoover thermostat.
+    r"""Constant volume, constant temperature dynamics.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
@@ -52,20 +52,20 @@ class NVT(Method):
 
     The translational thermostat has a momentum :math:`\xi` and position
     :math:`\eta`. The rotational thermostat has momentum
-    :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`). Access
+    :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`. Access
     these quantities using `translational_thermostat_dof` and
     `rotational_thermostat_dof`.
 
     `NVT` numerically integrates the equations of motion using the symplectic
-    MTK formalism described refs. `G. J. Martyna, D. J. Tobias, M. L. Klein
-    1994 <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
-    <http://dx.doi.org/10.1063/1.470959>`_.
+    Martyna-Tobias-Klein formalism described refs. `G. J. Martyna, D. J.
+    Tobias, M. L. Klein 1994 <http://dx.doi.org/10.1063/1.467468>`_ and `J.
+    Cao, G. J. Martyna 1996 <http://dx.doi.org/10.1063/1.470959>`_.
 
     Note:
         The coupling constant `tau` should be set within a
-        reasonable range to avoid abrupt fluctuations in the kinetic temperator
+        reasonable range to avoid abrupt fluctuations in the kinetic temperature
         and to avoid long time to equilibration. The recommended value for most
-        of systems is :math:`\tau = 100 \delta t`.
+        systems is :math:`\tau = 100 \delta t`.
 
     Important:
         Ensure that your initial condition includes non-zero particle velocities
@@ -160,7 +160,7 @@ class NVT(Method):
 
 
 class NPT(Method):
-    r"""NPT Integration via MTK barostat-thermostat.
+    r"""Constant pressure, constant temperature dynamics.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -198,32 +198,35 @@ class NPT(Method):
         gamma (`float`): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPT` performs constant pressure, constant temperature simulations,
-    allowing for a fully deformable simulation box.
+    `NPT` integrates particles forward in time in the Isothermal-isobaric
+    ensemble.  The thermostat and barostat are introduced as additional
+    degrees of freedom in the Hamiltonian that couple with the particle
+    velocities and angular momenta and the box parameters.
 
-    The integration method is based on the rigorous Martyna-Tobias-Klein
-    equations of motion for NPT. For optimal stability, the update equations
-    leave the phase-space measure invariant and are manifestly time-reversible.
+    The translational thermostat has a momentum :math:`\xi` and position
+    :math:`\eta`. The rotational thermostat has momentum
+    :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`. The
+    barostat tensor is :math:`\nu_{\mathrm{ij}}`. Access these quantities using
+    `translational_thermostat_dof`, `rotational_thermostat_dof`, and
+    `barostat_dof`.
 
     By default, `NPT` performs integration in a cubic box under hydrostatic
     pressure by simultaneously rescaling the lengths *Lx*, *Ly* and *Lz* of the
-    simulation box.
+    simulation box. Set the integration mode to change this default.
 
-    `NPT` can also perform more advanced integration modes. The integration mode
-    is specified by a set of couplings and by specifying the box degrees of
-    freedom that are put under barostat control.
-
-    Couplings define which diagonal elements of the pressure tensor
+    The integration mode is defined by a set of couplings and by specifying
+    the box degrees of freedom that are put under barostat control. Couplings
+    define which diagonal elements of the pressure tensor
     :math:`P_{\alpha,\beta}` should be averaged over, so that the corresponding
     box lengths are rescaled by the same amount.
 
     Valid couplings are:
 
-    - none (all box lengths are updated independently)
-    - xy (*Lx* and *Ly* are coupled)
-    - xz (*Lx* and *Lz* are coupled)
-    - yz (*Ly* and *Lz* are coupled)
-    - xyz (*Lx*, *Ly*, and *Lz* are coupled)
+    - ``'none'`` (all box lengths are updated independently)
+    - ``'xy`'`` (*Lx* and *Ly* are coupled)
+    - ``'xz`'`` (*Lx* and *Lz* are coupled)
+    - ``'yz`'`` (*Ly* and *Lz* are coupled)
+    - ``'xyz`'`` (*Lx*, *Ly*, and *Lz* are coupled)
 
     Degrees of freedom of the box specify which lengths and tilt factors of the
     box should be updated, and how particle coordinates and velocities should be
@@ -251,40 +254,37 @@ class NPT(Method):
     - Specifying no couplings and all degrees of freedom amounts to a fully
       deformable triclinic unit cell
 
+    `NPT` numerically integrates the equations of motion using the symplectic
+    Martyna-Tobias-Klein equations of motion for NPT. For optimal stability, the
+    update equations leave the phase-space measure invariant and are manifestly
+    time-reversible.
 
-    For the MTK equations of motion, see:
-
-    * G. J. Martyna, D. J. Tobias, M. L. Klein  1994
-      (`paper link <http://dx.doi.org/10.1063/1.467468>`__)
-    * M. E. Tuckerman et. al. 2006
-      (`paper link <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__)
-    * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
-    *  Glaser et. al (2013), unpublished
-
-
-    :math:`\tau` is related to the Nosé mass :math:`Q` by
-
-    .. math::
-
-        \tau = \sqrt{\frac{Q}{g k T_0}}
-
-    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
-    the set point (*kT* above).
-
-    The `NPT` equations of motion include a translational thermostat (with
-    momentum :math:`\xi` and position :math:`\eta`), a rotational thermostat
-    (with momentum :math:`\xi_{\mathrm{rot}}` and position
-    :math:`\eta_\mathrm{rot}`), and a barostat tensor :math:`\nu_{\mathrm{ij}}`.
-    Access these quantities using `translational_thermostat_dof`,
-    `rotational_thermostat_dof`, and `barostat_dof`.
+    See Also:
+        * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
+          <http://dx.doi.org/10.1063/1.467468>`__
+        * `M. E. Tuckerman et. al. 2006
+          <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
+        * `T. Yu et. al. 2010
+          <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
 
     Note:
-        Coupling constant for barostat `tauS` should be set within appropriate
-        range for pressure and volume to fluctuate in reasonable rate and
-        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too
-        large `tauS` would take long time to equilibrate. In most of systems,
-        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
-        length of the time step.
+        The coupling constant `tau` should be set within a
+        reasonable range to avoid abrupt fluctuations in the kinetic temperature
+        and to avoid long time to equilibration. The recommended value for most
+        systems is :math:`\tau = 100 \delta t`.
+
+    Note:
+        The barostat coupling constant `tauS` should be set within a reasonable
+        range to avoid abrupt fluctuations in the box volume and to avoid long
+        time to equilibration. The recommend value for most systems is
+        :math:`\tau_S = 1000 \delta t`.
+
+    Important:
+        Ensure that your initial condition includes non-zero particle velocities
+        and angular momenta (when appropriate). The coupling between the
+        thermostat and the velocities and angular momenta occurs via
+        multiplication, so `NPT` cannot convert a zero velocity into a non-zero
+        one except through particle collisions.
 
     Examples::
 
@@ -460,7 +460,7 @@ class NPT(Method):
 
 
 class NPH(Method):
-    r"""NPH Integration via MTK barostat-thermostat.
+    r"""Constant pressure, constant enthalpy dynamics.
 
     Args:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
@@ -492,13 +492,16 @@ class NPH(Method):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    Note:
-        Coupling constant for barostat `tauS` should be set within appropriate
-        range for pressure and volume to fluctuate in reasonable rate and
-        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too
-        large `tauS` would take long time to equilibrate. In most of systems,
-        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
-        length of the time step.
+    `NPH` integrates particles forward in time in the Isoenthalpic-isobaric
+    ensemble. The barostat is introduced as additional degrees of freedom in the
+    Hamiltonian that couple with the box parameters.
+
+    The barostat tensor is :math:`\nu_{\mathrm{ij}}`. Access these quantities
+    `barostat_dof`.
+
+    See Also:
+        Except for the thermostat, `NPH` shares parameters with `NPT`. See
+        `NPT` for descriptions of the coupling and other barostat parameters.
 
     Examples::
 
@@ -648,7 +651,7 @@ class NPH(Method):
 
 
 class NVE(Method):
-    r"""NVE integration.
+    r"""Constant volume, constant energy dynamics.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
