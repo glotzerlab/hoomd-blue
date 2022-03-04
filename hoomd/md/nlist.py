@@ -81,8 +81,7 @@ class NeighborList(_HOOMDBaseObject):
         check_dist (bool): Flag to enable / disable distance checking.
     """
 
-    def __init__(self, buffer, exclusions, rebuild_check_delay,
-                 check_dist):
+    def __init__(self, buffer, exclusions, rebuild_check_delay, check_dist):
 
         validate_exclusions = OnlyFrom([
             'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
@@ -168,8 +167,7 @@ class Cell(NeighborList):
                  check_dist=True,
                  deterministic=False):
 
-        super().__init__(buffer, exclusions, rebuild_check_delay,
-                         check_dist)
+        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist)
 
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
@@ -250,8 +248,7 @@ class Stencil(NeighborList):
                  check_dist=True,
                  deterministic=False):
 
-        super().__init__(buffer, exclusions, rebuild_check_delay,
-                         check_dist)
+        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist)
 
         params = ParameterDict(deterministic=bool(deterministic),
                                cell_width=float(cell_width))
@@ -280,7 +277,7 @@ class Tree(NeighborList):
         check_dist (bool): Flag to enable / disable distance checking.
 
     `Tree` creates a neighbor list using a bounding volume hierarchy (BVH) tree
-    traversal in :math:`O(N \log N)` time. A BVH tree of axis-aligned bounding
+    traversal in :math:`O(N \\log N)` time. A BVH tree of axis-aligned bounding
     boxes is constructed per particle type, and each particle queries each tree
     to determine its neighbors. This method of searching leads to significantly
     improved performance compared to cell lists in systems with moderate size
@@ -318,8 +315,7 @@ class Tree(NeighborList):
                  rebuild_check_delay=1,
                  check_dist=True):
 
-        super().__init__(buffer, exclusions, rebuild_check_delay,
-                         check_dist)
+        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist)
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):

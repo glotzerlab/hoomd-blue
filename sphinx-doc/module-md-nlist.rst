@@ -6,15 +6,15 @@ md.nlist
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.nlist
 
 .. autosummary::
     :nosignatures:
 
-    md.nlist.NeighborList
-    md.nlist.Cell
-    md.nlist.Stencil
-    md.nlist.Tree
+    NeighborList
+    Cell
+    Stencil
+    Tree
 
 .. rubric:: Details
 
