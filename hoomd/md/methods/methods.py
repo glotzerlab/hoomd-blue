@@ -652,47 +652,39 @@ class NPH(Method):
 
 
 class NVE(Method):
-    r"""NVE Integration via Velocity-Verlet.
+    r"""NVE integration.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
-         apply this method.
+            apply this method.
 
-        limit (None or `float`): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
+    `NVE` integrates particles forwars in time in the microcanonical ensemble.
+    The equations of motion are derived from the hamiltonian:
 
-    `NVE` performs constant volume, constant energy simulations using
-    the standard Velocity-Verlet method. For poor initial conditions that
-    include overlapping atoms, a limit can be specified to the movement a
-    particle is allowed to make in one time step. After a few thousand time
-    steps with the limit set, the system should be in a safe state to continue
-    with unconstrained integration.
+    .. math::
 
-    .. todo::
-        Update when zero momentum updater is added.
+        H = U + K_\mathrm{translational} + K_\mathrm{rotational}
+
+    `NVE` numerically integrates the translational degrees of freedom
+    using Velocity-Verlet and the rotational degrees of freedom with a scheme
+    based on `Kamberaj 2005`_.
 
     Examples::
 
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
+    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
+
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
-
-        limit (None or float): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
-
     """
 
     def __init__(self, filter, limit=None):
 
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            limit=OnlyTypes(float, allow_none=True),
-            zero_force=OnlyTypes(bool, allow_none=False),
-        )
+        param_dict = ParameterDict(filter=ParticleFilter,)
         param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
 
         # set defaults
