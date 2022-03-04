@@ -65,15 +65,17 @@ class FIRE(_DynamicIntegrator):
             A minimum number of attempts before convergence criteria are
             considered.
 
-    `minimize.FIRE` is an `md.Integrator` that uses the Fast Inertial Relaxation
+    `FIRE` is a `hoomd.md.Integrator` that uses the Fast Inertial Relaxation
     Engine (FIRE) algorithm to minimize the potential energy for a group of
     particles while keeping all other particles fixed. This method is published
     in `Bitzek, et. al., PRL, 2006
-    <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_.
+    <http://dx.doi.org/10.1103/PhysRevLett.97.170201>`_. HOOMD-blue's
+    implementation extends the original formulation to include rotational
+    degrees of freedom.
 
     At each time step, :math:`\\delta t`, the algorithm uses the supplied
-    integration methods to generate :math:`x`, :math:`v`, and :math:`F`, and
-    then adjusts :math:`v` according
+    integration methods to generate :math:`\\vec{r}`, :math:`\\vec{v}`, and
+    :math:`\\vec{F}`, and then adjusts :math:`\\vec{v}` according
     to
 
     .. math::
@@ -84,14 +86,14 @@ class FIRE(_DynamicIntegrator):
     quantities.  While a current search has been lowering the energy of system
     for more than :math:`N_{min}` steps, :math:`\\alpha` is decreased by
     :math:`\\alpha \\rightarrow \\alpha \\cdot \\mathrm{fdec}_{\\alpha}` and
-    :math:`\\delta t` is increased by :math:`\\delta t \\rightarrow max(\\delta
-    t \\cdot \\mathrm{finc}_{dt}, \\ \\delta t_{max})`. If the energy of the
-    system increases (or stays the same), the velocity of the particles is set
-    to 0, :math:`\\alpha \\rightarrow \\ \\alpha_{start}` and :math:`\\delta t
-    \\rightarrow \\delta t \\cdot \\mathrm{fdec}_{\\alpha}`. The method
-    converges when the force per particle is below `force_tol`, the angular
-    momentum is below `angmom_tol` and the change in potential energy from one
-    step to the next is below `energy_tol`:
+    :math:`\\delta t` is increased by :math:`\\delta t \\rightarrow
+    \\max(\\delta t \\cdot \\mathrm{finc}_{dt}, \\ \\delta t_{max})`. If the
+    energy of the system increases (or stays the same), the velocity of the
+    particles is set to 0, :math:`\\alpha \\rightarrow \\ \\alpha_{start}` and
+    :math:`\\delta t \\rightarrow \\delta t \\cdot \\mathrm{fdec}_{\\alpha}`.
+    The method converges when the force per particle is below `force_tol`, the
+    angular momentum is below `angmom_tol` and the change in potential energy
+    from one step to the next is below `energy_tol`:
 
     .. math::
 
@@ -127,15 +129,15 @@ class FIRE(_DynamicIntegrator):
            sim.run(100)
 
     Note:
-        `FIRE` should be used as the integrator for simulations, just as the
-        standard `md.Integrator` class is (see examples).
+        To use `FIRE`, set it as the simulation's integrator in place of the
+        typical `hoomd.md.Integrator`.
 
     Note:
         The algorithm requires an integration method to update the particle
-        position and velocities. This should either be either NVE (to minimize
-        energy) or NPH (to minimize energy and relax the box). The quantity
-        minimized is in any case the energy (not the enthalpy or any other
-        quantity).
+        position and velocities. This should either be either
+        `hoomd.md.methods.NVE` (to minimize energy) or `hoomd.md.methods.NPH`
+        (to minimize energy and relax the box). The quantity minimized is in any
+        case the potential energy (not the enthalpy or any other quantity).
 
     Note:
         In practice, the default parameters prevents the simulation from making
