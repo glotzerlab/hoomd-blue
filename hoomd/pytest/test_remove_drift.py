@@ -84,9 +84,9 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
     # reference positions in a simple cubic lattice with a=1
     reference_positions = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5],
-                           [-0.5, 0.5, -0.5], [-0.5, 0.5,
-                                               0.5], [0.5, -0.5, -0.5],
-                           [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
+                           [0.5, -0.5, -0.5], [0.5, -0.5,
+                                               0.5], [-0.5, 0.5, -0.5],
+                           [-0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
 
     # initialize simulation with randomized positions (off lattice)
     snap = lattice_snapshot_factory(dimensions=3, n=2, a=1, r=0.1)
