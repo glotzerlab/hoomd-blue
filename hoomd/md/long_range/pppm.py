@@ -13,7 +13,7 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     """Long range Coulomb interactions evaluated using the PPPM method.
 
     Args:
-        nlist (`hoomd.md.nlist.NList`): Neighbor list.
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
         resolution (tuple[int, int, int]): Number of grid points in the x, y,
           and z directions :math:`\\mathrm{[dimensionless]}`.
         order (int): Number of grid points in each direction to assign charges
@@ -160,7 +160,7 @@ class Coulomb(Force):
     def __init__(self, nlist, resolution, order, r_cut, alpha, pair_force):
         super().__init__()
         self._nlist = hoomd.data.typeconverter.OnlyTypes(
-            hoomd.md.nlist.NList)(nlist)
+            hoomd.md.nlist.NeighborList)(nlist)
         self._param_dict.update(
             hoomd.data.parameterdicts.ParameterDict(resolution=(int, int, int),
                                                     order=int,
@@ -276,7 +276,7 @@ class Coulomb(Force):
             raise RuntimeError("nlist cannot be set after scheduling.")
         else:
             self._nlist = hoomd.data.typeconverter.OnlyTypes(
-                hoomd.md.nlist.NList)(value)
+                hoomd.md.nlist.NeighborList)(value)
 
             # ensure that the pair force uses the same neighbor list
             self._pair_force.nlist = value

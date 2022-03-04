@@ -19,14 +19,14 @@ from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
 
 
-class NList(_HOOMDBaseObject):
+class NeighborList(_HOOMDBaseObject):
     r"""Base class neighbor list.
 
     Methods and attributes provided by this base class are available to all
     subclasses.
 
     Attention:
-        Users should instantiate the subclasses, using `NList` directly
+        Users should instantiate the subclasses, using `NeighborList` directly
         will result in an error.
 
     .. rubric:: Buffer distance
@@ -34,10 +34,10 @@ class NList(_HOOMDBaseObject):
     Set the `buffer` distance to amortize the cost of the neighbor list build.
     When ``buffer > 0``, a neighbor list computed on one step can be reused on
     subsequent steps until a particle moves a distance ``buffer/2``. When
-    `check_dist` is `True`, `NList` starts checking how far particles have
-    moved `rebuild_check_delay` time steps after the last build and performs a
-    rebuild when any particle has moved a distance ``buffer/2``. When
-    `check_dist` is `False`, `NList` always rebuilds after
+    `check_dist` is `True`, `NeighborList` starts checking how far particles
+    have moved `rebuild_check_delay` time steps after the last build and
+    performs a rebuild when any particle has moved a distance ``buffer/2``. When
+    `check_dist` is `False`, `NeighborList` always rebuilds after
     `rebuild_check_delay` time steps.
 
     .. rubric:: Exclusions
@@ -108,16 +108,16 @@ class NList(_HOOMDBaseObject):
             if self._added:
                 self._remove()
 
-    # TODO need to add tuning Updater for NList
+    # TODO need to add tuning Updater for NeighborList
 
 
-class Cell(NList):
+class Cell(NeighborList):
     r"""Neighbor list computed via a cell list.
 
     Args:
         buffer (float): Buffer width :math:`[\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
-            neighbor list, see more details in `NList`.
+            neighbor list, see more details in `NeighborList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
@@ -168,7 +168,7 @@ class Cell(NList):
         super()._attach()
 
 
-class Stencil(NList):
+class Stencil(NeighborList):
     """Cell list based neighbor list using stencils.
 
     Args:
@@ -176,7 +176,7 @@ class Stencil(NList):
             :math:`[\\mathrm{length}]`.
         buffer (float): Buffer width :math:`[\\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
-            neighbor list, see more details in `NList`.
+            neighbor list, see more details in `NeighborList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
@@ -249,13 +249,13 @@ class Stencil(NList):
         super()._attach()
 
 
-class Tree(NList):
+class Tree(NeighborList):
     """Bounding volume hierarchy based neighbor list.
 
     Args:
         buffer (float): Buffer width :math:`[\\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
-            neighbor list, see more details in `NList`.
+            neighbor list, see more details in `NeighborList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.

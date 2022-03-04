@@ -11,7 +11,7 @@ md.nlist
 .. autosummary::
     :nosignatures:
 
-    md.nlist.NList
+    md.nlist.NeighborList
     md.nlist.Cell
     md.nlist.Stencil
     md.nlist.Tree
@@ -20,5 +20,5 @@ md.nlist
 
 .. automodule:: hoomd.md.nlist
     :synopsis: Neighbor list acceleration structures.
-    :members: NList, Cell, Stencil, Tree
+    :members: NeighborList, Cell, Stencil, Tree
     :no-inherited-members:

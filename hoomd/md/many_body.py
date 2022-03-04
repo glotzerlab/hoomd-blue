@@ -15,7 +15,7 @@ simulation state commensurate with the potential energy:
 where :math:`\vec{r}_{ij} = \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)`.
 `Triplet` applies a short range cutoff for performance and assumes that both
 :math`U(\vec{r}_{ij}, \vec{r}_{ik})` and its derivatives are 0 when
-:math:`\vec r_{ij} > r_\mathrm{cut}` or :math:`\vec r_{ik} > r_\mathrm{cut}`.
+:math:`r_{ij} > r_\mathrm{cut}` or :math:`r_{ik} > r_\mathrm{cut}`.
 
 Specifically, the force :math:`\vec{F}` applied to each particle :math:`i` is:
 
@@ -67,7 +67,7 @@ class Triplet(Force):
 
         Neighbor list used to compute the triplet potential.
 
-        Type: `hoomd.md.nlist.NList`
+        Type: `hoomd.md.nlist.NeighborList`
 
     Warning:
         Currently HOOMD-blue does not support reverse force communication
@@ -84,7 +84,8 @@ class Triplet(Force):
         if default_r_cut is not None:
             r_cut_param.default = default_r_cut
         self._add_typeparam(r_cut_param)
-        self._param_dict.update(ParameterDict(nlist=hoomd.md.nlist.NList))
+        self._param_dict.update(
+            ParameterDict(nlist=hoomd.md.nlist.NeighborList))
         self.nlist = nlist
 
     def _add(self, simulation):
@@ -152,7 +153,7 @@ class Tersoff(Triplet):
     r"""Tersoff force.
 
     Args:
-        nlist (:py:class:`hoomd.md.nlist.NList`): Neighbor list
+        nlist (:py:class:`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     The Tersoff potential is a bond-order potential based on the Morse potential

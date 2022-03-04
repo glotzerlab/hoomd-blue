@@ -30,7 +30,7 @@ class AnisotropicPair(Pair):
     support the ``'xplor'`` shifting mode or `r_on`.
 
     Args:
-        nlist (hoomd.md.nlist.NList) : The neighbor list.
+        nlist (hoomd.md.nlist.NeighborList) : The neighbor list.
         default_r_cut (`float`, optional) : The default cutoff for the
             potential, defaults to ``None`` which means no cutoff
             :math:`[\mathrm{length}]`.
@@ -60,7 +60,7 @@ class Dipole(AnisotropicPair):
     the potential parameters.
 
     Args:
-        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode
 
@@ -143,7 +143,7 @@ class GayBerne(AnisotropicPair):
     Warning: The code has yet to be updated to the current API.
 
     Args:
-        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 
@@ -249,7 +249,7 @@ class ALJ(AnisotropicPair):
     r"""Anistropic LJ potential.
 
     Args:
-        nlist (hoomd.md.nlist.NList): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
 

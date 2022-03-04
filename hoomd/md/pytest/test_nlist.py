@@ -152,7 +152,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_logging():
-    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), {
+    logging_check(hoomd.md.nlist.NeighborList, ('md', 'nlist'), {
         'shortest_rebuild': {
             'category': LoggerCategories.scalar,
             'default': True
