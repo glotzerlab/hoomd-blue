@@ -881,47 +881,76 @@ class Brownian(Method):
             simulation :math:`[\mathrm{energy}]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None
+            drag coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
+            Defaults to ``None``
 
     `Brownian` integrates particles forward in time according to the overdamped
-    Langevin equations of motion, sometimes called Brownian dynamics, or the
+    Langevin equations of motion, sometimes called Brownian dynamics or the
     diffusive limit.
+
+    In the translational degrees of freedom:
 
     .. math::
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} +
-        \vec{F}_\mathrm{R}}{\gamma}
+        \frac{d\vec{r}}{dt} = \frac{\vec{F}_\mathrm{C} +
+        \vec{F}_\mathrm{R}}{\gamma},
 
-        \langle \vec{F}_\mathrm{R} \rangle = 0
+        \langle \vec{F}_\mathrm{R} \rangle = 0,
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t,
 
-        \langle \vec{v}(t) \rangle = 0
+        \langle \vec{v}(t) \rangle = 0,
 
-        \langle |\vec{v}(t)|^2 \rangle = d k T / m
+        \langle |\vec{v}(t)|^2 \rangle = d k T / m,
+
+    where :math:`\vec{F}_\mathrm{C} = \vec{F}_\mathrm{net}` is the net force on
+    the particle from all forces (`hoomd.md.Integrator.forces`) and constraints
+    (`hoomd.md.Integrator.constraints`), :math:`\gamma` is the translational
+    drag coefficient (`gamma`), :math:`\vec{F}_\mathrm{R}` is a uniform random
+    force, :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
+    dimensionality of the system. The magnitude of the random force is chosen
+    via the fluctuation-dissipation theorem to be consistent with the specified
+    drag and temperature, :math:`T`. When :math:`kT=0`, the random force
+    :math:`\vec{F}_\mathrm{R}=0`.
 
 
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is
-    the particle's velocity, and :math:`d` is the dimensionality of the system.
-    The magnitude of the random force is chosen via the fluctuation-dissipation
-    theorem to be consistent with the specified drag and temperature, :math:`T`.
-    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+    In the rotational degrees of freedom:
 
-    `Brownian` uses the integrator from I. Snook, The Langevin and Generalised
-    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal
-    Systems, 2007, section 6.2.5 `link`_, with the exception that
+    .. math::
+
+        \frac{d\mathbf{q}}{dt} = \frac{\vec{\tau}_\mathrm{C} +
+        \vec{\tau}_\mathrm{R}}{\gamma_r},
+
+        \langle \vec{\tau}_\mathrm{R} \rangle = 0,
+
+        \langle \tau_\mathrm{R}^i \cdot \tau_\mathrm{R}^i \rangle =
+        2 k T \gamma_r^i / \delta t,
+
+        \langle \vec{L}(t) \rangle = 0,
+
+        \langle L^i(t) \cdot L^i(t) \rangle = k T \cdot I^i,
+
+    where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
+    :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
+    (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
+    the torque, :math:`L^i` is the i-th component of the particle's angular
+    momentum and :math:`I^i` is the i-th component of the particle's
+    moment of inertia. The magnitude of the random torque is chosen
+    via the fluctuation-dissipation theorem to be consistent with the specified
+    drag and temperature, :math:`T`.
+
+    `Brownian` uses the numerical integration method from `I. Snook 2007`_, The
+    Langevin and Generalised Langevin Approach to the Dynamics of Atomic,
+    Polymeric and Colloidal Systems, section 6.2.5, with the exception that
     :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
     distribution.
 
-    .. _link: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
+    .. _I. Snook 2007: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
 
-    In Brownian dynamics, particle velocities are completely decoupled from
-    positions. At each time step, `Brownian` draws a new velocity
+    In Brownian dynamics, particle velocities and angular momenta are completely
+    decoupled from positions. At each time step, `Brownian` draws a new velocity
     distribution consistent with the current set temperature so that
     `hoomd.md.compute.ThermodynamicQuantities` will report appropriate
     temperatures and pressures when logged or used by other methods.
@@ -931,13 +960,12 @@ class Brownian(Method):
     :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your
     system is not overdamped.
 
-    You can specify :math:`\gamma` in two ways:
+    You can set :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass /
-       distance / time.
-    2. After the method object is created, specify the attribute ``gamma``
-       and ``gamma_r`` for rotational damping or random torque to assign them
+       :math:`\gamma = \alpha d_i`.
+    2. After the method object is created, specify the attribute `gamma`
+       and `gamma_r` for rotational damping or random torque to assign them
        directly, with independent values for each particle type in the
        system.
 
@@ -948,12 +976,11 @@ class Brownian(Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
         forces=[lj])
 
-    Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
+    Examples of using `gamma` and `gamma_r`::
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2)
         brownian.gamma.default = 2.0
         brownian.gamma_r.default = [1.0, 2.0, 3.0]
-
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -965,7 +992,7 @@ class Brownian(Method):
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
-            \cdot \mathrm{time}^{-1}]`. Defaults to None.
+            \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
