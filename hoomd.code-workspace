@@ -93,6 +93,7 @@
             "angmom",
             "arange",
             "asarray",
+            "athermal",
             "atol",
             "barostat",
             "Berendsen",

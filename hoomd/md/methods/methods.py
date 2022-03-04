@@ -529,7 +529,7 @@ class NPH(Method):
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
             :math:`[\mathrm{pressure}]`. Stress can be reset after
-            method object is created. For example, an isoropic
+            method object is created. For example, an isotopic
             pressure can be set by ``nph.S = 4.``
 
         tauS (float): Coupling constant for the barostat
@@ -735,19 +735,19 @@ class Langevin(Method):
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
             Defaults to False :math:`[\mathrm{energy}]`.
 
-    .. rubric:: Translational degrees of freedom
-
     `Langevin` integrates particles forward in time according to the
-    Langevin equations of motion:
+    Langevin equations of motion.
+
+    In the translational degrees of freedom:
 
     .. math::
 
-        m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
+        m \frac{d\vec{v}}{dt} &= \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
         \vec{F}_\mathrm{R}
 
-        \langle \vec{F}_\mathrm{R} \rangle = 0
+        \langle \vec{F}_\mathrm{R} \rangle &= 0
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d kT \gamma / \delta t
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle &= 2 d kT \gamma / \delta t
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
     potentials and constraint forces, :math:`\gamma` is the drag coefficient,
@@ -755,32 +755,44 @@ class Langevin(Method):
     uniform random force, and :math:`d` is the dimensionality of the system (2
     or 3).  The magnitude of the random force is chosen via the
     fluctuation-dissipation theorem to be consistent with the specified drag and
-    temperature, :math:`T`.  When :math:`kT=0`, the random force
-    :math:`\vec{F}_\mathrm{R}=0`.
+    temperature, :math:`T`.
 
-    Langevin dynamics includes the acceleration term in the Langevin equation
-    and is useful for gently thermalizing systems using a small gamma. This
-    assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
-    Use `Brownian` if your system is not underdamped.
+    In the rotational degrees of freedom:
 
-    `Langevin` uses the same integrator as `NVE` with the additional force term
-    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force
-    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
-    distribution.
+    .. math::
 
-    You can specify :math:`\gamma` in two ways:
+        I \frac{d\vec{L}}{dt} &= \vec{\tau}_\mathrm{C} - \gamma_r \cdot \vec{L}
+        + \vec{\tau}_\mathrm{R}
+
+        \langle \vec{\tau}_\mathrm{R} \rangle &= 0,
+
+        \langle \tau_\mathrm{R}^i \cdot \tau_\mathrm{R}^i \rangle &=
+        2 k T \gamma_r^i / \delta t,
+
+    where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
+    :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
+    (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
+    the torque, :math:`\vec{L}` is the particle's angular momentum and :math:`I`
+    is the the particle's moment of inertia. The magnitude of the random torque
+    is chosen via the fluctuation-dissipation theorem to be consistent with the
+    specified drag and temperature, :math:`T`.
+
+    `Langevin` numerically integrates the translational degrees of freedom
+    using Velocity-Verlet and the rotational degrees of freedom with a scheme
+    based on `Kamberaj 2005`_.
+
+    Langevin dynamics includes the acceleration term in the Langevin equation.
+    This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg
+    \delta t`. Use `Brownian` if your system is not underdamped.
+
+    You can set :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
-       mass / distance / time.
-    2. After the method object is created, specify the
-       attribute ``gamma`` and ``gamma_r`` for rotational damping or random
-       torque to assign them directly, with independent values for each
-       particle type in the system.
-
-    Warning:
-        When restarting a simulation, the energy of the reservoir will be reset
-        to zero.
+       :math:`\gamma = \alpha d_i`.
+    2. After the method object is created, specify the attribute `gamma`
+       and `gamma_r` for rotational damping or random torque to assign them
+       directly, with independent values for each particle type in the
+       system.
 
     Examples::
 
@@ -789,11 +801,17 @@ class Langevin(Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
         forces=[lj])
 
-    Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
+    Examples of using `gamma` and `gamma_r`::
 
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2)
         langevin.gamma.default = 2.0
         langevin.gamma_r.default = [1.0,2.0,3.0]
+
+    Warning:
+        When restarting a simulation, the energy of the reservoir will be reset
+        to zero.
+
+    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -894,16 +912,16 @@ class Brownian(Method):
 
     .. math::
 
-        \frac{d\vec{r}}{dt} = \frac{\vec{F}_\mathrm{C} +
+        \frac{d\vec{r}}{dt} &= \frac{\vec{F}_\mathrm{C} +
         \vec{F}_\mathrm{R}}{\gamma},
 
-        \langle \vec{F}_\mathrm{R} \rangle = 0,
+        \langle \vec{F}_\mathrm{R} \rangle &= 0,
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t,
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle &= 2 d k T \gamma / \delta t,
 
-        \langle \vec{v}(t) \rangle = 0,
+        \langle \vec{v}(t) \rangle &= 0,
 
-        \langle |\vec{v}(t)|^2 \rangle = d k T / m,
+        \langle |\vec{v}(t)|^2 \rangle &= d k T / m,
 
     where :math:`\vec{F}_\mathrm{C} = \vec{F}_\mathrm{net}` is the net force on
     the particle from all forces (`hoomd.md.Integrator.forces`) and constraints
@@ -912,25 +930,23 @@ class Brownian(Method):
     force, :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
     dimensionality of the system. The magnitude of the random force is chosen
     via the fluctuation-dissipation theorem to be consistent with the specified
-    drag and temperature, :math:`T`. When :math:`kT=0`, the random force
-    :math:`\vec{F}_\mathrm{R}=0`.
-
+    drag and temperature, :math:`T`.
 
     In the rotational degrees of freedom:
 
     .. math::
 
-        \frac{d\mathbf{q}}{dt} = \frac{\vec{\tau}_\mathrm{C} +
+        \frac{d\mathbf{q}}{dt} &= \frac{\vec{\tau}_\mathrm{C} +
         \vec{\tau}_\mathrm{R}}{\gamma_r},
 
-        \langle \vec{\tau}_\mathrm{R} \rangle = 0,
+        \langle \vec{\tau}_\mathrm{R} \rangle &= 0,
 
-        \langle \tau_\mathrm{R}^i \cdot \tau_\mathrm{R}^i \rangle =
+        \langle \tau_\mathrm{R}^i \cdot \tau_\mathrm{R}^i \rangle &=
         2 k T \gamma_r^i / \delta t,
 
-        \langle \vec{L}(t) \rangle = 0,
+        \langle \vec{L}(t) \rangle &= 0,
 
-        \langle L^i(t) \cdot L^i(t) \rangle = k T \cdot I^i,
+        \langle L^i(t) \cdot L^i(t) \rangle &= k T \cdot I^i,
 
     where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
     :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
@@ -1142,36 +1158,41 @@ class OverdampedViscous(Method):
             apply this method to.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None
+            drag coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
+            Defaults to ``None``
 
     `OverdampedViscous` integrates particles forward in time following
-    Newtonian in the overdamped limit where there is no intertial term.
-    (in the limit that the mass :math:`m` goes to 0).
-
+    Newtonian dynamics in the overdamped limit where there is no inertial term.
+    (in the limit that the mass :math:`m` and moment of inertia :math:`I` go to
+    0):
 
     .. math::
 
-        \frac{d\vec{r}}{dt} = \vec{v}
+        \frac{d\vec{r}}{dt} &= \vec{v}
 
-        \vec{v(t)} = \frac{\vec{F}_\mathrm{C}}{\gamma}
+        \vec{v(t)} &= \frac{\vec{F}_\mathrm{C}}{\gamma}
 
+        \frac{d\mathbf{q}}{dt} &= \vec{\tau}
 
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
-    dimensionality of the system.
+        \tau^i &= \frac{\tau_\mathrm{C}^i}{\gamma_r^i}
 
-    You can specify :math:`\gamma` in two ways:
+    where :math:`\vec{F}_\mathrm{C} = \vec{F}_\mathrm{net}` is the net force on
+    the particle from all forces (`hoomd.md.Integrator.forces`) and constraints
+    (`hoomd.md.Integrator.constraints`), :math:`\gamma` is the translational
+    drag coefficient (`gamma`) :math:`\vec{v}` is the particle's velocity,
+    :math:`d` is the dimensionality of the system, :math:`\tau_\mathrm{C}^i` is
+    the i-th component of the net torque from all forces and constraints, and
+    :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
+    (`gamma_r`).
+
+    You can set :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
-       :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
-       \cdot \mathrm{time}^{-1}]`.
-    2. After the method object is created, specify the attribute ``gamma``
-       and ``gamma_r`` for rotational damping or random torque to assign them
+       :math:`\gamma = \alpha d_i`.
+    2. After the method object is created, specify the attribute `gamma`
+       and `gamma_r` for rotational damping or random torque to assign them
        directly, with independent values for each particle type in the
        system.
 
@@ -1185,7 +1206,6 @@ class OverdampedViscous(Method):
         odv.gamma.default = 2.0
         odv.gamma_r.default = [1.0, 2.0, 3.0]
 
-
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
@@ -1193,7 +1213,7 @@ class OverdampedViscous(Method):
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
-            \cdot \mathrm{time}^{-1}]`. Defaults to None.
+            \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
