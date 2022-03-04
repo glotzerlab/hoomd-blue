@@ -138,7 +138,7 @@ class Pair(force.Force):
             warnings.warn(
                 f"{self} object is creating a new equivalent neighbor list."
                 f" This is happending since the force is moving to a new "
-                f"simulation. To supress the warning explicitly set new nlist.",
+                f"simulation. Set a new nlist to suppress this warning.",
                 RuntimeWarning)
             self.nlist = copy.deepcopy(nlist)
         self.nlist._add(self._simulation)
