@@ -45,43 +45,39 @@ class NVT(Method):
         tau (`float`): Coupling constant for the Nosé-Hoover thermostat
             :math:`[\mathrm{time}]`.
 
-    `NVT` performs constant volume, constant temperature simulations
-    using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
-    `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
-    <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
+    `NVT` integrates particles forward in time in the canonical ensemble
+    using the Nosé-Hoover thermostat. The thermostat is introduced as additional
+    degrees of freedom in the Hamiltonian that couple with the velocities
+    and angular momenta of the particles.
+
+    The translational thermostat has a momentum :math:`\xi` and position
+    :math:`\eta`. The rotational thermostat has momentum
+    :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`). Access
+    these quantities using `translational_thermostat_dof` and
+    `rotational_thermostat_dof`.
+
+    `NVT` numerically integrates the equations of motion using the symplectic
+    MTK formalism described refs. `G. J. Martyna, D. J. Tobias, M. L. Klein
+    1994 <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
     <http://dx.doi.org/10.1063/1.470959>`_.
 
-    :math:`\tau` is related to the Nosé mass :math:`Q` by
-
-    .. math::
-
-        \tau = \sqrt{\frac{Q}{g k T_0}}
-
-    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
-    the set point (*kT* above).
-
-    The `NVT` equations of motion include a translational thermostat (with
-    momentum :math:`\xi` and position :math:`\eta`) and a rotational thermostat
-    (with momentum :math:`\xi_{\mathrm{rot}}` and position
-    :math:`\eta_\mathrm{rot}`). Access these quantities using
-    `translational_thermostat_dof` and `rotational_thermostat_dof`.
-
     Note:
-        Coupling constant `tau` in Nosé-Hoover thermostat should be set within
-        reasonable range to avoid abrupt fluctuation in temperature in case of
-        small `tau` , also to avoid long time to equilibrate in case of large
-        `tau`. Recommended value for most of systems is ``100 * dt``, where
-        ``dt`` is the length of the time step.
+        The coupling constant `tau` should be set within a
+        reasonable range to avoid abrupt fluctuations in the kinetic temperator
+        and to avoid long time to equilibration. The recommended value for most
+        of systems is :math:`\tau = 100 \delta t`.
 
-    .. todo:: Rotational degrees of freedom
-
-        `NVT` integrates rotational degrees of freedom.
+    Important:
+        Ensure that your initial condition includes non-zero particle velocities
+        and angular momenta (when appropriate). The coupling between the
+        thermostat and the velocities and angular momenta occurs via
+        multiplication, so `NVT` cannot convert a zero velocity into a non-zero
+        one except through particle collisions.
 
     Examples::
 
         nvt=hoomd.md.methods.NVT(filter=hoomd.filter.All(), kT=1.0, tau=0.5)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
-
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
@@ -658,7 +654,7 @@ class NVE(Method):
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
-    `NVE` integrates particles forwars in time in the microcanonical ensemble.
+    `NVE` integrates particles forward in time in the microcanonical ensemble.
     The equations of motion are derived from the hamiltonian:
 
     .. math::
