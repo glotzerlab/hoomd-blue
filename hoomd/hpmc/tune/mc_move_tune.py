@@ -46,16 +46,16 @@ class _MCTuneDefinition(_TuneDefinition):
             self.previous_total = total_moves
             return None
 
-        # If no more trial moves have been recorded return previous
-        # acceptance_rate.
-        elif self.previous_total == total_moves:
+        # Called twice in same step return computed value
+        elif (self.previous_total == total_moves
+              and self.previous_accepted_moves == accepted_moves):
             return self.previous_acceptance_rate
 
         # If we have recorded a previous total then this condition implies a new
         # run call. We should be able to tune here as we have no other
         # indication the system has changed.
-        elif (self.previous_total > total_moves
-              or self.previous_accepted_moves > accepted_moves):
+        elif (self.previous_total >= total_moves
+              or self.previous_accepted_moves >= accepted_moves):
             acceptance_rate = accepted_moves / total_moves
         else:
             acceptance_rate = (accepted_moves - self.previous_accepted_moves) \
