@@ -21,7 +21,6 @@ import itertools
 import hoomd
 from hoomd.logging import Loggable
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.error import MutabilityError
 
 
 class _HOOMDGetSetAttrBase:
@@ -89,15 +88,7 @@ class _HOOMDGetSetAttrBase:
 
     def _setattr_param(self, attr, value):
         """Hook for setting an attribute in `_param_dict`."""
-        old_value = self._param_dict[attr]
         self._param_dict[attr] = value
-        new_value = self._param_dict[attr]
-        if self._attached:
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                self._param_dict[attr] = old_value
-                raise MutabilityError(attr)
 
     def _setattr_typeparam(self, attr, value):
         """Hook for setting an attribute in `_typeparam_dict`."""
@@ -215,13 +206,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         '_cpp_obj', '_dependents', '_dependencies', '_simulation'
     }
     _remove_for_pickling = ('_simulation', '_cpp_obj')
-
-    def _getattr_param(self, attr):
-        return self._param_dict[attr]
-
-    def _setattr_param(self, attr, value):
-        """Hook for setting an attribute in `_param_dict`."""
-        self._param_dict[attr] = value
 
     def _detach(self):
         if self._attached:

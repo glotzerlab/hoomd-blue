@@ -439,16 +439,27 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
         if (m_length_delta[i] != 0.0)
             nonzero_dim++;
 
-    unsigned int i = hoomd::UniformIntDistribution(nonzero_dim - 1)(rng);
-    for (unsigned int j = 0; j < Ndim; ++j)
-        if (m_length_delta[j] == 0.0 && i == j)
-            ++i;
-
-    if (i == Ndim)
+    if (nonzero_dim == 0)
         {
         // all dimensions have delta==0, just count as accepted and return
         m_count_total.volume_accept_count++;
         return;
+        }
+
+    unsigned int chosen_nonzero_dim = hoomd::UniformIntDistribution(nonzero_dim - 1)(rng);
+    unsigned int nonzero_dim_count = 0;
+    unsigned int i = 0;
+    for (unsigned int j = 0; j < Ndim; ++j)
+        {
+        if (m_length_delta[j] != 0.0)
+            {
+            if (nonzero_dim_count == chosen_nonzero_dim)
+                {
+                i = j;
+                break;
+                }
+            ++nonzero_dim_count;
+            }
         }
 
     Scalar dL_max(m_length_delta[i]);

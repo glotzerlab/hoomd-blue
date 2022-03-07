@@ -49,10 +49,10 @@ class TestMoveSizeTuneDefinition:
     def test_getting_acceptance_rate(self, move_size_definition, simulation):
         integrator = simulation.operations.integrator
         move_size_definition.integrator = integrator
-        simulation.operations._schedule()
+        simulation.run(0)
         # needed to set previous values need to to calculate acceptance rate
         assert move_size_definition.y is None
-        simulation.run(1000)
+        simulation.run(10)
         accepted, rejected = integrator.translate_moves
         calc_acceptance_rate = (accepted) / (accepted + rejected)
         assert isclose(move_size_definition.y, calc_acceptance_rate)
@@ -60,7 +60,6 @@ class TestMoveSizeTuneDefinition:
         # return value does not change either.
         assert isclose(move_size_definition.y, calc_acceptance_rate)
         simulation.run(10)
-        assert not isclose(move_size_definition.y, calc_acceptance_rate)
         accepted, rejected = integrator.translate_moves
         calc_acceptance_rate = accepted / (accepted + rejected)
         assert isclose(move_size_definition.y, calc_acceptance_rate)
@@ -190,17 +189,16 @@ class TestMoveSize:
     def test_act(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
         cnt = 0
-        while not move_size_tuner.tuned and cnt < 4:
-            simulation.run(2000)
+        while not move_size_tuner.tuned and cnt < 8:
+            simulation.run(1000)
             cnt += 1
         assert move_size_tuner.tuned
         simulation.run(10000)
-        print(move_size_tuner._tunables[0].y)
         move_counts = simulation.operations.integrator.translate_moves
         acceptance_rate = move_counts[0] / sum(move_counts)
-        tolerance = move_size_tuner.solver.tol
+        # Allow for a slight deviation to tolerance due to random fluctuations
+        tolerance = 2 * move_size_tuner.solver.tol
         assert abs(acceptance_rate - move_size_tuner.target) <= tolerance
-        print(simulation.timestep)
 
     def test_pickling(self, move_size_tuner, simulation):
         operation_pickling_check(move_size_tuner, simulation)

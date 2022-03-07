@@ -164,6 +164,14 @@ class ManualTuneDefinition(_TuneDefinition):
     `SolverStep` objects, a `ManualTuneDefinition` object's ``y`` property
     should be consistant when called multiple times within a timestep.
 
+    When setting ``x`` the value is clamped between the given domain via,
+
+    .. math::
+
+        x &= x_{max}, \\text{ if } x_n > x_{max},\\\\
+        x &= x_{min}, \\text{ if } x_n < x_{min},\\\\
+        x &= x_n, \\text{ otherwise}
+
     Args:
         get_y (``callable``): A callable that gets the current value for y.
         target (``any``): The target y value to approach.
@@ -277,8 +285,25 @@ class SolverStep(metaclass=ABCMeta):
 
 
 class ScaleSolver(SolverStep):
-    """Solves equations of f(x) = y using a ratio of the current y with the \
-    target.
+    r"""Solves equations of f(x) = y using a ratio of y with the target.
+
+    Each time this solver is called it takes updates according to the following
+    equation if the correlation is positive:
+
+    .. math::
+
+        x_n = \min{\left(\frac{\gamma + t}{y + \gamma}, s_{max}\right)} \cdot x
+
+    and
+
+    .. math::
+
+        x_n = \min{\left(\frac{y + \gamma}{\gamma + t}, s_{max}\right)} \cdot x
+
+    if the correlation is negative, where :math:`t` is the target and
+    :math:`x_n` is the new x.
+
+    The solver will stop updating when :math:`\lvert y - t \rvert \le tol`.
 
     Args:
         max_scale (`float`, optional): The maximum amount to scale the
@@ -346,7 +371,19 @@ class ScaleSolver(SolverStep):
 
 
 class SecantSolver(SolverStep):
-    """Solves equations of f(x) = y using the secant method.
+    r"""Solves equations of f(x) = y using the secant method.
+
+    The solver updates ``x`` each step via,
+
+    .. math::
+
+        x_n = x - \gamma \cdot (y - t) \cdot \frac{x - x_{o}}{y - y_{old}}
+
+    where :math:`o` represent the old values, :math:`n` the new, and :math:`t`
+    the target. Due to the need for a previous value, then first time this is
+    called it makes a slight jump higher or lower to start the method.
+
+    The solver will stop updating when :math:`\lvert y - t \rvert \le tol`.
 
     Args:
         gamma (`float`, optional): real number between 0 and 1 used to
