@@ -143,9 +143,9 @@ class PYBIND11_EXPORT Analyzer
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots;                        //!< Stored shared ptr to the system signals
+        m_slots; //!< Stored shared ptr to the system signals
     /// Trigger that determines if updater runs.
-    std::shared_ptr<Trigger> m_trigger; 
+    std::shared_ptr<Trigger> m_trigger;
     };
 
 namespace detail
