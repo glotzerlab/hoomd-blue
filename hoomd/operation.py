@@ -314,7 +314,7 @@ class Operation(_HOOMDBaseObject):
         `file`_ for information on HOOMD-blue's architecture decisions regarding
         operations.
 
-    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ \
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ \
         ARCHITECTURE.md
     """
     pass
