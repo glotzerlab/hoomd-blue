@@ -98,7 +98,7 @@ void export_ExampleUpdaterGPU(pybind11::module& m)
     pybind11::class_<ExampleUpdaterGPU, ExampleUpdater, std::shared_ptr<ExampleUpdaterGPU>>(
         m,
         "ExampleUpdaterGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
     } // end namespace detail
