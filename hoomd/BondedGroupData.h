@@ -628,7 +628,7 @@ class BondedGroupData
         \param old_rank Old MPI rank for particle
         \param new_rank New MPI rank
      */
-    void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
 #endif
 
     protected:

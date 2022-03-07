@@ -7,6 +7,10 @@
 
 #include "MeshDefinition.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 using namespace std;
 
 namespace hoomd
@@ -92,7 +96,11 @@ void export_MeshDefinition(pybind11::module& m)
         .def("setTypes", &MeshDefinition::setTypes)
         .def("getEnergy", &MeshDefinition::getEnergy)
         .def_property_readonly("types", &MeshDefinition::getTypes)
-        .def_property_readonly("size", &MeshDefinition::getSize);
+        .def_property_readonly("size", &MeshDefinition::getSize)
+#ifdef ENABLE_MPI
+        .def("setCommunicator", &MeshDefinition::setCommunicator)
+#endif
+	;
     }
 
     } // end namespace detail

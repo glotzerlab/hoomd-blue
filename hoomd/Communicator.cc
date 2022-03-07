@@ -1421,6 +1421,8 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     {
     m_meshdef = meshdef;
 
+        std::cout << "Before Mesh" << std::endl;
+
     m_meshbond_comm.setGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.setGroupData(m_meshdef->getMeshTriangleData());
 
@@ -1433,6 +1435,8 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     m_meshdef->getMeshTriangleData()
         ->getGroupNumChangeSignal()
         .connect<Communicator, &Communicator::setMeshtrianglesChanged>(this);
+
+        std::cout << "After Mesh" << std::endl;
     }
 
 void Communicator::initializeNeighborArrays()
