@@ -120,7 +120,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
         {
         for (auto& analyzer : m_analyzers)
             {
-            if (analyzer->getTrigger()->operator()(m_cur_tstep))
+            if ((*analyzer->getTrigger())(m_cur_tstep))
                 analyzer->analyze(m_cur_tstep);
             }
         }
@@ -137,7 +137,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
         // execute updaters
         for (auto& updater : m_updaters)
             {
-            if (updater->getTrigger()->operator()(m_cur_tstep))
+            if ((*updater->getTrigger())(m_cur_tstep))
                 {
                 updater->update(m_cur_tstep);
                 m_update_group_dof_next_step |= updater->mayChangeDegreesOfFreedom(m_cur_tstep);
@@ -164,7 +164,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
         // execute analyzers after incrementing the step counter
         for (auto& analyzer : m_analyzers)
             {
-            if (analyzer->getTrigger()->operator()(m_cur_tstep))
+            if ((*analyzer->getTrigger())(m_cur_tstep))
                 analyzer->analyze(m_cur_tstep);
             }
         }
@@ -255,13 +255,13 @@ PDataFlags System::determineFlags(uint64_t tstep)
 
     for (auto& analyzer : m_analyzers)
         {
-        if (analyzer->getTrigger()->operator()(tstep))
+        if ((*analyzer->getTrigger())(tstep))
             flags |= analyzer->getRequestedPDataFlags();
         }
 
     for (auto& updater : m_updaters)
         {
-        if (updater->getTrigger()->operator()(tstep))
+        if ((*updater->getTrigger())(tstep))
             flags |= updater->getRequestedPDataFlags();
         }
 
