@@ -1430,9 +1430,6 @@ class DLVO(Pair):
             ))
         self._add_typeparam(params)
 
-        # this potential needs diameter shifting on
-        self.nlist.diameter_shift = True
-
 
 class Buckingham(Pair):
     r"""Buckingham pair force.

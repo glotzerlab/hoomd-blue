@@ -680,11 +680,11 @@ class NVE(Method):
             apply this method.
     """
 
-    def __init__(self, filter, limit=None):
+    def __init__(self, filter):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
-        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
+        param_dict.update(dict(filter=filter, zero_force=False))
 
         # set defaults
         self._param_dict.update(param_dict)
