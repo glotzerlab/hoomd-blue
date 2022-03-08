@@ -39,7 +39,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
     Scalar count_pressurevirial;
     Scalar count_movelength;
 
-    private:                                    // in line with IntegratorHPMC
+    private:
     hpmc_nec_counters_t m_nec_count_run_start;  //!< Count saved at run() start
     hpmc_nec_counters_t m_nec_count_step_start; //!< Count saved at the start of the last step
 
