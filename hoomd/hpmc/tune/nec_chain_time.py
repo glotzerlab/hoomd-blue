@@ -79,7 +79,7 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         self.integrator.chain_time = value
 
     def __hash__(self):
-        return hash(("chain_time", "", self._target, self._domain))
+        return hash(("chain_time", self._target, self._domain))
 
     def __eq__(self, other):
         return (self._target == other._target and self._domain == other._domain)
