@@ -143,29 +143,8 @@ class Sphere(HPMCNECIntegrator):
     Sphere parameters: (see sphere)
 
     Example:
-        cpu = hoomd.device.CPU()
-        sim = hoomd.Simulation(device=cpu)
-        sim.create_state_from_gsd(filename='start.gsd')
-
-        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
-
         mc = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
-        mc.shape['A'] = dict(diameter=1)
         mc.chain_time = 0.05
-        sim.operations.integrator = mc
-
-        triggerTune = hoomd.trigger.Periodic(50,0)
-        tune_nec_d = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune,
-                        moves=['d'], target=0.10, tol=0.001,
-                        max_translation_move=0.15)
-        sim.operations.tuners.append(tune_nec_d)
-
-        import hoomd.hpmc.tune.nec_chain_time
-        tune_nec_ct = hoomd.hpmc.tune.ChainTime.scale_solver(
-                        triggerTune, target=20, tol=1, gamma=20 )
-        sim.operations.tuners.append(tune_nec_ct)
-
-        sim.run(1000)
     """
 
     _cpp_cls = 'IntegratorHPMCMonoNECSphere'
