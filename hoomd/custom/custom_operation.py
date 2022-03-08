@@ -8,11 +8,12 @@ import itertools
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.custom.custom_action import Action, _AbstractLoggable
+from hoomd.operation import TriggeredOperation
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 
 
-class CustomOperation(metaclass=_AbstractLoggable):
+class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     """User defined operation.
 
     This is the parent class for `hoomd.tune.CustomTuner`,
