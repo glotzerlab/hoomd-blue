@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Template class for HPMC update with Newtonian event chains
@@ -342,14 +344,6 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
     count_pressurevirial = 0.0;
     count_movelength = 0.0;
 
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "HPMC EC update");
-
-    if (this->m_external) // I think we need this here otherwise I don't think it will get called.
-        {
-        this->m_external->compute(timestep);
-        }
-
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(this->m_overlaps,
                                          access_location::host,
@@ -639,8 +633,8 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                     box.wrap(h_postype.data[k], h_image.data[k]);
 
                     // update the position of the particle in the tree for future updates
-                    detail::AABB aabb_k_local = shape_k.getAABB(vec3<Scalar>(0, 0, 0));
-                    detail::AABB aabb = aabb_k_local;
+                    hoomd::detail::AABB aabb_k_local = shape_k.getAABB(vec3<Scalar>(0, 0, 0));
+                    hoomd::detail::AABB aabb = aabb_k_local;
                     aabb.translate(vec3<Scalar>(h_postype.data[k]));
                     this->m_aabb_tree.update(k, aabb);
 
@@ -763,7 +757,7 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                 else
                     move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
 
-                detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
+                hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
 
                 overlap = checkForOverlap(i,
                                           typ_i,
@@ -788,7 +782,7 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                         }
 
                     // update the position of the particle in the tree for future updates
-                    detail::AABB aabb = aabb_i_local;
+                    hoomd::detail::AABB aabb = aabb_i_local;
                     aabb.translate(pos_i);
                     this->m_aabb_tree.update(i, aabb);
 
@@ -869,9 +863,6 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
         }
 #endif
 
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
-
     // migrate and exchange particles
     this->communicate(true);
 
@@ -899,14 +890,14 @@ bool IntegratorHPMCMonoNEC<Shape>::checkForOverlap(unsigned int i,
                                                    hpmc_counters_t& counters)
     {
     bool overlap = false;
-    detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
+    hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
 
     // All image boxes (including the primary)
     const unsigned int n_images = static_cast<unsigned int>(this->m_image_list.size());
     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
         {
         vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
-        detail::AABB aabb = aabb_i_local;
+        hoomd::detail::AABB aabb = aabb_i_local;
         aabb.translate(pos_i_image);
 
         // stackless search
@@ -1004,11 +995,11 @@ double IntegratorHPMCMonoNEC<Shape>::sweepDistance(vec3<Scalar>& direction,
 
     direction *= fast::rsqrt(dot(direction, direction));
 
-    detail::AABB aabb_i_current = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
-    detail::AABB aabb_i_future = aabb_i_current;
+    hoomd::detail::AABB aabb_i_current = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
+    hoomd::detail::AABB aabb_i_future = aabb_i_current;
     aabb_i_future.translate(maxSweep * direction);
 
-    detail::AABB aabb_i_test = detail::merge(aabb_i_current, aabb_i_future);
+    hoomd::detail::AABB aabb_i_test = hoomd::detail::merge(aabb_i_current, aabb_i_future);
 
     vec3<Scalar> newCollisionPlaneVector;
 
@@ -1017,7 +1008,7 @@ double IntegratorHPMCMonoNEC<Shape>::sweepDistance(vec3<Scalar>& direction,
     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
         {
         vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
-        detail::AABB aabb = aabb_i_test;
+        hoomd::detail::AABB aabb = aabb_i_test;
         aabb.translate(pos_i_image);
 
         // stackless search
@@ -1161,5 +1152,6 @@ inline void export_hpmc_nec_counters(pybind11::module& m)
         .def_readonly("overlap_errors", &hpmc_nec_counters_t::overlap_err_count);
     }
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // __HPMC_MONO_EC__H__

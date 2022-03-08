@@ -43,7 +43,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
         self.update_fraction = update_fraction
 
     @staticmethod
-    def _process_chain_probability(self, value):
+    def _process_chain_probability(value):
         if 0.0 < value <= 1.0:
             return value
         else:
@@ -52,7 +52,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
                     value))
 
     @staticmethod
-    def _process_chain_time(self, value):
+    def _process_chain_time(value):
         if 0.0 <= value:
             return value
         else:
@@ -60,7 +60,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
                 "chain_time has to be positive (got {}).".format(value))
 
     @staticmethod
-    def _process_update_fraction(self, value):
+    def _process_update_fraction(value):
         if 0.0 < value <= 1.0:
             return value
         else:

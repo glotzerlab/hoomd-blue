@@ -23,7 +23,8 @@
 #else
 #define DEVICE
 #endif
-
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -221,7 +222,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     return dot(n, v1) / dot(n, v0);
     }
     } // namespace detail
-
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // __XENOCOLLIDE_3D_H__

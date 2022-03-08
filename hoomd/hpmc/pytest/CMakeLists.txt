@@ -18,7 +18,7 @@ set(files __init__.py
           test_small_box_2d.py
           test_small_box_3d.py
           conftest.py
-          test_nec_sphere_eos.py
+          test_nec.py
           depletants_sphere.py
     )
 

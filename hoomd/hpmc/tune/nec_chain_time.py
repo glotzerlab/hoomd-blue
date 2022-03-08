@@ -186,7 +186,7 @@ class _InternalChainTime(_InternalAction):
 class ChainTime(_InternalCustomTuner):
     """Tunes HPMCNECIntegrator chain time to targeted mean particles per chain.
 
-    For most common creation of a `ChainTime` tuner see
+    For the most common creation of a `ChainTime` tuner see
     `ChainTime.secant_solver` and `ChainTime.scale_solver` respectively.
 
     Args:
