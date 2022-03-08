@@ -59,13 +59,12 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
               or (self.previous_hit > chain_hit)):
             particles_per_chain = chain_hit / chain_start
         else:
-            # flake8 does not allow a single-line calculation
-            # W504 line break after binary operator
+            # yapf incorrectly formats this when written on one line
             delta_prev = chain_hit - self.previous_hit
             delta_start = chain_start - self.previous_start
             particles_per_chain = delta_prev / delta_start
 
-        # We store the previous information becuase this lets us find the
+        # We store the previous information because this lets us find the
         # acceptance rate since this has last been called which allows for us to
         # disregard the information before the last tune.
         self.previous_hit = chain_hit
@@ -127,19 +126,14 @@ class _InternalChainTime(_InternalAction):
 
     def _process_chain_time_range(self, target):
         # check range
-        if 0 <= target:
-            pass
-        else:
-            raise ValueError(
-                "Chain time {} should be between 0 and 1000.".format(target))
+        if not (0 <= target):
+            raise ValueError("Chain time {} must be positive.".format(target))
         self._tuned = 0
         return target
 
     def _process_chain_time_target(self, target):
         # check range
-        if 0 <= target <= 1000:
-            pass
-        else:
+        if not (0 <= target <= 1000):
             raise ValueError(
                 "Value {} should be between 0 and 1000.".format(target))
 
