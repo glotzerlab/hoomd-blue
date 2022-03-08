@@ -88,11 +88,10 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
         {
         // For use with the random number generator we convert the
         // translation move probability into a 16bit unsigned integer.
-        static auto INT_PROBABILITY_CEILING = 65536;
         this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setChainProbability("
                                            << chain_probability << ")" << std::endl;
         m_chain_probability
-            = static_cast<unsigned int>(chain_probability * INT_PROBABILITY_CEILING);
+            = m_chain_probability = static_cast<unsigned int>(chain_probability * 65536.0);
         }
 
     //! Get move ratio
@@ -101,8 +100,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
         {
         // For use with the random number generator we convert the
         // translation move probability into a 16bit unsigned integer.
-        static auto INT_PROBABILITY_CEILING = 65536;
-        return Scalar(m_chain_probability) / INT_PROBABILITY_CEILING;
+        return m_chain_probability / 65536.0;
         }
 
     //! Change update_fraction
