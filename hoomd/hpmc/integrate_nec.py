@@ -12,9 +12,11 @@ from hoomd.logging import log
 
 
 class HPMCNECIntegrator(HPMCIntegrator):
-    """HPMC Chain Integrator Meta Class.
+    """HPMC Chain Integrator base class.
 
-    Insert Doc-string here.
+    :py:class:`HPMCNECIntegrator` is the base class for all HPMC Newtonian event
+    chain integrators. Users should not instantiate this class directly. The
+    attributes documented here are available to all HPMC integrators.
     """
     _cpp_cls = None
 
@@ -40,6 +42,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
         self.chain_time = chain_time
         self.update_fraction = update_fraction
 
+    @staticmethod
     def _process_chain_probability(self, value):
         if 0.0 < value <= 1.0:
             return value
@@ -48,6 +51,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
                 "chain_probability has to be between 0 and 1 (got {}).".format(
                     value))
 
+    @staticmethod
     def _process_chain_time(self, value):
         if 0.0 <= value:
             return value
@@ -55,6 +59,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
             raise ValueError(
                 "chain_time has to be positive (got {}).".format(value))
 
+    @staticmethod
     def _process_update_fraction(self, value):
         if 0.0 < value <= 1.0:
             return value
@@ -90,47 +95,37 @@ class HPMCNECIntegrator(HPMCIntegrator):
         else:
             return None
 
-    @log
+    @log(requires_run=True)
     def virial_pressure(self):
         """float: virial pressure.
 
         Note:
             The statistics are reset at every timestep.
         """
-        if self._attached:
-            return self._cpp_obj.virial_pressure
-        else:
-            return None
+        return self._cpp_obj.virial_pressure
 
-    @log
+    @log(requires_run=True)
     def particles_per_chain(self):
         """float: particles per chain.
 
         Note:
             The statistics are reset at every `hoomd.Simulation.run`.
         """
-        if self._attached:
-            necCounts = self._cpp_obj.getNECCounters(1)
-            return (necCounts.chain_at_collision_count * 1.0
-                    / necCounts.chain_start_count)
-        else:
-            return None
+        necCounts = self._cpp_obj.getNECCounters(1)
+        return (necCounts.chain_at_collision_count * 1.0
+                / necCounts.chain_start_count)
 
-    @log
+    @log(requires_run=True)
     def chains_in_space(self):
         """float: rate of chain events that did neither collide nor end.
 
         Note:
             The statistics are reset at every `hoomd.Simulation.run`.
         """
-        if self._attached:
-            necCounts = self._cpp_obj.getNECCounters(1)
-            return (necCounts.chain_no_collision_count
-                    - necCounts.chain_start_count) / (
-                        necCounts.chain_at_collision_count
-                        + necCounts.chain_no_collision_count)
-        else:
-            return None
+        necCounts = self._cpp_obj.getNECCounters(1)
+        return (necCounts.chain_no_collision_count - necCounts.chain_start_count
+                ) / (necCounts.chain_at_collision_count
+                     + necCounts.chain_no_collision_count)
 
 
 class Sphere(HPMCNECIntegrator):
