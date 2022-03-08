@@ -303,7 +303,12 @@ class Operation(_HOOMDBaseObject):
 
 
 class TriggeredOperation(Operation):
-    """Operations that include a trigger to determine when to run."""
+    """Operations that include a trigger to determine when to run.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
 
     def __init__(self, trigger):
         trigger_param = ParameterDict(trigger=hoomd.trigger.Trigger)
