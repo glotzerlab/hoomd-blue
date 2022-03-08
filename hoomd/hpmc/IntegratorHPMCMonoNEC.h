@@ -92,8 +92,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
         // translation move probability into a 16bit unsigned integer.
         this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setChainProbability("
                                            << chain_probability << ")" << std::endl;
-        m_chain_probability = m_chain_probability
-            = static_cast<unsigned int>(chain_probability * 65536.0);
+        m_chain_probability = static_cast<unsigned int>(chain_probability * 65536.0);
         }
 
     //! Get move ratio

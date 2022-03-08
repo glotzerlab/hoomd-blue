@@ -1,10 +1,9 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Test hoomd.hpmc.integrate_nec.Sphere."""
+"""Test hoomd.hpmc.nec.integrate.Sphere."""
 
 import hoomd
-import hoomd.hpmc.integrate_nec
 import hoomd.hpmc.tune
 from hoomd.conftest import operation_pickling_check
 
@@ -33,7 +32,7 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
     sim.seed = 123456
     sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
 
-    mc = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
+    mc = hoomd.hpmc.nec.integrate.Sphere(d=0.05, update_fraction=0.05)
     mc.shape['A'] = dict(diameter=1)
     mc.chain_time = 0.05
     sim.operations.integrator = mc
@@ -47,10 +46,10 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
         max_translation_move=0.15)
     sim.operations.tuners.append(tune_nec_d)
 
-    tune_nec_ct = hoomd.hpmc.tune.ChainTime.scale_solver(triggerTune,
-                                                         target=20.0,
-                                                         tol=1.0,
-                                                         gamma=20.0)
+    tune_nec_ct = hoomd.hpmc.nec.tune.ChainTime.scale_solver(triggerTune,
+                                                             target=20.0,
+                                                             tol=1.0,
+                                                             gamma=20.0)
     sim.operations.tuners.append(tune_nec_ct)
 
     # equilibrate

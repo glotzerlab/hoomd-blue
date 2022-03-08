@@ -9,7 +9,7 @@ from hoomd.data.typeconverter import OnlyTypes
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (_TuneDefinition, SolverStep, ScaleSolver,
                                    SecantSolver)
-from hoomd.hpmc.integrate_nec import HPMCNECIntegrator
+from hoomd.hpmc.nec.integrate import HPMCNECIntegrator
 
 
 class _ChainTimeTuneDefinition(_TuneDefinition):

@@ -143,7 +143,7 @@ class Sphere(HPMCNECIntegrator):
     Sphere parameters: (see sphere)
 
     Example:
-        mc = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
+        mc = hoomd.hpmc.integrate.nec.Sphere(d=0.05, update_fraction=0.05)
         mc.chain_time = 0.05
     """
 
@@ -210,7 +210,7 @@ class ConvexPolyhedron(HPMCNECIntegrator):
 
         sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
 
-        mc = hoomd.hpmc.integrate_nec.ConvexPolyhedron(d=1.0, a=0.05,
+        mc = hoomd.hpmc.nec.integrate.ConvexPolyhedron(d=1.0, a=0.05,
             chain_probability=0.1, nselect=10)
         mc.shape['A'] = dict(vertices=[[1,1,1], [1,1,-1], [1,-1,1], [1,-1,-1],
             [-1,1,1], [-1,1,-1], [-1,-1,1], [-1,-1,-1]])

@@ -169,7 +169,6 @@ install(TARGETS _hpmc EXPORT HOOMDTargets
 set(files   compute.py
             __init__.py
             integrate.py
-            integrate_nec.py
             update.py
     )
 
@@ -188,6 +187,7 @@ add_subdirectory(pytest)
 add_subdirectory(tune)
 add_subdirectory(pair)
 add_subdirectory(external)
+add_subdirectory(nec)
 
 if (BUILD_TESTING)
     add_subdirectory(test)
