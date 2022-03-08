@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file BounceBackNVE.h
@@ -19,6 +17,8 @@
 #include "hoomd/md/IntegrationMethodTwoStep.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Integrator that applies bounce-back boundary conditions in NVE.
@@ -33,7 +33,8 @@ namespace mpcd
  * Verlet algorithm after the reflections are completed. This reflection procedure may induce a
  * small amount of slip near the surface from the acceleration.
  */
-template<class Geometry> class PYBIND11_EXPORT BounceBackNVE : public ::IntegrationMethodTwoStep
+template<class Geometry>
+class PYBIND11_EXPORT BounceBackNVE : public hoomd::md::IntegrationMethodTwoStep
     {
     public:
     //! Constructor
@@ -113,9 +114,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
 
-    if (m_prof)
-        m_prof->push("Bounce NVE step 1");
-
     if (m_validate_geom)
         validate();
 
@@ -130,7 +128,7 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
                                  access_mode::read);
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
 
     // group members
     const unsigned int group_size = m_group->getNumMembers();
@@ -172,9 +170,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
         h_pos.data[pid] = make_scalar4(pos.x, pos.y, pos.z, type);
         h_vel.data[pid] = make_scalar4(vel.x, vel.y, vel.z, mass);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
@@ -186,9 +181,6 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
                                   << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
-    if (m_prof)
-        m_prof->push("Bounce NVE step 2");
-
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
                                access_mode::readwrite);
@@ -224,15 +216,12 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t
         h_vel.data[pid] = vel;
         h_accel.data[pid] = accel;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Geometry> void BounceBackNVE<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     if (!m_geom->validateBox(box, 0.))
         {
         m_exec_conf->msg->error() << "BounceBackNVE: box too small for " << Geometry::getName()
@@ -296,19 +285,19 @@ namespace detail
 //! Exports the BounceBackNVE class to python
 template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
     {
-    namespace py = pybind11;
     const std::string name = "BounceBackNVE" + Geometry::getName();
 
-    py::class_<BounceBackNVE<Geometry>,
-               IntegrationMethodTwoStep,
-               std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<const Geometry>>())
+    pybind11::class_<BounceBackNVE<Geometry>,
+                     hoomd::md::IntegrationMethodTwoStep,
+                     std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<const Geometry>>())
         .def_property("geometry",
                       &BounceBackNVE<Geometry>::getGeometry,
                       &BounceBackNVE<Geometry>::setGeometry);
     }
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // #ifndef MPCD_BOUNCE_BACK_NVE_H_

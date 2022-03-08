@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Initializers.h"
 #include "SnapshotSystemData.h"
@@ -20,6 +18,8 @@ using namespace std;
     \brief Defines a few initializers for setting up ParticleData instances
 */
 
+namespace hoomd
+    {
 ////////////////////////////////////////////////////////////////////////////////
 // Simple Cubic Initializer
 
@@ -32,7 +32,7 @@ using namespace std;
 SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M,
                                                Scalar spacing,
                                                const std::string& type_name)
-    : m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
+    : m_M(M), m_spacing(spacing), box(std::make_shared<BoxDim>(M * spacing)), m_type_name(type_name)
     {
     }
 
@@ -46,7 +46,7 @@ std::shared_ptr<SnapshotSystemData<Scalar>> SimpleCubicInitializer::getSnapshot(
     unsigned int num_particles = m_M * m_M * m_M;
     pdata.resize(num_particles);
 
-    Scalar3 lo = box.getLo();
+    Scalar3 lo = box->getLo();
 
     // just do a simple triple for loop to fill the space
     unsigned int c = 0;
@@ -98,7 +98,7 @@ RandomInitializer::RandomInitializer(unsigned int N,
         }
 
     Scalar L = pow(Scalar(M_PI / 6.0) * Scalar(N) / phi_p, Scalar(1.0 / 3.0));
-    m_box = BoxDim(L);
+    m_box = std::make_shared<BoxDim>(L);
     }
 
 /*! \param seed Random seed to set
@@ -126,7 +126,7 @@ std::shared_ptr<SnapshotSystemData<Scalar>> RandomInitializer::getSnapshot() con
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     pdata.resize(m_N);
 
-    Scalar L = m_box.getL().x;
+    Scalar L = m_box->getL().x;
     for (unsigned int i = 0; i < m_N; i++)
         {
         // generate random particles until we find a suitable one meeting the min_dist
@@ -183,3 +183,5 @@ std::shared_ptr<SnapshotSystemData<Scalar>> RandomInitializer::getSnapshot() con
     pdata.type_mapping.push_back(m_type_name);
     return snapshot;
     }
+
+    } // end namespace hoomd

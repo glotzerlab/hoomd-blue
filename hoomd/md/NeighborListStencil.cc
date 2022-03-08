@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file NeighborListStencil.cc
     \brief Defines NeighborListStencil
@@ -14,7 +12,11 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
+
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * \param sysdef System definition
  * \param r_cut Default cutoff radius
@@ -89,9 +91,6 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
     uint3 dim = m_cl->getDim();
     Scalar3 ghost_width = m_cl->getGhostWidth();
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "compute");
-
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
@@ -155,7 +154,7 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
     const Index2D& stencil_idx = m_cls->getStencilIndexer();
 
     // access the neighbor list data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_conditions(m_conditions,
                                            access_location::host,
@@ -180,7 +179,7 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
-        const unsigned int head_idx_i = h_head_list.data[i];
+        const size_t head_idx_i = h_head_list.data[i];
 
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos, ghost_width);
@@ -325,17 +324,16 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 
         h_n_neigh.data[i] = cur_n_neigh;
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListStencil(py::module& m)
+namespace detail
     {
-    py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
+void export_NeighborListStencil(pybind11::module& m)
+    {
+    pybind11::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil>>(
         m,
         "NeighborListStencil")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("cell_width",
                       &NeighborListStencil::getCellWidth,
                       &NeighborListStencil::setCellWidth)
@@ -343,3 +341,7 @@ void export_NeighborListStencil(py::module& m)
                       &NeighborListStencil::getDeterministic,
                       &NeighborListStencil::setDeterministic);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

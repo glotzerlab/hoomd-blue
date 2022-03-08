@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleGroup.h
     \brief Declares the ParticleGroup and related classes
@@ -31,6 +29,8 @@
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
 
+namespace hoomd
+    {
 //! Select particles in the space defined by a cuboid
 class PYBIND11_EXPORT ParticleFilterCuboid : public ParticleFilter
     {
@@ -314,6 +314,19 @@ class PYBIND11_EXPORT ParticleGroup
         return m_rotational_dof;
         }
 
+    /// Get a NumPy array of the the local member tags.
+    /** This is necessary to enable testing in Python the updating of ParticleGroup instances.
+     */
+    pybind11::array_t<unsigned int> getMemberTags() const
+        {
+        const ArrayHandle<unsigned int> h_member_tags(m_member_tags,
+                                                      access_location::host,
+                                                      access_mode::read);
+        return pybind11::array_t<unsigned int, pybind11::array::c_style>(
+            static_cast<ssize_t>(m_member_tags.getNumElements()),
+            h_member_tags.data);
+        }
+
     /** Get the number of particles present in both groups.
 
         @param other Second group
@@ -427,7 +440,13 @@ class PYBIND11_EXPORT ParticleGroup
 #endif
     };
 
+namespace detail
+    {
 //! Exports the ParticleGroup class to python
 void export_ParticleGroup(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

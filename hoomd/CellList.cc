@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CellList.cc
     \brief Defines CellList
@@ -13,8 +11,9 @@
 #include <algorithm>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*! \param sysdef system to compute the cell list of
  */
 CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
@@ -48,6 +47,15 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
 
     m_pdata->getParticleSortSignal().connect<CellList, &CellList::slotParticlesSorted>(this);
     m_pdata->getBoxChangeSignal().connect<CellList, &CellList::slotBoxChanged>(this);
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
+#endif
     }
 
 CellList::~CellList()
@@ -84,7 +92,7 @@ uint3 CellList::computeDimensions()
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         Scalar ghost_width = m_comm->getGhostLayerMaxWidth();
         if (ghost_width > Scalar(0.0))
@@ -126,9 +134,6 @@ void CellList::compute(uint64_t timestep)
     {
     Compute::compute(timestep);
     bool force = false;
-
-    if (m_prof)
-        m_prof->push("Cell");
 
     m_exec_conf->msg->notice(10) << "Cell list compute" << endl;
 
@@ -187,9 +192,6 @@ void CellList::compute(uint64_t timestep)
                 }
             } while (overflowed);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark
@@ -239,8 +241,6 @@ void CellList::initializeAll()
 void CellList::initializeWidth()
     {
     m_exec_conf->msg->notice(10) << "Cell list initialize width" << endl;
-    if (m_prof)
-        m_prof->push("init");
 
     // get the local box
     const BoxDim& box = m_pdata->getBox();
@@ -256,16 +256,11 @@ void CellList::initializeWidth()
 
     // signal that the width has changed
     m_width_change.emit();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void CellList::initializeMemory()
     {
     m_exec_conf->msg->notice(10) << "Cell list initialize memory" << endl;
-    if (m_prof)
-        m_prof->push("init");
 
     // if it is still set at 0, estimate Nmax
     if (m_Nmax == 0)
@@ -376,9 +371,6 @@ void CellList::initializeMemory()
         m_idx.swap(idx);
         }
 
-    if (m_prof)
-        m_prof->pop();
-
     // only initialize the adjacency list if requested
     if (m_compute_adj_list)
         initializeCellAdj();
@@ -386,9 +378,6 @@ void CellList::initializeMemory()
 
 void CellList::initializeCellAdj()
     {
-    if (m_prof)
-        m_prof->push("init");
-
     ArrayHandle<unsigned int> h_cell_adj(m_cell_adj, access_location::host, access_mode::overwrite);
 
     // per cell temporary storage of neighbors
@@ -443,16 +432,10 @@ void CellList::initializeCellAdj()
                 // copy to adj array
                 copy(adj.begin(), adj.end(), &h_cell_adj.data[m_cell_adj_indexer(0, cur_cell)]);
                 }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void CellList::computeCellList()
     {
-    if (m_prof)
-        m_prof->push("compute");
-
     // acquire the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -599,9 +582,6 @@ void CellList::computeCellList()
                                         access_mode::overwrite);
         *h_conditions.data = conditions;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 bool CellList::checkConditions()
@@ -676,17 +656,23 @@ uint3 CellList::readConditions()
     return *h_conditions.data;
     }
 
-void export_CellList(py::module& m)
+namespace detail
     {
-    py::class_<CellList, Compute, std::shared_ptr<CellList>>(m, "CellList")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_CellList(pybind11::module& m)
+    {
+    pybind11::class_<CellList, Compute, std::shared_ptr<CellList>>(m, "CellList")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
         .def("setSortCellList", &CellList::setSortCellList)
-        .def("getDim", &CellList::getDim, py::return_value_policy::reference_internal)
+        .def("getDim", &CellList::getDim, pybind11::return_value_policy::reference_internal)
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

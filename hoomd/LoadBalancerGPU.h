@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file LoadBalancerGPU.h
     \brief Declares an updater that changes the MPI domain decomposition to balance the load using
@@ -12,11 +10,9 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_MPI
 #ifdef ENABLE_HIP
 
-#ifndef __LOADBALANCERGPU_H__
-#define __LOADBALANCERGPU_H__
+#pragma once
 
 #include "Autotuner.h"
 #include "GPUFlags.h"
@@ -25,14 +21,14 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! GPU implementation of dynamic load balancing
 class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     {
     public:
     //! Constructor
-    LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
-                    std::shared_ptr<DomainDecomposition> decomposition,
-                    std::shared_ptr<Trigger> trigger);
+    LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     //! Destructor
     virtual ~LoadBalancerGPU();
@@ -57,19 +53,24 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
         }
 
     protected:
+#ifdef ENABLE_MPI
     //! Count the number of particles that have gone off either edge of the rank along a dimension
     //! on the GPU
     virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
+#endif
 
     private:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size counting particles
     GPUArray<unsigned int> m_off_ranks; //!< Array to hold the ranks of particles that have moved
     };
 
+namespace detail
+    {
 //! Export the LoadBalancerGPU to python
 void export_LoadBalancerGPU(pybind11::module& m);
 
-#endif // __LOADBALANCERGPU_H__
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
-#endif // ENABLE_MPI

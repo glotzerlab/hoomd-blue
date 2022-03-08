@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_MORSE_H__
 #define __PAIR_EVALUATOR_MORSE_H__
@@ -21,10 +19,16 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Morse pair potential
 /*! <b>General Overview</b>
 
@@ -52,6 +56,10 @@ class EvaluatorPairMorse
         Scalar alpha;
         Scalar r0;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         // CUDA memory hints
         void set_memory_hints() const { }
@@ -60,14 +68,14 @@ class EvaluatorPairMorse
 #ifndef __HIPCC__
         param_type() : D0(0), alpha(0), r0(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             D0 = v["D0"].cast<Scalar>();
             alpha = v["alpha"].cast<Scalar>();
             r0 = v["r0"].cast<Scalar>();
             }
 
-        param_type(Scalar d, Scalar a, Scalar r)
+        param_type(Scalar d, Scalar a, Scalar r, bool managed = false)
             {
             D0 = d;
             alpha = a;
@@ -149,6 +157,16 @@ class EvaluatorPairMorse
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -171,5 +189,8 @@ class EvaluatorPairMorse
     Scalar alpha;  //!< Controls width of the potential well
     Scalar r0;     //!< Offset, i.e., position of the potential minimum
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_MORSE_H__

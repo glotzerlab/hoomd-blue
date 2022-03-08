@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.trigger import Trigger
 from hoomd.operation import Operation, _TriggeredOperation
 
@@ -24,7 +27,7 @@ class DummyState:
 
     @property
     def particle_types(self):
-        return ['A', 'B']
+        return ["A", "B", "C"]
 
 
 class DummyOperations:
@@ -58,11 +61,11 @@ class DummyCppObj:
     def param2(self, value):
         self._param2 = value
 
-    def setCommunicator(self, communicator):  # noqa: N802
-        pass
-
     def notifyDetach(self):  # noqa: N802
         pass
+
+    def __getstate__(self):
+        raise RuntimeError("Mimic lack of pickling for C++ objects.")
 
 
 class DummyOperation(Operation):
@@ -70,9 +73,18 @@ class DummyOperation(Operation):
 
     This is for testing purposes.
     """
+    _current_obj_number = 0
+
+    def __init__(self):
+        """Increment object counter to enable equality comparison."""
+        self.id = self._current_obj_number
+        self.__class__._current_obj_number += 1
 
     def _attach(self):
         self._cpp_obj = DummyCppObj()
+
+    def __eq__(self, other):
+        return self.id == other.id
 
 
 class DummyTriggeredOp(_TriggeredOperation):

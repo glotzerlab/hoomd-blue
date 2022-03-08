@@ -1,8 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: mphoward
-
+#include "hoomd/Communicator.h"
 #include "hoomd/mpcd/SlitPoreGeometryFiller.h"
 #ifdef ENABLE_HIP
 #include "hoomd/mpcd/SlitPoreGeometryFillerGPU.h"
@@ -13,16 +12,20 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(20.0);
+    snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    sysdef->setCommunicator(pdata_comm);
 
     auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
         {
@@ -43,7 +46,7 @@ template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfigur
         = std::make_shared<const mpcd::detail::SlitPoreGeometry>(5.0,
                                                                  8.0,
                                                                  mpcd::detail::boundary::no_slip);
-    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConstant>(1.0);
+    std::shared_ptr<Variant> kT = std::make_shared<VariantConstant>(1.0);
     std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler
         = std::make_shared<F>(mpcd_sys, 2.0, 0, kT, 42, slit);
 

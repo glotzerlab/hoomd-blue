@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/ATCollisionMethod.h"
 #include "utils.h"
@@ -15,12 +13,14 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for basic setup and functionality of the SRD collision method
 template<class CM>
 void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -54,7 +54,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     AllThermoRequest thermo_req(thermo);
 
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
+    std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
 
     std::shared_ptr<mpcd::ATCollisionMethod> collide
         = std::make_shared<CM>(mpcd_sys, 0, 2, 1, thermo, rand_thermo, T);
@@ -111,7 +111,7 @@ template<class CM>
 void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
         {
         SnapshotParticleData<Scalar>& pdata_snap = snap->particle_data;
@@ -148,7 +148,7 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
     AllThermoRequest thermo_req(thermo);
 
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
+    std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(1.5);
 
     std::shared_ptr<mpcd::ATCollisionMethod> collide
         = std::make_shared<CM>(mpcd_sys, 0, 1, -1, thermo, rand_thermo, T);

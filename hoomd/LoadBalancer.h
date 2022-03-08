@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file LoadBalancer.h
     \brief Declares an updater that changes the MPI domain decomposition to balance the load
@@ -11,10 +9,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_MPI
-
-#ifndef __LOADBALANCER_H__
-#define __LOADBALANCER_H__
+#pragma once
 #include "Trigger.h"
 #include "Tuner.h"
 
@@ -24,6 +19,8 @@
 #include <string>
 #include <vector>
 
+namespace hoomd
+    {
 //! Updates domain decompositions to balance the load
 /*!
  * Adjusts the boundaries of the processor domains to distribute the load close to evenly between
@@ -46,9 +43,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     {
     public:
     //! Constructor
-    LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
-                 std::shared_ptr<DomainDecomposition> decomposition,
-                 std::shared_ptr<Trigger> trigger);
+    LoadBalancer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
     //! Destructor
     virtual ~LoadBalancer();
 
@@ -101,8 +96,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
             m_enable_z = enable;
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
-            throw std::runtime_error("comm: requested direction does not exist");
+            throw std::runtime_error("LoadBalancer: requested direction does not exist");
             }
         }
 
@@ -113,7 +107,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         }
 
     /// Get value of m_enable_x
-    bool getEnableX(bool enable)
+    bool getEnableX()
         {
         return m_enable_x;
         }
@@ -125,7 +119,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         }
 
     /// Get value of m_enable_y
-    bool getEnableY(bool enable)
+    bool getEnableY()
         {
         return m_enable_y;
         }
@@ -137,7 +131,7 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         }
 
     /// Get value of m_enable_z
-    bool getEnableZ(bool enable)
+    bool getEnableZ()
         {
         return m_enable_z;
         }
@@ -152,12 +146,14 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     std::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
     std::shared_ptr<Trigger> m_trigger;
 
+#ifdef ENABLE_MPI
     const MPI_Comm m_mpi_comm; //!< MPI communicator for all ranks
+
+    /// The systems's communicator.
+    std::shared_ptr<Communicator> m_comm;
 
     //! Computes the maximum imbalance factor
     Scalar getMaxImbalance();
-    Scalar m_max_imbalance;         //!< Maximum imbalance
-    bool m_recompute_max_imbalance; //!< Flag if maximum imbalance needs to be computed
 
     //! Reduce the particle numbers per rank down to one dimension
     bool reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsigned int reduce_root);
@@ -175,7 +171,6 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
                 const std::vector<unsigned int>& N_i,
                 Scalar L_i,
                 Scalar min_domain_frac);
-    bool m_needs_migrate; //!< Flag to signal that migration is necessary
 
     //! Compute the number of particles on each rank after an adjustment
     void computeOwnedParticles();
@@ -200,6 +195,12 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
         m_recompute_max_imbalance = true;
         m_needs_recount = false;
         }
+#endif // ENABLE_MPI
+
+    Scalar m_max_imbalance;         //!< Maximum imbalance
+    bool m_recompute_max_imbalance; //!< Flag if maximum imbalance needs to be computed
+
+    bool m_needs_migrate; //!< Flag to signal that migration is necessary
     bool m_needs_recount; //!< Flag if a particle change needs to be computed
 
     Scalar m_tolerance;     //!< Load imbalance to tolerate
@@ -220,8 +221,11 @@ class PYBIND11_EXPORT LoadBalancer : public Tuner
     uint64_t m_n_rebalances;      //!< The actual number of rebalances (migrations) performed
     };
 
+namespace detail
+    {
 //! Export the LoadBalancer to python
 void export_LoadBalancer(pybind11::module& m);
 
-#endif // __LOADBALANCER_H__
-#endif // ENABLE_MPI
+    } // end namespace detail
+
+    } // end namespace hoomd

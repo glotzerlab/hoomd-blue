@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_GAUSS_H__
 #define __PAIR_EVALUATOR_GAUSS_H__
@@ -21,10 +19,16 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
 
@@ -53,6 +57,10 @@ class EvaluatorPairGauss
         Scalar epsilon;
         Scalar sigma;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         // set CUDA memory hints
         void set_memory_hint() const
@@ -64,14 +72,14 @@ class EvaluatorPairGauss
 #ifndef __HIPCC__
         param_type() : epsilon(0), sigma(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             sigma = v["sigma"].cast<Scalar>();
             epsilon = v["epsilon"].cast<Scalar>();
             }
 
         // used to facilitate unit testing
-        param_type(Scalar eps, Scalar sig)
+        param_type(Scalar eps, Scalar sig, bool managed = false)
             {
             sigma = sig;
             epsilon = eps;
@@ -87,9 +95,9 @@ class EvaluatorPairGauss
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -155,6 +163,16 @@ class EvaluatorPairGauss
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -176,5 +194,8 @@ class EvaluatorPairGauss
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
     Scalar sigma;   //!< sigma parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_GAUSS_H__

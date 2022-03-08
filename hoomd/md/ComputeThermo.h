@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermoTypes.h"
 #include "hoomd/Compute.h"
@@ -24,6 +22,10 @@
 #ifndef __COMPUTE_THERMO_H__
 #define __COMPUTE_THERMO_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes thermodynamic properties of a group of particles
 /*! ComputeThermo calculates instantaneous thermodynamic properties and provides them in Python.
     All computed values are stored in a GlobalArray so that they can be accessed on the GPU without
@@ -323,7 +325,8 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
     /// Get the box volume (or area in 2D)
     const Scalar getVolume()
         {
-        return m_sysdef->getParticleData()->getGlobalBox().getVolume();
+        bool two_d = m_sysdef->getNDimensions() == 2;
+        return m_sysdef->getParticleData()->getGlobalBox().getVolume(two_d);
         }
 
     protected:
@@ -344,9 +347,15 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 #endif
     };
 
+namespace detail
+    {
 //! Exports the ComputeThermo class to python
 #ifndef __HIPCC__
 void export_ComputeThermo(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

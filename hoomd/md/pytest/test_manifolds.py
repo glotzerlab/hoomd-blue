@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 from hoomd.conftest import pickling_check
 import pytest
@@ -111,7 +114,8 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
 
     all_ = hoomd.filter.All()
     surface = manifold_base_params.surface(**manifold_base_params.setup_params)
-    method = hoomd.md.methods.NVE(filter=all_)
+    method = hoomd.md.methods.rattle.NVE(filter=all_,
+                                         manifold_constraint=surface)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
@@ -130,8 +134,8 @@ def test_pickling(manifold_base_params, simulation_factory,
                   two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     manifold = manifold_base_params.surface(**manifold_base_params.setup_params)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All(),
-                               manifold_constraint=manifold)
+    nve = hoomd.md.methods.rattle.NVE(filter=hoomd.filter.All(),
+                                      manifold_constraint=manifold)
     integrator = hoomd.md.Integrator(0.005, methods=[nve])
     sim.operations += integrator
     pickling_check(manifold)

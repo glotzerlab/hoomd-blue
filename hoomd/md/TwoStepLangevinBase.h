@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Variant.h"
@@ -12,6 +12,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 /** Base class for Langevin equation based integration method
 
     HOOMD implements Langevin dynamics and Brownian dynamics. Both are based on the same equation of
@@ -87,10 +91,13 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
 
     /// List of per type gamma_r (for 2D-only rotational noise) to use
     GlobalVector<Scalar3> m_gamma_r;
-
-    /// Method to be called when number of types changes
-    virtual void slotNumTypesChange();
     };
 
+namespace detail
+    {
 //! Exports the TwoStepLangevinBase class to python
 void export_TwoStepLangevinBase(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

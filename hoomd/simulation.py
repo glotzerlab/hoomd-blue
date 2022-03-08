@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Simulation class."""
 import inspect
@@ -11,7 +10,6 @@ from hoomd.state import State
 from hoomd.snapshot import Snapshot
 from hoomd.operations import Operations
 import hoomd
-import json
 
 TIMESTEP_MAX = 2**64 - 1
 SEED_MAX = 2**16 - 1
@@ -24,13 +22,16 @@ class Simulation(metaclass=Loggable):
         device (`hoomd.device.Device`): Device to execute the simulation.
         seed (int): Random number seed.
 
-    `Simulation` is the central class in HOOMD-blue that defines a simulation,
-    including the `state` of the system, the `operations` that apply to the
-    state during a simulation `run`, and the `device` to use when executing
-    the simulation.
+    `Simulation` is the central class that defines a simulation, including the
+    `state` of the system, the `operations` that apply to the state during a
+    simulation `run`, and the `device` to use when executing the simulation.
 
     `seed` sets the seed for the random number generator used by all operations
     added to this `Simulation`.
+
+    Newly initialized `Simulation` objects have no state. Call
+    `create_state_from_gsd` or `create_state_from_snapshot` to initialize the
+    simulation's `state`.
     """
 
     def __init__(self, device, seed=None):
@@ -53,10 +54,10 @@ class Simulation(metaclass=Loggable):
 
     @log
     def timestep(self):
-        """int: Current time step of the simulation.
+        """int: The current simulation time step.
 
         Note:
-            Functions like `create_state_from_gsd` will set the initial timestep
+            Methods like `create_state_from_gsd` will set the initial timestep
             from the input. Set `timestep` before creating the simulation state
             to override values from ``create_`` methods::
 
@@ -139,8 +140,9 @@ class Simulation(metaclass=Loggable):
                     cpp_communicator = _hoomd.CommunicatorGPU(
                         self.state._cpp_sys_def, decomposition)
 
-                # set Communicator in C++ System
+                # set Communicator in C++ System and SystemDefinition
                 self._cpp_sys.setCommunicator(cpp_communicator)
+                self.state._cpp_sys_def.setCommunicator(cpp_communicator)
                 self._system_communicator = cpp_communicator
             else:
                 self._system_communicator = None
@@ -152,7 +154,10 @@ class Simulation(metaclass=Loggable):
             self.device._cpp_msg.warning(
                 "Simulation.seed is not set, using default seed=0\n")
 
-    def create_state_from_gsd(self, filename, frame=-1):
+    def create_state_from_gsd(self,
+                              filename,
+                              frame=-1,
+                              domain_decomposition=(None, None, None)):
         """Create the simulation state from a GSD file.
 
         Args:
@@ -160,6 +165,26 @@ class Simulation(metaclass=Loggable):
 
             frame (int): Index of the frame to read from the file. Negative
                 values index back from the last frame in the file.
+
+            domain_decomposition (tuple): Choose how to distribute the state
+                across MPI ranks with domain decomposition. Provide a tuple
+                of 3 integers indicating the number of evenly spaced domains in
+                the x, y, and z directions (e.g. ``(8,4,2)``). Provide a tuple
+                of 3 lists of floats to set the fraction of the simulation box
+                to include in each domain. The sum of each list of floats must
+                be 1.0 (e.g. ``([0.25, 0.75], [0.2, 0.8], [1.0])``).
+
+        When `timestep` is `None` before calling, `create_state_from_gsd`
+        sets `timestep` to the value in the selected GSD frame in the file.
+
+        Note:
+            Set any or all of the ``domain_decomposition`` tuple elements to
+            `None` and `create_state_from_gsd` will select a value that
+            minimizes the surface area between the domains (e.g.
+            ``(2,None,None)``). The domains are spaced evenly along each
+            automatically selected direction. The default value of ``(None,
+            None, None)`` will automatically select the number of domains in all
+            directions.
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
@@ -171,35 +196,58 @@ class Simulation(metaclass=Loggable):
                                                self.device.communicator)
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
-        self._state = State(self, snapshot)
+        self._state = State(self, snapshot, domain_decomposition)
 
         reader.clearSnapshot()
 
         self._init_system(step)
 
-    def create_state_from_snapshot(self, snapshot):
-        """Create the simulations state from a `Snapshot`.
+    def create_state_from_snapshot(self,
+                                   snapshot,
+                                   domain_decomposition=(None, None, None)):
+        """Create the simulation state from a `Snapshot`.
 
         Args:
             snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
                 the state from. A `gsd.hoomd.Snapshot` will first be
                 converted to a `hoomd.Snapshot`.
 
+            domain_decomposition (tuple): Choose how to distribute the state
+                across MPI ranks with domain decomposition. Provide a tuple
+                of 3 integers indicating the number of evenly spaced domains in
+                the x, y, and z directions (e.g. ``(8,4,2)``). Provide a tuple
+                of 3 lists of floats to set the fraction of the simulation box
+                to include in each domain. The sum of each list of floats must
+                be 1.0 (e.g. ``([0.25, 0.75], [0.2, 0.8], [1.0])``).
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
+
+        Note:
+            Set any or all of the ``domain_decomposition`` tuple elements to
+            `None` and `create_state_from_snapshot` will select a value that
+            minimizes the surface area between the domains (e.g.
+            ``(2,None,None)``). The domains are spaced evenly along each
+            automatically selected direction. The default value of ``(None,
+            None, None)`` will automatically select the number of domains in all
+            directions.
+
+        See Also:
+            `State.get_snapshot`
+
+            `State.set_snapshot`
         """
         if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
         if isinstance(snapshot, Snapshot):
             # snapshot is hoomd.Snapshot
-            self._state = State(self, snapshot)
+            self._state = State(self, snapshot, domain_decomposition)
         elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
             # snapshot is gsd.hoomd.Snapshot
             snapshot = Snapshot.from_gsd_snapshot(snapshot,
                                                   self._device.communicator)
-            self._state = State(self, snapshot)
+            self._state = State(self, snapshot, domain_decomposition)
         else:
             raise TypeError(
                 "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot.")
@@ -217,7 +265,14 @@ class Simulation(metaclass=Loggable):
 
     @property
     def operations(self):
-        """hoomd.Operations: The operations that apply to the state."""
+        """hoomd.Operations: The operations that apply to the state.
+
+        The operations apply to the state during the simulation run when
+        scheduled.
+
+        See Also:
+            `run`
+        """
         return self._operations
 
     @operations.setter
@@ -254,8 +309,8 @@ class Simulation(metaclass=Loggable):
         fixed after `run` completes.
 
         Note:
-            The start time and step are reset at the beginning of each call to
-            `run`.
+            The start walltime and timestep are reset at the beginning of each
+            call to `run`.
         """
         if self._state is None:
             return None
@@ -331,14 +386,14 @@ class Simulation(metaclass=Loggable):
 
             write_at_start (bool): When `True`, writers
                with triggers that evaluate `True` for the initial step will be
-               exected before the time step loop.
+               executed before the time step loop.
 
         Note:
             Initialize the simulation's state before calling `run`.
 
-        During each step `run`, `Simulation` applies its `operations` to the
-        state in the order: Tuners, Updaters, Integrator, then Writers following
-        the logic in this pseudocode::
+        `Simulation` applies its `operations` to the
+        state during each time step in the order: tuners, updaters, integrator,
+        then writers following the logic in this pseudocode::
 
             if write_at_start:
                 for writer in operations.writers:
@@ -391,84 +446,6 @@ class Simulation(metaclass=Loggable):
                              f"{TIMESTEP_MAX-1}]")
 
         self._cpp_sys.run(steps_int, write_at_start)
-
-    def write_debug_data(self, filename):
-        """Write debug data to a JSON file.
-
-        Args:
-            filename (str): Name of file to write.
-
-        The debug data file contains useful information for others to help you
-        troubleshoot issues.
-
-        Note:
-            The file format and particular data written to this file may change
-            from version to version.
-
-        Warning:
-            The specified file name will be overwritten.
-        """
-        debug_data = {}
-        debug_data['hoomd_module'] = str(hoomd)
-        debug_data['version'] = dict(
-            compile_date=hoomd.version.compile_date,
-            compile_flags=hoomd.version.compile_flags,
-            cxx_compiler=hoomd.version.cxx_compiler,
-            git_branch=hoomd.version.git_branch,
-            git_sha1=hoomd.version.git_sha1,
-            gpu_api_version=hoomd.version.gpu_api_version,
-            gpu_enabled=hoomd.version.gpu_enabled,
-            gpu_platform=hoomd.version.gpu_platform,
-            install_dir=hoomd.version.install_dir,
-            mpi_enabled=hoomd.version.mpi_enabled,
-            source_dir=hoomd.version.source_dir,
-            tbb_enabled=hoomd.version.tbb_enabled,
-        )
-
-        reasons = hoomd.device.GPU.get_unavailable_device_reasons()
-
-        debug_data['device'] = dict(
-            msg_file=self.device.msg_file,
-            notice_level=self.device.notice_level,
-            devices=self.device.devices,
-            num_cpu_threads=self.device.num_cpu_threads,
-            gpu_available_devices=hoomd.device.GPU.get_available_devices(),
-            gpu_unavailable_device_reasons=reasons)
-
-        debug_data['communicator'] = dict(
-            num_ranks=self.device.communicator.num_ranks,
-            partition=self.device.communicator.partition)
-
-        # TODO: Domain decomposition
-
-        if self._state is not None:
-            debug_data['state'] = dict(
-                types=self.state.types,
-                N_particles=self.state.N_particles,
-                N_bonds=self.state.N_bonds,
-                N_angles=self.state.N_angles,
-                N_impropers=self.state.N_impropers,
-                N_special_pairs=self.state.N_special_pairs,
-                N_dihedrals=self.state.N_dihedrals,
-                box=repr(self.state.box))
-
-        # save all loggable quantities from operations and their child computes
-        logger = hoomd.logging.Logger(only_default=False)
-        logger += self
-
-        for op in self.operations:
-            logger.add(op)
-
-            for child in op._children:
-                logger.add(child)
-
-        log = logger.log()
-        log_values = hoomd.util.dict_map(log, lambda v: v[0])
-        debug_data['operations'] = log_values
-
-        if self.device.communicator.rank == 0:
-            with open(filename, 'w') as f:
-                json.dump(debug_data, f, default=lambda v: str(v), indent=4)
 
 
 def _match_class_path(obj, *matches):

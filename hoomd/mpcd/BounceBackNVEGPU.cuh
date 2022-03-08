@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file BounceBackNVEGPU.cuh
@@ -16,6 +14,8 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -44,7 +44,7 @@ struct bounce_args_t
     const Scalar3* d_accel;        //!< Particle accelerations
     const unsigned int* d_group;   //!< Indexes in particle group
     const Scalar dt;               //!< Timestep
-    const BoxDim& box;             //!< Simulation box
+    const BoxDim box;              //!< Simulation box
     const unsigned int N;          //!< Number of particles in group
     const unsigned int block_size; //!< Number of threads per block
     };
@@ -150,13 +150,10 @@ __global__ void nve_bounce_step_one(Scalar4* d_pos,
 template<class Geometry>
 cudaError_t nve_bounce_step_one(const bounce_args_t& args, const Geometry& geom)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)kernel::nve_bounce_step_one<Geometry>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)kernel::nve_bounce_step_one<Geometry>);
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(args.block_size, max_block_size);
     dim3 grid(args.N / run_block_size + 1);
@@ -174,6 +171,7 @@ cudaError_t nve_bounce_step_one(const bounce_args_t& args, const Geometry& geom)
     }
 #endif // __HIPCC__
 
-    }      // end namespace gpu
-    }      // end namespace mpcd
+    }  // end namespace gpu
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_BOUNCE_BACK_NVE_GPU_CUH_

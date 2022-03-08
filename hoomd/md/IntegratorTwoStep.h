@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Integrator.h"
@@ -14,6 +14,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 /// Integrates the system forward one step with possibly multiple methods
 /** See IntegrationMethodTwoStep for most of the design notes regarding group integration.
    IntegratorTwoStep merely implements most of the things discussed there.
@@ -34,27 +38,11 @@
 class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     {
     public:
-    /** Anisotropic integration mode: Automatic (detect whether
-        aniso forces are defined), Anisotropic (integrate
-        rotational degrees of freedom regardless of whether
-        anything is defining them), and Isotropic (don't integrate
-        rotational degrees of freedom)
-    */
-    enum AnisotropicMode
-        {
-        Automatic,
-        Anisotropic,
-        Isotropic
-        };
-
     /// Constructor
     IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
     /// Destructor
     virtual ~IntegratorTwoStep();
-
-    /// Sets the profiler for the compute to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
     /// Take one timestep forward
     virtual void update(uint64_t timestep);
@@ -74,11 +62,11 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// Get the number of degrees of freedom granted to a given group
     virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> group);
 
-    /// Set the anisotropic mode of the integrator
-    virtual void setAnisotropicMode(const std::string& mode);
+    /// Set the integrate orientation flag
+    virtual void setIntegrateRotationalDOF(bool integrate_rotational_dofs);
 
-    /// Set the anisotropic mode of the integrator
-    virtual const std::string getAnisotropicMode();
+    /// Set the integrate orientation flag
+    virtual const bool getIntegrateRotationalDOF();
 
     /// Prepare for the run
     virtual void prepRun(uint64_t timestep);
@@ -95,26 +83,18 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
 #endif
 
 #ifdef ENABLE_MPI
-    /// Set the communicator to use
-    /** \param comm The Communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm);
-
     /// helper function to determine the ghost communication flags
     virtual CommFlags determineFlags(uint64_t timestep);
 #endif
 
     /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool getAnisotropic();
+    virtual bool areForcesAnisotropic();
 
     /// Updates the rigid body constituent particles
     virtual void updateRigidBodies(uint64_t timestep);
 
     /// Set autotuner parameters
     virtual void setAutotunerParams(bool enable, unsigned int period);
-
-    /// (Re-)initialize the integration method
-    void initializeIntegrationMethods();
 
     /// Getter and setter for accessing rigid body objects in Python
     std::shared_ptr<ForceComposite> getRigid()
@@ -128,18 +108,23 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         }
 
     protected:
-    /// Helper method to test if all added methods have valid restart information
-    bool isValidRestart();
-
     std::vector<std::shared_ptr<IntegrationMethodTwoStep>>
         m_methods; //!< List of all the integration methods
 
     std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
 
-    bool m_prepared;              //!< True if preprun has been called
-    bool m_gave_warning;          //!< True if a warning has been given about no methods added
-    AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
+    bool m_prepared;     //!< True if preprun has been called
+    bool m_gave_warning; //!< True if a warning has been given about no methods added
+
+    /// True when orientation degrees of freedom should be integrated
+    bool m_integrate_rotational_dof = false;
     };
 
+namespace detail
+    {
 /// Exports the IntegratorTwoStep class to python
 void export_IntegratorTwoStep(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

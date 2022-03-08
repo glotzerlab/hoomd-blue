@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement DCD."""
 
@@ -11,11 +10,11 @@ from hoomd.operation import Writer
 
 
 class DCD(Writer):
-    """Writes simulation snapshots in the DCD format.
+    """Writes simulation trajectories in the DCD format.
 
     Args:
-        filename (str): File name to write.
         trigger (hoomd.trigger.Periodic): Select the timesteps to write.
+        filename (str): File name to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         overwrite (bool): When False, (the default) an existing DCD file will be
@@ -35,9 +34,10 @@ class DCD(Writer):
         angle_z (bool): When True, the particle orientation angle is written to
             the z component (only useful for 2D simulations)
 
-    On each timestep where `DCD` triggers, it writes the simulation snapshot to
-    the specified file in the DCD file format. DCD only stores particle
-    positions, in distance units.
+    `DCD` writes the simulation trajectory to the specified file in the DCD file
+    format. DCD stores only particle positions and the box parameters, in
+    length units, and is limited to simulations where the number of particles
+    is fixed.
 
     Examples::
 
@@ -51,7 +51,7 @@ class DCD(Writer):
         * The period must be the same or the time data in the file will not be
           consistent.
         * `DCD` will not write out data at time steps that already are
-          present in the DCD file to maintain a consistent timeline
+          present in the DCD file.
 
     Attributes:
         filename (str): File name to write.
@@ -74,8 +74,8 @@ class DCD(Writer):
     """
 
     def __init__(self,
-                 filename,
                  trigger,
+                 filename,
                  filter=All(),
                  overwrite=False,
                  unwrap_full=False,

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -24,6 +24,8 @@
 // data types and function definitions
 #include "IntegratorHPMCMonoGPUDepletantsTypes.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -120,7 +122,7 @@ __launch_bounds__(max_threads)
     unsigned int* s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int* s_queue_didx = (unsigned int*)(s_queue_gid + max_queue_size);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -329,7 +331,8 @@ __launch_bounds__(max_threads)
 
             // advance depletant idx
             i_dep += group_size * n_groups * blocks_per_particle;
-            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
+            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep <
+              // n_depletants)
 
         __syncthreads();
 
@@ -674,20 +677,17 @@ void depletants_launcher(const hpmc_args_t& args,
     if (max_threads == cur_launch_bounds * MIN_BLOCK_SIZE)
         {
         // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static hipFuncAttributes attr;
+        int max_block_size;
+        hipFuncAttributes attr;
         constexpr unsigned int launch_bounds_nonzero
             = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
-        if (max_block_size == -1)
-            {
-            hipFuncGetAttributes(
-                &attr,
-                reinterpret_cast<const void*>(
-                    &kernel::hpmc_insert_depletants<Shape,
-                                                    launch_bounds_nonzero * MIN_BLOCK_SIZE,
-                                                    pairwise>));
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        hipFuncGetAttributes(
+            &attr,
+            reinterpret_cast<const void*>(
+                &kernel::hpmc_insert_depletants<Shape,
+                                                launch_bounds_nonzero * MIN_BLOCK_SIZE,
+                                                pairwise>));
+        max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -890,3 +890,4 @@ void hpmc_insert_depletants(const hpmc_args_t& args,
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

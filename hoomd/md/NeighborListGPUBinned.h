@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPU.h"
 #include "hoomd/Autotuner.h"
@@ -20,6 +18,10 @@
 #ifndef __NEIGHBORLISTGPUBINNED_H__
 #define __NEIGHBORLISTGPUBINNED_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Neighbor list build on the GPU
 /*! Implements the O(N) neighbor list build on the GPU using a cell list.
 
@@ -73,19 +75,6 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         return m_cl->getSortCellList();
         }
 
-#ifdef ENABLE_MPI
-
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        // call base class method
-        NeighborList::setCommunicator(comm);
-
-        // set the communicator on the internal cell lists
-        m_cl->setCommunicator(comm);
-        }
-
-#endif
-
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
     unsigned int m_block_size;      //!< Block size to execute on the GPU
@@ -101,7 +90,13 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
     virtual void buildNlist(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports NeighborListGPUBinned to python
 void export_NeighborListGPUBinned(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

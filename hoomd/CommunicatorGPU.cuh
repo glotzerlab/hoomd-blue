@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.cuh
     \brief Defines the GPU functions of the communication algorithms
@@ -16,6 +14,8 @@
 
 #include "hoomd/CachedAllocator.h"
 
+namespace hoomd
+    {
 #ifdef __HIPCC__
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
@@ -56,7 +56,7 @@ void gpu_stage_particles(const unsigned int n,
     \param alloc Caching allocator
  */
 void gpu_sort_migrating_particles(const size_t nsend,
-                                  pdata_element* d_in,
+                                  detail::pdata_element* d_in,
                                   const unsigned int* d_comm_flags,
                                   const Index3D& di,
                                   const uint3 my_pos,
@@ -68,11 +68,11 @@ void gpu_sort_migrating_particles(const size_t nsend,
                                   const unsigned int nneigh,
                                   const unsigned int mask,
                                   unsigned int* d_tmp,
-                                  pdata_element* d_in_copy,
+                                  detail::pdata_element* d_in_copy,
                                   CachedAllocator& alloc);
 
 //! Apply boundary conditions
-void gpu_wrap_particles(const unsigned int n_recv, pdata_element* d_in, const BoxDim& box);
+void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls, unsigned int* d_delete_tags, unsigned int* d_rtag);
@@ -336,4 +336,5 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
                                             const Scalar* d_netvirial_recvbuf,
                                             Scalar* d_netvirial,
                                             unsigned int pitch_out);
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

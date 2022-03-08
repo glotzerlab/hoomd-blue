@@ -1,34 +1,40 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MuellerPlatheFlow.h"
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
 
-namespace py = pybind11;
 using namespace std;
 
+//! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
+
+namespace hoomd
+    {
+namespace md
+    {
 const unsigned int INVALID_TAG = UINT_MAX;
 const Scalar INVALID_VEL = FLT_MAX; // should be ok, even for double.
-
-//! \file MuellerPlatheFlow.cc Implementation of CPU version of MuellerPlatheFlow.
 
 MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<ParticleGroup> group,
                                      std::shared_ptr<Variant> flow_target,
-                                     const flow_enum::Direction slab_direction,
-                                     const flow_enum::Direction flow_direction,
+                                     std::string slab_direction_str,
+                                     std::string flow_direction_str,
                                      const unsigned int N_slabs,
                                      const unsigned int min_slab,
-                                     const unsigned int max_slab)
-    : Updater(sysdef), m_group(group), m_slab_direction(slab_direction),
-      m_flow_direction(flow_direction), m_flow_target(flow_target), m_flow_epsilon(1e-2),
+                                     const unsigned int max_slab,
+                                     Scalar flow_epsilon)
+    : Updater(sysdef), m_group(group), m_flow_target(flow_target), m_flow_epsilon(flow_epsilon),
       m_N_slabs(N_slabs), m_min_slab(min_slab), m_max_slab(max_slab), m_exchanged_momentum(0),
       m_has_min_slab(true), m_has_max_slab(true), m_needs_orthorhombic_check(true)
     {
     assert(m_flow_target);
 
-    if (slab_direction == flow_direction)
+    m_flow_direction = this->getDirectionFromString(flow_direction_str);
+    m_slab_direction = this->getDirectionFromString(slab_direction_str);
+
+    if (slab_direction_str == flow_direction_str)
         {
         m_exec_conf->msg->warning()
             << " MuellerPlatheFlow setup with "
@@ -38,7 +44,7 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
         }
 
     m_pdata->getBoxChangeSignal()
-        .connect<MuellerPlatheFlow, &MuellerPlatheFlow::force_orthorhombic_box_check>(this);
+        .connect<MuellerPlatheFlow, &MuellerPlatheFlow::forceOrthorhombicBoxCheck>(this);
 
     m_last_max_vel.x = m_last_max_vel.y = -INVALID_VEL;
     m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
@@ -46,27 +52,27 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
     m_last_min_vel.z = __int_as_scalar(INVALID_TAG);
 
     m_exec_conf->msg->notice(5) << "Constructing MuellerPlatheFlow " << endl;
-    this->update_domain_decomposition();
+    this->updateDomainDecomposition();
     // m_exec_conf->msg->notice(0)<<m_exec_conf->getRank()<<": "<< m_max_swap.gbl_rank<<"
     // "<<m_min_swap.gbl_rank<<endl;
 
     // Check min max slab.
-    this->set_min_slab(m_min_slab);
-    this->set_max_slab(m_max_slab);
+    this->setMinSlab(m_min_slab);
+    this->setMaxSlab(m_max_slab);
     }
 
 MuellerPlatheFlow::~MuellerPlatheFlow(void)
     {
     m_exec_conf->msg->notice(5) << "Destroying MuellerPlatheFlow " << endl;
     m_pdata->getBoxChangeSignal()
-        .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::force_orthorhombic_box_check>(this);
+        .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::forceOrthorhombicBoxCheck>(this);
     }
 
 void MuellerPlatheFlow::update(uint64_t timestep)
     {
     Updater::update(timestep);
     if (m_needs_orthorhombic_check)
-        this->verify_orthorhombic_box();
+        this->verifyOrthorhombicBox();
 
     const BoxDim& box = m_pdata->getGlobalBox();
     double area = 1.; // Init to shut up compiler warning
@@ -82,25 +88,26 @@ void MuellerPlatheFlow::update(uint64_t timestep)
 
     // Determine switch direction for this update call
     // Switch outside while loop, to prevent oscillations around the target.
-    bool bigger_swap_needed = (*m_flow_target)(timestep) > this->summed_exchanged_momentum() / area;
-    bigger_swap_needed &= this->get_min_slab() > this->get_max_slab();
+    bool bigger_swap_needed
+        = (*m_flow_target)(timestep) > this->getSummedExchangedMomentum() / area;
+    bigger_swap_needed &= this->getMinSlab() > this->getMaxSlab();
     bool smaller_swap_needed
-        = (*m_flow_target)(timestep) < this->summed_exchanged_momentum() / area;
-    smaller_swap_needed &= this->get_min_slab() < this->get_max_slab();
+        = (*m_flow_target)(timestep) < this->getSummedExchangedMomentum() / area;
+    smaller_swap_needed &= this->getMinSlab() < this->getMaxSlab();
 
     if ((bigger_swap_needed || smaller_swap_needed)
-        && (fabs((*m_flow_target)(timestep) - this->summed_exchanged_momentum() / area)
-            > this->get_flow_epsilon()))
+        && (fabs((*m_flow_target)(timestep) - this->getSummedExchangedMomentum() / area)
+            > this->getFlowEpsilon()))
         {
-        this->swap_min_max_slab();
+        this->swapMinMaxSlab();
         }
     // Sign for summed exchanged momentum depends on hierarchy of min and max slab.
-    const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
+    const int sign = this->getMaxSlab() > this->getMinSlab() ? 1 : -1;
 
     unsigned int counter = 0;
     const unsigned int max_iteration = 100;
-    while (fabs((*m_flow_target)(timestep) - this->summed_exchanged_momentum() / area)
-               > this->get_flow_epsilon()
+    while (fabs((*m_flow_target)(timestep) - this->getSummedExchangedMomentum() / area)
+               > this->getFlowEpsilon()
            && counter < max_iteration)
         {
         counter++;
@@ -109,10 +116,10 @@ void MuellerPlatheFlow::update(uint64_t timestep)
         m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
         m_last_min_vel.x = m_last_min_vel.y = INVALID_VEL;
         m_last_min_vel.z = __int_as_scalar(INVALID_TAG);
-        search_min_max_velocity();
+        searchMinMaxVelocity();
 
 #ifdef ENABLE_MPI
-        mpi_exchange_velocity();
+        mpiExchangeVelocity();
 #endif // ENABLE_MPI
 
         if (m_last_max_vel.x == -INVALID_VEL
@@ -128,25 +135,25 @@ void MuellerPlatheFlow::update(uint64_t timestep)
             }
         else
             {
-            update_min_max_velocity();
+            updateMinMaxVelocity();
 
             m_exchanged_momentum += sign * (m_last_max_vel.x - m_last_min_vel.x);
             }
         }
     if (counter >= max_iteration)
         {
-        stringstream s;
-        s << " After " << counter
-          << " MuellerPlatheFlow could not achieve the target: " << (*m_flow_target)(timestep)
-          << " only " << this->summed_exchanged_momentum() / area << " could be achieved." << endl;
-        m_exec_conf->msg->warning() << s.str();
+        m_exec_conf->msg->warning()
+            << " After " << counter
+            << " MuellerPlatheFlow could not achieve the target: " << (*m_flow_target)(timestep)
+            << " only " << this->getSummedExchangedMomentum() / area << " could be achieved."
+            << endl;
         }
     // stringstream s;
-    // s<<this->summed_exchanged_momentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
+    // s<<this->getSummedExchangedMomentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
     // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
     }
 
-void MuellerPlatheFlow::swap_min_max_slab(void)
+void MuellerPlatheFlow::swapMinMaxSlab(void)
     {
     std::swap(m_max_slab, m_min_slab);
 
@@ -158,34 +165,36 @@ void MuellerPlatheFlow::swap_min_max_slab(void)
     std::swap(m_max_swap, m_min_swap);
 #endif // ENABLE_MPI
     m_exec_conf->msg->notice(4) << "MuellerPlatheUpdater swapped min/max slab: "
-                                << this->get_min_slab() << " " << this->get_max_slab() << endl;
+                                << this->getMinSlab() << " " << this->getMaxSlab() << endl;
     }
 
-void MuellerPlatheFlow::set_min_slab(const unsigned int min_slab)
+void MuellerPlatheFlow::setMinSlab(const unsigned int min_slab)
     {
     if (min_slab >= m_N_slabs)
         {
-        m_exec_conf->msg->error() << "MuellerPlatheFlow is initialized with invalid min_slab: "
-                                  << min_slab << "/" << m_N_slabs << endl;
-        throw runtime_error("ERROR: Invalid min_slab.\n");
+        ostringstream s;
+        s << "MuellerPlatheFlow is initialized with invalid min_slab: " << min_slab << "/"
+          << m_N_slabs << ".";
+        throw runtime_error(s.str());
         }
     if (min_slab != m_min_slab)
-        this->update_domain_decomposition();
+        this->updateDomainDecomposition();
     }
 
-void MuellerPlatheFlow::set_max_slab(const unsigned int max_slab)
+void MuellerPlatheFlow::setMaxSlab(const unsigned int max_slab)
     {
     if (max_slab >= m_N_slabs)
         {
-        m_exec_conf->msg->error() << "MuellerPlatheFlow is initialized with invalid max_slab: "
-                                  << max_slab << "/" << m_N_slabs << endl;
-        throw runtime_error("ERROR: Invalid max_slab.\n");
+        ostringstream s;
+        s << "MuellerPlatheFlow is initialized with invalid max_slab: " << max_slab << "/"
+          << m_N_slabs << ".";
+        throw runtime_error(s.str());
         }
     if (max_slab != m_max_slab)
-        this->update_domain_decomposition();
+        this->updateDomainDecomposition();
     }
 
-void MuellerPlatheFlow::update_domain_decomposition(void)
+void MuellerPlatheFlow::updateDomainDecomposition(void)
     {
 #ifdef ENABLE_MPI
     std::shared_ptr<DomainDecomposition> dec = m_pdata->getDomainDecomposition();
@@ -213,32 +222,30 @@ void MuellerPlatheFlow::update_domain_decomposition(void)
             }
 
         m_has_min_slab = false;
-        if (my_pos == this->get_min_slab() / (m_N_slabs / my_grid))
+        if (my_pos == this->getMinSlab() / (m_N_slabs / my_grid))
             m_has_min_slab = true;
 
         m_has_max_slab = false;
-        if (my_pos == this->get_max_slab() / (m_N_slabs / my_grid))
+        if (my_pos == this->getMaxSlab() / (m_N_slabs / my_grid))
             m_has_max_slab = true;
 
         // Create the communicator.
-        const int min_color = this->has_min_slab() ? 0 : MPI_UNDEFINED;
-        init_mpi_swap(&m_min_swap, min_color);
+        const int min_color = this->hasMinSlab() ? 0 : MPI_UNDEFINED;
+        initMPISwap(&m_min_swap, min_color);
 
-        const int max_color = this->has_max_slab() ? 0 : MPI_UNDEFINED;
-        init_mpi_swap(&m_max_swap, max_color);
+        const int max_color = this->hasMaxSlab() ? 0 : MPI_UNDEFINED;
+        initMPISwap(&m_max_swap, max_color);
         }
 #endif // ENABLE_MPI
     }
 
-void MuellerPlatheFlow::search_min_max_velocity(void)
+void MuellerPlatheFlow::searchMinMaxVelocity(void)
     {
     const unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    if (!this->has_max_slab() and !this->has_min_slab())
+    if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlow::search");
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -253,21 +260,21 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                 {
             case flow_enum::X:
                 index = (unsigned int)(((h_pos.data[j].x) / gl_box.getL().x + .5)
-                                       * this->get_N_slabs());
+                                       * this->getNSlabs());
                 break;
             case flow_enum::Y:
                 index = (unsigned int)(((h_pos.data[j].y) / gl_box.getL().y + .5)
-                                       * this->get_N_slabs());
+                                       * this->getNSlabs());
                 break;
             case flow_enum::Z:
                 index = (unsigned int)(((h_pos.data[j].z) / gl_box.getL().z + .5)
-                                       * this->get_N_slabs());
+                                       * this->getNSlabs());
                 break;
                 }
-            index %= this->get_N_slabs(); // border cases. wrap periodic box
+            index %= this->getNSlabs(); // border cases. wrap periodic box
             assert(index >= 0);
-            assert(index < this->get_N_slabs());
-            if (index == this->get_max_slab() || index == this->get_min_slab())
+            assert(index < this->getNSlabs());
+            if (index == this->getMaxSlab() || index == this->getMinSlab())
                 {
                 Scalar vel = 0; // Init to shut up compiler warning
                 switch (m_flow_direction)
@@ -284,13 +291,13 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                     }
                 const Scalar mass = h_vel.data[j].w;
                 vel *= mass; // Use momentum instead of velocity
-                if (index == this->get_max_slab() && m_last_max_vel.x < vel && this->has_max_slab())
+                if (index == this->getMaxSlab() && m_last_max_vel.x < vel && this->hasMaxSlab())
                     {
                     m_last_max_vel.x = vel;
                     m_last_max_vel.y = mass;
                     m_last_max_vel.z = __int_as_scalar(h_tag.data[j]);
                     }
-                if (index == this->get_min_slab() && m_last_min_vel.x > vel && this->has_min_slab())
+                if (index == this->getMinSlab() && m_last_min_vel.x > vel && this->hasMinSlab())
                     {
                     m_last_min_vel.x = vel;
                     m_last_max_vel.y = mass;
@@ -299,14 +306,10 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                 }
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
-void MuellerPlatheFlow::update_min_max_velocity(void)
+void MuellerPlatheFlow::updateMinMaxVelocity(void)
     {
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlow::update");
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     const unsigned int min_tag = __scalar_as_int(m_last_min_vel.z);
     const unsigned int min_idx = h_rtag.data[min_tag];
@@ -353,11 +356,9 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
                 }
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
-void MuellerPlatheFlow::verify_orthorhombic_box(void)
+void MuellerPlatheFlow::verifyOrthorhombicBox(void)
     {
     bool valid = true;
     const BoxDim box = m_pdata->getGlobalBox();
@@ -367,9 +368,7 @@ void MuellerPlatheFlow::verify_orthorhombic_box(void)
 
     if (not valid)
         {
-        m_exec_conf->msg->error() << " MuellerPlatheFlow can only be used with orthorhombic boxes. "
-                                  << endl;
-        throw runtime_error("MuellerPlatheFlow non orthorhombic box.");
+        throw runtime_error("MuellerPlatheFlow can only be used with orthorhombic boxes.");
         }
     // Disable check for the next update call.
     m_needs_orthorhombic_check = false;
@@ -377,7 +376,7 @@ void MuellerPlatheFlow::verify_orthorhombic_box(void)
 #ifdef ENABLE_MPI
 
 // Not performance optimized: could be slow. It is meant for init.
-void MuellerPlatheFlow::init_mpi_swap(struct MPI_SWAP* ms, const int color)
+void MuellerPlatheFlow::initMPISwap(struct MPI_SWAP* ms, const int color)
     {
     if (ms->initialized && ms->rank != MPI_UNDEFINED)
         MPI_Comm_free(&(ms->comm));
@@ -415,7 +414,7 @@ void MuellerPlatheFlow::init_mpi_swap(struct MPI_SWAP* ms, const int color)
     ms->initialized = true;
     }
 
-void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP* ms, Scalar3* vel, const MPI_Op op)
+void MuellerPlatheFlow::bcastVelToAll(struct MPI_SWAP* ms, Scalar3* vel, const MPI_Op op)
     {
     if (ms->rank != MPI_UNDEFINED)
         {
@@ -449,49 +448,48 @@ void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP* ms, Scalar3* vel, cons
     bcast(vel->z, ms->gbl_rank, m_exec_conf->getMPICommunicator());
     }
 
-void MuellerPlatheFlow::mpi_exchange_velocity(void)
+void MuellerPlatheFlow::mpiExchangeVelocity(void)
     {
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        bcast_vel_to_all(&m_min_swap, &m_last_min_vel, MPI_MINLOC);
-        bcast_vel_to_all(&m_max_swap, &m_last_max_vel, MPI_MAXLOC);
+        bcastVelToAll(&m_min_swap, &m_last_min_vel, MPI_MINLOC);
+        bcastVelToAll(&m_max_swap, &m_last_max_vel, MPI_MAXLOC);
         }
 #endif // ENABLE_MPI
     }
 
 #endif // ENABLE_MPI
 
-void export_MuellerPlatheFlow(py::module& m)
+namespace detail
     {
-    py::class_<MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow>> flow(
+void export_MuellerPlatheFlow(pybind11::module& m)
+    {
+    pybind11::class_<MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow>> flow(
         m,
         "MuellerPlatheFlow");
-    flow.def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      const flow_enum::Direction,
-                      const flow_enum::Direction,
-                      const unsigned int,
-                      const unsigned int,
-                      const unsigned int>())
-        .def("getNSlabs", &MuellerPlatheFlow::get_N_slabs)
-        .def("getMinSlab", &MuellerPlatheFlow::get_min_slab)
-        .def("getMaxSlab", &MuellerPlatheFlow::get_max_slab)
-        .def("hasMinSlab", &MuellerPlatheFlow::has_min_slab)
-        .def("hasMaxSlab", &MuellerPlatheFlow::has_max_slab)
-        .def("getFlowEpsilon", &MuellerPlatheFlow::get_flow_epsilon)
-        .def("setFlowEpsilon", &MuellerPlatheFlow::set_flow_epsilon)
-        .def("getSummedExchangedMomentum", &MuellerPlatheFlow::summed_exchanged_momentum)
-        // Functions not needed for python interface users.
-        // .def("setMinSlab",&MuellerPlatheFlow::set_min_slab)
-        // .def("setMaxSlab",&MuellerPlatheFlow::set_max_slab)
-        // .def("swapMinMaxSlab",&MuellerPlatheFlow::swap_min_max_slab)
-        // .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
-        ;
-    py::enum_<flow_enum::Direction>(flow, "Direction")
-        .value("X", flow_enum::Direction::X)
-        .value("Y", flow_enum::Direction::Y)
-        .value("Z", flow_enum::Direction::Z)
-        .export_values();
+    flow.def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            std::string,
+                            std::string,
+                            const unsigned int,
+                            const unsigned int,
+                            const unsigned int,
+                            Scalar>())
+        .def_property_readonly("n_slabs", &MuellerPlatheFlow::getNSlabs)
+        .def_property_readonly("min_slab", &MuellerPlatheFlow::getMinSlab)
+        .def_property_readonly("max_slab", &MuellerPlatheFlow::getMaxSlab)
+        .def_property_readonly("has_min_slab", &MuellerPlatheFlow::hasMinSlab)
+        .def_property_readonly("has_max_slab", &MuellerPlatheFlow::hasMaxSlab)
+        .def_property_readonly("flow_target", &MuellerPlatheFlow::getFlowTarget)
+        .def_property_readonly("slab_direction", &MuellerPlatheFlow::getSlabDirectionPython)
+        .def_property_readonly("flow_direction", &MuellerPlatheFlow::getFlowDirectionPython)
+        .def_property_readonly("flow_epsilon", &MuellerPlatheFlow::getFlowEpsilon)
+        .def_property_readonly("summed_exchanged_momentum",
+                               &MuellerPlatheFlow::getSummedExchangedMomentum);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

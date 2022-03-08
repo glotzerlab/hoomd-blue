@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/ForceCompute.h"
@@ -23,6 +21,10 @@
 #ifndef __TABLEDIHEDRALFORCECOMPUTE_H__
 #define __TABLEDIHEDRALFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes the potential and force on dihedrals based on values given in a table
 /*! \b Overview
     Bond potentials and forces are evaluated for all dihedraled particle pairs in the system.
@@ -64,6 +66,18 @@ class PYBIND11_EXPORT TableDihedralForceCompute : public ForceCompute
     virtual void
     setTable(unsigned int type, const std::vector<Scalar>& V, const std::vector<Scalar>& T);
 
+    /// Set parameters from Python.
+    void setParamsPython(std::string type, pybind11::dict params);
+
+    /// Get the parameters for a particular type.
+    pybind11::dict getParams(std::string type);
+
+    /// Get the width
+    unsigned int getWidth()
+        {
+        return m_table_width;
+        }
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
@@ -77,19 +91,6 @@ class PYBIND11_EXPORT TableDihedralForceCompute : public ForceCompute
         }
 #endif
 
-    //! Get table entry
-    /*! \param type type index
-        \param i index to access
-        \returns the table entries at the index
-
-        For unit testing
-    */
-    Scalar2 getEntry(unsigned int type, unsigned int i)
-        {
-        ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
-        return h_tables.data[m_table_value(i, type)];
-        }
-
     protected:
     std::shared_ptr<DihedralData> m_dihedral_data; //!< Bond data to use in computing dihedrals
     unsigned int m_table_width;                    //!< Width of the tables in memory
@@ -100,7 +101,13 @@ class PYBIND11_EXPORT TableDihedralForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the TablePotential class to python
 void export_TableDihedralForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

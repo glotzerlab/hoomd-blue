@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -15,6 +13,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 class PYBIND11_EXPORT MemoryTraceback
     {
     public:
@@ -50,3 +50,5 @@ class PYBIND11_EXPORT MemoryTraceback
     mutable std::map<std::pair<const void*, size_t>, std::string>
         m_tags; //!< Tags of memory allocations
     };
+
+    } // end namespace hoomd

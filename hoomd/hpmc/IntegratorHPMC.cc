@@ -1,9 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMC.h"
-
-namespace py = pybind11;
 
 #include "hoomd/VectorMath.h"
 #include <sstream>
@@ -14,16 +12,13 @@ using namespace std;
     \brief Definition of common methods for HPMC integrators
 */
 
+namespace hoomd
+    {
 namespace hpmc
     {
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
     : Integrator(sysdef, 0.005), m_translation_move_probability(32768), m_nselect(4),
-      m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_patch_log(false),
-      m_past_first_run(false)
-#ifdef ENABLE_MPI
-      ,
-      m_communicator_ghost_width_connected(false), m_communicator_flags_connected(false)
-#endif
+      m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_past_first_run(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
 
@@ -45,48 +40,35 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
         h_a.data[typ] = 0.1;
         }
 
-    // Connect to number of types change signal
-    m_pdata->getNumTypesChangeSignal().connect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(
-        this);
-
     resetStats();
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        assert(m_comm);
+
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+
+        m_comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(
+            this);
+        }
+#endif
     }
 
 IntegratorHPMC::~IntegratorHPMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorHPMC" << endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
 
 #ifdef ENABLE_MPI
-    if (m_communicator_ghost_width_connected)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getGhostLayerWidthRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-    if (m_communicator_flags_connected)
         m_comm->getCommFlagsRequestSignal()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-#endif
-    }
-
-void IntegratorHPMC::slotNumTypesChange()
-    {
-    // old size of arrays
-    unsigned int old_ntypes = (unsigned int)m_a.size();
-    assert(m_a.size() == m_d.size());
-
-    unsigned int ntypes = m_pdata->getNTypes();
-
-    m_a.resize(ntypes);
-    m_d.resize(ntypes);
-
-    // set default values for newly added types
-    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-    for (unsigned int typ = old_ntypes; typ < ntypes; typ++)
-        {
-        h_d.data[typ] = 0.1;
-        h_a.data[typ] = 0.1;
         }
+#endif
     }
 
 /*! \returns True if the particle orientations are normalized
@@ -146,7 +128,7 @@ bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     // Get old and new boxes;
     BoxDim curBox = m_pdata->getGlobalBox();
 
-    // Use lexical scope block to make sure ArrayHandles get cleaned up
+        // Use lexical scope block to make sure ArrayHandles get cleaned up
         {
         // Get particle positions
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
@@ -201,7 +183,7 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
         result = h_counters.data[0] - m_count_step_start;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // MPI Reduction to total result values on all nodes.
         MPI_Allreduce(MPI_IN_PLACE,
@@ -245,10 +227,13 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
     return result;
     }
 
-void export_IntegratorHPMC(py::module& m)
+namespace detail
     {
-    py::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m, "IntegratorHPMC")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_IntegratorHPMC(pybind11::module& m)
+    {
+    pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m,
+                                                                                  "IntegratorHPMC")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)
         .def("setTranslationMoveProbability", &IntegratorHPMC::setTranslationMoveProbability)
@@ -263,21 +248,18 @@ void export_IntegratorHPMC(py::module& m)
         .def("getMPS", &IntegratorHPMC::getMPS)
         .def("getCounters", &IntegratorHPMC::getCounters)
         .def("communicate", &IntegratorHPMC::communicate)
-        .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
-        .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &IntegratorHPMC::setCommunicator)
-#endif
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
                       &IntegratorHPMC::setTranslationMoveProbability);
 
-    py::class_<hpmc_counters_t>(m, "hpmc_counters_t")
+    pybind11::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
         .def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
         .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)
         .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Analyzer.h
     \brief Declares a base class for all analyzers
@@ -17,13 +15,14 @@
 #define __ANALYZER_H__
 
 #include "Communicator.h"
-#include "Profiler.h"
 #include "SharedSignal.h"
 #include "SystemDefinition.h"
 
 #include <memory>
 #include <typeinfo>
 
+namespace hoomd
+    {
 /*! \ingroup hoomd_lib
     @{
 */
@@ -66,20 +65,7 @@ class PYBIND11_EXPORT Analyzer
     /*! Derived classes will implement this method to calculate their results
         \param timestep Current time step of the simulation
         */
-    virtual void analyze(uint64_t timestep)
-        {
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition() && !m_comm)
-            {
-            throw std::runtime_error(
-                "Bug: m_comm not set for a system with a domain decomposition in "
-                + std::string(typeid(*this).name()));
-            }
-#endif
-        }
-
-    //! Sets the profiler for the analyzer to use
-    void setProfiler(std::shared_ptr<Profiler> prof);
+    virtual void analyze(uint64_t timestep) { }
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -110,15 +96,6 @@ class PYBIND11_EXPORT Analyzer
         return m_exec_conf;
         }
 
-#ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm The Communicator
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        m_comm = comm;
-        }
-#endif
     void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
         {
         m_slots.push_back(slot);
@@ -148,12 +125,7 @@ class PYBIND11_EXPORT Analyzer
     const std::shared_ptr<SystemDefinition>
         m_sysdef; //!< The system definition this analyzer is associated with
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this analyzer is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this analyzer is to use
-
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator to use
-#endif
+        m_pdata; //!< The particle data this analyzer is associated with
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
@@ -161,7 +133,12 @@ class PYBIND11_EXPORT Analyzer
         m_slots; //!< Stored shared ptr to the system signals
     };
 
+namespace detail
+    {
 //! Export the Analyzer class to python
 void export_Analyzer(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace hoomd
 
 #endif

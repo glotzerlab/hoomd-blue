@@ -1,10 +1,16 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
+from collections.abc import Sequence
+
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
 from hoomd.error import DataAccessError
 import hoomd.hpmc
 import numpy as np
 import pytest
 import hoomd.hpmc.pytest.conftest
+from hoomd.logging import LoggerCategories
 from copy import deepcopy
 
 
@@ -29,8 +35,7 @@ def check_dict(shape_dict, args):
                 shape_args = shape_dict[key][i]
                 val_args = val[i]
                 for shape_key in shape_args:
-                    if isinstance(shape_args[shape_key], list) \
-                       and len(shape_args[shape_key]) > 0:
+                    if isinstance(shape_args[shape_key], Sequence):
                         np.testing.assert_allclose(val_args[shape_key],
                                                    shape_args[shape_key])
                     else:
@@ -58,7 +63,7 @@ def test_valid_shape_params(valid_args):
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     check_dict(mc.shape["A"], args)
@@ -78,6 +83,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
                         valid_args):
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
@@ -85,10 +91,11 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(
+        two_particle_snapshot_factory(dimensions=n_dimensions))
     assert sim.operations.integrator is None
     sim.operations.add(mc)
     sim.operations._schedule()
@@ -99,14 +106,11 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
                test_moves_args):
     integrator = test_moves_args[0]
     args = test_moves_args[1]
-    if 'polygon' in str(integrator).lower():
-        dims = 2
-    else:
-        dims = 3
+    n_dimensions = test_moves_args[2]
     mc = integrator()
     mc.shape['A'] = args
 
-    sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=n_dimensions))
     sim.operations.add(mc)
 
     with pytest.raises(DataAccessError):
@@ -169,19 +173,19 @@ def test_overlaps_sphere(device, sphere_overlap_args, simulation_factory,
     assert mc.overlaps > 0
 
     # Should not overlap when spheres are larger than one diameter apart
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, diameter * 1.1, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps == 0
 
     # Should barely overlap when spheres are exactly than one diameter apart
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, diameter * 0.9999, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps == 1
 
 
@@ -202,32 +206,32 @@ def test_overlaps_ellipsoid(device, simulation_factory,
     for abc in abc_list:
         # Should barely overlap when ellipsoids are exactly than one diameter
         # apart
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 0.9 * 2, abc[1] * 0.9 * 2,
                                        abc[2] * 0.9 * 2)
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps == 1
 
         # Should not overlap when ellipsoids are larger than one diameter apart
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 1.15 * 2, abc[1] * 1.15 * 2,
                                        abc[2] * 1.15 * 2)
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps == 0
 
     # Line up ellipsoids where they aren't overlapped, and then rotate one so
     # they overlap
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (a * 1.1 * 2, 0, 0)
         s.particles.orientation[1] = tuple(
             np.array([1, 0, 0.45, 0]) / (1.2025**0.5))
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
 
@@ -264,26 +268,26 @@ def test_overlaps_polygons(device, polygon_overlap_args, simulation_factory,
 
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (vert[0], vert[1], 0)
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps > 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.05, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps == 0
 
     # Rotate one of the shapes so they will overlap
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(
             np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
 
@@ -341,32 +345,32 @@ def test_overlaps_polyhedra(device, polyhedron_overlap_args, simulation_factory,
 
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = vert
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps > 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 0.9, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.1, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps == 0
 
     # Rotate one of the polyhedra so they will overlap
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
 
@@ -397,34 +401,34 @@ def test_overlaps_spheropolygon(device, spheropolygon_overlap_args,
 
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (vert[0], vert[1], 0)
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps > 0
 
     # Place shapes where they wouldn't overlap w/o sweep radius
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.2, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.3, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps == 0
 
     # Rotate one of the shapes so they will overlap
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(
             np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
 
@@ -455,32 +459,32 @@ def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
 
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = vert
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps > 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.2, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.5, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps == 0
 
     # Rotate one of the polyhedra so they will overlap
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
 
@@ -532,27 +536,27 @@ def test_overlaps_union(device, union_overlap_args, simulation_factory,
     test_orientations = test_orientations.T
     # Shapes are stacked in z direction
     for i in range(len(test_positions)):
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = test_positions[i]
             s.particles.orientation[1] = (1, 0, 0, 0)
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps == 0
 
         # Slightly rotate union about x or y axis so they overlap
         if s.communicator.rank == 0:
             s.particles.orientation[1] = test_orientations[i]
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
 
         assert mc.overlaps > 0
 
     for pos in [(0.9, 0, 0), (0, 0.9, 0), (0, 0, 1.1)]:
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = pos
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps > 0
 
 
@@ -581,32 +585,32 @@ def test_overlaps_faceted_ellipsoid(device, simulation_factory,
     for abc in abc_list:
         # Should barely overlap when ellipsoids are exactly than one diameter
         # apart
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 0.9 * 2, abc[1] * 0.9 * 2,
                                        abc[2] * 0.9 * 2)
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps == 1
 
         # Should not overlap when ellipsoids are larger than one diameter apart
-        s = sim.state.snapshot
+        s = sim.state.get_snapshot()
         if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 1.15 * 2, abc[1] * 1.15 * 2,
                                        abc[2] * 1.15 * 2)
-        sim.state.snapshot = s
+        sim.state.set_snapshot(s)
         assert mc.overlaps == 0
 
     # Line up ellipsoids where they aren't overlapped, and then rotate one so
     # they overlap
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (a * 1.1 * 2, 0, 0)
         s.particles.orientation[1] = tuple(
             np.array([1, 0, 0.45, 0]) / (1.2025**0.5))
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
 
@@ -621,18 +625,18 @@ def test_overlaps_sphinx(device, simulation_factory,
     sim.operations._schedule()
     assert mc.overlaps == 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0.74, 0, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps > 0
 
-    s = sim.state.snapshot
+    s = sim.state.get_snapshot()
     if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0.76, 0, 0)
-    sim.state.snapshot = s
+    sim.state.set_snapshot(s)
     assert mc.overlaps == 0
 
 
@@ -640,6 +644,7 @@ def test_pickling(valid_args, simulation_factory,
                   two_particle_snapshot_factory):
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -648,11 +653,57 @@ def test_pickling(valid_args, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     # L needs to be ridiculously large as to not be too small for the domain
     # decomposition of some of the shapes definitions in valid_args which have
     # shapes with large extent in at least one dimension.
-    sim = simulation_factory(two_particle_snapshot_factory(L=1000))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(L=1000, dimensions=n_dimensions))
     operation_pickling_check(mc, sim)
+
+
+def test_logging():
+    logging_check(
+        hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'), {
+            'map_overlaps': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'mps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'overlaps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'translate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })
+
+    integrators = (hoomd.hpmc.integrate.Sphere,
+                   hoomd.hpmc.integrate.ConvexPolygon,
+                   hoomd.hpmc.integrate.ConvexSpheropolygon,
+                   hoomd.hpmc.integrate.Polyhedron,
+                   hoomd.hpmc.integrate.ConvexPolyhedron,
+                   hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+                   hoomd.hpmc.integrate.Ellipsoid,
+                   hoomd.hpmc.integrate.SphereUnion)
+
+    type_shapes_check = {
+        'type_shapes': {
+            'category': LoggerCategories.object,
+            'default': True
+        }
+    }
+
+    for integrator in integrators:
+        logging_check(integrator, ('hpmc', 'integrate'), type_shapes_check)

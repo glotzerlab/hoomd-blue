@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -75,9 +78,9 @@ def test_type_checking(all_):
 
 def test_attached_type_checking(attached):
     with raises(KeyError):
-        _ = attached['C']
+        _ = attached['D']
     with raises(KeyError):
-        attached['C'] = dict(bar=2)
+        attached['D'] = dict(bar=2)
 
 
 def test_pickling(all_, attached):

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterClustersGPU.cuh
     \brief Implements the overlap kernels for the geometric cluster algorithm the GPU
@@ -30,6 +30,8 @@
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -92,7 +94,7 @@ struct cluster_args_t
     const unsigned int* d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;           //!< Indexer into interaction matrix
     const uint64_t timestep;              //!< Current time step
-    const BoxDim& box;                    //!< Current simulation box
+    const BoxDim box;                     //!< Current simulation box
     unsigned int block_size;              //!< Block size to execute
     unsigned int tpp;                     //!< Threads per particle
     unsigned int overlap_threads;         //!< Threads per overlap check
@@ -178,7 +180,7 @@ struct clusters_transform_args_t
     const quat<Scalar> q;
     const bool line;
     const GPUPartition& gpu_partition;
-    const BoxDim& box;
+    const BoxDim box;
     const unsigned int num_types;
     const unsigned int block_size;
     };
@@ -484,22 +486,18 @@ void cluster_overlaps_launcher(const cluster_args_t& args,
     if (max_threads == cur_launch_bounds * MIN_BLOCK_SIZE)
         {
         // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static hipFuncAttributes attr;
+        int max_block_size;
+        hipFuncAttributes attr;
         constexpr unsigned int launch_bounds_nonzero
             = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
-        if (max_block_size == -1)
-            {
-            hipFuncGetAttributes(
-                &attr,
-                reinterpret_cast<const void*>(
-                    kernel::hpmc_cluster_overlaps<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>));
-            max_block_size = attr.maxThreadsPerBlock;
-            if (max_block_size % args.devprop.warpSize)
-                // handle non-sensical return values from hipFuncGetAttributes
-                max_block_size
-                    = (max_block_size / args.devprop.warpSize - 1) * args.devprop.warpSize;
-            }
+        hipFuncGetAttributes(
+            &attr,
+            reinterpret_cast<const void*>(
+                kernel::hpmc_cluster_overlaps<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>));
+        max_block_size = attr.maxThreadsPerBlock;
+        if (max_block_size % args.devprop.warpSize)
+            // handle non-sensical return values from hipFuncGetAttributes
+            max_block_size = (max_block_size / args.devprop.warpSize - 1) * args.devprop.warpSize;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -552,24 +550,20 @@ void cluster_overlaps_launcher(const cluster_args_t& args,
             }
 
         // determine dynamically allocated shared memory size
-        static unsigned int base_shared_bytes = UINT_MAX;
-        bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+        unsigned int base_shared_bytes;
         base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
 
         unsigned int max_extra_bytes
             = static_cast<unsigned int>(args.devprop.sharedMemPerBlock - base_shared_bytes);
-        static unsigned int extra_bytes = UINT_MAX;
-        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+        unsigned int extra_bytes;
+        // determine dynamically requested shared memory
+        char* ptr = (char*)nullptr;
+        unsigned int available_bytes = max_extra_bytes;
+        for (unsigned int i = 0; i < args.num_types; ++i)
             {
-            // determine dynamically requested shared memory
-            char* ptr = (char*)nullptr;
-            unsigned int available_bytes = max_extra_bytes;
-            for (unsigned int i = 0; i < args.num_types; ++i)
-                {
-                params[i].allocate_shared(ptr, available_bytes);
-                }
-            extra_bytes = max_extra_bytes - available_bytes;
+            params[i].allocate_shared(ptr, available_bytes);
             }
+        extra_bytes = max_extra_bytes - available_bytes;
 
         shared_bytes += extra_bytes;
         dim3 thread(overlap_threads, n_groups, tpp);
@@ -710,14 +704,10 @@ void transform_particles(const clusters_transform_args_t& args,
                          const typename Shape::param_type* d_params)
     {
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    if (max_block_size == -1)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(&kernel::transform_particles<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::transform_particles<Shape>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int run_block_size = min(args.block_size, (unsigned int)max_block_size);
@@ -756,6 +746,6 @@ void transform_particles(const clusters_transform_args_t& args,
 
     } // end namespace gpu
     } // end namespace hpmc
-
+    } // end namespace hoomd
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE

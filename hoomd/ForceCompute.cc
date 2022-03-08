@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander, grva, baschult
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ForceCompute.cc
     \brief Defines the ForceCompute class
@@ -18,17 +16,17 @@ using namespace std;
 
 #include <pybind11/numpy.h>
 
-namespace py = pybind11;
-
 #include <memory>
 
+namespace hoomd
+    {
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
 ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : Compute(sysdef), m_particles_sorted(false)
+    : Compute(sysdef), m_particles_sorted(false), m_buffers_writeable(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
@@ -208,13 +206,13 @@ ForceCompute::~ForceCompute()
 Scalar ForceCompute::calcEnergySum()
     {
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
-    double pe_total = 0.0;
+    double pe_total = m_external_energy;
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         pe_total += (double)h_force.data[i].w;
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -245,7 +243,7 @@ Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
         pe_total += (double)h_force.data[j].w;
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -275,7 +273,7 @@ vec3<double> ForceCompute::calcForceGroup(std::shared_ptr<ParticleGroup> group)
         f_total += (vec3<double>)h_force.data[j];
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -307,7 +305,7 @@ std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup>
             total_virial[i] += h_virial.data[m_virial_pitch * i + j];
         }
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // reduce potential energy on all processors
         MPI_Allreduce(MPI_IN_PLACE,
@@ -660,17 +658,24 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     return result;
     }
 
-void export_ForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+void export_ForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<ForceCompute, Compute, std::shared_ptr<ForceCompute>>(m, "ForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("getForce", &ForceCompute::getForce)
         .def("getTorque", &ForceCompute::getTorque)
         .def("getVirial", &ForceCompute::getVirial)
         .def("getEnergy", &ForceCompute::getEnergy)
+        .def("getExternalEnergy", &ForceCompute::getExternalEnergy)
+        .def("getExternalVirial", &ForceCompute::getExternalVirial)
         .def("calcEnergySum", &ForceCompute::calcEnergySum)
         .def("getEnergies", &ForceCompute::getEnergiesPython)
         .def("getForces", &ForceCompute::getForcesPython)
         .def("getTorques", &ForceCompute::getTorquesPython)
         .def("getVirials", &ForceCompute::getVirialsPython);
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

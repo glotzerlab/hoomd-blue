@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Compute.h"
 #include "hoomd/GPUFlags.h"
@@ -31,6 +29,10 @@
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes a Neighborlist from the particles
 /*! \b Overview:
 
@@ -303,7 +305,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         }
 
     //! Get the head list
-    const GlobalArray<unsigned int>& getHeadList()
+    const GlobalArray<size_t>& getHeadList()
         {
         return m_head_list;
         }
@@ -340,56 +342,11 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_exclusions_set;
         }
 
-    bool wantExclusions()
-        {
-        return m_need_reallocate_exlist;
-        }
-
     //! Gives an estimate of the number of nearest neighbors per particle
     virtual Scalar estimateNNeigh();
 
-    // @}
-    //! \name Handle exclusions
-    // @{
-
     //! Exclude a pair of particles from being added to the neighbor list
     void addExclusion(unsigned int tag1, unsigned int tag2);
-
-    //! Clear all existing exclusions
-    void clearExclusions();
-
-    //! Collect some statistics on exclusions.
-    void countExclusions();
-
-    //! Get number of exclusions involving n particles
-    /*! \param n Size of the exclusion
-     * \returns Number of excluded particles
-     */
-    unsigned int getNumExclusions(unsigned int size);
-
-    //! Add an exclusion for every bond in the ParticleData
-    void addExclusionsFromBonds();
-
-    //! Add exclusions from angles
-    void addExclusionsFromAngles();
-
-    //! Add exclusions from dihedrals
-    void addExclusionsFromDihedrals();
-
-    //! Add an exclusion for every bond in the ConstraintData
-    void addExclusionsFromConstraints();
-
-    //! Add an exclusion for every pair in the ParticleData
-    void addExclusionsFromPairs();
-
-    //! Test if an exclusion has been made
-    bool isExcluded(unsigned int tag1, unsigned int tag2);
-
-    //! Add an exclusion for every 1,3 pair
-    void addOneThreeExclusionsFromTopology();
-
-    //! Add an exclusion for every 1,4 pair
-    void addOneFourExclusionsFromTopology();
 
     //! Enable/disable body filtering
     virtual void setFilterBody(bool filter_body)
@@ -404,6 +361,15 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
         forceUpdate();
         }
+
+    //! Collect some statistics on exclusions.
+    void countExclusions();
+
+    //! Get number of exclusions involving n particles
+    /*! \param n Size of the exclusion
+     * \returns Number of excluded particles
+     */
+    unsigned int getNumExclusions(unsigned int size);
 
     //! Test if body filtering is set
     virtual bool getFilterBody()
@@ -497,11 +463,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         }
 
 #ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm MPI communication class
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm);
-
     //! Returns true if the particle migration criterion is fulfilled
     /*! \param timestep The current timestep
      */
@@ -552,7 +513,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Scalar3 m_last_L;                    //!< Box lengths at last update
     Scalar3 m_last_L_local;              //!< Local Box lengths at last update
 
-    GlobalArray<unsigned int> m_head_list; //!< Indexes for particles to read from the neighbor list
+    GlobalArray<size_t> m_head_list; //!< Indexes for particles to read from the neighbor list
     GlobalArray<unsigned int>
         m_Nmax; //!< Holds the maximum number of neighbors for each particle type
     GlobalArray<unsigned int>
@@ -565,7 +526,17 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Index2D m_ex_list_indexer;               //!< Indexer for accessing the exclusion list
     Index2D m_ex_list_indexer_tag;           //!< Indexer for accessing the by-tag exclusion list
     bool m_exclusions_set;                   //!< True if any exclusions have been set
-    bool m_need_reallocate_exlist; //!< True if global exclusion list needs to be reallocated
+
+    /// True if the number of particles has changed.
+    bool m_n_particles_changed = false;
+
+    /// True if the number of bonds/angles/dihedrals/impropers/pairs has changed.
+    bool m_topology_changed = false;
+
+#ifdef ENABLE_MPI
+    /// The system's communicator.
+    std::shared_ptr<Communicator> m_comm;
+#endif
 
     //! Return true if we are supposed to do a distance check in this time step
     bool shouldCheckDistance(uint64_t timestep);
@@ -653,9 +624,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Reallocate internal neighbor list data structures
     void reallocate();
 
-    //! Reallocate internal data structures that depend on types
-    void reallocateTypes();
-
     //! Check the status of the conditions
     bool checkConditions();
 
@@ -668,15 +636,54 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Method to be called when the global particle number changes
     void slotGlobalParticleNumberChange()
         {
-        m_need_reallocate_exlist = true;
+        m_n_particles_changed = true;
         }
+
+    //! Method to be called when the global bond/angle/dihedral/improper/pair number changes
+    void slotGlobalTopologyNumberChange()
+        {
+        m_topology_changed = true;
+        }
+
+    //! Clear all existing exclusions
+    void resizeAndClearExclusions();
+
+    //! Add an exclusion for every bond in the ParticleData
+    void addExclusionsFromBonds();
+
+    //! Add exclusions from angles
+    void addExclusionsFromAngles();
+
+    //! Add exclusions from dihedrals
+    void addExclusionsFromDihedrals();
+
+    //! Add an exclusion for every bond in the ConstraintData
+    void addExclusionsFromConstraints();
+
+    //! Add an exclusion for every pair in the ParticleData
+    void addExclusionsFromPairs();
+
+    //! Test if an exclusion has been made
+    bool isExcluded(unsigned int tag1, unsigned int tag2);
+
+    //! Add an exclusion for every 1,3 pair
+    void addOneThreeExclusionsFromTopology();
+
+    //! Add an exclusion for every 1,4 pair
+    void addOneFourExclusionsFromTopology();
 
 #ifdef ENABLE_HIP
     GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
 #endif
     };
 
+namespace detail
+    {
 //! Exports NeighborList to python
 void export_NeighborList(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

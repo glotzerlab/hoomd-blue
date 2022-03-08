@@ -1,9 +1,6 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: pschoenhoefer
-
-#include "QuaternionMath.h"
 #include "TwoStepLangevinBase.h"
 #include "TwoStepRATTLENVE.h"
 #include "hoomd/HOOMDMath.h"
@@ -11,7 +8,6 @@
 
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
-using namespace hoomd;
 
 #ifndef __TWO_STEP_RATTLE_BD_H__
 #define __TWO_STEP_RATTLE_BD_H__
@@ -26,6 +22,10 @@ using namespace hoomd;
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps with Brownian dynamics
 /*! Implements RATTLE applied on Brownian dynamics.
 
@@ -42,12 +42,11 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
                     std::shared_ptr<ParticleGroup> group,
                     Manifold manifold,
                     std::shared_ptr<Variant> T,
+                    bool noiseless_t,
+                    bool noiseless_r,
                     Scalar tolerance = 0.000001);
 
-    virtual ~TwoStepRATTLEBD()
-        {
-        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
-        }
+    virtual ~TwoStepRATTLEBD();
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);
@@ -81,11 +80,18 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
         };
 
     protected:
+    //! Helper function to be called when box changes
+    void setBoxChange()
+        {
+        m_box_changed = true;
+        }
+
     Manifold m_manifold; //!< The manifold used for the RATTLE constraint
     bool m_noiseless_t;
     bool m_noiseless_r;
     Scalar m_tolerance; //!< The tolerance value of the RATTLE algorithm, setting the tolerance to
                         //!< the manifold
+    bool m_box_changed;
     };
 
 /*! \file TwoStepRATTLEBD.h
@@ -107,16 +113,30 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<ParticleGroup> group,
                                            Manifold manifold,
                                            std::shared_ptr<Variant> T,
+                                           bool noiseless_t,
+                                           bool noiseless_r,
                                            Scalar tolerance)
-    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(false),
-      m_noiseless_r(false), m_tolerance(tolerance)
+    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(noiseless_t),
+      m_noiseless_r(noiseless_r), m_tolerance(tolerance), m_box_changed(false)
     {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << std::endl;
+
+    m_pdata->getBoxChangeSignal()
+        .template connect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(
+            this);
 
     if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
         throw std::runtime_error("Parts of the manifold are outside the box");
         }
+    }
+
+template<class Manifold> TwoStepRATTLEBD<Manifold>::~TwoStepRATTLEBD()
+    {
+    m_pdata->getBoxChangeSignal()
+        .template disconnect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::setBoxChange>(
+            this);
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << std::endl;
     }
 
 /*! \param timestep Current time step
@@ -131,10 +151,6 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
     unsigned int group_size = m_group->getNumMembers();
 
     const Scalar currentTemp = (*m_T)(timestep);
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("BD step 1");
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
@@ -167,11 +183,15 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                                    access_location::host,
                                    access_mode::read);
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
 
-    if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    if (m_box_changed)
         {
-        throw std::runtime_error("Parts of the manifold are outside the box");
+        if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+            {
+            throw std::runtime_error("Parts of the manifold are outside the box");
+            }
+        m_box_changed = false;
         }
 
     uint16_t seed = m_sysdef->getSeed();
@@ -206,15 +226,24 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
             }
         Scalar deltaT_gamma = m_deltaT / gamma;
 
-        // draw a new random velocity for particle j
-        Scalar mass = h_vel.data[j].w;
-        Scalar sigma1 = fast::sqrt(currentTemp / mass);
-        NormalDistribution<Scalar> norm(sigma1);
-
         Scalar3 vec_rand;
-        vec_rand.x = norm(rng);
-        vec_rand.y = norm(rng);
-        vec_rand.z = norm(rng);
+        if (m_noiseless_t)
+            {
+            vec_rand.x = h_net_force.data[j].x / gamma;
+            vec_rand.y = h_net_force.data[j].x / gamma;
+            vec_rand.z = h_net_force.data[j].x / gamma;
+            }
+        else
+            {
+            // draw a new random velocity for particle j
+            Scalar mass = h_vel.data[j].w;
+            Scalar sigma1 = fast::sqrt(currentTemp / mass);
+            NormalDistribution<Scalar> norm(sigma1);
+
+            vec_rand.x = norm(rng);
+            vec_rand.y = norm(rng);
+            vec_rand.z = norm(rng);
+            }
 
         Scalar3 next_pos;
         next_pos.x = h_pos.data[j].x;
@@ -292,9 +321,9 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 vec3<Scalar> I(h_inertia.data[j]);
 
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 Scalar3 sigma_r
                     = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * currentTemp / m_deltaT),
@@ -329,10 +358,20 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 
-                // draw a new random ang_mom for particle j in body frame
-                p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
-                p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
-                p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                if (m_noiseless_r)
+                    {
+                    p_vec.x = t.x / gamma_r.x;
+                    p_vec.y = t.y / gamma_r.y;
+                    p_vec.z = t.z / gamma_r.z;
+                    }
+                else
+                    {
+                    // draw a new random ang_mom for particle j in body frame
+                    p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
+                    p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
+                    p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
+                    }
+
                 if (x_zero)
                     p_vec.x = 0;
                 if (y_zero)
@@ -349,9 +388,6 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                 }
             }
         }
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -488,9 +524,9 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
         if (iteration == maxiteration)
             {
             m_exec_conf->msg->warning()
-                << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+                << "The RATTLE integrator needed an unusual high number of iterations!" << std::endl
                 << "It is recomended to change the initial configuration or lower the step size."
-                << endl;
+                << std::endl;
             }
 
         h_net_force.data[j].x -= mu * normal.x;
@@ -509,19 +545,26 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
         }
     }
 
-template<class Manifold> void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
+namespace detail
     {
-    py::class_<TwoStepRATTLEBD<Manifold>,
-               TwoStepLangevinBase,
-               std::shared_ptr<TwoStepRATTLEBD<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      Scalar>())
+template<class Manifold> void export_TwoStepRATTLEBD(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<TwoStepRATTLEBD<Manifold>,
+                     TwoStepLangevinBase,
+                     std::shared_ptr<TwoStepRATTLEBD<Manifold>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool,
+                            Scalar>())
         .def_property("tolerance",
                       &TwoStepRATTLEBD<Manifold>::getTolerance,
                       &TwoStepRATTLEBD<Manifold>::setTolerance);
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLE_BD_H__

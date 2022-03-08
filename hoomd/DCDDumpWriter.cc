@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file DCDDumpWriter.cc
     \brief Defines the DCDDumpWriter class and related helper functions
@@ -15,9 +13,8 @@
 #include "Communicator.h"
 #endif
 
+#include <limits>
 #include <stdexcept>
-
-namespace py = pybind11;
 
 using namespace std;
 
@@ -26,6 +23,10 @@ using namespace std;
 // File position of NSTEP in DCD header
 #define NSTEP_POS 20L
 
+namespace hoomd
+    {
+namespace detail
+    {
 //! simple helper function to write an integer
 /*! \param file file to write to
     \param val integer to write
@@ -45,6 +46,7 @@ static unsigned int read_int(fstream& file)
     file.read((char*)&val, sizeof(unsigned int));
     return val;
     }
+    } // end namespace detail
 
 /*! Constructs the DCDDumpWriter. After construction, settings are set. No file operations are
     attempted until analyze() is called.
@@ -91,9 +93,9 @@ void DCDDumpWriter::initFileIO(uint64_t timestep)
         m_file.open(m_fname.c_str(), ios::in | ios::out | ios::binary);
         m_file.seekp(NFILE_POS);
 
-        m_num_frames_written = read_int(m_file);
-        m_start_timestep = read_int(m_file);
-        unsigned int file_period = read_int(m_file);
+        m_num_frames_written = detail::read_int(m_file);
+        m_start_timestep = detail::read_int(m_file);
+        unsigned int file_period = detail::read_int(m_file);
 
         m_exec_conf->msg->notice(4) << "DCD: File has " << m_num_frames_written
                                     << " frames | start timestep: " << m_start_timestep
@@ -105,13 +107,12 @@ void DCDDumpWriter::initFileIO(uint64_t timestep)
                 << "DCD: appending to a file that has period " << file_period
                 << " that is not the same as the requested period of " << m_period << endl;
 
-        m_last_written_step = read_int(m_file);
+        m_last_written_step = detail::read_int(m_file);
 
         // check for errors
         if (!m_file.good())
             {
-            m_exec_conf->msg->error() << "DCD: I/O error while reading DCD header data" << endl;
-            throw runtime_error("Error appending to DCD file");
+            throw runtime_error("DCD: I/O error while reading DCD header data");
             }
 
         m_appending = true;
@@ -146,9 +147,6 @@ DCDDumpWriter::~DCDDumpWriter()
 void DCDDumpWriter::analyze(uint64_t timestep)
     {
     Analyzer::analyze(timestep);
-    if (m_prof)
-        m_prof->push("Dump DCD");
-
     // take particle data snapshot
     SnapshotParticleData<Scalar> snapshot;
 
@@ -156,10 +154,8 @@ void DCDDumpWriter::analyze(uint64_t timestep)
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_exec_conf->isRoot())
+    if (m_sysdef->isDomainDecomposed() && !m_exec_conf->isRoot())
         {
-        if (m_prof)
-            m_prof->pop();
         return;
         }
 #endif
@@ -181,9 +177,6 @@ void DCDDumpWriter::analyze(uint64_t timestep)
             << "DCD: not writing output at timestep " << timestep
             << " because the file reports that it already has data up to step "
             << m_last_written_step << endl;
-
-        if (m_prof)
-            m_prof->pop();
         return;
         }
 
@@ -202,9 +195,6 @@ void DCDDumpWriter::analyze(uint64_t timestep)
     // update the header with the number of frames written
     m_num_frames_written++;
     write_updated_header(m_file, timestep);
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param file File to write to
@@ -221,34 +211,34 @@ void DCDDumpWriter::write_file_header(std::fstream& file)
         m_exec_conf->msg->warning() << "DCD: Truncating timestep to lower 32 bits" << endl;
 
     // the first 4 bytes in the file must be 84
-    write_int(file, 84);
+    detail::write_int(file, 84);
 
     // the next 4 bytes in the file must be "CORD"
     char cord_data[] = "CORD";
     file.write(cord_data, 4);
-    write_int(file, 0); // Number of frames in file, none written yet
-    write_int(file, static_cast<uint32_t>(m_start_timestep)); // Starting timestep
-    write_int(file, m_period); // Timesteps between frames written to the file
-    write_int(file, 0);        // Number of timesteps in simulation
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0); // timestep (unused)
-    write_int(file, 1); // include unit cell
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 0);
-    write_int(file, 24); // Pretend to be CHARMM version 24
-    write_int(file, 84);
-    write_int(file, 164);
-    write_int(file, 2);
+    detail::write_int(file, 0); // Number of frames in file, none written yet
+    detail::write_int(file, static_cast<uint32_t>(m_start_timestep)); // Starting timestep
+    detail::write_int(file, m_period); // Timesteps between frames written to the file
+    detail::write_int(file, 0);        // Number of timesteps in simulation
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0); // timestep (unused)
+    detail::write_int(file, 1); // include unit cell
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 0);
+    detail::write_int(file, 24); // Pretend to be CHARMM version 24
+    detail::write_int(file, 84);
+    detail::write_int(file, 164);
+    detail::write_int(file, 2);
 
     char title_string[81];
     memset(title_string, 0, 81);
@@ -264,17 +254,16 @@ void DCDDumpWriter::write_file_header(std::fstream& file)
     strftime(time_str, 80, "REMARKS Created  %d %B, %Y at %H:%M", tmbuf);
     file.write(time_str, 80);
 
-    write_int(file, 164);
-    write_int(file, 4);
+    detail::write_int(file, 164);
+    detail::write_int(file, 4);
     unsigned int nparticles = m_group->getNumMembersGlobal();
-    write_int(file, nparticles);
-    write_int(file, 4);
+    detail::write_int(file, nparticles);
+    detail::write_int(file, 4);
 
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "DCD: I/O error when writing DCD header" << endl;
-        throw runtime_error("Error writing DCD file");
+        throw runtime_error("DCD: I/O error when writing DCD header.");
         }
     }
 
@@ -306,15 +295,14 @@ void DCDDumpWriter::write_frame_header(std::fstream& file)
     unitcell[3] = beta;
     unitcell[4] = alpha;
 
-    write_int(file, 48);
+    detail::write_int(file, 48);
     file.write((char*)unitcell, 48);
-    write_int(file, 48);
+    detail::write_int(file, 48);
 
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "DCD: I/O error while writing DCD frame header" << endl;
-        throw runtime_error("Error writing DCD file");
+        throw runtime_error("DCD: I/O error while writing DCD frame header.");
         }
     }
 
@@ -365,9 +353,9 @@ void DCDDumpWriter::write_frame_data(std::fstream& file,
         }
 
     // write x coords
-    write_int(file, (unsigned int)(nparticles * sizeof(float)));
+    detail::write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char*)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, (unsigned int)(nparticles * sizeof(float)));
+    detail::write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // prepare y coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
@@ -377,9 +365,9 @@ void DCDDumpWriter::write_frame_data(std::fstream& file,
         }
 
     // write y coords
-    write_int(file, (unsigned int)(nparticles * sizeof(float)));
+    detail::write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char*)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, (unsigned int)(nparticles * sizeof(float)));
+    detail::write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // prepare z coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
@@ -397,15 +385,14 @@ void DCDDumpWriter::write_frame_data(std::fstream& file,
         }
 
     // write z coords
-    write_int(file, (unsigned int)(nparticles * sizeof(float)));
+    detail::write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char*)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, (unsigned int)(nparticles * sizeof(float)));
+    detail::write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "I/O error while writing DCD frame data" << endl;
-        throw runtime_error("Error writing DCD file");
+        throw runtime_error("I/O error while writing DCD frame data.");
         }
     }
 
@@ -418,23 +405,25 @@ void DCDDumpWriter::write_frame_data(std::fstream& file,
 void DCDDumpWriter::write_updated_header(std::fstream& file, uint64_t timestep)
     {
     file.seekp(NFILE_POS);
-    write_int(file, m_num_frames_written);
+    detail::write_int(file, m_num_frames_written);
 
     file.seekp(NSTEP_POS);
-    write_int(file, static_cast<uint32_t>(timestep));
+    detail::write_int(file, static_cast<uint32_t>(timestep));
 
     if (timestep > std::numeric_limits<uint32_t>::max())
         m_exec_conf->msg->warning() << "DCD: Truncating timestep to lower 32 bits" << endl;
     }
 
-void export_DCDDumpWriter(py::module& m)
+namespace detail
     {
-    py::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter>>(m, "DCDDumpWriter")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::string,
-                      unsigned int,
-                      std::shared_ptr<ParticleGroup>,
-                      bool>())
+void export_DCDDumpWriter(pybind11::module& m)
+    {
+    pybind11::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter>>(m, "DCDDumpWriter")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::string,
+                            unsigned int,
+                            std::shared_ptr<ParticleGroup>,
+                            bool>())
         .def_property("unwrap_full", &DCDDumpWriter::getUnwrapFull, &DCDDumpWriter::setUnwrapFull)
         .def_property("unwrap_rigid",
                       &DCDDumpWriter::getUnwrapRigid,
@@ -442,3 +431,6 @@ void export_DCDDumpWriter(py::module& m)
         .def_property("angle_z", &DCDDumpWriter::getAngleZ, &DCDDumpWriter::setAngleZ)
         .def_property_readonly("overwrite", &DCDDumpWriter::getOverwrite);
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

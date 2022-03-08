@@ -1,16 +1,16 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
-// ensure that HOOMDMath.h is the first thing included
+// ensure that HOOMDMath.h is the first header included to work around broken mpi headers
 #include "HOOMDMath.h"
 
 #ifdef ENABLE_MPI
 #include <mpi.h>
 #endif
+
+#include "ClockSource.h"
 
 /*! \file MPIConfiguration.h
     \brief Declares MPIConfiguration, which initializes the MPI environment
@@ -22,6 +22,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! Defines the MPI configuration for the simulation
 /*! \ingroup data_structs
     MPIConfiguration is class that stores the MPI communicator and splits it into partitions if
@@ -128,6 +130,15 @@ class PYBIND11_EXPORT MPIConfiguration
 #endif
         }
 
+    double getWalltime()
+        {
+        double walltime = static_cast<double>(m_clock.getTime()) / 1e9;
+#ifdef ENABLE_MPI
+        MPI_Bcast(&walltime, 1, MPI_DOUBLE, 0, m_mpi_comm);
+#endif
+        return walltime;
+        }
+
     protected:
 #ifdef ENABLE_MPI
     MPI_Comm m_mpi_comm;    //!< The MPI communicator
@@ -135,9 +146,18 @@ class PYBIND11_EXPORT MPIConfiguration
 #endif
     unsigned int m_rank;   //!< Rank of this processor (0 if running in single-processor mode)
     unsigned int m_n_rank; //!< Ranks per partition
+
+    /// Clock to provide rank synchronized walltime.
+    ClockSource m_clock;
     };
 
+namespace detail
+    {
 //! Exports MPIConfiguration to python
 #ifndef __HIPCC__
 void export_MPIConfiguration(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+
+    } // end namespace hoomd

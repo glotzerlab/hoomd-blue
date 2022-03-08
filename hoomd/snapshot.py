@@ -1,12 +1,10 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Snapshot."""
 
 import hoomd
 from hoomd import _hoomd
-import warnings
 
 
 class _ConfigurationData:
@@ -38,14 +36,14 @@ class _ConfigurationData:
 
 
 class Snapshot:
-    """Standalone copy of the simulation `State`.
+    """Self-contained copy of the simulation `State`.
 
     Args:
-        communicator (Communicator): MPI communicator to be used with the
-          simulation.
+        communicator (Communicator): MPI communicator to be used when accessing
+            the snapshot.
 
-    Attributes:
-        communicator (Communicator): MPI communicator.
+    See `State` and `gsd.hoomd.Snapshot` for detailed documentation on the
+    components of `Snapshot`.
 
     Note:
         `Snapshot` is duck-type compatible with `gsd.hoomd.Snapshot` except
@@ -60,15 +58,17 @@ class Snapshot:
             if snapshot.communicator.rank == 0:
                 pos = snapshot.particles.position[0]
 
-    .. seealso:
+    See Also:
+        `State`
+
         `Simulation.create_state_from_snapshot`
 
-        `State.snapshot`
+        `State.get_snapshot`
 
-    .. todo::
+        `State.set_snapshot`
 
-        Concepts such as tags, typeid's, and other non-inituitive arrays need to
-        be elaborated upon.
+    Attributes:
+        communicator (Communicator): MPI communicator.
     """
 
     def __init__(self, communicator=None):
@@ -78,17 +78,6 @@ class Snapshot:
             self.communicator = communicator
 
         self._cpp_obj = _hoomd.SnapshotSystemData_double()
-
-    @property
-    def exists(self):
-        """bool: True when the MPI rank is 0.
-
-        .. deprecated:: 3.0.0-beta.7
-            Use ``snapshot.communicator.rank == 0`` instead.
-        """
-        warnings.warn("Deprecated, use snapshot.communicator.rank == 0",
-                      DeprecationWarning)
-        return self.communicator.rank == 0
 
     @property
     def configuration(self):
@@ -101,6 +90,9 @@ class Snapshot:
 
         Note:
             ``box`` accepts any values that `Box.from_box` allows when setting.
+
+        See Also:
+            `Box`
         """
         return _ConfigurationData(self._cpp_obj)
 
@@ -114,41 +106,41 @@ class Snapshot:
             particles.types (list[str]):
                 Names of the particle types.
 
-            particles.position ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
+            particles.position ((*N*, 3) `numpy.ndarray` of `float`):
                 Particle position :math:`[\\mathrm{length}]`.
 
             particles.orientation ((*N*, 4) `numpy.ndarray` of \
-                ``numpy.float32``):
+                `float`):
                 Particle orientation.
 
-            particles.typeid ((*N*, ) `numpy.ndarray` of ``numpy.uint32``):
+            particles.typeid ((*N*, ) `numpy.ndarray` of ``uint32``):
                 Particle type id.
 
-            particles.mass ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            particles.mass ((*N*, ) `numpy.ndarray` of `float`):
                 Particle mass :math:`[\\mathrm{mass}]`.
 
-            particles.charge ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            particles.charge ((*N*, ) `numpy.ndarray` of `float`):
                 Particle charge :math:`[\\mathrm{charge}]`.
 
-            particles.diameter ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            particles.diameter ((*N*, ) `numpy.ndarray` of `float`):
                 Particle diameter :math:`[\\mathrm{length}]`.
 
-            particles.body ((*N*, ) `numpy.ndarray` of ``numpy.int32``):
+            particles.body ((*N*, ) `numpy.ndarray` of ``int32``):
                 Particle body.
 
             particles.moment_inertia ((*N*, 3) `numpy.ndarray` of \
-                ``numpy.float32``):
+                `float`):
                 Particle moment of inertia :math:`[\\mathrm{mass} \\cdot
                 \\mathrm{length}^2]`.
 
-            particles.velocity ((*N*, 3) `numpy.ndarray` of ``numpy.float32``):
+            particles.velocity ((*N*, 3) `numpy.ndarray` of `float`):
                 Particle velocity :math:`[\\mathrm{velocity}]`.
 
-            particles.angmom ((*N*, 4) `numpy.ndarray` of ``numpy.float32``):
+            particles.angmom ((*N*, 4) `numpy.ndarray` of `float`):
                 Particle angular momentum :math:`[\\mathrm{mass} \\cdot
                 \\mathrm{velocity} \\cdot \\mathrm{length}]`.
 
-            particles.image ((*N*, 3) `numpy.ndarray` of ``numpy.int32``):
+            particles.image ((*N*, 3) `numpy.ndarray` of ``int32``):
                 Particle image.
 
         Note:
@@ -168,10 +160,10 @@ class Snapshot:
 
             bonds.types (list[str]): Names of the bond types
 
-            bonds.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            bonds.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Bond type id.
 
-            bonds.group ((*N*, 2) `numpy.ndarray` of ``numpy.uint32``):
+            bonds.group ((*N*, 2) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the bond.
 
         Note:
@@ -191,10 +183,10 @@ class Snapshot:
 
             angles.types (list[str]): Names of the angle types
 
-            angles.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            angles.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Angle type id.
 
-            angles.group ((*N*, 3) `numpy.ndarray` of ``numpy.uint32``):
+            angles.group ((*N*, 3) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the angle.
 
         Note:
@@ -214,10 +206,10 @@ class Snapshot:
 
             dihedrals.types (list[str]): Names of the dihedral types
 
-            dihedrals.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            dihedrals.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Dihedral type id.
 
-            dihedrals.group ((*N*, 4) `numpy.ndarray` of ``numpy.uint32``):
+            dihedrals.group ((*N*, 4) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the dihedral.
 
         Note:
@@ -237,10 +229,10 @@ class Snapshot:
 
             impropers.types (list[str]): Names of the improper types
 
-            impropers.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            impropers.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Improper type id.
 
-            impropers.group ((*N*, 4) `numpy.ndarray` of ``numpy.uint32``):
+            impropers.group ((*N*, 4) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the improper.
 
         Note:
@@ -260,10 +252,10 @@ class Snapshot:
 
             pairs.types (list[str]): Names of the special pair types
 
-            pairs.typeid ((*N*,) `numpy.ndarray` of ``numpy.uint32``):
+            pairs.typeid ((*N*,) `numpy.ndarray` of ``uint32``):
                 Special pair type id.
 
-            pairs.group ((*N*, 2) `numpy.ndarray` of ``numpy.uint32``):
+            pairs.group ((*N*, 2) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the special pair.
 
         Note:
@@ -281,10 +273,10 @@ class Snapshot:
         Attributes:
             constraints.N (int): Number of constraints.
 
-            constraints.value ((*N*, ) `numpy.ndarray` of ``numpy.float32``):
+            constraints.value ((*N*, ) `numpy.ndarray` of `float`):
                 Constraint length.
 
-            constraints.group ((*N*, *2*) `numpy.ndarray` of ``numpy.uint32``):
+            constraints.group ((*N*, *2*) `numpy.ndarray` of ``uint32``):
                 Tags of the particles in the constraint.
 
         Note:
@@ -302,15 +294,30 @@ class Snapshot:
         sp._cpp_obj = snapshot
         return sp
 
-    def replicate(self, nx, ny, nz):
-        """Replicate the snapshot.
+    def replicate(self, nx, ny, nz=1):
+        """Replicate the snapshot along the periodic box directions.
 
         Args:
             nx (int): Number of times to replicate in the x direction.
             ny (int): Number of times to replicate in the y direction.
             nz (int): Number of times to replicate in the z direction.
+
+        Performs the same operation as `State.replicate` on a `Snapshot`.
+
+        Returns:
+            ``self``
         """
         self._cpp_obj.replicate(nx, ny, nz)
+        return self
+
+    def wrap(self):
+        """Wrap particles into the snapshot box.
+
+        Returns:
+            ``self``
+        """
+        self._cpp_obj.wrap()
+        return self
 
     def _broadcast_box(self):
         self._cpp_obj._broadcast_box(self.communicator.cpp_mpi_conf)
@@ -326,10 +333,14 @@ class Snapshot:
                 to use for the snapshot. This prevents the snapshot from being
                 stored on every rank.
 
+        Tip:
+            Use `Simulation.create_state_from_gsd` to efficiently initialize
+            the system state from a GSD file.
+
         Note:
-            `from_gsd_snapshot` only accesses the `gsd_snap` argument on rank 0.
-            In MPI simulations, avoid duplicating memory and file reads by
-            reading GSD files only on rank 0 and passing `gsd_snap=None` on
+            `from_gsd_snapshot` only accesses the ``gsd_snap`` argument on rank
+            0. In MPI simulations, avoid duplicating memory and file reads by
+            reading GSD files only on rank 0 and passing ``gsd_snap=None`` on
             other ranks.
         """
         snap = cls(communicator=communicator)
@@ -371,5 +382,4 @@ class Snapshot:
                 snap.configuration.box = box
 
         snap._broadcast_box()
-
         return snap

@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd.custom
 ------------
 
@@ -16,3 +19,4 @@ hoomd.custom
 .. automodule:: hoomd.custom
     :synopsis: Classes for custom Python actions that allow injecting code into the run loop.
     :members: Action, CustomOperation
+    :show-inheritance:

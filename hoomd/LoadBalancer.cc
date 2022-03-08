@@ -1,13 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file LoadBalancer.cc
     \brief Defines the LoadBalancer class
 */
 
-#ifdef ENABLE_MPI
 #include "LoadBalancer.h"
 #include "Communicator.h"
 
@@ -22,29 +19,46 @@
 #include <vector>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param decomposition Domain decomposition
  */
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<DomainDecomposition> decomposition,
                            std::shared_ptr<Trigger> trigger)
-    : Tuner(sysdef, trigger), m_decomposition(decomposition),
-      m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
-      m_recompute_max_imbalance(true), m_needs_migrate(false), m_needs_recount(false),
-      m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
-      m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0), m_n_iterations(0),
-      m_n_rebalances(0)
+    : Tuner(sysdef, trigger),
+#ifdef ENABLE_MPI
+      m_mpi_comm(m_exec_conf->getMPICommunicator()),
+#endif
+      m_max_imbalance(Scalar(1.0)), m_recompute_max_imbalance(true), m_needs_migrate(false),
+      m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)),
+      m_N_own(m_pdata->getN()), m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
+      m_n_iterations(0), m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 
+#ifdef ENABLE_MPI
+    m_decomposition = sysdef->getParticleData()->getDomainDecomposition();
+
     // default initialize the load balancing based on domain grid
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    m_enable_x = (di.getW() > 1);
-    m_enable_y = (di.getH() > 1);
-    m_enable_z = (di.getD() > 1);
+    if (m_sysdef->isDomainDecomposed())
+        {
+        const Index3D& di = m_decomposition->getDomainIndexer();
+        m_enable_x = (di.getW() > 1);
+        m_enable_y = (di.getH() > 1);
+        m_enable_z = (di.getD() > 1);
+
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
+    else
+#endif // ENABLE_MPI
+        {
+        m_enable_x = m_enable_y = m_enable_z = false;
+        }
     }
 
 LoadBalancer::~LoadBalancer()
@@ -61,11 +75,11 @@ LoadBalancer::~LoadBalancer()
 void LoadBalancer::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    // we need a communicator, but don't want to check for it in release builds
-    assert(m_comm);
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "balance");
+#ifdef ENABLE_MPI
+    // do nothing if this run is not on MPI with more than 1 rank
+    if (!m_sysdef->isDomainDecomposed())
+        return;
 
     // no adjustment has been made yet, so set m_N_own to the number of particles on the rank
     resetNOwn(m_pdata->getN());
@@ -162,10 +176,10 @@ void LoadBalancer::update(uint64_t timestep)
             ++m_n_rebalances;
             }
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
+#endif // ENABLE_MPI
     }
+
+#ifdef ENABLE_MPI
 
 /*!
  * Computes the imbalance factor I = N / <N> for each rank, and computes the maximum among all
@@ -288,9 +302,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i,
         }
     else
         {
-        m_exec_conf->msg->error() << "comm.balance: unknown dimension for particle reduction"
-                                  << endl;
-        throw runtime_error("Unknown dimension for particle reduction");
+        throw runtime_error("Unknown dimension for particle reduction.");
         }
 
     return true;
@@ -406,50 +418,40 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         u(j) = Scalar(0.5) * (cum_frac_i[j + 1] + cum_frac_i[j + 2]) * L_i;
         }
 
-    try
+    BVLSSolver solver(A, b, l, u);
+    solver.setMaxIterations(3 * (n + m));
+    solver.solve();
+    if (solver.converged())
         {
-        BVLSSolver solver(A, b, l, u);
-        solver.setMaxIterations(3 * (n + m));
-        solver.solve();
-        if (solver.converged())
+        Eigen::VectorXd x = solver.getSolution();
+        vector<Scalar> sorted_f(n);
+        // do validation / sanity checking
+        for (unsigned int cur_div = 0; cur_div < n; ++cur_div)
             {
-            Eigen::VectorXd x = solver.getSolution();
-            vector<Scalar> sorted_f(n);
-            // do validation / sanity checking
-            for (unsigned int cur_div = 0; cur_div < n; ++cur_div)
+            if (x(cur_div) < min_domain_size)
                 {
-                if (x(cur_div) < min_domain_size)
-                    {
-                    m_exec_conf->msg->warning()
-                        << "comm.balance: no convergence, domains too small" << endl;
-                    return false;
-                    }
-                sorted_f[cur_div] = x(cur_div) / L_i;
-                if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div - 1])
-                    {
-                    m_exec_conf->msg->warning()
-                        << "comm.balance: domains attempting to flip" << endl;
-                    return false;
-                    }
+                m_exec_conf->msg->warning()
+                    << "LoadBalancer: no convergence, domains too small" << endl;
+                return false;
                 }
-            // only push back the solution after we know it is valid
-            for (unsigned int cur_div = 0; cur_div < sorted_f.size(); ++cur_div)
+            sorted_f[cur_div] = x(cur_div) / L_i;
+            if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div - 1])
                 {
-                cum_frac_i[cur_div + 1] = sorted_f[cur_div];
+                m_exec_conf->msg->warning() << "LoadBalancer: domains attempting to flip" << endl;
+                return false;
                 }
-            return true;
             }
-        else
+        // only push back the solution after we know it is valid
+        for (unsigned int cur_div = 0; cur_div < sorted_f.size(); ++cur_div)
             {
-            m_exec_conf->msg->warning() << "comm.balance: converged load balance not found" << endl;
-            return false;
+            cum_frac_i[cur_div + 1] = sorted_f[cur_div];
             }
+        return true;
         }
-    catch (const runtime_error& e)
+    else
         {
-        m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance"
-                                  << endl;
-        throw e;
+        m_exec_conf->msg->warning() << "LoadBalancer: converged load balance not found" << endl;
+        return false;
         }
 
     return false;
@@ -602,6 +604,8 @@ void LoadBalancer::computeOwnedParticles()
     resetNOwn(N_own);
     }
 
+#endif // ENABLE_MPI
+
 /*!
  * Zero the counters.
  */
@@ -612,12 +616,12 @@ void LoadBalancer::resetStats()
     m_max_max_imbalance = Scalar(1.0);
     }
 
-void export_LoadBalancer(py::module& m)
+namespace detail
     {
-    py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<DomainDecomposition>,
-                      std::shared_ptr<Trigger>>())
+void export_LoadBalancer(pybind11::module& m)
+    {
+    pybind11::class_<LoadBalancer, Tuner, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property("tolerance", &LoadBalancer::getTolerance, &LoadBalancer::setTolerance)
         .def_property("max_iterations",
                       &LoadBalancer::getMaxIterations,
@@ -626,4 +630,7 @@ void export_LoadBalancer(py::module& m)
         .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
         .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ);
     }
-#endif // ENABLE_MPI
+
+    } // end namespace detail
+
+    } // end namespace hoomd

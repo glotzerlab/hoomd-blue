@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from io import StringIO
 from math import isclose
 import pytest
@@ -43,6 +46,17 @@ def expected_values():
         'dummy.loggable.float': 3.1415,
         'dummy.loggable.string': "foobarbaz"
     }
+
+
+def test_invalid_attrs(logger):
+    output = StringIO("")
+    table_writer = hoomd.write.Table(1, logger, output)
+    with pytest.raises(AttributeError):
+        table_writer.action
+    with pytest.raises(AttributeError):
+        table_writer.detach
+    with pytest.raises(AttributeError):
+        table_writer.attach
 
 
 @pytest.mark.serial

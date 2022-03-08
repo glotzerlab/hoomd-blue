@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
 
@@ -37,6 +37,10 @@ typedef cufftHandle hipfftHandle;
         handleHIPFFTResult(status, __FILE__, __LINE__); \
         }
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Order parameter evaluated using the particle mesh method
  */
 class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
@@ -148,7 +152,13 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     unsigned int m_block_size;                //!< Block size for fourier mesh reduction
     };
 
+namespace detail
+    {
 void export_PPPMForceComputeGPU(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __PPPM_FORCE_COMPUTE_GPU_H__

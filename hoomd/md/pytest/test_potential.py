@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from collections.abc import Sequence, Mapping
 import math
 from numbers import Number
@@ -50,8 +53,11 @@ def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
 
 
 def test_rcut(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5)
     assert lj.r_cut.default == 2.5
+    # ensure 0 is a valid value for r_cut
+    lj.r_cut[("A", "A")] = 0.0
+    lj.r_cut[("A", "A")] = 2.5
 
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(TypeConversionError):
@@ -67,13 +73,13 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
 
     lj.r_cut[('A', 'A')] = 2.5
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 2.5}, lj.r_cut.to_base())
 
 
 def test_invalid_mode():
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     for invalid_mode in [1, 'str', [1, 2, 3]]:
         with pytest.raises(TypeConversionError):
             md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=invalid_mode)
@@ -81,7 +87,7 @@ def test_invalid_mode():
 
 @pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
 def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
-    cell = md.nlist.Cell()
+    cell = md.nlist.Cell(buffer=0.4)
     lj = md.pair.LJ(nlist=cell, default_r_cut=2.5, mode=mode)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     snap = two_particle_snapshot_factory(dimensions=3, d=.5)
@@ -95,7 +101,9 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
 
 
 def test_ron(simulation_factory, two_particle_snapshot_factory):
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', default_r_cut=2.5)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4),
+                    mode='xplor',
+                    default_r_cut=2.5)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     with pytest.raises(TypeConversionError):
         lj.r_on[('A', 'A')] = 'str'
@@ -108,15 +116,15 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
-    assert lj.r_on.to_dict() == {}
+    assert lj.r_on.to_base() == {}
 
     lj.r_on[('A', 'A')] = 1.5
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
     sim.run(0)
-    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.5}, lj.r_on.to_base())
 
     lj.r_on[('A', 'A')] = 1.0
-    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_dict())
+    assert _equivalent_data_structures({('A', 'A'): 1.0}, lj.r_on.to_base())
 
 
 def _make_invalid_param_dict(valid_dict):
@@ -128,10 +136,10 @@ def _make_invalid_param_dict(valid_dict):
         # Set one invalid argument per dictionary
         # Set two invalid arguments per key
         valid_value = invalid_dicts[count][key]
-        if not isinstance(valid_value, list):
+        if not isinstance(valid_value, (list, np.ndarray)):
             invalid_dicts[count][key] = [1, 2]
             invalid_count += 1
-        if not isinstance(valid_value, str):
+        if not isinstance(valid_value, (str, np.ndarray)):
             invalid_dicts[count + 1][key] = 'str'
             invalid_count += 1
         if invalid_count == 2:
@@ -244,10 +252,23 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(fourier_invalid_dicts, md.pair.Fourier, {}))
 
-    slj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005}
-    slj_invalid_dicts = _make_invalid_param_dict(slj_valid_dict)
+    expanded_lj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005, "delta": 0.25}
+    expanded_lj_invalid_dicts = _make_invalid_param_dict(expanded_lj_valid_dict)
     invalid_params_list.extend(
-        _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
+        _make_invalid_params(expanded_lj_invalid_dicts, md.pair.ExpandedLJ, {}))
+
+    expanded_mie_valid_dict = {
+        "epsilon": 0.05,
+        "sigma": 0.5,
+        "n": 12,
+        "m": 6,
+        "delta": 0.25
+    }
+    expanded_mie_invalid_dicts = _make_invalid_param_dict(
+        expanded_mie_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(expanded_mie_invalid_dicts, md.pair.ExpandedMie,
+                             {}))
 
     dpd_valid_dict = {"A": 0.5, "gamma": 0.0005}
     dpd_invalid_dicts = _make_invalid_param_dict(dpd_valid_dict)
@@ -259,7 +280,7 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(dpdlj_invalid_dicts, md.pair.DPDLJ, {'kT': 1}))
 
-    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1}
+    dlvo_valid_dict = {'kappa': 1.0, 'Z': 0.1, 'A': 0.1, 'a1': 0.1, 'a2': 0.25}
     dlvo_invalid_dicts = _make_invalid_param_dict(dlvo_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(dlvo_invalid_dicts, md.pair.DLVO, {}))
@@ -275,10 +296,21 @@ def _invalid_params():
     opp_invalid_dicts = _make_invalid_param_dict(opp_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(opp_invalid_dicts, hoomd.md.pair.OPP, {}))
+
     twf_valid_dict = {'sigma': 1.0, 'epsilon': 1.0, 'alpha': 15}
     twf_invalid_dicts = _make_invalid_param_dict(twf_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(twf_invalid_dicts, hoomd.md.pair.TWF, {}))
+
+    table_valid_dict = {
+        'V': np.arange(0, 20, 1) / 10,
+        'F': np.asarray(20 * [-1.9 / 2.5]),
+        'r_min': 0.0
+    }
+    table_invalid_dicts = _make_invalid_param_dict(table_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(table_invalid_dicts, hoomd.md.pair.Table, {}))
+
     tersoff_valid_dict = {
         'cutoff_thickness': 1.0,
         'magnitudes': (5.0, 2.0),
@@ -326,7 +358,7 @@ def invalid_params(request):
 
 def test_invalid_params(invalid_params):
     pot = invalid_params.pair_potential(**invalid_params.extra_args,
-                                        nlist=md.nlist.Cell())
+                                        nlist=md.nlist.Cell(buffer=0.4))
     for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
             with pytest.raises(TypeConversionError):
@@ -334,7 +366,7 @@ def test_invalid_params(invalid_params):
 
 
 def test_invalid_pair_key():
-    pot = md.pair.LJ(nlist=md.nlist.Cell())
+    pot = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4))
     for invalid_key in [3, [1, 2], 'str']:
         with pytest.raises(KeyError):
             pot.r_cut[invalid_key] = 2.5
@@ -471,13 +503,16 @@ def _valid_params(particle_types=['A', 'B']):
         paramtuple(md.pair.Fourier, dict(zip(combos,
                                              fourier_valid_param_dicts)), {}))
 
-    slj_arg_dict = {
+    expanded_lj_arg_dict = {
         'sigma': [0.5, 1.0, 1.5],
-        'epsilon': [0.0005, 0.001, 0.0015]
+        'epsilon': [0.0005, 0.001, 0.0015],
+        'delta': [1.0, 0.5, 0.0]
     }
-    slj_valid_param_dicts = _make_valid_param_dicts(slj_arg_dict)
+    expanded_lj_valid_param_dicts = _make_valid_param_dicts(
+        expanded_lj_arg_dict)
     valid_params_list.append(
-        paramtuple(md.pair.SLJ, dict(zip(combos, slj_valid_param_dicts)), {}))
+        paramtuple(md.pair.ExpandedLJ,
+                   dict(zip(combos, expanded_lj_valid_param_dicts)), {}))
 
     dpd_arg_dict = {'A': [0.5, 1.0, 1.5], 'gamma': [0.0005, 0.001, 0.0015]}
     dpd_valid_param_dicts = _make_valid_param_dicts(dpd_arg_dict)
@@ -499,7 +534,9 @@ def _valid_params(particle_types=['A', 'B']):
     dlvo_arg_dict = {
         'kappa': [1.0, 2.0, 5.0],
         'Z': [0.1, 0.5, 2.0],
-        'A': [0.1, 0.5, 2.0]
+        'A': [0.1, 0.5, 2.0],
+        'a1': [0.1] * 3,
+        'a2': [0.25] * 3,
     }
     dlvo_valid_param_dicts = _make_valid_param_dicts(dlvo_arg_dict)
 
@@ -554,6 +591,20 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(hoomd.md.pair.OPP, dict(zip(combos, opp_valid_param_dicts)),
                    {}))
+
+    expanded_mie_arg_dict = {
+        'epsilon': [.05, .025, .010],
+        'sigma': [.5, 1, 1.5],
+        'n': [12, 14, 16],
+        'm': [6, 8, 10],
+        'delta': [.1, .2, .3]
+    }
+    expanded_mie_valid_param_dicts = _make_valid_param_dicts(
+        expanded_mie_arg_dict)
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.ExpandedMie,
+                   dict(zip(combos, expanded_mie_valid_param_dicts)), {}))
+
     twf_arg_dict = {
         'sigma': [0.1, 0.2, 0.5],
         'epsilon': [0.1, 0.5, 2.0],
@@ -563,6 +614,23 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(hoomd.md.pair.TWF, dict(zip(combos, twf_valid_param_dicts)),
                    {}))
+
+    rs = [
+        np.arange(0, 2.6, 0.1),
+        np.linspace(0.5, 2.5, 25),
+        np.arange(0.8, 2.6, 0.1)
+    ]
+    Vs = [r[::-1] * 5 for r in rs]
+    Fs = [-1 * np.diff(V) / np.diff(r) for V, r in zip(Vs, rs)]
+    table_arg_dict = {
+        'V': [V[:-1] for V in Vs],
+        'F': Fs,
+        'r_min': [r[0] for r in rs]
+    }
+    table_valid_param_dicts = _make_valid_param_dicts(table_arg_dict)
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.Table,
+                   dict(zip(combos, table_valid_param_dicts)), {}))
     return valid_params_list
 
 
@@ -575,20 +643,18 @@ def valid_params(request):
 
 def test_valid_params(valid_params):
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def _update_snap(pair_potential, snap):
     if (any(name in str(pair_potential) for name in ['Ewald'])
             and snap.communicator.rank == 0):
         snap.particles.charge[:] = 1.
-    if 'SLJ' in str(pair_potential) and snap.communicator.rank == 0:
-        snap.particles.diameter[:] = 2
     if 'DLVO' in str(pair_potential) and snap.communicator.rank == 0:
         snap.particles.diameter[0] = 0.2
         snap.particles.diameter[1] = 0.5
@@ -608,7 +674,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
@@ -628,14 +694,14 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params.to_base())
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
@@ -656,9 +722,9 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
     sim.operations._schedule()
-    old_snap = sim.state.snapshot
+    old_snap = sim.state.get_snapshot()
     sim.run(2)
-    new_snap = sim.state.snapshot
+    new_snap = sim.state.get_snapshot()
     if new_snap.communicator.rank == 0:
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
@@ -683,7 +749,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     r_on = 0.5
     r = 1.0
 
-    lj = md.pair.LJ(nlist=md.nlist.Cell(), default_r_cut=r_cut)
+    lj = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), default_r_cut=r_cut)
     lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=r))
@@ -699,16 +765,16 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         E_r = sum(energies)
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r_cut + .1]
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
         E_rcut = sum(energies)
 
-    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(),
+    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4),
                           mode='shift',
                           default_r_cut=r_cut)
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
@@ -719,17 +785,17 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.run(0)
 
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r + .1]
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
 
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
         assert sum(energies) == E_r - E_rcut
 
-    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(),
+    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4),
                           mode='xplor',
                           default_r_cut=r_cut)
     lj_xplor.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
@@ -756,34 +822,39 @@ def _calculate_force(sim):
 
     Finds the negative derivative of energy divided by inter-particle distance
     """
-    snap = sim.state.snapshot
+    dr = 1e-6
+
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
-        initial_pos = snap.particles.position
-        snap.particles.position[1] = initial_pos[1] * 0.99999999
-    sim.state.snapshot = snap
+        initial_pos = np.array(snap.particles.position)
+        snap.particles.position[1, 0] = initial_pos[1, 0] - dr
+
+    sim.state.set_snapshot(snap)
     E0 = sim.operations.integrator.forces[0].energies
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         r0 = pos[0] - pos[1]
         mag_r0 = np.linalg.norm(r0)
         direction = r0 / mag_r0
 
-        snap.particles.position[1] = initial_pos[1] * 1.00000001
-    sim.state.snapshot = snap
+        snap.particles.position[1, 0] = initial_pos[1, 0] + dr
+
+    sim.state.set_snapshot(snap)
     E1 = sim.operations.integrator.forces[0].energies
-    snap = sim.state.snapshot
+
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         pos = snap.particles.position
         mag_r1 = np.linalg.norm(pos[0] - pos[1])
+        Fa = -1 * ((sum(E1) - sum(E0)) / (mag_r1 - mag_r0)) * direction
+        Fb = -Fa
 
-        Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
-        Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         snap.particles.position[1] = initial_pos[1]
-    sim.state.snapshot = snap
-    if sim.state.snapshot.communicator.rank == 0:
+    sim.state.set_snapshot(snap)
+    if sim.state.get_snapshot().communicator.rank == 0:
         return Fa, Fb
     else:
         return 0, 0  # return dummy values if not on rank 1
@@ -800,10 +871,13 @@ def test_force_energy_relationship(simulation_factory,
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
+
+        if pot_name == 'DLVO':
+            pot.r_cut[pair] = 2.5 - ((0.2 + 0.5) / 2 - 1)
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)
@@ -816,11 +890,11 @@ def test_force_energy_relationship(simulation_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     for pair in valid_params.pair_potential_params:
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             snap.particles.typeid[0] = particle_types.index(pair[0])
             snap.particles.typeid[1] = particle_types.index(pair[1])
-        sim.state.snapshot = snap
+        sim.state.set_snapshot(snap)
 
         calculated_forces = _calculate_force(sim)
         sim_forces = sim.operations.integrator.forces[0].forces
@@ -905,7 +979,7 @@ def test_force_energy_accuracy(simulation_factory,
                     + " pair force")
 
     pot = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
-                                             nlist=md.nlist.Cell(),
+                                             nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     pot.params[('A', 'A')] = forces_and_energies.pair_potential_params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
@@ -921,17 +995,78 @@ def test_force_energy_accuracy(simulation_factory,
     for i in range(len(particle_distances)):
         d = particle_distances[i]
         r = np.array([0, 0, d]) / d
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, d + .1]
-        sim.state.snapshot = snap
+        sim.state.set_snapshot(snap)
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
             assert isclose(sum(sim_energies), forces_and_energies.energies[i])
             assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
             assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
+
+
+def populate_sim(sim):
+    """Add an integrator for the following tests."""
+    sim.operations.integrator = md.Integrator(
+        dt=0.005, methods=[md.methods.NVE(hoomd.filter.All())])
+    return sim
+
+
+def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
+    """Test that pair force can only below to one integrator."""
+    sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+    sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+
+    nlist = md.nlist.Cell(buffer=0.4)
+    lj = md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
+    sim1.operations.integrator.forces.append(lj)
+
+    # Test cannot add to new integrator
+    with pytest.raises(RuntimeError):
+        sim2.operations.integrator.forces.append(lj)
+
+    # Ensure that removing and appending works
+    sim1.operations.integrator.forces.remove(lj)
+    sim2.operations.integrator.forces.append(lj)
+    sim2.run(0)
+    # Ensure that when attached cannot add to new integrator
+    with pytest.raises(RuntimeError):
+        sim1.operations.integrator.forces.append(lj)
+
+    # Test that correct removal with a necessary nlist copy properly warns but
+    # does not error.
+    lj2 = md.pair.LJ(nlist, default_r_cut=1.1)
+    lj2.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
+    sim2.operations.integrator.forces.append(lj2)
+    sim2.operations.integrator.forces.remove(lj)
+    with pytest.warns(RuntimeWarning):
+        sim1.operations.integrator.forces.append(lj)
+
+
+@pytest.mark.filterwarnings("always")
+def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
+    """Test neighbor list cannot be spread between multiple simulations."""
+    sim1 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+    sim2 = populate_sim(simulation_factory(two_particle_snapshot_factory()))
+
+    nlist = md.nlist.Cell(buffer=0.4)
+    lj = md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
+    lj2 = deepcopy(lj)
+    sim1.operations.integrator.forces.append(lj)
+    sim2.operations.integrator.forces.append(lj2)
+    lj2.nlist = nlist
+    sim1.run(0)
+    with pytest.warns(RuntimeWarning):
+        sim2.run(0)
+    sim2.operations.integrator.forces.remove(lj2)
+    lj2.nlist = nlist
+    with pytest.warns(RuntimeWarning):
+        sim2.operations.integrator.forces.append(lj2)
 
 
 # Test logging
@@ -960,6 +1095,14 @@ def test_force_energy_accuracy(simulation_factory,
                 'category': LoggerCategories.particle,
                 'default': True
             },
+            'additional_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'additional_virial': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
         })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
@@ -970,7 +1113,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     pot = valid_params.pair_potential(**valid_params.extra_args,
-                                      nlist=md.nlist.Cell(),
+                                      nlist=md.nlist.Cell(buffer=0.4),
                                       default_r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
@@ -979,3 +1122,126 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(pot)
+
+
+@pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
+def test_shift_mode_with_lrc(simulation_factory, two_particle_snapshot_factory,
+                             mode):
+    cell = md.nlist.Cell(buffer=0.4)
+    lj = md.pair.LJ(nlist=cell,
+                    default_r_cut=2.5,
+                    mode=mode,
+                    tail_correction=True)
+
+    lj.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
+    snap = two_particle_snapshot_factory(dimensions=3, d=.5)
+    sim = simulation_factory(snap)
+    integrator = md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+    sim.operations.integrator = integrator
+    shift_allowed_modes = {'none'}
+    if mode not in shift_allowed_modes:
+        with pytest.raises(RuntimeError):
+            sim.run(1)
+    else:
+        sim.run(1)
+
+
+def test_lrc_non_lj(simulation_factory, two_particle_snapshot_factory):
+    # test we can't pass in tail_correction to non-LJ pair potential
+    cell = md.nlist.Cell(buffer=0.4)
+    with pytest.raises(TypeError):
+        # flake8 complains about unused variable with gauss = md.pair.Gauss(...)
+        md.pair.Gauss(nlist=cell,
+                      default_r_cut=2.5,
+                      mode='none',
+                      tail_correction=True)
+
+
+def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
+    # the tail correction should always decrease the potential energy with a LJ
+    # pair potential and the cutoff is greater than sigma
+    # further, the pressure correction should always be negative for the LJ
+    # potenial if r_cut is greater than 2^(1/6)sigma
+    sims = {}
+    sigma = 1.0
+    epsilon = 0.5
+    d_pair = 1.5
+    r_cut = 2.0
+    for tail_correction in [True, False]:
+        cell = md.nlist.Cell(buffer=0.4)
+        lj = md.pair.LJ(nlist=cell,
+                        default_r_cut=r_cut,
+                        mode='none',
+                        tail_correction=tail_correction)
+
+        lj.params[('A', 'A')] = {'sigma': sigma, 'epsilon': epsilon}
+        snap = two_particle_snapshot_factory(dimensions=3, d=d_pair)
+        v1 = np.array([0.46168675, -0.21020661, 0.21240303])
+        v2 = -v1  # zero linear momentum
+        if snap.communicator.rank == 0:
+            snap.particles.velocity[0] = v1
+            snap.particles.velocity[1] = v2
+        sim = simulation_factory(snap)
+        integrator = md.Integrator(dt=0.005)
+        integrator.forces.append(lj)
+        integrator.methods.append(
+            hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+        sim.operations.integrator = integrator
+        sim.always_compute_pressure = True
+        thermodynamic_properties = hoomd.md.compute.ThermodynamicQuantities(
+            filter=hoomd.filter.All())
+        sim.operations.computes.append(thermodynamic_properties)
+        sim.run(0)
+        sims[tail_correction] = sim
+
+    e_true = sims[True].operations.computes[0].potential_energy
+    e_false = sims[False].operations.computes[0].potential_energy
+    p_true = sims[True].operations.computes[0].pressure
+    p_false = sims[False].operations.computes[0].pressure
+    N = sim.state.N_particles
+    volume = sim.state.box.volume
+    rho = N / volume
+
+    def lj_energy(r, sig, eps):
+        return 4 * eps * ((sig / r)**12 - (sig / r)**6)
+
+    def energy_correction(sigma, epsilon, r_cut, rho, N):
+        """Long-range tail correction to energy."""
+        lj1 = 4.0 * epsilon * sigma**12.0
+        lj2 = 4.0 * epsilon * sigma**6.0
+        integral = lj1 / 9 / r_cut**9 - lj2 / 3 / r_cut**3
+        return 2 * N * np.pi * rho * integral
+
+    def lj_force_mag(r, sig, eps):
+        """Magnitude of force on particles from LJ potential a distance r."""
+        return 24 * eps / r * (2 * (sig / r)**12 - (sig / r)**6)
+
+    def pressure_correction(sigma, epsilon, r_cut, rho):
+        """Long-range tail correction to pressure."""
+        lj1 = 4.0 * epsilon * sigma**12.0
+        lj2 = 4.0 * epsilon * sigma**6.0
+        integral = lj1 * 4 / 3 / r_cut**9 - lj2 * 2 / r_cut**3
+        return 4 / 6 * rho**2 * np.pi * integral
+
+    dE = energy_correction(sigma, epsilon, r_cut, rho, N)
+    mass = 1.0
+    ke = 0.5 * mass * (np.dot(v1, v1) + np.dot(v2, v2))
+    ljf = lj_force_mag(d_pair, sigma, epsilon)
+    mean_virial = 1 / 3 * ljf * d_pair
+    pressure_should_be = (2 * ke / 3 + mean_virial) / volume
+    dP = pressure_correction(sigma, epsilon, r_cut, rho)
+
+    # energy regression test
+    np.testing.assert_allclose(e_false, lj_energy(d_pair, sigma, epsilon))
+    np.testing.assert_allclose(e_true, lj_energy(d_pair, sigma, epsilon) + dE)
+
+    # pressure regression test
+    np.testing.assert_allclose(p_false, pressure_should_be)
+    np.testing.assert_allclose(p_true, pressure_should_be + dP)
+
+    # make sure corrections correct in the right direction
+    assert e_true < e_false
+    assert p_true < p_false

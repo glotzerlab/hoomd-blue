@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -36,6 +36,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -169,7 +171,7 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
         m_tuner_narrow->setPeriod(chain_length * period * this->m_nselect);
         m_tuner_narrow->setEnabled(enable);
 
-        if (this->m_patch && !this->m_patch_log)
+        if (this->m_patch)
             {
             this->m_patch->setAutotunerParams(enable, chain_length * period * this->m_nselect);
             }
@@ -198,9 +200,6 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
         m_tuner_depletants_accept->setPeriod(chain_length * period * this->m_nselect);
         m_tuner_depletants_accept->setEnabled(enable);
         }
-
-    //! Method called when numbe of particle types changes
-    virtual void slotNumTypesChange();
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep);
@@ -840,7 +839,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
     {
     IntegratorHPMC::update(timestep);
 
-    if (this->m_patch && !this->m_patch_log)
+    if (this->m_patch)
         {
         ArrayHandle<Scalar> h_additive_cutoff(m_additive_cutoff,
                                               access_location::host,
@@ -872,19 +871,24 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
             || (this->m_sysdef->getNDimensions() == 3 && global_box.getPeriodic().z
                 && nearest_plane_distance.z <= this->m_nominal_width * 2))
             {
-            this->m_exec_conf->msg->error()
-                << "Simulation box too small for GPU accelerated HPMC execution - increase it so "
-                   "the minimum image convention works"
+            std::ostringstream oss;
+
+            oss << "Simulation box too small for GPU accelerated HPMC execution - increase it so "
+                   "the minimum image convention may be applied."
                 << std::endl;
-            throw std::runtime_error("Error performing HPMC update");
+
+            oss << "nominal_width = " << this->m_nominal_width << std::endl;
+            if (global_box.getPeriodic().x)
+                oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
+            if (global_box.getPeriodic().y)
+                oss << "nearest_plane_distance.y=" << nearest_plane_distance.y << std::endl;
+            if (this->m_sysdef->getNDimensions() == 3 && global_box.getPeriodic().z)
+                oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
+            throw std::runtime_error(oss.str());
             }
 
         // update the cell list
         this->m_cl->compute(timestep);
-
-        // start the profile
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "HPMC");
 
         // if the cell list is a different size than last time, reinitialize the expanded cell list
         uint3 cur_dim = this->m_cl->getDim();
@@ -900,7 +904,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
         // test if we are in domain decomposition mode
         bool domain_decomposition = false;
 #ifdef ENABLE_MPI
-        if (this->m_comm)
+        if (this->m_sysdef->isDomainDecomposed())
             domain_decomposition = true;
 #endif
 
@@ -1847,7 +1851,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     this->m_exec_conf->endMultiGPU();
                     }
 
-                if (this->m_patch && !this->m_patch_log)
+                if (this->m_patch)
                     {
                     // access data for proposed moves
                     ArrayHandle<Scalar4> d_trial_postype(m_trial_postype,
@@ -1908,6 +1912,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                        this->m_sysdef->getSeed(),
                                                        this->m_exec_conf->getRank(),
                                                        timestep,
+                                                       i,
                                                        this->m_pdata->getNTypes(),
                                                        box,
                                                        d_excell_idx.data,
@@ -2097,9 +2102,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
     // update the particle data origin
     this->m_pdata->translateOrigin(shift);
 
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
-
     this->communicate(true);
 
     // all particle have been moved, the aabb tree is now invalid
@@ -2149,82 +2151,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::initializeExcellMem()
             }
         }
 #endif
-    }
-
-template<class Shape> void IntegratorHPMCMonoGPU<Shape>::slotNumTypesChange()
-    {
-    unsigned int old_ntypes = (unsigned int)this->m_params.size();
-
-    // call base class method
-    IntegratorHPMCMono<Shape>::slotNumTypesChange();
-
-    // skip the reallocation if the number of types does not change
-    // this keeps shape parameters when restoring a snapshot
-    // it will result in invalid coefficients if the snapshot has a different type id -> name
-    // mapping
-    if (this->m_pdata->getNTypes() != old_ntypes)
-        {
-        unsigned int ntypes = this->m_pdata->getNTypes();
-
-        // resize array
-        GlobalArray<Scalar> lambda(ntypes * this->m_depletant_idx.getNumElements(),
-                                   this->m_exec_conf);
-        m_lambda.swap(lambda);
-        TAG_ALLOCATION(m_lambda);
-
-        // ntypes*ntypes counters per GPU, separated by at least a memory page
-        size_t pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t) - 1)
-                       / sizeof(hpmc_implicit_counters_t);
-        GlobalArray<hpmc_implicit_counters_t>(
-            std::max(pitch, this->m_implicit_count.getNumElements()),
-            this->m_exec_conf->getNumActiveGPUs(),
-            this->m_exec_conf)
-            .swap(m_implicit_counters);
-        TAG_ALLOCATION(m_implicit_counters);
-
-#ifdef __HIP_PLATFORM_NVCC__
-        if (this->m_exec_conf->allConcurrentManagedAccess())
-            {
-            // memory hint for overlap matrix
-            cudaMemAdvise(this->m_overlaps.get(),
-                          sizeof(unsigned int) * this->m_overlaps.getNumElements(),
-                          cudaMemAdviseSetReadMostly,
-                          0);
-            CHECK_CUDA_ERROR();
-            }
-#endif
-
-        // destroy old streams
-        for (auto s : m_depletant_streams)
-            {
-            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                {
-                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-                hipStreamDestroy(s[idev]);
-                }
-            }
-
-        // create new ones
-        m_depletant_streams.resize(this->m_depletant_idx.getNumElements());
-        for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
-            {
-            for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
-                {
-                m_depletant_streams[this->m_depletant_idx(itype, jtype)].resize(
-                    this->m_exec_conf->getNumActiveGPUs());
-                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                    {
-                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-                    hipStreamCreate(
-                        &m_depletant_streams[this->m_depletant_idx(itype, jtype)][idev]);
-                    }
-                }
-            }
-
-        GlobalArray<Scalar> additive_cutoff(ntypes * ntypes, this->m_exec_conf);
-        m_additive_cutoff.swap(additive_cutoff);
-        TAG_ALLOCATION(m_additive_cutoff);
-        }
     }
 
 template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
@@ -2294,6 +2220,8 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
         }
     }
 
+namespace detail
+    {
 //! Export this hpmc integrator to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -2312,6 +2240,8 @@ void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
         ;
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

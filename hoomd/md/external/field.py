@@ -1,8 +1,6 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
 # features
 
 """External field potentials."""
@@ -15,12 +13,14 @@ from hoomd.data.typeparam import TypeParameter
 
 
 class Field(force.Force):
-    """Common external field potential documentation.
+    """Constructs the external field potential.
 
-    Users should not invoke `Field` directly. Documentation common to all
-    external field potentials is located here. External potentials represent
-    forces which are applied to all particles in the simulation by an external
-    agent.
+    External potentials represent forces which are applied to all particles in
+    the simulation by an external agent.
+
+    Note:
+        `Field` is the base class for all external field potentials.
+        Users should not instantiate this class directly.
     """
 
     def _attach(self):
@@ -48,7 +48,7 @@ class Periodic(Field):
 
     .. math::
 
-       V(\\vec{r}) = A * \\tanh\\left[\\frac{1}{2 \\pi p w} \\cos\\left(
+       V(\\vec{r}) = A \\tanh\\left[\\frac{1}{2 \\pi p w} \\cos\\left(
        p \\vec{b}_i\\cdot\\vec{r}\\right)\\right]
 
     The coefficients above must be set per unique particle type.
@@ -107,10 +107,9 @@ class Electric(Field):
 
     .. py:attribute:: E
 
-        The electric field vector, :math:`E`, as a tuple (i.e.
-        :math:`(E_x, E_y, E_z)`) \
-        :math:`[\\mathrm{energy} \\cdot \\mathrm{charge}^{-1} \\cdot \
-        \\mathrm{length^{-1}}]`.
+        The electric field vector :math:`\\vec{E}` as a tuple
+        :math:`(E_x, E_y, E_z)` :math:`[\\mathrm{energy} \\cdot
+        \\mathrm{charge}^{-1} \\cdot \\mathrm{length^{-1}}]`.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]

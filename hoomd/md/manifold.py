@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Manifolds."""
 
@@ -9,6 +8,7 @@ from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.error import MutabilityError
 from collections.abc import Sequence
 
 
@@ -37,7 +37,6 @@ class Manifold(_HOOMDBaseObject):
 
     def _attach(self):
         self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
     @staticmethod
     def _preprocess_unitcell(value):
@@ -58,8 +57,7 @@ class Manifold(_HOOMDBaseObject):
             for attr in self._param_dict)
 
     def _setattr_param(self, attr, value):
-        raise AttributeError("Manifolds are immutable and {} cannot be set "
-                             "after initialization".format(attr))
+        raise MutabilityError(attr)
 
 
 class Cylinder(Manifold):

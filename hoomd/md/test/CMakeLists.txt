@@ -4,7 +4,6 @@ set(TEST_LIST
     test_berendsen_integrator
     test_bondtable_bond_force
     test_external_periodic
-    test_fenebond_force
     test_fire_energy_minimizer
     test_cosinesq_angle_force
     test_harmonic_angle_force
@@ -17,7 +16,6 @@ set(TEST_LIST
     test_pppm_force
     test_table_angle_force
     test_table_dihedral_force
-    test_table_potential
     test_walldata
     test_zero_momentum_updater
     )
@@ -56,7 +54,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND NOT APPLE)
         # these options are needed to avoid linker errors with GCC
         set(additional_link_options "-Wl,--allow-shlib-undefined -Wl,--no-as-needed")
     endif()

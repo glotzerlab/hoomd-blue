@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
 #include "hoomd/ForceConstraint.h"
@@ -42,6 +40,10 @@
 
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     {
     public:
@@ -192,7 +194,13 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
 #endif
     };
 
+namespace detail
+    {
 //! Exports the MolecularForceCompute to python
 void export_MolecularForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

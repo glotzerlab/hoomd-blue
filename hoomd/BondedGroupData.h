@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
     \brief Declares BondedGroupData
@@ -23,7 +21,6 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
@@ -44,16 +41,18 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include <string>
 #include <vector>
 
-//! Storage data type for group members
-/*! We use a union to emphasize it that can contain either particle
- * tags or particle indices or other information */
-template<unsigned int group_size> union group_storage {
+namespace hoomd
+    {
+    //! Storage data type for group members
+    /*! We use a union to emphasize it that can contain either particle
+     * tags or particle indices or other information */
+    template<unsigned int group_size> union group_storage {
     unsigned int tag[group_size];
     unsigned int idx[group_size];
     };
 
-//! A union to allow storing a scalar constraint value or a type integer
-union typeval_union {
+    //! A union to allow storing a scalar constraint value or a type integer
+    union typeval_union {
     unsigned int type;
     Scalar val;
     };
@@ -71,12 +70,14 @@ template<unsigned int group_size> struct packed_storage
     };
 #endif
 
+    } // end namespace hoomd
+
 #ifdef ENABLE_MPI
 namespace cereal
     {
 //! Serialization functions for group data types
 //! Serialization of typeval_union
-template<class Archive> void serialize(Archive& ar, typeval_t& t, const unsigned int version)
+template<class Archive> void serialize(Archive& ar, hoomd::typeval_t& t, const unsigned int version)
     {
     // serialize both members
     ar& t.val;
@@ -84,20 +85,23 @@ template<class Archive> void serialize(Archive& ar, typeval_t& t, const unsigned
     }
 
 //! Serialization of group_storage<2> (bonds)
-template<class Archive> void serialize(Archive& ar, group_storage<2>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<2>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
     }
 //! Serialization of group_storage<3> (angles)
-template<class Archive> void serialize(Archive& ar, group_storage<3>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<3>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
     ar& s.tag[2];
     }
 //! Serialization of group_storage<4> (dihedrals and impropers)
-template<class Archive> void serialize(Archive& ar, group_storage<4>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<4>& s, const unsigned int version)
     {
     ar& s.tag[0];
     ar& s.tag[1];
@@ -107,6 +111,8 @@ template<class Archive> void serialize(Archive& ar, group_storage<4>& s, const u
     } // namespace cereal
 #endif
 
+namespace hoomd
+    {
 /*! BondedGroupData is a generic storage class for small particle groups of fixed
  *  size N=2,3,4..., such as bonds, angles or dihedrals, which form part of a molecule.
  *
@@ -208,11 +214,11 @@ class BondedGroupData
          */
         void bcast(unsigned int root, MPI_Comm mpi_comm)
             {
-            ::bcast(type_id, root, mpi_comm);
-            ::bcast(val, root, mpi_comm);
-            ::bcast(groups, root, mpi_comm);
-            ::bcast(type_mapping, root, mpi_comm);
-            ::bcast(size, root, mpi_comm);
+            hoomd::bcast(type_id, root, mpi_comm);
+            hoomd::bcast(val, root, mpi_comm);
+            hoomd::bcast(groups, root, mpi_comm);
+            hoomd::bcast(type_mapping, root, mpi_comm);
+            hoomd::bcast(size, root, mpi_comm);
             }
 #endif
 
@@ -571,14 +577,6 @@ class BondedGroupData
      */
     void removeBondedGroup(unsigned int group_tag);
 
-    //! Set the profiler
-    /*! \param prof The profiler
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Connects a function to be called every time the global number of bonded groups changes
     Nano::Signal<void()>& getGroupNumChangeSignal()
         {
@@ -653,7 +651,6 @@ class BondedGroupData
     GPUVector<unsigned int>
         m_cached_tag_set;       //!< Cached constant-time lookup table for tags by active index
     bool m_invalid_cached_tags; //!< true if m_cached_tag_set needs to be rebuilt
-    std::shared_ptr<Profiler> m_prof; //!< Profiler
 
     private:
     bool m_groups_dirty; //!< Is it necessary to rebuild the lookup-by-index table?
@@ -697,12 +694,16 @@ class BondedGroupData
 #endif
     };
 
+namespace detail
+    {
 //! Exports BondData to python
 template<class T, class Group>
 void export_BondedGroupData(pybind11::module& m,
                             std::string name,
                             std::string snapshot_name,
                             bool export_struct = true);
+
+    } // end namespace detail
 
 /*!
  * Typedefs for template instantiations
@@ -1018,7 +1019,8 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
         {
         return this->template getBuffer<unsigned int, unsigned int, GPUVector>(m_tags_handle,
                                                                                &GroupData::getTags,
-                                                                               flag);
+                                                                               flag,
+                                                                               true);
         }
 
     Output getRTags()
@@ -1033,7 +1035,7 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
         return this->template getBuffer<
             typeval_t,
             typename std::conditional<GroupData::typemap_val, unsigned int, Scalar>::type,
-            GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag);
+            GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag, true);
         }
 
     Output getMembers(GhostDataFlag flag)
@@ -1042,6 +1044,7 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
             m_members_handle,
             &GroupData::getMembersArray,
             flag,
+            true,
             GroupData::size);
         }
 
@@ -1073,4 +1076,6 @@ template<class Output, class Data> void export_LocalGroupData(pybind11::module& 
         .def("enter", &LocalGroupData<Output, Data>::enter)
         .def("exit", &LocalGroupData<Output, Data>::exit);
     }
+
+    } // end namespace hoomd
 #endif

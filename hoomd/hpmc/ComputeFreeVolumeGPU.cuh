@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_FREE_VOLUME_CUH_
 #define _COMPUTE_FREE_VOLUME_CUH_
@@ -19,6 +19,8 @@
 #include "hoomd/TextureTools.h"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -89,7 +91,7 @@ struct hpmc_free_volume_args_t
     unsigned int select;                  //!< RNG select value
     const uint64_t timestep;              //!< Current time step
     const unsigned int dim;               //!< Number of dimensions
-    const BoxDim& box;                    //!< Current simulation box
+    const BoxDim box;                     //!< Current simulation box
     unsigned int block_size;              //!< Block size to execute
     unsigned int stride;                  //!< Number of threads per overlap check
     unsigned int group_size;              //!< Size of the group to execute
@@ -202,7 +204,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     unsigned int ntyppairs = overlap_idx.getNumElements();
     unsigned int* s_overlap = (unsigned int*)(&s_check_overlaps[ntyppairs]);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -376,14 +378,10 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     hipMemsetAsync(args.d_n_overlap_all, 0, sizeof(unsigned int));
 
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int n_groups
@@ -449,5 +447,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     }; // end namespace detail
 
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

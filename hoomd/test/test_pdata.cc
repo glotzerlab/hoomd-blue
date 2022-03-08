@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file pdata_test.cc
     \brief Unit tests for BoxDim, ParticleData, SimpleCubicInitializer, and RandomInitializer
@@ -15,9 +15,10 @@
 #include "hoomd/ParticleData.h"
 #include "hoomd/SnapshotSystemData.h"
 
-using namespace std;
-
 #include "upp11_config.h"
+
+using namespace std;
+using namespace hoomd;
 
 HOOMD_UP_MAIN();
 
@@ -417,7 +418,7 @@ UP_TEST(BoxDim_triclinic_test)
 //! Test operation of the particle data class
 UP_TEST(ParticleData_test)
     {
-    BoxDim box(10.0, 30.0, 50.0);
+    auto box = std::make_shared<BoxDim>(10.0, 30.0, 50.0);
     std::shared_ptr<ExecutionConfiguration> exec_conf(
         new ExecutionConfiguration(ExecutionConfiguration::CPU));
     ParticleData a(1, box, 1, exec_conf);
@@ -445,7 +446,7 @@ UP_TEST(ParticleData_test)
     // make sure that getN is working
     UP_ASSERT(a.getN() == 1);
 
-    // Test the ability to acquire data
+        // Test the ability to acquire data
         {
         ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_vel(a.getVelocities(),
@@ -518,7 +519,7 @@ UP_TEST(ParticleData_test)
         h_body.data[0] = 0;
         }
 
-    // make sure when the data is re-acquired, the values read properly
+        // make sure when the data is re-acquired, the values read properly
         {
         ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(a.getVelocities(), access_location::host, access_mode::read);
@@ -612,15 +613,6 @@ UP_TEST(ParticleData_test)
             UP_ASSERT(h_body.data[i] == NO_BODY);
             }
         }
-
-    // check that new types can be added
-    ParticleData pdata_type_test(123, box, 1, exec_conf);
-
-    UP_ASSERT(pdata_type_test.getNTypes() == 1);
-    UP_ASSERT(pdata_type_test.addType("test") == 1);
-    UP_ASSERT(pdata_type_test.getNTypes() == 2);
-    UP_ASSERT(pdata_type_test.getNameByType(1) == "test");
-    UP_ASSERT(pdata_type_test.getTypeByName("test") == 1);
     }
 
 //! Tests the RandomParticleInitializer class

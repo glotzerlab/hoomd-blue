@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Neighbor list acceleration structures.
 
@@ -61,15 +60,6 @@ class NList(_HOOMDBaseObject):
     * ``1-4``: Exclude particles *i* and *m* whenever there are bonds (i,j),
       (j,k), and (k,m).
 
-    .. rubric:: Diameter shifting
-
-    Set `diameter_shift` to `True` when using `hoomd.md.pair.SLJ` or
-    `hoomd.md.pair.DLVO` so that the neighbor list includes all particles that
-    interact under the modified :math:`r_\mathrm{cut}` conditions in those
-    potentials. When `diameter_shift` is `True`, set `max_diameter` to the
-    largest value that any particle's diameter will achieve (where **diameter**
-    is the per particle quantity stored in the `hoomd.State`).
-
     Attributes:
         buffer (float): Buffer width :math:`[\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
@@ -81,12 +71,6 @@ class NList(_HOOMDBaseObject):
         max_diameter (float): The maximum diameter a particle will achieve
             :math:`[\mathrm{length}]`.
     """
-
-    _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + (
-        '_cpp_cell',)
-    _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {
-        '_cpp_cell',
-    }
 
     def __init__(self, buffer, exclusions, rebuild_check_delay, diameter_shift,
                  check_dist, max_diameter):
@@ -101,8 +85,8 @@ class NList(_HOOMDBaseObject):
                                rebuild_check_delay=int(rebuild_check_delay),
                                check_dist=bool(check_dist),
                                diameter_shift=bool(diameter_shift),
-                               max_diameter=float(max_diameter),
-                               _defaults={'exclusions': exclusions})
+                               max_diameter=float(max_diameter))
+        params["exclusions"] = exclusions
         self._param_dict.update(params)
 
     @log(requires_run=True)
@@ -113,6 +97,16 @@ class NList(_HOOMDBaseObject):
         list rebuilds during the previous `Simulation.run`.
         """
         return self._cpp_obj.getSmallestRebuild()
+
+    def _remove_dependent(self, obj):
+        super()._remove_dependent(obj)
+        if len(self._dependents) == 0:
+            if self._attached:
+                self._detach()
+                self._remove()
+                return
+            if self._added:
+                self._remove()
 
     # TODO need to add tuning Updater for NList
 
@@ -150,7 +144,7 @@ class Cell(NList):
     """
 
     def __init__(self,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,
@@ -198,8 +192,8 @@ class Stencil(NList):
     are first spatially sorted into cells with the given width `cell_width`.
 
     `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
-    describes this neighbor list implementation in HOOMD-blue. Cite it if you
-    utilize this neighbor list style in your work.
+    describes this neighbor list implementation. Cite it if you utilize this
+    neighbor list style in your work.
 
     This neighbor list style differs from `Cell` in how the adjacent cells are
     searched for particles. One stencil is computed per particle type based on
@@ -229,7 +223,7 @@ class Stencil(NList):
 
     def __init__(self,
                  cell_width,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,
@@ -292,7 +286,7 @@ class Tree(NList):
     """
 
     def __init__(self,
-                 buffer=0.4,
+                 buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  diameter_shift=False,

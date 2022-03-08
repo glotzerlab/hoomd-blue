@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.MuVT."""
 
@@ -45,6 +44,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
     """Test that MuVT can be attached with valid arguments."""
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -53,16 +53,15 @@ def test_valid_construction_and_attach(device, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator(23456)
     mc.shape["A"] = args
     mc.shape["B"] = args
 
     muvt = hoomd.hpmc.update.MuVT(**constructor_args)
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
+                                      dimensions=n_dimensions,
                                       d=2,
                                       L=50))
     sim.operations.updaters.append(muvt)
@@ -93,6 +92,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     """Test that MuVT can get and set attributes while attached."""
     integrator = valid_args[0]
     args = valid_args[1]
+    n_dimensions = valid_args[2]
     # Need to unpack union integrators
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
@@ -101,17 +101,16 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator(23456)
     mc.shape["A"] = args
     mc.shape["B"] = args
 
     muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(10),
                                   transfer_types=['A'])
-    dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=dim,
+                                      dimensions=n_dimensions,
                                       d=2,
                                       L=50))
     sim.operations.updaters.append(muvt)

@@ -1,7 +1,6 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan This file is
-# part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
 # features
 
 r"""Constraints.
@@ -10,19 +9,19 @@ Constraint forces can constrain particles to be a set distance from each other,
 to have some relative orientation, or impose other types of constraint.
 
 The `Rigid` class is special in that only one is allowed in a system and is set
-to an `hoomd.md.Integator` object separately in the
-`rigid <hoomd.md.Integator.rigid>` attribute.
+to an `hoomd.md.Integrator` object separately in the
+`rigid <hoomd.md.Integrator.rigid>` attribute.
 
 Warning:
     Constraints will be invalidated if two separate constraints apply to the
     same particle.
 
 The degrees of freedom removed from the system by constraints are
-accounted for in `hoomd.md.ThermodynamicQuantities`.
+accounted for in `hoomd.md.compute.ThermodynamicQuantities`.
 """
 
 from hoomd.md import _md
-from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 import hoomd
@@ -44,73 +43,64 @@ class Constraint(_HOOMDBaseObject):
         super()._attach()
 
 
-class distance(Constraint):
-    R"""Constrain pairwise particle distances.
+class Distance(Constraint):
+    """Constrain pairwise particle distances.
 
-    :py:class:`distance` specifies that forces will be applied to all particles
-    pairs for which constraints have been defined.
+    Args:
+        tolerance (float): Relative tolerance for constraint violation warnings.
 
-    The constraint algorithm implemented is described in:
+    `Distance` applies forces between particles to constrain the distances
+    between particles to specific values. The algorithm implemented is described
+    in:
 
-     * [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
-     Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
-     vol. 13, no. 6, pp. 395--405, 1994.
-     * [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
-     Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
-     188--197, Sep. 2001.
+    1. M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
+       Matrix Method for Constraint Molecular Dynamics Simulations," Molecular
+       Simulation, vol. 13, no. 6, pp. 395--405, 1994.
+    2. M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
+       Molecular Dynamics Simulations," Journal of Computational Physics,
+       vol. 172, no. 1, pp. 188--197, Sep. 2001.
+
+    Each distance constraint takes the form:
+
+    .. math::
+
+        \\chi_{ij}(r) = (\\vec{r}_j - \\vec{r}_i) \\cdot
+          (\\vec{r}_j - \\vec{r}_i)
+          - d_{ij}^2 = 0
 
     In brief, the second derivative of the Lagrange multipliers with respect to
     time is set to zero, such that both the distance constraints and their time
     derivatives are conserved within the accuracy of the Velocity Verlet scheme,
-    i.e. within :math:`\Delta t^2`. The corresponding linear system of equations
-    is solved. Because constraints are satisfied at :math:`t + 2 \Delta t`, the
-    scheme is self-correcting and drifts are avoided.
+    i.e. within :math:`\\Delta t^2`. The corresponding linear system of
+    equations is solved. Because constraints are satisfied at :math:`t + 2
+    \\Delta t`, the scheme is self-correcting and drifts are avoided.
+
+    .. hint::
+
+        Define the particles (:math:`i,j`) and distances (:math:`d_{ij}`) for
+        each pairwise distance constraint in a GSD file with
+        `gsd.hoomd.Snapshot.constraints` or in a `hoomd.Snapshot` with
+        `hoomd.Snapshot.constraints`.
 
     Warning:
         In MPI simulations, all particles connected through constraints will be
-        communicated between processors as ghost particles. Therefore, it is an
+        communicated between ranks as ghost particles. Therefore, it is an
         error when molecules defined by constraints extend over more than half
         the local domain size.
 
-    .. caution::
-        constrain.distance() does not currently interoperate with
-        integrate.brownian() or integrate.langevin()
+    Note:
+        `tolerance` sets the tolerance to detect constraint violations and
+        issue a warning message. It does not influence the computation of the
+        constraint force.
 
-    Example::
-
-        constrain.distance()
-
+    Attributes:
+        tolerance (float): Relative tolerance for constraint violation warnings.
     """
 
-    def __init__(self):
+    _cpp_class_name = "ForceDistanceConstraint"
 
-        # initialize the base class
-        Constraint.__init__(self)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ForceDistanceConstraint(
-                hoomd.context.current.system_definition)
-        else:
-            self.cpp_force = _md.ForceDistanceConstraintGPU(
-                hoomd.context.current.system_definition)
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-    def set_params(self, rel_tol=None):
-        R"""Set parameters for constraint computation.
-
-        Args:
-            rel_tol (float): The relative tolerance with which constraint
-                violations are detected (**optional**).
-
-        Example::
-
-            dist = constrain.distance()
-            dist.set_params(rel_tol=0.0001)
-        """
-        if rel_tol is not None:
-            self.cpp_force.setRelativeTolerance(float(rel_tol))
+    def __init__(self, tolerance=1e-3):
+        self._param_dict.update(ParameterDict(tolerance=float(tolerance)))
 
 
 class Rigid(Constraint):
@@ -152,8 +142,8 @@ class Rigid(Constraint):
     Warning:
         Automatic creation of constituent particles changes particle tags. When
         there are bonds between particles in the initial configuration, or bonds
-        connect to constituent particles, include the constituent particles in the
-        initial configuration manually.
+        connect to constituent particles, include the constituent particles in
+        the initial configuration manually.
 
     When you create the constituent particles manually (i.e. in an input file
     or with snapshots), the central particle of a rigid body must have a lower
@@ -168,7 +158,7 @@ class Rigid(Constraint):
 
     .. rubric:: Integrating bodies
 
-    Most integrators in HOOMD support the integration of rotational degrees of
+    Most integration methods support the integration of rotational degrees of
     freedom. When there are rigid bodies present in the system, do not apply
     integrators to the constituent particles, only the central and non-rigid
     particles.
@@ -184,7 +174,7 @@ class Rigid(Constraint):
     .. rubric:: Thermodynamic quantities of bodies
 
     HOOMD computes thermodynamic quantities (temperature, kinetic energy,
-    etc...) appropriately when there are rigid bodies present in the system.
+    etc.) appropriately when there are rigid bodies present in the system.
     When it does so, it ignores all constituent particles and computes the
     translational and rotational energies of the central particles, which
     represent the whole body.
@@ -208,16 +198,17 @@ class Rigid(Constraint):
         that the type is not a rigid body center. All types are set to ``None``
         by default. The keys for the body definition are
 
-        - ``types`` (list[str]): List of types of constituent particles
+        - ``constituent_types`` (list[str]): List of types of constituent
+          particles
         - ``positions`` (list[tuple[float, float, float]]): List of relative
           positions of constituent particles
         - ``orientations`` (list[tuple[float, float, float, float]]): List of
-          orientations (as quaterions) of constituent particles
+          orientations (as quaternions) of constituent particles
         - ``charge`` (list[float]): List of charges of constituent particles
         - ``diameters`` (list[float]): List of diameters of constituent
           particles
 
-        Type: `TypeParameter[``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_type``, `dict`]
 
     .. caution::
         The constituent particle type must exist.
@@ -226,14 +217,14 @@ class Rigid(Constraint):
 
         rigid = constrain.Rigid()
         rigid.body['A'] = {
-            "types": ['A_const', 'A_const'],
+            "constituent_types": ['A_const', 'A_const'],
             "positions": [(0,0,1),(0,0,-1)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
             "charges": [0.0, 0.0],
             "diameters": [1.0, 1.0]
             }
         rigid.body['B'] = {
-            "types": ['B_const', 'B_const'],
+            "constituent_types": ['B_const', 'B_const'],
             "positions": [(0,0,.5),(0,0,-.5)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
             "charges": [0.0, 1.0],
@@ -244,7 +235,7 @@ class Rigid(Constraint):
         rigid.body["A"] = None
 
     Warning:
-        `Rigid` will significantly signifcantly slow down a simulation when
+        `Rigid` will significantly slow down a simulation when
         frequently changing rigid body definitions or adding/removing particles
         from the simulation.
     """
@@ -270,7 +261,23 @@ class Rigid(Constraint):
         R"""Create rigid bodies from central particles in state.
 
         Args:
-            state (hoomd.State): the state to add rigid bodies too.
+            state (hoomd.State): The state in which to create rigid bodies.
+
+        This method will remove any existing constituent particles (defined as
+        having a valid body flag without a central particle definition in the
+        rigid `body` attribute).
+
+        Note:
+            This method will change any exiting body tags.
+
+        Tip:
+            If planning on using this function, initialize the `hoomd.State`
+            with free and central particles without worrying about the body
+            tag. Existing body values or constituent particles in the state
+            won't cause errors, but the method does not need it.
+
+        Warning:
+            This method must be called before its associated simulation is run.
         """
         if self._attached:
             raise RuntimeError(

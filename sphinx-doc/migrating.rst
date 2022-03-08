@@ -1,15 +1,12 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Migrating to HOOMD v3
 =====================
 
 HOOMD v3 introduces many breaking changes for both users and developers
 in order to provide a cleaner Python interface, enable new functionalities, and
 move away from unsupported tools. This guide highlights those changes.
-
-Removed functionality
----------------------
-
-HOOMD v3 removes old APIs and unused functionality. See :doc:`deprecated` for a
-full list.
 
 Overview of API changes
 -----------------------
@@ -32,8 +29,10 @@ Here is a module level overview of features that have been moved or removed:
      - *Removed.* Use Python standard libraries for timing.
    * - ``hoomd.cite``
      - *Removed.* See `citing`.
+   * - ``hoomd.dump``
+     - `hoomd.write`
    * - ``hoomd.compute.thermo``
-     - ``hoomd.md.compute.ThermodynamicQuantities``
+     - `hoomd.md.compute.ThermodynamicQuantities`
    * - ``hoomd.context.initialize``
      - `hoomd.device.CPU` and `hoomd.device.GPU`
    * - ``hoomd.data``
@@ -45,21 +44,19 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.lattice``
      - *Removed.* Use an external tool.
    * - ``hoomd.meta``
-     - `hoomd.logging.Logger` logs operation's ``state`` dictionaries.
+     - `hoomd.logging.Logger`.
    * - ``hoomd.option``
      - *Removed.* Use Python standard libraries for option parsing.
    * - ``hoomd.update``
      - Some classes have been moved to `hoomd.tune`.
    * - ``hoomd.util``
      -  Enable GPU profiling with `hoomd.device.GPU.enable_profiling`.
-   * - ``hoomd.hdf5``
-     - *Not yet implemented for v3*.
    * - ``hoomd.hpmc.analyze.sdf``
-     - ``hoomd.hpmc.compute.SDF``
+     - `hoomd.hpmc.compute.SDF`
    * - ``hoomd.hpmc.data``
-     - HPMC integrator properties.
+     - `hoomd.hpmc.integrate.HPMCIntegrator` properties.
    * - ``hoomd.hpmc.util``
-     - ``hoomd.hpmc.tune``
+     - `hoomd.hpmc.tune`
    * - ``hoomd.md.integrate.mode_standard``
      - `hoomd.md.Integrator`
    * - ``hoomd.md.update.rescale_temp``
@@ -72,22 +69,148 @@ Here is a module level overview of features that have been moved or removed:
      - *Removed.*
    * - ``hoomd.md.update.constraint_ellipsoid``
      - `hoomd.md.manifold.Ellipsoid`
+   * - ``hoomd.jit.patch``
+     - `hoomd.hpmc.pair.user`
+   * - ``hoomd.jit.external``
+     - `hoomd.hpmc.external.user`
+
+Removed functionality
+---------------------
+
+HOOMD v3 removes old APIs, unused functionality, and features better served by other codes:
+
+:py:mod:`hoomd`:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Replace with
+   * - Python 2.7
+     - Python >= 3.6
+   * - Compute < 6.0 GPUs
+     - Compute >= 6.0 GPUs
+   * - ``static`` parameter in ``hoomd.dump.gsd``
+     - ``dynamic`` parameter
+   * - ``set_params`` and other ``set_*`` methods
+     - Parameters and type parameters accessed by properties.
+   * - ``context.initialize``
+     - `device.CPU` / `device.GPU`
+   * - ``util.quiet_status`` and ``util.unquiet_status``
+     - No longer needed.
+
+``hoomd.deprecated``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Replace with
+   * - ``deprecated.analyze.msd``
+     - Offline analysis: e.g. `Freud's msd module <https://freud.readthedocs.io>`_.
+   * - ``deprecated.dump.xml``
+     - `hoomd.write.GSD`
+   * - ``deprecated.dump.pos``
+     - `hoomd.write.GSD` with on-demand conversion to ``.pos``.
+   * - ``deprecated.init.read_xml``
+     - `Simulation.create_state_from_gsd`
+   * - ``deprecated.init.create_random``
+     - `mBuild <https://mosdef-hub.github.io/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
+   * - ``deprecated.init.create_random_polymers``
+     - `mBuild <https://mosdef-hub.github.io/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
+
+:py:mod:`hoomd.hpmc`:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Replace with
+   * - ``sphere_union::max_members`` parameter
+     - no longer needed
+   * - ``convex_polyhedron_union``
+     - :py:class:`ConvexSpheropolyhedronUnion <hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion>`, ``sweep_radius=0``
+   * - ``setup_pos_writer`` member
+     - n/a
+   * - ``depletant_mode='circumsphere'``
+     - no longer needed
+   * - ``max_verts`` parameter
+     - no longer needed
+   * - ``depletant_mode`` parameter
+     - no longer needed
+   * - ``ntrial`` parameter
+     - no longer needed
+   * - ``implicit`` boolean parameter
+     - set ``fugacity`` non-zero
+
+:py:mod:`hoomd.md`:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Replace with
+   * - ``group`` parameter to ``integrate.mode_minimize_fire``
+     - Pass group to integration method.
+   * - ``alpha`` parameter to ``pair.lj`` and related classes
+     - n/a
+   * - ``f_list`` and ``t_list`` parameters to ``md.force.active``
+     - Per-type ``active_force`` and ``active_torque``
+   * - ``md.pair.SLJ``
+     - `md.pair.ExpandedLJ`
+
+``hoomd.cgcmm``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Replace with
+   * - ``cgcmm.angle.cgcmm``
+     - no longer needed
+   * - ``cgcmm.pair.cgcmm``
+     - no longer needed
+
+``hoomd.dem``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Feature
+     - Replace with
+   * - DEM pair potentials
+     - ALJ pair potential in `hoomd.md.pair.aniso`.
+
+Not yet ported
+--------------
+
+The following v2 functionalities have not yet been ported to the v3 API. They may be added in a
+future 3.x release:
+
+- HPMC box volume move size tuner.
+
+These contributed functionalities rely on the community for support. Please
+contact the developers if you have an interest in porting these in a future release:
+
+- ``hoomd.hdf5``
+- ``hoomd.metal``
+- ``hoomd.mpcd``
 
 
 Compiling
 ---------
 
-* CMake 3.8 or newer is required to build HOOMD.
+* CMake 3.8 or newer is required to build HOOMD v3.0.
 * To compile with GPU support, use the option ``ENABLE_GPU=ON``.
 * ``UPDATE_SUBMODULES`` no longer exists. Users and developers should use
   ``git clone --recursive``, ``git submodule update`` and ``git submodule sync``
   as appropriate.
-* ``COPY_HEADERS`` no longer exists. Users must install HOOMD for use
-  with external components.
+* ``COPY_HEADERS`` no longer exists. HOOMD will pull headers from the source directory when needed.
 * ``CMAKE_INSTALL_PREFIX`` is set to the Python ``site-packages`` directory (if
   not explicitly set by the user).
 * **cereal**, **eigen**, and **pybind11** headers must be provided to build
   HOOMD. See :doc:`installation` for details.
+* ``BUILD_JIT`` is replaced with ``ENABLE_LLVM``.
 
 Components
 ----------
@@ -141,3 +264,7 @@ Components
     integration methods and Manifold classes.
   - Removed the Enforce2D and TempRescale Updaters. Enforce2D is not needed for 2D simulations,
     and TempRescale has been replaced by ``thermalize_`` methods.
+  - Removed Doxygen configuration scripts. View the document for classes in the source files.
+  - Particle types may no longer be added after a Simulation is initialized. Classes no longer
+    need to subscribe to the types added signal and reallocate data structures when the number of
+    types changes.

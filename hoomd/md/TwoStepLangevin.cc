@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevin.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -10,10 +10,13 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 using namespace hoomd;
 
+namespace hoomd
+    {
+namespace md
+    {
 TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  std::shared_ptr<Variant> T)
@@ -35,10 +38,6 @@ TwoStepLangevin::~TwoStepLangevin()
 void TwoStepLangevin::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("Langevin step 1");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -110,9 +109,9 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -199,10 +198,6 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -213,10 +208,6 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("Langevin step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -344,9 +335,9 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
 
                 // check for degenerate moment of inertia
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
                 bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
@@ -392,9 +383,9 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -414,7 +405,7 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     if (m_tally)
         {
 #ifdef ENABLE_MPI
-        if (m_comm)
+        if (m_sysdef->isDomainDecomposed())
             {
             MPI_Allreduce(MPI_IN_PLACE,
                           &bd_energy_transfer,
@@ -427,22 +418,24 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
         m_reservoir_energy -= bd_energy_transfer * m_deltaT;
         m_extra_energy_overdeltaT = 0.5 * bd_energy_transfer;
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
-void export_TwoStepLangevin(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin>>(
+void export_TwoStepLangevin(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin>>(
         m,
         "TwoStepLangevin")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>>())
         .def_property("tally_reservoir_energy",
                       &TwoStepLangevin::getTallyReservoirEnergy,
                       &TwoStepLangevin::setTallyReservoirEnergy)
         .def_property_readonly("reservoir_energy", &TwoStepLangevin::getReservoirEnergy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

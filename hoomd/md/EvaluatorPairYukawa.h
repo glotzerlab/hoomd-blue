@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_YUKAWA_H__
 #define __PAIR_EVALUATOR_YUKAWA_H__
@@ -21,10 +19,16 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Yukawa pair potential
 /*! <b>General Overview</b>
 
@@ -52,6 +56,10 @@ class EvaluatorPairYukawa
         Scalar epsilon;
         Scalar kappa;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         // set CUDA memory hints
         void set_memory_hint() const
@@ -67,14 +75,14 @@ class EvaluatorPairYukawa
             kappa = 0;
             }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             epsilon = v["epsilon"].cast<Scalar>();
             kappa = v["kappa"].cast<Scalar>();
             }
 
         // this constructor facilitates unit testing
-        param_type(Scalar eps, Scalar kap)
+        param_type(Scalar eps, Scalar kap, bool managed = false)
             {
             epsilon = eps;
             kappa = kap;
@@ -90,9 +98,9 @@ class EvaluatorPairYukawa
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -162,6 +170,16 @@ class EvaluatorPairYukawa
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -183,5 +201,8 @@ class EvaluatorPairYukawa
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
     Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_YUKAWA_H__

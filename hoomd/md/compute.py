@@ -1,8 +1,6 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
 # features
 
 """Compute system properties."""
@@ -104,10 +102,11 @@ class ThermodynamicQuantities(_Thermo):
 
           .. math::
 
-              P_{ij} = \\left[  \\sum_{k \\in \\mathrm{filter}} m_k v_{k,i}
-              v_{k,j} + \\sum_{k \\in \\mathrm{filter}} \\sum_{l} \\frac{1}{2}
-              \\left(\\vec{r}_{kl,i} \\vec{F}_{kl,j} + \\vec{r}_{kl,j}
-              \\vec{F}_{kl, i} \\right) \\right]/V
+              P_{ij} = \\left[\\sum_{k \\in \\mathrm{filter}} m_k
+              \\vec{v}_{k,i} \\cdot \\vec{v}_{k,j} + \\sum_{k \\in
+              \\mathrm{filter}} \\sum_{l} \\frac{1}{2} \\left(\\vec{r}_{kl,i}
+              \\cdot \\vec{F}_{kl,j} + \\vec{r}_{kl,j} \\cdot \\vec{F}_{kl,i}
+              \\right) \\right]/V
 
         where :math:`V` is the total simulation box volume (or area in 2D).
         """
@@ -265,15 +264,14 @@ class ThermodynamicQuantities(_Thermo):
         """:math:`N`, number of particles in the group."""
         return self._cpp_obj.num_particles
 
-    @log
+    @log(requires_run=True)
     def volume(self):
-        """:math:`V`, volume of the simulation box \
-        :math:`[\\mathrm{length}^{2}] in 2D and \
-        :math:`[\\mathrm{length}^{2}] in 3D`."""
-        if self._attached:
-            return self._cpp_obj.volume
-        else:
-            return None
+        """:math:`V`, volume of the simulation box (area in 2D) \
+        :math:`[\\mathrm{length}^{d}]`.
+
+        Where :math:`d` is the dimensionality of the system.
+        """
+        return self._cpp_obj.volume
 
 
 class HarmonicAveragedThermodynamicQuantities(Compute):
@@ -292,7 +290,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     of particles and calculates harmonically mapped average (HMA) properties
     of those particles when requested. HMA computes properties more precisely
     (with less variance) for atomic crystals in NVT simulations.  The presence
-    of dffusion (vacancy hopping, etc.) will prevent HMA from providing
+    of diffusion (vacancy hopping, etc.) will prevent HMA from providing
     improvement.  HMA tracks displacements from the lattice positions, which
     are saved either during first call to `Simulation.run` or when the compute
     is first added to the simulation, whichever occurs last.

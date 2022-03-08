@@ -1,10 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ParticleGroup.h"
-#include "hoomd/Profiler.h"
 #include "hoomd/SystemDefinition.h"
 
 #include <memory>
@@ -27,6 +24,10 @@ class Communicator;
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps
 /*! \b Overview
     A large class of integrators can be implemented in two steps:
@@ -62,10 +63,6 @@ class Communicator;
    same delta t set.
 
     <b>Integrator variables</b>
-
-    Integrator variables are registered and tracked, if needed, through the IntegratorData
-   interface. Because of the need for valid restart tracking (see below), \b all integrators
-   register even if they do not need to save state information.
 
     Furthermore, the base class IntegratorTwoStep needs to know whether or not it should recalculate
    the "first step" accelerations. Accelerations are saved in the restart file, so if a restart is
@@ -121,9 +118,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
      */
     virtual void includeRATTLEForce(uint64_t timestep) { }
 
-    //! Sets the profiler for the integration method to use
-    void setProfiler(std::shared_ptr<Profiler> prof);
-
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
         \param period period (approximate) in time steps when returning occurs
@@ -139,12 +133,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     std::shared_ptr<ParticleGroup> getGroup()
         {
         return m_group;
-        }
-
-    //! Get whether this restart was valid
-    bool isValidRestart()
-        {
-        return m_valid_restart;
         }
 
     //! Get the number of degrees of freedom granted to a given group
@@ -163,32 +151,11 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     //! not)
     virtual void validateGroup();
 
-#ifdef ENABLE_MPI
-    //! Set the communicator to use
-    /*! \param comm MPI communication class
-     */
-    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-        {
-        assert(comm);
-        m_comm = comm;
-        }
-#endif
-
     //! Set (an-)isotropic integration mode
     /*! \param aniso True if anisotropic integration is requested
      */
     void setAnisotropic(bool aniso)
         {
-        // warn if we are moving isotropic->anisotropic and we
-        // find no rotational degrees of freedom
-        if (!m_aniso && aniso && this->getRotationalDOF(m_group) == Scalar(0))
-            {
-            m_exec_conf->msg->warning() << "Integrator #" << m_integrator_id
-                                        << ": Anisotropic integration requested, but no rotational "
-                                           "degrees of freedom found for its group"
-                                        << std::endl;
-            }
-
         m_aniso = aniso;
         }
 
@@ -203,9 +170,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
      */
     virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> query_group);
 
-    //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
-    virtual void initializeIntegratorVariables() { }
-
     //! Return true if the method is momentum conserving
     virtual bool isMomentumConserving() const
         {
@@ -217,45 +181,21 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         m_sysdef; //!< The system definition this method is associated with
     const std::shared_ptr<ParticleGroup> m_group; //!< The group of particles this method works on
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this method is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this method is to use
+        m_pdata; //!< The particle data this method is associated with
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     bool m_aniso;    //!< True if anisotropic integration is requested
 
     Scalar m_deltaT; //!< The time step
-
-    //! helper function to get the integrator variables from the particle data
-    const IntegratorVariables& getIntegratorVariables()
-        {
-        return m_sysdef->getIntegratorData()->getIntegratorVariables(m_integrator_id);
-        }
-
-    //! helper function to store the integrator variables in the particle data
-    void setIntegratorVariables(const IntegratorVariables& variables)
-        {
-        m_sysdef->getIntegratorData()->setIntegratorVariables(m_integrator_id, variables);
-        }
-
-    //! helper function to check if the restart information (if applicable) is usable
-    bool
-    restartInfoTestValid(const IntegratorVariables& v, std::string type, unsigned int nvariables);
-
-    //! Set whether this restart is valid
-    void setValidRestart(bool b)
-        {
-        m_valid_restart = b;
-        }
-
-#ifdef ENABLE_MPI
-    std::shared_ptr<Communicator> m_comm; //!< The communicator to use for MPI
-#endif
-    private:
-    unsigned int m_integrator_id; //!< Registered integrator id to access the state variables
-    bool m_valid_restart;         //!< True if the restart info was valid when loading
     };
 
+namespace detail
+    {
 //! Exports the IntegrationMethodTwoStep class to python
 void export_IntegrationMethodTwoStep(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__

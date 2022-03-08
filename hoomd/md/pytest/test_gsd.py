@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 import numpy as np
 import pytest
@@ -68,7 +71,8 @@ def hoomd_snapshot(lattice_snapshot_factory):
 
 def lj_integrator():
     integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), default_r_cut=2.5)
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4),
+                          default_r_cut=2.5)
     lj.params.default = {'sigma': 1, 'epsilon': 1}
     integrator.forces.append(lj)
     langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
@@ -127,12 +131,7 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
     sim.operations.writers.append(gsd_writer)
 
     # run 5 steps and create a gsd file for testing mode=ab
-    snapshot_list = []
-    for _ in range(5):
-        sim.run(1)
-        snap = sim.state.snapshot
-        if snap.communicator.rank == 0:
-            snapshot_list.append(snap)
+    sim.run(5)
 
     # test mode=ab
     sim.operations.writers.clear()
@@ -146,7 +145,7 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
     snap_list = []
     for _ in range(5):
         sim.run(1)
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             snap_list.append(snap)
     if sim.device.communicator.rank == 0:
@@ -177,7 +176,12 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
                                  dynamic=['momentum'])
     sim.operations.writers.append(gsd_writer)
 
-    sim.run(5)
+    snapshot_list = []
+    for _ in range(5):
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            snapshot_list.append(snap)
 
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename_xb, mode='rb') as traj:
@@ -220,7 +224,7 @@ def test_write_gsd_truncate(create_md_sim, tmp_path):
     sim.operations.writers.append(gsd_writer)
 
     sim.run(2)
-    snapshot = sim.state.snapshot
+    snapshot = sim.state.get_snapshot()
 
     if snapshot.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
@@ -243,7 +247,7 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     position_list = []
     for _ in range(5):
         sim.run(1)
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             position_list.append(snap.particles.position)
             velocity_list.append(snap.particles.velocity)
@@ -277,7 +281,7 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     angmom_list = []
     for _ in range(5):
         sim.run(1)
-        snap = sim.state.snapshot
+        snap = sim.state.get_snapshot()
         if snap.communicator.rank == 0:
             velocity_list.append(snap.particles.velocity)
             angmom_list.append(snap.particles.angmom)
@@ -300,13 +304,12 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
 
     # test dynamic=['attribute']
     if snap.communicator.rank == 0:
-        snap.particles.types = ['t3', 't4']
         snap.particles.typeid[:] = N_particles * [1]
         snap.particles.mass[:] = N_particles * [0.8]
         snap.particles.diameter[:] = N_particles * [0.2]
         snap.particles.charge[:] = N_particles * [0]
 
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
 
     sim.operations.writers.clear()
     gsd_writer = hoomd.write.GSD(filename=filename,
@@ -319,7 +322,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             for step in range(5, 10):
-                assert traj[step].particles.types == ['t3', 't4']
                 np.testing.assert_allclose(traj[step].particles.mass,
                                            N_particles * [0.8],
                                            rtol=1e-07,
@@ -342,14 +344,13 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
                                            atol=1.5e-07)
 
     # test dynamic=['topology']
-    snap = sim.state.snapshot
+    snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
         snap.bonds.N = 3
         snap.bonds.typeid[2] = 0
         snap.bonds.group[2] = [10, 11]
-        snap.angles.types = ['a3', 'a4']
 
-    sim.state.snapshot = snap
+    sim.state.set_snapshot(snap)
 
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
@@ -361,7 +362,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             assert traj[-1].bonds.N == 3
-            assert traj[-1].angles.types == ['a3', 'a4']
 
 
 def test_write_gsd_log(create_md_sim, tmp_path):

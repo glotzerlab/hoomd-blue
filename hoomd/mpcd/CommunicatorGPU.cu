@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CommunicatorGPU.cu
@@ -17,6 +15,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/device_ptr.h>
+#include <thrust/iterator/constant_iterator.h>
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 #include <thrust/transform.h>
@@ -28,6 +27,8 @@
 #include "hoomd/extern/cub/cub/device/device_reduce.cuh"
 #endif
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -170,13 +171,11 @@ cudaError_t mpcd::gpu::stage_particles(unsigned int* d_comm_flag,
                                        const BoxDim& box,
                                        const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_particles);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_particles);
+    max_block_size = attr.maxThreadsPerBlock;
+
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
     mpcd::gpu::kernel::stage_particles<<<grid, run_block_size>>>(d_comm_flag, d_pos, N, box);
@@ -315,4 +314,6 @@ void mpcd::gpu::wrap_particles(const unsigned int n_recv,
     // Apply box wrap to input buffer
     thrust::transform(in_ptr, in_ptr + n_recv, in_ptr, mpcd::gpu::wrap_particle_op(box));
     }
+    } // end namespace hoomd
+
 #endif // ENABLE_MPI

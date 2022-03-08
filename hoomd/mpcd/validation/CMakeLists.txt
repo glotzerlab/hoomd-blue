@@ -1,4 +1,4 @@
-# Maintainer: mphoward
+
 
 set(TEST_LIST
     validate_at

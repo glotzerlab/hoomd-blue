@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PAIR_EVALUATOR_TWF_H__
 #define __PAIR_EVALUATOR_TWF_H__
 
@@ -21,10 +24,16 @@
 // into the host compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the TWF pair potential
 /*! <b>General Overview</b>
 
@@ -99,6 +108,10 @@ class EvaluatorPairTWF
         Scalar alpha;
         Scalar prefactor;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
@@ -110,14 +123,14 @@ class EvaluatorPairTWF
 #ifndef __HIPCC__
         param_type() : sigma(1), alpha(1), prefactor(1) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             sigma = v["sigma"].cast<Scalar>();
             alpha = v["alpha"].cast<Scalar>();
             prefactor = 4.0 * v["epsilon"].cast<Scalar>() / (alpha * alpha);
             }
 
-        param_type(Scalar sigma, Scalar epsilon, Scalar alpha)
+        param_type(Scalar sigma, Scalar epsilon, Scalar alpha, bool managed = false)
             : sigma(sigma), alpha(alpha), prefactor(4 * epsilon / (alpha * alpha))
             {
             }
@@ -220,6 +233,16 @@ class EvaluatorPairTWF
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -240,4 +263,7 @@ class EvaluatorPairTWF
     Scalar rcutsq;     //!< Stored rcutsq from the constructor
     param_type params; //!< parameters passed to the constructor
     };
+
+    }  // end namespace md
+    }  // end namespace hoomd
 #endif // __PAIR_EVALUATOR_TWF_H__

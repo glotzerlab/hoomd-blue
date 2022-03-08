@@ -1,13 +1,23 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Base classes for all HOOMD-blue operations."""
+"""Operation class types.
+
+Operations act on the state of the system at defined points during the
+simulation's run loop. Add operation objects to the `Simulation.operations`
+collection.
+
+See Also:
+    `hoomd.Operations`
+
+    `hoomd.Simulation`
+"""
 
 # Operation is a parent class of almost all other HOOMD objects.
 # Triggered objects should inherit from _TriggeredOperation.
 
 from copy import copy
+import itertools
 
 from hoomd.trigger import Trigger
 from hoomd.logging import Loggable
@@ -30,20 +40,26 @@ class _HOOMDGetSetAttrBase:
         _param_dict (ParameterDict): The `ParameterDict` for the class/instance.
         _typeparam_dict (dict[str, TypeParameter]): A dict of all the
             TypeParameters for the class/instance.
+        _skip_for_equality (set[str]): The attribute names to not use for
+            equality checks used during tests. This will not effect attributes
+            that exist due to ``__getattr__`` such as those from ``_param_dict``
+            or ``_typeparam_dict``.
     """
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
     _override_setattr = set()
 
+    _skip_for_equality = set()
+
     def __getattr__(self, attr):
-        if attr in self._reserved_default_attrs.keys():
+        if attr in self._reserved_default_attrs:
             default = self._reserved_default_attrs[attr]
             value = default() if callable(default) else default
             object.__setattr__(self, attr, value)
             return value
-        elif attr in self._param_dict.keys():
+        elif attr in self._param_dict:
             return self._getattr_param(attr)
-        elif attr in self._typeparam_dict.keys():
+        elif attr in self._typeparam_dict:
             return self._getattr_typeparam(attr)
         else:
             raise AttributeError("Object {} has no attribute {}".format(
@@ -73,16 +89,7 @@ class _HOOMDGetSetAttrBase:
 
     def _setattr_param(self, attr, value):
         """Hook for setting an attribute in `_param_dict`."""
-        old_value = self._param_dict[attr]
         self._param_dict[attr] = value
-        new_value = self._param_dict[attr]
-        if self._attached:
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                self._param_dict[attr] = old_value
-                raise AttributeError("{} cannot be set after cpp"
-                                     " initialization".format(attr))
 
     def _setattr_typeparam(self, attr, value):
         """Hook for setting an attribute in `_typeparam_dict`."""
@@ -93,13 +100,11 @@ class _HOOMDGetSetAttrBase:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
 
-    def __eq__(self, other):
-        if not isinstance(other, _HOOMDGetSetAttrBase):
-            return NotImplemented
-        return (self._param_dict == other._param_dict and all(
-            set(self._typeparam_dict.keys()) == set(other._typeparam_dict.keys(
-            )) and self._typeparam_dict[k] == other._typeparam_dict[k]
-            for k in self._typeparam_dict))
+    def __dir__(self):
+        """Expose all attributes for dynamic querying in notebooks and IDEs."""
+        return super().__dir__() + [
+            k for k in itertools.chain(self._param_dict, self._typeparam_dict)
+        ]
 
 
 class _DependencyRelation:
@@ -110,53 +115,62 @@ class _DependencyRelation:
     object that use this class may not deal directly with dependencies.
 
     Note:
+        This only handles one way dependencies. Circular dependencies are out of
+        scope for now.
+
+    Note:
+        This class expects that the ``_dependents`` and ``_dependencies`` are
+        available.
+
+    Note:
         We could be more specific in the inheritance of this class to only use
         it when the class needs to deal with a dependency.
     """
 
-    def __init__(self):
-        self._dependents = []
-        self._dependencies = []
-
     def _add_dependent(self, obj):
         """Adds a dependent to the object's dependent list."""
-        if obj not in self._dependencies:
+        if obj not in self._dependents:
             self._dependents.append(obj)
             obj._dependencies.append(self)
 
-    def _notify_disconnect(self, *args, **kwargs):
+    def _add_dependency(self, obj):
+        """Adds a dependency to the object's dependency list."""
+        if obj not in self._dependencies:
+            obj._dependents.append(self)
+            self._dependencies.append(obj)
+
+    def _notify_disconnect(self):
         """Notify that an object is being removed from all relationships.
 
         Notifies dependent object that it is being removed, and removes itself
-        from its dependencies' list of dependents. Uses ``args`` and
-        ``kwargs`` to allow flexibility in what information is given to
-        dependents from dependencies.
+        from its dependencies' list of dependents. By default the method passes
+        itself to all dependents' ``_handle_removed_dependency`` methods.
 
         Note:
-            This implementation does require that all dependents take in the
-            same information, or at least that the passed ``args`` and
-            ``kwargs`` can be used for all dependents'
-            ``_handle_removed_dependency`` method.
+            If more information is needed to pass to _handle_removed_dependency,
+            then overwrite this method.
         """
         for dependent in self._dependents:
-            dependent.handle_detached_dependency(self, *args, **kwargs)
+            dependent._handle_removed_dependency(self)
         self._dependents = []
         for dependency in self._dependencies:
             dependency._remove_dependent(self)
         self._dependencies = []
 
-    def _handle_removed_dependency(self, obj, *args, **kwargs):
+    def _handle_removed_dependency(self, obj):
         """Handles having a dependency removed.
 
-        Must be implemented by objects that have dependencies. Uses ``args`` and
-        ``kwargs`` to allow flexibility in what information is given to
-        dependents from dependencies.
+        Default behavior does nothing. Overwrite to enable handling detaching of
+        dependencies.
         """
         pass
 
     def _remove_dependent(self, obj):
         """Removes a dependent from the list of dependencies."""
-        self._dependencies.remove(obj)
+        try:
+            self._dependents.remove(obj)
+        except ValueError:
+            pass
 
 
 class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
@@ -184,65 +198,31 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     """
     _reserved_default_attrs = {
         **_HOOMDGetSetAttrBase._reserved_default_attrs, '_cpp_obj': None,
+        '_simulation': None,
         '_dependents': list,
         '_dependencies': list
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
-        '_simulation'
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation'
     }
     _remove_for_pickling = ('_simulation', '_cpp_obj')
-
-    def _getattr_param(self, attr):
-        if self._attached:
-            return getattr(self._cpp_obj, attr)
-        else:
-            return self._param_dict[attr]
-
-    def _setattr_param(self, attr, value):
-        old_value = self._param_dict[attr]
-        # Triggers the validation checks and type expansions
-        self._param_dict[attr] = value
-        if self._attached:
-            # new_value passed all checks and is of the right type
-            new_value = self._param_dict[attr]
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                # if the parameter cannot be altered, we set it
-                # back to the original value in the dictionary
-                self._param_dict[attr] = old_value
-                raise AttributeError("{} cannot be set after cpp"
-                                     " initialization".format(attr))
-
-    def __eq__(self, other):
-        other_keys = other.__dict__.keys()
-        for key in self.__dict__.keys():
-            if key in self._skip_for_equality:
-                continue
-            elif (key not in other_keys
-                  or self.__dict__[key] != other.__dict__[key]):
-                return False
-        return super().__eq__(other)
 
     def _detach(self):
         if self._attached:
             self._unapply_typeparam_dict()
-            self._update_param_dict()
-            self._cpp_obj.notifyDetach()
-
+            self._param_dict._detach()
+            if hasattr(self._cpp_obj, "notifyDetach"):
+                self._cpp_obj.notifyDetach()
+            # In case the C++ object is necessary for proper disconnect
+            # notification we call _notify_disconnect here as well.
+            self._notify_disconnect()
             self._cpp_obj = None
-            self._notify_disconnect(self._simulation)
             return self
 
     def _attach(self):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
-
-        # pass the system communicator to the object
-        if self._simulation._system_communicator is not None:
-            self._cpp_obj.setCommunicator(self._simulation._system_communicator)
 
     @property
     def _attached(self):
@@ -252,30 +232,30 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         self._simulation = simulation
 
     def _remove(self):
-        del self._simulation
+        # Since objects can be added without being attached, we need to call
+        # _notify_disconnect on both _remove and _detach. The method should be
+        # do nothing after being called onces so being called twice is not a
+        # concern. I should note that if
+        # `hoomd.operations.Operations._unschedule` is called this is
+        # invalidated, but as that is not public facing this should be fine.
+        self._notify_disconnect()
+        self._simulation = None
 
     @property
     def _added(self):
-        return hasattr(self, '_simulation')
+        return self._simulation is not None
 
     def _apply_param_dict(self):
-        for attr, value in self._param_dict.items():
-            try:
-                setattr(self, attr, value)
-            except AttributeError:
-                pass
+        self._param_dict._attach(self._cpp_obj)
 
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
                 typeparam._attach(cpp_obj, simulation)
-            except ValueError as verr:
-                raise ValueError("In TypeParameter {}:"
-                                 " ".format(typeparam.name) + verr.args[0])
-
-    def _update_param_dict(self):
-        for key in self._param_dict.keys():
-            self._param_dict[key] = getattr(self, key)
+            except ValueError as err:
+                raise err.__class__(
+                    f"For {type(self)} in TypeParameter {typeparam.name} "
+                    f"{str(err)}")
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
@@ -305,13 +285,13 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
 
 
 class Operation(_HOOMDBaseObject):
-    """Represents operations that are added to an `hoomd.Operations` object.
+    """Represents an operation.
 
     Operations in the HOOMD-blue data scheme are objects that *operate* on a
     `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
-    `Writer`, `Compute`, `Tuner`, and `hoomd.integrate.BaseIntegrator`. All
-    HOOMD-blue operations inherit from one of these five base classes. To find
-    the purpose of each class see its documentation.
+    `Writer`, `Compute`, `Tuner`, and `Integrator`. All HOOMD-blue operations
+    inherit from one of these five base classes. To find the purpose of each
+    class see its documentation.
 
     Note:
         Developers or those contributing to HOOMD-blue, see our architecture
@@ -325,6 +305,7 @@ class Operation(_HOOMDBaseObject):
 
 
 class _TriggeredOperation(Operation):
+    """Light wrapper around `Operation` for some C++ implementations."""
     _cpp_list_name = None
 
     _override_setattr = {'trigger'}
@@ -336,13 +317,14 @@ class _TriggeredOperation(Operation):
 
     @property
     def trigger(self):
-        return self._param_dict['trigger']
+        return self._param_dict._dict['trigger']
 
     @trigger.setter
     def trigger(self, new_trigger):
         # Overwrite python trigger
         old_trigger = self.trigger
-        self._param_dict['trigger'] = new_trigger
+        self._param_dict._dict['trigger'] = self._param_dict._type_converter[
+            "trigger"](new_trigger)
         new_trigger = self.trigger
         if self._attached:
             sys = self._simulation._cpp_sys
@@ -354,19 +336,9 @@ class _TriggeredOperation(Operation):
                 if op is self._cpp_obj and trigger is old_trigger:
                     triggered_ops[index] = (op, new_trigger)
 
-    def _attach(self):
-        super()._attach()
-
-    def _update_param_dict(self):
-        if self._attached:
-            for key in self._param_dict:
-                if key == 'trigger':
-                    continue
-                self._param_dict[key] = getattr(self._cpp_obj, key)
-
 
 class Updater(_TriggeredOperation):
-    """Base class for all HOOMD updaters.
+    """Change the simulation's state.
 
     An updater is an operation which modifies a simulation's state.
 
@@ -378,9 +350,9 @@ class Updater(_TriggeredOperation):
 
 
 class Writer(_TriggeredOperation):
-    """Base class for all HOOMD analyzers.
+    """Write output that depends on the simulation's state.
 
-    An analyzer is an operation which writes out a simulation's state.
+    A writer is an operation which writes out a simulation's state.
 
     Note:
         This class should not be instantiated by users. The class can be used
@@ -390,7 +362,7 @@ class Writer(_TriggeredOperation):
 
 
 class Compute(Operation):
-    """Base class for all HOOMD computes.
+    """Compute properties of the simulation's state.
 
     A compute is an operation which computes some property for another operation
     or use by a user.
@@ -403,7 +375,7 @@ class Compute(Operation):
 
 
 class Tuner(Operation):
-    """Base class for all HOOMD tuners.
+    """Adjust the parameters of other operations to improve performance.
 
     A tuner is an operation which tunes the parameters of another operation for
     performance or other reasons. A tuner does not modify the current microstate
@@ -415,3 +387,24 @@ class Tuner(Operation):
         for `isinstance` or `issubclass` checks.
     """
     pass
+
+
+class Integrator(Operation):
+    """Advance the simulation state forward one time step.
+
+    An integrator is the operation which evolves a simulation's state in time.
+    In `hoomd.hpmc`, integrators perform particle based Monte Carlo moves. In
+    `hoomd.md`, the `hoomd.md.Integrator` class organizes the forces, equations
+    of motion, and other factors of the given simulation.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
+
+    def _attach(self):
+        self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
+        super()._attach()
+
+        # The integrator has changed, update the number of DOF in all groups
+        self._simulation.state.update_group_dof()

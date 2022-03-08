@@ -1,8 +1,12 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Sphinx configuration."""
 
 import sys
 import os
 import sphinx
+import datetime
 
 sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
@@ -12,11 +16,6 @@ sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 sys.path.insert(0, os.path.abspath('..'))
 
 os.environ['SPHINX'] = '1'
-
-# TEMPORARY
-# TODO: remove this when 3.0 is closer to completion
-# stop warning about invalid references
-suppress_warnings = ['ref.any']
 
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
@@ -28,10 +27,11 @@ napoleon_include_special_with_doc = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
     'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
 }
 autodoc_docstring_signature = True
+autodoc_typehints_format = 'short'
 
 autodoc_mock_imports = [
     'hoomd._hoomd',
@@ -39,9 +39,8 @@ autodoc_mock_imports = [
     'hoomd.md._md',
     'hoomd.metal._metal',
     'hoomd.mpcd._mpcd',
-    'hoomd.dem._dem',
     'hoomd.minimize._minimize',
-    'hoomd.jit._jit',
+    'hoomd.hpmc._jit',
     'hoomd.hpmc._hpmc',
 ]
 
@@ -53,11 +52,12 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 project = 'HOOMD-blue'
-copyright = '2009-2021 The Regents of the University of Michigan'
+year = datetime.date.today().year
+copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.7'
-release = '3.0.0-beta.7'
+version = '3.0.0-beta.14'
+release = '3.0.0-beta.14'
 
 language = None
 
@@ -70,3 +70,31 @@ todo_include_todos = False
 html_theme = 'sphinx_rtd_theme'
 html_css_files = ['css/hoomd-theme.css']
 html_static_path = ['_static']
+
+IGNORE_MODULES = ['hoomd._hoomd']
+IGNORE_CLASSES = [
+    '_TunerProperty',
+    '_UpdaterProperty',
+    '_HOOMDGetSetAttrBase',
+    '_InternalCustomWriter',
+    '_WriterProperty',
+    '_HOOMDBaseObject',
+]
+
+
+def autodoc_process_bases(app, name, obj, options, bases):
+    """Ignore base classes from the '_hoomd' module."""
+    # bases must be modified in place. Assume that only one matching
+    # class is in the list
+    for i in range(len(bases)):
+        if bases[i].__module__ in IGNORE_MODULES:
+            del bases[i]
+            return
+        if bases[i].__name__ in IGNORE_CLASSES:
+            del bases[i]
+            return
+
+
+def setup(app):
+    """Configure the Sphinx app."""
+    app.connect('autodoc-process-bases', autodoc_process_bases)

@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -88,17 +91,19 @@ def test_setattr(full_op):
 
 def test_adding(full_op):
     assert not full_op._added
-    full_op._add(None)
+    # need a non-None dummy simulation 1 works
+    full_op._add(1)
     assert full_op._added
-    assert full_op._simulation is None
+    assert full_op._simulation == 1
     full_op._remove()
-    assert not hasattr(full_op, '_simulation')
+    assert full_op._simulation is None
 
 
 def test_apply_typeparam_dict(full_op):
     """Tests _apply_typeparam_dict and by necessity getattr."""
     full_op.type_param['A'] = dict(bar='world')
     full_op.type_param['B'] = dict(bar='hello')
+    full_op.type_param['C'] = dict(bar='hello world')
     cpp_obj = DummyCppObj()
     full_op._cpp_obj = cpp_obj
     full_op._apply_typeparam_dict(cpp_obj, DummySimulation())
@@ -119,8 +124,8 @@ def test_apply_param_dict(full_op):
 @fixture(scope='function')
 def attached(full_op):
     cp = deepcopy(full_op)
-    op = test_apply_param_dict(test_apply_typeparam_dict(cp))
-    op._add(None)
+    op = test_apply_param_dict(cp)
+    op._add(1)
     return op
 
 

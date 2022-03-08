@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
 #include "hoomd/VectorMath.h"
@@ -9,26 +7,21 @@
 #include <map>
 #include <sstream>
 #include <string.h>
-namespace py = pybind11;
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false),
-      m_global_max_d(0.0),
-#ifdef ENABLE_MPI
-      m_comm_ghost_layer_connected(false),
-#endif
-      m_global_max_d_changed(true)
+      m_global_max_d(0.0), m_global_max_d_changed(true)
     {
-    // connect to the ParticleData to receive notifications when the number of types changes
-    m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(
-        this);
-
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
 
@@ -68,22 +61,35 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
 
     m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        // register this class with the communicator
+        m_comm->getExtraGhostLayerWidthRequestSignal()
+            .connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        }
+#endif
     }
 
 //! Destructor
 ForceComposite::~ForceComposite()
     {
     // disconnect from signal in ParticleData;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
     m_pdata->getCompositeParticlesSignal()
         .disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 #ifdef ENABLE_MPI
-    if (m_comm_ghost_layer_connected)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getExtraGhostLayerWidthRequestSignal()
             .disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        }
 #endif
     }
 
@@ -131,7 +137,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     bool body_len_changed = false;
 
-    // detect if bodies have changed
+        // detect if bodies have changed
 
         {
         ArrayHandle<unsigned int> h_body_type(m_body_types,
@@ -265,38 +271,6 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
         }
 
     return d_max;
-    }
-
-void ForceComposite::slotNumTypesChange()
-    {
-    unsigned int old_ntypes = (unsigned int)m_body_len.getNumElements();
-    unsigned int new_ntypes = m_pdata->getNTypes();
-
-    size_t height = m_body_pos.getHeight();
-
-    // resize per-type arrays (2D)
-    m_body_types.resize(new_ntypes, height);
-    m_body_pos.resize(new_ntypes, height);
-    m_body_orientation.resize(new_ntypes, height);
-
-    m_body_charge.resize(new_ntypes);
-    m_body_diameter.resize(new_ntypes);
-
-    m_body_idx = Index2D((unsigned int)m_body_pos.getPitch(), (unsigned int)height);
-
-    m_body_len.resize(new_ntypes);
-
-    // reset newly added elements to zero
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
-    for (unsigned int i = old_ntypes; i < new_ntypes; ++i)
-        {
-        h_body_len.data[i] = 0;
-        }
-
-    m_d_max.resize(new_ntypes, Scalar(0.0));
-    m_d_max_changed.resize(new_ntypes, false);
-
-    m_body_max_diameter.resize(new_ntypes, 0.0);
     }
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
@@ -556,9 +530,12 @@ void ForceComposite::createRigidBodies()
         for (unsigned int particle_tag = 0; particle_tag < snap.size; ++particle_tag)
             {
             // Determine whether rigid bodies exist in the current system via the definitions of
-            // rigid bodies provided (i.e. if a non-zero length definitions was provided. We set
+            // rigid bodies provided (i.e. if a non-zero length definition was provided. We set
             // snap.body[i] = NO_BODY to prevent central particles from being removed in
             // initializeFromSnapshot if we must remove rigid bodies.
+            //
+            // Note that the body value is NO_BODY by default meaning that free particles will not
+            // be removed if remove_existing_bodies is true only existing bodies that have been set.
             if (snap.body[particle_tag] != NO_BODY)
                 {
                 if (h_body_len.data[snap.type[particle_tag]] == 0)
@@ -602,7 +579,6 @@ void ForceComposite::createRigidBodies()
         molecule_tag.resize(n_central_particles + n_constituent_particles, NO_MOLECULE);
 
         unsigned int constituent_particle_tag = n_without_constituent;
-        unsigned int central_particle_tag = 0;
         for (unsigned int particle_tag = 0; particle_tag < n_without_constituent; ++particle_tag)
             {
             assert(snap.type[particle_tag] < m_pdata->getNTypes());
@@ -614,10 +590,10 @@ void ForceComposite::createRigidBodies()
                 {
                 continue;
                 }
-            snap.body[central_particle_tag] = central_particle_tag;
-            molecule_tag[central_particle_tag] = central_particle_tag;
+            snap.body[particle_tag] = particle_tag;
+            molecule_tag[particle_tag] = particle_tag;
 
-            unsigned int body_type = snap.type[central_particle_tag];
+            unsigned int body_type = snap.type[particle_tag];
             unsigned int n_body_particles = h_body_len.data[body_type];
 
             for (unsigned int current_body_index = 0; current_body_index < n_body_particles;
@@ -627,20 +603,19 @@ void ForceComposite::createRigidBodies()
                 // Position and orientation are handled by updateCompositeParticles.
                 snap.type[constituent_particle_tag]
                     = h_body_type.data[m_body_idx(body_type, current_body_index)];
-                snap.body[constituent_particle_tag] = central_particle_tag;
+                snap.body[constituent_particle_tag] = particle_tag;
                 snap.charge[constituent_particle_tag]
                     = m_body_charge[body_type][current_body_index];
                 snap.diameter[constituent_particle_tag]
                     = m_body_diameter[body_type][current_body_index];
-                snap.pos[constituent_particle_tag] = snap.pos[central_particle_tag];
+                snap.pos[constituent_particle_tag] = snap.pos[particle_tag];
 
                 // Since the central particle tags here will be [0, n_central_particles), we know
                 // that the molecule number will be the same as the central particle tag.
-                molecule_tag[constituent_particle_tag] = central_particle_tag;
+                molecule_tag[constituent_particle_tag] = particle_tag;
 
                 ++constituent_particle_tag;
                 }
-            ++central_particle_tag;
             }
         }
 
@@ -1043,15 +1018,21 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         }
     }
 
-void export_ForceComposite(py::module& m)
+namespace detail
     {
-    py::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
+void export_ForceComposite(pybind11::module& m)
+    {
+    pybind11::class_<ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite>>(
         m,
         "ForceComposite")
-        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setBody", &ForceComposite::setBody)
         .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
         .def("createRigidBodies", &ForceComposite::createRigidBodies)
         .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

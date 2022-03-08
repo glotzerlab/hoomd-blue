@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -9,8 +7,6 @@
 
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
-
-namespace py = pybind11;
 
 #include <iostream>
 #include <stdexcept>
@@ -21,6 +17,10 @@ using namespace std;
     \brief Defines the NeighborList class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System the neighborlist is to compute neighbors for
     \param _r_cut Cutoff radius for all pairs under which particles are considered neighbors
     \param r_buff Buffer radius around \a r_cut in which neighbors will be included
@@ -41,8 +41,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     // r_buff must be non-negative or it is not physical
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error initializing NeighborList");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
 
     // initialize values
@@ -52,7 +51,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_rebuild_check_delay = 0;
     m_exclusions_set = false;
 
-    m_need_reallocate_exlist = false;
+    m_n_particles_changed = false;
 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
@@ -118,7 +117,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     TAG_ALLOCATION(m_nlist);
 
     // allocate head list indexer
-    GlobalArray<unsigned int> head_list(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<size_t> head_list(m_pdata->getMaxN(), m_exec_conf);
     m_head_list.swap(head_list);
     TAG_ALLOCATION(m_head_list);
 
@@ -127,7 +126,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_Nmax.swap(Nmax);
     TAG_ALLOCATION(m_Nmax);
 
-    // flood Nmax with 4s initially
+        // flood Nmax with 4s initially
         {
         ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::overwrite);
         for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
@@ -198,7 +197,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     TAG_ALLOCATION(m_ex_list_idx);
 
     // reset exclusions
-    clearExclusions();
+    resizeAndClearExclusions();
 
     m_ex_list_indexer = Index2D((unsigned int)m_ex_list_idx.getPitch(), 1);
     m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(), 1);
@@ -210,11 +209,32 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborList, &NeighborList::reallocate>(
         this);
 
-    // connect to type change to resize type data arrays
-    m_pdata->getNumTypesChangeSignal().connect<NeighborList, &NeighborList::reallocateTypes>(this);
-
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
+
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
 
     // connect locally to the rcut changing signal
     getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
@@ -227,6 +247,21 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+#endif
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        m_comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
+        m_comm->getCommFlagsRequestSignal()
+            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        m_comm->getGhostLayerWidthRequestSignal()
+            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
 #endif
     }
 
@@ -258,69 +293,6 @@ void NeighborList::reallocate()
     forceUpdate();
     }
 
-void NeighborList::reallocateTypes()
-    {
-    m_typpair_idx = Index2D(m_pdata->getNTypes());
-    m_r_cut.resize(m_typpair_idx.getNumElements());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_r_cut.get(),
-                      m_r_cut.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    m_rcut_max.resize(m_pdata->getNTypes());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_rcut_max.get(),
-                      m_rcut_max.getNumElements() * sizeof(Scalar),
-                      cudaMemAdviseSetReadMostly,
-                      0);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    m_r_listsq.resize(m_typpair_idx.getNumElements());
-    unsigned int old_ntypes = (unsigned int)m_Nmax.getNumElements();
-    m_Nmax.resize(m_pdata->getNTypes());
-
-    // flood Nmax with 4s initially
-        {
-        ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
-        for (unsigned int i = old_ntypes; i < m_pdata->getNTypes(); ++i)
-            {
-            h_Nmax.data[i] = 4;
-            }
-        }
-
-    m_conditions.resize(m_pdata->getNTypes());
-
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
-        {
-        // store in host memory for faster access from CPU
-        cudaMemAdvise(m_conditions.get(),
-                      m_conditions.getNumElements() * sizeof(unsigned int),
-                      cudaMemAdviseSetPreferredLocation,
-                      cudaCpuDeviceId);
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    resetConditions();
-
-    notifyRCutMatrixChange();
-    forceUpdate();
-    }
-
 NeighborList::~NeighborList()
     {
     m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
@@ -330,8 +302,33 @@ NeighborList::~NeighborList()
         this);
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
+
+    m_sysdef->getBondData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getAngleData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getDihedralData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getImproperData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getConstraintData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
+    m_sysdef->getPairData()
+        ->getGroupNumChangeSignal()
+        .disconnect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
+
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
         m_comm->getCommFlagsRequestSignal()
@@ -340,9 +337,6 @@ NeighborList::~NeighborList()
             .disconnect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
         }
 #endif
-
-    m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(
-        this);
 
     getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
@@ -363,8 +357,18 @@ void NeighborList::compute(uint64_t timestep)
     if (!shouldCompute(timestep) && !m_force_update)
         return;
 
-    if (m_prof)
-        m_prof->push("Neighbor");
+    // when the number of particles or bonds in the system changes, rebuild the exclusion list
+    if (m_n_particles_changed || m_topology_changed)
+        {
+        resizeAndClearExclusions();
+        m_n_particles_changed = false;
+        m_topology_changed = false;
+
+        for (const std::string& exclusion : m_exclusions)
+            {
+            setSingleExclusion(exclusion);
+            }
+        }
 
     // take care of some updates if things have changed since construction
     if (m_force_update)
@@ -406,8 +410,6 @@ void NeighborList::compute(uint64_t timestep)
         setLastUpdatedPos();
         m_has_been_updated_once = true;
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark
@@ -455,8 +457,7 @@ void NeighborList::setRBuff(Scalar r_buff)
     m_r_buff = r_buff;
     if (m_r_buff < 0.0)
         {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error changing NeighborList parameters");
+        throw runtime_error("Requested buffer radius is less than zero.");
         }
     notifyRCutMatrixChange();
     forceUpdate();
@@ -615,7 +616,7 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     m_exclusions_set = true;
 
@@ -672,10 +673,10 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 
 /*! \post No particles are excluded from the neighbor list
  */
-void NeighborList::clearExclusions()
+void NeighborList::resizeAndClearExclusions()
     {
     // reallocate list of exclusions per tag if necessary
-    if (m_need_reallocate_exlist)
+    if (m_n_particles_changed)
         {
         m_n_ex_tag.resize(m_pdata->getRTags().size());
 
@@ -687,8 +688,6 @@ void NeighborList::clearExclusions()
             m_ex_list_indexer_tag = Index2D((unsigned int)m_ex_list_tag.getPitch(),
                                             (unsigned int)m_ex_list_tag.getHeight());
             }
-
-        m_need_reallocate_exlist = false;
         }
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
@@ -724,7 +723,7 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
 
 void NeighborList::setExclusions(pybind11::list exclusions)
     {
-    clearExclusions();
+    resizeAndClearExclusions();
     setFilterBody(false);
     m_exclusions = set<std::string>();
     for (auto exclusion : exclusions)
@@ -795,7 +794,7 @@ void NeighborList::countExclusions()
     unsigned int excluded_count[MAX_COUNT_EXCLUDED + 2];
     unsigned int num_excluded, max_num_excluded;
 
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
 
@@ -1031,7 +1030,7 @@ void NeighborList::addExclusionsFromPairs()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
-    assert(!m_need_reallocate_exlist);
+    assert(!m_n_particles_changed);
 
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
@@ -1095,20 +1094,17 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            s << "Compile time maximum set to: " << MAXNBONDS - 1 << endl;
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1179,20 +1175,16 @@ void NeighborList::addOneFourExclusionsFromTopology()
 
         if (nBondsA >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagA << ".";
+            throw runtime_error(s.str());
             }
 
         if (nBondsB >= MAXNBONDS)
             {
-            m_exec_conf->msg->error()
-                << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB
-                << endl;
-            m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS - 1 << endl;
-            throw runtime_error("Error setting up topological exclusions in NeighborList");
+            std::ostringstream s;
+            s << "Too many bonds to process exclusions for particle with tag: " << tagB << ".";
+            throw runtime_error(s.str());
             }
 
         localBondList[tagA * MAXNBONDS + nBondsA] = tagB;
@@ -1244,10 +1236,6 @@ bool NeighborList::distanceCheck(uint64_t timestep)
     // sanity check
     assert(h_pos.data);
 
-    // profile
-    if (m_prof)
-        m_prof->push("Dist check");
-
     // temporary storage for the result
     bool result = false;
 
@@ -1295,8 +1283,6 @@ bool NeighborList::distanceCheck(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        if (m_prof)
-            m_prof->push("MPI allreduce");
         // check if migrate criterion is fulfilled on any rank
         int local_result = result ? 1 : 0;
         int global_result = 0;
@@ -1307,15 +1293,10 @@ bool NeighborList::distanceCheck(uint64_t timestep)
                       MPI_MAX,
                       m_exec_conf->getMPICommunicator());
         result = (global_result > 0);
-        if (m_prof)
-            m_prof->pop();
         }
 #endif
 
     // don't worry about computing flops here, this is fast
-    if (m_prof)
-        m_prof->pop();
-
     return result;
     }
 
@@ -1328,10 +1309,6 @@ void NeighborList::setLastUpdatedPos()
     // sanity check
     assert(h_pos.data);
 
-    // profile
-    if (m_prof)
-        m_prof->push("Dist check");
-
     // update the last position arrays
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -1343,9 +1320,6 @@ void NeighborList::setLastUpdatedPos()
     // update last box nearest plane distance
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 bool NeighborList::shouldCheckDistance(uint64_t timestep)
@@ -1477,8 +1451,7 @@ unsigned int NeighborList::getSmallestRebuild()
  */
 void NeighborList::buildNlist(uint64_t timestep)
     {
-    m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
-    throw runtime_error("Error updating neighborlist bins");
+    throw runtime_error("Not implemented.");
     }
 
 /*! Translates the exclusions set in \c m_n_ex_tag and \c m_ex_list_tag to indices in \c m_n_ex_idx
@@ -1486,10 +1459,7 @@ void NeighborList::buildNlist(uint64_t timestep)
  */
 void NeighborList::updateExListIdx()
     {
-    assert(!m_need_reallocate_exlist);
-
-    if (m_prof)
-        m_prof->push("update-ex");
+    assert(!m_n_particles_changed);
 
     // access data
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1524,20 +1494,14 @@ void NeighborList::updateExListIdx()
             h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! Loops through the neighbor list and filters out any excluded pairs
  */
 void NeighborList::filterNlist()
     {
-    if (m_prof)
-        m_prof->push("filter");
-
     // access data
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx,
                                             access_location::host,
@@ -1548,7 +1512,7 @@ void NeighborList::filterNlist()
     // for each particle's neighbor list
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
-        unsigned int myHead = h_head_list.data[idx];
+        size_t myHead = h_head_list.data[idx];
         unsigned int n_neigh = h_n_neigh.data[idx];
         unsigned int n_ex = h_n_ex_idx.data[idx];
         unsigned int new_n_neigh = 0;
@@ -1581,9 +1545,6 @@ void NeighborList::filterNlist()
         // update the number of neighbors
         h_n_neigh.data[idx] = new_n_neigh;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -1594,14 +1555,9 @@ void NeighborList::filterNlist()
  */
 void NeighborList::buildHeadList()
     {
-    if (m_prof)
-        m_prof->push("head-list");
-
-    unsigned int headAddress = 0;
+    size_t headAddress = 0;
         {
-        ArrayHandle<unsigned int> h_head_list(m_head_list,
-                                              access_location::host,
-                                              access_mode::overwrite);
+        ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
@@ -1618,9 +1574,6 @@ void NeighborList::buildHeadList()
         }
 
     resizeNlist(headAddress);
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -1699,36 +1652,13 @@ void NeighborList::growExclusionList()
     }
 
 #ifdef ENABLE_MPI
-//! Set the communicator to use
-void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    if (!m_comm)
-        {
-        // only add the migrate request on the first call
-        assert(comm);
-        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
-        comm->getCommFlagsRequestSignal()
-            .connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
-        comm->getGhostLayerWidthRequestSignal()
-            .connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
-        }
-
-    Compute::setCommunicator(comm);
-    }
-
 //! Returns true if the particle migration criterion is fulfilled
 /*! \note The criterion for when to request particle migration is the same as the one for neighbor
    list rebuilds, which is implemented in needsUpdating().
  */
 bool NeighborList::peekUpdate(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Neighbor");
-
     bool result = needsUpdating(timestep);
-
-    if (m_prof)
-        m_prof->pop();
 
     return result;
     }
@@ -1748,17 +1678,15 @@ void NeighborList::updateMemoryMapping()
         // stash this partition for the future, so we can unset hints again
         m_last_gpu_partition = gpu_partition;
 
-        // split preferred location of neighbor list across GPUs
+            // split preferred location of neighbor list across GPUs
             {
-            ArrayHandle<unsigned int> h_head_list(m_head_list,
-                                                  access_location::host,
-                                                  access_mode::read);
+            ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
 
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
                 auto range = gpu_partition.getRange(idev);
 
-                unsigned int start = h_head_list.data[range.first];
+                size_t start = h_head_list.data[range.first];
                 unsigned int end = (range.second == m_pdata->getN())
                                        ? m_nlist.getNumElements()
                                        : h_head_list.data[range.second];
@@ -1783,7 +1711,7 @@ void NeighborList::updateMemoryMapping()
                 continue;
 
             cudaMemAdvise(m_head_list.get() + range.first,
-                          sizeof(unsigned int) * nelem,
+                          sizeof(size_t) * nelem,
                           cudaMemAdviseSetPreferredLocation,
                           gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get() + range.first,
@@ -1797,7 +1725,7 @@ void NeighborList::updateMemoryMapping()
 
             // pin to that device by prefetching
             cudaMemPrefetchAsync(m_head_list.get() + range.first,
-                                 sizeof(unsigned int) * nelem,
+                                 sizeof(size_t) * nelem,
                                  gpu_map[idev]);
             cudaMemPrefetchAsync(m_n_neigh.get() + range.first,
                                  sizeof(unsigned int) * nelem,
@@ -1812,10 +1740,12 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
-void export_NeighborList(py::module& m)
+namespace detail
     {
-    py::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
-    nlist.def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_NeighborList(pybind11::module& m)
+    {
+    pybind11::class_<NeighborList, Compute, std::shared_ptr<NeighborList>> nlist(m, "NeighborList");
+    nlist.def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("buffer", &NeighborList::getRBuff, &NeighborList::setRBuff)
         .def_property("rebuild_check_delay",
                       &NeighborList::getRebuildCheckDelay,
@@ -1837,15 +1767,14 @@ void export_NeighborList(py::module& m)
         .def("estimateNNeigh", &NeighborList::estimateNNeigh)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
-        .def("getNumExclusions", &NeighborList::getNumExclusions)
-        .def("wantExclusions", &NeighborList::wantExclusions)
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &NeighborList::setCommunicator)
-#endif
-        ;
+        .def("getNumExclusions", &NeighborList::getNumExclusions);
 
-    py::enum_<NeighborList::storageMode>(nlist, "storageMode")
+    pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)
         .value("full", NeighborList::storageMode::full)
         .export_values();
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

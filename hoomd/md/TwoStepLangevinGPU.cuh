@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file TwoStepLangevinGPU.cuh
     \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
@@ -14,6 +12,12 @@
 #ifndef __TWO_STEP_LANGEVIN_GPU_CUH__
 #define __TWO_STEP_LANGEVIN_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Temporary holder struct to limit the number of arguments passed to gpu_langevin_step_two()
 struct langevin_step_two_args
     {
@@ -61,5 +65,9 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
                                          Scalar deltaT,
                                          unsigned int D,
                                          Scalar scale);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_LANGEVIN_GPU_CUH__

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -19,6 +19,8 @@
 // base data types
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -61,7 +63,7 @@ __global__ void hpmc_gen_moves(const Scalar4* d_postype,
     Scalar* s_d = (Scalar*)(s_params + num_types);
     Scalar* s_a = (Scalar*)(s_d + num_types);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -283,14 +285,11 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
     if (args.dim == 2)
         {
         // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static hipFuncAttributes attr;
-        if (max_block_size == -1)
-            {
-            hipFuncGetAttributes(&attr,
-                                 reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr,
+                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 2>));
+        max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -339,14 +338,11 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
     else
         {
         // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static hipFuncAttributes attr;
-        if (max_block_size == -1)
-            {
-            hipFuncGetAttributes(&attr,
-                                 reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
-            max_block_size = attr.maxThreadsPerBlock;
-            }
+        int max_block_size;
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr,
+                             reinterpret_cast<const void*>(kernel::hpmc_gen_moves<Shape, 3>));
+        max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
         // dynamic shared memory usage
@@ -399,14 +395,10 @@ template<class Shape>
 void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::param_type* params)
     {
     // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static hipFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        hipFuncGetAttributes(&attr,
-                             reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_update_pdata<Shape>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
     for (int idev = args.gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -441,3 +433,4 @@ void hpmc_update_pdata(const hpmc_update_args_t& args, const typename Shape::par
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

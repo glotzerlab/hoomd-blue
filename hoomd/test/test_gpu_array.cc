@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -13,9 +13,11 @@
 
 #ifdef ENABLE_HIP
 #include "test_gpu_array.cuh"
+using namespace hoomd::test;
 #endif
 
 using namespace std;
+using namespace hoomd;
 
 /*! \file gpu_array_test.cc
     \brief Implements unit tests for GPUArray and GPUVector
@@ -35,7 +37,7 @@ UP_TEST(GPUArray_basic_tests)
     // basic check: ensure that the number of elements is set correctly
     UP_ASSERT_EQUAL((int)gpu_array.getNumElements(), 100);
 
-    // basic check 2: acquire the data on the host and fill out a pattern
+        // basic check 2: acquire the data on the host and fill out a pattern
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);
@@ -43,7 +45,7 @@ UP_TEST(GPUArray_basic_tests)
             h_handle.data[i] = i;
         }
 
-    // basic check 3: verify the data set in check 2
+        // basic check 3: verify the data set in check 2
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::read);
         UP_ASSERT(h_handle.data != NULL);
@@ -96,7 +98,7 @@ UP_TEST(GPUArray_transfer_tests)
 
     GPUArray<int> gpu_array(100, exec_conf);
 
-    // initialize the data on the device
+        // initialize the data on the device
         {
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         UP_ASSERT(d_handle.data != NULL);
@@ -106,7 +108,7 @@ UP_TEST(GPUArray_transfer_tests)
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
-    // copy it to the host and verify
+        // copy it to the host and verify
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);
@@ -118,8 +120,8 @@ UP_TEST(GPUArray_transfer_tests)
             }
         }
 
-    // data has been overwritten on the host. Increment it on the device in overwrite mode
-    // and verify that the data was not copied from the host to device
+        // data has been overwritten on the host. Increment it on the device in overwrite mode
+        // and verify that the data was not copied from the host to device
         {
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::overwrite);
         UP_ASSERT(d_handle.data != NULL);
@@ -129,7 +131,7 @@ UP_TEST(GPUArray_transfer_tests)
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
-    // copy it back to the host and verify
+        // copy it back to the host and verify
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);
@@ -141,9 +143,9 @@ UP_TEST(GPUArray_transfer_tests)
             }
         }
 
-    // access it on the device in read only mode, but be a bad boy and overwrite the data
-    // the verify on the host should then still show the overwritten data as the internal state
-    // should still be hostdevice and not copy the data back from the device
+        // access it on the device in read only mode, but be a bad boy and overwrite the data
+        // the verify on the host should then still show the overwritten data as the internal state
+        // should still be hostdevice and not copy the data back from the device
         {
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::read);
         UP_ASSERT(d_handle.data != NULL);
@@ -162,7 +164,7 @@ UP_TEST(GPUArray_transfer_tests)
             }
         }
 
-    // finally, test host-> device copies
+        // finally, test host-> device copies
         {
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         UP_ASSERT(d_handle.data != NULL);
@@ -172,7 +174,7 @@ UP_TEST(GPUArray_transfer_tests)
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
-    // via the read access mode
+        // via the read access mode
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::read);
         UP_ASSERT(h_handle.data != NULL);
@@ -191,7 +193,7 @@ UP_TEST(GPUArray_transfer_tests)
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
-    // and via the readwrite access mode
+        // and via the readwrite access mode
         {
         ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
         UP_ASSERT(h_handle.data != NULL);
@@ -410,5 +412,44 @@ UP_TEST(GPUVector_basic_tests)
     UP_ASSERT_EQUAL((unsigned int)vec[7], (unsigned int)678);
     UP_ASSERT_EQUAL((unsigned int)vec[8], (unsigned int)987);
     UP_ASSERT_EQUAL((unsigned int)vec[9], (unsigned int)890);
+
+    // test assignment operator
+    GPUVector<unsigned int> v;
+    v = vec;
+    UP_ASSERT_EQUAL(v.size(), static_cast<unsigned int>(10));
+    UP_ASSERT_EQUAL((unsigned int)v[0], (unsigned int)234);
+    UP_ASSERT_EQUAL((unsigned int)v[1], (unsigned int)123);
+    UP_ASSERT_EQUAL((unsigned int)v[2], (unsigned int)654);
+    UP_ASSERT_EQUAL((unsigned int)v[3], (unsigned int)789);
+    UP_ASSERT_EQUAL((unsigned int)v[4], (unsigned int)321);
+    UP_ASSERT_EQUAL((unsigned int)v[5], (unsigned int)432);
+    UP_ASSERT_EQUAL((unsigned int)v[6], (unsigned int)543);
+    UP_ASSERT_EQUAL((unsigned int)v[7], (unsigned int)678);
+    UP_ASSERT_EQUAL((unsigned int)v[8], (unsigned int)987);
+    UP_ASSERT_EQUAL((unsigned int)v[9], (unsigned int)890);
+    UP_ASSERT(static_cast<bool>(v.getExecutionConfiguration()));
+
+    // test move assignment
+    v = std::move(GPUVector<unsigned int>(
+        5,
+        2,
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU)));
+    UP_ASSERT_EQUAL(v.size(), static_cast<unsigned int>(5));
+    UP_ASSERT_EQUAL((unsigned int)v[0], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[1], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[2], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[3], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)v[4], (unsigned int)2);
+
+    // test move constructor
+    GPUVector<unsigned int> v2 = std::move(GPUVector<unsigned int>(
+        4,
+        3,
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU)));
+    UP_ASSERT_EQUAL(v2.size(), static_cast<unsigned int>(4));
+    UP_ASSERT_EQUAL((unsigned int)v2[0], (unsigned int)3);
+    UP_ASSERT_EQUAL((unsigned int)v2[1], (unsigned int)3);
+    UP_ASSERT_EQUAL((unsigned int)v2[2], (unsigned int)3);
+    UP_ASSERT_EQUAL((unsigned int)v2[3], (unsigned int)3);
     }
 #endif

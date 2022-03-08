@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Citing HOOMD-blue
 ===================
 
@@ -21,7 +24,7 @@ HPMC:
 Implicit depletants in HPMC:
     J. Glaser, A. S. Karas, and S. C. Glotzer. A parallel algorithm for implicit
     depletant simulations The Journal of Chemical Physics 143: 184110, 2015.
-    `10.1063/1.4935175 <10.1063/1.4935175>`_
+    `10.1063/1.4935175 <https://dx.doi.org/10.1063/1.4935175>`_
 
 MPI scaling:
     J. Glaser, T. D. Nguyen, J. A. Anderson, P. Lui, F. Spiga, J. A. Millan,

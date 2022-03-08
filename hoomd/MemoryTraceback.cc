@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MemoryTraceback.cc
     \brief Implements a class to track memory allocations
@@ -19,6 +17,8 @@
 //! Maximum number of symbols to trace back
 #define MAX_TRACEBACK 4
 
+namespace hoomd
+    {
 void MemoryTraceback::registerAllocation(const void* ptr,
                                          size_t nbytes,
                                          const std::string& type_hint,
@@ -32,7 +32,7 @@ void MemoryTraceback::registerAllocation(const void* ptr,
     m_tags[idx] = tag;
 
     // obtain a traceback
-    int num_symbols = backtrace(&m_traces[idx].front(), MAX_TRACEBACK);
+    auto num_symbols = backtrace(&m_traces[idx].front(), MAX_TRACEBACK);
 
     m_traces[idx].resize(num_symbols);
     }
@@ -151,3 +151,5 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
         free(symbols);
         }
     }
+
+    } // end namespace hoomd

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDMath.h"
 
@@ -24,6 +24,8 @@
     @{
 */
 
+namespace hoomd
+    {
 /////////////////////////////// vec3 ///////////////////////////////////
 
 //! 3 element vector
@@ -34,10 +36,6 @@
    easier. These include basic element-wise addition, subtraction, division, and multiplication (and
    += -= *= /=), and similarly division, and multiplication by scalars, and negation. The dot and
    cross product are also defined.
-
-    \note Operations like normalize, length, etc... are purposefully **NOT** defined. These hide a
-   sqrt. In high performance code, it is good for the programmer to have to explicitly call
-   expensive operations.
 */
 template<class Real> struct vec3
     {
@@ -67,6 +65,58 @@ template<class Real> struct vec3
 
     //! Implicit cast from vec3<float> to the current Real
     DEVICE vec3(const vec3<float>& a) : x(a.x), y(a.y), z(a.z) { }
+
+    DEVICE Real& operator[](unsigned int i)
+        {
+        switch (i)
+            {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
+#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
+            // This branch should not be reached, but must include something to avoid
+            // compiler warnings on the GPU and it must be something that can be returned by
+            // reference, so x is as good a choice as any.
+            return x;
+#else
+            // On the CPU we throw an error to help with debugging any errors in use of the
+            // code.
+            throw std::invalid_argument(
+                "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+#endif
+            }
+        }
+
+    DEVICE const Real operator[](unsigned int i) const
+        {
+        switch (i)
+            {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
+#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
+            // This branch should not be reached, but must include something to avoid
+            // compiler warnings on the GPU and returning x matches the non-const version of the
+            // operator.
+            return x;
+#else
+            // On the CPU we throw an error to help with debugging any errors in use of the
+            // code.
+            throw std::invalid_argument(
+                "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+#endif
+            }
+        }
 
     //! Default construct a 0 vector
     DEVICE vec3() : x(0), y(0), z(0) { }
@@ -320,6 +370,17 @@ template<class Real> DEVICE inline vec3<Real> cross(const vec3<Real>& a, const v
     return vec3<Real>(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 
+/// Normalize the vector
+/*! \param a Vector
+
+    \returns A normal vector in the direction of *a*.
+*/
+template<class Real> DEVICE inline vec3<Real> normalize(const vec3<Real>& a)
+    {
+    Real inverse_norm = fast::rsqrt(dot(a, a));
+    return a * inverse_norm;
+    }
+
 //! Convenience function for converting a vec3 to a Scalar3
 DEVICE inline Scalar3 vec_to_scalar3(const vec3<Scalar>& a)
     {
@@ -334,7 +395,7 @@ DEVICE inline Scalar4 vec_to_scalar4(const vec3<Scalar>& a, Scalar w)
 
 /////////////////////////////// vec2 ///////////////////////////////////
 
-//! 3 element vector
+//! 2 element vector
 /*! \tparam Real Data type of the components
 
     vec2 defines a simple 2 element vector. The components are available publicly as .x and .y.
@@ -342,10 +403,6 @@ DEVICE inline Scalar4 vec_to_scalar4(const vec3<Scalar>& a, Scalar w)
    easier. These include basic element-wise addition, subtraction, division, and multiplication (and
    += -= *= /=), and similarly division, and multiplication by scalars, and negation. The dot
    product is also defined.
-
-    \note Operations like normalize, length, etc... are purposefully **NOT** defined. These hide a
-   sqrt. In high performance code, it is good for the programmer to have to explicitly call
-   expensive operations.
 */
 template<class Real> struct vec2
     {
@@ -608,6 +665,17 @@ template<class Real> DEVICE inline vec2<Real> perp(const vec2<Real>& a)
 template<class Real> DEVICE inline Real perpdot(const vec2<Real>& a, const vec2<Real>& b)
     {
     return dot(perp(a), b);
+    }
+
+/// Normalize the vector
+/*! \param a Vector
+
+    \returns A normal vector in the direction of *a*.
+*/
+template<class Real> DEVICE inline vec2<Real> normalize(const vec2<Real>& a)
+    {
+    Real inverse_norm = fast::rsqrt(dot(a, a));
+    return a * inverse_norm;
     }
 
 template<class Real> struct rotmat3;
@@ -1177,5 +1245,7 @@ template<class Vec> DEVICE inline Vec project(const Vec& a, const Vec& b)
 /*! @}*/
 
 #undef DEVICE
+
+    } // end namespace hoomd
 
 #endif //__VECTOR_MATH_H__

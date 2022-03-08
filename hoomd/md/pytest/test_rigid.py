@@ -1,11 +1,21 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from collections.abc import Sequence
 
 import numpy as np
 import pytest
-import rowan
+
+try:
+    import rowan
+    skip_rowan = False
+except ImportError:
+    skip_rowan = True
 
 import hoomd
 import hoomd.md as md
+
+skip_rowan = pytest.mark.skipif(skip_rowan, reason="rowan cannot be imported.")
 
 
 @pytest.fixture
@@ -113,8 +123,9 @@ def check_bodies(snapshot, definition):
                           definition["orientations"][i])
 
 
+@skip_rowan
 def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
-                       valid_body_definition):
+                       lattice_snapshot_factory, valid_body_definition):
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
 
@@ -124,9 +135,48 @@ def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
     sim = simulation_factory(initial_snapshot)
 
     rigid.create_bodies(sim.state)
-    snapshot = sim.state.snapshot
+    snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, rigid=rigid)
+    # Ensure validate bodies passes
+    sim.run(0)
+
+    # Second test with more general testing
+    # detach rigid
+    sim.operations.integrator.rigid = None
+
+    initial_snapshot = lattice_snapshot_factory(n=10)
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.types = ["C", "A", "B"]
+        # Grab the middle particles and a random one to ensure that particle
+        # type ordering with respect to particle tag does not matter for
+        # create_bodies.
+        initial_snapshot.particles.typeid[100:800] = 1
+        initial_snapshot.particles.typeid[55] = 1
+
+    sim = simulation_factory(initial_snapshot)
+    rigid.create_bodies(sim.state)
+    snapshot = sim.state.get_snapshot()
+    if snapshot.communicator.rank == 0:
+        # Check central particles
+        central_tags = np.empty(701, dtype=int)
+        central_tags[0] = 55
+        central_tags[1:] = np.arange(100, 800)
+        print
+        assert np.all(snapshot.particles.body[central_tags] == central_tags)
+        # Check free bodies
+        assert np.all(snapshot.particles.body[:55] == -1)
+        assert np.all(snapshot.particles.body[56:100] == -1)
+        assert np.all(snapshot.particles.body[800:1000] == -1)
+        # Check constituent_particles
+        assert np.all(
+            snapshot.particles.body[1000:] == np.repeat(central_tags, 4))
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005, rigid=rigid)
+    # Ensure validate bodies passes
+    sim.run(0)
 
 
 def test_attaching(simulation_factory, two_particle_snapshot_factory,
@@ -158,6 +208,7 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
 def test_error_on_invalid_body(simulation_factory,
                                two_particle_snapshot_factory,
                                valid_body_definition):
+    """Tests that Simulation fails when bodies are not present in state."""
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
@@ -174,12 +225,13 @@ def test_error_on_invalid_body(simulation_factory,
         sim.run(0)
 
 
+@skip_rowan
 def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
                             valid_body_definition):
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
@@ -196,7 +248,7 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     rigid.create_bodies(sim.state)
     sim.operations += integrator
     sim.run(5)
-    snapshot = sim.state.snapshot
+    snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
 
@@ -205,7 +257,7 @@ def test_running_without_body_definition(simulation_factory,
                                          two_particle_snapshot_factory):
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
@@ -227,9 +279,10 @@ def test_running_without_body_definition(simulation_factory,
 def test_setting_body_after_attaching(simulation_factory,
                                       two_particle_snapshot_factory,
                                       valid_body_definition):
+    """Test updating body definition without updating sim particles fails."""
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}

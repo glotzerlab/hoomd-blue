@@ -1,13 +1,15 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.h"
 
 #ifdef ENABLE_HIP
 #include "PPPMForceComputeGPU.cuh"
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef The system definition
     \param nlist Neighbor list
     \param group Particle group to apply forces to
@@ -292,9 +294,6 @@ void PPPMForceComputeGPU::initializeFFT()
  */
 void PPPMForceComputeGPU::assignParticles()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "assign");
-
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::read);
@@ -318,22 +317,22 @@ void PPPMForceComputeGPU::assignParticles()
     m_tuner_assign->begin();
     unsigned int block_size = m_tuner_assign->getParam();
 
-    gpu_assign_particles(m_mesh_points,
-                         m_n_ghost_cells,
-                         m_grid_dim,
-                         group_size,
-                         d_index_array.data,
-                         d_postype.data,
-                         d_charge.data,
-                         d_mesh.data,
-                         d_mesh_scratch.data,
-                         (unsigned int)m_mesh.getNumElements(),
-                         m_order,
-                         m_pdata->getBox(),
-                         block_size,
-                         d_rho_coeff.data,
-                         m_exec_conf->dev_prop,
-                         m_group->getGPUPartition());
+    kernel::gpu_assign_particles(m_mesh_points,
+                                 m_n_ghost_cells,
+                                 m_grid_dim,
+                                 group_size,
+                                 d_index_array.data,
+                                 d_postype.data,
+                                 d_charge.data,
+                                 d_mesh.data,
+                                 d_mesh_scratch.data,
+                                 (unsigned int)m_mesh.getNumElements(),
+                                 m_order,
+                                 m_pdata->getBox(),
+                                 block_size,
+                                 d_rho_coeff.data,
+                                 m_exec_conf->dev_prop,
+                                 m_group->getGPUPartition());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -344,27 +343,22 @@ void PPPMForceComputeGPU::assignParticles()
     if (m_exec_conf->getNumActiveGPUs() > 1)
         {
         m_tuner_reduce_mesh->begin();
-        gpu_reduce_meshes((unsigned int)m_mesh.getNumElements(),
-                          d_mesh_scratch.data,
-                          d_mesh.data,
-                          m_exec_conf->getNumActiveGPUs(),
-                          m_tuner_reduce_mesh->getParam());
+        kernel::gpu_reduce_meshes((unsigned int)m_mesh.getNumElements(),
+                                  d_mesh_scratch.data,
+                                  d_mesh.data,
+                                  m_exec_conf->getNumActiveGPUs(),
+                                  m_tuner_reduce_mesh->getParam());
         m_tuner_reduce_mesh->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void PPPMForceComputeGPU::updateMeshes()
     {
     if (m_local_fft)
         {
-        if (m_prof)
-            m_prof->push(m_exec_conf, "FFT");
         // locally transform the particle mesh
         ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
 
@@ -373,24 +367,16 @@ void PPPMForceComputeGPU::updateMeshes()
 #else
         CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan, d_mesh.data, d_mesh.data, CUFFT_FORWARD));
 #endif
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
         }
 #ifdef ENABLE_MPI
     else
         {
         // update inner cells of particle mesh
-        if (m_prof)
-            m_prof->push(m_exec_conf, "ghost cell update");
         m_exec_conf->msg->notice(8) << "charge.pppm: Ghost cell update" << std::endl;
         m_gpu_grid_comm_forward->communicate(m_mesh);
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
 
         // perform a distributed FFT
         m_exec_conf->msg->notice(8) << "charge.pppm: Distributed FFT mesh" << std::endl;
-        if (m_prof)
-            m_prof->push(m_exec_conf, "FFT");
 #ifndef USE_HOST_DFFT
         ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
 
@@ -411,15 +397,8 @@ void PPPMForceComputeGPU::updateMeshes()
                      0,
                      m_dfft_plan_forward);
 #endif
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
         }
 #endif
-
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "update");
-        }
 
         {
         ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::readwrite);
@@ -438,29 +417,23 @@ void PPPMForceComputeGPU::updateMeshes()
 
         unsigned int block_size = m_tuner_update->getParam();
         m_tuner_update->begin();
-        gpu_update_meshes(m_n_inner_cells,
-                          d_mesh.data + m_ghost_offset,
-                          d_inv_fourier_mesh_x.data + m_ghost_offset,
-                          d_inv_fourier_mesh_y.data + m_ghost_offset,
-                          d_inv_fourier_mesh_z.data + m_ghost_offset,
-                          d_inf_f.data,
-                          d_k.data,
-                          m_global_dim.x * m_global_dim.y * m_global_dim.z,
-                          block_size);
+        kernel::gpu_update_meshes(m_n_inner_cells,
+                                  d_mesh.data + m_ghost_offset,
+                                  d_inv_fourier_mesh_x.data + m_ghost_offset,
+                                  d_inv_fourier_mesh_y.data + m_ghost_offset,
+                                  d_inv_fourier_mesh_z.data + m_ghost_offset,
+                                  d_inf_f.data,
+                                  d_k.data,
+                                  m_global_dim.x * m_global_dim.y * m_global_dim.z,
+                                  block_size);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_update->end();
         }
 
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
     if (m_local_fft)
         {
-        if (m_prof)
-            m_prof->push(m_exec_conf, "FFT");
-
         // do local inverse transform of all three components of the force mesh
         ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
                                                         access_location::device,
@@ -504,16 +477,10 @@ void PPPMForceComputeGPU::updateMeshes()
                                         CUFFT_INVERSE));
 #endif
         m_exec_conf->endMultiGPU();
-
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
         }
 #ifdef ENABLE_MPI
     else
         {
-        if (m_prof)
-            m_prof->push(m_exec_conf, "FFT");
-
         // Distributed inverse transform of force mesh
         m_exec_conf->msg->notice(8) << "charge.pppm: Distributed iFFT" << std::endl;
 #ifndef USE_HOST_DFFT
@@ -567,8 +534,6 @@ void PPPMForceComputeGPU::updateMeshes()
                      1,
                      m_dfft_plan_inverse);
 #endif
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
         }
 #endif
 
@@ -577,23 +542,16 @@ void PPPMForceComputeGPU::updateMeshes()
         {
         // update outer cells of inverse Fourier meshes using ghost cells from neighboring
         // processors
-        if (m_prof)
-            m_prof->push(m_exec_conf, "ghost cell update");
         m_exec_conf->msg->notice(8) << "charge.pppm: Ghost cell update" << std::endl;
         m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_x);
         m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_y);
         m_gpu_grid_comm_reverse->communicate(m_inv_fourier_mesh_z);
-        if (m_prof)
-            m_prof->pop();
         }
 #endif
     }
 
 void PPPMForceComputeGPU::interpolateForces()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "forces");
-
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::read);
@@ -622,40 +580,34 @@ void PPPMForceComputeGPU::interpolateForces()
 
     unsigned int block_size = m_tuner_force->getParam();
     m_tuner_force->begin();
-    gpu_compute_forces(m_pdata->getN(),
-                       d_postype.data,
-                       d_force.data,
-                       d_inv_fourier_mesh_x.data,
-                       d_inv_fourier_mesh_y.data,
-                       d_inv_fourier_mesh_z.data,
-                       m_grid_dim,
-                       m_n_ghost_cells,
-                       d_charge.data,
-                       m_pdata->getBox(),
-                       m_order,
-                       d_index_array.data,
-                       m_group->getGPUPartition(),
-                       m_pdata->getGPUPartition(),
-                       d_rho_coeff.data,
-                       block_size,
-                       m_local_fft,
-                       m_n_cells + m_ghost_offset);
+    kernel::gpu_compute_forces(m_pdata->getN(),
+                               d_postype.data,
+                               d_force.data,
+                               d_inv_fourier_mesh_x.data,
+                               d_inv_fourier_mesh_y.data,
+                               d_inv_fourier_mesh_z.data,
+                               m_grid_dim,
+                               m_n_ghost_cells,
+                               d_charge.data,
+                               m_pdata->getBox(),
+                               m_order,
+                               d_index_array.data,
+                               m_group->getGPUPartition(),
+                               m_pdata->getGPUPartition(),
+                               d_rho_coeff.data,
+                               block_size,
+                               m_local_fft,
+                               m_n_cells + m_ghost_offset);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_force->end();
 
     m_exec_conf->endMultiGPU();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void PPPMForceComputeGPU::computeVirial()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "virial");
-
     ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
     ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
@@ -672,13 +624,13 @@ void PPPMForceComputeGPU::computeVirial()
         }
 #endif
 
-    gpu_compute_mesh_virial(m_n_inner_cells,
-                            d_mesh.data + m_ghost_offset,
-                            d_inf_f.data,
-                            d_virial_mesh.data,
-                            d_k.data,
-                            exclude_dc,
-                            m_kappa);
+    kernel::gpu_compute_mesh_virial(m_n_inner_cells,
+                                    d_mesh.data + m_ghost_offset,
+                                    d_inf_f.data,
+                                    d_virial_mesh.data,
+                                    d_k.data,
+                                    exclude_dc,
+                                    m_kappa);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -691,11 +643,11 @@ void PPPMForceComputeGPU::computeVirial()
                                                  access_location::device,
                                                  access_mode::overwrite);
 
-        gpu_compute_virial(m_n_inner_cells,
-                           d_sum_virial_partial.data,
-                           d_sum_virial.data,
-                           d_virial_mesh.data,
-                           m_block_size);
+        kernel::gpu_compute_virial(m_n_inner_cells,
+                                   d_sum_virial_partial.data,
+                                   d_sum_virial.data,
+                                   d_virial_mesh.data,
+                                   m_block_size);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -708,16 +660,10 @@ void PPPMForceComputeGPU::computeVirial()
 
     for (unsigned int i = 0; i < 6; ++i)
         m_external_virial[i] = Scalar(0.5) * V * scale * scale * h_sum_virial.data[i];
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 Scalar PPPMForceComputeGPU::computePE()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "sum");
-
     ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
 
@@ -734,14 +680,14 @@ Scalar PPPMForceComputeGPU::computePE()
         }
 #endif
 
-    gpu_compute_pe(m_n_inner_cells,
-                   d_sum_partial.data,
-                   m_sum.getDeviceFlags(),
-                   d_mesh.data + m_ghost_offset,
-                   d_inf_f.data,
-                   m_block_size,
-                   m_mesh_points,
-                   exclude_dc);
+    kernel::gpu_compute_pe(m_n_inner_cells,
+                           d_sum_partial.data,
+                           m_sum.getDeviceFlags(),
+                           d_mesh.data + m_ghost_offset,
+                           d_inf_f.data,
+                           m_block_size,
+                           m_mesh_points,
+                           exclude_dc);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -783,18 +729,12 @@ Scalar PPPMForceComputeGPU::computePE()
         }
 #endif
 
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
     return sum;
     }
 
 //! Compute the optimal influence function
 void PPPMForceComputeGPU::computeInfluenceFunction()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "influence function");
-
     ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::overwrite);
 
@@ -817,35 +757,29 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
 
     unsigned int block_size = m_tuner_influence->getParam();
     m_tuner_influence->begin();
-    gpu_compute_influence_function(m_mesh_points,
-                                   global_dim,
-                                   d_inf_f.data,
-                                   d_k.data,
-                                   m_pdata->getGlobalBox(),
-                                   m_local_fft,
-                                   pidx,
-                                   pdim,
-                                   EPS_HOC,
-                                   m_kappa,
-                                   m_alpha,
-                                   d_gf_b.data,
-                                   m_order,
-                                   block_size);
+    kernel::gpu_compute_influence_function(m_mesh_points,
+                                           global_dim,
+                                           d_inf_f.data,
+                                           d_k.data,
+                                           m_pdata->getGlobalBox(),
+                                           m_local_fft,
+                                           pidx,
+                                           pdim,
+                                           EPS_HOC,
+                                           m_kappa,
+                                           m_alpha,
+                                           d_gf_b.data,
+                                           m_order,
+                                           block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_influence->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void PPPMForceComputeGPU::fixExclusions()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "fix exclusions");
-
     ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(),
                                        access_location::device,
                                        access_mode::read);
@@ -869,37 +803,40 @@ void PPPMForceComputeGPU::fixExclusions()
 
     Index2D nex = m_nlist->getExListIndexer();
 
-    gpu_fix_exclusions(d_force.data,
-                       d_virial.data,
-                       m_virial.getPitch(),
-                       m_pdata->getN() + m_pdata->getNGhosts(),
-                       d_postype.data,
-                       d_charge.data,
-                       m_pdata->getBox(),
-                       d_n_ex.data,
-                       d_exlist.data,
-                       nex,
-                       m_kappa,
-                       m_alpha,
-                       d_index_array.data,
-                       group_size,
-                       m_block_size);
+    kernel::gpu_fix_exclusions(d_force.data,
+                               d_virial.data,
+                               m_virial.getPitch(),
+                               m_pdata->getN() + m_pdata->getNGhosts(),
+                               d_postype.data,
+                               d_charge.data,
+                               m_pdata->getBox(),
+                               d_n_ex.data,
+                               d_exlist.data,
+                               nex,
+                               m_kappa,
+                               m_alpha,
+                               d_index_array.data,
+                               group_size,
+                               m_block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_PPPMForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<PPPMForceComputeGPU, PPPMForceCompute, std::shared_ptr<PPPMForceComputeGPU>>(
+void export_PPPMForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<PPPMForceComputeGPU, PPPMForceCompute, std::shared_ptr<PPPMForceComputeGPU>>(
         m,
         "PPPMForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<NeighborList>,
-                      std::shared_ptr<ParticleGroup>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<NeighborList>,
+                            std::shared_ptr<ParticleGroup>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

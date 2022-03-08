@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -22,6 +22,8 @@
 #endif
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -381,7 +383,7 @@ struct ShapeConvexPolygon
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB
         // detail::SupportFuncConvexPolygon sfunc(verts);
@@ -400,9 +402,9 @@ struct ShapeConvexPolygon
         // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, 0.1);
         // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, -0.1);
 
-        // return detail::AABB(lower, upper);
+        // return hoomd::detail::AABB(lower, upper);
         // ^^^^^^^^^^ The above method is slow, just use the bounding sphere
-        return detail::AABB(pos, verts.diameter / Scalar(2));
+        return hoomd::detail::AABB(pos, verts.diameter / Scalar(2));
         }
 
     /// Return a tight fitting OBB around the shape
@@ -629,7 +631,7 @@ template<> inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
     }
 #endif
 
-    }; // end namespace hpmc
-
+    } // end namespace hpmc
+    } // end namespace hoomd
 #undef DEVICE
 #undef HOSTDEVICE

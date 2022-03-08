@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Table."""
 
@@ -16,6 +15,7 @@ from hoomd.logging import LoggerCategories, Logger
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.util import dict_flatten
+from hoomd.custom import Action
 
 
 class _OutputWriter(metaclass=ABCMeta):
@@ -104,10 +104,10 @@ class _Formatter:
         else:
             # The minimum length representation if greater than one than the
             # smallest representation is to write the number without any
-            # infomration past the decimal point. For values less than 1 the
+            # information past the decimal point. For values less than 1 the
             # smallest is 0.xxx. The plus one is for the decimal point. We
             # already attempt to print out as many decimal points as possible so
-            # we only need to determine the minumum size to the left of the
+            # we only need to determine the minimum size to the left of the
             # decimal point including the decimal point.
             min_len_repr = int(log10(max(abs(value), 1))) + 1
             if value < 0:
@@ -143,6 +143,15 @@ class _Formatter:
         else:
             return self._str_format.format(value, width=column_width)
 
+    def __eq__(self, other):
+        if not isinstance(other, _Formatter):
+            return NotImplemented
+        return (self.pretty == other.pretty
+                and self.precision == other.precision
+                and self.max_decimals_pretty == other.max_decimals_pretty
+                and self._num_format == other._num_format
+                and self._str_format == other._str_format)
+
 
 class _TableInternal(_InternalAction):
     """Implements the logic for a simple text based logger backend.
@@ -157,6 +166,13 @@ class _TableInternal(_InternalAction):
         'sequence', 'object', 'particle', 'bond', 'angle', 'dihedral',
         'improper', 'pair', 'constraint', 'strings'
     ])
+
+    flags = [
+        Action.Flags.ROTATIONAL_KINETIC_ENERGY, Action.Flags.PRESSURE_TENSOR,
+        Action.Flags.EXTERNAL_FIELD_VIRIAL
+    ]
+
+    _skip_for_equality = {"_comm"}
 
     def __init__(self,
                  logger,
@@ -226,7 +242,7 @@ class _TableInternal(_InternalAction):
         This function could be made simpler and faster by moving some of the
         transformation to act. Since we don't expect the headers to change often
         however, this would likely slow the writer down. The design is to
-        off-load any potnentially unnecessary calculations to this function even
+        off-load any potentially unnecessary calculations to this function even
         if that means more overall computation when headers change.
         """
         header_output_list = []
@@ -296,8 +312,8 @@ class _TableInternal(_InternalAction):
             param_dict = ParameterDict()
             param_dict.update(state['_param_dict'])
             state['_param_dict'] = param_dict
-            del state['_param_dict']['output']
-            state['_param_dict']['output'] = None
+            state['_param_dict']._dict['output'] = None
+            state['_param_dict']['output']
             return state
         else:
             return super().__getstate__()
@@ -312,41 +328,41 @@ class _TableInternal(_InternalAction):
 
 
 class Table(_InternalCustomWriter):
-    """A delimiter separated value file backend for a Logger.
+    """Write delimiter separated values to a stream.
 
-    This can serve as a way to output scalar simulation data to standard out.
-    However, this is useable to store simulation scalar data to a file as well.
+    Use `Table` to write scalar and string `hoomd.logging.Logger` quantities to
+    standard out or to a file.
 
-    Note:
-        This only works with scalar and string quantities. If using string
-        quantities, keep in mind that the default space delimiter will make
-        strings with spaces in them will cause read errors if attempting to read
-        the outputed data with a space delimited file reader.
+    Warning:
+        When logger quantities include strings with spaces, the default space
+        delimiter will result in files that are not machine readable.
 
-    Note:
+    Important:
         All attributes for this class are static. They cannot be set to new
         values once created.
 
     Args:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-            the Table back end.
+            the Table backend.
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
         output (``file-like`` object , optional): A file-like object to output
-            the data from, defaults to standard out. The object must have write
-            and flush methods and a mode attribute.
+            the data from, defaults to standard out. The object must have
+            ``write`` and ``flush`` methods and a ``mode`` attribute. Examples
+            include `sys.stdout`, `sys.stderr` and the return value of
+            :py:func:`open`.
         header_sep (`str`, optional): String to use to separate names in
-            the logger's namespace, defaults to '.'. For example, if logging the
-            total energy of an `hoomd.md.pair.LJ` pair force object, the default
-            header would be ``md.pair.LJ.energy`` (assuming that
+            the logger's namespace, defaults to ``'.'``. For example, if logging
+            the total energy of an `hoomd.md.pair.LJ` pair force object, the
+            default header would be ``md.pair.LJ.energy`` (assuming that
             ``max_header_len`` is not set).
         delimiter (`str`, optional): String used to separate elements in
-            the space delimitated file, defaults to ' '.
+            the space delimited file, defaults to ``' '``.
         pretty (`bool`, optional): Flags whether to attempt to make output
-            prettier and easier to read, defaults to True. To make the ouput
-            easier to read, the output will compromise on outputted precision
-            for improved readability. In many cases, though the precision will
+            prettier and easier to read, defaults to True. To make the output
+            easier to read, the output will compromise on numerical precision
+            for improved readability. In many cases, the precision will
             still be high with pretty set to ``True``.
         max_precision (`int`, optional): If pretty is not set, then this
             controls the maximum precision to use when outputing numerical
@@ -361,22 +377,22 @@ class Table(_InternalCustomWriter):
 
     Attributes:
         trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-            the Table back end.
+            the Table backend.
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
         output (``file-like`` object): A file-like object to output
-            the data from. The object must have write and flush methods and a
-            mode attribute.
+            the data from. The object must have ``write`` and ``flush`` methods
+            and a ``mode`` attribute.
         header_sep (str): String to use to separate names in
             the logger's namespace.'. For example, if logging the total energy
             of an `hoomd.md.pair.LJ` pair force object, the default header would
             be ``md.pair.LJ.energy`` (assuming that ``max_header_len`` is not
             set).
         delimiter (str): String used to separate elements in the space
-            delimitated file.
+            delimited file.
         pretty (bool): Flags whether to attempt to make output
-            prettier and easier to read. To make the ouput easier to read, the
+            prettier and easier to read. To make the output easier to read, the
             output will compromise on outputted precision for improved
             readability. In many cases, though the precision will still be high
             with pretty set to ``True``.

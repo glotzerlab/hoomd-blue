@@ -1,10 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
 #define __COMPUTE_FREE_VOLUME_GPU_H__
-
-using namespace std;
 
 #ifdef ENABLE_HIP
 
@@ -29,6 +27,8 @@ using namespace std;
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Template class for a free volume integration analyzer
@@ -144,7 +144,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
     if (this->m_cl->getNominalWidth() != nominal_width)
         this->m_cl->setNominalWidth(nominal_width);
 
-    const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim box = this->m_pdata->getBox();
     Scalar3 npd = box.getNearestPlaneDistance();
 
     if ((box.getPeriodic().x && npd.x <= nominal_width * 2)
@@ -152,17 +152,11 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
         || (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z
             && npd.z <= nominal_width * 2))
         {
-        this->m_exec_conf->msg->error() << "Simulation box too small for compute.free_volume() on "
-                                           "GPU - increase it so the minimum image convention works"
-                                        << endl;
-        throw runtime_error("Error performing HPMC update");
+        throw std::runtime_error("Simulation box too small");
         }
 
     // compute cell list
     this->m_cl->compute(timestep);
-
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "Free volume");
 
     // if the cell list is a different size than last time, reinitialize expanded cell list
     uint3 cur_dim = this->m_cl->getDim();
@@ -247,9 +241,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
     const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
     // access the parameters
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type>>&
-        params
-        = this->m_mc->getParams();
+    auto& params = this->m_mc->getParams();
 
         {
         // access counter
@@ -309,7 +301,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
         }
 
 #ifdef ENABLE_MPI
-    if (this->m_comm)
+    if (this->m_sysdef->isDomainDecomposed())
         {
         ArrayHandle<unsigned int> h_n_overlap_all(this->m_n_overlap_all,
                                                   access_location::host,
@@ -322,9 +314,6 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
                       this->m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape> void ComputeFreeVolumeGPU<Shape>::initializeExcellMem()
@@ -344,6 +333,8 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::initializeExcellMem()
     m_excell_size.resize(num_cells);
     }
 
+namespace detail
+    {
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -358,7 +349,10 @@ template<class Shape> void export_ComputeFreeVolumeGPU(pybind11::module& m, cons
                             std::shared_ptr<CellList>>());
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SlitPoreGeometryFiller.h
@@ -20,6 +18,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Adds virtual particles to the MPCD particle data for SlitPoreGeometry
@@ -33,7 +33,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFiller : public mpcd::VirtualParticleFille
     SlitPoreGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                            Scalar density,
                            unsigned int type,
-                           std::shared_ptr<::Variant> T,
+                           std::shared_ptr<Variant> T,
                            uint16_t seed,
                            std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom);
 
@@ -72,6 +72,7 @@ namespace detail
     {
 //! Export SlitPoreGeometryFiller to python
 void export_SlitPoreGeometryFiller(pybind11::module& m);
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SLIT_PORE_GEOMETRY_FILLER_H_

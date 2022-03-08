@@ -1,12 +1,16 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, logging_check
+from hoomd.logging import LoggerCategories
 import pytest
 from copy import deepcopy
 from collections import namedtuple
 
-paramtuple = namedtuple(
-    'paramtuple',
-    ['setup_params', 'extra_params', 'changed_params', 'has_rattle', 'method'])
+paramtuple = namedtuple('paramtuple', [
+    'setup_params', 'extra_params', 'changed_params', 'rattle_method', 'method'
+])
 
 
 def _method_base_params():
@@ -20,11 +24,10 @@ def _method_base_params():
         'alpha': None,
         'tally_reservoir_energy': True
     }
-    langevin_has_rattle = True
 
     method_base_params_list.extend([
         paramtuple(langevin_setup_params, langevin_extra_params,
-                   langevin_changed_params, langevin_has_rattle,
+                   langevin_changed_params, hoomd.md.methods.rattle.Langevin,
                    hoomd.md.methods.Langevin)
     ])
 
@@ -34,12 +37,23 @@ def _method_base_params():
         'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
         'alpha': 0.125
     }
-    brownian_has_rattle = True
 
     method_base_params_list.extend([
         paramtuple(brownian_setup_params, brownian_extra_params,
-                   brownian_changed_params, brownian_has_rattle,
+                   brownian_changed_params, hoomd.md.methods.rattle.Brownian,
                    hoomd.md.methods.Brownian)
+    ])
+
+    overdamped_viscous_setup_params = {}
+    overdamped_viscous_extra_params = {'alpha': None}
+    overdamped_viscous_changed_params = {'alpha': 0.125}
+
+    method_base_params_list.extend([
+        paramtuple(overdamped_viscous_setup_params,
+                   overdamped_viscous_extra_params,
+                   overdamped_viscous_changed_params,
+                   hoomd.md.methods.rattle.OverdampedViscous,
+                   hoomd.md.methods.OverdampedViscous)
     ])
 
     constant_s = [
@@ -88,11 +102,10 @@ def _method_base_params():
         'rotational_thermostat_dof': (0.5, 0.25),
         'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
     }
-    npt_has_rattle = False
 
     method_base_params_list.extend([
-        paramtuple(npt_setup_params, npt_extra_params, npt_changed_params,
-                   npt_has_rattle, hoomd.md.methods.NPT)
+        paramtuple(npt_setup_params, npt_extra_params, npt_changed_params, None,
+                   hoomd.md.methods.NPT)
     ])
 
     nvt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0}
@@ -103,21 +116,19 @@ def _method_base_params():
         'translational_thermostat_dof': (0.125, 0.5),
         'rotational_thermostat_dof': (0.5, 0.25)
     }
-    nvt_has_rattle = False
 
     method_base_params_list.extend([
-        paramtuple(nvt_setup_params, nvt_extra_params, nvt_changed_params,
-                   nvt_has_rattle, hoomd.md.methods.NVT)
+        paramtuple(nvt_setup_params, nvt_extra_params, nvt_changed_params, None,
+                   hoomd.md.methods.NVT)
     ])
 
     nve_setup_params = {}
     nve_extra_params = {}
     nve_changed_params = {}
-    nve_has_rattle = True
 
     method_base_params_list.extend([
         paramtuple(nve_setup_params, nve_extra_params, nve_changed_params,
-                   nve_has_rattle, hoomd.md.methods.NVE)
+                   hoomd.md.methods.rattle.NVE, hoomd.md.methods.NVE)
     ])
 
     return method_base_params_list
@@ -182,22 +193,98 @@ def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
     check_instance_attrs(method, method_base_params.changed_params, True)
 
 
-def test_rattle_attributes(method_base_params):
-    if not method_base_params.has_rattle:
+def test_switch_methods(simulation_factory, two_particle_snapshot_factory,
+                        method_base_params):
+
+    all_ = hoomd.filter.All()
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=all_)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+    sim.run(5)
+
+    sim.operations.integrator.methods.remove(method)
+
+    assert len(sim.operations.integrator.methods) == 0
+
+    sim.operations.integrator.methods.append(hoomd.md.methods.NVE(all_))
+
+    assert len(sim.operations.integrator.methods) == 1
+
+    sim.run(5)
+
+
+def _manifold_base_params():
+    manifold_base_params_list = []
+    # Start with valid parameters to get the keys and placeholder values
+
+    cylinder_setup_params = {'r': 5}
+    manifold_base_params_list.extend([
+        paramtuple(cylinder_setup_params, {}, {}, {},
+                   hoomd.md.manifold.Cylinder)
+    ])
+
+    diamond_setup_params = {'N': (1, 1, 1)}
+    manifold_base_params_list.extend([
+        paramtuple(diamond_setup_params, {}, {}, {}, hoomd.md.manifold.Diamond)
+    ])
+
+    ellipsoid_setup_params = {'a': 3.3, 'b': 5, 'c': 4.1}
+
+    manifold_base_params_list.extend([
+        paramtuple(ellipsoid_setup_params, {}, {}, {},
+                   hoomd.md.manifold.Ellipsoid)
+    ])
+
+    gyroid_setup_params = {'N': (1, 2, 1)}
+
+    manifold_base_params_list.extend(
+        [paramtuple(gyroid_setup_params, {}, {}, {}, hoomd.md.manifold.Gyroid)])
+
+    primitive_setup_params = {'N': (1, 1, 1)}
+
+    manifold_base_params_list.extend([
+        paramtuple(primitive_setup_params, {}, {}, {},
+                   hoomd.md.manifold.Primitive)
+    ])
+
+    sphere_setup_params = {'r': 5}
+
+    manifold_base_params_list.extend(
+        [paramtuple(sphere_setup_params, {}, {}, {}, hoomd.md.manifold.Sphere)])
+
+    xyplane_setup_params = {}
+
+    manifold_base_params_list.extend(
+        [paramtuple(xyplane_setup_params, {}, {}, {}, hoomd.md.manifold.Plane)])
+
+    return manifold_base_params_list
+
+
+@pytest.fixture(scope="function",
+                params=_manifold_base_params(),
+                ids=(lambda x: x[4].__name__))
+def manifold_base_params(request):
+    return deepcopy(request.param)
+
+
+def test_rattle_attributes(method_base_params, manifold_base_params):
+    if method_base_params.rattle_method is None:
         pytest.skip("RATTLE method is not implemented for this method")
 
     all_ = hoomd.filter.All()
-    gyroid = hoomd.md.manifold.Gyroid(N=1)
-    method = method_base_params.method(**method_base_params.setup_params,
-                                       filter=all_,
-                                       manifold_constraint=gyroid)
-    assert method.manifold_constraint == gyroid
+    manifold = manifold_base_params.method(**manifold_base_params.setup_params)
+    method = method_base_params.rattle_method(**method_base_params.setup_params,
+                                              filter=all_,
+                                              manifold_constraint=manifold)
+    assert method.manifold_constraint == manifold
     assert method.tolerance == 1e-6
 
     sphere = hoomd.md.manifold.Sphere(r=10)
     with pytest.raises(AttributeError):
         method.manifold_constraint = sphere
-    assert method.manifold_constraint == gyroid
+    assert method.manifold_constraint == manifold
 
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
@@ -205,23 +292,23 @@ def test_rattle_attributes(method_base_params):
 
 def test_rattle_attributes_attached(simulation_factory,
                                     two_particle_snapshot_factory,
-                                    method_base_params):
+                                    method_base_params, manifold_base_params):
 
-    if not method_base_params.has_rattle:
+    if method_base_params.rattle_method is None:
         pytest.skip("RATTLE integrator is not implemented for this method")
 
     all_ = hoomd.filter.All()
-    gyroid = hoomd.md.manifold.Gyroid(N=1)
-    method = method_base_params.method(**method_base_params.setup_params,
-                                       filter=all_,
-                                       manifold_constraint=gyroid)
+    manifold = manifold_base_params.method(**manifold_base_params.setup_params)
+    method = method_base_params.rattle_method(**method_base_params.setup_params,
+                                              filter=all_,
+                                              manifold_constraint=manifold)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
     sim.run(0)
 
     assert method.filter is all_
-    assert method.manifold_constraint == gyroid
+    assert method.manifold_constraint == manifold
     assert method.tolerance == 1e-6
 
     check_instance_attrs(method, method_base_params.setup_params)
@@ -236,7 +323,7 @@ def test_rattle_attributes_attached(simulation_factory,
     with pytest.raises(AttributeError):
         # manifold cannot be set after scheduling
         method.manifold_constraint = sphere
-    assert method.manifold_constraint == gyroid
+    assert method.manifold_constraint == manifold
 
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
@@ -244,15 +331,33 @@ def test_rattle_attributes_attached(simulation_factory,
     check_instance_attrs(method, method_base_params.changed_params, True)
 
 
-def test_rattle_missing_manifold(method_base_params):
-    if not method_base_params.has_rattle:
-        pytest.skip("RATTLE method is not implemented for this method")
+def test_rattle_switch_methods(simulation_factory,
+                               two_particle_snapshot_factory,
+                               method_base_params, manifold_base_params):
+
+    if method_base_params.rattle_method is None:
+        pytest.skip("RATTLE integrator is not implemented for this method")
 
     all_ = hoomd.filter.All()
-    with pytest.raises(TypeError):
-        method_base_params.method(**method_base_params.setup_params,
-                                  filter=all_,
-                                  tolerance=1e-5)
+    manifold = manifold_base_params.method(**manifold_base_params.setup_params)
+    method = method_base_params.rattle_method(**method_base_params.setup_params,
+                                              filter=all_,
+                                              manifold_constraint=manifold)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+    sim.run(5)
+
+    sim.operations.integrator.methods.remove(method)
+
+    assert len(sim.operations.integrator.methods) == 0
+
+    sim.operations.integrator.methods.append(
+        hoomd.md.methods.rattle.NVE(filter=all_, manifold_constraint=manifold))
+
+    assert len(sim.operations.integrator.methods) == 1
+
+    sim.run(5)
 
 
 def test_nph_attributes_attached_3d(simulation_factory,
@@ -293,8 +398,9 @@ def test_nph_attributes_attached_3d(simulation_factory,
     nph.tauS = 10.0
     assert nph.tauS == 10.0
 
-    nph.box_dof = [True, False, False, False, True, False]
-    assert nph.box_dof == [True, False, False, False, True, False]
+    box_dof = (True, False, False, False, True, False)
+    nph.box_dof = box_dof
+    assert nph.box_dof == box_dof
 
     nph.couple = 'none'
     assert nph.couple == 'none'
@@ -376,9 +482,8 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
 
     sim = simulation_factory(snap)
 
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[npt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[npt], integrate_rotational_dof=True)
     sim.run(0)
 
     npt.thermalize_thermostat_and_barostat_dof()
@@ -482,9 +587,8 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
         snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
 
     sim = simulation_factory(snap)
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[nvt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[nvt], integrate_rotational_dof=True)
     sim.run(0)
 
     nvt.thermalize_thermostat_dof()
@@ -512,3 +616,29 @@ def test_pickling(method_base_params, simulation_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(method)
+
+
+def test_logging():
+    logging_check(hoomd.md.methods.NPH, ('md', 'methods'), {
+        'barostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })
+    logging_check(
+        hoomd.md.methods.NPT, ('md', 'methods'), {
+            'barostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'thermostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
+    logging_check(hoomd.md.methods.NVT, ('md', 'methods'), {
+        'thermostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })

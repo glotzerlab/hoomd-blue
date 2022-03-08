@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
 
@@ -20,6 +18,19 @@ typedef cufftComplex hipfftComplex;
 #endif
 #endif
 
+//! Define plus operator for complex data type (needed by CommunicatorMesh)
+inline kiss_fft_cpx operator+(kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
+    {
+    kiss_fft_cpx res;
+    res.r = lhs.r + rhs.r;
+    res.i = lhs.i + rhs.i;
+    return res;
+    }
+
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef The system definition
  *  \param dim Dimensions of 3dim grid
  *  \param embed Embedding dimensions
@@ -257,16 +268,6 @@ template<typename T> void CommunicatorGrid<T>::communicate(const GlobalArray<T>&
 //! Explicit template instantiations
 template class PYBIND11_EXPORT CommunicatorGrid<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGrid<unsigned int>;
-
-//! Define plus operator for complex data type (needed by CommunicatorMesh)
-inline kiss_fft_cpx operator+(kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
-    {
-    kiss_fft_cpx res;
-    res.r = lhs.r + rhs.r;
-    res.i = lhs.i + rhs.i;
-    return res;
-    }
-
 template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 
 #ifdef ENABLE_HIP
@@ -281,5 +282,8 @@ inline hipfftComplex operator+(hipfftComplex& lhs, hipfftComplex& rhs)
 
 template class PYBIND11_EXPORT CommunicatorGrid<hipfftComplex>;
 #endif
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

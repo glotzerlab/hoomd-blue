@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import copy as cp
 import numpy as np
 import numpy.testing as npt
@@ -14,7 +17,7 @@ def _evaluate_periodic(snapshot, params):
     i = params['i']
     w = params['w']
     p = params['p']
-    a1, a2, a3 = box.lattice_vectors
+    a1, a2, a3 = box.to_matrix().T
     V = np.dot(a1, np.cross(a2, a3))
     b1 = 2 * np.pi / V * np.cross(a2, a3)
     b2 = 2 * np.pi / V * np.cross(a3, a1)
@@ -120,10 +123,13 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
         sim.run(10)
 
         # test energies
-        new_snap = sim.state.snapshot
+        new_snap = sim.state.get_snapshot()
         forces = sim.operations.integrator.forces[0].forces
         energies = sim.operations.integrator.forces[0].energies
         if new_snap.communicator.rank == 0:
             expected_forces, expected_energies = evaluator(new_snap, param)
-            np.testing.assert_allclose(expected_forces, forces)
-            np.testing.assert_allclose(expected_energies, energies)
+            # Set atol as the energies and forces very close to 0.
+            # It would be better to run a test that applies appreciable forces
+            # and energies.
+            np.testing.assert_allclose(expected_forces, forces, atol=1e-5)
+            np.testing.assert_allclose(expected_energies, energies, atol=1e-5)

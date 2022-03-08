@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_DPD_H__
 #define __PAIR_EVALUATOR_DPD_H__
@@ -24,10 +22,16 @@
 // compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the DPD Thermostat pair potential
 /*! <b>General Overview</b>
 
@@ -79,6 +83,10 @@ class EvaluatorPairDPDThermo
         Scalar A;
         Scalar gamma;
 
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
 #ifdef ENABLE_HIP
         // CUDA memory hints
         void set_memory_hints() const { }
@@ -86,7 +94,7 @@ class EvaluatorPairDPDThermo
 #ifndef __HIPCC__
         param_type() : A(0), gamma(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             A = v["A"].cast<Scalar>();
             // protect against a user setting gamma to 0 in dpd
@@ -116,9 +124,9 @@ class EvaluatorPairDPDThermo
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -280,6 +288,16 @@ class EvaluatorPairDPDThermo
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -310,5 +328,8 @@ class EvaluatorPairDPDThermo
     };
 
 #undef DEVICE
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DPD_H__

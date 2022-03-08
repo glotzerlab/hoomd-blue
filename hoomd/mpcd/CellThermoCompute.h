@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellThermoCompute.h
@@ -26,6 +24,8 @@
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Computes the cell (thermodynamic) properties
@@ -213,5 +213,6 @@ namespace detail
 void export_CellThermoCompute(pybind11::module& m);
     } // end namespace detail
 
-    }      // end namespace mpcd
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // #define MPCD_CELL_THERMO_COMPUTE_H_

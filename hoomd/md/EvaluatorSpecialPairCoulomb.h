@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: unassigned
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __BOND_EVALUATOR_COULOMB_H__
 #define __BOND_EVALUATOR_COULOMB_H__
@@ -30,6 +28,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct special_coulomb_params
     {
     Scalar alpha;
@@ -61,9 +63,9 @@ struct special_coulomb_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Class for evaluating the Coulomb bond potential
@@ -152,5 +154,8 @@ class EvaluatorSpecialPairCoulomb
     Scalar scale;  //!< scaling factor to apply to Coulomb interaction
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_COULOMB_H__

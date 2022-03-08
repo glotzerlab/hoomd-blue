@@ -1,9 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Integrator.h"
-
-namespace py = pybind11;
 
 #ifdef ENABLE_HIP
 #include "Integrator.cuh"
@@ -14,32 +12,49 @@ namespace py = pybind11;
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceConstraint>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ForceCompute>>);
 
 using namespace std;
 
+namespace hoomd
+    {
 /** @param sysdef System to update
     @param deltaT Time step to use
 */
 Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Updater(sysdef), m_deltaT(deltaT)
     {
-    if (m_deltaT <= 0.0)
-        m_exec_conf->msg->warning()
-            << "integrate.*: A timestep of less than 0.0 was specified" << endl;
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+
+        // connect to ghost communication flags request
+        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
+
+        m_comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
+        }
+#endif
+
+    if (m_deltaT < 0)
+        m_exec_conf->msg->warning() << "A step size dt of less than 0 was specified." << endl;
     }
 
 Integrator::~Integrator()
     {
 #ifdef ENABLE_MPI
     // disconnect
-    if (m_request_flags_connected && m_comm)
+    if (m_sysdef->isDomainDecomposed())
+        {
         m_comm->getCommFlagsRequestSignal().disconnect<Integrator, &Integrator::determineFlags>(
             this);
-    if (m_signals_connected && m_comm)
+
         m_comm->getComputeCallbackSignal().disconnect<Integrator, &Integrator::computeCallback>(
             this);
+        }
 #endif
     }
 
@@ -62,9 +77,8 @@ void Integrator::removeHalfStepHook()
  */
 void Integrator::setDeltaT(Scalar deltaT)
     {
-    if (m_deltaT <= 0.0)
-        m_exec_conf->msg->warning()
-            << "integrate.*: A timestep of less than 0.0 was specified" << endl;
+    if (m_deltaT < 0.0)
+        throw std::domain_error("delta_t must be positive");
 
     for (auto& force : m_forces)
         {
@@ -108,12 +122,6 @@ void Integrator::computeAccelerations(uint64_t timestep)
     {
     m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
 
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Sum accel");
-        }
-
     // now, get our own access to the arrays and calculate the accelerations
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
@@ -131,65 +139,37 @@ void Integrator::computeAccelerations(uint64_t timestep)
         h_accel.data[j].y = h_net_force.data[j].y * minv;
         h_accel.data[j].z = h_net_force.data[j].z * minv;
         }
-
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
     }
 
 /** @param timestep Current time step of the simulation
-
-    computeTotalMomentum()  accesses the particle data on the CPU, loops through it and calculates
-   the magnitude of the total system momentum
-*/
-Scalar Integrator::computeTotalMomentum(uint64_t timestep)
+ */
+vec3<double> Integrator::computeLinearMomentum()
     {
     // grab access to the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
-    // sum up the kinetic energy
-    double p_tot_x = 0.0;
-    double p_tot_y = 0.0;
-    double p_tot_z = 0.0;
+    // sum the linear momentum in the system
+    vec3<double> p_total;
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         double mass = h_vel.data[i].w;
-        p_tot_x += mass * (double)h_vel.data[i].x;
-        p_tot_y += mass * (double)h_vel.data[i].y;
-        p_tot_z += mass * (double)h_vel.data[i].z;
+        vec3<double> velocity(h_vel.data[i]);
+        p_total += mass * velocity;
         }
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         MPI_Allreduce(MPI_IN_PLACE,
-                      &p_tot_x,
-                      1,
-                      MPI_DOUBLE,
-                      MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &p_tot_y,
-                      1,
-                      MPI_DOUBLE,
-                      MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &p_tot_z,
-                      1,
+                      &p_total,
+                      3,
                       MPI_DOUBLE,
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
         }
 #endif
 
-    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z)
-                   / Scalar(m_pdata->getNGlobal());
-
-    // done!
-    return Scalar(p_tot);
+    return p_total;
     }
 
 /** @param timestep Current time step of the simulation
@@ -203,12 +183,6 @@ void Integrator::computeNetForce(uint64_t timestep)
     for (auto& force : m_forces)
         {
         force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Net force");
         }
 
     Scalar external_virial[6];
@@ -245,9 +219,9 @@ void Integrator::computeNetForce(uint64_t timestep)
 
         for (const auto& force : m_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = force->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
+            const GlobalArray<Scalar4>& h_force_array = force->getForceArray();
+            const GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
+            const GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6 * nparticles <= h_virial_array.getNumElements());
@@ -293,18 +267,12 @@ void Integrator::computeNetForce(uint64_t timestep)
 
     m_pdata->setExternalEnergy(external_energy);
 
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
-
     // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);
@@ -316,12 +284,6 @@ void Integrator::computeNetForce(uint64_t timestep)
     for (auto& constraint_force : m_constraint_forces)
         {
         constraint_force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Net force");
         }
 
         {
@@ -342,9 +304,9 @@ void Integrator::computeNetForce(uint64_t timestep)
         assert(6 * nparticles <= net_virial.getNumElements());
         for (const auto& constraint_force : m_constraint_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
+            const GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+            const GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
+            const GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array, access_location::host, access_mode::read);
@@ -387,12 +349,6 @@ void Integrator::computeNetForce(uint64_t timestep)
         }
 
     m_pdata->setExternalEnergy(external_energy);
-
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
     }
 
 #ifdef ENABLE_HIP
@@ -404,9 +360,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled"
-                                  << endl;
-        throw runtime_error("Error computing accelerations");
+        throw runtime_error("Cannot compute net force on the GPU if CUDA is disabled.");
         }
 
     // compute all the normal forces first
@@ -414,12 +368,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     for (auto& force : m_forces)
         {
         force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "Integrate");
-        m_prof->push(m_exec_conf, "Net force");
         }
 
     Scalar external_virial[6];
@@ -473,7 +421,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
 
             const GlobalArray<Scalar4>& d_force_array0 = m_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -641,18 +589,12 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
     m_pdata->setExternalEnergy(external_energy);
 
-    if (m_prof)
-        {
-        m_prof->pop(m_exec_conf);
-        m_prof->pop(m_exec_conf);
-        }
-
     // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (m_sysdef->isDomainDecomposed())
         {
         // communicate the net force
         m_comm->updateNetForce(timestep);
@@ -663,12 +605,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     for (auto& constraint_force : m_constraint_forces)
         {
         constraint_force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push(m_exec_conf, "Net force");
         }
 
         {
@@ -697,7 +633,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force += 6)
             {
             // grab the device pointers for the current set
-            gpu_force_list force_list;
+            kernel::gpu_force_list force_list;
             const GlobalArray<Scalar4>& d_force_array0
                 = m_constraint_forces[cur_force]->getForceArray();
             ArrayHandle<Scalar4> d_force0(d_force_array0,
@@ -868,12 +804,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
     m_pdata->setExternalEnergy(external_energy);
-
-    if (m_prof)
-        {
-        m_prof->pop(m_exec_conf);
-        m_prof->pop(m_exec_conf);
-        }
     }
 #endif
 
@@ -883,6 +813,17 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 void Integrator::update(uint64_t timestep)
     {
     Updater::update(timestep);
+
+    // ensure that the force computes know the current step size
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
     }
 
 /** prepRun() is to be called at the very beginning of each run, before any analyzers are called,
@@ -894,7 +835,20 @@ void Integrator::update(uint64_t timestep)
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
-void Integrator::prepRun(uint64_t timestep) { }
+void Integrator::prepRun(uint64_t timestep)
+    {
+    // ensure that all forces have updated delta t values at the start of step 0
+
+    for (auto& force : m_forces)
+        {
+        force->setDeltaT(m_deltaT);
+        }
+
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->setDeltaT(m_deltaT);
+        }
+    }
 
 #ifdef ENABLE_MPI
 /** @param tstep Time step for which to determine the flags
@@ -921,23 +875,6 @@ CommFlags Integrator::determineFlags(uint64_t timestep)
     return flags;
     }
 
-void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
-    {
-    // call base class method
-    Updater::setCommunicator(comm);
-
-    // connect to ghost communication flags request
-    if (!m_request_flags_connected && m_comm)
-        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
-
-    m_request_flags_connected = true;
-
-    if (!m_signals_connected && m_comm)
-        comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
-
-    m_signals_connected = true;
-    }
-
 void Integrator::computeCallback(uint64_t timestep)
     {
     // pre-compute all active forces
@@ -948,11 +885,11 @@ void Integrator::computeCallback(uint64_t timestep)
     }
 #endif
 
-bool Integrator::getAnisotropic()
+bool Integrator::areForcesAnisotropic()
     {
     bool aniso = false;
-    // pre-compute all active forces
-    for (auto& force : m_forces)
+
+    for (const auto& force : m_forces)
         {
         aniso |= force->isAnisotropic();
         }
@@ -965,15 +902,21 @@ bool Integrator::getAnisotropic()
     return aniso;
     }
 
-void export_Integrator(py::module& m)
+namespace detail
     {
-    py::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
-    py::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
-
-    py::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+void export_Integrator(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceCompute>>>(m, "ForceComputeList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<ForceConstraint>>>(m, "ForceConstraintList");
+    pybind11::class_<Integrator, Updater, std::shared_ptr<Integrator>>(m, "Integrator")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("updateGroupDOF", &Integrator::updateGroupDOF)
         .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
         .def_property_readonly("forces", &Integrator::getForces)
-        .def_property_readonly("constraints", &Integrator::getConstraintForces);
+        .def_property_readonly("constraints", &Integrator::getConstraintForces)
+        .def("computeLinearMomentum", &Integrator::computeLinearMomentum);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

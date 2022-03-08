@@ -1,8 +1,24 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""MPI communicator."""
+"""MPI communicator.
+
+When compiled without MPI support, `Communicator` acts as if there is one MPI
+rank and 1 partition. To use MPI, :doc:`compile HOOMD-blue <building>` with the
+option ``ENABLE_MPI=on`` and use the appropriate MPI launcher to launch Python.
+Then the `Communicator` class will configure and query MPI ranks and partitions.
+By default, `Communicator` starts with the ``MPI_COMM_WOLRD`` MPI communicator,
+and the communicator is not available for user scripts.
+
+`Communicator` also accepts MPI communicators from ``mpi4py``. Use this to
+implement workflows with multiple simulations that communicate using ``mpi4py``
+calls in user code (e.g. genetic algorithms, umbrella sampling).
+
+See Also:
+    :doc:`tutorial/03-Parallel-Simulations-With-MPI/00-index`
+
+    :doc:`tutorial/05-Organizing-and-Executing-Simulations/00-index`
+"""
 
 from hoomd import _hoomd
 import hoomd
@@ -16,17 +32,33 @@ class Communicator(object):
     Args:
         mpi_comm: Accepts an mpi4py communicator. Use this argument to perform
           many independent hoomd simulations where you communicate between those
-          simulations using your own mpi4py code.
-        nrank (int): (MPI) Number of ranks to include in a partition
+          simulations using mpi4py.
+        ranks_per_partition (int): (MPI) Number of ranks to include in a
+          partition.
+
+
+    The `Communicator` class initializes MPI communications for a
+    `hoomd.Simulation` and exposes rank and partition information to the user as
+    properties. To use MPI, launch your Python script with an MPI launcher (e.g.
+    ``mpirun`` or ``mpiexec``). By default, `Communicator` uses all ranks
+    provided by the launcher ``num_launch_ranks`` for a single
+    `hoomd.Simulation` object which decomposes the state onto that many domains.
+
+    Set ``ranks_per_partition`` to an integer to partition launched ranks into
+    ``num_launch_ranks / ranks_per_partition`` communicators, each with their
+    own `partition` index. Use this to perform many simulations in parallel, for
+    example by using `partition` as an index into an array of state points to
+    execute.
     """
 
-    def __init__(self, mpi_comm=None, nrank=None):
+    def __init__(self, mpi_comm=None, ranks_per_partition=None):
 
-        # check nrank
-        if nrank is not None:
+        # check ranks_per_partition
+        if ranks_per_partition is not None:
             if not hoomd.version.mpi_enabled:
                 raise RuntimeError(
-                    "The nrank option is only available in MPI builds.\n")
+                    "The ranks_per_partition option is only available in MPI.\n"
+                )
 
         mpi_available = hoomd.version.mpi_enabled
 
@@ -64,21 +96,25 @@ class Communicator(object):
                 raise RuntimeError(
                     "Invalid mpi_comm object: {}".format(mpi_comm))
 
-        if nrank is not None:
+        if ranks_per_partition is not None:
             # check validity
-            if (self.cpp_mpi_conf.getNRanksGlobal() % nrank):
-                raise RuntimeError(
-                    'Total number of ranks is not a multiple of --nrank')
+            if (self.cpp_mpi_conf.getNRanksGlobal() % ranks_per_partition):
+                raise RuntimeError('Total number of ranks is not a multiple of '
+                                   'ranks_per_partition.')
 
             # split the communicator into partitions
-            self.cpp_mpi_conf.splitPartitions(nrank)
+            self.cpp_mpi_conf.splitPartitions(ranks_per_partition)
 
     @property
     def num_ranks(self):
         """int: The number of ranks in this partition.
 
+        When initialized with ``ranks_per_partition=None``, `num_ranks` is equal
+        to the ``num_launch_ranks`` set by the MPI launcher. When using
+        partitions, `num_ranks` is equal to ``ranks_per_partition``.
+
         Note:
-            Returns 1 in non-mpi builds.
+            Returns 1 in builds with ENABLE_MPI=off.
         """
         if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getNRanks()
@@ -87,10 +123,10 @@ class Communicator(object):
 
     @property
     def rank(self):
-        """int: The current rank.
+        """int: The current rank within the partition.
 
         Note:
-            Always returns 0 in non-mpi builds.
+            Returns 0 in builds with ENABLE_MPI=off.
         """
         if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getRank()
@@ -98,11 +134,27 @@ class Communicator(object):
             return 0
 
     @property
+    def num_partitions(self):
+        """int: The number of partitions in this execution.
+
+        Create partitions with the ``ranks_per_partition`` argument on
+        initialization. Then, the number of partitions is
+        ``num_launch_ranks / ranks_per_partition``.
+
+        Note:
+            Returns 1 in builds with ENABLE_MPI=off.
+        """
+        if hoomd.version.mpi_enabled:
+            return self.cpp_mpi_conf.getNPartitions()
+        else:
+            return 1
+
+    @property
     def partition(self):
         """int: The current partition.
 
         Note:
-            Always returns 0 in non-mpi builds.
+            Returns 0 in builds with ENABLE_MPI=off.
         """
         if hoomd.version.mpi_enabled:
             return self.cpp_mpi_conf.getPartition()
@@ -113,7 +165,7 @@ class Communicator(object):
         """Perform a MPI barrier synchronization across all ranks.
 
         Note:
-            Does nothing in non-MPI builds.
+            Does nothing in builds with ENABLE_MPI=off.
         """
         if hoomd.version.mpi_enabled:
             _hoomd.mpi_barrier_world()
@@ -122,7 +174,7 @@ class Communicator(object):
         """Perform a barrier synchronization across all ranks in the partition.
 
         Note:
-            Does nothing in in non-MPI builds.
+            Does nothing in builds with ENABLE_MPI=off.
         """
         if hoomd.version.mpi_enabled:
             self.cpp_mpi_conf.barrier()
@@ -131,10 +183,10 @@ class Communicator(object):
     def localize_abort(self):
         """Localize MPI_Abort to this partition.
 
-        HOOMD calls MPI_Abort to tear down all running MPI processes whenever
-        there is an uncaught exception. By default, this will abort the entire
-        MPI execution. When using partitions (``nrank is not None``), an
-        uncaught exception on one partition will therefore abort all of them.
+        HOOMD calls ``MPI_Abort`` to tear down all running MPI processes
+        whenever there is an uncaught exception. By default, this will abort the
+        entire MPI execution. When using partitions, an uncaught exception on
+        one partition will therefore abort all of them.
 
         Use the return value of :py:meth:`localize_abort()` as a context manager
         to tell HOOMD that all operations within the context will use only
@@ -147,6 +199,14 @@ class Communicator(object):
         _current_communicator = self
         yield None
         _current_communicator = prev
+
+    @property
+    def walltime(self):
+        """Wall clock time since creating the `Communicator` [seconds].
+
+        `walltime` returns the same value on each rank in the current partition.
+        """
+        return self.cpp_mpi_conf.getWalltime()
 
 
 # store the "current" communicator to be used for MPI_Abort calls. This defaults

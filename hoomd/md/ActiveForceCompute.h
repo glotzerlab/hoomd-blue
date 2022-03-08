@@ -1,15 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/VectorMath.h"
 #include <memory>
-
-#include "EvaluatorConstraintEllipsoid.h"
 
 /*! \file ActiveForceCompute.h
     \brief Declares a class for computing active forces and torques
@@ -24,6 +20,15 @@
 #ifndef __ACTIVEFORCECOMPUTE_H__
 #define __ACTIVEFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
+// Forward declaration is necessary to avoid circular includes between this and
+// ActiveRotationalDiffusionUpdater.h while making ActiveRotationalDiffusionUpdater a friend class
+// of ActiveForceCompute.
+class ActiveRotationalDiffusionUpdater;
+
 //! Adds an active force to a number of particles
 /*! \ingroup computes
  */
@@ -32,29 +37,10 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     public:
     //! Constructs the compute
     ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       Scalar rotation_diff,
-                       Scalar3 P,
-                       Scalar rx,
-                       Scalar ry,
-                       Scalar rz);
+                       std::shared_ptr<ParticleGroup> group);
 
     //! Destructor
     ~ActiveForceCompute();
-
-    /** Set a new temperature
-        @param T new temperature to set
-    */
-    void setRdiff(Scalar rdiff)
-        {
-        m_rotationDiff = rdiff;
-        }
-
-    /// Get the current temperature variant
-    Scalar getRdiff()
-        {
-        return m_rotationDiff;
-        }
 
     /** Sets active force vector for a given particle type
         @param typ Particle type to set active force vector
@@ -74,6 +60,11 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     /// Gets active torque vector for a given particle type
     pybind11::tuple getActiveTorque(const std::string& type_name);
 
+    std::shared_ptr<ParticleGroup>& getGroup()
+        {
+        return m_group;
+        }
+
     protected:
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -82,27 +73,28 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     virtual void setForces();
 
     //! Orientational diffusion for spherical particles
-    virtual void rotationalDiffusion(uint64_t timestep);
-
-    //! Set constraints if particles confined to a surface
-    virtual void setConstraint();
+    virtual void rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep);
 
     std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
-    Scalar m_rotationDiff;
-    Scalar m_rotationConst;
-    Scalar3 m_P; //!< Position of the Ellipsoid
-    Scalar m_rx; //!< Radius in X direction of the Ellipsoid
-    Scalar m_ry; //!< Radius in Y direction of the Ellipsoid
-    Scalar m_rz; //!< Radius in Z direction of the Ellipsoid
     GlobalVector<Scalar4>
         m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
 
     GlobalVector<Scalar4>
         m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
 
-    uint64_t last_computed;
+    private:
+    // Allow ActiveRotationalDiffusionUpdater to access internal methods and members of
+    // ActiveForceCompute classes/subclasses. This is necessary to allow
+    // ActiveRotationalDiffusionUpdater to call rotationalDiffusion.
+    friend class ActiveRotationalDiffusionUpdater;
     };
 
+namespace detail
+    {
 //! Exports the ActiveForceComputeClass to python
 void export_ActiveForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 #endif

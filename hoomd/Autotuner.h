@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
 #ifndef _AUTOTUNER_H_
@@ -22,6 +22,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 //! Autotuner for low level GPU kernel parameters
 /*! **Overview** <br>
     Autotuner is a helper class that autotunes GPU kernel parameters (such as block size) for
@@ -237,7 +239,12 @@ class PYBIND11_EXPORT Autotuner
     mode_Enum m_mode; //!< The sampling mode
     };
 
+namespace detail
+    {
 //! Export the Autotuner class to python
 void export_Autotuner(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace hoomd
 
 #endif // _AUTOTUNER_H_

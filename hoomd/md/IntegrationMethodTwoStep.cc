@@ -1,14 +1,9 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
-#include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
-
-namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -20,36 +15,23 @@ using namespace std;
     \brief Contains code for the IntegrationMethodTwoStep class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \post The method is constructed with the given particle data and a NULL profiler.
+    \post The method is constructed with the given particle.
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group)
     : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()), m_aniso(false), m_deltaT(Scalar(0.0)),
-      m_valid_restart(false)
+      m_exec_conf(m_pdata->getExecConf()), m_aniso(false), m_deltaT(Scalar(0.0))
     {
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
     assert(m_group);
-
-    m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
-    }
-
-/*! It is useful for the user to know where computation time is spent, so all integration methods
-    should profile themselves. This method sets the profiler for them to use.
-    This method does not need to be called, as Computes will not profile themselves
-    on a NULL profiler
-    \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (std::shared_ptr<Profiler>()) to stop the
-        analyzer from profiling itself.
-    \note Derived classes MUST check if m_prof is set before calling any profiler methods.
-*/
-void IntegrationMethodTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    m_prof = prof;
     }
 
 /*! \param deltaT New time step to set
@@ -57,47 +39,6 @@ void IntegrationMethodTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
 void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
     {
     m_deltaT = deltaT;
-    }
-
-/*! \param v is the restart variables for the current integrator
-    \param type is the type of expected integrator type
-    \param nvariables is the expected number of variables
-
-    If the either the integrator type or number of variables does not match the
-    expected values, this function throws the appropriate warning and returns
-    "false."  Otherwise, the function returns true.
-*/
-bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v,
-                                                    std::string type,
-                                                    unsigned int nvariables)
-    {
-    bool good = true;
-    if (v.type == "")
-        good = false;
-    else if (v.type != type && v.type != "")
-        {
-        m_exec_conf->msg->warning()
-            << "Integrator #" << m_integrator_id << " type " << type << " does not match type ";
-        m_exec_conf->msg->warning() << v.type << " found in restart file. " << endl;
-        m_exec_conf->msg->warning()
-            << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
-        m_exec_conf->msg->warning() << "Continuing while ignoring restart information..." << endl;
-        good = false;
-        }
-    else if (v.type == type)
-        {
-        if (v.variable.size() != nvariables)
-            {
-            m_exec_conf->msg->warning()
-                << "Integrator #" << m_integrator_id << " type " << type << endl;
-            m_exec_conf->msg->warning()
-                << "appears to contain bad or incomplete restart information. " << endl;
-            m_exec_conf->msg->warning()
-                << "Continuing while ignoring restart information..." << endl;
-            good = false;
-            }
-        }
-    return good;
     }
 
 /*! \param query_group Group over which to count (translational) degrees of freedom.
@@ -128,18 +69,18 @@ Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup>
             {
             if (dimension == 3)
                 {
-                if (fabs(h_moment_inertia.data[j].x) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].x) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].y) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].y) > 0)
                     query_group_dof++;
 
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             else
                 {
-                if (fabs(h_moment_inertia.data[j].z) >= EPSILON)
+                if (fabs(h_moment_inertia.data[j].z) > 0)
                     query_group_dof++;
                 }
             }
@@ -194,18 +135,20 @@ void IntegrationMethodTwoStep::validateGroup()
         }
     }
 
-void export_IntegrationMethodTwoStep(py::module& m)
+namespace detail
     {
-    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
+void export_IntegrationMethodTwoStep(pybind11::module& m)
+    {
+    pybind11::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
         m,
         "IntegrationMethodTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<IntegrationMethodTwoStep> method)
-                               { return method->getGroup()->getFilter(); })
-#ifdef ENABLE_MPI
-        .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
-#endif
-        ;
+                               { return method->getGroup()->getFilter(); });
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

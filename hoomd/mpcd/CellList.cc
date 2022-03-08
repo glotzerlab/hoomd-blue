@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CellList.h"
 
@@ -15,6 +13,8 @@
  * \brief Definition of mpcd::CellList
  */
 
+namespace hoomd
+    {
 mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
     : Compute(sysdef), m_mpcd_pdata(mpcd_pdata), m_cell_size(1.0), m_cell_np_max(4),
@@ -39,6 +39,13 @@ mpcd::CellList::CellList(std::shared_ptr<SystemDefinition> sysdef,
     m_decomposition = m_pdata->getDomainDecomposition();
     m_num_extra = 0;
     m_cover_box = m_pdata->getBox();
+
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
 #endif // ENABLE_MPI
 
     m_mpcd_pdata->getSortSignal().connect<mpcd::CellList, &mpcd::CellList::sort>(this);
@@ -61,8 +68,6 @@ mpcd::CellList::~CellList()
 void mpcd::CellList::compute(uint64_t timestep)
     {
     Compute::compute(timestep);
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD cell list");
 
     if (m_virtual_change)
         {
@@ -85,17 +90,12 @@ void mpcd::CellList::compute(uint64_t timestep)
     if (peekCompute(timestep))
         {
 #ifdef ENABLE_MPI
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
-
         // exchange embedded particles if necessary
-        if (m_comm && needsEmbedMigrate(timestep))
+        if (m_sysdef->isDomainDecomposed() && needsEmbedMigrate(timestep))
             {
             m_comm->forceMigrate();
             m_comm->communicate(timestep);
             }
-        if (m_prof)
-            m_prof->push(m_exec_conf, "MPCD cell list");
 #endif // ENABLE_MPI
 
         // resize to be able to hold the number of embedded particles
@@ -126,9 +126,6 @@ void mpcd::CellList::compute(uint64_t timestep)
         // signal to the ParticleData that the cell list cache is now valid
         m_mpcd_pdata->validateCellCache();
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::CellList::reallocate()
@@ -839,7 +836,7 @@ bool mpcd::CellList::checkConditions()
             << "x: " << m_grid_shift.x << " y: " << m_grid_shift.y << " z: " << m_grid_shift.z
             << std::endl;
 
-        const BoxDim& cover_box = getCoverageBox();
+        const BoxDim cover_box = getCoverageBox();
         Scalar3 lo = cover_box.getLo();
         Scalar3 hi = cover_box.getHi();
         uchar3 periodic = cover_box.getPeriodic();
@@ -935,11 +932,12 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell) const
 
 void mpcd::detail::export_CellList(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>())
+    pybind11::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList>>(m, "CellList")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<mpcd::ParticleData>>())
         .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
         .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup);
     }
+
+    } // end namespace hoomd

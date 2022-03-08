@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
@@ -16,6 +17,12 @@
 #ifndef __POTENTIAL_EXTERNAL_GPU_CUH__
 #define __POTENTIAL_EXTERNAL_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Wraps arguments to gpu_cpef
 struct external_potential_args_t
     {
@@ -35,7 +42,7 @@ struct external_potential_args_t
     Scalar4* d_force;              //!< Force to write out
     Scalar* d_virial;              //!< Virial to write out
     const size_t virial_pitch;     //!< The pitch of the 2D array of virial matrix elements
-    const BoxDim& box;             //!< Simulation box in GPU format
+    const BoxDim box;              //!< Simulation box in GPU format
     const unsigned int N;          //!< Number of particles
     const Scalar4* d_pos;          //!< Device array of particle positions
     const Scalar* d_diameter;      //!< particle diameters
@@ -52,7 +59,7 @@ struct external_potential_args_t
  */
 template<class evaluator>
 hipError_t __attribute__((visibility("default")))
-gpu_cpef(const external_potential_args_t& external_potential_args,
+gpu_cpef(const kernel::external_potential_args_t& external_potential_args,
          const typename evaluator::param_type* d_params,
          const typename evaluator::field_type* d_field);
 
@@ -157,19 +164,16 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
  * instantiated per potential in a cu file.
  */
 template<class evaluator>
-hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
+hipError_t gpu_cpef(const kernel::external_potential_args_t& external_potential_args,
                     const typename evaluator::param_type* d_params,
                     const typename evaluator::field_type* d_field)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        hipFuncAttributes attr;
-        hipFuncGetAttributes(
-            &attr,
-            reinterpret_cast<const void*>(&gpu_compute_external_forces_kernel<evaluator>));
-        max_block_size = attr.maxThreadsPerBlock;
-        }
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(
+        &attr,
+        reinterpret_cast<const void*>(&gpu_compute_external_forces_kernel<evaluator>));
+    max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(external_potential_args.block_size, max_block_size);
 
@@ -198,4 +202,9 @@ hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
     return hipSuccess;
     };
 #endif // __HIPCC__
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // __POTENTIAL_PAIR_GPU_CUH__

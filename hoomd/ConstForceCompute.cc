@@ -1,11 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ConstForceCompute.h"
-
-namespace py = pybind11;
 
 using namespace std;
 
@@ -13,6 +9,8 @@ using namespace std;
     \brief Contains code for the ConstForceCompute class
 */
 
+namespace hoomd
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
     \param fx x-component of the force
     \param fy y-component of the force
@@ -249,34 +247,39 @@ void ConstForceCompute::computeForces(uint64_t timestep)
         rearrangeForces();
 
     // execute python callback to update the forces, if present
-    if (m_callback && !m_callback.is(py::none()))
+    if (m_callback && !m_callback.is(pybind11::none()))
         {
         m_callback(timestep);
         }
     }
 
-void export_ConstForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<ConstForceCompute, ForceCompute, std::shared_ptr<ConstForceCompute>>(
+void export_ConstForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<ConstForceCompute, ForceCompute, std::shared_ptr<ConstForceCompute>>(
         m,
         "ConstForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar>())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar,
-                      Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar,
+                            Scalar>())
         .def("setForce", &ConstForceCompute::setForce)
         .def("setGroupForce", &ConstForceCompute::setGroupForce)
         .def("setParticleForce", &ConstForceCompute::setParticleForce)
         .def("setCallback", &ConstForceCompute::setCallback);
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

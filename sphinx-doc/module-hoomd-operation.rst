@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd.operation
 ---------------
 
@@ -9,6 +12,7 @@ hoomd.operation
     :nosignatures:
 
     Compute
+    Integrator
     Operation
     Tuner
     Updater
@@ -18,7 +22,11 @@ hoomd.operation
 
 .. automodule:: hoomd.operation
     :synopsis: Classes define the interfaces and types for HOOMD-blue operations.
-    :members: Compute, Tuner, Updater, Writer
+    :members: Compute, Integrator, Tuner, Updater, Writer
+    :show-inheritance:
 
     .. autoclass:: Operation
         :inherited-members:
+
+    .. autoclass:: _TriggeredOperation
+        :show-inheritance:

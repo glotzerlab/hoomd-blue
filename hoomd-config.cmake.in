@@ -14,7 +14,6 @@ set(BUILD_HPMC "@BUILD_HPMC@")
 set(BUILD_METAL "@BUILD_METAL@")
 set(BUILD_DEM "@BUILD_DEM@")
 set(BUILD_MPCD "@BUILD_MPCD@")
-set(BUILD_JIT "@BUILD_JIT@")
 
 set(ENABLE_HIP "@ENABLE_HIP@")
 set(HIP_PLATFORM "@HIP_PLATFORM@")
@@ -23,6 +22,7 @@ set(ENABLE_ROCTRACER "@ENABLE_ROCTRACER@")
 set(ENABLE_MPI "@ENABLE_MPI@")
 set(ENABLE_MPI_CUDA "@ENABLE_MPI_CUDA@")
 set(ENABLE_TBB "@ENABLE_TBB@")
+set(ENABLE_LLVM "@ENABLE_LLVM@")
 set(ALWAYS_USE_MANAGED_MEMORY "@ALWAYS_USE_MANAGED_MEMORY@")
 
 # C++ standard
@@ -54,6 +54,11 @@ if (ENABLE_MPI)
     find_dependency(cereal CONFIG REQUIRED)
     if (cereal_FOUND)
         find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
+
+        if (NOT TARGET cereal::cereal AND TARGET cereal)
+            message(STATUS "Found cereal target, adding cereal::cereal alias.")
+            add_library(cereal::cereal ALIAS cereal)
+        endif()
     endif()
 endif()
 

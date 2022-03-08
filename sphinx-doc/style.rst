@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Code style
 ==========
 
@@ -51,6 +54,15 @@ formatting for use in `Napoleon`_.
 .. _Google Style: https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html#example-google
 .. _Napoleon: https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
 
+Simulation operations should unambiguously document what calculations they perform using formal
+mathematical notation and use a consistent set of symbols and across the whole codebase.
+HOOMD-blue documentation should follow standard physics and statistical mechanics notation with
+consistent use of symbols detailed in `notation`.
+
+When referencing classes, methods, and properties in documentation, use ``name`` to refer to names
+in the local scope (class method or property, or classes in the same module). For classes outside
+the module, use the fully qualified name (e.g. ``numpy.ndarray`` or
+``hoomd.md.compute.ThermodynamicQuantities``).
 
 C++/CUDA
 --------
@@ -79,16 +91,12 @@ Tools
 
 * Autoformatter: `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_.
 
-  * Run: ``pre-commit run --all-files --hook-stage manual`` to apply changes to
-    the whole repository. You must have a ``conda`` installation in your
-    ``PATH`` to run this.
-
 Documentation
 ^^^^^^^^^^^^^
 
-Documentation comments should be in Javadoc format and precede the item they
-document for compatibility with Doxygen and most source code editors. Multi-line
-documentation comment blocks start with ``/**`` and single line ones start with
+Documentation comments should be in Javadoc format and precede the item they document for
+compatibility with many source code editors. Multi-line documentation comment blocks start with
+``/**`` and single line ones start with
 ``///``.
 
 .. code:: c++

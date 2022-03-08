@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "export_filters.h"
 #include "ParticleFilter.h"
 #include "ParticleFilterAll.h"
@@ -10,6 +13,10 @@
 #include "ParticleFilterType.h"
 #include "ParticleFilterUnion.h"
 
+namespace hoomd
+    {
+namespace detail
+    {
 void export_ParticleFilters(pybind11::module& m)
     {
     pybind11::class_<ParticleFilter, std::shared_ptr<ParticleFilter>>(m, "ParticleFilter")
@@ -61,3 +68,7 @@ void export_ParticleFilters(pybind11::module& m)
         "ParticleFilterRigid")
         .def(pybind11::init<pybind11::tuple>());
     };
+
+    } // end namespace detail
+
+    } // end namespace hoomd

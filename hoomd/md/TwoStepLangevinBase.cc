@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
 
@@ -7,9 +7,12 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
@@ -52,42 +55,11 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma_r.size(); i++)
         h_gamma_r.data[i] = make_scalar3(1.0, 1.0, 1.0);
-
-    // connect to the ParticleData to receive notifications when the maximum number of particles
-    // changes
-    m_pdata->getNumTypesChangeSignal()
-        .connect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
     }
 
 TwoStepLangevinBase::~TwoStepLangevinBase()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepLangevinBase" << endl;
-    m_pdata->getNumTypesChangeSignal()
-        .disconnect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
-    }
-
-void TwoStepLangevinBase::slotNumTypesChange()
-    {
-    // skip the reallocation if the number of types does not change
-    // this keeps old parameters when restoring a snapshot
-    // it will result in invalid coefficients if the snapshot has a different type id -> name
-    // mapping
-    if (m_pdata->getNTypes() == m_gamma.size())
-        return;
-
-    // re-allocate memory for the per-type gamma storage and initialize them to 1.0
-    unsigned int old_ntypes = (unsigned int)m_gamma.size();
-    m_gamma.resize(m_pdata->getNTypes());
-    m_gamma_r.resize(m_pdata->getNTypes());
-
-    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
-
-    for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
-        {
-        h_gamma.data[i] = Scalar(1.0);
-        h_gamma_r.data[i] = make_scalar3(1.0, 1.0, 1.0);
-        }
     }
 
 void TwoStepLangevinBase::setGamma(const std::string& type_name, Scalar gamma)
@@ -172,14 +144,16 @@ pybind11::object TwoStepLangevinBase::getAlpha()
     return result;
     }
 
-void export_TwoStepLangevinBase(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase>>(
-        m,
-        "TwoStepLangevinBase")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>>())
+void export_TwoStepLangevinBase(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepLangevinBase,
+                     IntegrationMethodTwoStep,
+                     std::shared_ptr<TwoStepLangevinBase>>(m, "TwoStepLangevinBase")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>>())
         .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
         .def("getGamma", &TwoStepLangevinBase::getGamma)
@@ -187,3 +161,6 @@ void export_TwoStepLangevinBase(py::module& m)
         .def("getGammaR", &TwoStepLangevinBase::getGammaR)
         .def_property("alpha", &TwoStepLangevinBase::getAlpha, &TwoStepLangevinBase::setAlpha);
     }
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_THERMO_GPU_CUH_
 #define _COMPUTE_THERMO_GPU_CUH_
@@ -15,6 +13,12 @@
     \brief Kernel driver function declarations for ComputeThermoGPU
     */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Holder for arguments to gpu_compute_thermo
 struct compute_thermo_args
     {
@@ -65,5 +69,9 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
                                     const compute_thermo_args& args,
                                     bool compute_pressure_tensor,
                                     bool compute_rotational_energy);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

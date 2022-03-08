@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_PAIR_GB_H__
 #define __EVALUATOR_PAIR_GB_H__
@@ -28,10 +26,16 @@
 //! compiler
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
 #define HOSTDEVICE
+#define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
  * with shape-independent energy parameter, for identical uniaxial particles.
@@ -51,7 +55,9 @@ class EvaluatorPairGB
             \param available_bytes Size of remaining shared memory
             allocation
         */
-        HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -70,7 +76,7 @@ class EvaluatorPairGB
 
 #ifndef __HIPCC__
 
-        param_type(pybind11::dict v)
+        param_type(pybind11::dict v, bool managed = false)
             {
             epsilon = v["epsilon"].cast<Scalar>();
             lperp = v["lperp"].cast<Scalar>();
@@ -89,9 +95,9 @@ class EvaluatorPairGB
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     // Nullary structure required by AnisoPotentialPair.
@@ -101,13 +107,15 @@ class EvaluatorPairGB
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
         */
-        HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
         HOSTDEVICE shape_type() { }
 
 #ifndef __HIPCC__
 
-        shape_type(pybind11::object shape_params) { }
+        shape_type(pybind11::object shape_params, bool managed) { }
 
         pybind11::object toPython()
             {
@@ -117,7 +125,7 @@ class EvaluatorPairGB
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
-        void attach_to_stream(hipStream_t stream) const { }
+        void set_memory_hint() const { }
 #endif
         };
 
@@ -136,11 +144,6 @@ class EvaluatorPairGB
         : dr(_dr), rcutsq(_rcutsq), qi(_qi), qj(_qj), epsilon(_params.epsilon),
           lperp(_params.lperp), lpar(_params.lpar)
         {
-        }
-
-    HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const
-        {
-        // No-op for this struct since it contains no arrays
         }
 
     //! uses diameter
@@ -282,6 +285,16 @@ class EvaluatorPairGB
         return true;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of the potential
     /*! \returns The potential name.
@@ -310,6 +323,9 @@ class EvaluatorPairGB
     Scalar lpar;
     // const param_type &params;  //!< The pair potential parameters
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #undef HOOMD_GB_MIN
 #undef HOOMD_GB_MAX

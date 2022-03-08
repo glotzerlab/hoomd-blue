@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellThermoComputeGPU.cc
@@ -11,6 +9,8 @@
 #include "CellThermoComputeGPU.h"
 #include "ReductionOperators.h"
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param cl MPCD cell list
@@ -244,9 +244,7 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
 
 void mpcd::CellThermoComputeGPU::computeNetProperties()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD thermo");
-    // first reduce the properties on the rank
+        // first reduce the properties on the rank
         {
         const Index3D& ci = m_cl->getCellIndexer();
         uint3 upper = make_uint3(ci.getW(), ci.getH(), ci.getD());
@@ -358,16 +356,14 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         }
 
     m_needs_net_reduce = false;
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::CellThermoComputeGPU,
-               mpcd::CellThermoCompute,
-               std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>());
+    pybind11::class_<mpcd::CellThermoComputeGPU,
+                     mpcd::CellThermoCompute,
+                     std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
+
+    } // end namespace hoomd

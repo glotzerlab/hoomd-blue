@@ -1,7 +1,7 @@
 add_subdirectory(extern)
 
 # configure the version information file
-configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
+configure_file (HOOMDVersion.h.inc ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
 
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
@@ -26,12 +26,6 @@ else()
     set(_hpmc_built "False")
 endif()
 
-if (BUILD_DEM)
-    set(_dem_built "True")
-else()
-    set(_dem_built "False")
-endif()
-
 if (BUILD_METAL)
     set(_metal_built "True")
 else()
@@ -42,6 +36,12 @@ if (BUILD_MPCD)
     set(_mpcd_built "True")
 else()
     set(_mpcd_built "False")
+endif()
+
+if (ENABLE_LLVM)
+    set(_llvm_enabled "True")
+else()
+    set(_llvm_enabled "False")
 endif()
 
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
@@ -56,41 +56,35 @@ set(_hoomd_sources Analyzer.cc
                    Autotuner.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
-                   CallbackAnalyzer.cc
                    CellList.cc
                    CellListStencil.cc
                    ClockSource.cc
                    Communicator.cc
                    CommunicatorGPU.cc
                    Compute.cc
-                   ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
                    ExecutionConfiguration.cc
                    ForceCompute.cc
                    ForceConstraint.cc
-                   GetarDumpWriter.cc
-                   GetarInitializer.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
                    Initializers.cc
                    Integrator.cc
-                   IntegratorData.cc
                    LoadBalancer.cc
                    Messenger.cc
                    MemoryTraceback.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
-                   Profiler.cc
+                   ParticleFilterUpdater.cc
                    PythonLocalDataAccess.cc
                    PythonAnalyzer.cc
                    PythonTuner.cc
                    PythonUpdater.cc
                    SFCPackTuner.cc
-                   SignalHandler.cc
                    SnapshotSystemData.cc
                    System.cc
                    SystemDefinition.cc
@@ -118,13 +112,14 @@ set(_hoomd_headers
     AABB.h
     AABBTree.h
     Analyzer.h
+    ArrayView.h
     Autotuner.h
     BondedGroupData.cuh
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
+    UpdaterRemoveDrift.h
     CachedAllocator.h
-    CallbackAnalyzer.h
     CellListGPU.cuh
     CellListGPU.h
     CellList.h
@@ -134,16 +129,12 @@ set(_hoomd_headers
     CommunicatorGPU.h
     Communicator.h
     Compute.h
-    ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
     ExecutionConfiguration.h
     Filesystem.h
     ForceCompute.h
     ForceConstraint.h
-    GetarDumpIterators.h
-    GetarDumpWriter.h
-    GetarInitializer.h
     GlobalArray.h
     GPUArray.h
     GPUFlags.h
@@ -161,7 +152,6 @@ set(_hoomd_headers
     Index1D.h
     Initializers.h
     Integrator.cuh
-    IntegratorData.h
     Integrator.h
     LoadBalancerGPU.cuh
     LoadBalancerGPU.h
@@ -175,7 +165,7 @@ set(_hoomd_headers
     ParticleData.h
     ParticleGroup.cuh
     ParticleGroup.h
-    Profiler.h
+    ParticleFilterUpdater.h
     PythonLocalDataAccess.h
     PythonUpdater.h
     PythonAnalyzer.h
@@ -185,7 +175,6 @@ set(_hoomd_headers
     SFCPackTunerGPU.h
     SFCPackTuner.h
     SharedSignal.h
-    SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
     System.h
@@ -215,28 +204,6 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)
 
-# include libgetar sources directly into _hoomd.so
-get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
-foreach(getar_src ${GETAR_SRCS_REL})
-  list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
-endforeach(getar_src)
-
-# quiet some warnings locally on files we can't modify
-if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
-    set_source_files_properties(extern/libgetar/src/DirArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/SqliteArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/TarArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/ZipArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/lz4.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/miniz/miniz.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    if (CMAKE_COMPILER_IS_GNUCXX)
-        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-return-local-addr")
-    else()
-        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    endif()
-endif()
-
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
 endif (ENABLE_HIP)
@@ -248,16 +215,31 @@ pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} $
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
 
+# Work around support for the delete operator with pybind11 and older versions of clang
+# https://github.com/pybind/pybind11/issues/1604
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(_hoomd PUBLIC -fsized-deallocation)
+endif()
+
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # ignore conversion warnings in quickull
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0.0)
+        target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
+    else()
+        target_compile_options(quickhull PRIVATE "-Wno-conversion")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
 endif()
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC pybind11::pybind11 quickhull Eigen3::Eigen)
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    target_link_libraries(_hoomd PUBLIC execinfo) # on FreeBSD backtrace() is in libexecinfo
+endif()
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
@@ -322,7 +304,7 @@ endif()
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
-    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal::cereal)
 
     if (ENABLE_MPI_CUDA)
           target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
@@ -350,11 +332,11 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files box.py
           communicator.py
+          _compile.py
           conftest.py
           device.py
           __init__.py
           error.py
-          integrate.py
           operation.py
           operations.py
           pytest_plugin_validate.py
@@ -366,6 +348,7 @@ set(files box.py
           snapshot.py
           logging.py
           version.py
+          wall.py
     )
 
 install(FILES ${files}
@@ -384,7 +367,6 @@ install(FILES ${_hoomd_headers}
 add_subdirectory(custom)
 add_subdirectory(data)
 add_subdirectory(filter)
-add_subdirectory(minimize)
 add_subdirectory(write)
 add_subdirectory(pytest)
 add_subdirectory(tune)
@@ -414,18 +396,10 @@ if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
 
-if (BUILD_DEM AND BUILD_MD)
-    add_subdirectory(dem)
-endif()
-
 if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     if (BUILD_MPCD)
         add_subdirectory(mpcd)
     endif()
-endif()
-
-if (BUILD_JIT)
-    add_subdirectory(jit)
 endif()
 
 foreach(entry ${PLUGINS})

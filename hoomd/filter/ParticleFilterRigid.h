@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PARTICLE_FILTER_RIGID_H__
 #define __PARTICLE_FILTER_RIGID_H__
 
@@ -13,6 +16,8 @@
     Filters particles based on them being rigid body centers or not.
 */
 
+namespace hoomd
+    {
 enum class RigidBodySelection
     {
     NONE = 0,
@@ -117,4 +122,6 @@ class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
     /// and free bodies.
     RigidBodySelection m_current_selection;
     };
+
+    } // end namespace hoomd
 #endif
