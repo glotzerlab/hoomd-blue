@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_NEC__H__
 #define __HPMC_MONO_NEC__H__
@@ -671,75 +671,80 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                         // Update the velocities of 'k' and 'next'
                         // unless there was no collision
                         if (next != k and next > -1)
-                        {
-                        vec3<Scalar> pos_n = vec3<Scalar>(h_postype.data[next]);
+                            {
+                            vec3<Scalar> pos_n = vec3<Scalar>(h_postype.data[next]);
 
-                        vec3<Scalar> vel_n = vec3<Scalar>(h_velocities.data[next]);
-                        vec3<Scalar> vel_k = vec3<Scalar>(h_velocities.data[k]);
+                            vec3<Scalar> vel_n = vec3<Scalar>(h_velocities.data[next]);
+                            vec3<Scalar> vel_k = vec3<Scalar>(h_velocities.data[k]);
 
-                        int3 null_image;
-                        vec3<Scalar> delta_pos = pos_n - pos_k;
-                        box.wrap(delta_pos, null_image);
+                            int3 null_image;
+                            vec3<Scalar> delta_pos = pos_n - pos_k;
+                            box.wrap(delta_pos, null_image);
 
-                        // statistics for pressure  -2-
-                        count_pressurevirial += dot(delta_pos, direction);
+                            // statistics for pressure  -2-
+                            count_pressurevirial += dot(delta_pos, direction);
 
 #ifdef ENABLE_MPI
-                        if (!this->m_comm || isActive(vec_to_scalar3(pos_n), box, ghost_fraction))
-                            {
+                            if (!this->m_comm
+                                || isActive(vec_to_scalar3(pos_n), box, ghost_fraction))
+                                {
 #endif
 
-                            // Update Velocities (fully elastic)
-                            vec3<Scalar> delta_vel = vel_n - vel_k;
-                            vec3<Scalar> vel_change
-                                = collisionPlaneVector
-                                  * (dot(delta_vel, collisionPlaneVector)
-                                     / dot(collisionPlaneVector, collisionPlaneVector));
+                                // Update Velocities (fully elastic)
+                                vec3<Scalar> delta_vel = vel_n - vel_k;
+                                vec3<Scalar> vel_change
+                                    = collisionPlaneVector
+                                      * (dot(delta_vel, collisionPlaneVector)
+                                         / dot(collisionPlaneVector, collisionPlaneVector));
 
-                            //
-                            //  Update Velocities when actually colliding
-                            //  otherwise they will collide again in the next step.
-                            //
-                            vel_n -= vel_change;
-                            vel_k += vel_change;
+                                //
+                                //  Update Velocities when actually colliding
+                                //  otherwise they will collide again in the next step.
+                                //
+                                vel_n -= vel_change;
+                                vel_k += vel_change;
 
-                            h_velocities.data[next] = make_scalar4(vel_n.x,
-                                                                   vel_n.y,
-                                                                   vel_n.z,
-                                                                   h_velocities.data[next].w);
-                            h_velocities.data[k]
-                                = make_scalar4(vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
+                                h_velocities.data[next] = make_scalar4(vel_n.x,
+                                                                       vel_n.y,
+                                                                       vel_n.z,
+                                                                       h_velocities.data[next].w);
+                                h_velocities.data[k] = make_scalar4(vel_k.x,
+                                                                    vel_k.y,
+                                                                    vel_k.z,
+                                                                    h_velocities.data[k].w);
 
-                            velocity = fast::sqrt(dot(vel_n, vel_n));
+                                velocity = fast::sqrt(dot(vel_n, vel_n));
 
-                            direction = vel_n / velocity;
+                                direction = vel_n / velocity;
 #ifdef ENABLE_MPI
-                            }
-                        else
-                            { // if colliding with an inactive particle.
-                            vec3<Scalar> vel_change
-                                = collisionPlaneVector
-                                  * (dot(vel_k, collisionPlaneVector)
-                                     / dot(collisionPlaneVector, collisionPlaneVector));
-                            vel_k = vel_k - 2.0 * vel_change;
+                                }
+                            else
+                                { // if colliding with an inactive particle.
+                                vec3<Scalar> vel_change
+                                    = collisionPlaneVector
+                                      * (dot(vel_k, collisionPlaneVector)
+                                         / dot(collisionPlaneVector, collisionPlaneVector));
+                                vel_k = vel_k - 2.0 * vel_change;
 
-                            h_velocities.data[k]
-                                = make_scalar4(vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
-                            next = k;
+                                h_velocities.data[k] = make_scalar4(vel_k.x,
+                                                                    vel_k.y,
+                                                                    vel_k.z,
+                                                                    h_velocities.data[k].w);
+                                next = k;
 
-                            velocity = fast::sqrt(dot(vel_k, vel_k));
+                                velocity = fast::sqrt(dot(vel_k, vel_k));
 
-                            direction = vel_k / velocity;
-                            }
+                                direction = vel_k / velocity;
+                                }
 #endif
 
-                        if (velocity == 0.0)
-                            {
-                            this->m_exec_conf->msg->warning()
-                                << "Cannot continue a chain without moving.\n";
-                            next = -1;
+                            if (velocity == 0.0)
+                                {
+                                this->m_exec_conf->msg->warning()
+                                    << "Cannot continue a chain without moving.\n";
+                                next = -1;
+                                }
                             }
-                        }
                     } // end loop over totalDist.
                 }
             else
