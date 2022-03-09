@@ -440,8 +440,7 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                 if (velocity == 0.0)
                     {
                     this->m_exec_conf->msg->error()
-                        << "NEC requires non-zero velocities."
-                        << std::endl;
+                        << "NEC requires non-zero velocities." << std::endl;
                     break;
                     }
 
