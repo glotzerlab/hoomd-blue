@@ -220,6 +220,16 @@ IntegratorHPMCMonoNEC<Shape>::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefini
     : IntegratorHPMCMono<Shape>(sysdef)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCMonoNEC" << std::endl;
+
+#ifdef ENABLE_MPI
+    if (this->m_sysdef->isDomainDecomposed())
+        {
+        // The original author of this code made an attempt at supporting MPI parallelism,
+        // but did not complete the work.
+        throw std::runtime_error("NEC integration does not support MPI execution.");
+        }
+#endif
+
     count_pressurevirial = 0.0;
     count_movelength = 0.0;
 

@@ -18,6 +18,7 @@ rel_err_cs = 0.0015
 
 
 @pytest.mark.parametrize("betap,phi", _phi_p_ref)
+@pytest.mark.serial
 @pytest.mark.validate
 def test_sphere_eos_nec(betap, phi, simulation_factory,
                         lattice_snapshot_factory):
