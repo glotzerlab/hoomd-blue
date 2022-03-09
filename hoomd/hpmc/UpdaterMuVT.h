@@ -494,7 +494,7 @@ unsigned int
 UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep, Scalar V, bool local, unsigned int type_d)
     {
     // parameter for Poisson distribution
-    Scalar lambda = this->m_mc->getDepletantFugacity(type_d, type_d) * V;
+    Scalar lambda = this->m_mc->getDepletantFugacity(type_d) * V;
 
     unsigned int n = 0;
     if (lambda > Scalar(0.0))
@@ -615,17 +615,10 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
         // loop over depletant types
         for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
             {
-            if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+            if (m_mc->getDepletantFugacity(type_d) == 0.0)
                 continue;
 
-            for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-                {
-                if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                    throw std::runtime_error(
-                        "Non-additive depletants not supported in update.muvt()\n");
-                }
-
-            if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+            if (m_mc->getDepletantFugacity(type_d) < 0.0)
                 throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
             // draw number from Poisson distribution (using old box)
@@ -1809,17 +1802,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
 
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-            {
-            if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                throw std::runtime_error(
-                    "Non-additive depletants not supported in update.muvt()\n");
-            }
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+        if (m_mc->getDepletantFugacity(type_d) == 0.0)
             continue;
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d) < 0.0)
             throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
 #ifdef ENABLE_MPI
@@ -2155,17 +2140,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     // loop over depletant types
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-            {
-            if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                throw std::runtime_error(
-                    "Non-additive depletants not supported in update.muvt()\n");
-            }
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+        if (m_mc->getDepletantFugacity(type_d) == 0.0)
             continue;
 
-        if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d) < 0.0)
             throw std::runtime_error("Negative fugacities not supported in update.muvt()\n");
 
         // Depletant and colloid diameter
