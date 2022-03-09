@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #include "ShapeMoves.h"
@@ -52,9 +51,7 @@ void export_simple_polygon(pybind11::module& m)
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_HarmonicField<ShapeSimplePolygon>(m, "ExternalFieldHarmonicSimplePolygon");
     export_ExternalFieldComposite<ShapeSimplePolygon>(m, "ExternalFieldCompositeSimplePolygon");
-    // export_ExternalFieldWall<ShapeSimplePolygon>(m, "WallSimplePolygon");
-    // export_UpdaterExternalFieldWall<ShapeSimplePolygon>(m,
-    // "UpdaterExternalFieldWallSimplePolygon");
+    export_ExternalFieldWall<ShapeSimplePolygon>(m, "WallSimplePolygon");
     export_ExternalCallback<ShapeSimplePolygon>(m, "ExternalCallbackSimplePolygon");
 
 #ifdef ENABLE_HIP

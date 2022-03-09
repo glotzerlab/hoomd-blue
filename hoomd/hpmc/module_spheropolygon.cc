@@ -17,7 +17,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #include "ShapeMoves.h"
@@ -53,9 +52,7 @@ void export_spheropolygon(pybind11::module& m)
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
     export_HarmonicField<ShapeSpheropolygon>(m, "ExternalFieldHarmonicSpheropolygon");
     export_ExternalFieldComposite<ShapeSpheropolygon>(m, "ExternalFieldCompositeSpheropolygon");
-    // export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallSpheropolygon");
-    // export_UpdaterExternalFieldWall<ShapeSpheropolygon>(m,
-    // "UpdaterExternalFieldWallSpheropolygon");
+    export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallConvexSpheropolygon");
     export_ExternalCallback<ShapeSpheropolygon>(m, "ExternalCallbackSpheropolygon");
 
 #ifdef ENABLE_HIP

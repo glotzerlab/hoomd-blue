@@ -9,7 +9,7 @@ import hoomd
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
-from hoomd.integrate import BaseIntegrator
+from hoomd.operation import Integrator as BaseIntegrator
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
@@ -105,11 +105,6 @@ class _DynamicIntegrator(BaseIntegrator):
             children.extend(child._children)
 
         return children
-
-    def _getattr_param(self, attr):
-        if attr == "rigid":
-            return self._param_dict._dict["rigid"]
-        return super()._getattr_param(attr)
 
     def _setattr_param(self, attr, value):
         if attr == "rigid":

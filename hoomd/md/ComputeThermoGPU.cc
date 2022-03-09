@@ -57,9 +57,6 @@ void ComputeThermoGPU::computeProperties()
 
     unsigned int group_size = m_group->getNumMembers();
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Thermo");
-
     assert(m_pdata);
 
     // number of blocks in reduction (round up for every GPU)
@@ -223,9 +220,6 @@ void ComputeThermoGPU::computeProperties()
     // in MPI, reduce extensive quantities only when they're needed
     m_properties_reduced = !m_pdata->getDomainDecomposition();
 #endif // ENABLE_MPI
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

@@ -133,10 +133,6 @@ pybind11::dict TableDihedralForceCompute::getParams(std::string type)
 */
 void TableDihedralForceCompute::computeForces(uint64_t timestep)
     {
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push("Dihedral Table pair");
-
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
@@ -366,9 +362,6 @@ void TableDihedralForceCompute::computeForces(uint64_t timestep)
         for (int k = 0; k < 6; k++)
             h_virial.data[virial_pitch * k + idx_d] += dihedral_virial[k];
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

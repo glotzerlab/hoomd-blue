@@ -62,10 +62,6 @@ void CosineSqAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar
 */
 void CosineSqAngleForceComputeGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "CosineSq Angle");
-
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -104,9 +100,6 @@ void CosineSqAngleForceComputeGPU::computeForces(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

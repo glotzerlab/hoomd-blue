@@ -14,7 +14,6 @@ import hoomd
 import atexit
 import os
 import numpy
-import itertools
 import math
 import warnings
 from hoomd.snapshot import Snapshot
@@ -78,6 +77,51 @@ def simulation_factory(device):
 
 
 @pytest.fixture(scope='session')
+def one_particle_snapshot_factory(device):
+    """Make a snapshot with a single particle."""
+
+    def make_snapshot(particle_types=['A'],
+                      dimensions=3,
+                      position=(0, 0, 0),
+                      orientation=(1, 0, 0, 0),
+                      L=20):
+        """Make the snapshot.
+
+        Args:
+            particle_types: List of particle type names
+            dimensions: Number of dimensions (2 or 3)
+            position: Position to place the particle
+            orientation: Orientation quaternion to assign to the particle
+            L: Box length
+
+        The arguments position and orientation define the position and
+        orientation of the particle.  When dimensions==3, the box is a cubic box
+        with dimensions L by L by L. When dimensions==2, the box is a square box
+        with dimensions L by L by 0.
+        """
+        s = Snapshot(device.communicator)
+        N = 1
+
+        if dimensions == 2 and position[2] != 0:
+            raise ValueError(
+                'z component of position must be zero for 2D simulation.')
+
+        if s.communicator.rank == 0:
+            box = [L, L, L, 0, 0, 0]
+            if dimensions == 2:
+                box[2] = 0
+            s.configuration.box = box
+            s.particles.N = N
+            # shift particle positions slightly in z so MPI tests pass
+            s.particles.position[0] = position
+            s.particles.orientation[0] = orientation
+            s.particles.types = particle_types
+        return s
+
+    return make_snapshot
+
+
+@pytest.fixture(scope='session')
 def two_particle_snapshot_factory(device):
     """Make a snapshot with two particles."""
 
@@ -126,7 +170,8 @@ def lattice_snapshot_factory(device):
             particle_types: List of particle type names
             dimensions: Number of dimensions (2 or 3)
             a: Lattice constant
-            n: Number of particles along each box edge
+            n: Number of particles along each box edge. Pass a tuple for
+                different lengths in each dimension.
             r: Fraction of `a` to randomly perturb particles
 
         Place particles on a simple cubic (dimensions==3) or square
@@ -137,38 +182,40 @@ def lattice_snapshot_factory(device):
         positions. This is useful in MD simulation testing so that forces do not
         cancel out by symmetry.
         """
+        if isinstance(n, int):
+            n = (n,) * dimensions
+            if dimensions == 2:
+                n += (1,)
+
         s = Snapshot(device.communicator)
 
         if s.communicator.rank == 0:
-            box = [n * a, n * a, n * a, 0, 0, 0]
+            box = [n[0] * a, n[1] * a, n[2] * a, 0, 0, 0]
             if dimensions == 2:
                 box[2] = 0
             s.configuration.box = box
 
-            s.particles.N = n**dimensions
+            s.particles.N = numpy.product(n)
             s.particles.types = particle_types
 
+            if any(nx == 0 for nx in n):
+                return s
+
             # create the lattice
-            if n > 0:
-                range_ = numpy.arange(-n / 2, n / 2)
+            ranges = [numpy.arange(-nx / 2, nx / 2) for nx in n]
+            x, y, z = numpy.meshgrid(*ranges)
+            lattice_position = numpy.vstack(
+                (x.flatten(), y.flatten(), z.flatten())).T
+            pos = (lattice_position + 0.5) * a
+            if dimensions == 2:
+                pos[:, 2] = 0
+            # perturb the positions
+            if r > 0:
+                shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
                 if dimensions == 2:
-                    pos = list(itertools.product(range_, range_, [0]))
-                else:
-                    pos = list(itertools.product(range_, repeat=3))
-                pos = numpy.array(pos) * a
-                pos[:, 0] += a / 2
-                pos[:, 1] += a / 2
-                if dimensions == 3:
-                    pos[:, 2] += a / 2
-
-                # perturb the positions
-                if r > 0:
-                    shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
-                    if dimensions == 2:
-                        shift[:, 2] = 0
-                    pos += shift
-
-                s.particles.position[:] = pos
+                    shift[:, 2] = 0
+                pos += shift
+            s.particles.position[:] = pos
 
         return s
 
@@ -260,6 +307,12 @@ def numpy_random_seed():
     for reproducible tests.
     """
     numpy.random.seed(42)
+
+
+@pytest.fixture(scope="module")
+def rng():
+    """Return a NumPy random generator."""
+    return numpy.random.default_rng(564)
 
 
 def pytest_configure(config):

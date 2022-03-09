@@ -39,7 +39,6 @@ void export_convex_polyhedron(pybind11::module& m);
 void export_convex_spheropolyhedron(pybind11::module& m);
 // void export_convex_spheropolyhedron_alchemy(pybind11::module& m);
 
-void export_external_fields(pybind11::module& m);
     } // namespace detail
     } // namespace hpmc
     } // namespace hoomd

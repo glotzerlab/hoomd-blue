@@ -76,7 +76,7 @@ struct dpd_pair_args_t
     const Scalar4* d_pos;      //!< particle positions
     const Scalar4* d_vel;      //!< particle velocities
     const unsigned int* d_tag; //!< particle tags
-    const BoxDim& box;         //!< Simulation box in GPU format
+    const BoxDim box;          //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle

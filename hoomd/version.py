@@ -3,8 +3,13 @@
 
 """Version and build information.
 
+Use the values in `hoomd.version` to query properties of the package set at
+compile time.
+
 See Also:
     `features`
+
+    `building`
 
 Attributes:
     build_dir (str): The directory where this build was compiled.
@@ -19,8 +24,6 @@ Attributes:
 
     cxx_compiler (str): Name and version of the C++ compiler used to build
         HOOMD.
-
-    dem_built (bool): ``True`` when the ``dem`` component is built.
 
     floating_point_precision (tuple[int, int]): The **high precision** floating
         point width in bits  (element 0) and the **reduced precision** width in
@@ -65,7 +68,6 @@ from hoomd.version_config import (
     compile_date,
     cuda_include_path,
     cuda_devrt_library,
-    dem_built,
     git_branch,
     git_sha1,
     hpmc_built,

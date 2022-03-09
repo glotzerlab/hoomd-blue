@@ -29,8 +29,10 @@ Here is a module level overview of features that have been moved or removed:
      - *Removed.* Use Python standard libraries for timing.
    * - ``hoomd.cite``
      - *Removed.* See `citing`.
+   * - ``hoomd.dump``
+     - `hoomd.write`
    * - ``hoomd.compute.thermo``
-     - ``hoomd.md.compute.ThermodynamicQuantities``
+     - `hoomd.md.compute.ThermodynamicQuantities`
    * - ``hoomd.context.initialize``
      - `hoomd.device.CPU` and `hoomd.device.GPU`
    * - ``hoomd.data``
@@ -50,11 +52,11 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.util``
      -  Enable GPU profiling with `hoomd.device.GPU.enable_profiling`.
    * - ``hoomd.hpmc.analyze.sdf``
-     - ``hoomd.hpmc.compute.SDF``
+     - `hoomd.hpmc.compute.SDF`
    * - ``hoomd.hpmc.data``
-     - HPMC integrator properties.
+     - `hoomd.hpmc.integrate.HPMCIntegrator` properties.
    * - ``hoomd.hpmc.util``
-     - ``hoomd.hpmc.tune``
+     - `hoomd.hpmc.tune`
    * - ``hoomd.md.integrate.mode_standard``
      - `hoomd.md.Integrator`
    * - ``hoomd.md.update.rescale_temp``
@@ -68,9 +70,9 @@ Here is a module level overview of features that have been moved or removed:
    * - ``hoomd.md.update.constraint_ellipsoid``
      - `hoomd.md.manifold.Ellipsoid`
    * - ``hoomd.jit.patch``
-     - ``hoomd.hpmc.pair.user``
+     - `hoomd.hpmc.pair.user`
    * - ``hoomd.jit.external``
-     - ``hoomd.hpmc.external.user``
+     - `hoomd.hpmc.external.user`
 
 Removed functionality
 ---------------------
@@ -155,7 +157,7 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
    * - ``f_list`` and ``t_list`` parameters to ``md.force.active``
      - Per-type ``active_force`` and ``active_torque``
    * - ``md.pair.SLJ``
-     - ``md.pair.ExpandedLJ``
+     - `md.pair.ExpandedLJ`
 
 ``hoomd.cgcmm``:
 
@@ -177,7 +179,7 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
    * - Feature
      - Replace with
    * - DEM pair potentials
-     - ALJ pair potentials
+     - ALJ pair potential in `hoomd.md.pair.aniso`.
 
 Not yet ported
 --------------
@@ -185,11 +187,10 @@ Not yet ported
 The following v2 functionalities have not yet been ported to the v3 API. They may be added in a
 future 3.x release:
 
-- Walls in HPMC.
 - HPMC box volume move size tuner.
 
 These contributed functionalities rely on the community for support. Please
-contact the developers if you have an interest in porting these:
+contact the developers if you have an interest in porting these in a future release:
 
 - ``hoomd.hdf5``
 - ``hoomd.metal``
@@ -199,13 +200,12 @@ contact the developers if you have an interest in porting these:
 Compiling
 ---------
 
-* CMake 3.8 or newer is required to build HOOMD.
+* CMake 3.8 or newer is required to build HOOMD v3.0.
 * To compile with GPU support, use the option ``ENABLE_GPU=ON``.
 * ``UPDATE_SUBMODULES`` no longer exists. Users and developers should use
   ``git clone --recursive``, ``git submodule update`` and ``git submodule sync``
   as appropriate.
-* ``COPY_HEADERS`` no longer exists. Users must install HOOMD for use
-  with external components.
+* ``COPY_HEADERS`` no longer exists. HOOMD will pull headers from the source directory when needed.
 * ``CMAKE_INSTALL_PREFIX`` is set to the Python ``site-packages`` directory (if
   not explicitly set by the user).
 * **cereal**, **eigen**, and **pybind11** headers must be provided to build

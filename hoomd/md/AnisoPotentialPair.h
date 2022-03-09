@@ -63,9 +63,6 @@ namespace md
    stored in GlobalArray for easy access on the GPU by a derived class. The type of the parameters
    is defined by \a param_type in the potential aniso_evaluator class passed in. See the appropriate
    documentation for the aniso_evaluator for the definition of each element of the parameters.
-
-    For profiling AnisoPotentialPair needs to know the name of the potential. For now, that will be
-   queried from the aniso_evaluator. \sa export_AnisoAnisoPotentialPair()
 */
 
 template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
@@ -218,8 +215,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_params; //!< Pair parameters per type pair
     std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
-        m_shape_params;      //!< Shape paramters per type
-    std::string m_prof_name; //!< Cached profiler name
+        m_shape_params; //!< Shape paramters per type
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
@@ -328,9 +324,6 @@ AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDe
             }
         }
 #endif
-
-    // initialize name
-    m_prof_name = std::string("Aniso_Pair ") + aniso_evaluator::getName();
     }
 
 template<class aniso_evaluator> AnisoPotentialPair<aniso_evaluator>::~AnisoPotentialPair()
@@ -492,10 +485,6 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -526,7 +515,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         {
         // need to start from a zero force, energy and virial
@@ -698,9 +687,6 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 }
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI

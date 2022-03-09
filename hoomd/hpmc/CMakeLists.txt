@@ -23,7 +23,6 @@ set(_hpmc_gpu_union_shapes ShapeSphere
    )
 
 set(_hpmc_sources   module.cc
-                    module_external_field.cc
                     module_sphere.cc
                     module_convex_polygon.cc
                     module_simple_polygon.cc
@@ -38,6 +37,7 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     module_updater_shape.cc
+                    ExternalFieldWall.cc  
                     ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
@@ -92,7 +92,6 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterClustersGPU.cuh
     UpdaterClustersGPUDepletants.cuh
-    UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterQuickCompress.h
     UpdaterShape.h

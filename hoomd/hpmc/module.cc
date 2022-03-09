@@ -6,6 +6,7 @@
 #include "IntegratorHPMCMono.h"
 
 #include "ComputeSDF.h"
+#include "ExternalFieldWall.h"
 #include "ShapeConvexPolygon.h"
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeEllipsoid.h"
@@ -44,7 +45,8 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_UpdaterBoxMC(m);
     export_UpdaterQuickCompress(m);
-    export_external_fields(m);
+    export_wall_classes(m);
+    export_wall_list(m);
 
     export_sphere(m);
     // export_sphere_alchemy(m);

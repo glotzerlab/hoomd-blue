@@ -77,9 +77,6 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
 
     m_cl->compute(timestep);
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "compute");
-
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
@@ -197,9 +194,6 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     this->m_tuner->end();
 
     m_exec_conf->endMultiGPU();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

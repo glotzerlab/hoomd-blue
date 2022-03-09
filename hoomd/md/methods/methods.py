@@ -704,8 +704,7 @@ class NVE(Method):
         # initialize the reflected c++ class
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepNVE(sim.state._cpp_sys_def,
-                                           sim.state._get_group(self.filter),
-                                           False)
+                                           sim.state._get_group(self.filter))
         else:
             self._cpp_obj = _md.TwoStepNVEGPU(sim.state._cpp_sys_def,
                                               sim.state._get_group(self.filter))

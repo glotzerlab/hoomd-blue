@@ -7,13 +7,11 @@ from collections.abc import Sequence
 import json
 from numbers import Number
 
-from hoomd import md
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
-from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import (OnlyTypes, OnlyFrom, positive_real,
-                                      OnlyIf, to_type_converter)
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
 
 
 class AnisotropicPair(Pair):
@@ -39,15 +37,10 @@ class AnisotropicPair(Pair):
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
+    _accepted_modes = ("none", "shift")
+
     def __init__(self, nlist, default_r_cut=None, mode="none"):
-        self._nlist = OnlyTypes(md.nlist.NList, strict=True)(nlist)
-        tp_r_cut = TypeParameter('r_cut', 'particle_types',
-                                 TypeParameterDict(positive_real, len_keys=2))
-        if default_r_cut is not None:
-            tp_r_cut.default = default_r_cut
-        self._param_dict.update(ParameterDict(mode=OnlyFrom(['none', 'shift'])))
-        self.mode = mode
-        self._add_typeparam(tp_r_cut)
+        super().__init__(nlist, default_r_cut, 0.0, mode)
 
     def _return_type_shapes(self):
         type_shapes = self._cpp_obj.getTypeShapesPy()
@@ -349,19 +342,15 @@ class ALJ(AnisotropicPair):
           **required**) - The semimajor axes of a rounding ellipsoid. If a
           single value is specified, the rounding ellipsoid is a sphere.
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
-          polyhedron specified as a list of list of integers.  The vertices
-          must be ordered (see `get_ordered_vertices` for more information).
+          polyhedron specified as a list of list of integers.  The indices
+          corresponding to the vertices must be ordered counterclockwise with
+          respect to the face normal vector pointing outward from the origin.
 
         Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
 
     Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
-    to empty list to create the ellipsoid). To automate the computation of
-    faces, the convenience class method `get_ordered_vertices` can be used.
-    However, because merging of faces requires applying a numerical threshold to
-    find coplanar faces, in some cases `get_ordered_vertices` may result in not
-    all coplanar faces actually being merged. In such cases, users can
-    precompute the faces and provide them.
+    to empty list to create the ellipsoid).
 
     Example::
 
@@ -399,6 +388,37 @@ class ALJ(AnisotropicPair):
                               faces=cube_faces,
                               rounding_radii=1)
 
+    The following example shows how to easily get the faces, with vertex indices
+    properly ordered, for a shape with known vertices by using the
+    `coxeter <https://coxeter.readthedocs.io/>`_ package:
+
+    Example::
+
+        import coxeter
+
+        nl = hoomd.md.nlist.Cell()
+        alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
+
+        cube_verts = [[-0.5, -0.5, -0.5],
+                      [-0.5, -0.5, 0.5],
+                      [-0.5, 0.5, -0.5],
+                      [-0.5, 0.5, 0.5],
+                      [0.5, -0.5, -0.5],
+                      [0.5, -0.5, 0.5],
+                      [0.5, 0.5, -0.5],
+                      [0.5, 0.5, 0.5]]
+
+        cube = coxeter.shapes.ConvexPolyhedron(cube_verts)
+
+        alj.params[("A", "A")] = dict(epsilon=2.0,
+                                      sigma_i=1.0,
+                                      sigma_j=1.0,
+                                      alpha=1,
+                                      )
+        alj.shape["A"] = dict(vertices=cube.vertices,
+                              faces=cube.faces,
+                              rounding_radii=1)
+
     Warning:
         Changing dimension in a simulation will invalidate this force and will
         lead to error or unrealistic behavior.
@@ -431,43 +451,6 @@ class ALJ(AnisotropicPair):
                               len_keys=1))
 
         self._extend_typeparam((params, shape))
-
-    @staticmethod
-    def get_ordered_vertices(vertices, return_faces=True):
-        """Compute vertices and faces of a convex hull of given vertices.
-
-        Warning:
-            This method requires the
-            `coxeter <https://coxeter.readthedocs.io/>`_ package.
-
-        Args:
-            vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices to
-                take the convex hull of and get ordered vertices and faces from.
-            return_faces (`bool`, optional): Whether to return faces as a list
-                of list of int which index into the returned vertices. Defaults
-                to ``True``. If ``False`` only vertices are returned and the
-                return type is not a tuple.
-
-        Returns:
-            tuple: A tuple containing:
-
-                * ``vertices`` (:math:`(N_v, 3)` `numpy.ndarray` of `float`) -
-                  The vertices of the convex hull.
-                * ``faces`` (`list` [`list` [`int`]]) - The indices into the
-                  vertices of vertices defining the faces.
-        """
-        try:
-            import coxeter
-        except ImportError as error:
-            raise RuntimeError(
-                "Method requires coxeter as a dependency.") from error
-
-        shape = coxeter.shapes.ConvexPolyhedron(vertices)
-
-        if return_faces:
-            return shape.vertices, shape.faces
-        else:
-            return shape.vertices
 
     def _attach(self):
         self._cpp_class_name = "AnisoPotentialPairALJ{}".format(

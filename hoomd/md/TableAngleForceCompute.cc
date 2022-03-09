@@ -137,10 +137,6 @@ pybind11::dict TableAngleForceCompute::getParams(std::string type)
 */
 void TableAngleForceCompute::computeForces(uint64_t timestep)
     {
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push("Table Angle");
-
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
@@ -324,9 +320,6 @@ void TableAngleForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += angle_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

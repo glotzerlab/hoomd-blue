@@ -15,7 +15,7 @@ using namespace std;
 namespace hoomd
     {
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
-    \post The Compute is constructed with the given particle data and a NULL profiler.
+    \post The Compute is constructed with the given particle data.
 */
 Compute::Compute(std::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
@@ -34,20 +34,6 @@ double Compute::benchmark(unsigned int num_iters)
     {
     throw runtime_error("Benchmarking not supported.");
     return 0.0;
-    }
-
-/*! It is useful for the user to know where computation time is spent, so all Computes
-    should profile themselves. This method sets the profiler for them to use.
-    This method does not need to be called, as Computes will not profile themselves
-    on a NULL profiler
-    \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (std::shared_ptr<Profiler>()) to stop the
-        analyzer from profiling itself.
-    \note Derived classes MUST check if m_prof is set before calling any profiler methods.
-*/
-void Compute::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    m_prof = prof;
     }
 
 /*! \param timestep Current time step
@@ -120,7 +106,6 @@ void export_Compute(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &Compute::compute)
         .def("benchmark", &Compute::benchmark)
-        .def("setProfiler", &Compute::setProfiler)
         .def("notifyDetach", &Compute::notifyDetach);
     }
     } // end namespace detail

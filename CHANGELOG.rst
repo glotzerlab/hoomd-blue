@@ -7,41 +7,51 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.14 net yet released
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.14 (2022-02-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
-* ``hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
+* ``hoomd.hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
   the simulation box and orientations.
 * Support ``cereal`` 1.3.1
 * Guide on how to model molecular systems.
 * ``version.floating_point_precision`` - Floating point width in bits for the particle
   properties and local calculations.
-* ``md.pair.LJ.tail_correction`` - Option to enable the isotropic integrated long range tail
+* ``hoomd.md.pair.LJ.tail_correction`` - Option to enable the isotropic integrated long range tail
   correction.
-* ``md.Integrator.linear_momentum`` - Compute the total system linear momentum. Loggable.
-* ``md.bond.Table`` - Tabulated bond potential.
-* ``md.angle.Table`` - Tabulated angle potential.
-* ``md.dihedral.Table`` - Tabulated dihedral potential.
-* ``md.improper.Harmonic`` - Compute the harmonic improper potential and forces.
+* ``hoomd.md.Integrator.linear_momentum`` - Compute the total system linear momentum. Loggable.
+* ``hoomd.md.bond.Table`` - Tabulated bond potential.
+* ``hoomd.md.angle.Table`` - Tabulated angle potential.
+* ``hoomd.md.dihedral.Table`` - Tabulated dihedral potential.
+* ``hoomd.md.improper.Harmonic`` - Compute the harmonic improper potential and forces.
 * Tutorial on Organizing and executing simulations.
+* C++ and build system overview in ``ARCHITECTURE.md``.
+* ``hoomd.hpmc.external.wall`` - Overlap checks between particles and wall surfaces.
+* ``hoomd.md.pair.ansio.ALJ`` - an anisotropic Lennard-Jones-like pair potential for polyhedra and
+  ellipsoids.
+* New optional dependency: ``coxeter``, needed for some ``ALJ`` methods.
 
 *Changed*
 
-* Support variant translational and rotational spring constants in ``hpmc.external.field.Harmonic``.
-* [breaking] - renamed ``md.angle.Cosinesq`` to ``md.angle.CosineSquared``.
+* Support variant translational and rotational spring constants in
+  ``hoomd.hpmc.external.field.Harmonic``.
+* [breaking] Renamed ``hoomd.md.angle.Cosinesq`` to ``hoomd.md.angle.CosineSquared``.
+* [breaking] ``hoomd.Box`` no longer has a ``matrix`` property use ``to_matrix`` and
+  ``from_matrix``.
 
 *Fixed*
 
 * Compilation errors on FreeBSD.
 * ``TypeError`` when instantiating special pair forces.
-
-*Deprecated*
+* Inconsistent state when using the ``walls`` setter of a ``hoomd.md.external.wall.WallPotential``.
 
 *Removed*
 
-* [breaking] Removed ``md.pair.SLJ`` potential and wall. Use ``md.pair.ExpandedLJ``.
+* [developers] Removed ``IntegratorData`` class. It is replaced by structs that are defined in the
+  integrator classes.
+* [breaking] Removed ``hoomd.md.pair.SLJ`` potential and wall. Use ``hoomd.md.pair.ExpandedLJ``.
+* [breaking] ``hoomd.Box.lattice_vectors`` property no longer exists.
 
 v3.0.0-beta.13 (2022-01-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -259,7 +259,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
     double calculateDeltaE(uint64_t timestep,
                            const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim* const box_old_arg)
+                           const BoxDim& box_old) override
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
@@ -353,7 +353,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
-                      const Shape& shape_new)
+                      const Shape& shape_new) override
         {
         double old_U = calcE(timestep, index, position_old, shape_old),
                new_U = calcE(timestep, index, position_new, shape_new);
@@ -370,7 +370,7 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
                                          access_mode::read);
         int3 dummy = make_int3(0, 0, 0);
         vec3<Scalar> origin(m_pdata->getOrigin());
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
         vec3<Scalar> r0 = m_reference_positions[h_tags.data[index]];
         Scalar3 t = vec_to_scalar3(position - origin);
         box.wrap(t, dummy);
@@ -463,9 +463,6 @@ template<class Shape> void export_HarmonicField(pybind11::module& m, std::string
                       &ExternalFieldHarmonic<Shape>::setSymmetricallyEquivalentOrientations)
         .def("getEnergies", &ExternalFieldHarmonic<Shape>::getEnergies);
     }
-
-void export_HarmonicFields(pybind11::module& m);
-
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd

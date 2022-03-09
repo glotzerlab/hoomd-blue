@@ -287,11 +287,6 @@ class ActiveRotationalDiffusion(Updater):
             "The active force this updater is dependent on is being removed. "
             "Remove this updater first to avoid error.")
 
-    def _getattr_param(self, attr):
-        if attr == "active_force":
-            return self._param_dict[attr]
-        return super()._getattr_param(attr)
-
     def _setattr_param(self, attr, value):
         if attr == "active_force":
             raise ValueError("active_force is not settable after construction.")

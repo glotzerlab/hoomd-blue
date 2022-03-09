@@ -1,8 +1,8 @@
 .. Copyright (c) 2009-2022 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-hpmc.update
---------------
+hoomd.hpmc.update
+-----------------
 
 .. rubric:: Overview
 
@@ -13,10 +13,12 @@ hpmc.update
 
     BoxMC
     Clusters
+    MuVT
     QuickCompress
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.update
     :synopsis: HPMC updaters.
-    :members: BoxMC, Clusters, QuickCompress, ShapeUpdater, Alchemy, ElasticShape
+    :members: Alchemy, BoxMC, Clusters, ElasticShape, QuickCompress, ShapeUpdater
+    :show-inheritance:

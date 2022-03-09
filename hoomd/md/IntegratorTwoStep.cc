@@ -43,17 +43,6 @@ IntegratorTwoStep::~IntegratorTwoStep()
 #endif
     }
 
-/*! \param prof The profiler to set
-    Sets the profiler both for this class and all of the contained integration methods
-*/
-void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    Integrator::setProfiler(prof);
-
-    for (auto& method : m_methods)
-        method->setProfiler(prof);
-    }
-
 /*! \param timestep Current time step of the simulation
     \post All integration methods in m_methods are applied in order to move the system state
     variables forward to \a timestep+1.
@@ -73,9 +62,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // ensure that prepRun() has been called
     assert(m_prepared);
 
-    if (m_prof)
-        m_prof->push("Integrate");
-
     // perform the first step of the integration on all groups
     for (auto& method : m_methods)
         {
@@ -85,9 +71,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
         method->setDeltaT(m_deltaT);
         method->integrateStepOne(timestep);
         }
-
-    if (m_prof)
-        m_prof->pop();
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -120,9 +103,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
         m_half_step_hook->update(timestep + 1);
         }
 
-    if (m_prof)
-        m_prof->push("Integrate");
-
     // perform the second step of the integration on all groups
     for (auto& method : m_methods)
         {
@@ -138,9 +118,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
 
        TODO: check this assumptions holds for all integrators
      */
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param deltaT new deltaT to set
@@ -158,33 +135,6 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
     if (m_rigid_bodies)
         {
         m_rigid_bodies->setDeltaT(deltaT);
-        }
-    }
-
-/*! \returns true If all added integration methods have valid restart information
- */
-bool IntegratorTwoStep::isValidRestart()
-    {
-    bool res = true;
-
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // and them all together
-        res = res && method->isValidRestart();
-        }
-    return res;
-    }
-
-/*! \returns true If all added integration methods have valid restart information
- */
-void IntegratorTwoStep::initializeIntegrationMethods()
-    {
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // initialize each of them
-        method->initializeIntegratorVariables();
         }
     }
 

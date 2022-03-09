@@ -122,29 +122,17 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         throw std::runtime_error("Integration group empty.");
         }
 
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 1");
-
     // update degrees of freedom for MTK term
     m_ndof = m_group->getTranslationalDOF();
 
-    // advance barostat (nuxx, nuyy, nuzz) half a time step
+    // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     advanceBarostat(timestep);
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
-    Scalar nuxy = v.variable[3]; // Barostat tensor, xy component
-    Scalar nuxz = v.variable[4]; // Barostat tensor, xz component
-    Scalar nuyy = v.variable[5]; // Barostat tensor, yy component
-    Scalar nuyz = v.variable[6]; // Barostat tensor, yz component
-    Scalar nuzz = v.variable[7]; // Barostat tensor, zz component
-
     // Martyna-Tobias-Klein correction
-    Scalar mtk = (nuxx + nuyy + nuzz) / (Scalar)m_ndof;
+    Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
 
     // update the propagator matrix using current barostat momenta
-    updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
+    updatePropagator();
 
     // advance box lengths
     BoxDim global_box = m_pdata->getGlobalBox();
@@ -183,7 +171,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     m_V = global_box.getVolume(twod); // volume
 
     // update the propagator matrix
-    updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
+    updatePropagator();
 
     if (m_rescale_all)
         {
@@ -229,8 +217,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = v.variable[1];
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform the particle update on the GPU
         m_exec_conf->beginMultiGPU();
@@ -301,8 +288,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_rot = v.variable[8];
-        Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
+        Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
@@ -333,15 +319,10 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
-        v = getIntegratorVariables();
-        MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        setIntegratorVariables(v);
+        MPI_Bcast(&m_thermostat, 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_barostat, 6, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -351,17 +332,8 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 2");
-
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
-    Scalar nuyy = v.variable[5]; // Barostat tensor, yy component
-    Scalar nuzz = v.variable[7]; // Barostat tensor, zz component
-
     // Martyna-Tobias-Klein correction
-    Scalar mtk = (nuxx + nuyy + nuzz) / (Scalar)m_ndof;
+    Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
 
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
@@ -377,8 +349,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_trans = v.variable[1];
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform second half step of NPT integration (update velocities and accelerations)
         m_exec_conf->beginMultiGPU();
@@ -421,8 +392,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar xi_rot = v.variable[8];
-        Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
+        Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
@@ -444,12 +414,8 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_exec_conf->endMultiGPU();
         }
 
-    // advance barostat (nuxx, nuyy, nuzz) half a time step
+    // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     advanceBarostat(timestep + 1);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

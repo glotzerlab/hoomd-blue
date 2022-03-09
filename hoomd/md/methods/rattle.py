@@ -51,15 +51,6 @@ class MethodRATTLE(Method):
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach()
 
-    def _getattr_param(self, attr):
-        if self._attached:
-            if attr == "manifold_constraint":
-                return self._param_dict["manifold_constraint"]
-            parameter = getattr(self._cpp_obj, attr)
-            return parameter
-        else:
-            return self._param_dict[attr]
-
     def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":
             raise AttributeError(
@@ -152,7 +143,7 @@ class NVE(MethodRATTLE):
 
         self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),
-                                 self.manifold_constraint._cpp_obj, False,
+                                 self.manifold_constraint._cpp_obj,
                                  self.tolerance)
 
         # Attach param_dict and typeparam_dict

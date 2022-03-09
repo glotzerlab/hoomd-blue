@@ -97,7 +97,7 @@ struct hpmc_args_t
     const unsigned int move_ratio;        //!< Ratio of translation to rotation moves
     const uint64_t timestep;              //!< Current time step
     const unsigned int dim;               //!< Number of dimensions
-    const BoxDim& box;                    //!< Current simulation box
+    const BoxDim box;                     //!< Current simulation box
     unsigned int select;                  //!< Current selection
     const Scalar3 ghost_fraction;         //!< Width of the inactive layer
     const bool domain_decomposition;      //!< Is domain decomposition mode enabled?

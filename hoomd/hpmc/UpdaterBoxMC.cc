@@ -267,7 +267,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           access_location::host,
                                           access_mode::readwrite);
         Scalar ext_energy
-            = m_mc->getExternalField()->calculateDeltaE(timestep, h_pos_backup.data, NULL, &curBox);
+            = m_mc->getExternalField()->calculateDeltaE(timestep, h_pos_backup.data, NULL, curBox);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians
         // and exponentiate only once...
         deltaE += ext_energy;
@@ -333,8 +333,6 @@ inline bool UpdaterBoxMC::safe_box(const Scalar newL[3], const unsigned int& Ndi
 void UpdaterBoxMC::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    if (m_prof)
-        m_prof->push("UpdaterBoxMC");
     m_count_step_start = m_count_total;
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
 
@@ -350,8 +348,6 @@ void UpdaterBoxMC::update(uint64_t timestep)
         // Attempt to execute with all move weights equal to zero.
         m_exec_conf->msg->warning()
             << "No move types with non-zero weight. UpdaterBoxMC has nothing to do." << std::endl;
-        if (m_prof)
-            m_prof->pop();
         return;
         }
 
@@ -403,30 +399,19 @@ void UpdaterBoxMC::update(uint64_t timestep)
         m_exec_conf->msg->warning()
             << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select
             << " from range " << weight_total << std::endl;
-        if (m_prof)
-            m_prof->pop();
         return;
         }
 
-    if (m_prof)
-        m_prof->push("UpdaterBoxMC: examining shear");
     if (is_oversheared())
         {
         while (remove_overshear()) { }; // lattice reduction, possibly in several steps
         m_exec_conf->msg->notice(5)
             << "Lattice reduction performed at step " << timestep << std::endl;
         }
-    if (m_prof)
-        m_prof->pop();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
-    if (m_prof)
-        m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
     Scalar P = (*m_beta_P)(timestep);
 
@@ -453,16 +438,27 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
         if (m_length_delta[i] != 0.0)
             nonzero_dim++;
 
-    unsigned int i = hoomd::UniformIntDistribution(nonzero_dim - 1)(rng);
-    for (unsigned int j = 0; j < Ndim; ++j)
-        if (m_length_delta[j] == 0.0 && i == j)
-            ++i;
-
-    if (i == Ndim)
+    if (nonzero_dim == 0)
         {
         // all dimensions have delta==0, just count as accepted and return
         m_count_total.volume_accept_count++;
         return;
+        }
+
+    unsigned int chosen_nonzero_dim = hoomd::UniformIntDistribution(nonzero_dim - 1)(rng);
+    unsigned int nonzero_dim_count = 0;
+    unsigned int i = 0;
+    for (unsigned int j = 0; j < Ndim; ++j)
+        {
+        if (m_length_delta[j] != 0.0)
+            {
+            if (nonzero_dim_count == chosen_nonzero_dim)
+                {
+                i = j;
+                break;
+                }
+            ++nonzero_dim_count;
+            }
         }
 
     Scalar dL_max(m_length_delta[i]);
@@ -511,15 +507,11 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
             m_count_total.volume_reject_count++;
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 //! Update the box volume in logarithmic steps
 void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
-    if (m_prof)
-        m_prof->push("UpdaterBoxMC: update_lnV");
     // Get updater parameters for current timestep
     Scalar P = (*m_beta_P)(timestep);
 
@@ -598,14 +590,10 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
             m_count_total.ln_volume_reject_count++;
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
-    if (m_prof)
-        m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
     Scalar P = (*m_beta_P)(timestep);
 
@@ -689,14 +677,10 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
             m_count_total.volume_reject_count++;
             }
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
-    if (m_prof)
-        m_prof->push("UpdaterBoxMC: update_shear");
     // Get updater parameters for current timestep
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -742,8 +726,6 @@ void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
         {
         m_count_total.shear_reject_count++;
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
@@ -751,8 +733,6 @@ void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
     // We have not established what ensemble this samples:
     // This is not a thermodynamic updater.
     // There is also room for improvement in enforcing volume conservation.
-    if (m_prof)
-        m_prof->push("UpdaterBoxMC: update_aspect");
     // Get updater parameters for current timestep
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -808,9 +788,6 @@ void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
         {
         m_count_total.aspect_reject_count++;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the

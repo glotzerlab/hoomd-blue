@@ -14,8 +14,6 @@
 #include "ForceConstraint.h"
 #include "GSDDumpWriter.h"
 #include "GSDReader.h"
-#include "GetarDumpWriter.h"
-#include "GetarInitializer.h"
 #include "HOOMDMath.h"
 #include "Initializers.h"
 #include "Integrator.h"
@@ -23,7 +21,6 @@
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"
-#include "Profiler.h"
 #include "PythonAnalyzer.h"
 #include "PythonLocalDataAccess.h"
 #include "PythonTuner.h"
@@ -210,7 +207,6 @@ PYBIND11_MODULE(_hoomd, m)
     // utils
     export_hoomd_math_functions(m);
     export_ClockSource(m);
-    export_Profiler(m);
 
     // data structures
     export_HOOMDHostBuffer(m);
@@ -258,7 +254,6 @@ PYBIND11_MODULE(_hoomd, m)
 
     // initializers
     export_GSDReader(m);
-    getardump::export_GetarInitializer(m);
 
     // computes
     export_Compute(m);
@@ -279,7 +274,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_Analyzer(m);
     export_PythonAnalyzer(m);
     export_DCDDumpWriter(m);
-    getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
 
     // updaters

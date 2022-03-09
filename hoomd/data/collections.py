@@ -259,6 +259,12 @@ class _HOOMDSyncedCollection(abc.Collection):
                 validated_value._isolate()
         return validated_value
 
+    def _change_root(self, new_root):
+        """Used in updating ParameterDict."""
+        self._root = new_root
+        for child in self._children:
+            child._change_root(new_root)
+
     def _validate(self, schema, data):
         """Validate and convert to _HOOMDSyncedCollection if applicable."""
         return self._to_hoomd_data(schema, schema(data))
@@ -409,6 +415,7 @@ class _HOOMDList(_HOOMDSyncedCollection, abc.MutableSequence):
                 validated_item = self._validate(item)
                 self._children.add(validated_item)
                 self._data.append(validated_item)
+        return self
 
     def __le__(self, other):
         if isinstance(other, _HOOMDSyncedCollection):

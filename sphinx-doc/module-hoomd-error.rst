@@ -23,3 +23,4 @@ hoomd.error
               TypeConversionError,
               MutabilityError
     :no-inherited-members:
+    :show-inheritance:

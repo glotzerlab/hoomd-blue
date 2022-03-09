@@ -274,16 +274,23 @@ template<unsigned int ndim> class EvaluatorPairALJ
             // and we don't need to iterate over polytope based attributes.
             const auto vertices = shape["vertices"].cast<pybind11::list>();
             const auto N_vertices = static_cast<unsigned int>(len(vertices));
-            verts = ManagedArray<vec3<Scalar>>(N_vertices, managed);
 
             const auto faces_ = shape["faces"].cast<pybind11::list>();
             const auto N_faces = static_cast<unsigned int>(len(faces_));
-            face_offsets = ManagedArray<unsigned int>(N_faces, managed);
 
             // Simulating an ellipsoid just return
             if (N_vertices == 0 && N_faces == 0)
                 {
-                faces = ManagedArray<unsigned int>(0, managed);
+                // The GJK implementation assumes that all shapes have at least one
+                // vertex. For ellipsoids, we must use the origin as that vertex since it
+                // guarantees that the polyhedral component of the support function will
+                // always be 0 and not contribute to the total support function.
+                verts = ManagedArray<vec3<Scalar>>(1, managed);
+                verts[0] = vec3<Scalar>(0, 0, 0);
+                faces = ManagedArray<unsigned int>(1, managed);
+                faces[0] = 0;
+                face_offsets = ManagedArray<unsigned int>(1, managed);
+                face_offsets[0] = 0;
                 return;
                 }
 
@@ -291,6 +298,9 @@ template<unsigned int ndim> class EvaluatorPairALJ
                 {
                 throw std::runtime_error("Cannot have empty vertices list.");
                 }
+
+            verts = ManagedArray<vec3<Scalar>>(N_vertices, managed);
+            face_offsets = ManagedArray<unsigned int>(N_faces, managed);
 
             // Unpack the list[list] of vertices into a ManagedArray.
             for (unsigned int i = 0; i < N_vertices; ++i)
@@ -338,31 +348,43 @@ template<unsigned int ndim> class EvaluatorPairALJ
         pybind11::object toPython()
             {
             pybind11::list vertices;
-            for (unsigned int i = 0; i < verts.size(); ++i)
+
+            // ellipsoids are stored as having 1 vertex, in this case, do not add
+            // vertices to the list for python
+            if (verts.size() >= 2)
                 {
-                auto& position = verts[i];
-                vertices.append(pybind11::make_tuple(position.x, position.y, position.z));
+                for (unsigned int i = 0; i < verts.size(); ++i)
+                    {
+                    auto& position = verts[i];
+                    vertices.append(pybind11::make_tuple(position.x, position.y, position.z));
+                    }
                 }
 
             pybind11::list py_faces;
-            unsigned int current_face_index = 0;
-            for (unsigned int i = 1; i < face_offsets.size(); ++i)
+
+            // ellipsoids are stored as having a single face offset of 0, in
+            // this case, do not add faces to the list for python
+            if (face_offsets.size() >= 2)
                 {
+                unsigned int current_face_index = 0;
+                for (unsigned int i = 1; i < face_offsets.size(); ++i)
+                    {
+                    pybind11::list face_vertices;
+                    for (; current_face_index < face_offsets[i]; ++current_face_index)
+                        {
+                        face_vertices.append(faces[current_face_index]);
+                        }
+                    py_faces.append(face_vertices);
+                    }
+
+                // Copy final face
                 pybind11::list face_vertices;
-                for (; current_face_index < face_offsets[i]; ++current_face_index)
+                for (; current_face_index < faces.size(); ++current_face_index)
                     {
                     face_vertices.append(faces[current_face_index]);
                     }
                 py_faces.append(face_vertices);
                 }
-
-            // Copy final face
-            pybind11::list face_vertices;
-            for (; current_face_index < faces.size(); ++current_face_index)
-                {
-                face_vertices.append(faces[current_face_index]);
-                }
-            py_faces.append(face_vertices);
 
                 {
                 using namespace pybind11::literals;
@@ -555,6 +577,10 @@ template<unsigned int ndim> class EvaluatorPairALJ
                           shape_j->rounding_radii,
                           shape_i->has_rounding,
                           shape_j->has_rounding);
+                // Unphysical ALJ simulation results may be the result of
+                // invalid collision detection from GJK, which will normally
+                // occur silently. This assertion helps debug such errors by
+                // failing fast in debug mode if GJK failed to converge.
                 assert(success && !overlap);
 
                 if (flip)
@@ -1598,7 +1624,7 @@ template<> std::string EvaluatorPairALJ<2>::getShapeSpec() const
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts); //! Shape vertices.
     const unsigned int N = verts.size();
-    if (N == 0)
+    if (N == 1)
         {
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": "
                  << shape_i->rounding_radii.x + (_params.contact_sigma_i / 2)
@@ -1635,7 +1661,7 @@ template<> std::string EvaluatorPairALJ<3>::getShapeSpec() const
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts);
     const unsigned int N = verts.size();
-    if (N == 0)
+    if (N == 1)
         {
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": "
                  << shape_i->rounding_radii.x + (_params.contact_sigma_i / 2)
