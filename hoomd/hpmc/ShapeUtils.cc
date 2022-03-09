@@ -20,7 +20,7 @@ template<class Shape> void export_MassPropertiesBase(pybind11::module& m, std::s
         .def("volume", &MassPropertiesBase<Shape>::getVolume)
         .def("center_of_mass", &MassPropertiesBase<Shape>::getCenterOfMassElement)
         .def("moment_of_inertia", &MassPropertiesBase<Shape>::getInertiaTensor)
-        .def("determinant", &MassPropertiesBase<Shape>::getDetInertiaTensor);
+        .def("moment_of_inertia_determinant", &MassPropertiesBase<Shape>::getDetInertiaTensor);
     }
 
 template<class Shape> void export_MassProperties(pybind11::module& m, std::string name)
