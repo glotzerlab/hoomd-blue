@@ -16,28 +16,32 @@ namespace hpmc
 namespace detail
     {
 void export_sphere(pybind11::module& m);
-// void export_sphere_alchemy(pybind11::module& m);
+
 void export_convex_polygon(pybind11::module& m);
-// void export_convex_polygon_alchemy(pybind11::module& m);
+
 void export_simple_polygon(pybind11::module& m);
+
 void export_simple_polygon_alchemy(pybind11::module& m);
+
 void export_spheropolygon(pybind11::module& m);
-// void export_spheropolygon_alchemy(pybind11::module& m);
+
 void export_polyhedron(pybind11::module& m);
-// void export_polyhedron_alchemy(pybind11::module& m);
+
 void export_ellipsoid(pybind11::module& m);
-// void export_ellipsoid_alchemy(pybind11::module& m);
+
 void export_faceted_ellipsoid(pybind11::module& m);
+
 void export_sphinx(pybind11::module& m);
-// void export_sphinx_alchemy(pybind11::module& m);
+
 void export_union_convex_polyhedron(pybind11::module& m);
+
 void export_union_faceted_ellipsoid(pybind11::module& m);
+
 void export_union_sphere(pybind11::module& m);
-// void export_union_sphere_alchemy(pybind11::module& m);
+
 void export_convex_polyhedron(pybind11::module& m);
-// void export_convex_polyhedron_alchemy(pybind11::module& m);
+
 void export_convex_spheropolyhedron(pybind11::module& m);
-// void export_convex_spheropolyhedron_alchemy(pybind11::module& m);
 
     } // namespace detail
     } // namespace hpmc
