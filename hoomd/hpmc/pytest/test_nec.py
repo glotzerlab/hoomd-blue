@@ -101,6 +101,7 @@ nec_test_parameters = [
 ]
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('integrator_cls, integrator_args, shape',
                          nec_test_parameters)
 def test_pickling(integrator_cls, integrator_args, shape, simulation_factory,
