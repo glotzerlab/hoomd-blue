@@ -644,7 +644,7 @@ class Shape(Updater):
         }
         integrator_name = integrator.__class__.__name__
         if integrator_name in supported_shapes:
-                updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
+            updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
         # TODO: Make this possible
