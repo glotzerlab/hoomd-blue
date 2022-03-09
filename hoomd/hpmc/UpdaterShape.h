@@ -285,26 +285,17 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
         hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
         hoomd::Counter(m_instance));
 
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "UpdaterShape update");
-
     m_update_order.resize(m_pdata->getNTypes());
     for (unsigned int sweep = 0; sweep < m_nsweeps; sweep++)
         {
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "UpdaterShape setup");
         // Shuffle the order of particles for this sweep
         // TODO: should these be better random numbers?
         m_update_order.shuffle(timestep + 40591,
                                seed); // order of the list doesn't matter the probability of each
                                       // combination is the same.
-        if (this->m_prof)
-            this->m_prof->pop();
 
         Scalar log_boltz = 0.0;
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "UpdaterShape copy param");
 
         param_vector& params = m_mc->getParams();
         param_vector param_copy(m_type_select);
@@ -312,11 +303,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             {
             param_copy[i] = params[m_update_order[i]];
             }
-        if (this->m_prof)
-            this->m_prof->pop();
 
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "UpdaterShape move");
         GPUArray<Scalar> determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
 
@@ -371,11 +358,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 );
             m_mc->setParam(typ_i, param);
             } // end loop over particle types
-        if (this->m_prof)
-            this->m_prof->pop();
 
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "UpdaterShape cleanup");
         // calculate boltzmann factor.
         bool accept = false,
              reject = true; // looks redundant but it is not because of the pretend mode.
@@ -404,9 +387,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
             // update the image list
             std::vector<vec3<Scalar>> image_list = m_mc->updateImageList();
-
-            if (this->m_prof)
-                this->m_prof->push(this->m_exec_conf, "HPMC count overlaps");
 
             const Index2D& overlap_idx = m_mc->getOverlapIndexer();
             // access particle data and system box
@@ -527,9 +507,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
 
                 } // end loop over particles
 
-            if (this->m_prof)
-                this->m_prof->pop(this->m_exec_conf);
-
 #ifdef ENABLE_MPI
             if (this->m_pdata->getDomainDecomposition())
                 {
@@ -607,11 +584,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 m_mc->setParam(m_update_order[typ], param_copy[typ]); // set the params.
                 }
             }
-        if (this->m_prof)
-            this->m_prof->pop();
         } // end loop over n_sweeps
-    if (this->m_prof)
-        this->m_prof->pop();
     m_exec_conf->msg->notice(4) << " UpdaterShape update done" << std::endl;
     } // end UpdaterShape<Shape>::update(unsigned int timestep)
 
