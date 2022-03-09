@@ -603,7 +603,7 @@ class Shape(Updater):
         typeparam_step_size = TypeParameter('step_size',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                            float(step_size), len_keys=1))
+                                                float(step_size), len_keys=1))
 
         self._extend_typeparam([typeparam_step_size])
 
@@ -658,9 +658,8 @@ class Shape(Updater):
             for shape in integrator.shape.values():
                 if shape['sweep_radius'] != 0 and len(shape['vertices']) > 1:
                     raise RuntimeError(
-                    "Currently alchemical moves with ConvexSpheropolyhedron\
-                    are only enabled for polyhedral and spherical particles."
-                    )
+                        "Currently alchemical moves with ConvexSpheropolyhedron\
+                    are only enabled for polyhedral and spherical particles.")
         self._attach_shape_move(self._simulation)
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
