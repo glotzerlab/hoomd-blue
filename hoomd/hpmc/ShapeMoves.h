@@ -22,7 +22,6 @@ namespace hpmc
 template<typename Shape> class ShapeMoveBase
     {
     public:
-
     ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes)
         : m_det_inertia_tensor(0), m_sysdef(sysdef)
         {
@@ -328,7 +327,6 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
 class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedron>
     {
     public:
-
     typedef typename ShapeConvexPolyhedron::param_type param_type;
 
     ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
@@ -429,11 +427,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
     };                                     // end class ConvexPolyhedronVertexShapeMove
 
-template<class Shape>
-class ElasticShapeMove : public ShapeMoveBase<Shape>
+template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-
     typedef typename Shape::param_type param_type;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
@@ -555,11 +551,11 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
         unsigned int id = this->m_sysdef->getParticleData()->getTypeByName(typ);
         param_type shape = param_type(v, false);
         m_reference_shapes[id] = shape;
-        //TODO: one of the following:
-        //      1) warn or error out if volume of provided shape doesnt match That
-        //         of the integrator definition
-        //      2) update m_volume
-        //      3) rescale the provided shape with m_volume
+        // TODO: one of the following:
+        //       1) warn or error out if volume of provided shape doesnt match That
+        //          of the integrator definition
+        //       2) update m_volume
+        //       3) rescale the provided shape with m_volume
         }
 
     pybind11::dict getReferenceShape(std::string typ)
@@ -614,8 +610,9 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
     std::vector<Eigen::Matrix3d>
         m_Fbar;      // matrix representing shape deformation at the current step
     Scalar m_volume; // volume of shape
-    std::vector<param_type, hoomd::detail::managed_allocator<param_type> >  m_reference_shapes; // shape to reference shape move against
-    std::shared_ptr<Variant> m_k;                 // shape move stiffness
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
+        m_reference_shapes;       // shape to reference shape move against
+    std::shared_ptr<Variant> m_k; // shape move stiffness
 
     private:
     // These are ElasticShapeMove specific helper functions to randomly
@@ -671,11 +668,9 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
     };
 
-template<> class
-ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
+template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
     {
     public:
-
     typedef typename ShapeEllipsoid::param_type param_type;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
@@ -715,11 +710,11 @@ ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
         unsigned int id = this->m_sysdef->getParticleData()->getTypeByName(typ);
         param_type shape = param_type(v, false);
         m_reference_shapes[id] = shape;
-        //TODO: one of the following:
-        //      1) warn or error out if volume of provided shape doesnt match That
-        //         of the integrator definition
-        //      2) update m_volume
-        //      3) rescale the provided shape with m_volume
+        // TODO: one of the following:
+        //       1) warn or error out if volume of provided shape doesnt match That
+        //          of the integrator definition
+        //       2) update m_volume
+        //       3) rescale the provided shape with m_volume
         }
 
     pybind11::dict getReferenceShape(std::string typ)
@@ -779,21 +774,20 @@ ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
     private:
     Scalar m_shear_scale_ratio;
     std::vector<detail::MassProperties<ShapeEllipsoid>>
-        m_mass_props;                                      // mass properties of the shape
-    Scalar m_volume;                                       // volume of shape
-    std::vector<param_type, hoomd::detail::managed_allocator<param_type> >  m_reference_shapes; // shape to reference shape move against
-    std::shared_ptr<Variant> m_k;                          // shape move stiffness
+        m_mass_props; // mass properties of the shape
+    Scalar m_volume;  // volume of shape
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
+        m_reference_shapes;       // shape to reference shape move against
+    std::shared_ptr<Variant> m_k; // shape move stiffness
     };
 
-namespace detail {
-
-template<class Shape>
-void export_ShapeMoveBase(pybind11::module& m, const std::string& name)
+namespace detail
     {
-    pybind11::class_<ShapeMoveBase<Shape>,
-                     std::shared_ptr<ShapeMoveBase<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            unsigned int>());
+
+template<class Shape> void export_ShapeMoveBase(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<ShapeMoveBase<Shape>, std::shared_ptr<ShapeMoveBase<Shape>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 
 template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name)
@@ -865,7 +859,7 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                       &ElasticShapeMove<Shape>::setReferenceShape);
     }
 
-    }// namespace detail
+    } // namespace detail
     } // namespace hpmc
     } // namespace hoomd
 
