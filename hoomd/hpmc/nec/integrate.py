@@ -185,7 +185,7 @@ class Sphere(HPMCNECIntegrator):
                  nselect=1):
         # initialize base class
         super().__init__(default_d=default_d,
-                         a=0.1,
+                         default_a=0.1,
                          chain_probability=1.0,
                          chain_time=chain_time,
                          update_fraction=update_fraction,
@@ -285,15 +285,15 @@ class ConvexPolyhedron(HPMCNECIntegrator):
     _cpp_cls = 'IntegratorHPMCMonoNECConvexPolyhedron'
 
     def __init__(self,
-                 d=0.1,
-                 a=0.1,
+                 default_d=0.1,
+                 default_a=0.1,
                  chain_probability=0.5,
                  chain_time=0.5,
                  update_fraction=0.5,
                  nselect=1):
 
-        super().__init__(d=d,
-                         a=a,
+        super().__init__(default_d=default_d,
+                         default_a=default_a,
                          chain_probability=chain_probability,
                          chain_time=chain_time,
                          update_fraction=update_fraction,

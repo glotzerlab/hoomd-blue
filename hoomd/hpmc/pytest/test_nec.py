@@ -33,7 +33,7 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
     sim.seed = 123456
     sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
 
-    mc = hoomd.hpmc.nec.integrate.Sphere(d=0.05, update_fraction=0.05)
+    mc = hoomd.hpmc.nec.integrate.Sphere(default_d=0.05, update_fraction=0.05)
     mc.shape['A'] = dict(diameter=1)
     mc.chain_time = 0.05
     sim.operations.integrator = mc
@@ -81,23 +81,31 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
     assert necCounts.overlap_errors == 0
 
 
-def test_pickling(valid_args, simulation_factory,
+nec_test_parameters = [
+    (
+        hoomd.hpmc.nec.integrate.Sphere,
+        dict(default_d=0.2, chain_time=0.75, update_fraction=0.125, nselect=2),
+        dict(diameter=1),
+    ),
+    (
+        hoomd.hpmc.nec.integrate.ConvexPolyhedron,
+        dict(default_d=0.2,
+             default_a=0.1,
+             chain_probability=0.5,
+             chain_time=0.75,
+             update_fraction=0.125,
+             nselect=2),
+        dict(vertices=[[1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1],
+                       [-1, 1, 1], [-1, 1, -1], [-1, -1, 1], [-1, -1, -1]]),
+    ),
+]
+
+
+@pytest.mark.parametrize('integrator_cls, integrator_args, shape',
+                         nec_test_parameters)
+def test_pickling(integrator_cls, integrator_args, shape, simulation_factory,
                   two_particle_snapshot_factory):
-    integrator = valid_args[0]
-    args = valid_args[1]
-    # Need to unpack union integrators
-    if isinstance(integrator, tuple):
-        inner_integrator = integrator[0]
-        integrator = integrator[1]
-        inner_mc = inner_integrator()
-        for i in range(len(args["shapes"])):
-            # This will fill in default values for the inner shape objects
-            inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator()
-    mc.shape["A"] = args
-    # L needs to be ridiculously large as to not be too small for the domain
-    # decomposition of some of the shapes definitions in valid_args which have
-    # shapes with large extent in at least one dimension.
+    mc = integrator_cls(**integrator_args)
+    mc.shape["A"] = shape
     sim = simulation_factory(two_particle_snapshot_factory(L=1000))
     operation_pickling_check(mc, sim)
