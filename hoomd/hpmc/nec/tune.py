@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement ChainTime."""
+"""Tune Newtonian event chain parameters."""
 
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict
