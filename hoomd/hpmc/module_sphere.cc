@@ -44,7 +44,6 @@ void export_sphere(pybind11::module& m)
     export_UpdaterClusters<ShapeSphere>(m, "UpdaterClustersSphere");
 
     export_UpdaterShape<ShapeSphere>(m, "UpdaterShapeSphere");
-    // export_ShapeMoveInterface<ShapeSphere>(m, "ShapeMoveSphere");
     export_ShapeMoveBase<ShapeSphere>(m, "ShapeMoveBaseSphere");
     export_PythonShapeMove<ShapeSphere>(m, "PythonShapeMoveSphere");
     export_ConstantShapeMove<ShapeSphere>(m, "ConstantShapeMoveSphere");

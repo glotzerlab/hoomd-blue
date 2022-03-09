@@ -159,7 +159,7 @@ class Elastic(ShapeMove):
                    not numpy.isclose(type_shape["a"], type_shape["c"]) or \
                    not numpy.isclose(type_shape["b"], type_shape["c"]):
                     raise ValueError(
-                        "This updater only works when a=b=c initially.")
+                        "This updater only works when a=b=c.")
         else:
             raise RuntimeError("Integrator not supported")
 

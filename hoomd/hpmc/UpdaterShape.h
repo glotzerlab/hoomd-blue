@@ -240,7 +240,6 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
         h_det.data[i] = 0.0;
         h_ntypes.data[i] = 0;
         }
-    // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
     countTypes();
     // TODO: add a sanity check to makesure that MPI is setup correctly
     if (m_multi_phase)
@@ -306,8 +305,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
 
         GPUArray<Scalar> determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
-
-        // std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
 
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
@@ -528,7 +525,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             if (m_multi_phase)
                 {
 #ifdef ENABLE_MPI
-                // make sure random seeds are equal
                 if (accept)
                     {
                     for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)

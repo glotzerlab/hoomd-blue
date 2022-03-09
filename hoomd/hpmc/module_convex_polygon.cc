@@ -43,7 +43,6 @@ void export_convex_polygon(pybind11::module& m)
     export_UpdaterMuVT<ShapeConvexPolygon>(m, "UpdaterMuVTConvexPolygon");
     export_UpdaterClusters<ShapeConvexPolygon>(m, "UpdaterClustersConvexPolygon");
 
-    // export_ShapeMoveInterface<ShapeConvexPolygon>(m, "ShapeMoveConvexPolygon");
     export_UpdaterShape<ShapeConvexPolygon>(m, "UpdaterShapeConvexPolygon");
     export_ShapeMoveBase<ShapeConvexPolygon>(m, "ShapeMoveBaseShapeConvexPolygon");
     export_PythonShapeMove<ShapeConvexPolygon>(m, "PythonShapeMoveConvexPolygon");

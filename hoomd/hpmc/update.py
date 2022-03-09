@@ -516,26 +516,27 @@ class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
 
     Args:
-        shape_move (ShapeMove): Type of shape move to apply when updating shape
-            definitions
 
         trigger (Trigger): Call the updater on triggered time steps.
 
-        pretend (bool): When True the updater will not actually update the shape
-            definitions, instead moves will be proposed and the acceptance
-            statistics will be updated correctly.
+        shape_move (hoomd.hpmc.shape_move): Type of shape move to apply when
+            updating shape definitions.
 
-        nselect (int): Number of types to change every time the updater is
-            called.
+        pretend (bool, optional): When True the updater will not actually update
+            the shape definitions, instead moves will be proposed and the
+            acceptance statistics will be updated correctly.
 
-        nsweeps (int): Number of times to update shape definitions during each
-            triggered timesteps.
+        nselect (int, optional): Number of types to change every time the
+            updater is called.
 
-        multi_phase (bool): When True MPI is enforced and shapes are updated
-            together for two boxes.
+        nsweeps (int, optional): Number of times to update shape definitions
+            during each triggered timesteps.
 
-        num_phase (int): How many boxes are simulated at the same time, now
-            support 2 and 3.
+        multi_phase (bool, optional): When True MPI is enforced and shapes are
+            updated together for two boxes.
+
+        num_phase (int, optional): How many boxes are simulated at the same
+            time, supported values are 1, 2 and 3.
 
     Examples::
 
@@ -554,10 +555,13 @@ class Shape(Updater):
 
     Attributes:
 
+        trigger (Trigger): Call the updater on triggered time steps.
+
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        trigger (Trigger): Call the updater on triggered time steps.
+        step_size (`TypeParameter` [``particle type``, `float`]):
+                    Maximum size of shape trial moves.
 
         pretend (bool): When True the updater will not actually update the shape
             definitions, instead moves will be proposed and the acceptance
@@ -572,14 +576,14 @@ class Shape(Updater):
         multi_phase (bool): When True MPI is enforced and shapes are updated
             together for two boxes.
 
-        num_phase (int): How many boxes are simulated at the same time, now
-            support 2 and 3.
+        num_phase (int): How many boxes are simulated at the same time,
+            supported values are 1, 2 and 3.
     """
 
     def __init__(self,
+                 trigger,
                  shape_move,
-                 stepsize,
-                 trigger=1,
+                 step_size,
                  pretend=False,
                  nselect=1,
                  nsweeps=1,
@@ -596,12 +600,12 @@ class Shape(Updater):
         self._param_dict.update(param_dict)
 
         # Set standard typeparameters for hpmc integrators
-        typeparam_stepsize = TypeParameter('stepsize',
-                                           type_kind='particle_types',
-                                           param_dict=TypeParameterDict(
-                                               float(stepsize), len_keys=1))
+        typeparam_step_size = TypeParameter('step_size',
+                                            type_kind='particle_types',
+                                            param_dict=TypeParameterDict(
+                                            float(step_size), len_keys=1))
 
-        self._extend_typeparam([typeparam_stepsize])
+        self._extend_typeparam([typeparam_step_size])
 
     def _add(self, sim):
         if self.shape_move is not None:
@@ -651,10 +655,11 @@ class Shape(Updater):
         # updater with spheropolyhedra is currently enabled to allow the use of spherical
         # depletants
         if isinstance(integrator, integrate.ConvexSpheropolyhedron):
-            for typ in integrator.type_shapes:
-                if typ['sweep_radius'] != 0 and len(typ['vertices']) > 1:
+            for shape in integrator.shape.values():
+                if shape['sweep_radius'] != 0 and len(shape['vertices']) > 1:
                     raise RuntimeError(
-                        "Currently alchemical moves with integrate.convex_spheropolyhedron are only enabled for polyhedral and spherical particles."
+                    "Currently alchemical moves with ConvexSpheropolyhedron\
+                    are only enabled for polyhedral and spherical particles."
                     )
         self._attach_shape_move(self._simulation)
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,

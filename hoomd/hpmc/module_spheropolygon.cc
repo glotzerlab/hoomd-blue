@@ -43,7 +43,6 @@ void export_spheropolygon(pybind11::module& m)
     export_UpdaterMuVT<ShapeSpheropolygon>(m, "UpdaterMuVTConvexSpheropolygon");
     export_UpdaterClusters<ShapeSpheropolygon>(m, "UpdaterClustersConvexSpheropolygon");
 
-    // export_ShapeMoveInterface<ShapeSpheropolygon>(m, "ShapeMoveSpheropolygon");
     export_UpdaterShape<ShapeSpheropolygon>(m, "UpdaterShapeSpheropolygon");
     export_ShapeMoveBase<ShapeSpheropolygon>(m, "ShapeMoveBaseSpheropolygon");
     export_PythonShapeMove<ShapeSpheropolygon>(m, "PythonShapeMoveSpheropolygon");
