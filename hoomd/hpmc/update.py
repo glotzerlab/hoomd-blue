@@ -560,8 +560,8 @@ class Shape(Updater):
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        step_size (`TypeParameter` [``particle type``, `float`]):
-                    Maximum size of shape trial moves.
+        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
+            of shape trial moves.
 
         pretend (bool): When True the updater will not actually update the shape
             definitions, instead moves will be proposed and the acceptance
@@ -608,8 +608,6 @@ class Shape(Updater):
         self._extend_typeparam([typeparam_step_size])
 
     def _add(self, sim):
-        if self.shape_move is not None:
-            self.shape_move._add(sim)
         super()._add(sim)
 
     def _attach_shape_move(self, sim):
@@ -639,15 +637,15 @@ class Shape(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         updater_cls = None
-        shapes = [
+        supported_shapes = {
             'Sphere', 'ConvexPolygon', 'SimplePolygon', 'ConvexPolyhedron',
             'ConvexSpheropolyhedron', 'Ellipsoid', 'ConvexSpheropolygon',
             'Polyhedron', 'Sphinx', 'SphereUnion'
-        ]
-        for shape in shapes:
-            if isinstance(integrator, getattr(integrate, shape)):
-                updater_cls = getattr(_hpmc, 'UpdaterShape' + shape)
-        if updater_cls is None:
+        }
+        integrator_name = integrator.__class__.__name__
+        if integrator_name in supported_shapes:
+                updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
+        else:
             raise RuntimeError("Integrator not supported")
         # TODO: Make this possible
         # Currently computing the moments of inertia for spheropolyhedra is not implemented
