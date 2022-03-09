@@ -22,9 +22,10 @@ namespace hpmc
 template<typename Shape> class ShapeMoveBase
     {
     public:
-    ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes)
+    ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef)
         : m_det_inertia_tensor(0), m_sysdef(sysdef)
         {
+        unsigned int m_ntypes = m_sysdef->getParticleData()->getNTypes();
         }
 
     ShapeMoveBase(const ShapeMoveBase& src)
@@ -96,6 +97,7 @@ template<typename Shape> class ShapeMoveBase
     Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
     Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
     std::shared_ptr<SystemDefinition> m_sysdef;
+    unsigned m_ntypes;
     }; // end class ShapeMoveBase
 
 // TODO: make this class more general and make python function a spcialization.
@@ -103,15 +105,14 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     {
     public:
     PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                    unsigned int ntypes,
                     pybind11::object python_function,
                     pybind11::dict params,
                     Scalar mixratio)
-        : ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
+        : ShapeMoveBase<Shape>(sysdef), m_num_params(0), m_python_callback(python_function)
         {
         m_param_move_probability = fmin(mixratio, 1.0);
         this->m_det_inertia_tensor = 1.0;
-        std::vector<std::vector<Scalar>> params_vector(ntypes);
+        std::vector<std::vector<Scalar>> params_vector(this->m_ntypes);
         for (auto name_and_params : params)
             {
             std::string type_name = pybind11::cast<std::string>(name_and_params.first);
@@ -248,11 +249,10 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
     {
     public:
     ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                      const unsigned int& ntypes,
                       pybind11::dict shape_params)
-        : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_moves({})
+        : ShapeMoveBase<Shape>(sysdef), m_shape_moves({})
         {
-        std::vector<pybind11::dict> shape_params_vector(ntypes);
+        std::vector<pybind11::dict> shape_params_vector(this->m_ntypes);
         for (auto name_and_params : shape_params)
             {
             std::string type_name = pybind11::cast<std::string>(name_and_params.first);
@@ -261,12 +261,12 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
             shape_params_vector[type_i] = type_params;
             }
         m_shape_params = shape_params_vector;
-        for (unsigned int i = 0; i < ntypes; i++)
+        for (unsigned int i = 0; i < this->m_ntypes; i++)
             {
             typename Shape::param_type pt(m_shape_params[i]);
             m_shape_moves.push_back(pt);
             }
-        if (ntypes != m_shape_moves.size())
+        if (this->m_ntypes != m_shape_moves.size())
             throw std::runtime_error("Must supply a shape move for each type");
         for (unsigned int i = 0; i < m_shape_moves.size(); i++)
             {
@@ -330,15 +330,14 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     typedef typename ShapeConvexPolyhedron::param_type param_type;
 
     ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                                    unsigned int ntypes,
                                     Scalar vertex_move_prob,
                                     Scalar volume)
-        : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, ntypes), m_volume(volume)
+        : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef), m_volume(volume)
         {
         this->m_det_inertia_tensor = 1.0;
         m_scale = 1.0;
-        m_calculated.resize(ntypes, false);
-        m_centroids.resize(ntypes, vec3<Scalar>(0, 0, 0));
+        m_calculated.resize(this->m_ntypes, false);
+        m_centroids.resize(this->m_ntypes, vec3<Scalar>(0, 0, 0));
         m_vertex_move_probability = fmin(vertex_move_prob, 1.0);
         }
 
@@ -433,19 +432,19 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     typedef typename Shape::param_type param_type;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                     unsigned int ntypes,
                      Scalar shear_scale_ratio,
                      std::shared_ptr<Variant> k)
-        : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
+        : ShapeMoveBase<Shape>(sysdef), m_k(k)
         {
         /* TODO: Since the deformation tensor, F, is no longer stored in the GSD,
                  it has to be computed here. F takes the reference shape and
                  transforms it into a deformed shape by V' = F * Vref. The conponents
                  of F are sampled in such a way that particle volume is always conserved.
         */
+        m_mass_props.resize(this->m_ntypes);
         m_shear_scale_ratio = fmin(shear_scale_ratio, 1.0);
-        m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
-        m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
+        m_Fbar.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
+        m_Fbar_last.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
         this->m_det_inertia_tensor = 1.0;
         }
 
@@ -674,11 +673,11 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     typedef typename ShapeEllipsoid::param_type param_type;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                     unsigned int ntypes,
                      Scalar move_ratio,
                      std::shared_ptr<Variant> k)
-        : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes), m_mass_props(ntypes), m_k(k)
+        : ShapeMoveBase<ShapeEllipsoid>(sysdef), m_k(k)
         {
+         m_mass_props.resize(this->m_ntypes);
         // // typename ShapeEllipsoid::param_type shape(shape_params);
         // m_reference_shapes = shape;
         // detail::MassProperties<ShapeEllipsoid> mp(m_reference_shapes);
@@ -787,7 +786,7 @@ namespace detail
 template<class Shape> void export_ShapeMoveBase(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ShapeMoveBase<Shape>, std::shared_ptr<ShapeMoveBase<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
 template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name)
@@ -796,7 +795,6 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            unsigned int,
                             pybind11::object,
                             pybind11::dict,
                             Scalar>())
@@ -817,7 +815,7 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
     pybind11::class_<ConvexPolyhedronVertexShapeMove,
                      ShapeMoveBase<ShapeConvexPolyhedron>,
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, Scalar, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, Scalar>())
         .def_property("volume",
                       &ConvexPolyhedronVertexShapeMove::getVolume,
                       &ConvexPolyhedronVertexShapeMove::setVolume)
@@ -832,7 +830,7 @@ inline void export_ConstantShapeMove(pybind11::module& m, const std::string& nam
     pybind11::class_<ConstantShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<ConstantShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, pybind11::dict>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::dict>())
         .def_property("shape_params",
                       &ConstantShapeMove<Shape>::getShapeParams,
                       &ConstantShapeMove<Shape>::setShapeParams);
@@ -845,7 +843,6 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            unsigned int,
                             Scalar,
                             std::shared_ptr<Variant>>())
         .def_property("shear_scale_ratio",

@@ -21,12 +21,24 @@ class ShapeMove(_HOOMDBaseObject):
         for `isinstance` or `issubclass` checks.
     """
 
-    def _attach(self):
-        self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+    _suported_shapes = None
+    _shape_move_name = None
+    _move_class = None
 
+    def _set_move_class(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
 
-class Callback(_HOOMDBaseObject):
+        integrator_name = integrator.__class__.__name__
+        if integrator_name in supported_shapes:
+                self._move_cls = getattr(_hpmc, self.__class__.__name__ + integrator_name)
+        else:
+            raise RuntimeError("Integrator not supported")
+
+class CustomCallback(_HOOMDBaseObject):
     """Base class for callbacks used in Python shape moves.
 
     Note:
@@ -44,7 +56,6 @@ class Callback(_HOOMDBaseObject):
 
     def __init__(self):
         pass
-
 
 class Constant(ShapeMove):
     """Apply a transition to a specified shape, changing a particle shape by
@@ -79,28 +90,9 @@ class Constant(ShapeMove):
         self._param_dict.update(ParameterDict(shape_params=dict(shape_params)))
 
     def _attach(self):
-        integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate.HPMCIntegrator):
-            raise RuntimeError("The integrator must be a HPMC integrator.")
-        if not integrator._attached:
-            raise RuntimeError("Integrator is not attached yet.")
-
-        move_cls = None
-        shapes = [
-            'Sphere', 'ConvexPolygon', 'SimplePolygon', 'ConvexPolyhedron',
-            'ConvexSpheropolyhedron', 'Ellipsoid', 'ConvexSpheropolygon',
-            'Polyhedron', 'Sphinx', 'SphereUnion'
-        ]
-        for shape in shapes:
-            if isinstance(integrator, getattr(integrate, shape)):
-                move_cls = getattr(_hpmc, 'ConstantShapeMove' + shape)
-        if move_cls is None:
-            raise RuntimeError("Integrator not supported")
-
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
-        ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
-                                 self.shape_params)
+        self._set_move_class()
+        self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
+                                       self.shape_params)
         super()._attach()
 
 
@@ -134,6 +126,8 @@ class Elastic(ShapeMove):
         shear_scale_ratio (float): Fraction of scale to shear moves.
     """
 
+    _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
+
     def __init__(self, stiffness, reference, shear_scale_ratio):
         # TODO: reference should be implemented as TypeParameter
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
@@ -143,28 +137,15 @@ class Elastic(ShapeMove):
         self._param_dict.update(param_dict)
 
     def _attach(self):
+        self._set_move_class()
         integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate.HPMCIntegrator):
-            raise RuntimeError("The integrator must be a HPMC integrator.")
-        if not integrator._attached:
-            raise RuntimeError("Integrator is not attached yet.")
-
-        move_cls = None
-        if isinstance(integrator, integrate.ConvexPolyhedron):
-            move_cls = _hpmc.ElasticShapeMoveConvexPolyhedron
-        elif isinstance(integrator, integrate.Ellipsoid):
-            move_cls = _hpmc.ElasticShapeMoveEllipsoid
-            for type_shape in self.mc.type_shapes():
-                if not numpy.isclose(type_shape["a"], type_shape["b"]) or \
-                   not numpy.isclose(type_shape["a"], type_shape["c"]) or \
-                   not numpy.isclose(type_shape["b"], type_shape["c"]):
+        if isinstance(integrator, integrate.Ellipsoid):
+            for shape in integrator.shape.items():
+                if not numpy.isclose(shape["a"], shape["b"]) or \
+                   not numpy.isclose(shape["a"], shape["c"]) or \
+                   not numpy.isclose(shape["b"], shape["c"]):
                     raise ValueError("This updater only works when a=b=c.")
-        else:
-            raise RuntimeError("Integrator not supported")
-
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
-        ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
+        self._cpp_obj = self.move_cls(self._simulation.state._cpp_sys_def,
                                  self.shear_scale_ratio, self.stiffness,
                                  self.reference)
         super()._attach()
@@ -215,6 +196,9 @@ class Python(ShapeMove):
             each shape move
     """
 
+    _suported_shapes = {'ConvexPolyhedron', 'ConvexSpheropolyhedron',
+                        'Ellipsoid'}
+
     def __init__(self, callback, params, param_move_probability):
         # TODO: params should be implemented as TypeParameter
         param_dict = ParameterDict(
@@ -225,30 +209,10 @@ class Python(ShapeMove):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate.HPMCIntegrator):
-            raise RuntimeError("The integrator must be a HPMC integrator.")
-        if not integrator._attached:
-            raise RuntimeError("Integrator is not attached yet.")
-
-        move_cls = None
-        shapes = [
-            'Sphere', 'ConvexPolygon', 'SimplePolygon', 'ConvexPolyhedron',
-            'ConvexSpheropolyhedron', 'Ellipsoid', 'ConvexSpheropolygon',
-            'Polyhedron', 'Sphinx', 'SphereUnion'
-        ]
-        print()
-        for shape in shapes:
-            if isinstance(integrator, getattr(integrate, shape)):
-                move_cls = getattr(_hpmc, 'PythonShapeMove' + shape)
-        if move_cls is None:
-            raise RuntimeError("Integrator not supported")
-
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
-        ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
-                                 self.callback, self.params,
-                                 self.param_move_probability)
+        self._set_move_class()
+        self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
+                                       self.callback, self.params,
+                                       self.param_move_probability)
         super()._attach()
 
     @log(category='object')
@@ -265,14 +229,15 @@ class Vertex(ShapeMove):
 
     Args:
 
-        vertex_move_probability (float): Average fraction of vertices to change during
-            each shape move
+        vertex_move_probability (float): Average fraction of vertices to change
+            during each shape move
 
         volume (float): Volume of the particles to hold constant
 
     Note:
         Vertices are rescaled during each shape move to ensure that the shape
-        maintains a constant volume
+        maintains a constant volume. To preserve detail balance, the maximum
+        is rescaled by a volume**(1/3) every time a move is accepted.
 
     Note:
         The shape definition used corresponds to the convex hull of the
@@ -295,6 +260,8 @@ class Vertex(ShapeMove):
         volume (float): Volume of the particles to hold constant
     """
 
+    _suported_shapes = {'ConvexPolyhedron', 'ConvexSpheropolyhedron'}
+
     def __init__(self, vertex_move_probability, volume):
         param_dict = ParameterDict(
             vertex_move_probability=float(vertex_move_probability),
@@ -302,20 +269,8 @@ class Vertex(ShapeMove):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        integrator = self._simulation.operations.integrator
-        if not isinstance(integrator, integrate.HPMCIntegrator):
-            raise RuntimeError("The integrator must be a HPMC integrator.")
-        if not integrator._attached:
-            raise RuntimeError("Integrator is not attached yet.")
-
-        move_cls = None
-        if isinstance(integrator, integrate.ConvexPolyhedron):
-            move_cls = _hpmc.GeneralizedShapeMoveConvexPolyhedron
-        else:
-            raise RuntimeError("Integrator not supported")
-
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData(
-        ).getNTypes()
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes,
-                                 self.vertex_move_probability, self.volume)
+        self._set_move_class()
+        self._cpp_obj = self.move_cls(self._simulation.state._cpp_sys_def,
+                                      self.vertex_move_probability,
+                                      self.volume)
         super()._attach()
