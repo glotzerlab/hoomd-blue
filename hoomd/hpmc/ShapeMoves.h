@@ -248,8 +248,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
 template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-    ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                      pybind11::dict shape_params)
+    ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef, pybind11::dict shape_params)
         : ShapeMoveBase<Shape>(sysdef), m_shape_moves({})
         {
         std::vector<pybind11::dict> shape_params_vector(this->m_ntypes);
@@ -677,7 +676,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
                      std::shared_ptr<Variant> k)
         : ShapeMoveBase<ShapeEllipsoid>(sysdef), m_k(k)
         {
-         m_mass_props.resize(this->m_ntypes);
+        m_mass_props.resize(this->m_ntypes);
         // // typename ShapeEllipsoid::param_type shape(shape_params);
         // m_reference_shapes = shape;
         // detail::MassProperties<ShapeEllipsoid> mp(m_reference_shapes);
@@ -794,10 +793,9 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
     pybind11::class_<PythonShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            pybind11::object,
-                            pybind11::dict,
-                            Scalar>())
+        .def(
+            pybind11::
+                init<std::shared_ptr<SystemDefinition>, pybind11::object, pybind11::dict, Scalar>())
         .def_property("params",
                       &PythonShapeMove<Shape>::getParams,
                       &PythonShapeMove<Shape>::setParams)
@@ -842,9 +840,7 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
     pybind11::class_<ElasticShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            Scalar,
-                            std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>>())
         .def_property("shear_scale_ratio",
                       &ElasticShapeMove<Shape>::getShearScaleRatio,
                       &ElasticShapeMove<Shape>::setShearScaleRatio)

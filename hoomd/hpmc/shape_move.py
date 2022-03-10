@@ -34,9 +34,11 @@ class ShapeMove(_HOOMDBaseObject):
 
         integrator_name = integrator.__class__.__name__
         if integrator_name in supported_shapes:
-                self._move_cls = getattr(_hpmc, self.__class__.__name__ + integrator_name)
+            self._move_cls = getattr(_hpmc,
+                                     self.__class__.__name__ + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
+
 
 class CustomCallback(_HOOMDBaseObject):
     """Base class for callbacks used in Python shape moves.
@@ -56,6 +58,7 @@ class CustomCallback(_HOOMDBaseObject):
 
     def __init__(self):
         pass
+
 
 class Constant(ShapeMove):
     """Apply a transition to a specified shape, changing a particle shape by
@@ -146,8 +149,8 @@ class Elastic(ShapeMove):
                    not numpy.isclose(shape["b"], shape["c"]):
                     raise ValueError("This updater only works when a=b=c.")
         self._cpp_obj = self.move_cls(self._simulation.state._cpp_sys_def,
-                                 self.shear_scale_ratio, self.stiffness,
-                                 self.reference)
+                                      self.shear_scale_ratio, self.stiffness,
+                                      self.reference)
         super()._attach()
 
 
@@ -196,8 +199,9 @@ class Python(ShapeMove):
             each shape move
     """
 
-    _suported_shapes = {'ConvexPolyhedron', 'ConvexSpheropolyhedron',
-                        'Ellipsoid'}
+    _suported_shapes = {
+        'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
+    }
 
     def __init__(self, callback, params, param_move_probability):
         # TODO: params should be implemented as TypeParameter
@@ -271,6 +275,5 @@ class Vertex(ShapeMove):
     def _attach(self):
         self._set_move_class()
         self._cpp_obj = self.move_cls(self._simulation.state._cpp_sys_def,
-                                      self.vertex_move_probability,
-                                      self.volume)
+                                      self.vertex_move_probability, self.volume)
         super()._attach()
