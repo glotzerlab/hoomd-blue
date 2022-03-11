@@ -38,7 +38,7 @@ template<typename Shape> class UpdaterShape : public Updater
 
     void initialize();
 
-    Scalar getParticleVolume()
+    Scalar getTotalParticleVolume()
         {
         Scalar volume = 0.0;
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::read);
@@ -64,6 +64,13 @@ template<typename Shape> class UpdaterShape : public Updater
                                                      h_det.data[ndx]);
             }
         return energy;
+        }
+
+    std::pair<unsigned int, unsigned int> getShapeMovesCount()
+        {
+        unsigned int total_accepted_count = getAcceptedCount();
+        unsigned int total_rejected_count = getTotalCount() - total_accepted_count;
+        return std::make_pair(total_accepted_count, total_rejected_count);
         }
 
     unsigned int getAcceptedCount()
@@ -171,13 +178,13 @@ template<typename Shape> class UpdaterShape : public Updater
         }
 
     //! Get maximum displacement (by type name)
-    inline Scalar getStepsize(std::string name)
+    inline Scalar getStepSize(std::string name)
         {
         unsigned int id = this->m_pdata->getTypeByName(name);
         return m_step_size[id];
         }
 
-    inline void setStepsize(std::string name, Scalar d)
+    inline void setStepSize(std::string name, Scalar d)
         {
         unsigned int id = this->m_pdata->getTypeByName(name);
         m_step_size[id] = d;
@@ -654,9 +661,8 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                             bool,
                             bool,
                             unsigned int>())
-        .def_property_readonly("accepted_count", &UpdaterShape<Shape>::getAcceptedCount)
-        .def_property_readonly("total_count", &UpdaterShape<Shape>::getTotalCount)
-        .def_property_readonly("particle_volume", &UpdaterShape<Shape>::getParticleVolume)
+        .def("getShapeMovesCount", &UpdaterShape<Shape>::getShapeMovesCount)
+        .def_property_readonly("total_particle_volume", &UpdaterShape<Shape>::getTotalParticleVolume)
         .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
         .def_property("shape_move",
                       &UpdaterShape<Shape>::getShapeMove,
@@ -670,8 +676,8 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def_property("num_phase",
                       &UpdaterShape<Shape>::getNumPhase,
                       &UpdaterShape<Shape>::setNumPhase)
-        .def("getStepsize", &UpdaterShape<Shape>::getStepsize)
-        .def("setStepsize", &UpdaterShape<Shape>::setStepsize);
+        .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
+        .def("setStepSize", &UpdaterShape<Shape>::setStepSize);
     }
 
     } // namespace hpmc

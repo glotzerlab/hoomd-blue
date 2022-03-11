@@ -25,7 +25,7 @@ template<typename Shape> class ShapeMoveBase
     ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef)
         : m_det_inertia_tensor(0), m_sysdef(sysdef)
         {
-        unsigned int m_ntypes = m_sysdef->getParticleData()->getNTypes();
+        this->m_ntypes = this->m_sysdef->getParticleData()->getNTypes();
         }
 
     ShapeMoveBase(const ShapeMoveBase& src)
@@ -94,10 +94,10 @@ template<typename Shape> class ShapeMoveBase
         }
 
     protected:
-    Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
-    Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
-    std::shared_ptr<SystemDefinition> m_sysdef;
-    unsigned m_ntypes;
+        Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
+        Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
+        std::shared_ptr<SystemDefinition> m_sysdef;
+        unsigned m_ntypes;
     }; // end class ShapeMoveBase
 
 // TODO: make this class more general and make python function a spcialization.
@@ -387,7 +387,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                 shape.z[i] = (OverlapReal)vert.z;
                 }
             }
-
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();

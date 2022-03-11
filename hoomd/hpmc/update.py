@@ -607,10 +607,11 @@ class Shape(Updater):
 
         self._extend_typeparam([typeparam_step_size])
 
-    def _add(self, sim):
-        super()._add(sim)
+    def _add(self, simulation):
+        super()._add(simulation)
+        self.shape_move._add(simulation)
 
-    def _attach_shape_move(self, sim):
+    def _attach_shape_move(self):
         if not self.shape_move._attached:
             self.shape_move._attach()
 
@@ -658,7 +659,7 @@ class Shape(Updater):
                     raise RuntimeError(
                         "Currently alchemical moves with ConvexSpheropolyhedron\
                     are only enabled for polyhedral and spherical particles.")
-        self._attach_shape_move(self._simulation)
+        self._attach_shape_move()
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
                                     self.shape_move._cpp_obj, self.nselect,
@@ -666,35 +667,33 @@ class Shape(Updater):
                                     self.multi_phase, self.num_phase)
         super()._attach()
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def shape_moves(self):
         """tuple[int, int]: Count of the accepted and rejected shape moves.
 
         None when not attached
         """
         if self._attached:
-            total = self._cpp_obj.total_count
-            accepted = self._cpp_obj.accepted_count
-            return (accepted, total - accepted)
+            return self._cpp_obj.getShapeMovesCount()
         else:
             return (0, 0)
 
-    @log(category='scalar')
-    def particle_volume(self):
-        """float: Total volume being occupied by particles.
+    @log(category='scalar', requires_run=True)
+    def total_particle_volume(self):
+        """float: Total volume occupied by particles.
 
         None when not attached
 
         TODO - move this to the shape moves classes
         """
         if self._attached:
-            return self._cpp_obj.particle_volume
+            return self._cpp_obj.total_particle_volume
         else:
             return None
 
-    @log(category="scalar")
+    @log(category="scalar", requires_run=True)
     def shape_move_energy(self):
-        """float: Energy of the shape resulting from shear moves.
+        """float: Energy penalty due to shape changes
 
         None when not attached
 

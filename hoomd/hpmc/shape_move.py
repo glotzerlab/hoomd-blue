@@ -33,7 +33,7 @@ class ShapeMove(_HOOMDBaseObject):
             raise RuntimeError("Integrator is not attached yet.")
 
         integrator_name = integrator.__class__.__name__
-        if integrator_name in supported_shapes:
+        if integrator_name in self._suported_shapes:
                 self._move_cls = getattr(_hpmc, self.__class__.__name__ + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
@@ -76,7 +76,7 @@ class Constant(ShapeMove):
         mc.shape["A"] = dict(vertices=tetrahedron_verts)
         cube_verts = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1),
                       (1, -1, -1), (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)])
-        constant_move = hoomd.hpmc.shape_move.Constant(shape_params=cube_verts)
+        constant_move = shape_move.Constant(shape_params=cube_verts)
 
     Attributes:
 
@@ -131,10 +131,18 @@ class Elastic(ShapeMove):
     def __init__(self, stiffness, reference, shear_scale_ratio):
         # TODO: reference should be implemented as TypeParameter
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
-                                   reference=dict(reference),
+                                   reference=reference,
                                    shear_scale_ratio=float(shear_scale_ratio))
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
+
+        # # Set standard typeparameters for hpmc integrators
+        # typeparam_ref_shape = TypeParameter('reference_shape',
+        #                                     type_kind='particle_types',
+        #                                     param_dict=TypeParameterDict(
+        #                                         {}, len_keys=1))
+        #
+        # self._extend_typeparam([typeparam_ref_shape])
 
     def _attach(self):
         self._set_move_class()
@@ -224,7 +232,7 @@ class Python(ShapeMove):
         return self.params
 
 
-class Vertex(ShapeMove):
+class VertexShapeMove(ShapeMove):
     """Apply shape moves where particle vertices are translated.
 
     Args:
@@ -232,7 +240,7 @@ class Vertex(ShapeMove):
         vertex_move_probability (float): Average fraction of vertices to change
             during each shape move
 
-        volume (float): Volume of the particles to hold constant
+        volume (float): Volume of the particles to hold constant.
 
     Note:
         Vertices are rescaled during each shape move to ensure that the shape
@@ -249,15 +257,15 @@ class Vertex(ShapeMove):
         cube_verts = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1),
                       (1, -1, -1), (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)])
         mc.shape["A"] = dict(vertices=numpy.asarray(cube_verts) / 2)
-        vertex_move = hoomd.hpmc.shape_move.Vertex(vertex_move_probability=0.125,
+        vertex_move = shape_move.VertexShapeMove(vertex_move_probability=0.125,
                                                    volume=1.0)
 
     Attributes:
 
-        vertex_move_probability (float): Average fraction of vertices to change during
-            each shape move
+        vertex_move_probability (float): Average fraction of vertices to change
+            during each shape move.
 
-        volume (float): Volume of the particles to hold constant
+        volume (float): Volume of the particles to hold constant.
     """
 
     _suported_shapes = {'ConvexPolyhedron', 'ConvexSpheropolyhedron'}
@@ -270,7 +278,7 @@ class Vertex(ShapeMove):
 
     def _attach(self):
         self._set_move_class()
-        self._cpp_obj = self.move_cls(self._simulation.state._cpp_sys_def,
-                                      self.vertex_move_probability,
-                                      self.volume)
+        self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
+                                       self.vertex_move_probability,
+                                       self.volume)
         super()._attach()
