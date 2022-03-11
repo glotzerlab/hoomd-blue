@@ -4,7 +4,8 @@
 """Force data local access.
 
 `ForceLocalAccess`, `ForceLocalAccessGPU`, and related classes provide direct
-access to the data buffers managed by `hoomd.md.force.Force`.
+access to the data buffers managed by `hoomd.md.force.Force`. This means that
+MPI rank locality must be considered in accessing the arrays in a multi-rank simulation.
 
 See Also:
     `hoomd.md.force.Force`

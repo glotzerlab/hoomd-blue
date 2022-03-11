@@ -12,7 +12,7 @@ simulation state commensurate with the potential energy:
     U_{ijkl}(\phi)
 
 Each dihedral is defined by an ordered quadruplet of particle tags in the
-`hoomd.State` member ``dihedral_group``. HOOMD-blue does not compute dihedral
+`hoomd.State` member ``dihedral_group``. HOOMD-blue does not construct dihedral
 groups, users must explicitly define dihedrals in the initial condition.
 
 .. image:: md-dihedral.svg
@@ -87,7 +87,7 @@ class Harmonic(Dihedral):
 
     .. math::
 
-        V(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
+        U(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
                \right)
 
     Attributes:

@@ -12,7 +12,7 @@ simulation state commensurate with the potential energy:
     U_{ijkl}(\chi)
 
 Each improper is defined by an ordered quadruplet of particle tags in the
-`hoomd.State` member ``improper_group``. HOOMD-blue does not compute improper
+`hoomd.State` member ``improper_group``. HOOMD-blue does not construct improper
 groups, users must explicitly define impropers in the initial condition.
 
 .. image:: md-improper.svg

@@ -139,9 +139,10 @@ class Rigid(Constraint):
     are the position and orientation of that particle in body coordinates, and
     :math:`\vec{r}_b` and :math:`\mathbf{q}_b` are the position and orientation
     of the central particle of that rigid body. In the simulation state, the
-    ``body`` particle property defines the particle tag: ``b = body[c]``. Define
-    central particles with :math:`(b \ne -1) \land (b \ne c)`, central particles
-    with :math:`b = c`, and free particles with :math:`b = -1`.
+    ``body`` particle property defines the particle tag of the central particle:
+    ``b = body[c]``. In setting the ``body`` array, central particles should be set
+    to their tag :math:`b_i = t_i`, constituent particles to their central particle's tag
+    :math:`b_i = t_{center}`, and free particles :math:`b_i = -1`
 
     `Rigid` transfers forces, energies, and torques from constituent particles
     to the central particle and adds them to those from the interaction on the

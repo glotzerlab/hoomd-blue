@@ -11,7 +11,7 @@ state commensurate with the potential energy:
     U_\mathrm{bond} = \sum_{(j,k) \in \mathrm{bonds}} U_{jk}(r)
 
 Each bond is defined by an ordered pair of particle tags in the
-`hoomd.State` member ``bond_group``. HOOMD-blue does not compute bond groups,
+`hoomd.State` member ``bond_group``. HOOMD-blue does not construct bond groups,
 users must explicitly define bonds in the initial condition.
 
 .. image:: md-bond.svg

@@ -142,7 +142,7 @@ class Coulomb(SpecialPair):
         \end{cases}
 
     Note:
-        Use `LJ` to implement special 1-4 interactions in atomistic force
+        Use `Coulomb` to implement special 1-4 interactions in atomistic force
         fields, such as the scaled 1-4 interactions in OPLS where both the 1-4
         `LJ` and `Coulomb` interactions are scaled by 0.5.
 

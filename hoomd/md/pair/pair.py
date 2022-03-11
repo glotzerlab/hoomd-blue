@@ -815,7 +815,7 @@ class DPDLJ(Pair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
-    `Buckingham` computes the `DPD` thermostat combined with the `LJ` pair force
+    `DPDDJ` computes the `DPD` thermostat combined with the `LJ` pair force
     on every particle in the simulation state with:
 
     .. math::
@@ -1321,7 +1321,7 @@ class ReactionField(Pair):
           :math:`[\mathrm{energy} \cdot \mathrm{length}]`
         * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}`
           :math:`[\mathrm{dimensionless}]`
-        * ``use_charge`` (`boolean`, **optional**) - evaluate pair force
+        * ``use_charge`` (`bool`, **optional**) - evaluate pair force
           using particle charges (*default*: False)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],

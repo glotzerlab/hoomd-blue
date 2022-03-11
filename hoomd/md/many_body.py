@@ -14,7 +14,7 @@ simulation state commensurate with the potential energy:
 
 where :math:`\vec{r}_{ij} = \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)`.
 `Triplet` applies a short range cutoff for performance and assumes that both
-:math`U(\vec{r}_{ij}, \vec{r}_{ik})` and its derivatives are 0 when
+:math:`U(\vec{r}_{ij}, \vec{r}_{ik})` and its derivatives are 0 when
 :math:`r_{ij} > r_\mathrm{cut}` or :math:`r_{ik} > r_\mathrm{cut}`.
 
 Specifically, the force :math:`\vec{F}` applied to each particle :math:`i` is:

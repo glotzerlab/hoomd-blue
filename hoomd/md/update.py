@@ -26,7 +26,7 @@ class ZeroMomentum(Updater):
                   \sum_{i \in \mathrm{free,central}}
                   m_i \vec{v}_i
 
-    ad removes it:
+    and removes it:
 
     .. math::
 
