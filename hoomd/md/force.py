@@ -158,6 +158,10 @@ class Force(_HOOMDBaseObject):
         The `hoomd.md.data.ForceLocalAccess` object returned by this property
         has four arrays through which one can modify the force data:
 
+        Note:
+            The local arrays are read only for built-in forces. Use `Custom` to
+            implement custom forces.
+
         Examples::
 
             with self.cpu_local_force_arrays as arrays:
@@ -182,6 +186,10 @@ class Force(_HOOMDBaseObject):
 
         The `hoomd.md.data.ForceLocalAccessGPU` object returned by this property
         has four arrays through which one can modify the force data:
+
+        Note:
+            The local arrays are read only for built-in forces. Use `Custom` to
+            implement custom forces.
 
         Examples::
 

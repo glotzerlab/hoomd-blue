@@ -7,6 +7,8 @@ Integration methods work with `hoomd.md.Integrator` to define the equations
 of motion for the system. Each individual method applies the given equations
 of motion to a subset of particles.
 
+.. rubric:: Integration methods with constraints
+
 For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`
 """
 

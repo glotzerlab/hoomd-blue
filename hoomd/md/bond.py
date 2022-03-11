@@ -110,12 +110,12 @@ class FENEWCA(Bond):
     .. math::
 
         V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r -
-               \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)
+               \Delta}{r_0} \right)^2 \right) + U_{\mathrm{WCA}}(r)
 
     where
 
     .. math::
-        V_{\mathrm{WCA}}(r)  =
+        U_{\mathrm{WCA}}(r)  =
         \begin{cases} 4 \varepsilon \left[ \left( \frac{\sigma}{r -
                                  \Delta} \right)^{12} - \left( \frac{\sigma}{r -
                                  \Delta} \right)^{6} \right]  + \varepsilon

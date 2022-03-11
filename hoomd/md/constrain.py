@@ -260,14 +260,16 @@ class Rigid(Constraint):
         that the type is not a rigid body center. All types are set to ``None``
         by default. The keys for the body definition are:
 
-        - ``constituent_types`` (list[str]): List of types of constituent
+        - ``constituent_types`` (`list` [`str`]): List of types of constituent
           particles.
-        - ``positions`` (list[tuple[float, float, float]]): List of relative
-          positions of constituent particles.
-        - ``orientations`` (list[tuple[float, float, float, float]]): List of
-          orientations (as quaternions) of constituent particles.
-        - ``charge`` (list[float]): List of charges of constituent particles
-        - ``diameters`` (list[float]): List of diameters of constituent
+        - ``positions`` (`list` [`tuple` [`float`, `float`, `float`]]): List of
+          relative positions of constituent particles.
+        - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
+          `float`]]): List of orientations (as quaternions) of constituent
+          particles.
+        - ``charge`` (`list` [`float`]): List of charges of constituent
+          particles.
+        - ``diameters`` (`list` [`float`]): List of diameters of constituent
           particles.
 
         Type: `TypeParameter` [``particle_type``, `dict`]

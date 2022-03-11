@@ -148,23 +148,23 @@ class Integrator(_DynamicIntegrator):
         dt (float): Integrator time step size :math:`[\mathrm{time}]`.
 
         methods (Sequence[hoomd.md.methods.Method]): Sequence of integration
-            methods. The default value of ``None`` initializes an empty list.
+          methods. The default value of ``None`` initializes an empty list.
 
         forces (Sequence[hoomd.md.force.Force]): Sequence of forces applied to
-            the particles in the system.
-            The default value of ``None`` initializes an empty list.
+          the particles in the system. The default value of ``None`` initializes
+          an empty list.
 
         integrate_rotational_dof (bool): When True, integrate rotational degrees
-            of freedom.
+          of freedom.
 
         constraints (Sequence[hoomd.md.constrain.Constraint]): Sequence of
-            constraint forces applied to the particles in the system.
-            The default value of ``None`` initializes an empty list. Rigid body
-            objects (i.e. `hoomd.md.constrain.Rigid`) are not allowed in the
-            list.
+          constraint forces applied to the particles in the system.
+          The default value of ``None`` initializes an empty list. Rigid body
+          objects (i.e. `hoomd.md.constrain.Rigid`) are not allowed in the
+          list.
 
         rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
-            the simulation.
+          the simulation.
 
     `Integrator` is the top level class that orchestrates the time integration
     step in molecular dynamics simulations. The integration `methods` define

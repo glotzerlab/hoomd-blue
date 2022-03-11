@@ -161,10 +161,11 @@ class Tersoff(Triplet):
     coordination number. It does this by computing a modifier to the attractive
     term of the potential. The modifier contains the effects of third-bodies on
     the bond energies. The potential also includes a smoothing function around
-    the cutoff. The smoothing function used in this work is exponential in
-    nature as opposed to the sinusoid used by J. Tersoff 1988 (`paper`_).
+    the cutoff. The implemented smoothing function is exponential in nature as
+    opposed to the sinusoid used by `J. Tersoff 1988`_.
 
-    .. _paper: https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902
+    .. _J. Tersoff 1988:
+      https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902
 
     `Tersoff` computes the Tersoff three-body force on every particle in the
     simulation state. Despite the fact that the Tersoff potential accounts for
@@ -384,7 +385,7 @@ class RevCross(Triplet):
 
         nl = md.nlist.Cell()
         bond_swap = md.many_body.RevCross(default_r_cut=1.3,nlist=nl)
-        bond_swap.params[(['A','B'],['A','B'])] = {
+        bond_swap.params[('A', 'A'), ('B', 'B')] = {
             "sigma":0,"n": 0, "epsilon": 0, "lambda3": 0}
         # a bond can be made only between A-B and not A-A or B-B
         bond_swap.params[('A','B')] = {

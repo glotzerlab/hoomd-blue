@@ -20,6 +20,8 @@ md.nlist
 
 .. automodule:: hoomd.md.nlist
     :synopsis: Neighbor list acceleration structures.
-    :members: NeighborList, Cell, Stencil, Tree
+    :members: Cell, Stencil, Tree
     :no-inherited-members:
     :show-inheritance:
+
+    .. autoclass:: NeighborList

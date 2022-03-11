@@ -1193,7 +1193,7 @@ class OverdampedViscous(Method):
 
     Examples::
 
-        odv = hoomd.md.methods.Brownian(filter=hoomd.filter.All())
+        odv = hoomd.md.methods.OverdampedViscous(filter=hoomd.filter.All())
         odv.gamma.default = 2.0
         odv.gamma_r.default = [1.0, 2.0, 3.0]
 

@@ -199,7 +199,7 @@ class OPLS(Dihedral):
 
     .. math::
 
-        V(\phi) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
+        U(\phi) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
                   \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right) +
                   \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) +
                   \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right)

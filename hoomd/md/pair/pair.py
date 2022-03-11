@@ -815,7 +815,7 @@ class DPDLJ(Pair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
 
-    `DPDDJ` computes the `DPD` thermostat combined with the `LJ` pair force
+    `DPDLJ` computes the `DPD` thermostat combined with the `LJ` pair force
     on every particle in the simulation state with:
 
     .. math::
