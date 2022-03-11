@@ -36,7 +36,6 @@ set(_hpmc_sources   module.cc
                     module_union_sphere.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
-                    module_updater_shape.cc
                     ExternalFieldWall.cc
                     ShapeUtils.cc
                     UpdaterBoxMC.cc

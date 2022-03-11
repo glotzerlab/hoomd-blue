@@ -282,12 +282,7 @@ class VertexShapeMove(ShapeMove):
 
     def _attach(self):
         self._set_move_class()
-<<<<<<< HEAD
         self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
                                        self.vertex_move_probability,
                                        self.volume)
-=======
-        self._cpp_obj = self.move_cls(self._simulation.state._cpp_sys_def,
-                                      self.vertex_move_probability, self.volume)
->>>>>>> 35ae7492a05738487c807645a2351ea06acae4da
         super()._attach()
