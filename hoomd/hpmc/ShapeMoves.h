@@ -94,10 +94,10 @@ template<typename Shape> class ShapeMoveBase
         }
 
     protected:
-        Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
-        Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
-        std::shared_ptr<SystemDefinition> m_sysdef;
-        unsigned m_ntypes;
+    Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
+    Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
+    std::shared_ptr<SystemDefinition> m_sysdef;
+    unsigned m_ntypes;
     }; // end class ShapeMoveBase
 
 // TODO: make this class more general and make python function a spcialization.
