@@ -11,8 +11,8 @@ state commensurate with the potential energy:
     U_\mathrm{angle} = \sum_{(i,j,k) \in \mathrm{angles}} U_{ijk}(\theta)
 
 Each angle is defined by an ordered triplet of particle tags in the
-`hoomd.State` member ``angle_group``. HOOMD-blue does not construct angle groups,
-users must explicitly define angles in the initial condition.
+`hoomd.State` member ``angle_group``. HOOMD-blue does not construct angle
+groups, users must explicitly define angles in the initial condition.
 
 .. image:: md-angle.svg
     :alt: Definition of the angle bond between particles i, j, and k.
