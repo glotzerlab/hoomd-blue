@@ -311,6 +311,11 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
         return m_inertia[0] * m_inertia[1] * m_inertia[2];
         }
 
+    Scalar getSurfaceArea()
+        {
+        throw std::runtime_error("Surface area calculation not implemented!");
+        }
+
     static constexpr Scalar m_vol_factor = Scalar(4.0) / Scalar(3.0) * M_PI;
 
     protected:
