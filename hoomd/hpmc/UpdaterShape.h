@@ -579,9 +579,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
             m_determinant.swap(determinant_backup);
-            // m_mc->swapParams(param_copy);
-            // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy,
-            // access_location::host, access_mode::readwrite);
             for (unsigned int typ = 0; typ < m_type_select; typ++)
                 {
                 m_mc->setParam(m_update_order[typ], param_copy[typ]); // set the params.
@@ -595,8 +592,6 @@ template<typename Shape> void UpdaterShape<Shape>::initialize()
     {
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-    // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host,
-    // access_mode::readwrite);
     auto params = m_mc->getParams();
     for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
         {

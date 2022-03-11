@@ -100,7 +100,6 @@ template<typename Shape> class ShapeMoveBase
         unsigned m_ntypes;
     }; // end class ShapeMoveBase
 
-// TODO: make this class more general and make python function a spcialization.
 template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     {
     public:
@@ -580,8 +579,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         Eigen::Matrix3d eps_last = this->getEpsLast(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
         Scalar e_ddot_e_last = (eps_last * eps_last.transpose()).trace();
-        // TODO: To make this more correct we need to calculate the previous volume and multiply
-        // accodingly.
         return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume + inertia_term;
         }
 

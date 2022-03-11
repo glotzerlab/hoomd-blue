@@ -31,7 +31,6 @@ namespace detail
 
 typedef EllipsoidParams ellipsoid_param;
 typedef PolyhedronVertices convex_polyhedron_param;
-// TODO: template Scalar type.
 
 template<class Shape> class MassPropertiesBase
     {
