@@ -657,7 +657,8 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                             bool,
                             unsigned int>())
         .def("getShapeMovesCount", &UpdaterShape<Shape>::getShapeMovesCount)
-        .def_property_readonly("total_particle_volume", &UpdaterShape<Shape>::getTotalParticleVolume)
+        .def_property_readonly("total_particle_volume",
+                               &UpdaterShape<Shape>::getTotalParticleVolume)
         .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
         .def_property("shape_move",
                       &UpdaterShape<Shape>::getShapeMove,

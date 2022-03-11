@@ -34,8 +34,8 @@ class ShapeMove(_HOOMDBaseObject):
 
         integrator_name = integrator.__class__.__name__
         if integrator_name in self._suported_shapes:
-                self._move_cls = getattr(_hpmc,
-                                      self.__class__.__name__ + integrator_name)
+            self._move_cls = getattr(_hpmc,
+                                     self.__class__.__name__ + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
 
