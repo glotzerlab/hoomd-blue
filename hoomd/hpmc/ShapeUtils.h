@@ -332,7 +332,6 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
     typename ShapeEllipsoid::param_type m_param;
     };
 
-// TODO: Enable true spheropolyhedron calculation
 template<>
 class MassProperties<ShapeSpheropolyhedron> : public MassProperties<ShapeConvexPolyhedron>
     {
