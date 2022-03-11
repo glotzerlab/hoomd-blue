@@ -1,7 +1,9 @@
 version: 2
 
-python:
-  version: 3.10
+build:
+  os: "ubuntu-20.04"
+  tools:
+    python: "mambaforge-4.10"
 
 conda:
     environment: sphinx-doc/environment.yml
