@@ -36,7 +36,7 @@ template<typename Shape> class UpdaterShape : public Updater
 
     virtual void update(uint64_t timestep);
 
-    void initialize();
+    void initializeDeterminatsInertiaTensor();
 
     Scalar getTotalParticleVolume()
         {
@@ -54,7 +54,7 @@ template<typename Shape> class UpdaterShape : public Updater
         {
         Scalar energy = 0.0;
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_det(m_determinant_inertia_tensor, access_location::host, access_mode::readwrite);
         for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
             {
             energy += m_move_function->computeEnergy(timestep,
@@ -190,7 +190,7 @@ template<typename Shape> class UpdaterShape : public Updater
         m_step_size[id] = d;
         }
 
-    void countTypes();
+    void countParticlesPerType();
 
     private:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; // hpmc particle integrator
@@ -202,7 +202,7 @@ template<typename Shape> class UpdaterShape : public Updater
     bool m_multi_phase;              // whether or not the simulation is multi-phase
     unsigned int m_num_phase;        // number of phases in a multi-phase simulation
     int m_global_partition;          // number of MPI partitions
-    GPUArray<Scalar> m_determinant;  // determinant of the shape's moment of inertia tensor
+    GPUArray<Scalar> m_determinant_inertia_tensor;  // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes; // number of particle types in the simulation
     unsigned int m_num_params;       // number of shape parameters to calculate
     bool m_initialized;              // whether or not the updater has been initialized
@@ -229,7 +229,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   unsigned int numphase)
     : Updater(sysdef), m_mc(mc), m_move_function(move), m_type_select(tselect), m_nsweeps(nsweeps),
       m_pretend(pretend), m_multi_phase(multiphase), m_num_phase(numphase), m_global_partition(0),
-      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_ntypes(m_pdata->getNTypes(), m_exec_conf),
+      m_determinant_inertia_tensor(m_pdata->getNTypes(), m_exec_conf), m_ntypes(m_pdata->getNTypes(), m_exec_conf),
       m_num_params(0), m_initialized(false)
     {
     m_step_size.resize(m_pdata->getNTypes(), 0);
@@ -239,22 +239,17 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_box_total.resize(m_pdata->getNTypes(), 0);
     m_type_select = (m_pdata->getNTypes() < m_type_select) ? m_pdata->getNTypes() : m_type_select;
 
-    ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+    initializeDeterminatsInertiaTensor();
 
-    for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
-        {
-        h_det.data[i] = 0.0;
-        h_ntypes.data[i] = 0;
-        }
-    countTypes();
+    countParticlesPerType();
+
     // TODO: add a sanity check to makesure that MPI is setup correctly
     if (m_multi_phase)
         {
-#ifdef ENABLE_MPI
+        #ifdef ENABLE_MPI
         MPI_Comm_rank(MPI_COMM_WORLD, &m_global_partition);
         assert(m_global_partition < 2);
-#endif
+        #endif
         }
     }
 
@@ -268,56 +263,32 @@ template<class Shape> UpdaterShape<Shape>::~UpdaterShape()
 */
 template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
     {
-    typedef std::vector<typename Shape::param_type,
-                        hoomd::detail::managed_allocator<typename Shape::param_type>>
-        param_vector;
+
     m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep
                                 << ", initialized: " << std::boolalpha << m_initialized << " @ "
                                 << std::hex << this << std::dec << std::endl;
-    bool warn = !m_initialized;
+
     if (!m_initialized)
-        initialize();
-    if (!m_move_function)
-        {
-        if (warn)
-            m_exec_conf->msg->warning()
-                << "update.shape: running without a move function! " << std::endl;
-        return;
-        }
+        initializeDeterminatsInertiaTensor();
 
-    uint16_t seed = this->m_sysdef->getSeed();
-
-    hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
-        hoomd::Counter(m_instance));
-
+    // Shuffle the order of particles types for this step
     m_update_order.resize(m_pdata->getNTypes());
-    for (unsigned int sweep = 0; sweep < m_nsweeps; sweep++)
+    m_update_order.shuffle(timestep, this->m_sysdef->getSeed(), m_exec_conf->getRank());
+
+    for (unsigned int i_sweep = 0; i_sweep < m_nsweeps; i_sweep++)
         {
-        // Shuffle the order of particles for this sweep
-        // TODO: should these be better random numbers?
-        m_update_order.shuffle(timestep + 40591,
-                               seed); // order of the list doesn't matter the probability of each
-                                      // combination is the same.
 
         Scalar log_boltz = 0.0;
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
 
-        param_vector& params = m_mc->getParams();
-        param_vector param_copy(m_type_select);
-        for (unsigned int i = 0; i < m_type_select; i++)
-            {
-            param_copy[i] = params[m_update_order[i]];
-            }
-
-        GPUArray<Scalar> determinant_backup(m_determinant);
+        GPUArray<Scalar> determinant_inertia_tensor_old(m_determinant_inertia_tensor);
         m_move_function->prepare(timestep);
 
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
             unsigned int typ_i = m_update_order[cur_type];
-            // Skip move if step size is smaller than tolerance
+            // Skip move if step size is smaller than allowed tolerance
             if (m_step_size[typ_i] < m_tol)
                 {
                 m_exec_conf->msg->notice(5) << " Skipping moves for particle typeid=" << typ_i
@@ -330,95 +301,94 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                     << " UpdaterShape making trial move for typeid=" << typ_i << ", " << cur_type
                     << std::endl;
                 }
+
             m_count_total[typ_i]++;
-            // access parameters
-            typename Shape::param_type param;
-            param = params[typ_i];
-            ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_det_backup(determinant_backup,
-                                             access_location::host,
-                                             access_mode::readwrite);
-            ArrayHandle<unsigned int> h_ntypes(m_ntypes,
-                                               access_location::host,
-                                               access_mode::readwrite);
 
-            hoomd::RandomGenerator rng_i(
-                hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, seed),
-                hoomd::Counter(m_exec_conf->getRank(), sweep));
-            m_move_function->update_shape(timestep, m_step_size[typ_i], typ_i, param, rng_i);
-            h_det.data[typ_i] = m_move_function->getDetInertiaTensor(); // new determinant
+            // cache old shape parameters before it is modified
+            auto shape_param_old = m_mc->getParams()[typ_i];
+            auto shape_param_new = shape_param_old;
+
+            ArrayHandle<Scalar> h_det(m_determinant_inertia_tensor, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_det_old(determinant_inertia_tensor_old, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+
+            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, this->m_sysdef->getSeed()),
+                                         hoomd::Counter(typ_i, m_exec_conf->getRank(), i_sweep));
+
+            // perform a shape update on shape_param_new
+            m_move_function->update_shape(timestep, m_step_size[typ_i], typ_i, shape_param_new, rng_i);
+
+            // update det(I)
+            detail::MassProperties<Shape> mp(shape_param_new);
+            h_det.data[typ_i] = mp.getDetInertiaTensor();
+
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", "
-                                        << h_det_backup.data[typ_i] << std::endl;
-            // energy and moment of interia change.
-            assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
-            log_boltz
-                += (*m_move_function)(timestep,
-                                      h_ntypes.data[typ_i],    // number of particles of type typ_i,
-                                      typ_i,                   // the type id
-                                      param,                   // new shape parameter
-                                      h_det.data[typ_i],       // new determinant
-                                      param_copy[cur_type],    // old shape parameter
-                                      h_det_backup.data[typ_i] // old determinant
-                );
-            m_mc->setParam(typ_i, param);
-            } // end loop over particle types
+                                        << h_det_old.data[typ_i] << std::endl;
 
-        // calculate boltzmann factor.
-        bool accept = false,
-             reject = true; // looks redundant but it is not because of the pretend mode.
+            // consistency check
+            assert(h_det.data[typ_i] != 0 && h_det_old.data[typ_i] != 0);
 
-        Scalar p = hoomd::detail::generate_canonical<Scalar>(rng);
-        Scalar Z = fast::exp(log_boltz);
-        m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
+            // compute log_boltz factor
+            log_boltz += (*m_move_function)(timestep, // current timestep
+                           h_ntypes.data[typ_i],      // number of particles of type typ_i,
+                           typ_i,                     // the type id
+                           shape_param_new,           // new shape parameter
+                           h_det.data[typ_i],         // new determinant_inertia_tensor
+                           shape_param_old,           // old shape parameter
+                           h_det_old.data[typ_i]      // old determinant_inertia_tensor
+                         );
+            // actually update the shape parameter in the integrator
+            m_mc->setParam(typ_i, shape_param_new);
 
-        if (m_multi_phase)
-            {
-#ifdef ENABLE_MPI
-            std::vector<Scalar> Zs;
-            all_gather_v(Z, Zs, MPI_COMM_WORLD);
-            Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
-#endif
-            }
-        if (p < Z)
-            {
-            bool early_exit = true;
-            unsigned int overlap_count = 0;
-            unsigned int err_count = 0;
+            // looks redundant but it is not because of the pretend mode.
+            bool accept = false, reject = true;
 
-            m_exec_conf->msg->notice(10) << "HPMCMono count overlaps: " << timestep << std::endl;
+            Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
+            Scalar Z = slow::exp(log_boltz);
+            m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
 
-            // build an up to date AABB tree
-            const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
-            // update the image list
-            std::vector<vec3<Scalar>> image_list = m_mc->updateImageList();
-
-            const Index2D& overlap_idx = m_mc->getOverlapIndexer();
-            // access particle data and system box
-            ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
-                                           access_location::host,
-                                           access_mode::read);
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                               access_location::host,
-                                               access_mode::read);
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
-                                            access_location::host,
-                                            access_mode::read);
-
-            // access parameters and interaction matrix
-            ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(),
-                                                 access_location::host,
-                                                 access_mode::read);
-
-            // Loop over particles corresponding to m_type_select
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            if (m_multi_phase)
                 {
-                Scalar4 postype_i = h_postype.data[i];
-                unsigned int typ_i = __scalar_as_int(postype_i.w);
-                if (m_step_size[typ_i] < m_tol)
-                    continue;
-                for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
+                #ifdef ENABLE_MPI
+                std::vector<Scalar> Zs;
+                all_gather_v(Z, Zs, MPI_COMM_WORLD);
+                Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
+                #endif
+                }
+
+            // potentially accept but need to check for overlaps first
+            if (p < Z)
+                {
+
+                m_exec_conf->msg->notice(10) << "HPMCMono count overlaps: " << timestep << std::endl;
+
+                // This is a literal copy of the HPMC countOverlaps loop. The only difference here
+                // is that we loop only over types instead of all the particles and always exit early.
+
+                // build an up to date AABB tree
+                const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+                // update the image list
+                std::vector<vec3<Scalar>> image_list = m_mc->updateImageList();
+
+                const Index2D& overlap_idx = m_mc->getOverlapIndexer();
+
+                // access particle data and system box
+                ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+                ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+                // access parameters and interaction matrix
+                ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+                bool early_exit = true;
+                unsigned int overlap_count = 0;
+                unsigned int err_count = 0;
+                // Loop over all the particles type whose shape we just updated
+                // and check if they caused an overlap
+                for (unsigned int i = 0; i < m_pdata->getN(); i++)
                     {
-                    // Only check overlaps for particles of types specified by m_type_select
+                    Scalar4 postype_i = h_postype.data[i];
+                    // Only check if current particle i is of the type we just updated
                     if (typ_i == m_update_order[cur_type])
                         {
                         // read in the current position and orientation
@@ -460,8 +430,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                             Scalar4 orientation_k = h_orientation.data[k];
 
                                             // put particles in coordinate system of particle i
-                                            vec3<Scalar> r_ik
-                                                = vec3<Scalar>(postype_k) - pos_i_image;
+                                            vec3<Scalar> r_ik = vec3<Scalar>(postype_k) - pos_i_image;
 
                                             unsigned int typ_k = __scalar_as_int(postype_k.w);
                                             Shape shape_k(quat<Scalar>(orientation_k),
@@ -507,91 +476,75 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                             break;
                             }
                         }
-                    }
+                    } // end loop over particles
 
-                } // end loop over particles
-
-#ifdef ENABLE_MPI
-            if (this->m_pdata->getDomainDecomposition())
-                {
-                MPI_Allreduce(MPI_IN_PLACE,
-                              &overlap_count,
-                              1,
-                              MPI_UNSIGNED,
-                              MPI_SUM,
-                              m_exec_conf->getMPICommunicator());
-                if (early_exit && overlap_count > 1)
-                    overlap_count = 1;
-                }
-#endif
-
-            accept = !overlap_count;
-
-            m_exec_conf->msg->notice(5)
-                << " UpdaterShape counted " << overlap_count << " overlaps" << std::endl;
-            if (m_multi_phase)
-                {
-#ifdef ENABLE_MPI
-                if (accept)
+                #ifdef ENABLE_MPI
+                if (this->m_pdata->getDomainDecomposition())
                     {
-                    for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
+                    MPI_Allreduce(MPI_IN_PLACE,
+                                  &overlap_count,
+                                  1,
+                                  MPI_UNSIGNED,
+                                  MPI_SUM,
+                                  m_exec_conf->getMPICommunicator());
+                    if (early_exit && overlap_count > 1)
+                        overlap_count = 1;
+                    }
+                #endif
+
+                accept = !overlap_count;
+
+                m_exec_conf->msg->notice(5) << " UpdaterShape counted " << overlap_count << " overlaps" << std::endl;
+                if (m_multi_phase)
+                    {
+                    #ifdef ENABLE_MPI
+                    if (accept)
                         {
-                        unsigned int typ_i = m_update_order[cur_type];
                         m_box_accepted[typ_i]++;
                         }
                     }
-                std::vector<int> all_a;
-                all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
-                accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
-#endif
+                    std::vector<int> all_a;
+                    all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
+                    accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
+                    #endif
+                    }
+                m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
                 }
-            m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
-            }
 
-        if (!accept) // categorically reject the move.
-            {
-            m_exec_conf->msg->notice(5) << " UpdaterShape move retreating" << std::endl;
-            m_move_function->retreat(timestep);
-            }
-        else if (m_pretend) // pretend to accept the move but actually reject it.
-            {
-            m_exec_conf->msg->notice(5)
-                << " UpdaterShape move accepted -- pretend mode" << std::endl;
-            m_move_function->retreat(timestep);
-            for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
+            if (!accept) // categorically reject the move.
                 {
-                unsigned int typ_i = m_update_order[cur_type];
+                m_exec_conf->msg->notice(5) << " UpdaterShape move retreating" << std::endl;
+                m_move_function->retreat(timestep);
+                }
+            else if (m_pretend) // pretend to accept the move but actually reject it.
+                {
+                m_exec_conf->msg->notice(5) << " UpdaterShape move accepted -- pretend mode" << std::endl;
+                m_move_function->retreat(timestep);
                 m_count_accepted[typ_i]++;
                 }
-            }
-        else // actually accept the move.
-            {
-            m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
-            for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
+            else // actually accept the move.
                 {
-                unsigned int typ_i = m_update_order[cur_type];
+                m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
                 m_count_accepted[typ_i]++;
+                reject = false;
                 }
-            reject = false;
-            }
 
-        if (reject)
-            {
-            m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
-            m_determinant.swap(determinant_backup);
-            for (unsigned int typ = 0; typ < m_type_select; typ++)
+            if (reject)
                 {
-                m_mc->setParam(m_update_order[typ], param_copy[typ]); // set the params.
+                m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
+                // revert shape parameter changes
+                h_det.data[typ_i] = h_det_old.data[typ_i];
+                m_mc->setParam(typ_i, shape_param_old);
                 }
-            }
+            } // end loop over particle types
         } // end loop over n_sweeps
     m_exec_conf->msg->notice(4) << " UpdaterShape update done" << std::endl;
     } // end UpdaterShape<Shape>::update(unsigned int timestep)
 
-template<typename Shape> void UpdaterShape<Shape>::initialize()
+template<typename Shape> void UpdaterShape<Shape>::initializeDeterminatsInertiaTensor()
     {
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_det(m_determinant_inertia_tensor, access_location::host, access_mode::readwrite);
     auto params = m_mc->getParams();
     for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
         {
@@ -612,25 +565,17 @@ template<typename Shape> std::shared_ptr<ShapeMoveBase<Shape>> UpdaterShape<Shap
     return m_move_function;
     }
 
-template<typename Shape> void UpdaterShape<Shape>::countTypes()
+template<typename Shape> void UpdaterShape<Shape>::countParticlesPerType()
     {
-    // zero the array.
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
-        {
-        h_ntypes.data[i] = 0;
-        }
-
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
-                                   access_location::host,
-                                   access_mode::read);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         int typ_j = __scalar_as_int(h_postype.data[j].w);
         h_ntypes.data[typ_j]++;
         }
 
-#ifdef ENABLE_MPI
+    #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
         MPI_Allreduce(MPI_IN_PLACE,
@@ -640,7 +585,7 @@ template<typename Shape> void UpdaterShape<Shape>::countTypes()
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
         }
-#endif
+    #endif
     }
 
 template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std::string& name)

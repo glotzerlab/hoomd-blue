@@ -440,14 +440,14 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         */
         m_mass_props.resize(this->m_ntypes);
         m_shear_scale_ratio = fmin(shear_scale_ratio, 1.0);
-        m_Fbar.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
-        m_Fbar_last.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
+        m_F.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
+        m_F_last.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
         this->m_det_inertia_tensor = 1.0;
         }
 
     void prepare(uint64_t timestep)
         {
-        m_Fbar_last = m_Fbar;
+        m_F_last = m_F;
         }
 
     //! construct is called at the beginning of every update()
@@ -476,7 +476,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             transform = rot * scale * rot_inv;
             }
 
-        m_Fbar[type_id] = transform * m_Fbar[type_id];
+        m_F[type_id] = transform * m_F[type_id];
         Scalar dsq = 0.0;
         for (unsigned int i = 0; i < param.N; i++)
             {
@@ -491,35 +491,33 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             dsq = fmax(dsq, dot(vert, vert));
             }
         param.diameter = OverlapReal(2.0 * fast::sqrt(dsq));
-        m_mass_props[type_id].updateParam(
-            param,
-            false); // update allows caching since for some shapes a full compute is not necessary.
+        // update allows caching since for some shapes a full compute is not necessary.
+        m_mass_props[type_id].updateParam(param, false);
+        // update det(I)
         this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
-#ifdef DEBUG
+        #ifdef DEBUG
         detail::MassProperties<Shape> mp(param);
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         assert(fabs(this->m_det_inertia_tensor - mp.getDetInertiaTensor()) < 1e-5);
-#endif
+        #endif
         }
 
     Eigen::Matrix3d getEps(unsigned int type_id)
         {
-        return 0.5
-               * ((m_Fbar[type_id].transpose() * m_Fbar[type_id]) - Eigen::Matrix3d::Identity());
+        return 0.5 * ((m_F[type_id].transpose() * m_F[type_id]) - Eigen::Matrix3d::Identity());
         }
 
     Eigen::Matrix3d getEpsLast(unsigned int type_id)
         {
-        return 0.5
-               * ((m_Fbar_last[type_id].transpose() * m_Fbar_last[type_id])
-                  - Eigen::Matrix3d::Identity());
+        return 0.5 * ((m_F_last[type_id].transpose() * m_F_last[type_id])
+                      - Eigen::Matrix3d::Identity());
         }
 
     //! retreat whenever the proposed move is rejected.
     void retreat(uint64_t timestep)
         {
-        m_Fbar.swap(
-            m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
+        // we can swap because m_F_last will be reset on the next prepare
+        m_F.swap(m_F_last);
         }
 
     Scalar getShearScaleRatio()
@@ -600,9 +598,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
       // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
     std::vector<Eigen::Matrix3d>
-        m_Fbar_last; // matrix representing shape deformation at the last step
+        m_F_last; // matrix representing shape deformation at the last step
     std::vector<Eigen::Matrix3d>
-        m_Fbar;      // matrix representing shape deformation at the current step
+        m_F;      // matrix representing shape deformation at the current step
     Scalar m_volume; // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes;       // shape to reference shape move against
