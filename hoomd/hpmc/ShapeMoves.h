@@ -495,11 +495,11 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_mass_props[type_id].updateParam(param, false);
         // update det(I)
         this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
-        #ifdef DEBUG
+#ifdef DEBUG
         detail::MassProperties<Shape> mp(param);
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         assert(fabs(this->m_det_inertia_tensor - mp.getDetInertiaTensor()) < 1e-5);
-        #endif
+#endif
         }
 
     Eigen::Matrix3d getEps(unsigned int type_id)
@@ -509,8 +509,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     Eigen::Matrix3d getEpsLast(unsigned int type_id)
         {
-        return 0.5 * ((m_F_last[type_id].transpose() * m_F_last[type_id])
-                      - Eigen::Matrix3d::Identity());
+        return 0.5
+               * ((m_F_last[type_id].transpose() * m_F_last[type_id])
+                  - Eigen::Matrix3d::Identity());
         }
 
     //! retreat whenever the proposed move is rejected.
@@ -597,11 +598,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     ; // probability of performing a scaling move vs a
       // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
-    std::vector<Eigen::Matrix3d>
-        m_F_last; // matrix representing shape deformation at the last step
-    std::vector<Eigen::Matrix3d>
-        m_F;      // matrix representing shape deformation at the current step
-    Scalar m_volume; // volume of shape
+    std::vector<Eigen::Matrix3d> m_F_last; // matrix representing shape deformation at the last step
+    std::vector<Eigen::Matrix3d> m_F; // matrix representing shape deformation at the current step
+    Scalar m_volume;                  // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes;       // shape to reference shape move against
     std::shared_ptr<Variant> m_k; // shape move stiffness
