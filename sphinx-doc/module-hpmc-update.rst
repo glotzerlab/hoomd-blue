@@ -15,10 +15,11 @@ hoomd.hpmc.update
     Clusters
     MuVT
     QuickCompress
+    Shape
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.update
     :synopsis: HPMC updaters.
-    :members: Alchemy, BoxMC, Clusters, ElasticShape, QuickCompress, ShapeUpdater
+    :members: BoxMC, Clusters, ElasticShape, QuickCompress, Shape
     :show-inheritance:
