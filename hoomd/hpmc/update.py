@@ -683,8 +683,6 @@ class Shape(Updater):
         """float: Total volume occupied by particles.
 
         None when not attached
-
-        TODO - move this to the shape moves classes
         """
         if self._attached:
             return self._cpp_obj.total_particle_volume
@@ -696,8 +694,6 @@ class Shape(Updater):
         """float: Energy penalty due to shape changes
 
         None when not attached
-
-        TODO - move this to the shape moves classes
         """
         if self._attached:
             return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
