@@ -427,11 +427,14 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     {
     public:
     typedef typename Shape::param_type param_type;
+    typedef typename Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> MatrixSD;
+    typedef typename Eigen::Matrix<Scalar, 3, 3> Matrix3S;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                      Scalar shear_scale_ratio,
                      std::shared_ptr<Variant> k)
-        : ShapeMoveBase<Shape>(sysdef), m_k(k)
+        : ShapeMoveBase<Shape>(sysdef), m_mc(mc), m_k(k)
         {
         /* TODO: Since the deformation tensor, F, is no longer stored in the GSD,
                  it has to be computed here. F takes the reference shape and
@@ -440,8 +443,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         */
         m_mass_props.resize(this->m_ntypes);
         m_shear_scale_ratio = fmin(shear_scale_ratio, 1.0);
-        m_F.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
-        m_F_last.resize(this->m_ntypes, Eigen::Matrix3d::Identity());
+        m_F.resize(this->m_ntypes, Matrix3S::Identity());
+        m_F_last.resize(this->m_ntypes, Matrix3S::Identity());
         this->m_det_inertia_tensor = 1.0;
         }
 
@@ -457,10 +460,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                       param_type& param,
                       hoomd::RandomGenerator& rng)
         {
-        using Eigen::Matrix3d;
-        Matrix3d transform;
-        if (hoomd::detail::generate_canonical<double>(rng)
-            < m_shear_scale_ratio) // perform a scaling move
+        Matrix3S transform;
+        // perform a scaling move
+        if (hoomd::detail::generate_canonical<double>(rng) < m_shear_scale_ratio)
             {
             generateExtentional(transform, rng, stepsize + 1.0);
             }
@@ -468,7 +470,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             {
             quat<Scalar> q(1.0, vec3<Scalar>(0.0, 0.0, 0.0));
             move_rotate<3>(q, rng, 0.5);
-            Matrix3d rot, rot_inv, scale;
+            Matrix3S rot, rot_inv, scale;
             Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
             rot = eq.toRotationMatrix();
             rot_inv = rot.transpose();
@@ -481,12 +483,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         for (unsigned int i = 0; i < param.N; i++)
             {
             vec3<OverlapReal> vert(param.x[i], param.y[i], param.z[i]);
-            param.x[i]
-                = transform(0, 0) * vert.x + transform(0, 1) * vert.y + transform(0, 2) * vert.z;
-            param.y[i]
-                = transform(1, 0) * vert.x + transform(1, 1) * vert.y + transform(1, 2) * vert.z;
-            param.z[i]
-                = transform(2, 0) * vert.x + transform(2, 1) * vert.y + transform(2, 2) * vert.z;
+            param.x[i] = transform(0, 0) * vert.x + transform(0, 1) * vert.y + transform(0, 2) * vert.z;
+            param.y[i] = transform(1, 0) * vert.x + transform(1, 1) * vert.y + transform(1, 2) * vert.z;
+            param.z[i] = transform(2, 0) * vert.x + transform(2, 1) * vert.y + transform(2, 2) * vert.z;
             vert = vec3<Scalar>(param.x[i], param.y[i], param.z[i]);
             dsq = fmax(dsq, dot(vert, vert));
             }
@@ -495,23 +494,21 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_mass_props[type_id].updateParam(param, false);
         // update det(I)
         this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
-#ifdef DEBUG
+        #ifdef DEBUG
         detail::MassProperties<Shape> mp(param);
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         assert(fabs(this->m_det_inertia_tensor - mp.getDetInertiaTensor()) < 1e-5);
-#endif
+        #endif
         }
 
-    Eigen::Matrix3d getEps(unsigned int type_id)
+    Matrix3S getEps(unsigned int type_id)
         {
-        return 0.5 * ((m_F[type_id].transpose() * m_F[type_id]) - Eigen::Matrix3d::Identity());
+        return 0.5 * ((m_F[type_id].transpose() * m_F[type_id]) - Matrix3S::Identity());
         }
 
-    Eigen::Matrix3d getEpsLast(unsigned int type_id)
+    Matrix3S getEpsLast(unsigned int type_id)
         {
-        return 0.5
-               * ((m_F_last[type_id].transpose() * m_F_last[type_id])
-                  - Eigen::Matrix3d::Identity());
+        return 0.5 * ((m_F_last[type_id].transpose() * m_F_last[type_id]) - Matrix3S::Identity());
         }
 
     //! retreat whenever the proposed move is rejected.
@@ -543,9 +540,43 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     void setReferenceShape(std::string typ, pybind11::dict v)
         {
-        unsigned int id = this->m_sysdef->getParticleData()->getTypeByName(typ);
+        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
+        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
+            {
+            throw std::runtime_error("Invalid particle type.");
+            }
+
         param_type shape = param_type(v, false);
-        m_reference_shapes[id] = shape;
+        auto current_shape = m_mc->getParams()[typid];
+        if (current_shape.N != shape.N)
+            {
+            throw std::runtime_error("Reference and integrator shapes must have \
+                                      the name number of vertices.");
+            }
+
+        m_reference_shapes[typid] = shape;
+
+        // put vertices into matrix form and leverage Eigein's linear algebra
+        // tools to solve Vprime = F * Vref for F where:
+        //   Vref: vertices of the reference (undeformed) shape (3, N)
+        //   Vprime: vertices of the current (deformed) shape (3, N)
+        //   F: deformation gradient tendor (3,3)
+        // Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Vref(3, shape.N), Vprime(3, shape.N);
+        MatrixSD Vref(3, shape.N), Vprime(3, shape.N);
+        for (unsigned int i = 0; i < shape.N; i++)
+            {
+            Vref(0, i) = m_reference_shapes[typid].x[i];
+            Vref(1, i) = m_reference_shapes[typid].y[i];
+            Vref(2, i) = m_reference_shapes[typid].z[i];
+            Vprime(0, i) = current_shape.x[i];
+            Vprime(1, i) = current_shape.y[i];
+            Vprime(2, i) = current_shape.z[i];
+            }
+
+        // solve system
+        auto ret = Vref.transpose().bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Vprime.transpose());
+        m_F[typid] = ret.transpose();
+
         // TODO: one of the following:
         //       1) warn or error out if volume of provided shape doesnt match That
         //          of the integrator definition
@@ -574,8 +605,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             } // MOI may be negative depending on order of vertices
         Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(newdivold);
         Scalar stiff = this->m_k->operator()(timestep);
-        Eigen::Matrix3d eps = this->getEps(type_id);
-        Eigen::Matrix3d eps_last = this->getEpsLast(type_id);
+        Matrix3S eps = this->getEps(type_id);
+        Matrix3S eps_last = this->getEpsLast(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
         Scalar e_ddot_e_last = (eps_last * eps_last.transpose()).trace();
         return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume + inertia_term;
@@ -588,7 +619,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                          const Scalar& inertia)
         {
         Scalar stiff = this->m_k->operator()(timestep);
-        Eigen::Matrix3d eps = this->getEps(type_id);
+        Matrix3S eps = this->getEps(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
         return N * stiff * e_ddot_e * this->m_volume;
         }
@@ -598,11 +629,12 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     ; // probability of performing a scaling move vs a
       // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
-    std::vector<Eigen::Matrix3d> m_F_last; // matrix representing shape deformation at the last step
-    std::vector<Eigen::Matrix3d> m_F; // matrix representing shape deformation at the current step
+    std::vector<Matrix3S> m_F_last; // matrix representing shape deformation at the last step
+    std::vector<Matrix3S> m_F; // matrix representing shape deformation at the current step
     Scalar m_volume;                  // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes;       // shape to reference shape move against
+    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
     std::shared_ptr<Variant> m_k; // shape move stiffness
 
     private:
@@ -650,7 +682,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     //! Generate an volume conserving extentional deformation matrix
-    inline void generateExtentional(Eigen::Matrix3d& S, hoomd::RandomGenerator& rng, Scalar alpha)
+    inline void generateExtentional(Matrix3S& S, hoomd::RandomGenerator& rng, Scalar alpha)
         {
         Scalar x = 0.0, y = 0.0, z = 0.0;
         sampleOnSurface(x, y, rng, alpha);
@@ -665,9 +697,10 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     typedef typename ShapeEllipsoid::param_type param_type;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> mc,
                      Scalar move_ratio,
                      std::shared_ptr<Variant> k)
-        : ShapeMoveBase<ShapeEllipsoid>(sysdef), m_k(k)
+        : ShapeMoveBase<ShapeEllipsoid>(sysdef), m_mc(mc), m_k(k)
         {
         m_mass_props.resize(this->m_ntypes);
         // // typename ShapeEllipsoid::param_type shape(shape_params);
@@ -769,6 +802,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     Scalar m_volume;  // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes;       // shape to reference shape move against
+    std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> m_mc;
     std::shared_ptr<Variant> m_k; // shape move stiffness
     };
 
@@ -833,7 +867,10 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
     pybind11::class_<ElasticShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
+                            Scalar,
+                            std::shared_ptr<Variant>>())
         .def_property("shear_scale_ratio",
                       &ElasticShapeMove<Shape>::getShearScaleRatio,
                       &ElasticShapeMove<Shape>::setShearScaleRatio)

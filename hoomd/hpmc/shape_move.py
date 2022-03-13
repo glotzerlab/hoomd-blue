@@ -249,7 +249,7 @@ class VertexShapeMove(ShapeMove):
     Note:
         Vertices are rescaled during each shape move to ensure that the shape
         maintains a constant volume. To preserve detail balance, the maximum
-        is rescaled by a volume**(1/3) every time a move is accepted.
+        step size is rescaled by volume**(1/3) every time a move is accepted.
 
     Note:
         The shape definition used corresponds to the convex hull of the

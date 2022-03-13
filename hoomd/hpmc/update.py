@@ -519,11 +519,13 @@ class Shape(Updater):
 
         trigger (Trigger): Call the updater on triggered time steps.
 
-        shape_move (hoomd.hpmc.shape_move): Type of shape move to apply when
-            updating shape definitions.
+        default_step_size (float): Default maximum size of shape trial moves.
+
+        shape_move (hoomd.hpmc.shape_move.ShapeMove): Type of shape move to
+            apply when updating shape definitions.
 
         pretend (bool, optional): When True the updater will not actually update
-            the shape definitions, instead moves will be proposed and the
+            the shape definitions. Instead, moves will be proposed and the
             acceptance statistics will be updated correctly.
 
         nselect (int, optional): Number of types to change every time the
@@ -583,7 +585,7 @@ class Shape(Updater):
     def __init__(self,
                  trigger,
                  shape_move,
-                 step_size,
+                 default_step_size,
                  pretend=False,
                  nselect=1,
                  nsweeps=1,
@@ -603,7 +605,8 @@ class Shape(Updater):
         typeparam_step_size = TypeParameter('step_size',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                                float(step_size), len_keys=1))
+                                                float(default_step_size),
+                                                len_keys=1))
 
         self._extend_typeparam([typeparam_step_size])
 
@@ -671,7 +674,7 @@ class Shape(Updater):
     def shape_moves(self):
         """tuple[int, int]: Count of the accepted and rejected shape moves.
 
-        None when not attached
+        (0, 0) before the first call to `Simulation.run`.
         """
         if self._attached:
             return self._cpp_obj.getShapeMovesCount()
