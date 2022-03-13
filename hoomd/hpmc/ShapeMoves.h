@@ -442,6 +442,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                  of F are sampled in such a way that particle volume is always conserved.
         */
         m_mass_props.resize(this->m_ntypes);
+        m_reference_shapes.resize(this->m_ntypes);
         m_shear_scale_ratio = fmin(shear_scale_ratio, 1.0);
         m_F.resize(this->m_ntypes, Matrix3S::Identity());
         m_F_last.resize(this->m_ntypes, Matrix3S::Identity());
@@ -553,8 +554,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         auto current_shape = m_mc->getParams()[typid];
         if (current_shape.N != shape.N)
             {
-            throw std::runtime_error("Reference and integrator shapes must have \
-                                      the name number of vertices.");
+            throw std::runtime_error("Reference and integrator shapes must have the name number of vertices.");
             }
 
         m_reference_shapes[typid] = shape;
@@ -576,13 +576,11 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             Vprime(1, i) = current_shape.y[i];
             Vprime(2, i) = current_shape.z[i];
             }
-
         // solve system
-        auto ret = Vref.transpose()
+        Matrix3S ret = Vref.transpose()
                        .bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
                        .solve(Vprime.transpose());
         m_F[typid] = ret.transpose();
-
         // TODO: one of the following:
         //       1) warn or error out if volume of provided shape doesnt match That
         //          of the integrator definition
@@ -610,7 +608,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             newdivold = -1.0 * newdivold;
             } // MOI may be negative depending on order of vertices
         Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(newdivold);
-        Scalar stiff = this->m_k->operator()(timestep);
+        Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Matrix3S eps_last = this->getEpsLast(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
@@ -624,7 +622,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                          const param_type& shape,
                          const Scalar& inertia)
         {
-        Scalar stiff = this->m_k->operator()(timestep);
+        Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
         return N * stiff * e_ddot_e * this->m_volume;
@@ -784,7 +782,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
                               const param_type& shape_old,
                               const Scalar& iold)
         {
-        Scalar stiff = this->m_k->operator()(timestep);
+        Scalar stiff = (*m_k)(timestep);
         Scalar x_new = shape_new.x / shape_new.y;
         Scalar x_old = shape_old.x / shape_old.y;
         return stiff * (log(x_old) * log(x_old) - log(x_new) * log(x_new));
@@ -883,9 +881,9 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
         .def_property("stiffness",
                       &ElasticShapeMove<Shape>::getStiffness,
                       &ElasticShapeMove<Shape>::setStiffness)
-        .def_property("reference",
-                      &ElasticShapeMove<Shape>::getReferenceShape,
-                      &ElasticShapeMove<Shape>::setReferenceShape);
+        .def("setReferenceShape", &ElasticShapeMove<Shape>::setReferenceShape)
+        .def("getReferenceShape", &ElasticShapeMove<Shape>::getReferenceShape)
+        ;
     }
 
     } // namespace detail

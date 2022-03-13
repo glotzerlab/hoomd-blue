@@ -5,7 +5,8 @@ import hoomd
 from hoomd.operation import _HOOMDBaseObject
 from . import _hpmc
 from hoomd.hpmc import integrate
-from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
 import numpy
 
@@ -99,7 +100,7 @@ class Constant(ShapeMove):
         super()._attach()
 
 
-class Elastic(ShapeMove):
+class ElasticShapeMove(ShapeMove):
     """Apply scale and shear shape moves to particles with an energy penalty.
 
     Args:
@@ -134,18 +135,18 @@ class Elastic(ShapeMove):
     def __init__(self, stiffness, reference, shear_scale_ratio):
         # TODO: reference should be implemented as TypeParameter
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
-                                   reference=reference,
+                                   reference_shape=reference,
                                    shear_scale_ratio=float(shear_scale_ratio))
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
 
-        # # Set standard typeparameters for hpmc integrators
-        # typeparam_ref_shape = TypeParameter('reference_shape',
-        #                                     type_kind='particle_types',
-        #                                     param_dict=TypeParameterDict(
-        #                                         {}, len_keys=1))
-        #
-        # self._extend_typeparam([typeparam_ref_shape])
+        # Set standard typeparameters for hpmc integrators
+        typeparam_ref_shape = TypeParameter('reference_shape',
+                                            type_kind='particle_types',
+                                            param_dict=TypeParameterDict(
+                                            reference, len_keys=1))
+
+        self._add_typeparam(typeparam_ref_shape)
 
     def _attach(self):
         self._set_move_class()
@@ -156,9 +157,10 @@ class Elastic(ShapeMove):
                    not numpy.isclose(shape["a"], shape["c"]) or \
                    not numpy.isclose(shape["b"], shape["c"]):
                     raise ValueError("This updater only works when a=b=c.")
-        self._cpp_obj = self.move_cls(self._simulation.state._cpp_sys_def,
-                                      self.shear_scale_ratio, self.stiffness,
-                                      self.reference)
+        self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
+                                       integrator._cpp_obj,
+                                       self.shear_scale_ratio,
+                                       self.stiffness)
         super()._attach()
 
 
