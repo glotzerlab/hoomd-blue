@@ -483,9 +483,12 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         for (unsigned int i = 0; i < param.N; i++)
             {
             vec3<OverlapReal> vert(param.x[i], param.y[i], param.z[i]);
-            param.x[i] = transform(0, 0) * vert.x + transform(0, 1) * vert.y + transform(0, 2) * vert.z;
-            param.y[i] = transform(1, 0) * vert.x + transform(1, 1) * vert.y + transform(1, 2) * vert.z;
-            param.z[i] = transform(2, 0) * vert.x + transform(2, 1) * vert.y + transform(2, 2) * vert.z;
+            param.x[i]
+                = transform(0, 0) * vert.x + transform(0, 1) * vert.y + transform(0, 2) * vert.z;
+            param.y[i]
+                = transform(1, 0) * vert.x + transform(1, 1) * vert.y + transform(1, 2) * vert.z;
+            param.z[i]
+                = transform(2, 0) * vert.x + transform(2, 1) * vert.y + transform(2, 2) * vert.z;
             vert = vec3<Scalar>(param.x[i], param.y[i], param.z[i]);
             dsq = fmax(dsq, dot(vert, vert));
             }
@@ -494,11 +497,11 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_mass_props[type_id].updateParam(param, false);
         // update det(I)
         this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
-        #ifdef DEBUG
+#ifdef DEBUG
         detail::MassProperties<Shape> mp(param);
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         assert(fabs(this->m_det_inertia_tensor - mp.getDetInertiaTensor()) < 1e-5);
-        #endif
+#endif
         }
 
     Matrix3S getEps(unsigned int type_id)
@@ -561,7 +564,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         //   Vref: vertices of the reference (undeformed) shape (3, N)
         //   Vprime: vertices of the current (deformed) shape (3, N)
         //   F: deformation gradient tendor (3,3)
-        // Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Vref(3, shape.N), Vprime(3, shape.N);
+        // Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Vref(3, shape.N), Vprime(3,
+        // shape.N);
         MatrixSD Vref(3, shape.N), Vprime(3, shape.N);
         for (unsigned int i = 0; i < shape.N; i++)
             {
@@ -574,7 +578,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             }
 
         // solve system
-        auto ret = Vref.transpose().bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Vprime.transpose());
+        auto ret = Vref.transpose()
+                       .bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
+                       .solve(Vprime.transpose());
         m_F[typid] = ret.transpose();
 
         // TODO: one of the following:
@@ -630,10 +636,10 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
       // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
     std::vector<Matrix3S> m_F_last; // matrix representing shape deformation at the last step
-    std::vector<Matrix3S> m_F; // matrix representing shape deformation at the current step
-    Scalar m_volume;                  // volume of shape
+    std::vector<Matrix3S> m_F;      // matrix representing shape deformation at the current step
+    Scalar m_volume;                // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_reference_shapes;       // shape to reference shape move against
+        m_reference_shapes; // shape to reference shape move against
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
     std::shared_ptr<Variant> m_k; // shape move stiffness
 
@@ -801,7 +807,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         m_mass_props; // mass properties of the shape
     Scalar m_volume;  // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_reference_shapes;       // shape to reference shape move against
+        m_reference_shapes; // shape to reference shape move against
     std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> m_mc;
     std::shared_ptr<Variant> m_k; // shape move stiffness
     };
