@@ -144,7 +144,7 @@ class ElasticShapeMove(ShapeMove):
         typeparam_ref_shape = TypeParameter('reference_shape',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                            reference, len_keys=1))
+                                                reference, len_keys=1))
 
         self._add_typeparam(typeparam_ref_shape)
 
@@ -159,8 +159,7 @@ class ElasticShapeMove(ShapeMove):
                     raise ValueError("This updater only works when a=b=c.")
         self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
                                        integrator._cpp_obj,
-                                       self.shear_scale_ratio,
-                                       self.stiffness)
+                                       self.shear_scale_ratio, self.stiffness)
         super()._attach()
 
 

@@ -554,7 +554,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         auto current_shape = m_mc->getParams()[typid];
         if (current_shape.N != shape.N)
             {
-            throw std::runtime_error("Reference and integrator shapes must have the name number of vertices.");
+            throw std::runtime_error(
+                "Reference and integrator shapes must have the name number of vertices.");
             }
 
         m_reference_shapes[typid] = shape;
@@ -578,8 +579,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             }
         // solve system
         Matrix3S ret = Vref.transpose()
-                       .bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
-                       .solve(Vprime.transpose());
+                           .bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
+                           .solve(Vprime.transpose());
         m_F[typid] = ret.transpose();
         // TODO: one of the following:
         //       1) warn or error out if volume of provided shape doesnt match That
@@ -882,8 +883,7 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                       &ElasticShapeMove<Shape>::getStiffness,
                       &ElasticShapeMove<Shape>::setStiffness)
         .def("setReferenceShape", &ElasticShapeMove<Shape>::setReferenceShape)
-        .def("getReferenceShape", &ElasticShapeMove<Shape>::getReferenceShape)
-        ;
+        .def("getReferenceShape", &ElasticShapeMove<Shape>::getReferenceShape);
     }
 
     } // namespace detail
