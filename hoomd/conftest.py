@@ -33,7 +33,6 @@ if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
 
     devices.append(hoomd.device.GPU)
 
-print(devices)
 
 @pytest.fixture(scope='session', params=devices)
 def device(request):
