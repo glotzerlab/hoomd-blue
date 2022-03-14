@@ -74,7 +74,7 @@ bond_test_parameters = [
     (
         hoomd.md.bond.Table,
         dict(width=2),
-        dict(r_min=0, r_max=1.0, V=[0, 10], F=[0, -20]),
+        dict(r_min=0, r_max=1.0, U=[0, 10], F=[0, -20]),
         19.38,
         9.69,
     ),
