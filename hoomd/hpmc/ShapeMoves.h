@@ -25,12 +25,8 @@ template<typename Shape> class ShapeMoveBase
     ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef)
         : m_det_inertia_tensor(0), m_sysdef(sysdef)
         {
-        this->m_ntypes = this->m_sysdef->getParticleData()->getNTypes();
-        }
-
-    ShapeMoveBase(const ShapeMoveBase& src)
-        : m_det_inertia_tensor(src.getDeterminantInertiaTensor())
-        {
+        m_ntypes = this->m_sysdef->getParticleData()->getNTypes();
+        m_volume.resize(m_ntypes, 0);
         }
 
     virtual ~ShapeMoveBase() {};
@@ -60,6 +56,26 @@ template<typename Shape> class ShapeMoveBase
     Scalar getDetInertiaTensor() const
         {
         return m_det_inertia_tensor;
+        }
+
+    Scalar getVolume(std::string typ)
+        {
+        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
+        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
+            {
+            throw std::runtime_error("Invalid particle type.");
+            }
+        return m_volume[typid];
+        }
+
+    void setVolume(std::string typ, Scalar volume)
+        {
+        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
+        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
+            {
+            throw std::runtime_error("Invalid particle type.");
+            }
+        m_volume[typid] = volume;
         }
 
     // Get the isoperimetric quotient of the shape
@@ -98,6 +114,7 @@ template<typename Shape> class ShapeMoveBase
     Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
     std::shared_ptr<SystemDefinition> m_sysdef;
     unsigned m_ntypes;
+    std::vector<Scalar> m_volume;
     }; // end class ShapeMoveBase
 
 template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
@@ -237,7 +254,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     private:
     Scalar m_param_move_probability;
     unsigned int m_num_params; // cache the number of parameters.
-    Scalar m_scale; // the scale needed to keep the particle at constant volume. internal use
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
     std::vector<std::vector<Scalar>> m_params;        // all params are from 0,1
     pybind11::object m_python_callback; // callback that takes m_params as an argiment and returns
@@ -328,12 +344,10 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     typedef typename ShapeConvexPolyhedron::param_type param_type;
 
     ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                                    Scalar vertex_move_prob,
-                                    Scalar volume)
-        : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef), m_volume(volume)
+                                    Scalar vertex_move_prob)
+        : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef)
         {
         this->m_det_inertia_tensor = 1.0;
-        m_scale = 1.0;
         m_calculated.resize(this->m_ntypes, false);
         m_centroids.resize(this->m_ntypes, vec3<Scalar>(0, 0, 0));
         m_vertex_move_probability = fmin(vertex_move_prob, 1.0);
@@ -347,16 +361,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     void setVertexMoveProbability(Scalar vertex_move_prob)
         {
         m_vertex_move_probability = fmin(vertex_move_prob, 1.0);
-        }
-
-    Scalar getVolume()
-        {
-        return m_volume;
-        }
-
-    void setVolume(Scalar volume)
-        {
-        m_volume = volume;
         }
 
     void prepare(uint64_t timestep) { }
@@ -388,17 +392,17 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
-        m_scale = (OverlapReal)fast::pow(m_volume / volume, 1.0 / 3.0);
+        OverlapReal scale = (OverlapReal)fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0);
         Scalar rsq = 0.0;
         std::vector<vec3<Scalar>> points(shape.N);
         for (unsigned int i = 0; i < shape.N; i++)
             {
             shape.x[i] += (OverlapReal)dr.x;
-            shape.x[i] *= m_scale;
+            shape.x[i] *= scale;
             shape.y[i] += (OverlapReal)dr.y;
-            shape.y[i] *= m_scale;
+            shape.y[i] *= scale;
             shape.z[i] += (OverlapReal)dr.z;
-            shape.z[i] *= m_scale;
+            shape.z[i] *= scale;
             vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
             rsq = fmax(rsq, dot(vert, vert));
             points[i] = vert;
@@ -407,7 +411,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         m_isoperimetric_quotient = mp.getIsoperimetricQuotient();
         shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
-        stepsize *= m_scale; // only need to scale if the parameters are not normalized
+        stepsize *= scale;
         }
 
     void retreat(uint64_t timestep)
@@ -417,8 +421,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
 
     private:
     Scalar m_vertex_move_probability; // probability of a vertex being selected for a move
-    OverlapReal m_scale; // factor to scale the shape by to achieve desired constant volume
-    Scalar m_volume;     // desired constant volume of each shape
     std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
     std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
     };                                     // end class ConvexPolyhedronVertexShapeMove
@@ -432,15 +434,9 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                     Scalar shear_scale_ratio,
-                     std::shared_ptr<Variant> k)
-        : ShapeMoveBase<Shape>(sysdef), m_mc(mc), m_k(k)
+                     Scalar shear_scale_ratio)
+        : ShapeMoveBase<Shape>(sysdef), m_mc(mc)
         {
-        /* TODO: Since the deformation tensor, F, is no longer stored in the GSD,
-                 it has to be computed here. F takes the reference shape and
-                 transforms it into a deformed shape by V' = F * Vref. The conponents
-                 of F are sampled in such a way that particle volume is always conserved.
-        */
         m_mass_props.resize(this->m_ntypes);
         m_reference_shapes.resize(this->m_ntypes);
         m_shear_scale_ratio = fmin(shear_scale_ratio, 1.0);
@@ -565,8 +561,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         //   Vref: vertices of the reference (undeformed) shape (3, N)
         //   Vprime: vertices of the current (deformed) shape (3, N)
         //   F: deformation gradient tendor (3,3)
-        // Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Vref(3, shape.N), Vprime(3,
-        // shape.N);
         MatrixSD Vref(3, shape.N), Vprime(3, shape.N);
         for (unsigned int i = 0; i < shape.N; i++)
             {
@@ -577,16 +571,16 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             Vprime(1, i) = current_shape.y[i];
             Vprime(2, i) = current_shape.z[i];
             }
+
         // solve system
         Matrix3S ret = Vref.transpose()
                            .bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
                            .solve(Vprime.transpose());
         m_F[typid] = ret.transpose();
-        // TODO: one of the following:
-        //       1) warn or error out if volume of provided shape doesnt match That
-        //          of the integrator definition
-        //       2) update m_volume
-        //       3) rescale the provided shape with m_volume
+
+        // compute and store volume of reference shape
+        detail::MassProperties<Shape> mp(m_reference_shapes[typid]);
+        this->m_volume[typid] = mp.getVolume();
         }
 
     pybind11::dict getReferenceShape(std::string typ)
@@ -614,7 +608,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         Matrix3S eps_last = this->getEpsLast(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
         Scalar e_ddot_e_last = (eps_last * eps_last.transpose()).trace();
-        return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume + inertia_term;
+        return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume[type_id] + inertia_term;
         }
 
     Scalar computeEnergy(uint64_t timestep,
@@ -626,7 +620,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
-        return N * stiff * e_ddot_e * this->m_volume;
+        return N * stiff * e_ddot_e * this->m_volume[type_id];
         }
 
     protected:
@@ -636,7 +630,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
     std::vector<Matrix3S> m_F_last; // matrix representing shape deformation at the last step
     std::vector<Matrix3S> m_F;      // matrix representing shape deformation at the current step
-    Scalar m_volume;                // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes; // shape to reference shape move against
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
@@ -703,9 +696,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> mc,
-                     Scalar move_ratio,
-                     std::shared_ptr<Variant> k)
-        : ShapeMoveBase<ShapeEllipsoid>(sysdef), m_mc(mc), m_k(k)
+                     Scalar move_ratio)
+        : ShapeMoveBase<ShapeEllipsoid>(sysdef), m_mc(mc)
         {
         m_mass_props.resize(this->m_ntypes);
         // // typename ShapeEllipsoid::param_type shape(shape_params);
@@ -845,10 +837,9 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
     pybind11::class_<ConvexPolyhedronVertexShapeMove,
                      ShapeMoveBase<ShapeConvexPolyhedron>,
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, Scalar>())
-        .def_property("volume",
-                      &ConvexPolyhedronVertexShapeMove::getVolume,
-                      &ConvexPolyhedronVertexShapeMove::setVolume)
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def("getVolume", &ConvexPolyhedronVertexShapeMove::getVolume)
+        .def("setVolume", &ConvexPolyhedronVertexShapeMove::setVolume)
         .def_property("vertex_move_probability",
                       &ConvexPolyhedronVertexShapeMove::getVertexMoveProbability,
                       &ConvexPolyhedronVertexShapeMove::setVertexMoveProbability);
@@ -874,8 +865,7 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
-                            Scalar,
-                            std::shared_ptr<Variant>>())
+                            Scalar>())
         .def_property("shear_scale_ratio",
                       &ElasticShapeMove<Shape>::getShearScaleRatio,
                       &ElasticShapeMove<Shape>::setShearScaleRatio)

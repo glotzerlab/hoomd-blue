@@ -104,12 +104,13 @@ class ElasticShapeMove(ShapeMove):
     """Apply scale and shear shape moves to particles with an energy penalty.
 
     Args:
-        stiffness (Variant): Spring stiffness when shearing particles.
+        stiffness (`float` or :py:mod:`hoomd.variant.Variant`): Shape stiffness
+            against deformations.
 
-        reference (dict): Arguments defining the shape to reference
-            the spring to.
+        reference ((`TypeParameter` [``particle type``, `dict`]):): Reference
+            shape against to which compute the deformation energy.
 
-        shear_scale_ratio (float): Fraction of scale to shear moves.
+        shear_scale_ratio (`float`): Fraction of scale to shear moves.
 
     Example::
 
@@ -122,29 +123,28 @@ class ElasticShapeMove(ShapeMove):
 
     Attributes:
 
-        stiffness (Variant): Spring stiffness when shearing particles.
+        stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
+            deformations.
 
-        reference (dict): Arguments defining the shape to reference
-            the spring to.
+        reference ((`TypeParameter` [``particle type``, `dict`]):): Reference
+            shape against to which compute the deformation energy.
 
-        shear_scale_ratio (float): Fraction of scale to shear moves.
+        shear_scale_ratio (`float`): Fraction of scale to shear moves.
     """
 
     _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
 
-    def __init__(self, stiffness, reference, shear_scale_ratio):
-        # TODO: reference should be implemented as TypeParameter
+    def __init__(self, stiffness, shear_scale_ratio):
+
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
-                                   reference_shape=reference,
                                    shear_scale_ratio=float(shear_scale_ratio))
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
 
-        # Set standard typeparameters for hpmc integrators
         typeparam_ref_shape = TypeParameter('reference_shape',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                                reference, len_keys=1))
+                                                {}, len_keys=1))
 
         self._add_typeparam(typeparam_ref_shape)
 
@@ -159,7 +159,7 @@ class ElasticShapeMove(ShapeMove):
                     raise ValueError("This updater only works when a=b=c.")
         self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
                                        integrator._cpp_obj,
-                                       self.shear_scale_ratio, self.stiffness)
+                                       self.shear_scale_ratio)
         super()._attach()
 
 
@@ -275,15 +275,20 @@ class VertexShapeMove(ShapeMove):
 
     _suported_shapes = {'ConvexPolyhedron', 'ConvexSpheropolyhedron'}
 
-    def __init__(self, vertex_move_probability, volume):
+    def __init__(self, vertex_move_probability, volume=1):
         param_dict = ParameterDict(
-            vertex_move_probability=float(vertex_move_probability),
-            volume=float(volume))
+            vertex_move_probability=float(vertex_move_probability))
         self._param_dict.update(param_dict)
+
+        typeparam_volume = TypeParameter('volume',
+                                         type_kind='particle_types',
+                                         param_dict=TypeParameterDict(
+                                                float(volume), len_keys=1))
+
+        self._add_typeparam(typeparam_volume)
 
     def _attach(self):
         self._set_move_class()
         self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
-                                       self.vertex_move_probability,
-                                       self.volume)
+                                       self.vertex_move_probability)
         super()._attach()
