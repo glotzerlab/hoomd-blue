@@ -726,16 +726,20 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return m_k;
         }
 
+
     void setReferenceShape(std::string typ, pybind11::dict v)
         {
-        unsigned int id = this->m_sysdef->getParticleData()->getTypeByName(typ);
-        param_type shape = param_type(v, false);
-        m_reference_shapes[id] = shape;
-        // TODO: one of the following:
-        //       1) warn or error out if volume of provided shape doesnt match That
-        //          of the integrator definition
-        //       2) update m_volume
-        //       3) rescale the provided shape with m_volume
+        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
+        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
+            {
+            throw std::runtime_error("Invalid particle type.");
+            }
+
+        m_reference_shapes[typid] = param_type(v, false);;
+
+        // compute and store volume of reference shape
+        detail::MassProperties<ShapeEllipsoid> mp(m_reference_shapes[typid]);
+        this->m_volume[typid] = mp.getVolume();
         }
 
     pybind11::dict getReferenceShape(std::string typ)
@@ -753,10 +757,12 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         Scalar lnx = log(param.x / param.y);
         Scalar dlnx = hoomd::UniformDistribution<Scalar>(-stepsize, stepsize)(rng);
         Scalar x = fast::exp(lnx + dlnx);
-        m_mass_props[type_id].updateParam(param);
-        Scalar volume = m_mass_props[type_id].getVolume();
-        Scalar vol_factor = detail::MassProperties<ShapeEllipsoid>::m_vol_factor;
-        Scalar b = fast::pow(volume / vol_factor / x, 1.0 / 3.0);
+        // m_mass_props[type_id].updateParam(param);
+        // Scalar volume = m_mass_props[type_id].getVolume();
+        detail::MassProperties<ShapeEllipsoid> mp(param);
+        Scalar volume = mp.getVolume();
+        // Scalar b = fast::pow(this->m_volume[type_id] / vol_factor / x, 1.0 / 3.0);
+        Scalar b = fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0);
         x *= b;
         param.x = (OverlapReal)x;
         param.y = (OverlapReal)b;
@@ -796,7 +802,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     Scalar m_shear_scale_ratio;
     std::vector<detail::MassProperties<ShapeEllipsoid>>
         m_mass_props; // mass properties of the shape
-    Scalar m_volume;  // volume of shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes; // shape to reference shape move against
     std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> m_mc;
