@@ -23,3 +23,4 @@ md.update
     :members: ActiveRotationalDiffusion,
               ReversePerturbationFlow,
               ZeroMomentum
+    :show-inheritance:

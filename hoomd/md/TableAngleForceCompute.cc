@@ -95,7 +95,7 @@ void TableAngleForceCompute::setParamsPython(std::string type, pybind11::dict pa
     {
     auto type_id = m_angle_data->getTypeByName(type);
 
-    const auto V_py = params["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+    const auto V_py = params["U"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
     const auto T_py = params["tau"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
 
     std::vector<Scalar> V(V_py.size());
@@ -126,7 +126,7 @@ pybind11::dict TableAngleForceCompute::getParams(std::string type)
         T_unchecked(i) = h_tables.data[m_table_value(i, type_id)].y;
         }
 
-    params["V"] = V;
+    params["U"] = V;
     params["tau"] = T;
 
     return params;

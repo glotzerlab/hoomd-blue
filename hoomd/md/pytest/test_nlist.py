@@ -45,9 +45,7 @@ def test_common_params(nlist_params):
         "buffer": 0.4,
         "exclusions": ('bond',),
         "rebuild_check_delay": 1,
-        "diameter_shift": False,
         "check_dist": True,
-        "max_diameter": 1.0
     }
     _assert_nlist_params(nlist, default_params_dict)
     new_params_dict = {
@@ -60,12 +58,8 @@ def test_common_params(nlist_params):
             ], np.random.randint(9)),
         "rebuild_check_delay":
             np.random.randint(8),
-        "diameter_shift":
-            True,
         "check_dist":
             False,
-        "max_diameter":
-            np.random.uniform(10.3)
     }
     for param in new_params_dict.keys():
         setattr(nlist, param, new_params_dict[param])
@@ -152,7 +146,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
 
 
 def test_logging():
-    logging_check(hoomd.md.nlist.NList, ('md', 'nlist'), {
+    logging_check(hoomd.md.nlist.NeighborList, ('md', 'nlist'), {
         'shortest_rebuild': {
             'category': LoggerCategories.scalar,
             'default': True
