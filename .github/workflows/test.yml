@@ -80,7 +80,7 @@ jobs:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
-                      -DCUDA_ARCH_LIST=60;70 \
+                      -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
@@ -274,7 +274,7 @@ jobs:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
-                      -DCUDA_ARCH_LIST=60;70 \
+                      -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
