@@ -56,6 +56,9 @@ jobs:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [cuda115_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda115_gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -80,6 +83,8 @@ jobs:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
+                      -DBUILD_MD=${BUILD_MD:-"ON"} \
+                      -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
@@ -87,6 +92,8 @@ jobs:
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
         ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
+        BUILD_MD: ${{ !contains(matrix.config, 'nomd') }}
+        BUILD_HPMC: ${{ !contains(matrix.config, 'nohpmc') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
@@ -126,6 +133,9 @@ jobs:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [cuda115_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda115_gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -169,6 +179,9 @@ jobs:
         include:
         - {config: [clang12_py310, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [cuda115_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [cuda115_gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
@@ -274,6 +287,8 @@ jobs:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
+                      -DBUILD_MD=${BUILD_MD:-"ON"} \
+                      -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
@@ -281,6 +296,8 @@ jobs:
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
         ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
+        BUILD_MD: ${{ !contains(matrix.config, 'nomd') }}
+        BUILD_HPMC: ${{ !contains(matrix.config, 'nohpmc') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
