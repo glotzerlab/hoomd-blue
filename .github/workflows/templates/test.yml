@@ -64,6 +64,8 @@ env:
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
                       -DBUILD_MD=${BUILD_MD:-"ON"} \
+                      -DBUILD_MPCD=${BUILD_MD:-"ON"} \
+                      -DBUILD_METAL=${BUILD_MD:-"ON"} \
                       -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
