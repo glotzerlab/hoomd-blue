@@ -45,7 +45,7 @@ if __name__ == '__main__':
                     "--device /dev/nvidiactl"
             else:
                 entry['test_runner'] = "ubuntu-latest"
-                entry['build_runner'] = "ubuntu-latest"
+                entry['build_runner'] = "[self-hosted,jetstream2,CPU]"
                 entry['test_docker_options'] = ""
 
     with open('test.yml', 'w') as f:
