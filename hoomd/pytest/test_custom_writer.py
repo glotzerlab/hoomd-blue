@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+import pytest
 from hoomd import conftest
 
 
@@ -42,6 +43,9 @@ class TestCustomWriter:
         assert not writer._attached
 
     def test_flags(self, simulation_factory, two_particle_snapshot_factory):
+        # md is needed for this test
+        pytest.skipif(not hoomd.version.md_built, "BUILD_MD=on required")
+
         sim = simulation_factory(two_particle_snapshot_factory())
         action = WriteTimestep()
         action.flags = [hoomd.custom.Action.Flags.PRESSURE_TENSOR]
