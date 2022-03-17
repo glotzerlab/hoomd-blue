@@ -100,7 +100,7 @@ template<typename Shape> class UpdaterShape : public Updater
         return m_box_total[ndx];
         }
 
-    void resetStatistics()
+    void resetStats()
         {
         std::fill(m_count_accepted.begin(), m_count_accepted.end(), 0);
         std::fill(m_count_total.begin(), m_count_total.end(), 0);
