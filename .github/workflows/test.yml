@@ -460,7 +460,7 @@ jobs:
         run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
 
-  start_actions_runners:
+  start_action_runners:
     name: Start action runners
     runs-on: ubuntu-latest
 

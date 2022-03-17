@@ -12,7 +12,7 @@ TIME_BETWEEN_ATTEMPTS = 20
 
 
 def bring_runners_online(connection):
-    """Bring all actions-runner servers oneline.
+    """Bring all actions-runner servers online.
 
     Returns:
         True when all actions-runner servers are online, False otherwise.
