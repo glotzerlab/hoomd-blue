@@ -244,4 +244,23 @@ jobs:
         if: needs.validate.result != 'success'
         run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
+
+  start_actions_runners:
+    name: Start actions runners
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2.4.0
+        with:
+          path: code
+      - uses: syphar/restore-pip-download-cache@v1
+        with:
+          custom_cache_key_element: "openstacksdk-0.61.0"
+      - name: Install openstack
+        run: python3 -m pip install openstacksdk==0.61.0
+      - name: Start actions runners
+        run: python3 code/.github/workflows/start-action-runners.py
+        env:
+          OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+          OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
 <% endblock %>
