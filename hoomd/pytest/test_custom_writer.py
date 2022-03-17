@@ -42,10 +42,9 @@ class TestCustomWriter:
         assert not writer.action._attached
         assert not writer._attached
 
+    @pytest.mark.skipif(not hoomd.version.md_built,
+                        reason="BUILD_MD=on required")
     def test_flags(self, simulation_factory, two_particle_snapshot_factory):
-        # md is needed for this test
-        pytest.skipif(not hoomd.version.md_built, "BUILD_MD=on required")
-
         sim = simulation_factory(two_particle_snapshot_factory())
         action = WriteTimestep()
         action.flags = [hoomd.custom.Action.Flags.PRESSURE_TENSOR]
