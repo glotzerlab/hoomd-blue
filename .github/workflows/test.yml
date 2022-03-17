@@ -461,7 +461,7 @@ jobs:
       - run: echo "Done!"
 
   start_actions_runners:
-    name: Start actions runners
+    name: Start action runners
     runs-on: ubuntu-latest
 
     steps:
@@ -476,12 +476,13 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install openstack
         run: python3 -m pip install openstacksdk==0.61.0
-      - name: Start actions runners
+      - name: Start action runners
         run: python3 code/.github/workflows/start-action-runners.py
         env:
           OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
           OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
           OS_AUTH_TYPE: v3applicationcredential
+          OS_AUTH_URL: https://js2.jetstream-cloud.org:5000/v3/
           OS_IDENTITY_API_VERSION: 3
           OS_REGION_NAME: "IU"
           OS_INTERFACE: public
