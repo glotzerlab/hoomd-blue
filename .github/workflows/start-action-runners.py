@@ -20,7 +20,7 @@ def bring_runners_online(connection):
     try:
         servers = list(connection.compute.servers())
     except Exception as e:
-        print('Warning: Failed to enumerate servers:', str(e))
+        print('::warning:: Failed to enumerate servers:', str(e))
         return False
 
     total_runners = 0
@@ -40,7 +40,8 @@ def bring_runners_online(connection):
                 try:
                     connection.compute.unshelve_server(server)
                 except Exception as e:
-                    print('... warning: failed to unshelve server:', str(e))
+                    print(f'::warning:: Failed to unshelve {server.name}:',
+                          str(e))
 
             elif server.status == 'SHUTOFF' and server.task_state is None:
                 print(f'... starting {server.name}.')
@@ -48,7 +49,8 @@ def bring_runners_online(connection):
                 try:
                     connection.compute.start_server(server)
                 except Exception as e:
-                    print('... warning: failed to start server:', str(e))
+                    print(f'::warning:: Failed to start server {server.name}:',
+                          str(e))
 
             elif server.status == 'ACTIVE':
                 active_runners += 1
@@ -67,7 +69,7 @@ if __name__ == '__main__':
     try:
         connection = openstack.connect()
     except Exception as e:
-        print('Warning: Failed to connect to cloud:', str(e))
+        print('::warning:: Failed to connect to cloud:', str(e))
         sys.exit(0)
 
     # attempt to bring the servers online several times before returning
