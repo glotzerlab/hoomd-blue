@@ -56,6 +56,8 @@ def bring_runners_online(connection):
     if total_runners == active_runners:
         print("Success: All actions-runner servers are active.")
 
+    sys.stdout.flush()
+
     return total_runners == active_runners
 
 
