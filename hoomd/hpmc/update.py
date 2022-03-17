@@ -516,7 +516,6 @@ class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
 
     Args:
-
         trigger (Trigger): Call the updater on triggered time steps.
 
         default_step_size (float): Default maximum size of shape trial moves.
@@ -556,7 +555,6 @@ class Shape(Updater):
                                           num_phase=1)
 
     Attributes:
-
         trigger (Trigger): Call the updater on triggered time steps.
 
         shape_move (ShapeMove): Type of shape move to apply when updating shape
