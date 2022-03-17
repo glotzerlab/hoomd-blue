@@ -74,6 +74,6 @@ if __name__ == '__main__':
     attempts = 0
     while (not bring_runners_online(connection) and attempts < NUM_ATTEMPTS):
         attempts += 1
-        print(f'Waiting {TIME_BETWEEN_ATTEMPTS} seconds...')
+        print(f'Waiting {TIME_BETWEEN_ATTEMPTS} seconds...', flush=True)
         time.sleep(TIME_BETWEEN_ATTEMPTS)
-        print('')
+        print('', flush=True)
