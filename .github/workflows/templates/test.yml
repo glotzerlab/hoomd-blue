@@ -250,10 +250,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.1.7
+      - uses: actions/checkout@v2.4.0
         with:
           path: code
-      - uses: actions/cache@v2
+      - uses: actions/cache@v2.1.7
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-openstacksdk==0.61.0
