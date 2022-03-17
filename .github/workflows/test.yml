@@ -465,12 +465,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.4.0
+      - uses: actions/checkout@v2.1.7
         with:
           path: code
-      - uses: syphar/restore-pip-download-cache@v1
+      - uses: actions/cache@v2
         with:
-          custom_cache_key_element: "openstacksdk-0.61.0"
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-openstacksdk==0.61.0
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install openstack
         run: python3 -m pip install openstacksdk==0.61.0
       - name: Start actions runners
