@@ -273,7 +273,7 @@ class VertexShapeMove(ShapeMove):
         typeparam_volume = TypeParameter('volume',
                                          type_kind='particle_types',
                                          param_dict=TypeParameterDict(
-                                                float(volume), len_keys=1))
+                                             float(volume), len_keys=1))
 
         self._add_typeparam(typeparam_volume)
 
