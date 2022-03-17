@@ -25,12 +25,7 @@ template<typename Shape> class UpdaterShape : public Updater
     public:
     UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                  std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                 std::shared_ptr<ShapeMoveBase<Shape>> move,
-                 unsigned int tselect,
-                 unsigned int nsweeps,
-                 bool pretend,
-                 bool multiphase,
-                 unsigned int numphase);
+                 std::shared_ptr<ShapeMoveBase<Shape>> move);
 
     ~UpdaterShape();
 
@@ -134,6 +129,10 @@ template<typename Shape> class UpdaterShape : public Updater
 
     void setNselect(unsigned int nselect)
         {
+        if (nselect > m_pdata->getNTypes())
+            {
+            throw std::runtime_error("nselect must be less than or equal to the number of types");
+            }
         m_type_select = nselect;
         }
 
@@ -207,7 +206,6 @@ template<typename Shape> class UpdaterShape : public Updater
     GPUArray<Scalar>
         m_determinant_inertia_tensor; // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes;  // number of particle types in the simulation
-    unsigned int m_num_params;        // number of shape parameters to calculate
     bool m_initialized;               // whether or not the updater has been initialized
     std::vector<Scalar> m_step_size;  // shape move stepsize
     std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
@@ -224,24 +222,16 @@ template<typename Shape> class UpdaterShape : public Updater
 template<class Shape>
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                                  std::shared_ptr<ShapeMoveBase<Shape>> move,
-                                  unsigned int tselect,
-                                  unsigned int nsweeps,
-                                  bool pretend,
-                                  bool multiphase,
-                                  unsigned int numphase)
-    : Updater(sysdef), m_mc(mc), m_move_function(move), m_type_select(tselect), m_nsweeps(nsweeps),
-      m_pretend(pretend), m_multi_phase(multiphase), m_num_phase(numphase), m_global_partition(0),
+                                  std::shared_ptr<ShapeMoveBase<Shape>> move)
+    : Updater(sysdef), m_mc(mc), m_move_function(move), m_global_partition(0),
       m_determinant_inertia_tensor(m_pdata->getNTypes(), m_exec_conf),
-      m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0), m_initialized(false)
+      m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_initialized(false)
     {
     m_step_size.resize(m_pdata->getNTypes(), 0);
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
     m_box_total.resize(m_pdata->getNTypes(), 0);
-    m_type_select = (m_pdata->getNTypes() < m_type_select) ? m_pdata->getNTypes() : m_type_select;
-
     initializeDeterminatsInertiaTensor();
 
     countParticlesPerType();
@@ -269,22 +259,18 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
     m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep
                                 << ", initialized: " << std::boolalpha << m_initialized << " @ "
                                 << std::hex << this << std::dec << std::endl;
-
     if (!m_initialized)
         initializeDeterminatsInertiaTensor();
-
     // Shuffle the order of particles types for this step
     m_update_order.resize(m_pdata->getNTypes());
     m_update_order.shuffle(timestep, this->m_sysdef->getSeed(), m_exec_conf->getRank());
-
     for (unsigned int i_sweep = 0; i_sweep < m_nsweeps; i_sweep++)
         {
         Scalar log_boltz = 0.0;
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
-
         GPUArray<Scalar> determinant_inertia_tensor_old(m_determinant_inertia_tensor);
         m_move_function->prepare(timestep);
-
+        auto& mc_params = m_mc->getParams();
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
@@ -306,8 +292,8 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             m_count_total[typ_i]++;
 
             // cache old shape parameters before it is modified
-            auto shape_param_old = m_mc->getParams()[typ_i];
-            auto shape_param_new = shape_param_old;
+            auto shape_param_old = typename Shape::param_type(mc_params[typ_i]);
+            auto shape_param_new = typename Shape::param_type(shape_param_old);
 
             ArrayHandle<Scalar> h_det(m_determinant_inertia_tensor,
                                       access_location::host,
@@ -324,7 +310,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                                      this->m_sysdef->getSeed()),
                                          hoomd::Counter(typ_i, m_exec_conf->getRank(), i_sweep));
 
-            // perform a shape update on shape_param_new
+            // perform an in-place shape update on shape_param_new
             m_move_function->update_shape(timestep,
                                           m_step_size[typ_i],
                                           typ_i,
@@ -351,12 +337,12 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                       shape_param_old,      // old shape parameter
                                       h_det_old.data[typ_i] // old determinant_inertia_tensor
                 );
+
             // actually update the shape parameter in the integrator
             m_mc->setParam(typ_i, shape_param_new);
 
             // looks redundant but it is not because of the pretend mode.
             bool accept = false, reject = true;
-
             Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar Z = slow::exp(log_boltz);
             m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
@@ -573,7 +559,7 @@ template<typename Shape> void UpdaterShape<Shape>::initializeDeterminatsInertiaT
     ArrayHandle<Scalar> h_det(m_determinant_inertia_tensor,
                               access_location::host,
                               access_mode::readwrite);
-    auto params = m_mc->getParams();
+    auto& params = m_mc->getParams();
     for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
         {
         detail::MassProperties<Shape> mp(params[i]);
@@ -625,12 +611,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
-                            std::shared_ptr<ShapeMoveBase<Shape>>,
-                            unsigned int,
-                            unsigned int,
-                            bool,
-                            bool,
-                            unsigned int>())
+                            std::shared_ptr<ShapeMoveBase<Shape>> >())
         .def("getShapeMovesCount", &UpdaterShape<Shape>::getShapeMovesCount)
         .def_property_readonly("total_particle_volume",
                                &UpdaterShape<Shape>::getTotalParticleVolume)

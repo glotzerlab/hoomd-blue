@@ -9,6 +9,7 @@ from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
 import numpy
+import json
 
 
 class ShapeMove(_HOOMDBaseObject):
@@ -39,26 +40,6 @@ class ShapeMove(_HOOMDBaseObject):
                                      self.__class__.__name__ + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
-
-
-class CustomCallback(_HOOMDBaseObject):
-    """Base class for callbacks used in Python shape moves.
-
-    Note:
-        This class should not be instantiated by users. User-defined callbacks
-        should inherit from this class, defining a __call__ method that takes
-        a list of floats as an input and returns a shape definition
-
-    Examples::
-
-        class ExampleCallback(hoomd.hpmc.shape_move.Callback):
-            def __call__(self, params):
-                # do something with params and define verts
-                return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
-    """
-
-    def __init__(self):
-        pass
 
 
 class Constant(ShapeMove):
@@ -126,7 +107,7 @@ class ElasticShapeMove(ShapeMove):
         stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
             deformations.
 
-        reference ((`TypeParameter` [``particle type``, `dict`]):): Reference
+        reference (`TypeParameter` [``particle type``, `dict`]): Reference
             shape against to which compute the deformation energy.
 
         shear_scale_ratio (`float`): Fraction of scale to shear moves.
@@ -163,78 +144,87 @@ class ElasticShapeMove(ShapeMove):
         super()._attach()
 
 
-class Python(ShapeMove):
+class PythonShapeMove(ShapeMove):
     """Apply custom shape moves to particles through a Python callback.
 
     Args:
-        callback (Callback): The python class that will be called
-            to update the particle shapes
+        callback (`callable`): The python function that will be called to perform
+            custom shape moves on arbitrary shape parameters. The function must
+            take the particle type and a list of parameters as arguments and
+            return a dictionary with the shape definition whose keys must match
+            the shape definition of the integrator:
 
-        params (dict): Dictionary of types and the corresponding list
-            of initial parameters to pass to the callback
-            (ex: {'A' : [1.0], 'B': [0.0]})
+                ``fun(typeid, param_list) -> dict``
 
-        param_move_probability (float): Average fraction of parameters to change during
-            each shape move
+        param_move_probability (`float`): Average fraction of shape parameters
+            to change each timestep.
 
     Note:
-        Parameters must be given for every particle type. The callback should
-        rescale the particle to have constant volume if desired.
+        Parameters must be given for every particle type and must be between 0
+        and 1. This class is limited to performing MC moves on the predefined
+        shape parameters, it does not performs any consistency checks internally.
+        Therefore, any shape constraint (e.g. constant volume, etc) must be
+        performed within the callback.
 
     Example::
 
-        mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+        mc = hoomd.hpmc.integrate.ConvexPolyhedron()
         mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1),
                                        (1, -1, -1), (-1, 1, -1)])
         # example callback
-        class ExampleCallback(hoomd.hpmc.shape_move.Callback):
-            def __call__(self, params):
+        class ExampleCallback:
+            def __init__(self):
+                default_dict = dict(sweep_radius=0, ignore_statistics=True)
+            def __call__(self, type, param_list):
                 # do something with params and define verts
-                return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
-        python_move = hoomd.hpmc.shape_move.Python(callback=ExampleCallback,
-                                                   params={'A': [1.0]},
-                                                   param_move_probability=1.0)
+                return dict("vertices":verts, **self.default_dict))
+        python_move = hpmc.shape_move.PythonShapeMove(callback=ExampleCallback(),
+                                              param_move_probability=1.0)
 
     Attributes:
 
-        callback (Callback): The python class that will be called
-            to update the particle shapes
+        callback (`callable`):  The python function that will be called to
+            perform custom shape moves on arbitrary shape parameters.
 
-        params (dict): Dictionary of types and the corresponding list
-            of initial parameters to pass to the callback
-            (ex: {'A' : [1.0], 'B': [0.0]})
+        params (`TypeParameter` [``particle type``, `list`]): List of tunable
+            parameters to be updated.
 
-        param_move_probability (float): Average fraction of parameters to change during
-            each shape move
+        param_move_probability (`float`): Average fraction of shape parameters
+            to change each timestep.
     """
 
     _suported_shapes = {
         'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
     }
 
-    def __init__(self, callback, params, param_move_probability):
-        # TODO: params should be implemented as TypeParameter
-        param_dict = ParameterDict(
-            callback=Callback,
-            params=dict(params),
+    def __init__(self, callback, param_move_probability):
+        param_dict = ParameterDict(callback=object,
             param_move_probability=float(param_move_probability))
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
+        typeparam_shapeparams = TypeParameter('params',
+                                              type_kind='particle_types',
+                                              param_dict=TypeParameterDict(
+                                                [float], len_keys=1))
+
+        self._add_typeparam(typeparam_shapeparams)
+
     def _attach(self):
         self._set_move_class()
         self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
-                                       self.callback, self.params,
                                        self.param_move_probability)
         super()._attach()
 
-    @log(category='object')
-    def shape_param(self):
-        """float: Shape parameter values being used.
+    @log(category='object', requires_run=True)
+    def type_params(self):
+        """dict:
 
-        None when not attached
+        Example:
+            >>> python_shape_move.type_params()
+            {'A': [0.21, 0.33], 'B': [0.561, 0.331, 0.123]}
         """
-        return self.params
+        return self._cpp_obj.getTypeParams()
 
 
 class VertexShapeMove(ShapeMove):

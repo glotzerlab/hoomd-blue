@@ -601,7 +601,6 @@ class Shape(Updater):
         param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
 
-        # Set standard typeparameters for hpmc integrators
         typeparam_step_size = TypeParameter('step_size',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
@@ -665,9 +664,7 @@ class Shape(Updater):
         self._attach_shape_move()
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
-                                    self.shape_move._cpp_obj, self.nselect,
-                                    self.nsweeps, self.pretend,
-                                    self.multi_phase, self.num_phase)
+                                    self.shape_move._cpp_obj)
         super()._attach()
 
     @log(category='sequence', requires_run=True)

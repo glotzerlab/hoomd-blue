@@ -78,6 +78,16 @@ template<typename Shape> class ShapeMoveBase
         m_volume[typid] = volume;
         }
 
+    unsigned int getValidateType(std::string typ)
+        {
+        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
+        if (typid >= this->m_ntypes)
+            {
+            throw std::runtime_error("Invalid particle type.");
+            }
+        return typid;
+        }
+
     // Get the isoperimetric quotient of the shape
     Scalar getIsoperimetricQuotient() const
         {
@@ -121,23 +131,13 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     {
     public:
     PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                    pybind11::object python_function,
-                    pybind11::dict params,
-                    Scalar mixratio)
-        : ShapeMoveBase<Shape>(sysdef), m_num_params(0), m_python_callback(python_function)
+                    Scalar param_move_probability)
+        : ShapeMoveBase<Shape>(sysdef), m_num_params(0)
         {
-        m_param_move_probability = fmin(mixratio, 1.0);
+        m_params.resize(this->m_ntypes);
+        m_params_backup.resize(this->m_ntypes);
+        m_param_move_probability = fmin(param_move_probability, 1.0);
         this->m_det_inertia_tensor = 1.0;
-        std::vector<std::vector<Scalar>> params_vector(this->m_ntypes);
-        for (auto name_and_params : params)
-            {
-            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-            std::vector<Scalar> type_params
-                = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
-            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-            params_vector[type_i] = type_params;
-            }
-        m_params = params_vector;
         }
 
     void prepare(uint64_t timestep)
@@ -153,16 +153,16 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         {
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
-            hoomd::UniformDistribution<Scalar> uniform(
-                fmax(-stepsize, -(m_params[type_id][i])),
-                fmin(stepsize, (1.0 - m_params[type_id][i])));
-            Scalar x = (hoomd::detail::generate_canonical<double>(rng) < m_param_move_probability)
-                           ? uniform(rng)
-                           : 0.0;
+            Scalar a = fmax(-stepsize, -(m_params[type_id][i]));
+            Scalar b = fmin(stepsize, (1.0 - m_params[type_id][i]));
+            hoomd::UniformDistribution<Scalar> uniform(a, b);
+            Scalar r = hoomd::detail::generate_canonical<double>(rng);
+            Scalar x = (r < m_param_move_probability) ? uniform(rng) : 0.0;
             m_params[type_id][i] += x;
             }
-        pybind11::object shape_data = m_python_callback(m_params[type_id]);
-        shape = pybind11::cast<typename Shape::param_type>(shape_data);
+        pybind11::object d = m_python_callback(type_id, m_params[type_id]);
+        pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
+        shape = typename Shape::param_type(shape_dict);
         detail::MassProperties<Shape> mp(shape);
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         }
@@ -173,62 +173,44 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         std::swap(m_params, m_params_backup);
         }
 
-    Scalar getParam(unsigned int k)
+    pybind11::list getParams(std::string typ)
         {
-        unsigned int n = 0;
-        for (unsigned int i = 0; i < m_params.size(); i++)
+        unsigned int type_id = this->getValidateType(typ);
+        pybind11::list ret;
+        for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
-            unsigned int next = n + m_params[i].size();
-            if (k < next)
-                return m_params[i][k - n];
-            n = next;
+            ret.append(m_params[type_id][i]);
             }
-        throw std::out_of_range("Error: Could not get parameter, index out of range.\n");
-        return Scalar(0.0);
+        return ret;
         }
 
-    unsigned int getNumParam()
+    void setParams(std::string typ, pybind11::list params)
         {
-        if (m_num_params > 0)
-            return m_num_params;
-        m_num_params = 0;
-        for (unsigned int i = 0; i < m_params.size(); i++)
-            m_num_params += m_params[i].size();
-        return m_num_params;
-        }
-
-    static std::string getParamName(unsigned int i)
-        {
-        std::stringstream ss;
-        std::string snum;
-        ss << i;
-        ss >> snum;
-        return "shape_param-" + snum;
-        }
-
-    pybind11::dict getParams()
-        {
-        pybind11::dict params;
-        for (unsigned int i = 0; i < m_params.size(); i++)
+        unsigned int type_id = this->getValidateType(typ);
+        auto N = pybind11::len(params);
+        m_params[type_id].resize(N);
+        m_params_backup[type_id].resize(N);
+        for (unsigned int i = 0; i < N; i++)
             {
-            pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
-            params[type_name] = m_params[i];
+            m_params[type_id][i] = params[i].cast<Scalar>();
+            m_params_backup[type_id][i] = params[i].cast<Scalar>();
             }
-        return params;
         }
 
-    void setParams(pybind11::dict params)
+    pybind11::dict getTypeParams()
         {
-        std::vector<std::vector<Scalar>> params_vector(m_params.size());
-        for (auto name_and_params : params)
+        pybind11::dict ret;
+        for (unsigned int type_id = 0; type_id < this->m_ntypes; type_id++)
             {
-            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-            std::vector<Scalar> type_params
-                = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
-            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-            params_vector[type_i] = type_params;
-            }
-        m_params = params_vector;
+            std::string type_name = this->m_sysdef->getParticleData()->getNameByType(type_id);
+            pybind11::list l;
+            for (unsigned int i = 0; i < m_params[type_id].size(); i++)
+                {
+                l.append(m_params[type_id][i]);
+                }
+            ret[type_name.c_str()] = l;
+          }
+        return ret;
         }
 
     Scalar getParamMoveProbability()
@@ -257,7 +239,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
     std::vector<std::vector<Scalar>> m_params;        // all params are from 0,1
     pybind11::object m_python_callback; // callback that takes m_params as an argiment and returns
-                                        // (shape, det(I))
     };
 
 template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
@@ -824,16 +805,17 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
         .def(
             pybind11::
-                init<std::shared_ptr<SystemDefinition>, pybind11::object, pybind11::dict, Scalar>())
-        .def_property("params",
-                      &PythonShapeMove<Shape>::getParams,
-                      &PythonShapeMove<Shape>::setParams)
+                init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def("getParams", &PythonShapeMove<Shape>::getParams)
+        .def("setParams", &PythonShapeMove<Shape>::setParams)
         .def_property("param_move_probability",
                       &PythonShapeMove<Shape>::getParamMoveProbability,
                       &PythonShapeMove<Shape>::setParamMoveProbability)
         .def_property("callback",
                       &PythonShapeMove<Shape>::getCallback,
-                      &PythonShapeMove<Shape>::setCallback);
+                      &PythonShapeMove<Shape>::setCallback)
+        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams)
+        ;
     }
 
 // template<class Shape>
