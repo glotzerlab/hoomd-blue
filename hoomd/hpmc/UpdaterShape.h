@@ -611,7 +611,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
-                            std::shared_ptr<ShapeMoveBase<Shape>> >())
+                            std::shared_ptr<ShapeMoveBase<Shape>>>())
         .def("getShapeMovesCount", &UpdaterShape<Shape>::getShapeMovesCount)
         .def_property_readonly("total_particle_volume",
                                &UpdaterShape<Shape>::getTotalParticleVolume)

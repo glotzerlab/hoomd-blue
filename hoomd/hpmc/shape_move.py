@@ -198,7 +198,8 @@ class PythonShapeMove(ShapeMove):
     }
 
     def __init__(self, callback, param_move_probability):
-        param_dict = ParameterDict(callback=object,
+        param_dict = ParameterDict(
+            callback=object,
             param_move_probability=float(param_move_probability))
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
@@ -206,7 +207,7 @@ class PythonShapeMove(ShapeMove):
         typeparam_shapeparams = TypeParameter('params',
                                               type_kind='particle_types',
                                               param_dict=TypeParameterDict(
-                                                [float], len_keys=1))
+                                                  [float], len_keys=1))
 
         self._add_typeparam(typeparam_shapeparams)
 

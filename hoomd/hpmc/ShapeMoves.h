@@ -130,8 +130,7 @@ template<typename Shape> class ShapeMoveBase
 template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-    PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                    Scalar param_move_probability)
+    PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef, Scalar param_move_probability)
         : ShapeMoveBase<Shape>(sysdef), m_num_params(0)
         {
         m_params.resize(this->m_ntypes);
@@ -209,7 +208,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
                 l.append(m_params[type_id][i]);
                 }
             ret[type_name.c_str()] = l;
-          }
+            }
         return ret;
         }
 
@@ -707,7 +706,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         return m_k;
         }
 
-
     void setReferenceShape(std::string typ, pybind11::dict v)
         {
         unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
@@ -716,7 +714,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
             throw std::runtime_error("Invalid particle type.");
             }
 
-        m_reference_shapes[typid] = param_type(v, false);;
+        m_reference_shapes[typid] = param_type(v, false);
+        ;
 
         // compute and store volume of reference shape
         detail::MassProperties<ShapeEllipsoid> mp(m_reference_shapes[typid]);
@@ -803,9 +802,7 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
     pybind11::class_<PythonShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
-        .def(
-            pybind11::
-                init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def("getParams", &PythonShapeMove<Shape>::getParams)
         .def("setParams", &PythonShapeMove<Shape>::setParams)
         .def_property("param_move_probability",
@@ -814,8 +811,7 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
         .def_property("callback",
                       &PythonShapeMove<Shape>::getCallback,
                       &PythonShapeMove<Shape>::setCallback)
-        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams)
-        ;
+        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams);
     }
 
 // template<class Shape>
