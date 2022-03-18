@@ -11,7 +11,6 @@
 #include "ForceConstraint.h"
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
-#include "Trigger.h"
 #include "Updater.h"
 #include <pybind11/pybind11.h>
 #include <string>
