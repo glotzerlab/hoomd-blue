@@ -24,8 +24,9 @@ logger = logging.getLogger()
 pytest_plugins = ("hoomd.pytest_plugin_validate",)
 
 devices = [hoomd.device.CPU]
-if (hoomd.device.GPU.is_available()
-        and len(hoomd.device.GPU.get_available_devices()) > 0):
+_n_available_gpu = len(hoomd.device.GPU.get_available_devices())
+_github_actions = os.environ.get('GITHUB_ACTIONS') is not None
+if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
 
     if os.environ.get('_HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_') is not None:
         devices.pop(0)
