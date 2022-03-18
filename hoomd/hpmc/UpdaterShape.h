@@ -233,7 +233,6 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
     m_box_total.resize(m_pdata->getNTypes(), 0);
     initializeDeterminatsInertiaTensor();
-
     countParticlesPerType();
 
     // TODO: add a sanity check to makesure that MPI is setup correctly

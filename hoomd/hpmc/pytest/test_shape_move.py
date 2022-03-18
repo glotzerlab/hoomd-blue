@@ -91,30 +91,80 @@ _elastic_args = [
          param_ratio=0.75)
 ]
 
-_python_args = [
-    dict(callback=TruncatedTetrahedron(),
-         params={'A': [1.0]},
-         stepsize={'A': 0.05},
-         param_ratio=1.0),
-    dict(callback=TruncatedTetrahedron(),
-         params={'A': [0.5]},
-         stepsize={'A': 0.02},
-         param_ratio=0.7)
+# _python_args = [
+#     dict(callback=TruncatedTetrahedron(),
+#          params={'A': [1.0]},
+#          stepsize={'A': 0.05},
+#          param_ratio=1.0),
+#     dict(callback=TruncatedTetrahedron(),
+#          params={'A': [0.5]},
+#          stepsize={'A': 0.02},
+#          param_ratio=0.7)
 ]
 
-_vertex_args = [
-    dict(stepsize={'A': 0.01}, param_ratio=0.2, volume=1.0),
-    dict(stepsize={'A': 0.02}, param_ratio=0.5, volume=0.5)
+# _vertex_args = [
+#     dict(stepsize={'A': 0.01}, param_ratio=0.2, volume=1.0),
+#     dict(stepsize={'A': 0.02}, param_ratio=0.5, volume=0.5)
+# ]
+
+
+# def get_move_and_args():
+#     move_and_args = [(hoomd.hpmc.shape_move.Constant, _constant_args),
+#                      (hoomd.hpmc.shape_move.Elastic, _elastic_args),
+#                      (hoomd.hpmc.shape_move.Python, _python_args),
+#                      (hoomd.hpmc.shape_move.Vertex, _vertex_args)]
+#     return move_and_args
+
+shape_updater_constructor_args = [
+    dict(trigger = hoomd.)
 ]
 
+python_move_constructor_args = [
+    dict(
+        callback = lambda typeid, param_list: {"vertices": [[],[]],
+                                               "sweep_radius": 0,
+                                               "ignore_statistics": True},
+        param_move_probability = 1
+        ),
+    dict(
+        callback = lambda typeid, param_list: {"vertices": [[],[]],
+                                               "sweep_radius": 0,
+                                               "ignore_statistics": True},
+        param_move_probability = 0.4
+        ),
+]
 
-def get_move_and_args():
-    move_and_args = [(hoomd.hpmc.shape_move.Constant, _constant_args),
-                     (hoomd.hpmc.shape_move.Elastic, _elastic_args),
-                     (hoomd.hpmc.shape_move.Python, _python_args),
-                     (hoomd.hpmc.shape_move.Vertex, _vertex_args)]
-    return move_and_args
+@pytest.mark.parametrize("constructor_args", python_move_constructor_args)
+def test_valid_construction_python_shape_move(constructor_args):
+    move = hpmc.shape_move.PythonShapeMove(**constructor_args)
 
+    # validate the params were set properly
+    for attr, value in constructor_args.items():
+        assert getattr(move, attr) == value
+
+@pytest.mark.parametrize("constructor_args", python_move_constructor_args)
+def test_valid_construction_and_attach_python_shape_move(device,
+        simulation_factory, two_particle_snapshot_factory, constructor_args):
+        move = hpmc.shape_move.PythonShapeMove(**constructor_args)
+        move.params["A"] = [0.2, 0.23, 0.33]
+
+        mc = hoomd.hpmc.integrate.ConvexPolyhedron()
+        mc.shape['A'] = dict(vertices=_vertices)
+
+        # create simulation & attach objects
+        sim = simulation_factory(two_particle_snapshot_factory())
+        sim.operations.integrator = mc
+
+        # catch the error if running on the GPU
+        if isinstance(device, hoomd.device.GPU):
+            with pytest.raises(RuntimeError):
+                sim.run(0)
+
+def test_valid_construction_vertex_shape_move(args):
+    pass
+
+def test_valid_construction_elastic_shape_move(args):
+    pass
 
 @pytest.mark.parametrize("move_and_args", get_move_and_args())
 def test_before_attaching(move_and_args):

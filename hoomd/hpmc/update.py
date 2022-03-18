@@ -520,9 +520,6 @@ class Shape(Updater):
 
         default_step_size (float): Default maximum size of shape trial moves.
 
-        shape_move (hoomd.hpmc.shape_move.ShapeMove): Type of shape move to
-            apply when updating shape definitions.
-
         pretend (bool, optional): When True the updater will not actually update
             the shape definitions. Instead, moves will be proposed and the
             acceptance statistics will be updated correctly.
@@ -557,11 +554,11 @@ class Shape(Updater):
     Attributes:
         trigger (Trigger): Call the updater on triggered time steps.
 
-        shape_move (ShapeMove): Type of shape move to apply when updating shape
-            definitions
-
         step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
             of shape trial moves.
+
+        shape_move (ShapeMove): Type of shape move to apply when updating shape
+            definitions
 
         pretend (bool): When True the updater will not actually update the shape
             definitions, instead moves will be proposed and the acceptance
@@ -582,7 +579,6 @@ class Shape(Updater):
 
     def __init__(self,
                  trigger,
-                 shape_move,
                  default_step_size,
                  pretend=False,
                  nselect=1,
@@ -596,7 +592,6 @@ class Shape(Updater):
                                    nsweeps=int(nsweeps),
                                    multi_phase=bool(multi_phase),
                                    num_phase=int(num_phase))
-        param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
 
         typeparam_step_size = TypeParameter('step_size',

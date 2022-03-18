@@ -22,8 +22,9 @@ namespace hpmc
 template<typename Shape> class ShapeMoveBase
     {
     public:
-    ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef)
-        : m_det_inertia_tensor(0), m_sysdef(sysdef)
+    ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
+        : m_mc(mc), m_det_inertia_tensor(0), m_sysdef(sysdef)
         {
         m_ntypes = this->m_sysdef->getParticleData()->getNTypes();
         m_volume.resize(m_ntypes, 0);
@@ -60,21 +61,13 @@ template<typename Shape> class ShapeMoveBase
 
     Scalar getVolume(std::string typ)
         {
-        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
-        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
-            {
-            throw std::runtime_error("Invalid particle type.");
-            }
+        unsigned int typid = getValidateType(typ);
         return m_volume[typid];
         }
 
     void setVolume(std::string typ, Scalar volume)
         {
-        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
-        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
-            {
-            throw std::runtime_error("Invalid particle type.");
-            }
+        unsigned int typid = getValidateType(typ);
         m_volume[typid] = volume;
         }
 
@@ -86,6 +79,16 @@ template<typename Shape> class ShapeMoveBase
             throw std::runtime_error("Invalid particle type.");
             }
         return typid;
+        }
+
+    Scalar getMoveProbability()
+        {
+        return this->m_move_probability;
+        }
+
+    void setMoveProbability(Scalar move_probability)
+        {
+        this->m_move_probability = fmin(move_probability, 1.0);
         }
 
     // Get the isoperimetric quotient of the shape
@@ -120,22 +123,25 @@ template<typename Shape> class ShapeMoveBase
         }
 
     protected:
+    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
     Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
     Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
     std::shared_ptr<SystemDefinition> m_sysdef;
     unsigned m_ntypes;
     std::vector<Scalar> m_volume;
+    Scalar m_move_probability;
+
     }; // end class ShapeMoveBase
 
 template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-    PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef, Scalar param_move_probability)
-        : ShapeMoveBase<Shape>(sysdef), m_num_params(0)
+    PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                    std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
+        : ShapeMoveBase<Shape>(sysdef, mc), m_num_params(0)
         {
         m_params.resize(this->m_ntypes);
         m_params_backup.resize(this->m_ntypes);
-        m_param_move_probability = fmin(param_move_probability, 1.0);
         this->m_det_inertia_tensor = 1.0;
         }
 
@@ -156,7 +162,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             Scalar b = fmin(stepsize, (1.0 - m_params[type_id][i]));
             hoomd::UniformDistribution<Scalar> uniform(a, b);
             Scalar r = hoomd::detail::generate_canonical<double>(rng);
-            Scalar x = (r < m_param_move_probability) ? uniform(rng) : 0.0;
+            Scalar x = (r < this->m_move_probability) ? uniform(rng) : 0.0;
             m_params[type_id][i] += x;
             }
         pybind11::object d = m_python_callback(type_id, m_params[type_id]);
@@ -214,12 +220,12 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
 
     Scalar getParamMoveProbability()
         {
-        return m_param_move_probability;
+        return this->m_move_probability;
         }
 
     void setParamMoveProbability(Scalar select_ratio)
         {
-        m_param_move_probability = fmin(select_ratio, 1.0);
+        this->m_move_probability = fmin(select_ratio, 1.0);
         }
 
     pybind11::object getCallback()
@@ -233,7 +239,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     private:
-    Scalar m_param_move_probability;
+    // Scalar this->m_move_probability;
     unsigned int m_num_params;                        // cache the number of parameters.
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
     std::vector<std::vector<Scalar>> m_params;        // all params are from 0,1
@@ -243,8 +249,10 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
 template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-    ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef, pybind11::dict shape_params)
-        : ShapeMoveBase<Shape>(sysdef), m_shape_moves({})
+    ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
+                      pybind11::dict shape_params)
+        : ShapeMoveBase<Shape>(sysdef, mc), m_shape_moves({})
         {
         std::vector<pybind11::dict> shape_params_vector(this->m_ntypes);
         for (auto name_and_params : shape_params)
@@ -324,23 +332,22 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     typedef typename ShapeConvexPolyhedron::param_type param_type;
 
     ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                                    Scalar vertex_move_prob)
-        : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef)
+                                    std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>> mc)
+        : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, mc)
         {
         this->m_det_inertia_tensor = 1.0;
         m_calculated.resize(this->m_ntypes, false);
         m_centroids.resize(this->m_ntypes, vec3<Scalar>(0, 0, 0));
-        m_vertex_move_probability = fmin(vertex_move_prob, 1.0);
         }
 
     Scalar getVertexMoveProbability()
         {
-        return m_vertex_move_probability;
+        return this->m_move_probability;
         }
 
     void setVertexMoveProbability(Scalar vertex_move_prob)
         {
-        m_vertex_move_probability = fmin(vertex_move_prob, 1.0);
+        this->m_move_probability = fmin(vertex_move_prob, 1.0);
         }
 
     void prepare(uint64_t timestep) { }
@@ -360,7 +367,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         // mix the shape.
         for (unsigned int i = 0; i < shape.N; i++)
             {
-            if (hoomd::detail::generate_canonical<double>(rng) < m_vertex_move_probability)
+            if (hoomd::detail::generate_canonical<double>(rng) < this->m_move_probability)
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng, stepsize, 3);
@@ -400,7 +407,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     private:
-    Scalar m_vertex_move_probability;      // probability of a vertex being selected for a move
+    // Scalar this->m_move_probability;      // probability of a vertex being selected for a move
     std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
     std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
     };                                     // end class ConvexPolyhedronVertexShapeMove
@@ -413,13 +420,11 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     typedef typename Eigen::Matrix<Scalar, 3, 3> Matrix3S;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                     std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                     Scalar shear_scale_ratio)
-        : ShapeMoveBase<Shape>(sysdef), m_mc(mc)
+                     std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
+        : ShapeMoveBase<Shape>(sysdef, mc)
         {
         m_mass_props.resize(this->m_ntypes);
         m_reference_shapes.resize(this->m_ntypes);
-        m_shear_scale_ratio = fmin(shear_scale_ratio, 1.0);
         m_F.resize(this->m_ntypes, Matrix3S::Identity());
         m_F_last.resize(this->m_ntypes, Matrix3S::Identity());
         this->m_det_inertia_tensor = 1.0;
@@ -439,7 +444,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         {
         Matrix3S transform;
         // perform a scaling move
-        if (hoomd::detail::generate_canonical<double>(rng) < m_shear_scale_ratio)
+        if (hoomd::detail::generate_canonical<double>(rng) < this->m_move_probability)
             {
             generateExtentional(transform, rng, stepsize + 1.0);
             }
@@ -500,12 +505,12 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     Scalar getShearScaleRatio()
         {
-        return m_shear_scale_ratio;
+        return this->m_move_probability;
         }
 
     void setShearScaleRatio(Scalar scale_shear_ratio)
         {
-        m_shear_scale_ratio = fmin(scale_shear_ratio, 1.0);
+        this->m_move_probability = fmin(scale_shear_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -527,7 +532,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             }
 
         param_type shape = param_type(v, false);
-        auto current_shape = m_mc->getParams()[typid];
+        auto current_shape = this->m_mc->getParams()[typid];
         if (current_shape.N != shape.N)
             {
             throw std::runtime_error(
@@ -604,7 +609,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     protected:
-    Scalar m_shear_scale_ratio;
+    // Scalar this->m_move_probability;
     ; // probability of performing a scaling move vs a
       // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
@@ -612,7 +617,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     std::vector<Matrix3S> m_F;      // matrix representing shape deformation at the current step
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes; // shape to reference shape move against
-    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
+    // std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
     std::shared_ptr<Variant> m_k; // shape move stiffness
 
     private:
@@ -675,9 +680,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     typedef typename ShapeEllipsoid::param_type param_type;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                     std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> mc,
-                     Scalar move_ratio)
-        : ShapeMoveBase<ShapeEllipsoid>(sysdef), m_mc(mc)
+                     std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> mc)
+        : ShapeMoveBase<ShapeEllipsoid>(sysdef, mc)
         {
         m_mass_props.resize(this->m_ntypes);
         // // typename ShapeEllipsoid::param_type shape(shape_params);
@@ -688,12 +692,12 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
 
     Scalar getShearScaleRatio()
         {
-        return m_shear_scale_ratio;
+        return this->m_move_probability;
         }
 
     void setShearScaleRatio(Scalar scale_shear_ratio)
         {
-        m_shear_scale_ratio = fmin(scale_shear_ratio, 1.0);
+        this->m_move_probability = fmin(scale_shear_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -779,12 +783,11 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         }
 
     private:
-    Scalar m_shear_scale_ratio;
+    // Scalar this->m_move_probability;
     std::vector<detail::MassProperties<ShapeEllipsoid>>
         m_mass_props; // mass properties of the shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes; // shape to reference shape move against
-    std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> m_mc;
     std::shared_ptr<Variant> m_k; // shape move stiffness
     };
 
@@ -794,7 +797,11 @@ namespace detail
 template<class Shape> void export_ShapeMoveBase(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ShapeMoveBase<Shape>, std::shared_ptr<ShapeMoveBase<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<Shape>>>())
+        .def_property("move_probability",
+                      &ShapeMoveBase<Shape>::getMoveProbability,
+                      &ShapeMoveBase<Shape>::setMoveProbability)
+        ;
     }
 
 template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name)
@@ -802,10 +809,10 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
     pybind11::class_<PythonShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<Shape>>>())
         .def("getParams", &PythonShapeMove<Shape>::getParams)
         .def("setParams", &PythonShapeMove<Shape>::setParams)
-        .def_property("param_move_probability",
+        .def_property("move_probability",
                       &PythonShapeMove<Shape>::getParamMoveProbability,
                       &PythonShapeMove<Shape>::setParamMoveProbability)
         .def_property("callback",
@@ -814,16 +821,15 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
         .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams);
     }
 
-// template<class Shape>
 inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ConvexPolyhedronVertexShapeMove,
                      ShapeMoveBase<ShapeConvexPolyhedron>,
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>> >())
         .def("getVolume", &ConvexPolyhedronVertexShapeMove::getVolume)
         .def("setVolume", &ConvexPolyhedronVertexShapeMove::setVolume)
-        .def_property("vertex_move_probability",
+        .def_property("move_probability",
                       &ConvexPolyhedronVertexShapeMove::getVertexMoveProbability,
                       &ConvexPolyhedronVertexShapeMove::setVertexMoveProbability);
     }
@@ -834,7 +840,9 @@ inline void export_ConstantShapeMove(pybind11::module& m, const std::string& nam
     pybind11::class_<ConstantShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<ConstantShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::dict>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
+                            pybind11::dict>())
         .def_property("shape_params",
                       &ConstantShapeMove<Shape>::getShapeParams,
                       &ConstantShapeMove<Shape>::setShapeParams);
@@ -847,9 +855,8 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
-                            Scalar>())
-        .def_property("shear_scale_ratio",
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>>())
+        .def_property("move_probability",
                       &ElasticShapeMove<Shape>::getShearScaleRatio,
                       &ElasticShapeMove<Shape>::setShearScaleRatio)
         .def_property("stiffness",
