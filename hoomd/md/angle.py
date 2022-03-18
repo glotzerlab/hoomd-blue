@@ -1,7 +1,37 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Angle potentials."""
+r"""Angle forces.
+
+Angle force classes apply a force and virial on every particle in the simulation
+state commensurate with the potential energy:
+
+.. math::
+
+    U_\mathrm{angle} = \sum_{(i,j,k) \in \mathrm{angles}} U_{ijk}(\theta)
+
+Each angle is defined by an ordered triplet of particle tags in the
+`hoomd.State` member ``angle_group``. HOOMD-blue does not construct angle
+groups, users must explicitly define angles in the initial condition.
+
+.. image:: md-angle.svg
+    :alt: Definition of the angle bond between particles i, j, and k.
+
+In the angle group (i,j,k), :math:`\theta` is the angle between the vectors
+:math:`\vec{r}_{ij}` and :math:`\vec{r}_{kj}`.
+
+.. rubric Per-particle energies and virials
+
+Angle force classes assign 1/3 of the potential energy to each of the particles
+in the angle group:
+
+.. math::
+
+    U_l = \frac{1}{3} \sum_{(i,j,k) \in \mathrm{angles}}
+    U_{ijk}(\theta) [l=i \lor l=j \lor l=k]
+
+and similarly for virials.
+"""
 
 from hoomd.md import _md
 from hoomd.md.force import Force
@@ -12,11 +42,11 @@ import numpy
 
 
 class Angle(Force):
-    """Constructs the angular bond potential.
+    """Base class angle force.
 
     Note:
-        :py:class:`Angle` is the base class for all angular potentials.
-        Users should not instantiate this class directly.
+        :py:class:`Angle` is the base class for all angle forces. Users should
+        not instantiate this class directly.
     """
 
     def __init__(self):
@@ -39,16 +69,14 @@ class Angle(Force):
 
 
 class Harmonic(Angle):
-    r"""Harmonic angle potential.
+    r"""Harmonic angle force.
 
-    :py:class:`Harmonic` specifies a harmonic potential energy between
-    every triplet of particles with an angle specified between them.
+    :py:class:`Harmonic` computes forces, virials, and energies on all angles
+    in the simulation state with:
 
     .. math::
 
-        V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
-
-    where :math:`\theta` is the angle between the triplet of particles.
+        U(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
 
     Attributes:
         params (TypeParameter[``angle type``, dict]):
@@ -64,8 +92,8 @@ class Harmonic(Angle):
     Examples::
 
         harmonic = angle.Harmonic()
-        harmonic.params['polymer'] = dict(k=3.0, t0=0.7851)
-        harmonic.params['backbone'] = dict(k=100.0, t0=1.0)
+        harmonic.params['A-A-A'] = dict(k=3.0, t0=0.7851)
+        harmonic.params['A-B-A'] = dict(k=100.0, t0=1.0)
 
     """
 
@@ -79,19 +107,16 @@ class Harmonic(Angle):
 
 
 class CosineSquared(Angle):
-    r"""Cosine squared angle potential.
+    r"""Cosine squared angle force.
 
-    :py:class:`CosineSquared` specifies a cosine squared potential energy
-    between every triplet of particles with an angle specified between them.
+    :py:class:`CosineSquared` computes forces, virials, and energies on all
+    angles in the simulation state with:
 
     .. math::
 
-        V(\theta) = \frac{1}{2} k \left( \cos\theta - \cos\theta_0 \right)^2
+        U(\theta) = \frac{1}{2} k \left( \cos\theta - \cos\theta_0 \right)^2
 
-    where :math:`\theta` is the angle between the triplet of particles.
-    This angle style is also known as g96, since they were used in the
-    gromos96 force field. These are also the types of angles used with the
-    coarse-grained MARTINI force field.
+    `CosineSquared` is used in the gromos96 and MARTINI force fields.
 
     Attributes:
         params (TypeParameter[``angle type``, dict]):
@@ -104,16 +129,11 @@ class CosineSquared(Angle):
             * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
               :math:`[\mathrm{radians}]`
 
-    Parameters :math:`k` and :math:`\theta_0` must be set for each type of
-    angle in the simulation.  Note that the value of :math:`k` for this angle
-    potential is not comparable to the value of :math:`k` for harmonic angles,
-    as they have different units.
-
     Examples::
 
         cosinesq = angle.CosineSquared()
-        cosinesq.params['polymer'] = dict(k=3.0, t0=0.7851)
-        cosinesq.params['backbone'] = dict(k=100.0, t0=1.0)
+        cosinesq.params['A-A-A'] = dict(k=3.0, t0=0.7851)
+        cosinesq.params['A-B-A'] = dict(k=100.0, t0=1.0)
     """
 
     _cpp_class_name = 'CosineSqAngleForceCompute'
@@ -126,12 +146,13 @@ class CosineSquared(Angle):
 
 
 class Table(Angle):
-    """Tabulated bond potential.
+    """Tabulated bond force.
 
     Args:
         width (int): Number of points in the table.
 
-    `Table` computes a user-defined potential and force applied to each angle.
+    `Table` computes computes forces, virials, and energies on all angles
+    in the simulation given the user defined tables :math:`U` and :math:`\\tau`.
 
     The torque :math:`\\tau` is:
 
@@ -141,24 +162,20 @@ class Table(Angle):
     and the potential :math:`V(\\theta)` is:
 
     .. math::
-        V(\\theta) =V_\\mathrm{table}(\\theta)
-
-    where :math:`\\theta` is the angle between the vectors
-    :math:`\\vec{r}_A - \\vec{r}_B` and :math:`\\vec{r}_C - \\vec{r}_B` for
-    particles A,B,C in the angle.
+        U(\\theta) =U_\\mathrm{table}(\\theta)
 
     Provide :math:`\\tau_\\mathrm{table}(\\theta)` and
-    :math:`V_\\mathrm{table}(\\theta)` on evenly spaced grid points points
+    :math:`U_\\mathrm{table}(\\theta)` on evenly spaced grid points points
     in the range :math:`\\theta \\in [0,\\pi]`. `Table` linearly
     interpolates values when :math:`\\theta` lies between grid points. The
     torque must be specificed commensurate with the potential: :math:`\\tau =
-    -\\frac{\\partial V}{\\partial \\theta}`.
+    -\\frac{\\partial U}{\\partial \\theta}`.
 
     Attributes:
         params (`TypeParameter` [``angle type``, `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``V`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+          * ``U`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
             the tabulated energy values :math:`[\\mathrm{energy}]`. Must have
             a size equal to `width`.
 
@@ -178,7 +195,7 @@ class Table(Angle):
         params = TypeParameter(
             "params", "angle_types",
             TypeParameterDict(
-                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                U=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 len_keys=1))
         self._add_typeparam(params)

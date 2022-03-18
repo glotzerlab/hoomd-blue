@@ -33,3 +33,4 @@ md.manifold
               Primitive,
               Sphere
     :no-inherited-members:
+    :show-inheritance:

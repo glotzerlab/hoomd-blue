@@ -6,19 +6,22 @@ md.nlist
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.nlist
 
 .. autosummary::
     :nosignatures:
 
-    md.nlist.NList
-    md.nlist.Cell
-    md.nlist.Stencil
-    md.nlist.Tree
+    NeighborList
+    Cell
+    Stencil
+    Tree
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.nlist
     :synopsis: Neighbor list acceleration structures.
-    :members: NList, Cell, Stencil, Tree
+    :members: Cell, Stencil, Tree
     :no-inherited-members:
+    :show-inheritance:
+
+    .. autoclass:: NeighborList

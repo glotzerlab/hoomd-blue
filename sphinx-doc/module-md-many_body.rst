@@ -24,3 +24,4 @@ md.many_body
         RevCross,
         SquareDensity,
         Tersoff
+    :show-inheritance:

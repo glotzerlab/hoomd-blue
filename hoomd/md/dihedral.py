@@ -1,26 +1,44 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Dihedral potentials.
+r"""Dihedral forces.
 
-Dihedrals add forces between specified quadruplets of particles and used to
-model rotation about chemical bonds.
+Dihedral force classes apply a force and virial on every particle in the
+simulation state commensurate with the potential energy:
 
-By themselves, dihedrals that have been specified in an input file do nothing.
-Only when you specify an dihedral force (e.g. `dihedral.Harmonic`), are forces
-actually calculated between the listed particles.
+.. math::
 
-Important: There are multiple conventions pertaining to the dihedral angle (phi)
-in the literature. HOOMD utilizes the convention shown in the following figure,
-where vectors are defined from the central particles to the outer particles.
-These vectors correspond to a stretched state (:math:`\phi = 180` degrees) when
-they are anti-parallel and a compact state (:math:`\phi = 0`) when they are
-parallel.
+    U_\mathrm{dihedral} = \sum_{(i,j,k,l) \in \mathrm{dihedrals}}
+    U_{ijkl}(\phi)
 
-.. image:: dihedral-angle-definition.png
-    :width: 400 px
-    :align: center
-    :alt: Dihedral angle definition
+Each dihedral is defined by an ordered quadruplet of particle tags in the
+`hoomd.State` member ``dihedral_group``. HOOMD-blue does not construct dihedral
+groups, users must explicitly define dihedrals in the initial condition.
+
+.. image:: md-dihedral.svg
+    :alt: Definition of the dihedral bond between particles i, j, k, and l.
+
+In the dihedral group (i,j,k,l), :math:`\phi` is the signed dihedral angle
+between the planes passing through (:math:`\vec{r}_i, \vec{r}_j, \vec{r}_k`) and
+(:math:`\vec{r}_j, \vec{r}_k, \vec{r}_l`).
+
+.. rubric Per-particle energies and virials
+
+Dihedral force classes assign 1/4 of the potential energy to each of the
+particles in the dihedral group:
+
+.. math::
+
+    U_m = \frac{1}{4} \sum_{(i,j,k,l) \in \mathrm{dihedrals}}
+    U_{ijkl}(\phi) [m=i \lor m=j \lor m=k \lor m=l]
+
+and similarly for virials.
+
+Important:
+    There are multiple conventions pertaining to the dihedral angle in the
+    literature. HOOMD-blue utilizes the convention where :math:`\phi = \pm \pi`
+    in the anti-parallel stretched state ( /\\/ ) and :math:`\phi = 0` in the
+    parallel compact state ( \|_\| ).
 """
 
 from hoomd.md import _md
@@ -34,11 +52,11 @@ import math
 
 
 class Dihedral(Force):
-    """Constructs the dihedral bond potential.
+    """Base class dihedral force.
 
     Note:
-        :py:class:`Dihedral` is the base class for all dihedral potentials.
-        Users should not instantiate this class directly.
+        :py:class:`Dihedral` is the base class for all dihedral forces. Users
+        should not instantiate this class directly.
     """
 
     def __init__(self):
@@ -62,17 +80,15 @@ class Dihedral(Force):
 
 
 class Harmonic(Dihedral):
-    r"""Harmonic dihedral potential.
+    r"""Harmonic dihedral force.
 
-    :py:class:`Harmonic` specifies a harmonic dihedral potential energy between
-    every defined dihedral quadruplet of particles in the simulation:
+    `Harmonic` computes forces, virials, and energies on all dihedrals in the
+    simulation state with:
 
     .. math::
 
-        V(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
+        U(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
                \right)
-
-    where :math:`\phi` is the angle between two sides of the dihedral.
 
     Attributes:
         params (`TypeParameter` [``dihedral type``, `dict`]):
@@ -89,8 +105,8 @@ class Harmonic(Dihedral):
     Examples::
 
         harmonic = dihedral.Harmonic()
-        harmonic.params['polymer'] = dict(k=3.0, d=-1, n=3, phi0=0)
-        harmonic.params['backbone'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
+        harmonic.params['A-A-A-A'] = dict(k=3.0, d=-1, n=3, phi0=0)
+        harmonic.params['A-B-C-D'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
     """
     _cpp_class_name = "HarmonicDihedralForceCompute"
 
@@ -109,39 +125,36 @@ def _table_eval(theta, V, T, width):
 
 
 class Table(Dihedral):
-    """Tabulated dihedral potential.
+    """Tabulated dihedral force.
 
     Args:
         width (int): Number of points in the table.
 
-    `Table` computes a user-defined potential and force applied to each
-    dihedral.
+    `Table` computes computes forces, virials, and energies on all dihedrals
+    in the simulation given the user defined tables :math:`U` and :math:`\\tau`.
 
     The torque :math:`\\tau` is:
 
     .. math::
         \\tau(\\phi) = \\tau_\\mathrm{table}(\\phi)
 
-    and the potential :math:`V(\\phi)` is:
+    and the potential :math:`U(\\phi)` is:
 
     .. math::
-        V(\\phi) =V_\\mathrm{table}(\\phi)
-
-    where :math:`\\phi` is the dihedral angle for the particles A,B,C,D
-    in the dihedral.
+        U(\\phi) = U_\\mathrm{table}(\\phi)
 
     Provide :math:`\\tau_\\mathrm{table}(\\phi)` and
-    :math:`V_\\mathrm{table}(\\phi)` on evenly spaced grid points points
+    :math:`U_\\mathrm{table}(\\phi)` on evenly spaced grid points points
     in the range :math:`\\phi \\in [-\\pi,\\pi]`. `Table` linearly
     interpolates values when :math:`\\phi` lies between grid points. The
     torque must be specificed commensurate with the potential: :math:`\\tau =
-    -\\frac{\\partial V}{\\partial \\phi}`.
+    -\\frac{\\partial U}{\\partial \\phi}`.
 
     Attributes:
         params (`TypeParameter` [``dihedral type``, `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``V`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+          * ``U`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
             the tabulated energy values :math:`[\\mathrm{energy}]`. Must have
             a size equal to `width`.
 
@@ -161,7 +174,7 @@ class Table(Dihedral):
         params = TypeParameter(
             "params", "dihedral_types",
             TypeParameterDict(
-                V=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                U=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
                 len_keys=1))
         self._add_typeparam(params)
@@ -181,19 +194,17 @@ class Table(Dihedral):
 class OPLS(Dihedral):
     r"""OPLS dihedral force.
 
-    :py:class:`OPLS` specifies an OPLS-style dihedral potential energy between
-    every defined dihedral.
+    `OPLS` computes forces, virials, and energies on all dihedrals in the
+    simulation state with:
 
     .. math::
 
-        V(\phi) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
+        U(\phi) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
                   \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right) +
                   \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) +
                   \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right)
 
-    where :math:`\phi` is the angle between two sides of the dihedral and
-    :math:`k_n` are the force coefficients in the Fourier series (in energy
-    units).
+    :math:`k_n` are the force coefficients in the Fourier series.
 
     Attributes:
         params (`TypeParameter` [``dihedral type``, `dict`]):
@@ -215,7 +226,7 @@ class OPLS(Dihedral):
     Examples::
 
         opls = dihedral.OPLS()
-        opls.params['backbone'] = dict(k1=1.0, k2=1.0, k3=1.0, k4=1.0)
+        opls.params['A-A-A-A'] = dict(k1=1.0, k2=1.0, k3=1.0, k4=1.0)
     """
     _cpp_class_name = "OPLSDihedralForceCompute"
 
