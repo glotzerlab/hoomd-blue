@@ -211,7 +211,7 @@ class VertexShapeMove(ShapeMove):
     """Apply shape moves where particle vertices are translated.
 
     Args:
-         (float): Average fraction of vertices to change during
+        move_probability (float): Average fraction of vertices to change during
             each shape move.
 
     Note:

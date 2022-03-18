@@ -610,20 +610,39 @@ class Shape(Updater):
         if not self.shape_move._attached:
             self.shape_move._attach()
 
-    def _getattr_param(self, attr):
-        if self._attached:
-            if attr == "shape_move":
-                return self._param_dict["shape_move"]
-            parameter = getattr(self._cpp_obj, attr)
-            return parameter
-        else:
-            return self._param_dict[attr]
-
     def _setattr_param(self, attr, value):
         if attr == "shape_move":
-            self._param_dict["shape_move"] = value
-        else:
-            super()._setattr_param(attr, value)
+            self._set_shape_move(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _set_shape_move(self, new_move):
+        """Handles the adding and detaching of shape_move objects."""
+        # this generally only happens when attaching and we can ignore it since
+        # we attach the rigid body in _attach.
+        if new_move is self.shape_move:
+            return
+
+        old_move = self.shape_move
+
+        if new_move is not None and new_move._added:
+            raise ValueError("Cannot add ShapeMove object to multiple integrators.")
+
+        if old_move is not None:
+            if self._attached:
+                old_move._detach()
+            if self._added:
+                old_move._remove()
+
+        if new_move is None:
+            self._param_dict["shape_move"] = None
+            return
+
+        if self._added:
+            new_move._add(self._simulation)
+        if self._attached:
+            new_move._attach()
+        self._param_dict["shape_move"] = new_move
 
     def _attach(self):
         integrator = self._simulation.operations.integrator

@@ -62,13 +62,13 @@ template<typename Shape> class ShapeMoveBase
     Scalar getVolume(std::string typ)
         {
         unsigned int typid = getValidateType(typ);
-        return m_volume[typid];
+        return this->m_volume[typid];
         }
 
     void setVolume(std::string typ, Scalar volume)
         {
         unsigned int typid = getValidateType(typ);
-        m_volume[typid] = volume;
+        this->m_volume[typid] = volume;
         }
 
     unsigned int getValidateType(std::string typ)
@@ -801,6 +801,8 @@ template<class Shape> void export_ShapeMoveBase(pybind11::module& m, const std::
         .def_property("move_probability",
                       &ShapeMoveBase<Shape>::getMoveProbability,
                       &ShapeMoveBase<Shape>::setMoveProbability)
+        .def("getVolume", &ShapeMoveBase<Shape>::getVolume)
+        .def("setVolume", &ShapeMoveBase<Shape>::setVolume)
         ;
     }
 
@@ -812,13 +814,11 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<Shape>>>())
         .def("getParams", &PythonShapeMove<Shape>::getParams)
         .def("setParams", &PythonShapeMove<Shape>::setParams)
-        .def_property("move_probability",
-                      &PythonShapeMove<Shape>::getParamMoveProbability,
-                      &PythonShapeMove<Shape>::setParamMoveProbability)
         .def_property("callback",
                       &PythonShapeMove<Shape>::getCallback,
                       &PythonShapeMove<Shape>::setCallback)
-        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams);
+        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams)
+        ;
     }
 
 inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const std::string& name)
@@ -827,11 +827,7 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
                      ShapeMoveBase<ShapeConvexPolyhedron>,
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>> >())
-        .def("getVolume", &ConvexPolyhedronVertexShapeMove::getVolume)
-        .def("setVolume", &ConvexPolyhedronVertexShapeMove::setVolume)
-        .def_property("move_probability",
-                      &ConvexPolyhedronVertexShapeMove::getVertexMoveProbability,
-                      &ConvexPolyhedronVertexShapeMove::setVertexMoveProbability);
+        ;
     }
 
 template<class Shape>
@@ -845,7 +841,8 @@ inline void export_ConstantShapeMove(pybind11::module& m, const std::string& nam
                             pybind11::dict>())
         .def_property("shape_params",
                       &ConstantShapeMove<Shape>::getShapeParams,
-                      &ConstantShapeMove<Shape>::setShapeParams);
+                      &ConstantShapeMove<Shape>::setShapeParams)
+        ;
     }
 
 template<class Shape>
@@ -856,14 +853,12 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
-        .def_property("move_probability",
-                      &ElasticShapeMove<Shape>::getShearScaleRatio,
-                      &ElasticShapeMove<Shape>::setShearScaleRatio)
         .def_property("stiffness",
                       &ElasticShapeMove<Shape>::getStiffness,
                       &ElasticShapeMove<Shape>::setStiffness)
         .def("setReferenceShape", &ElasticShapeMove<Shape>::setReferenceShape)
-        .def("getReferenceShape", &ElasticShapeMove<Shape>::getReferenceShape);
+        .def("getReferenceShape", &ElasticShapeMove<Shape>::getReferenceShape)
+        ;
     }
 
     } // namespace detail
