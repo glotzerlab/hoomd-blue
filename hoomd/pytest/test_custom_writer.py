@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+import pytest
 from hoomd import conftest
 
 
@@ -41,6 +42,8 @@ class TestCustomWriter:
         assert not writer.action._attached
         assert not writer._attached
 
+    @pytest.mark.skipif(not hoomd.version.md_built,
+                        reason="BUILD_MD=on required")
     def test_flags(self, simulation_factory, two_particle_snapshot_factory):
         sim = simulation_factory(two_particle_snapshot_factory())
         action = WriteTimestep()
