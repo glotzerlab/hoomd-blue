@@ -5,7 +5,6 @@
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.operation import Tuner
-from hoomd.trigger import Trigger
 from hoomd import _hoomd
 import hoomd
 
@@ -93,18 +92,20 @@ class LoadBalancer(Tuner):
                  z=True,
                  tolerance=1.02,
                  max_iterations=1):
+        super().__init__(trigger)
+
         defaults = dict(x=x,
                         y=y,
                         z=z,
                         tolerance=tolerance,
                         max_iterations=max_iterations,
                         trigger=trigger)
-        self._param_dict = ParameterDict(x=bool,
-                                         y=bool,
-                                         z=bool,
-                                         max_iterations=int,
-                                         tolerance=float,
-                                         trigger=Trigger)
+        load_balancer_params = ParameterDict(x=bool,
+                                             y=bool,
+                                             z=bool,
+                                             max_iterations=int,
+                                             tolerance=float)
+        self._param_dict.update(load_balancer_params)
         self._param_dict.update(defaults)
 
     def _attach(self):
