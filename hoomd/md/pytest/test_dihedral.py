@@ -53,7 +53,7 @@ dihedral_test_parameters = [
     (
         hoomd.md.dihedral.Table,
         dict(width=2),
-        dict(V=[0, 10], tau=[0, 1]),
+        dict(U=[0, 10], tau=[0, 1]),
         -0.375,
         3.75,
     ),

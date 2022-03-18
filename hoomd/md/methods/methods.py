@@ -33,7 +33,7 @@ class Method(_HOOMDBaseObject):
 
 
 class NVT(Method):
-    r"""NVT Integration via the Nosé-Hoover thermostat.
+    r"""Constant volume, constant temperature dynamics.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
@@ -45,43 +45,39 @@ class NVT(Method):
         tau (`float`): Coupling constant for the Nosé-Hoover thermostat
             :math:`[\mathrm{time}]`.
 
-    `NVT` performs constant volume, constant temperature simulations
-    using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
-    `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
-    <http://dx.doi.org/10.1063/1.467468>`_ and `J. Cao, G. J. Martyna 1996
-    <http://dx.doi.org/10.1063/1.470959>`_.
+    `NVT` integrates particles forward in time in the canonical ensemble
+    using the Nosé-Hoover thermostat. The thermostat is introduced as additional
+    degrees of freedom in the Hamiltonian that couple with the velocities
+    and angular momenta of the particles.
 
-    :math:`\tau` is related to the Nosé mass :math:`Q` by
+    The translational thermostat has a momentum :math:`\xi` and position
+    :math:`\eta`. The rotational thermostat has momentum
+    :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`. Access
+    these quantities using `translational_thermostat_dof` and
+    `rotational_thermostat_dof`.
 
-    .. math::
-
-        \tau = \sqrt{\frac{Q}{g k T_0}}
-
-    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
-    the set point (*kT* above).
-
-    The `NVT` equations of motion include a translational thermostat (with
-    momentum :math:`\xi` and position :math:`\eta`) and a rotational thermostat
-    (with momentum :math:`\xi_{\mathrm{rot}}` and position
-    :math:`\eta_\mathrm{rot}`). Access these quantities using
-    `translational_thermostat_dof` and `rotational_thermostat_dof`.
+    `NVT` numerically integrates the equations of motion using the symplectic
+    Martyna-Tobias-Klein formalism described refs. `G. J. Martyna, D. J.
+    Tobias, M. L. Klein 1994 <http://dx.doi.org/10.1063/1.467468>`_ and `J.
+    Cao, G. J. Martyna 1996 <http://dx.doi.org/10.1063/1.470959>`_.
 
     Note:
-        Coupling constant `tau` in Nosé-Hoover thermostat should be set within
-        reasonable range to avoid abrupt fluctuation in temperature in case of
-        small `tau` , also to avoid long time to equilibrate in case of large
-        `tau`. Recommended value for most of systems is ``100 * dt``, where
-        ``dt`` is the length of the time step.
+        The coupling constant `tau` should be set within a
+        reasonable range to avoid abrupt fluctuations in the kinetic temperature
+        and to avoid long time to equilibration. The recommended value for most
+        systems is :math:`\tau = 100 \delta t`.
 
-    .. todo:: Rotational degrees of freedom
-
-        `NVT` integrates rotational degrees of freedom.
+    Important:
+        Ensure that your initial condition includes non-zero particle velocities
+        and angular momenta (when appropriate). The coupling between the
+        thermostat and the velocities and angular momenta occurs via
+        multiplication, so `NVT` cannot convert a zero velocity into a non-zero
+        one except through particle collisions.
 
     Examples::
 
         nvt=hoomd.md.methods.NVT(filter=hoomd.filter.All(), kT=1.0, tau=0.5)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
-
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
@@ -164,7 +160,7 @@ class NVT(Method):
 
 
 class NPT(Method):
-    r"""NPT Integration via MTK barostat-thermostat.
+    r"""Constant pressure, constant temperature dynamics.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -202,32 +198,35 @@ class NPT(Method):
         gamma (`float`): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPT` performs constant pressure, constant temperature simulations,
-    allowing for a fully deformable simulation box.
+    `NPT` integrates particles forward in time in the Isothermal-isobaric
+    ensemble.  The thermostat and barostat are introduced as additional
+    degrees of freedom in the Hamiltonian that couple with the particle
+    velocities and angular momenta and the box parameters.
 
-    The integration method is based on the rigorous Martyna-Tobias-Klein
-    equations of motion for NPT. For optimal stability, the update equations
-    leave the phase-space measure invariant and are manifestly time-reversible.
+    The translational thermostat has a momentum :math:`\xi` and position
+    :math:`\eta`. The rotational thermostat has momentum
+    :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`. The
+    barostat tensor is :math:`\nu_{\mathrm{ij}}`. Access these quantities using
+    `translational_thermostat_dof`, `rotational_thermostat_dof`, and
+    `barostat_dof`.
 
     By default, `NPT` performs integration in a cubic box under hydrostatic
     pressure by simultaneously rescaling the lengths *Lx*, *Ly* and *Lz* of the
-    simulation box.
+    simulation box. Set the integration mode to change this default.
 
-    `NPT` can also perform more advanced integration modes. The integration mode
-    is specified by a set of couplings and by specifying the box degrees of
-    freedom that are put under barostat control.
-
-    Couplings define which diagonal elements of the pressure tensor
+    The integration mode is defined by a set of couplings and by specifying
+    the box degrees of freedom that are put under barostat control. Couplings
+    define which diagonal elements of the pressure tensor
     :math:`P_{\alpha,\beta}` should be averaged over, so that the corresponding
     box lengths are rescaled by the same amount.
 
     Valid couplings are:
 
-    - none (all box lengths are updated independently)
-    - xy (*Lx* and *Ly* are coupled)
-    - xz (*Lx* and *Lz* are coupled)
-    - yz (*Ly* and *Lz* are coupled)
-    - xyz (*Lx*, *Ly*, and *Lz* are coupled)
+    - ``'none'`` (all box lengths are updated independently)
+    - ``'xy`'`` (*Lx* and *Ly* are coupled)
+    - ``'xz`'`` (*Lx* and *Lz* are coupled)
+    - ``'yz`'`` (*Ly* and *Lz* are coupled)
+    - ``'xyz`'`` (*Lx*, *Ly*, and *Lz* are coupled)
 
     Degrees of freedom of the box specify which lengths and tilt factors of the
     box should be updated, and how particle coordinates and velocities should be
@@ -255,40 +254,37 @@ class NPT(Method):
     - Specifying no couplings and all degrees of freedom amounts to a fully
       deformable triclinic unit cell
 
+    `NPT` numerically integrates the equations of motion using the symplectic
+    Martyna-Tobias-Klein equations of motion for NPT. For optimal stability, the
+    update equations leave the phase-space measure invariant and are manifestly
+    time-reversible.
 
-    For the MTK equations of motion, see:
-
-    * G. J. Martyna, D. J. Tobias, M. L. Klein  1994
-      (`paper link <http://dx.doi.org/10.1063/1.467468>`__)
-    * M. E. Tuckerman et. al. 2006
-      (`paper link <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__)
-    * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
-    *  Glaser et. al (2013), unpublished
-
-
-    :math:`\tau` is related to the Nosé mass :math:`Q` by
-
-    .. math::
-
-        \tau = \sqrt{\frac{Q}{g k T_0}}
-
-    where :math:`g` is the number of degrees of freedom, and :math:`k T_0` is
-    the set point (*kT* above).
-
-    The `NPT` equations of motion include a translational thermostat (with
-    momentum :math:`\xi` and position :math:`\eta`), a rotational thermostat
-    (with momentum :math:`\xi_{\mathrm{rot}}` and position
-    :math:`\eta_\mathrm{rot}`), and a barostat tensor :math:`\nu_{\mathrm{ij}}`.
-    Access these quantities using `translational_thermostat_dof`,
-    `rotational_thermostat_dof`, and `barostat_dof`.
+    See Also:
+        * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
+          <http://dx.doi.org/10.1063/1.467468>`__
+        * `M. E. Tuckerman et. al. 2006
+          <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
+        * `T. Yu et. al. 2010
+          <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
 
     Note:
-        Coupling constant for barostat `tauS` should be set within appropriate
-        range for pressure and volume to fluctuate in reasonable rate and
-        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too
-        large `tauS` would take long time to equilibrate. In most of systems,
-        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
-        length of the time step.
+        The coupling constant `tau` should be set within a
+        reasonable range to avoid abrupt fluctuations in the kinetic temperature
+        and to avoid long time to equilibration. The recommended value for most
+        systems is :math:`\tau = 100 \delta t`.
+
+    Note:
+        The barostat coupling constant `tauS` should be set within a reasonable
+        range to avoid abrupt fluctuations in the box volume and to avoid long
+        time to equilibration. The recommend value for most systems is
+        :math:`\tau_S = 1000 \delta t`.
+
+    Important:
+        Ensure that your initial condition includes non-zero particle velocities
+        and angular momenta (when appropriate). The coupling between the
+        thermostat and the velocities and angular momenta occurs via
+        multiplication, so `NPT` cannot convert a zero velocity into a non-zero
+        one except through particle collisions.
 
     Examples::
 
@@ -464,7 +460,7 @@ class NPT(Method):
 
 
 class NPH(Method):
-    r"""NPH Integration via MTK barostat-thermostat.
+    r"""Constant pressure, constant enthalpy dynamics.
 
     Args:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
@@ -496,13 +492,16 @@ class NPH(Method):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    Note:
-        Coupling constant for barostat `tauS` should be set within appropriate
-        range for pressure and volume to fluctuate in reasonable rate and
-        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too
-        large `tauS` would take long time to equilibrate. In most of systems,
-        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
-        length of the time step.
+    `NPH` integrates particles forward in time in the Isoenthalpic-isobaric
+    ensemble. The barostat is introduced as additional degrees of freedom in the
+    Hamiltonian that couple with the box parameters.
+
+    The barostat tensor is :math:`\nu_{\mathrm{ij}}`. Access these quantities
+    `barostat_dof`.
+
+    See Also:
+        Except for the thermostat, `NPH` shares parameters with `NPT`. See
+        `NPT` for descriptions of the coupling and other barostat parameters.
 
     Examples::
 
@@ -529,7 +528,7 @@ class NPH(Method):
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
             :math:`[\mathrm{pressure}]`. Stress can be reset after
-            method object is created. For example, an isoropic
+            method object is created. For example, an isotopic
             pressure can be set by ``nph.S = 4.``
 
         tauS (float): Coupling constant for the barostat
@@ -652,48 +651,40 @@ class NPH(Method):
 
 
 class NVE(Method):
-    r"""NVE Integration via Velocity-Verlet.
+    r"""Constant volume, constant energy dynamics.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
-         apply this method.
+            apply this method.
 
-        limit (None or `float`): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
+    `NVE` integrates particles forward in time in the microcanonical ensemble.
+    The equations of motion are derived from the hamiltonian:
 
-    `NVE` performs constant volume, constant energy simulations using
-    the standard Velocity-Verlet method. For poor initial conditions that
-    include overlapping atoms, a limit can be specified to the movement a
-    particle is allowed to make in one time step. After a few thousand time
-    steps with the limit set, the system should be in a safe state to continue
-    with unconstrained integration.
+    .. math::
 
-    .. todo::
-        Update when zero momentum updater is added.
+        H = U + K_\mathrm{translational} + K_\mathrm{rotational}
+
+    `NVE` numerically integrates the translational degrees of freedom
+    using Velocity-Verlet and the rotational degrees of freedom with a scheme
+    based on `Kamberaj 2005`_.
 
     Examples::
 
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
+    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
+
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
-
-        limit (None or float): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
-
     """
 
-    def __init__(self, filter, limit=None):
+    def __init__(self, filter):
 
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            limit=OnlyTypes(float, allow_none=True),
-            zero_force=OnlyTypes(bool, allow_none=False),
-        )
-        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
+        param_dict = ParameterDict(filter=ParticleFilter,)
+        param_dict.update(dict(filter=filter, zero_force=False))
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -735,19 +726,19 @@ class Langevin(Method):
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
             Defaults to False :math:`[\mathrm{energy}]`.
 
-    .. rubric:: Translational degrees of freedom
-
     `Langevin` integrates particles forward in time according to the
-    Langevin equations of motion:
+    Langevin equations of motion.
+
+    In the translational degrees of freedom:
 
     .. math::
 
-        m \frac{d\vec{v}}{dt} = \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
+        m \frac{d\vec{v}}{dt} &= \vec{F}_\mathrm{C} - \gamma \cdot \vec{v} +
         \vec{F}_\mathrm{R}
 
-        \langle \vec{F}_\mathrm{R} \rangle = 0
+        \langle \vec{F}_\mathrm{R} \rangle &= 0
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d kT \gamma / \delta t
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle &= 2 d kT \gamma / \delta t
 
     where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
     potentials and constraint forces, :math:`\gamma` is the drag coefficient,
@@ -755,32 +746,44 @@ class Langevin(Method):
     uniform random force, and :math:`d` is the dimensionality of the system (2
     or 3).  The magnitude of the random force is chosen via the
     fluctuation-dissipation theorem to be consistent with the specified drag and
-    temperature, :math:`T`.  When :math:`kT=0`, the random force
-    :math:`\vec{F}_\mathrm{R}=0`.
+    temperature, :math:`T`.
 
-    Langevin dynamics includes the acceleration term in the Langevin equation
-    and is useful for gently thermalizing systems using a small gamma. This
-    assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
-    Use `Brownian` if your system is not underdamped.
+    In the rotational degrees of freedom:
 
-    `Langevin` uses the same integrator as `NVE` with the additional force term
-    :math:`- \gamma \cdot \vec{v} + \vec{F}_\mathrm{R}`. The random force
-    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
-    distribution.
+    .. math::
 
-    You can specify :math:`\gamma` in two ways:
+        I \frac{d\vec{L}}{dt} &= \vec{\tau}_\mathrm{C} - \gamma_r \cdot \vec{L}
+        + \vec{\tau}_\mathrm{R}
+
+        \langle \vec{\tau}_\mathrm{R} \rangle &= 0,
+
+        \langle \tau_\mathrm{R}^i \cdot \tau_\mathrm{R}^i \rangle &=
+        2 k T \gamma_r^i / \delta t,
+
+    where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
+    :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
+    (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
+    the torque, :math:`\vec{L}` is the particle's angular momentum and :math:`I`
+    is the the particle's moment of inertia. The magnitude of the random torque
+    is chosen via the fluctuation-dissipation theorem to be consistent with the
+    specified drag and temperature, :math:`T`.
+
+    `Langevin` numerically integrates the translational degrees of freedom
+    using Velocity-Verlet and the rotational degrees of freedom with a scheme
+    based on `Kamberaj 2005`_.
+
+    Langevin dynamics includes the acceleration term in the Langevin equation.
+    This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg
+    \delta t`. Use `Brownian` if your system is not underdamped.
+
+    You can set :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
-       mass / distance / time.
-    2. After the method object is created, specify the
-       attribute ``gamma`` and ``gamma_r`` for rotational damping or random
-       torque to assign them directly, with independent values for each
-       particle type in the system.
-
-    Warning:
-        When restarting a simulation, the energy of the reservoir will be reset
-        to zero.
+       :math:`\gamma = \alpha d_i`.
+    2. After the method object is created, specify the attribute `gamma`
+       and `gamma_r` for rotational damping or random torque to assign them
+       directly, with independent values for each particle type in the
+       system.
 
     Examples::
 
@@ -789,11 +792,17 @@ class Langevin(Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
         forces=[lj])
 
-    Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
+    Examples of using `gamma` and `gamma_r`::
 
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2)
         langevin.gamma.default = 2.0
         langevin.gamma_r.default = [1.0,2.0,3.0]
+
+    Warning:
+        When restarting a simulation, the energy of the reservoir will be reset
+        to zero.
+
+    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -881,47 +890,74 @@ class Brownian(Method):
             simulation :math:`[\mathrm{energy}]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None
+            drag coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
+            Defaults to ``None``
 
     `Brownian` integrates particles forward in time according to the overdamped
-    Langevin equations of motion, sometimes called Brownian dynamics, or the
+    Langevin equations of motion, sometimes called Brownian dynamics or the
     diffusive limit.
+
+    In the translational degrees of freedom:
 
     .. math::
 
-        \frac{d\vec{x}}{dt} = \frac{\vec{F}_\mathrm{C} +
-        \vec{F}_\mathrm{R}}{\gamma}
+        \frac{d\vec{r}}{dt} &= \frac{\vec{F}_\mathrm{C} +
+        \vec{F}_\mathrm{R}}{\gamma},
 
-        \langle \vec{F}_\mathrm{R} \rangle = 0
+        \langle \vec{F}_\mathrm{R} \rangle &= 0,
 
-        \langle |\vec{F}_\mathrm{R}|^2 \rangle = 2 d k T \gamma / \delta t
+        \langle |\vec{F}_\mathrm{R}|^2 \rangle &= 2 d k T \gamma / \delta t,
 
-        \langle \vec{v}(t) \rangle = 0
+        \langle \vec{v}(t) \rangle &= 0,
 
-        \langle |\vec{v}(t)|^2 \rangle = d k T / m
+        \langle |\vec{v}(t)|^2 \rangle &= d k T / m,
 
+    where :math:`\vec{F}_\mathrm{C} = \vec{F}_\mathrm{net}` is the net force on
+    the particle from all forces (`hoomd.md.Integrator.forces`) and constraints
+    (`hoomd.md.Integrator.constraints`), :math:`\gamma` is the translational
+    drag coefficient (`gamma`), :math:`\vec{F}_\mathrm{R}` is a uniform random
+    force, :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
+    dimensionality of the system. The magnitude of the random force is chosen
+    via the fluctuation-dissipation theorem to be consistent with the specified
+    drag and temperature, :math:`T`.
 
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials and constraint forces, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{F}_\mathrm{R}` is a uniform random force, :math:`\vec{v}` is
-    the particle's velocity, and :math:`d` is the dimensionality of the system.
-    The magnitude of the random force is chosen via the fluctuation-dissipation
-    theorem to be consistent with the specified drag and temperature, :math:`T`.
-    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+    In the rotational degrees of freedom:
 
-    `Brownian` uses the integrator from I. Snook, The Langevin and Generalised
-    Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal
-    Systems, 2007, section 6.2.5 `link`_, with the exception that
+    .. math::
+
+        \frac{d\mathbf{q}}{dt} &= \frac{\vec{\tau}_\mathrm{C} +
+        \vec{\tau}_\mathrm{R}}{\gamma_r},
+
+        \langle \vec{\tau}_\mathrm{R} \rangle &= 0,
+
+        \langle \tau_\mathrm{R}^i \cdot \tau_\mathrm{R}^i \rangle &=
+        2 k T \gamma_r^i / \delta t,
+
+        \langle \vec{L}(t) \rangle &= 0,
+
+        \langle L^i(t) \cdot L^i(t) \rangle &= k T \cdot I^i,
+
+    where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
+    :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
+    (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
+    the torque, :math:`L^i` is the i-th component of the particle's angular
+    momentum and :math:`I^i` is the i-th component of the particle's
+    moment of inertia. The magnitude of the random torque is chosen
+    via the fluctuation-dissipation theorem to be consistent with the specified
+    drag and temperature, :math:`T`.
+
+    `Brownian` uses the numerical integration method from `I. Snook 2007`_, The
+    Langevin and Generalised Langevin Approach to the Dynamics of Atomic,
+    Polymeric and Colloidal Systems, section 6.2.5, with the exception that
     :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
     distribution.
 
-    .. _link: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
+    .. _I. Snook 2007: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
 
-    In Brownian dynamics, particle velocities are completely decoupled from
-    positions. At each time step, `Brownian` draws a new velocity
+    In Brownian dynamics, particle velocities and angular momenta are completely
+    decoupled from positions. At each time step, `Brownian` draws a new velocity
     distribution consistent with the current set temperature so that
     `hoomd.md.compute.ThermodynamicQuantities` will report appropriate
     temperatures and pressures when logged or used by other methods.
@@ -931,13 +967,12 @@ class Brownian(Method):
     :math:`\frac{m}{\gamma} \ll \delta t`. Use `Langevin` if your
     system is not overdamped.
 
-    You can specify :math:`\gamma` in two ways:
+    You can set :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are mass /
-       distance / time.
-    2. After the method object is created, specify the attribute ``gamma``
-       and ``gamma_r`` for rotational damping or random torque to assign them
+       :math:`\gamma = \alpha d_i`.
+    2. After the method object is created, specify the attribute `gamma`
+       and `gamma_r` for rotational damping or random torque to assign them
        directly, with independent values for each particle type in the
        system.
 
@@ -948,12 +983,11 @@ class Brownian(Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
         forces=[lj])
 
-    Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
+    Examples of using `gamma` and `gamma_r`::
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2)
         brownian.gamma.default = 2.0
         brownian.gamma_r.default = [1.0, 2.0, 3.0]
-
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -965,7 +999,7 @@ class Brownian(Method):
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
-            \cdot \mathrm{time}^{-1}]`. Defaults to None.
+            \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
@@ -1115,36 +1149,41 @@ class OverdampedViscous(Method):
             apply this method to.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None
+            drag coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
+            Defaults to ``None``
 
     `OverdampedViscous` integrates particles forward in time following
-    Newtonian in the overdamped limit where there is no intertial term.
-    (in the limit that the mass :math:`m` goes to 0).
-
+    Newtonian dynamics in the overdamped limit where there is no inertial term.
+    (in the limit that the mass :math:`m` and moment of inertia :math:`I` go to
+    0):
 
     .. math::
 
-        \frac{d\vec{r}}{dt} = \vec{v}
+        \frac{d\vec{r}}{dt} &= \vec{v}
 
-        \vec{v(t)} = \frac{\vec{F}_\mathrm{C}}{\gamma}
+        \vec{v(t)} &= \frac{\vec{F}_\mathrm{C}}{\gamma}
 
+        \frac{d\mathbf{q}}{dt} &= \vec{\tau}
 
-    where :math:`\vec{F}_\mathrm{C}` is the force on the particle from all
-    potentials, :math:`\gamma` is the drag coefficient,
-    :math:`\vec{v}` is the particle's velocity, and :math:`d` is the
-    dimensionality of the system.
+        \tau^i &= \frac{\tau_\mathrm{C}^i}{\gamma_r^i}
 
-    You can specify :math:`\gamma` in two ways:
+    where :math:`\vec{F}_\mathrm{C} = \vec{F}_\mathrm{net}` is the net force on
+    the particle from all forces (`hoomd.md.Integrator.forces`) and constraints
+    (`hoomd.md.Integrator.constraints`), :math:`\gamma` is the translational
+    drag coefficient (`gamma`) :math:`\vec{v}` is the particle's velocity,
+    :math:`d` is the dimensionality of the system, :math:`\tau_\mathrm{C}^i` is
+    the i-th component of the net torque from all forces and constraints, and
+    :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
+    (`gamma_r`).
+
+    You can set :math:`\gamma` in two ways:
 
     1. Specify :math:`\alpha` which scales the particle diameter to
-       :math:`\gamma = \alpha d_i`. The units of :math:`\alpha` are
-       :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
-       \cdot \mathrm{time}^{-1}]`.
-    2. After the method object is created, specify the attribute ``gamma``
-       and ``gamma_r`` for rotational damping or random torque to assign them
+       :math:`\gamma = \alpha d_i`.
+    2. After the method object is created, specify the attribute `gamma`
+       and `gamma_r` for rotational damping or random torque to assign them
        directly, with independent values for each particle type in the
        system.
 
@@ -1154,10 +1193,9 @@ class OverdampedViscous(Method):
 
     Examples::
 
-        odv = hoomd.md.methods.Brownian(filter=hoomd.filter.All())
+        odv = hoomd.md.methods.OverdampedViscous(filter=hoomd.filter.All())
         odv.gamma.default = 2.0
         odv.gamma_r.default = [1.0, 2.0, 3.0]
-
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -1166,7 +1204,7 @@ class OverdampedViscous(Method):
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
-            \cdot \mathrm{time}^{-1}]`. Defaults to None.
+            \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle

@@ -30,19 +30,23 @@ if __name__ == '__main__':
     for name, configuration in configurations.items():
         for entry in configuration:
             if entry['config'].startswith('[cuda'):
-                entry['runner'] = "[self-hosted,GPU]"
+                entry['build_runner'] = "[self-hosted,jetstream2,CPU]"
+
+                entry['test_runner'] = "[self-hosted,GPU]"
                 # device options needed to access the GPU devices on the runners
                 # because the nvidia container toolkit is built without cgroups
                 # support:
                 # https://aur.archlinux.org/packages/nvidia-container-toolkit
-                entry['docker_options'] = "--gpus=all --device /dev/nvidia0 " \
+                entry['test_docker_options'] = \
+                    "--gpus=all --device /dev/nvidia0 " \
                     "--device /dev/nvidia1 " \
                     "--device /dev/nvidia-uvm " \
                     "--device /dev/nvidia-uvm-tools " \
                     "--device /dev/nvidiactl"
             else:
-                entry['runner'] = "ubuntu-latest"
-                entry['docker_options'] = ""
+                entry['test_runner'] = "ubuntu-latest"
+                entry['build_runner'] = "[self-hosted,jetstream2,CPU]"
+                entry['test_docker_options'] = ""
 
     with open('test.yml', 'w') as f:
         f.write(template.render(configurations))

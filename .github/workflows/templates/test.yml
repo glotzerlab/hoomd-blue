@@ -25,18 +25,18 @@ env:
   PYTHONPATH: ${{ github.workspace }}/install
 <% endblock %>
 <% set tar_command="tar --use-compress-program='zstd -10 -T0'" %>
-<% macro job(name, use_gpu_runners, configurations, needs='') %>
+<% macro job(name, run_tests, configurations, needs='') %>
     name: << name >> [${{ join(matrix.config, '_') }}]
     <% if needs != '' %>
     needs: << needs >>
     <% endif %>
-    <% if use_gpu_runners %>
-    runs-on: ${{ matrix.runner }}
+    <% if run_tests %>
+    runs-on: ${{ matrix.test_runner }}
     container:
       image: << container_prefix >>-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+      options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     <% else %>
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.build_runner }}
     container:
       image: << container_prefix >>-${{ matrix.config[0] }}
     <% endif %>
@@ -44,7 +44,7 @@ env:
       matrix:
         include:
     <% for configuration in configurations %>
-        - {config: << configuration.config >>, runner: << configuration.runner >>, docker_options: '<< configuration.docker_options >>' }
+        - {config: << configuration.config >>, build_runner: << configuration.build_runner >>, test_runner: << configuration.test_runner >>, test_docker_options: '<< configuration.test_docker_options >>' }
     <% endfor %>
 <% endmacro %>
 <% set build_steps %>
@@ -63,12 +63,19 @@ env:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
+                      -DBUILD_MD=${BUILD_MD:-"ON"} \
+                      -DBUILD_MPCD=${BUILD_MD:-"ON"} \
+                      -DBUILD_METAL=${BUILD_MD:-"ON"} \
+                      -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
+                      -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
         ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
+        BUILD_MD: ${{ !contains(matrix.config, 'nomd') }}
+        BUILD_HPMC: ${{ !contains(matrix.config, 'nohpmc') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
@@ -157,7 +164,7 @@ env:
       run: rm -rf ./*
 <% endset %>
 <% block jobs %>
-# Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners for
+# Use multiple jobs to reduce the amount of time spent on GPU runners. Use CPU runners for
 # compiling all tests configurations (GPU and CPU), then upload the build directory (sans object
 # files) as an artifact. Test jobs depend on the build job, download the install directory, and run
 # the tests. Upload each build configuration to a separate artifact.
@@ -167,7 +174,7 @@ env:
 # [image, (mpi), (tbb)]
 jobs:
   build:
-<< job(name='Build', use_gpu_runners=False, configurations=unit_test_configurations) >>
+<< job(name='Build', run_tests=False, configurations=unit_test_configurations) >>
     env:
       CXXFLAGS: '-Werror'
 << prepare_steps >>
@@ -175,40 +182,40 @@ jobs:
 << upload_steps >>
 
   pytest:
-<< job(name='Run pytest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
+<< job(name='Run pytest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
 
   ctest:
-<< job(name='Run ctest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
+<< job(name='Run ctest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
 << prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
 
   validate:
-<< job(name='Validate', use_gpu_runners=True, configurations=validate_configurations, needs='build') >>
+<< job(name='Validate', run_tests=True, configurations=validate_configurations, needs='build') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
 << prepare_steps >>
 << download_install_steps >>
 << pytest_validate_steps >>
 
   build_release:
-<< job(name='Build', use_gpu_runners=False, configurations=release_test_configurations) >>
+<< job(name='Build', run_tests=False, configurations=release_test_configurations) >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
 
   pytest_release:
-<< job(name='Run pytest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
+<< job(name='Run pytest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
 
   ctest_release:
-<< job(name='Run ctest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
+<< job(name='Run ctest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
 << prepare_steps >>
 << download_build_steps >>
@@ -237,4 +244,31 @@ jobs:
         if: needs.validate.result != 'success'
         run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
+
+  start_action_runners:
+    name: Start action runners
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2.4.0
+        with:
+          path: code
+      - uses: actions/cache@v2.1.7
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-openstacksdk==0.61.0
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install openstack
+        run: python3 -m pip install openstacksdk==0.61.0
+      - name: Start action runners
+        run: python3 code/.github/workflows/start-action-runners.py
+        env:
+          OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+          OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+          OS_AUTH_TYPE: v3applicationcredential
+          OS_AUTH_URL: https://js2.jetstream-cloud.org:5000/v3/
+          OS_IDENTITY_API_VERSION: 3
+          OS_REGION_NAME: "IU"
+          OS_INTERFACE: public
 <% endblock %>

@@ -7,6 +7,62 @@ Change Log
 v3.x
 ----
 
+v3.0.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Overview*
+
+HOOMD-blue v3.0.0 is the first production release with the new API that has been developed and
+implemented over more than 2 years. Those still using v2.x will need to make changes to their
+scripts to use v3. See the `migrating` page for an overview and individual class and method
+documentation for more information. To summarize, the new API is object oriented, allows HOOMD-blue
+to work effectively as a Python package, and provides more hooks for Python code to directly interface
+with the simulation.
+
+*New features in v3 since v2.9.7:*
+
+* Zero-copy data access through numpy and cupy.
+* Triggers determine what timesteps operations execute on.
+* User-defined operations, triggers, particle filters, variants, and forces.
+* Logging subsystem supports array quantities.
+* Implicit depletants for 2D shapes in HPMC.
+* Harmonically mapped averaging for MD thermodynamic quantities of crystals.
+* TWF pair potential.
+* Tether bond potential.
+* Manifold constraints for MD integration methods (using RATTLE) and active forces.
+* Document code architecture in ``ARCHITECTURE.md``.
+* Overdamped viscous MD integration method.
+* User-defined pair potentials work with HPMC on the GPU.
+* Long range tail correction for Lennard-Jones potential.
+* Anisotropic Lennard-Jones-like pair potential for polyhedra and ellipsoids.
+
+See the full change log below for all v3 beta releases.
+
+Changes from v3.0.0-beta.14:
+
+*Added*
+
+* ``hoomd.hpmc.tune.BoxMCMoveSize`` - Tune ``BoxMC`` move sizes to meet target acceptance ratios.
+
+*Changed*
+
+* Improve documentation.
+
+*Fixed*
+
+* ``FIRE.converged`` may be queried before calling ``Simulation.run``.
+* Bug where using ``__iadd__`` to certain attributes would fail with an exception.
+* Bug where ``hoomd.md.pair.LJ.additional_energy`` is ``NaN`` when ``tail_correction`` is enabled
+  and some pairs have ``r_cut=0``.
+* Compile error with CUDA 11.7.
+
+*Removed*
+
+* [developers] Removed ``IntegratorData`` class. It is replaced by structs that are defined in the
+  integrator classes.
+* ``get_ordered_vertices`` from ``hoomd.md.pair.aniso.ALJ``.
+* Removed optional coxeter dependency.
+
 v3.0.0-beta.14 (2022-02-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -48,8 +104,6 @@ v3.0.0-beta.14 (2022-02-18)
 
 *Removed*
 
-* [developers] Removed ``IntegratorData`` class. It is replaced by structs that are defined in the
-  integrator classes.
 * [breaking] Removed ``hoomd.md.pair.SLJ`` potential and wall. Use ``hoomd.md.pair.ExpandedLJ``.
 * [breaking] ``hoomd.Box.lattice_vectors`` property no longer exists.
 
