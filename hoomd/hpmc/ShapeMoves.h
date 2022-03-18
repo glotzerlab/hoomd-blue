@@ -787,7 +787,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
     std::vector<detail::MassProperties<ShapeEllipsoid>>
         m_mass_props; // mass properties of the shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_reference_shapes; // shape to reference shape move against
+        m_reference_shapes;       // shape to reference shape move against
     std::shared_ptr<Variant> m_k; // shape move stiffness
     };
 
@@ -797,13 +797,13 @@ namespace detail
 template<class Shape> void export_ShapeMoveBase(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ShapeMoveBase<Shape>, std::shared_ptr<ShapeMoveBase<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<Shape>>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>>())
         .def_property("move_probability",
                       &ShapeMoveBase<Shape>::getMoveProbability,
                       &ShapeMoveBase<Shape>::setMoveProbability)
         .def("getVolume", &ShapeMoveBase<Shape>::getVolume)
-        .def("setVolume", &ShapeMoveBase<Shape>::setVolume)
-        ;
+        .def("setVolume", &ShapeMoveBase<Shape>::setVolume);
     }
 
 template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name)
@@ -811,14 +811,14 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
     pybind11::class_<PythonShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<Shape>>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>>())
         .def("getParams", &PythonShapeMove<Shape>::getParams)
         .def("setParams", &PythonShapeMove<Shape>::setParams)
         .def_property("callback",
                       &PythonShapeMove<Shape>::getCallback,
                       &PythonShapeMove<Shape>::setCallback)
-        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams)
-        ;
+        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams);
     }
 
 inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const std::string& name)
@@ -826,8 +826,8 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
     pybind11::class_<ConvexPolyhedronVertexShapeMove,
                      ShapeMoveBase<ShapeConvexPolyhedron>,
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>> >())
-        ;
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>>>());
     }
 
 template<class Shape>
@@ -841,8 +841,7 @@ inline void export_ConstantShapeMove(pybind11::module& m, const std::string& nam
                             pybind11::dict>())
         .def_property("shape_params",
                       &ConstantShapeMove<Shape>::getShapeParams,
-                      &ConstantShapeMove<Shape>::setShapeParams)
-        ;
+                      &ConstantShapeMove<Shape>::setShapeParams);
     }
 
 template<class Shape>
@@ -857,8 +856,7 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
                       &ElasticShapeMove<Shape>::getStiffness,
                       &ElasticShapeMove<Shape>::setStiffness)
         .def("setReferenceShape", &ElasticShapeMove<Shape>::setReferenceShape)
-        .def("getReferenceShape", &ElasticShapeMove<Shape>::getReferenceShape)
-        ;
+        .def("getReferenceShape", &ElasticShapeMove<Shape>::getReferenceShape);
     }
 
     } // namespace detail
