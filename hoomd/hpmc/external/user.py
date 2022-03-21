@@ -74,9 +74,9 @@ class CPPExternalPotential(ExternalField):
     Example:
         .. code-block:: python
 
-            grav_code = "return r_i.z + box.getL().z/2;"
+            gravity_code = "return r_i.z + box.getL().z/2;"
             gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-                code=grav_code)
+                code=gravity_code)
             mc.external_potential = gravity
 
     Note:

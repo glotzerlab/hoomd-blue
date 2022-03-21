@@ -1,9 +1,14 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+"""Wall potentials HPMC simulations.
+
+Set :math:`U_{\\mathrm{external},i}` evaluated in
+`hoomd.hpmc.integrate.HPMCIntegrator` to a hard particle-wall interaction.
+"""
+
 import hoomd
 from hoomd.wall import _WallsMetaList
-from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.syncedlist import identity
 from hoomd.hpmc.external.field import ExternalField
 from hoomd.logging import log
@@ -24,7 +29,7 @@ def _to_hpmc_cpp_wall(wall):
 
 
 class _HPMCWallsMetaList(_WallsMetaList):
-    """Handle HPMC walls
+    """Handle HPMC walls.
 
     This class supplements the base `_WallsMetaList` class with the
     functionality to ensure that walls added to the `WallPotential` are
