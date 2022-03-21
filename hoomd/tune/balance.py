@@ -98,8 +98,7 @@ class LoadBalancer(Tuner):
                         y=y,
                         z=z,
                         tolerance=tolerance,
-                        max_iterations=max_iterations,
-                        trigger=trigger)
+                        max_iterations=max_iterations)
         load_balancer_params = ParameterDict(x=bool,
                                              y=bool,
                                              z=bool,
