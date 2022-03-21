@@ -9,11 +9,12 @@ namespace hoomd
 namespace hpmc
     {
 UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
+                                           std::shared_ptr<Trigger> trigger,
                                            std::shared_ptr<IntegratorHPMC> mc,
                                            double max_overlaps_per_particle,
                                            double min_scale,
                                            std::shared_ptr<BoxDim> target_box)
-    : Updater(sysdef), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
+    : Updater(sysdef, trigger), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
       m_target_box(target_box)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterQuickCompress" << std::endl;
@@ -193,6 +194,7 @@ void export_UpdaterQuickCompress(pybind11::module& m)
         m,
         "UpdaterQuickCompress")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMC>,
                             double,
                             double,

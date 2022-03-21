@@ -63,5 +63,6 @@ class RemoveDrift(Updater):
                 "Falling back on CPU. No GPU implementation available.\n")
 
         self._cpp_obj = _hoomd.UpdaterRemoveDrift(
-            self._simulation.state._cpp_sys_def, self.reference_positions)
+            self._simulation.state._cpp_sys_def, self.trigger,
+            self.reference_positions)
         super()._attach()

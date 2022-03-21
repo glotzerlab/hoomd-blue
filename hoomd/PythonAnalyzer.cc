@@ -8,8 +8,10 @@
 
 namespace hoomd
     {
-PythonAnalyzer::PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef, pybind11::object analyzer)
-    : Analyzer(sysdef)
+PythonAnalyzer::PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
+                               std::shared_ptr<Trigger> trigger,
+                               pybind11::object analyzer)
+    : Analyzer(sysdef, trigger)
     {
     setAnalyzer(analyzer);
     }
@@ -41,7 +43,9 @@ namespace detail
 void export_PythonAnalyzer(pybind11::module& m)
     {
     pybind11::class_<PythonAnalyzer, Analyzer, std::shared_ptr<PythonAnalyzer>>(m, "PythonAnalyzer")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::object>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
+                            pybind11::object>());
     }
 
     } // end namespace detail

@@ -12,7 +12,9 @@ namespace hoomd
 class PYBIND11_EXPORT PythonUpdater : public Updater
     {
     public:
-    PythonUpdater(std::shared_ptr<SystemDefinition> sysdef, pybind11::object updater);
+    PythonUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<Trigger> trigger,
+                  pybind11::object updater);
 
     void update(uint64_t timestep);
 

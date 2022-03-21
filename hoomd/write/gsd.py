@@ -4,6 +4,7 @@
 """Write GSD files storing simulation trajectories and logging data."""
 
 from collections.abc import Mapping, Collection
+from hoomd.trigger import Periodic
 from hoomd import _hoomd
 from hoomd.util import dict_flatten
 from hoomd.data.typeconverter import OnlyFrom, RequiredArg
@@ -182,7 +183,7 @@ class GSD(Writer):
             dynamic_quantities = ['property'] + self.dynamic
 
         self._cpp_obj = _hoomd.GSDDumpWriter(
-            self._simulation.state._cpp_sys_def, self.filename,
+            self._simulation.state._cpp_sys_def, self.trigger, self.filename,
             self._simulation.state._get_group(self.filter), self.mode,
             self.truncate)
 
@@ -210,7 +211,7 @@ class GSD(Writer):
         if mode != 'wb' and mode != 'xb':
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
 
-        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1), filename,
                                       state._get_group(filter), mode, False)
 
         if log is not None:

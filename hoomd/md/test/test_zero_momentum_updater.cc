@@ -50,7 +50,8 @@ UP_TEST(ZeroMomentumUpdater_basic)
         }
 
     // construct the updater and make sure everything is set properly
-    std::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
+    auto zerop
+        = std::make_shared<ZeroMomentumUpdater>(sysdef, std::make_shared<PeriodicTrigger>(1));
 
     // run the updater and check the new temperature
     zerop->update(0);
