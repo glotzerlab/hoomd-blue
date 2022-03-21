@@ -132,11 +132,14 @@ class Sphere(HPMCNECIntegrator):
     """HPMC chain integration for spheres (2D/3D).
 
     Args:
-        default_d (float): Default colission search distance
-            :math:`[\\mathrm{length}]`.
-        chain_time (float): Length of a chain :math:`[\\mathrm{time}]`.
-        update_fraction (float): Number of chains to be done as fraction of N.
-        nselect (int): The number of repeated updates to perform in each cell.
+        default_d (`float`, optional): Default colission search distance
+            :math:`[\\mathrm{length}]`, defaults to 0.1.
+        chain_time (`float`, optional): Length of a chain
+            :math:`[\\mathrm{time}]`, defaults to 0.5.
+        update_fraction (`float`, optional): Number of chains to be done as
+            fraction of N, defaults to 0.5.
+        nselect (`int`, optional): The number of repeated updates to perform in
+            each cell, defaults to 1.
 
     Perform Newtonian event chain Monte Carlo integration of spheres.
 
@@ -218,15 +221,18 @@ class ConvexPolyhedron(HPMCNECIntegrator):
     """HPMC integration for convex polyhedra (3D) with nec.
 
     Args:
-        default_d (float): Default colission search distance
-            :math:`[\\mathrm{length}]`.
-        default_a (float): Default maximum size of rotation trial moves
-            :math:`[\\mathrm{dimensionless}]`.
-        chain_probability (float): Probability of making a chain move instead
-            of a rotation move.
-        chain_time (float): Length of a chain :math:`[\\mathrm{time}]`.
-        update_fraction (float): Number of chains to be done as fraction of N.
-        nselect (int): Number of repeated updates for the cell/system.
+        default_d (`float`, optional): Default colission search distance
+            :math:`[\\mathrm{length}]`, defaults to 0.1.
+        default_a (`float`, optional): Default maximum size of rotation trial
+            moves :math:`[\\mathrm{dimensionless}]`, defaults to 0.1.
+        chain_probability (`float`, optional): Probability of making a chain
+            move instead of a rotation move, defaults to 0.5.
+        chain_time (`float`, optional): Length of a chain
+            :math:`[\\mathrm{time}]`, defaults to 0.5.
+        update_fraction (`float`, optional): Number of chains to be done as
+            fraction of N, defaults to 0.5.
+        nselect (`int`, optional): Number of repeated updates for the
+            cell/system, defaults to 1.
 
     Perform Newtonian event chain Monte Carlo integration of convex polyhedra.
 
