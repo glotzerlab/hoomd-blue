@@ -518,7 +518,7 @@ class Shape(Updater):
     Args:
         trigger (Trigger): Call the updater on triggered time steps.
 
-        default_step_size (float): Default maximum size of shape trial moves.
+        step_size (float): Default maximum size of shape trial moves.
 
         pretend (bool, optional): When True the updater will not actually update
             the shape definitions. Instead, moves will be proposed and the
@@ -579,7 +579,7 @@ class Shape(Updater):
 
     def __init__(self,
                  trigger,
-                 default_step_size,
+                 step_size=0.2,
                  pretend=False,
                  nselect=1,
                  nsweeps=1,
@@ -597,7 +597,7 @@ class Shape(Updater):
         typeparam_step_size = TypeParameter('step_size',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                                float(default_step_size),
+                                                float(step_size),
                                                 len_keys=1))
 
         self._extend_typeparam([typeparam_step_size])

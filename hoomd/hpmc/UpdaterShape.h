@@ -260,16 +260,20 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                 << std::hex << this << std::dec << std::endl;
     if (!m_initialized)
         initializeDeterminatsInertiaTensor();
+
     // Shuffle the order of particles types for this step
     m_update_order.resize(m_pdata->getNTypes());
     m_update_order.shuffle(timestep, this->m_sysdef->getSeed(), m_exec_conf->getRank());
+
+    Scalar log_boltz;
     for (unsigned int i_sweep = 0; i_sweep < m_nsweeps; i_sweep++)
         {
-        Scalar log_boltz = 0.0;
+
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
         GPUArray<Scalar> determinant_inertia_tensor_old(m_determinant_inertia_tensor);
         m_move_function->prepare(timestep);
         auto& mc_params = m_mc->getParams();
+
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
@@ -327,9 +331,8 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             assert(h_det.data[typ_i] != 0 && h_det_old.data[typ_i] != 0);
 
             // compute log_boltz factor
-            log_boltz
-                += (*m_move_function)(timestep,             // current timestep
-                                      h_ntypes.data[typ_i], // number of particles of type typ_i,
+            log_boltz = (*m_move_function)(timestep,             // current timestep
+                        h_ntypes.data[typ_i], // number of particles of type typ_i,
                                       typ_i,                // the type id
                                       shape_param_new,      // new shape parameter
                                       h_det.data[typ_i],    // new determinant_inertia_tensor
@@ -340,216 +343,72 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             // actually update the shape parameter in the integrator
             m_mc->setParam(typ_i, shape_param_new);
 
-            // looks redundant but it is not because of the pretend mode.
-            bool accept = false, reject = true;
-            Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
-            Scalar Z = slow::exp(log_boltz);
-            m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
-
-            if (m_multi_phase)
+            // check if at least one overlap was caused
+            bool overlaps = (bool) m_mc->countOverlaps(true, typ_i, false);
+            // automatically reject if there are overlaps
+            if (overlaps)
                 {
-#ifdef ENABLE_MPI
-                std::vector<Scalar> Zs;
-                all_gather_v(Z, Zs, MPI_COMM_WORLD);
-                Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
-#endif
+                m_exec_conf->msg->notice(5) << "UpdaterShape move rejected -- overlaps found" << std::endl;
+                // revert shape parameter changes
+                h_det.data[typ_i] = h_det_old.data[typ_i];
+                m_mc->setParam(typ_i, shape_param_old);
                 }
-
-            // potentially accept but need to check for overlaps first
-            if (p < Z)
+            else // potentially accept, check Metropolis first
                 {
-                m_exec_conf->msg->notice(10)
-                    << "HPMCMono count overlaps: " << timestep << std::endl;
 
-                // This is a literal copy of the HPMC countOverlaps loop. The only difference here
-                // is that we loop only over types instead of all the particles and always exit
-                // early.
+                Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
+                Scalar Z = slow::exp(log_boltz);
 
-                // build an up to date AABB tree
-                const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
-                // update the image list
-                std::vector<vec3<Scalar>> image_list = m_mc->updateImageList();
-
-                const Index2D& overlap_idx = m_mc->getOverlapIndexer();
-
-                // access particle data and system box
-                ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
-                                               access_location::host,
-                                               access_mode::read);
-                ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                                   access_location::host,
-                                                   access_mode::read);
-                ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
-                                                access_location::host,
-                                                access_mode::read);
-
-                // access parameters and interaction matrix
-                ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(),
-                                                     access_location::host,
-                                                     access_mode::read);
-
-                bool early_exit = true;
-                unsigned int overlap_count = 0;
-                unsigned int err_count = 0;
-                // Loop over all the particles type whose shape we just updated
-                // and check if they caused an overlap
-                for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                    {
-                    Scalar4 postype_i = h_postype.data[i];
-                    // Only check if current particle i is of the type we just updated
-                    if (typ_i == m_update_order[cur_type])
-                        {
-                        // read in the current position and orientation
-                        Scalar4 orientation_i = h_orientation.data[i];
-                        Shape shape_i(quat<Scalar>(orientation_i), m_mc->getParams()[typ_i]);
-                        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-                        // Check particle against AABB tree for neighbors
-                        hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
-
-                        const unsigned int n_images = (unsigned int)image_list.size();
-                        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                            {
-                            vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-                            hoomd::detail::AABB aabb = aabb_i_local;
-                            aabb.translate(pos_i_image);
-
-                            // stackless search
-                            for (unsigned int cur_node_idx = 0;
-                                 cur_node_idx < aabb_tree.getNumNodes();
-                                 cur_node_idx++)
-                                {
-                                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
-                                    {
-                                    if (aabb_tree.isNodeLeaf(cur_node_idx))
-                                        {
-                                        for (unsigned int cur_p = 0;
-                                             cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
-                                             cur_p++)
-                                            {
-                                            // read in its position and orientation
-                                            unsigned int k
-                                                = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                            // skip i==j in the 0 image
-                                            if (cur_image == 0 && i == k)
-                                                continue;
-
-                                            Scalar4 postype_k = h_postype.data[k];
-                                            Scalar4 orientation_k = h_orientation.data[k];
-
-                                            // put particles in coordinate system of particle i
-                                            vec3<Scalar> r_ik
-                                                = vec3<Scalar>(postype_k) - pos_i_image;
-
-                                            unsigned int typ_k = __scalar_as_int(postype_k.w);
-                                            Shape shape_k(quat<Scalar>(orientation_k),
-                                                          m_mc->getParams()[typ_k]);
-
-                                            if (h_overlaps.data[overlap_idx(typ_i, typ_k)]
-                                                && check_circumsphere_overlap(r_ik,
-                                                                              shape_i,
-                                                                              shape_k)
-                                                && test_overlap(r_ik, shape_i, shape_k, err_count)
-                                                && test_overlap(-r_ik, shape_k, shape_i, err_count))
-                                                {
-                                                overlap_count++;
-                                                if (early_exit)
-                                                    {
-                                                    // exit early from loop over neighbor particles
-                                                    break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                else
-                                    {
-                                    // skip ahead
-                                    cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                                    }
-
-                                if (overlap_count && early_exit)
-                                    {
-                                    break;
-                                    }
-                                } // end loop over AABB nodes
-
-                            if (overlap_count && early_exit)
-                                {
-                                break;
-                                }
-                            } // end loop over images
-
-                        if (overlap_count && early_exit)
-                            {
-                            break;
-                            }
-                        }
-                    } // end loop over particles
-
-#ifdef ENABLE_MPI
-                if (this->m_pdata->getDomainDecomposition())
-                    {
-                    MPI_Allreduce(MPI_IN_PLACE,
-                                  &overlap_count,
-                                  1,
-                                  MPI_UNSIGNED,
-                                  MPI_SUM,
-                                  m_exec_conf->getMPICommunicator());
-                    if (early_exit && overlap_count > 1)
-                        overlap_count = 1;
-                    }
-#endif
-
-                accept = !overlap_count;
-
-                m_exec_conf->msg->notice(5)
-                    << " UpdaterShape counted " << overlap_count << " overlaps" << std::endl;
+                #ifdef ENABLE_MPI
                 if (m_multi_phase)
                     {
-#ifdef ENABLE_MPI
-                    if (accept)
+                    std::vector<Scalar> Zs;
+                    all_gather_v(Z, Zs, MPI_COMM_WORLD);
+                    Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
+                    }
+                #endif
+
+                bool accept = p < Z;
+
+                if (accept)
+                    {
+                    #ifdef ENABLE_MPI
+                    if (m_multi_phase)
                         {
                         m_box_accepted[typ_i]++;
                         }
+                    std::vector<int> all_a;
+                    all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
+                    accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
+                    #endif
+
+                    // if pretend mode, rever shape changes but keep acceptance count
+                    if (m_pretend)
+                        {
+                        m_exec_conf->msg->notice(5) << "UpdaterShape move accepted -- pretend mode" << std::endl;
+                        m_move_function->retreat(timestep);
+                        h_det.data[typ_i] = h_det_old.data[typ_i];
+                        m_mc->setParam(typ_i, shape_param_old);
+                        m_count_accepted[typ_i]++;
+                        }
+                    else // actually accept the move
+                       {
+                        m_exec_conf->msg->notice(5) << "UpdaterShape move accepted" << std::endl;
+                        m_count_accepted[typ_i]++;
+                       }
                     }
-                std::vector<int> all_a;
-                all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
-                accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
-#endif
+                else  // actually reject move
+                    {
+                    m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
+                    // revert shape parameter changes
+                    h_det.data[typ_i] = h_det_old.data[typ_i];
+                    m_mc->setParam(typ_i, shape_param_old);
+                    }
                 }
-            m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
-            }
 
-        if (!accept) // categorically reject the move.
-            {
-            m_exec_conf->msg->notice(5) << " UpdaterShape move retreating" << std::endl;
-            m_move_function->retreat(timestep);
-            }
-        else if (m_pretend) // pretend to accept the move but actually reject it.
-            {
-            m_exec_conf->msg->notice(5)
-                << " UpdaterShape move accepted -- pretend mode" << std::endl;
-            m_move_function->retreat(timestep);
-            m_count_accepted[typ_i]++;
-            }
-        else // actually accept the move.
-            {
-            m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
-            m_count_accepted[typ_i]++;
-            reject = false;
-            }
-
-        if (reject)
-            {
-            m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
-            // revert shape parameter changes
-            h_det.data[typ_i] = h_det_old.data[typ_i];
-            m_mc->setParam(typ_i, shape_param_old);
-            }
-        } // end loop over particle types
-    }     // end loop over n_sweeps
-m_exec_conf->msg->notice(4) << " UpdaterShape update done" << std::endl;
+            }  // end loop over particle types
+        }  // end loop over n_sweeps
+    m_exec_conf->msg->notice(4) << "UpdaterShape update done" << std::endl;
     } // end UpdaterShape<Shape>::update(unsigned int timestep)
 
 template<typename Shape> void UpdaterShape<Shape>::initializeDeterminatsInertiaTensor()

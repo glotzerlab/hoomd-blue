@@ -103,7 +103,7 @@ class ElasticShapeMove(ShapeMove):
         stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
             deformations.
 
-        reference (`TypeParameter` [``particle type``, `dict`]): Reference
+        reference_shape (`TypeParameter` [``particle type``, `dict`]): Reference
             shape against to which compute the deformation energy.
 
         move_probability (`float`): Fraction of scale to shear moves.

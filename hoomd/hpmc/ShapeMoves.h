@@ -71,6 +71,10 @@ template<typename Shape> class ShapeMoveBase
         this->m_volume[typid] = volume;
         }
 
+    void scaleParticleVolume(typename Shape::param_type& shape, vec3<Scalar> dr, OverlapReal scale)
+        {
+        }
+
     unsigned int getValidateType(std::string typ)
         {
         unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
@@ -130,6 +134,7 @@ template<typename Shape> class ShapeMoveBase
     unsigned m_ntypes;
     std::vector<Scalar> m_volume;
     Scalar m_move_probability;
+    std::vector<vec3<Scalar>> m_centroids;
 
     }; // end class ShapeMoveBase
 
@@ -337,7 +342,56 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         {
         this->m_det_inertia_tensor = 1.0;
         m_calculated.resize(this->m_ntypes, false);
-        m_centroids.resize(this->m_ntypes, vec3<Scalar>(0, 0, 0));
+        this->m_centroids.resize(this->m_ntypes, vec3<Scalar>(0, 0, 0));
+        initializeMassProperties();
+        }
+
+    void initializeMassProperties()
+        {
+        auto& mc_params = this->m_mc->getParams();
+        for (unsigned int i; i < this->m_ntypes; i++)
+            {
+            detail::MassProperties<ShapeConvexPolyhedron> mp(mc_params[i]);
+            this->m_centroids[i] = mp.getCenterOfMass();
+            // possibly add det I here
+            m_calculated[i] = true;
+            }
+        }
+
+    void setVolume(std::string typ, Scalar volume)
+        {
+
+        unsigned int typid = getValidateType(typ);
+        this->m_volume[typid] = volume;
+        // ShapeMoveBase::setVolume(typid, volume);
+
+        // auto shape = this->m_mc->getParams()[typid];
+        auto& mc_params = this->m_mc->getParams();
+        param_type shape = mc_params[typid];
+        detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
+        Scalar current_volume = mp.getVolume();
+        vec3<Scalar> dr = this->m_centroids[typid] - mp.getCenterOfMass();
+        OverlapReal scale = (OverlapReal)fast::pow(volume / current_volume, 1.0 / 3.0);
+        this->scaleParticleVolume(shape, dr, scale);
+        this->m_mc->setParam(typid, shape);
+
+        }
+
+    void scaleParticleVolume(param_type& shape, vec3<Scalar> dr, OverlapReal scale)
+        {
+        Scalar rsq = 0.0;
+        for (unsigned int i = 0; i < shape.N; i++)
+            {
+            shape.x[i] += (OverlapReal)dr.x;
+            shape.x[i] *= scale;
+            shape.y[i] += (OverlapReal)dr.y;
+            shape.y[i] *= scale;
+            shape.z[i] += (OverlapReal)dr.z;
+            shape.z[i] *= scale;
+            vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
+            rsq = fmax(rsq, dot(vert, vert));
+            }
+        shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
         }
 
     Scalar getVertexMoveProbability()
@@ -361,7 +415,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         if (!m_calculated[type_id])
             {
             detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
-            m_centroids[type_id] = mp.getCenterOfMass();
+            this->m_centroids[type_id] = mp.getCenterOfMass();
             m_calculated[type_id] = true;
             }
         // mix the shape.
@@ -378,26 +432,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             }
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
-        vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
+        vec3<Scalar> dr = this->m_centroids[type_id] - mp.getCenterOfMass();
         OverlapReal scale = (OverlapReal)fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0);
-        Scalar rsq = 0.0;
-        std::vector<vec3<Scalar>> points(shape.N);
-        for (unsigned int i = 0; i < shape.N; i++)
-            {
-            shape.x[i] += (OverlapReal)dr.x;
-            shape.x[i] *= scale;
-            shape.y[i] += (OverlapReal)dr.y;
-            shape.y[i] *= scale;
-            shape.z[i] += (OverlapReal)dr.z;
-            shape.z[i] *= scale;
-            vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
-            rsq = fmax(rsq, dot(vert, vert));
-            points[i] = vert;
-            }
-        mp.updateParam(shape, true);
-        this->m_det_inertia_tensor = mp.getDetInertiaTensor();
-        m_isoperimetric_quotient = mp.getIsoperimetricQuotient();
-        shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
+        scaleParticleVolume(shape, dr, scale);
         stepsize *= scale;
         }
 
@@ -407,10 +444,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     private:
-    // Scalar this->m_move_probability;      // probability of a vertex being selected for a move
-    std::vector<vec3<Scalar>> m_centroids; // centroid of each type of shape
     std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
     };                                     // end class ConvexPolyhedronVertexShapeMove
+
 
 template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     {
@@ -545,7 +581,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         // tools to solve Vprime = F * Vref for F where:
         //   Vref: vertices of the reference (undeformed) shape (3, N)
         //   Vprime: vertices of the current (deformed) shape (3, N)
-        //   F: deformation gradient tendor (3,3)
+        //   F: deformation gradient tensor (3,3)
         MatrixSD Vref(3, shape.N), Vprime(3, shape.N);
         for (unsigned int i = 0; i < shape.N; i++)
             {
@@ -745,7 +781,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         // Scalar volume = m_mass_props[type_id].getVolume();
         detail::MassProperties<ShapeEllipsoid> mp(param);
         Scalar volume = mp.getVolume();
-        // Scalar b = fast::pow(this->m_volume[type_id] / vol_factor / x, 1.0 / 3.0);
         Scalar b = fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0);
         x *= b;
         param.x = (OverlapReal)x;
@@ -827,7 +862,9 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
                      ShapeMoveBase<ShapeConvexPolyhedron>,
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>>>());
+                            std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>>>())
+        .def("getVolume", &ConvexPolyhedronVertexShapeMove::getVolume)
+        .def("setVolume", &ConvexPolyhedronVertexShapeMove::setVolume);
     }
 
 template<class Shape>

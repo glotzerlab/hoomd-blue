@@ -366,7 +366,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         \param early_exit exit at first overlap found if true
         \returns number of overlaps if early_exit=false, 1 if early_exit=true
     */
-    virtual unsigned int countOverlaps(bool early_exit)
+    virtual unsigned int countOverlaps(bool early_exit, int query_type = -1, bool build_tree = true)
         {
         return 0;
         }

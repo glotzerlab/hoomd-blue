@@ -290,7 +290,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Count overlaps with the option to exit early at the first detected overlap
-        virtual unsigned int countOverlaps(bool early_exit);
+        virtual unsigned int countOverlaps(bool early_exit, int query_type = -1, bool build_tree = true);
 
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<std::pair<unsigned int, unsigned int> > mapOverlaps();
@@ -1072,15 +1072,18 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     \returns number of overlaps if early_exit=false, 1 if early_exit=true
 */
 template <class Shape>
-unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
+unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit, int query_type, bool build_tree)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
 
-    // build an up to date AABB tree
-    buildAABBTree();
-    // update the image list
-    updateImageList();
+    if (build_tree)
+        {
+        // build an up to date AABB tree
+        buildAABBTree();
+        // update the image list
+        updateImageList();
+        }
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1099,6 +1102,9 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
         unsigned int typ_i = __scalar_as_int(postype_i.w);
         Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+        if (query_type >= 0 && (unsigned int) query_type != typ_i)
+            continue;
 
         // Check particle against AABB tree for neighbors
         hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
@@ -1695,7 +1701,7 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
     the tree needs to be rebuilt or if the current tree can be used.
 
     buildAABBTree() relies on the member variable m_aabb_tree_invalid to work correctly. Any time particles
-    are moved (and not updated with m_aabb_tree->update()) or the particle list changes order, m_aabb_tree_invalid
+    are moved (and not updated with buildAABBTree->update()) or the particle list changes order, m_aabb_tree_invalid
     needs to be set to true. Then buildAABBTree() will know to rebuild the tree from scratch on the next call. Typically
     this is on the next timestep. But in some cases (i.e. NPT), the tree may need to be rebuilt several times in a
     single step because of box volume moves.

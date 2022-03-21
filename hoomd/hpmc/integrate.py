@@ -470,7 +470,7 @@ class HPMCIntegrator(Integrator):
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
         self._cpp_obj.communicate(True)
-        return self._cpp_obj.countOverlaps(False)
+        return self._cpp_obj.countOverlaps(False, -1, True)
 
     @log(category='sequence', requires_run=True)
     def translate_moves(self):

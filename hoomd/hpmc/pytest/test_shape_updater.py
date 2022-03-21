@@ -2,231 +2,251 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-import hoomd.hpmc
+from hoomd import hpmc
 import numpy as np
 import pytest
-from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check
-from hoomd.hpmc.update import VertexShapeMove, PythonShapeMove, ElasticShapeMove
-
-# def test_before_attaching():
-#     verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
-#                         [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
-#     vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
-#                                                param_ratio=0.2,
-#                                                volume=1.0)
-#     move_ratio = 1.0
-#     trigger = hoomd.trigger.Periodic(1)
-#     nselect = 1
-#     nsweeps = 1
-#     multi_phase = True
-#     num_phase = 2
-#     shape_updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
-#                                             move_ratio=move_ratio,
-#                                             trigger=trigger,
-#                                             nselect=nselect,
-#                                             nsweeps=nsweeps,
-#                                             multi_phase=multi_phase,
-#                                             num_phase=num_phase)
-#     assert shape_updater.shape_move is vertex_move
-#     assert np.allclose(shape_updater.move_ratio, move_ratio, rtol=1e-4)
-#     assert shape_updater.trigger is trigger
-#     assert shape_updater.nselect == nselect
-#     assert shape_updater.nsweeps == nsweeps
-#     assert shape_updater.multi_phase == multi_phase
-#     assert shape_updater.num_phase == num_phase
-#
-#     move_ratio = 0.5
-#     trigger = hoomd.trigger.Periodic(10)
-#     nselect = 2
-#     nsweeps = 4
-#     multi_phase = False
-#     num_phase = 1
-#     shape_updater.move_ratio = move_ratio
-#     shape_updater.trigger = trigger
-#     shape_updater.nselect = nselect
-#     shape_updater.nsweeps = nsweeps
-#     shape_updater.multi_phase = multi_phase
-#     shape_updater.num_phase = num_phase
-#     assert np.allclose(shape_updater.move_ratio, move_ratio, rtol=1e-4)
-#     assert shape_updater.trigger is trigger
-#     assert shape_updater.nselect == nselect
-#     assert shape_updater.nsweeps == nsweeps
-#     assert shape_updater.multi_phase == multi_phase
-#     assert shape_updater.num_phase == num_phase
-#
-#     assert shape_updater.shape_moves is None
-#     assert shape_updater.shape_move_energy is None
-#     assert shape_updater.particle_volume is None
-
+from hoomd.hpmc.update import Shape
+from hoomd.hpmc.shape_move import VertexShapeMove, PythonShapeMove, ElasticShapeMove
 
 verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
-                    [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]])
+                    [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]])/2
 
 
 shape_move_classes = [VertexShapeMove, PythonShapeMove, ElasticShapeMove]
 
+shape_move_constructor_args = [
+    dict(move_probability = 0),
+    dict(move_probability = 0.5)
+]
+
+def _test_callback(typeid, param_list):
+
+    pass
+
+shape_move_valid_attrs = [
+    (VertexShapeMove, "move_probability", 0.1),
+    (PythonShapeMove, "move_probability", 0.1),
+    (PythonShapeMove, "callback", _test_callback),
+    (ElasticShapeMove, "move_probability", 0.5),
+    (ElasticShapeMove, "stiffness", hoomd.variant.Constant(10)),
+    (ElasticShapeMove, "stiffness", hoomd.variant.Ramp(1, 5, 0, 100)),
+    (ElasticShapeMove, "stiffness", hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
+    (ElasticShapeMove, "stiffness", hoomd.variant.Power(1, 5, 3, 0, 100))
+]
+
+shape_updater_valid_attrs = [
+    ("trigger", hoomd.trigger.Periodic(10)),
+    ("trigger", hoomd.trigger.After(100)),
+    ("trigger", hoomd.trigger.Before(100)),
+    ("nselect", 2),
+    ("nweeps", 4),
+    ("num_phase", 2),
+    ("multi_phase", True),
+    ("shape_move", VertexShapeMove()),
+    ("shape_move", PythonShapeMove()),
+    ("shape_move", ElasticShapeMove())
+]
+
+
 updater_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10),
-         default_step_size=0.1),
+    dict(trigger=hoomd.trigger.Periodic(10)),
     dict(trigger = hoomd.trigger.After(100),
-         nselect = 2,
-         nsweeps = 4,
-         default_step_size = 0.5),
+         nselect = 4,
+         nsweeps = 2),
     dict(trigger = hoomd.trigger.Before(100),
-         nselect = 2,
+         nselect = 4,
          nsweeps = 4,
-         default_step_size = 0.5),
+         num_phase = 2),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         nselect = 2,
-         nsweeps = 4,
-         default_step_size = 0.5)
+         nselect = 1,
+         nsweeps = 5,
+         num_phase = 2,
+         multi_phase= True)
 ]
 
-python_move_constructor_args = [
-    dict(
-        callback = lambda typeid, param_list: {"vertices": verts.tolist(),
-                                               "sweep_radius": 0,
-                                               "ignore_statistics": True},
-        param_move_probability = 1
-        ),
-    dict(
-        callback = lambda typeid, param_list: {"vertices": (verts/2).tolist(),
-                                               "sweep_radius": 0.05,
-                                               "ignore_statistics": False},
-        param_move_probability = 0.4
-        ),
+type_parameters = [
+    (PythonShapeMove(), "params", [0.1, 0.3, 0.4]),
+    (VertexShapeMove(), "volume", 1.2),
+    # (ElasticShapeMove(), "reference_shape", {"diameter": 1}),
+    (Shape(trigger=1), "step_size", 0.4)
 ]
 
-@pytest.mark.parametrize("shape_move_constructor_args", python_move_constructor_args)
-def test_valid_construction_shape_moves(constructor_args):
-    move = hpmc.shape_move.PythonShapeMove(**constructor_args)
+@pytest.mark.parametrize("shape_move_class", shape_move_classes)
+@pytest.mark.parametrize("shape_move_constructor_args", shape_move_constructor_args)
+def test_valid_construction_shape_moves(shape_move_class, shape_move_constructor_args):
+
+    move = shape_move_class(**shape_move_constructor_args)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
+    for attr, value in shape_move_constructor_args.items():
         assert getattr(move, attr) == value
 
-@pytest.mark.parametrize("constructor_args", python_move_constructor_args)
+
 @pytest.mark.parametrize("updater_constructor_args", updater_constructor_args)
-@pytest.mark.parametrize("ShapeMoveClass", shape_move_classes)
-def test_valid_construction_and_attach_python_shape_move(device,
-        simulation_factory, two_particle_snapshot_factory, constructor_args):
+def test_valid_construction_shape_updater(updater_constructor_args):
 
-        move = hpmc.shape_move.ShapeMoveClass(**python_move_constructor_args)
+    updater = hpmc.update.Shape(**updater_constructor_args)
 
-        updater = hpmc.update.Shape(**updater_constructor_args)
-        updater.shape_move = move
-
-        mc = hoomd.hpmc.integrate.ConvexPolyhedron()
-        mc.shape['A'] = dict(vertices=verts)
-
-        # create simulation & attach objects
-        sim = simulation_factory(two_particle_snapshot_factory())
-        sim.operations.integrator = mc
-        sim.operations += updater
-
-        # catch the error if running on the GPU
-        if isinstance(device, hoomd.device.GPU):
-            with pytest.raises(RuntimeError):
-                sim.run(0)
-
-         sim.run(0)
-
-        assert move._attached
-        assert updater._attached
-
-         # validate the params were set properly
-         for attr, value in python_move_constructor_args.items():
-             assert getattr(move, attr) == value
-
-         # validate the params were set properly
-         for attr, value in updater_constructor_args.items():
-             assert getattr(updater, attr) == value
+    # validate the params were set properly
+    for attr, value in updater_constructor_args.items():
+        assert getattr(updater, attr) == value
 
 
+@pytest.mark.parametrize("shape_move_class,attr,value", shape_move_valid_attrs)
+def test_valid_setattr_shape_move(shape_move_class, attr, value):
+    """Test that the shape move classes can get and set attributes."""
 
-@pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_shape_move(attr, value):
-    """Test that BoxMC can get and set attributes."""
-    boxmc = hoomd.hpmc.update.BoxMC(trigger=hoomd.trigger.Periodic(10),
-                                    betaP=10)
+    move = shape_move_class()
 
-    setattr(boxmc, attr, value)
-    if isinstance(value, dict):
-        # check if we have the same keys
-        assert value.keys() == getattr(boxmc, attr).keys()
-        for k in value.keys():
-            assert _is_close(value[k], getattr(boxmc, attr)[k])
-    else:
-        assert getattr(boxmc, attr) == value
+    setattr(move, attr, value)
+    assert getattr(move, attr) == value
 
 
+@pytest.mark.parametrize("attr,value", shape_updater_valid_attrs)
+def test_valid_setattr_shape_updater(attr, value):
+    """Test that the Shape updater can get and set attributes."""
 
-def test_after_attaching(device, simulation_factory, lattice_snapshot_factory):
-    verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
-                        [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
-    particle_volume = 1.0
-    vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
-                                               param_ratio=0.2,
-                                               volume=particle_volume)
-    move_ratio = 0.5
-    trigger = hoomd.trigger.Periodic(10)
-    nselect = 2
-    nsweeps = 1
-    multi_phase = True
-    num_phase = 2
-    shape_updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
-                                            move_ratio=move_ratio,
-                                            trigger=trigger,
-                                            nselect=nselect,
-                                            nsweeps=nsweeps,
-                                            multi_phase=multi_phase,
-                                            num_phase=num_phase)
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(0)
-    mc.shape['A'] = {'vertices': verts}
-    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=3))
-    N = sim.state.snapshot.particles.N
-    sim.seed = 0
-    sim.operations.add(mc)
-    sim.operations.add(shape_updater)
+    updater = hpmc.update.Shape(trigger=1)
+
+    setattr(updater, attr, value)
+    assert getattr(updater, attr) == value
+
+
+@pytest.mark.parametrize("obj,attr,value", type_parameters)
+def test_type_parameters(obj, attr, value):
+    getattr(obj, attr)["A"] = value
+    assert getattr(obj, attr)["A"] == value
+
+
+def test_vertex_shape_move(device, simulation_factory,
+                           two_particle_snapshot_factory):
+
+    move = VertexShapeMove()
+    move.volume["A"] = 1
+
+    updater = hpmc.update.Shape(trigger=1, step_size=0.2, nsweeps=2)
+    updater.shape_move = move
+
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron()
+    mc.d["A"] = 0
+    mc.a["A"] = 0
+    mc.shape["A"] = dict(vertices=verts)
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory(d=10))
+    sim.seed = 13
+    sim.operations.integrator = mc
+    sim.operations += updater
+
+    # test attachmet before first run
+    assert not move._attached
+    assert not updater._attached
+
     sim.run(0)
 
-    move_ratio = 1.0
-    trigger = hoomd.trigger.Periodic(1)
-    nselect = 1
-    nsweeps = 4
-    multi_phase = False
-    num_phase = 1
-    shape_updater.move_ratio = move_ratio
-    shape_updater.trigger = trigger
-    shape_updater.nselect = nselect
-    shape_updater.nsweeps = nsweeps
-    shape_updater.multi_phase = multi_phase
-    shape_updater.num_phase = num_phase
-    assert np.allclose(shape_updater.move_ratio, move_ratio, rtol=1e-4)
-    assert shape_updater.trigger is trigger
-    assert shape_updater.nselect == nselect
-    assert shape_updater.nsweeps == nsweeps
-    assert shape_updater.multi_phase == multi_phase
-    assert shape_updater.num_phase == num_phase
+    # test attachmet after first run
+    assert move._attached
+    assert updater._attached
 
-    sim.run(2)
-    assert sum(shape_updater.shape_moves) == 8
-    assert shape_updater.shape_move_energy == 0.0
-    assert shape_updater.particle_volume == N * particle_volume
+    # run with 0 probability of performing a move:
+    #  - shape should remain unchanged
+    #  - all moves accepted
+    move.move_probability = 0
+    sim.run(20)
+    assert np.allclose(mc.shape["A"]["vertices"], verts)
+    print(updater.shape_moves)
+    assert updater.shape_moves[0] == 40
+    assert updater.shape_moves[1] == 0
 
-    logging_check(
-        hoomd.hpmc.update.Shape, ('hpmc', 'update'), {
-            'shape_moves': {
-                'category': LoggerCategories.sequence,
-                'default': True
-            },
-            'shape_move_energy': {
-                'category': LoggerCategories.scalar,
-                'default': True
-            },
-            'particle_volume': {
-                'category': LoggerCategories.scalar,
-                'default': True
-            }
-        })
+    # always attempt a shape move:
+    #  - shape should change, some attemps are accepted but
+    #  - volume should remain unchanged
+    move.move_probability = 1
+    sim.run(20)
+    assert updater.shape_moves[0] != 0
+    assert updater.shape_moves[1] != 0
+    assert np.sum(updater.shape_moves) == 40
+    assert not np.allclose(mc.shape["A"]["vertices"], verts)
+    assert np.isclose(updater.total_particle_volume, 2)
+
+
+def test_python_callback_shape_move(device, simulation_factory,
+                             two_particle_snapshot_factory):
+
+    class ScaleEllipsoid:
+        """Toy class to randomly squashes a sphere into oblate ellipsoid with
+           constant volume.
+        """
+        def __init__(self, a, b, c):
+            self.vol_factor = 4*np.pi/3
+            self.volume = self.vol_factor*a*b*c
+            self.default_dict = dict(ignore_statistics=True)
+
+        def __call__(self, type_id, param_list):
+            x = param_list[0]
+            b = (self.volume / x / (self.vol_factor))**(1/3)
+            ret = dict(a = x*b, b = b, c = b, **self.default_dict)
+            return ret
+
+    ellipsoid = dict(a = 1, b = 1, c = 1)
+
+    move = PythonShapeMove()
+    move.callback = ScaleEllipsoid(**ellipsoid)
+    move.params["A"] = [1]
+
+    updater = hpmc.update.Shape(trigger=1, step_size=0.2, nsweeps=2)
+    updater.shape_move = move
+
+    mc = hoomd.hpmc.integrate.Ellipsoid()
+    mc.d["A"] = 0
+    mc.a["A"] = 0
+    mc.shape["A"] = ellipsoid
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory(d=10))
+    sim.seed = 4
+    sim.operations.integrator = mc
+    sim.operations += updater
+
+    # test attachmet before first run
+    assert not move._attached
+    assert not updater._attached
+
+    sim.run(0)
+
+    # test attachmet after first run
+    assert move._attached
+    assert updater._attached
+
+    # run with 0 probability of performing a move:
+    #  - shape and params should remain unchanged
+    #  - all moves accepted
+    move.move_probability = 0
+    sim.run(20)
+    assert updater.shape_moves[0] == 40
+    assert updater.shape_moves[1] == 0
+    assert np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
+    assert np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
+    assert np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
+    assert np.allclose(move.params["A"], [1])
+
+    # always attempt a shape move:
+    #  - shape and params should change
+    #  - only some moves are accepted
+    #  - volume should remain unchanged
+    move.move_probability = 1
+    sim.run(20)
+    assert updater.shape_moves[0] != 0
+    assert updater.shape_moves[1] != 0
+    assert np.sum(updater.shape_moves) == 40
+    assert not np.isclose(mc.shape["A"]["a"], ellipsoid["a"])
+    assert not np.isclose(mc.shape["A"]["b"], ellipsoid["b"])
+    assert not np.isclose(mc.shape["A"]["c"], ellipsoid["c"])
+    assert not np.isclose(move.params["A"], [1])
+    assert np.isclose(updater.total_particle_volume, 2*4*np.pi/3)
+
+
+def test_elastic_shape_move(device, simulation_factory,
+                            two_particle_snapshot_factory):
+    # test pending a solutioon th the typeparam validation for the reference_shape
+    pass
