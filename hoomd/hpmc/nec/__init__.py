@@ -35,12 +35,12 @@ full description on how to choose ``chain_time`` optimally. As a starting point,
 use `hoomd.hpmc.nec.tune.ChainTime` to attain an average of 20 particles per
 chain move.
 
-The NEC method uses the ``d`` parameter as a search radius for colissions and
-updates the translation move acceptance counter when it finds a collission
+The NEC method uses the ``d`` parameter as a search radius for collisions and
+updates the translation move acceptance counter when it finds a collision
 within the distance ``d``. Changing ``d`` will not change the chain moves NEC
 makes, but it will adjust the wall time needed to complete the moves. Set ``d``
-too high and performance will slow due to many narrow phase colission checks.
-See ``d`` too low and performance will slow due to many broad phase colission
+too high and performance will slow due to many narrow phase collisions checks.
+See ``d`` too low and performance will slow due to many broad phase collision
 checks. Adjust ``d`` to obtain optimal performance. The code author suggests
 tuning ``d`` to an "acceptance ratio" of 10% as a starting point.
 
