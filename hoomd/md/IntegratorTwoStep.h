@@ -96,9 +96,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// Set autotuner parameters
     virtual void setAutotunerParams(bool enable, unsigned int period);
 
-    /// (Re-)initialize the integration method
-    void initializeIntegrationMethods();
-
     /// Getter and setter for accessing rigid body objects in Python
     std::shared_ptr<ForceComposite> getRigid()
         {
@@ -111,9 +108,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         }
 
     protected:
-    /// Helper method to test if all added methods have valid restart information
-    bool isValidRestart();
-
     std::vector<std::shared_ptr<IntegrationMethodTwoStep>>
         m_methods; //!< List of all the integration methods
 

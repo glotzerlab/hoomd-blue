@@ -19,3 +19,4 @@ md.compute
 .. automodule:: hoomd.md.compute
     :synopsis: Compute system properties.
     :members: HarmonicAveragedThermodynamicQuantities, ThermodynamicQuantities
+    :show-inheritance:

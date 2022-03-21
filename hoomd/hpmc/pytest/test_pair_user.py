@@ -71,7 +71,6 @@ def test_valid_setting_before_attach_cpp_potential(device, attr, value):
     assert getattr(patch, attr) == value
 
 
-@pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,

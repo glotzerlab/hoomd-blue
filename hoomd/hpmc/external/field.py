@@ -21,7 +21,6 @@ class ExternalField(_HOOMDBaseObject):
     Note:
         Users should use the subclasses and not instantiate `ExternalField`
         directly.
-
     """
 
 
@@ -46,15 +45,16 @@ class Harmonic(ExternalField):
             minimum, the identity quaternion (``[1, 0, 0, 0]``) must be included
             here :math:`[\mathrm{dimensionless}]`.
 
-    :py:class:`Harmonic` specifies that harmonic springs are used to
-    restrain the position and orientation of every particle:
+    :py:class:`Harmonic` computes harmonic spring energies between the
+    particle positions/orientations and given reference positions/orientations:
 
     .. math::
 
-        V_\mathrm{translational} = \sum_i^{N_\mathrm{particles}} \frac{1}{2}
+        U_{\mathrm{external},i} & = U_{\mathrm{translational},i} +
+        U_{\mathrm{rotational},i} \\
+        U_{\mathrm{translational},i} & = \frac{1}{2}
             k_{translational} \cdot (\vec{r}_i-\vec{r}_{0,i})^2 \\
-
-        V_\mathrm{rotational} = \sum_i^{N_\mathrm{particles}} \frac{1}{2}
+        U_{\mathrm{rotational},i} & = \frac{1}{2}
             k_{rotational} \cdot \min_j \left[
             (\mathbf{q}_i-\mathbf{q}_{0,i} \cdot
              \mathbf{q}_{\mathrm{symmetry},j})^2 \right]
@@ -85,7 +85,6 @@ class Harmonic(ExternalField):
             The orientations that are equivalent through symmetry,
             i.e., the rotation quaternions that leave the particles unchanged
             :math:`[\mathrm{dimensionless}]`.
-
     """
 
     def __init__(self, reference_positions, reference_orientations,
@@ -169,9 +168,11 @@ class Harmonic(ExternalField):
     @log(requires_run=True)
     def energy(self):
         """float: The total energy of the harmonic field \
-                [\\mathrm{energy}]`.
+                :math:`[\\mathrm{energy}]`.
 
-        :math:`V_\\mathrm{translational} + V_\\mathrm{rotational}`
+        .. math::
+
+            \\sum_{i=0}^\\mathrm{N_particles-1} U_{\\mathrm{external},i}
         """
         timestep = self._simulation.timestep
         return sum(self._cpp_obj.getEnergies(timestep))
@@ -181,7 +182,9 @@ class Harmonic(ExternalField):
         """float: The energy associated with positional fluctuations \
             :math:`[\\mathrm{energy}]`.
 
-        :math:`V_\\mathrm{translational}`
+        .. math::
+
+            \\sum_{i=0}^\\mathrm{N_particles-1} U_{\\mathrm{translational},i}
         """
         timestep = self._simulation.timestep
         return self._cpp_obj.getEnergies(timestep)[0]
@@ -191,7 +194,9 @@ class Harmonic(ExternalField):
         """float: The energy associated with rotational fluctuations \
              :math:`[\\mathrm{energy}]`.
 
-        :math:`V_\\mathrm{rotational}`
+        .. math::
+
+            \\sum_{i=0}^\\mathrm{N_particles-1} U_{\\mathrm{rotational},i}
         """
         timestep = self._simulation.timestep
         return self._cpp_obj.getEnergies(timestep)[1]

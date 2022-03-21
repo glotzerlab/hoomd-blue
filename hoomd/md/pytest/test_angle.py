@@ -53,7 +53,7 @@ angle_test_parameters = [
     (
         hoomd.md.angle.Table,
         dict(width=2),
-        dict(V=[0, 10], tau=[0, 1]),
+        dict(U=[0, 10], tau=[0, 1]),
         -1 / 3,
         10 / 3,
     ),

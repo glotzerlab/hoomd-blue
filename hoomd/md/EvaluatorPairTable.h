@@ -76,7 +76,7 @@ class EvaluatorPairTable
 
         param_type(pybind11::dict v, bool managed = false)
             {
-            const auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+            const auto V_py = v["U"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
             const auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
 
             if (V_py.size() != F_py.size())
@@ -102,7 +102,7 @@ class EvaluatorPairTable
             const auto V = pybind11::array_t<Scalar>(V_table.size(), V_table.get());
             const auto F = pybind11::array_t<Scalar>(F_table.size(), F_table.get());
             auto params = pybind11::dict();
-            params["V"] = V;
+            params["U"] = V;
             params["F"] = F;
             params["r_min"] = rmin;
             return params;

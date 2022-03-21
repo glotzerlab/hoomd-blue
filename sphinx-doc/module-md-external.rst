@@ -4,9 +4,10 @@
 md.external
 --------------
 
-.. rubric:: Overview
-
 .. py:currentmodule:: hoomd.md.external
+
+.. automodule:: hoomd.md.external
+    :synopsis: External potentials for MD.
 
 .. rubric:: Modules
 

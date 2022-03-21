@@ -37,7 +37,7 @@ env:
   PYTHONPATH: ${{ github.workspace }}/install
 
 
-# Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners for
+# Use multiple jobs to reduce the amount of time spent on GPU runners. Use CPU runners for
 # compiling all tests configurations (GPU and CPU), then upload the build directory (sans object
 # files) as an artifact. Test jobs depend on the build job, download the install directory, and run
 # the tests. Upload each build configuration to a separate artifact.
@@ -48,16 +48,19 @@ env:
 jobs:
   build:
     name: Build [${{ join(matrix.config, '_') }}]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.build_runner }}
     container:
       image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
-        - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang12_py310, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     env:
       CXXFLAGS: '-Werror'
@@ -80,12 +83,19 @@ jobs:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
+                      -DBUILD_MD=${BUILD_MD:-"ON"} \
+                      -DBUILD_MPCD=${BUILD_MD:-"ON"} \
+                      -DBUILD_METAL=${BUILD_MD:-"ON"} \
+                      -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
+                      -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
         ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
+        BUILD_MD: ${{ !contains(matrix.config, 'nomd') }}
+        BUILD_HPMC: ${{ !contains(matrix.config, 'nohpmc') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
@@ -116,17 +126,20 @@ jobs:
   pytest:
     name: Run pytest [${{ join(matrix.config, '_') }}]
     needs: build
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.test_runner }}
     container:
       image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+      options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
-        - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang12_py310, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -159,17 +172,20 @@ jobs:
   ctest:
     name: Run ctest [${{ join(matrix.config, '_') }}]
     needs: build
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.test_runner }}
     container:
       image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+      options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
-        - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang12_py310, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310, nomd, nohpmc], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -195,17 +211,17 @@ jobs:
   validate:
     name: Validate [${{ join(matrix.config, '_') }}]
     needs: build
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.test_runner }}
     container:
       image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+      options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
-        - {config: [clang12_py310, mpi, tbb, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc11_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda115_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda115_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang12_py310, mpi, tbb, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc11_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [cuda115_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda115_gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
@@ -229,29 +245,29 @@ jobs:
 
   build_release:
     name: Build [${{ join(matrix.config, '_') }}]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.build_runner }}
     container:
       image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
-        - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda111_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda10_gcc7_py37, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [clang10_py38, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang13_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang11_py39, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc10_py39], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [cuda114_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda113_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda112_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda111_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda10_gcc7_py37, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang10_py38, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang8_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang7_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc8_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang6_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py36], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -273,12 +289,19 @@ jobs:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DENABLE_LLVM=${ENABLE_LLVM:-"OFF"} \
+                      -DBUILD_MD=${BUILD_MD:-"ON"} \
+                      -DBUILD_MPCD=${BUILD_MD:-"ON"} \
+                      -DBUILD_METAL=${BUILD_MD:-"ON"} \
+                      -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
+                      -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
         ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
         ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
+        BUILD_MD: ${{ !contains(matrix.config, 'nomd') }}
+        BUILD_HPMC: ${{ !contains(matrix.config, 'nohpmc') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
@@ -309,30 +332,30 @@ jobs:
   pytest_release:
     name: Run pytest [${{ join(matrix.config, '_') }}]
     needs: build_release
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.test_runner }}
     container:
       image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+      options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
-        - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda111_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda10_gcc7_py37, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [clang10_py38, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang13_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang11_py39, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc10_py39], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [cuda114_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda113_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda112_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda111_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda10_gcc7_py37, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang10_py38, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang8_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang7_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc8_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang6_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py36], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -366,30 +389,30 @@ jobs:
   ctest_release:
     name: Run ctest [${{ join(matrix.config, '_') }}]
     needs: build_release
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.test_runner }}
     container:
       image: glotzerlab/ci:2022.01-${{ matrix.config[0] }}
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+      options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
-        - {config: [clang13_py310], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang11_py39, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda114_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda113_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda112_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda111_gcc9_py38, mpi, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [cuda10_gcc7_py37, llvm], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
-        - {config: [clang10_py38, llvm], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
-        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang13_py310], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang11_py39, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc10_py39], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [cuda114_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda113_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda112_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda111_gcc9_py38, mpi, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda10_gcc7_py37, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: [self-hosted,GPU], test_docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [clang10_py38, llvm], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang9_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang8_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang7_py38], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc8_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [clang6_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py36], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -436,3 +459,30 @@ jobs:
         if: needs.validate.result != 'success'
         run: echo "::error ::Validation tests failed." && exit 1
       - run: echo "Done!"
+
+  start_action_runners:
+    name: Start action runners
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2.4.0
+        with:
+          path: code
+      - uses: actions/cache@v2.1.7
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-openstacksdk==0.61.0
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install openstack
+        run: python3 -m pip install openstacksdk==0.61.0
+      - name: Start action runners
+        run: python3 code/.github/workflows/start-action-runners.py
+        env:
+          OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
+          OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
+          OS_AUTH_TYPE: v3applicationcredential
+          OS_AUTH_URL: https://js2.jetstream-cloud.org:5000/v3/
+          OS_IDENTITY_API_VERSION: 3
+          OS_REGION_NAME: "IU"
+          OS_INTERFACE: public

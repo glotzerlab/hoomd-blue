@@ -25,3 +25,4 @@ md.pair.aniso
         AnisotropicPair,
         Dipole,
         GayBerne,
+    :show-inheritance:

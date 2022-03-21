@@ -20,7 +20,7 @@
 #define DEVICE
 #define HOSTDEVICE
 #include <iostream>
-#if defined(__SSE__)
+#if !defined(__HIPCC__) && defined(__SSE__)
 #include <immintrin.h>
 #endif
 #endif

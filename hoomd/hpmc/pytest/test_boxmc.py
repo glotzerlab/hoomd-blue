@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 
 valid_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10), betaP=hoomd.variant.Constant(10)),
+    dict(trigger=hoomd.trigger.Periodic(10), betaP=10),
     dict(trigger=hoomd.trigger.After(100),
          betaP=hoomd.variant.Ramp(1, 5, 0, 100)),
     dict(trigger=hoomd.trigger.Before(100),
@@ -99,14 +99,23 @@ def _is_close(v1, v2):
     return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
 
 
+def obj_attr_check(boxmc, mapping):
+    for attr, value in mapping.items():
+        obj_value = getattr(boxmc, attr)
+        if (isinstance(obj_value, hoomd.variant.Constant)
+                and not isinstance(value, hoomd.variant.Constant)):
+            assert obj_value(0) == value
+            continue
+        assert getattr(boxmc, attr) == value
+
+
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(constructor_args):
     """Test that BoxMC can be constructed with valid arguments."""
     boxmc = hoomd.hpmc.update.BoxMC(**constructor_args)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert getattr(boxmc, attr) == value
+    obj_attr_check(boxmc, constructor_args)
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -128,8 +137,7 @@ def test_valid_construction_and_attach(simulation_factory,
     sim.run(0)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert getattr(boxmc, attr) == value
+    obj_attr_check(boxmc, constructor_args)
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
@@ -184,7 +192,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=3, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=betaP, trigger=1)
 
     sim = simulation_factory(snap)
     initial_box = sim.state.box
@@ -218,7 +226,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=betaP, trigger=1)
 
     sim = simulation_factory(snap)
     initial_box = sim.state.box
@@ -248,7 +256,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
 def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
                   counter_attrs):
     """Test that BoxMC counters count corectly."""
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=3, trigger=1)
     # check result when box object is unattached
     for v in counter_attrs.values():
         assert getattr(boxmc, v) == (0, 0)
@@ -284,7 +292,7 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
 
 @pytest.mark.parametrize("box_move", box_moves_attrs)
 def test_pickling(box_move, simulation_factory, two_particle_snapshot_factory):
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=3, trigger=1)
     setattr(boxmc, box_move['move'], box_move['params'])
     sim = simulation_factory(two_particle_snapshot_factory())
     mc = hoomd.hpmc.integrate.Sphere()
