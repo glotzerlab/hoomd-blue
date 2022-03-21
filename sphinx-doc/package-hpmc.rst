@@ -17,6 +17,7 @@ hoomd.hpmc
 
     module-hpmc-compute
     module-hpmc-integrate
+    module-hpmc-nec
     module-hpmc-tune
     module-hpmc-update
     module-hpmc-pair
