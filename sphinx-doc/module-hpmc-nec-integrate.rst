@@ -18,7 +18,7 @@ hoomd.hpmc.nec.integrate
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.nec.integrate
-    :synopsis: User defined pair potentials for Monte Carlo.
+    :synopsis: Integrators for Newtonian event chain Monte Carlo for hard particles.
     :members: ConvexPolyhedron,
               HPMCNECIntegrator,
               Sphere
