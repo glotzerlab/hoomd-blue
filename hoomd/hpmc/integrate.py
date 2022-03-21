@@ -208,7 +208,7 @@ The complete hard shape interaction energy for a given configuration is:
 
 .. math::
 
-    U_{\mathrm{shape},ij} = \quad & \infty
+    U_\mathrm{shape} = \quad & \infty
             \cdot
             \sum_{i=0}^{N_\mathrm{particles}-1}
             \sum_{j=i+1}^{N_\mathrm{particles}-1}

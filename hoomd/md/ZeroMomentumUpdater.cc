@@ -19,7 +19,9 @@ namespace md
     {
 /*! \param sysdef System to zero the momentum of
  */
-ZeroMomentumUpdater::ZeroMomentumUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef)
+ZeroMomentumUpdater::ZeroMomentumUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                                         std::shared_ptr<Trigger> trigger)
+    : Updater(sysdef, trigger)
     {
     m_exec_conf->msg->notice(5) << "Constructing ZeroMomentumUpdater" << endl;
     assert(m_pdata);
@@ -123,7 +125,7 @@ void export_ZeroMomentumUpdater(pybind11::module& m)
     pybind11::class_<ZeroMomentumUpdater, Updater, std::shared_ptr<ZeroMomentumUpdater>>(
         m,
         "ZeroMomentumUpdater")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
     } // end namespace detail
     } // end namespace md

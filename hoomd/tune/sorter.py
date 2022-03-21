@@ -6,7 +6,6 @@
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.operation import Tuner
-from hoomd.trigger import Trigger
 from hoomd import _hoomd
 import hoomd
 from math import log2, ceil
@@ -43,13 +42,13 @@ class ParticleSorter(Tuner):
     """
 
     def __init__(self, trigger=200, grid=None):
-        self._param_dict = ParameterDict(
-            trigger=Trigger,
+        super().__init__(trigger)
+        sorter_params = ParameterDict(
             grid=OnlyTypes(int,
                            postprocess=ParticleSorter._to_power_of_two,
                            preprocess=ParticleSorter._natural_number,
                            allow_none=True))
-        self.trigger = trigger
+        self._param_dict.update(sorter_params)
         self.grid = grid
 
     @staticmethod

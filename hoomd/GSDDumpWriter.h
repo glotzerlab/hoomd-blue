@@ -37,6 +37,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     public:
     //! Construct the writer
     GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<Trigger> trigger,
                   const std::string& fname,
                   std::shared_ptr<ParticleGroup> group,
                   std::string mode = "ab",
