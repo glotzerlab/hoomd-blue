@@ -302,16 +302,21 @@ void gather_v(const T& in_value,
     MPI_Comm_rank(mpi_comm, &rank);
     MPI_Comm_size(mpi_comm, &size);
 
+	std::cout << "MPI 0" << std::endl;
+
     // serialize in_value
     std::stringstream s(std::ios_base::out | std::ios_base::binary);
     cereal::BinaryOutputArchive ar(s);
+	std::cout << "MPI 1" << std::endl;
 
     ar << in_value;
     s.flush();
 
     // copy into send buffer
     std::string str = s.str();
+	std::cout << "MPI 2 " << str << " " << str.length() << std::endl;
     unsigned int send_count = (unsigned int)str.length();
+	std::cout << "MPI 3" << std::endl;
 
     int* recv_counts = NULL;
     int* displs = NULL;
@@ -321,9 +326,11 @@ void gather_v(const T& in_value,
         recv_counts = new int[size];
         displs = new int[size];
         }
+	std::cout << "MPI 4 " << send_count << " " << root << std::endl;
 
     // gather lengths of buffers
     MPI_Gather(&send_count, 1, MPI_INT, recv_counts, 1, MPI_INT, root, mpi_comm);
+	std::cout << "MPI 5" << std::endl;
 
     char* rbuf = NULL;
     if (rank == (int)root)
@@ -336,6 +343,7 @@ void gather_v(const T& in_value,
             }
         rbuf = new char[len];
         }
+	std::cout << "MPI 6" << std::endl;
 
     // now gather actual objects
     MPI_Gatherv((void*)str.data(),
@@ -347,6 +355,7 @@ void gather_v(const T& in_value,
                 MPI_BYTE,
                 root,
                 mpi_comm);
+	std::cout << "MPI 7" << std::endl;
 
     // on root processor, de-serialize data
     if (rank == (int)root)
@@ -364,6 +373,7 @@ void gather_v(const T& in_value,
         delete[] recv_counts;
         delete[] rbuf;
         }
+	std::cout << "MPI 8" << std::endl;
     }
 
 //! Wrapper around MPI_Allgatherv

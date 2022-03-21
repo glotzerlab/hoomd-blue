@@ -49,24 +49,30 @@ BondData::Snapshot MeshDefinition::getBondData()
 TriangleData::Snapshot MeshDefinition::getTriangleData()
     {
     TriangleData::Snapshot triangle_data;
+	std::cout << "Schon da?" << std::endl;
     m_meshtriangle_data->takeSnapshot(triangle_data);
+	std::cout << "Schon weg?" << std::endl;
     return triangle_data;
     }
 
 //! Triangle array setter
 void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
     {
+
+	std::cout << "Wo sind ma denn hier?" << std::endl;
     TriangleData::Snapshot triangle_data = getTriangleData();
-
+    //TriangleData::Snapshot triangle_data;
+	std::cout << "Schon da?" << std::endl;
     pybind11::buffer_info buf = triangles.request();
-
+	std::cout << "Fast am Ende" << std::endl;
     int* ptr = static_cast<int*>(buf.ptr);
-
+	std::cout << "Weiter" << std::endl;
     size_t len_triang = len(triangles);
-
+	std::cout << "Oha" << std::endl;
     triangle_data.resize(static_cast<unsigned int>(len_triang));
-
+	std::cout << "Jetzt aber" << std::endl;
     TriangleData::members_t triangle_new;
+
 
     for (size_t i = 0; i < len_triang; i++)
         {
@@ -75,10 +81,14 @@ void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
         triangle_new.tag[2] = ptr[i * 3 + 2];
         triangle_data.groups[i] = triangle_new;
         }
+
+
     m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(
         new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
     m_meshbond_data = std::shared_ptr<MeshBondData>(
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
+
+	std::cout << "Ende!" << std::endl;
     }
 
 namespace detail

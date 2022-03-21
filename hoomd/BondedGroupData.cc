@@ -41,6 +41,18 @@ char name_pair_data[] = "pair";
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
+    std::shared_ptr<ParticleData> pdata)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0),
+      m_groups_dirty(true)
+    {
+    }
+
+/*! \param exec_conf Execution configuration
+    \param pdata The particle data to associate with
+    \param n_group_types Number of bonded group types to initialize
+ */
+template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
+BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     std::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
     : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0),
@@ -57,6 +69,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
+        std::cout << "Connect Bond" << std::endl;
         m_pdata->getSingleParticleMoveSignal()
             .template connect<
                 BondedGroupData<group_size, Group, name, has_type_mapping>,
@@ -1301,6 +1314,7 @@ void export_BondedGroupData(pybind11::module& m,
         Group::export_to_python(m);
 
     pybind11::class_<T, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<ParticleData>>())
         .def(pybind11::init<std::shared_ptr<ParticleData>, unsigned int>())
         .def(pybind11::init<std::shared_ptr<ParticleData>, const typename T::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)

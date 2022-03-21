@@ -50,8 +50,6 @@ class Mesh(_HOOMDBaseObject):
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def)
 
-        self.triangles = self._triangles
-
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
@@ -59,7 +57,11 @@ class Mesh(_HOOMDBaseObject):
                 # create the c++ Communicator
                 self._simulation._system_communicator.addMeshDefinition(
                     self._cpp_obj)
+                self._cpp_obj.setCommunicator(self._simulation._system_communicator)
 
+        self.triangles = self._triangles
+
+        print("attach super")
         super()._attach()
 
     def _remove_dependent(self, obj):
@@ -86,7 +88,10 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
         if self._attached:
+            print("First Types")
             self._cpp_obj.setTypes(list(self._param_dict['types']))
+
+            print("Then Triangles")
             self._cpp_obj.setTriangleData(triag)
         else:
             self.size = len(triag)

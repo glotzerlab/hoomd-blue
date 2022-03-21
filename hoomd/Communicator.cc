@@ -1403,7 +1403,7 @@ Communicator::~Communicator()
         ->getGroupNumChangeSignal()
         .disconnect<Communicator, &Communicator::setPairsChanged>(this);
 
-    if (m_meshdef != NULL)
+    if (m_meshdef)
         {
         m_meshdef->getMeshBondData()
             ->getGroupNumChangeSignal()
@@ -1692,8 +1692,11 @@ void Communicator::migrateParticles()
         m_constraint_comm.migrateGroups(m_constraints_changed, true);
         m_constraints_changed = false;
 
-        if (m_meshdef != NULL)
+	std::cout << "COMMUNICATION!!!!!!!!!" << std::endl;
+
+        if (m_meshdef)
             {
+	    std::cout << "YES!!!!!!!!!" << std::endl;
             // Meshbonds
             m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
             m_meshbonds_changed = false;
@@ -1947,8 +1950,10 @@ void Communicator::exchangeGhosts()
     // constraints
     m_constraint_comm.markGhostParticles(m_plan, mask);
 
-    if (m_meshdef != NULL)
+    std::cout << "Ëxchange????????" << std::endl;
+    if (m_meshdef)
         {
+    	std::cout << "YES" << std::endl;
         // meshbonds
         m_meshbond_comm.markGhostParticles(m_plan, mask);
 

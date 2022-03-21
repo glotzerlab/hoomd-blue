@@ -29,10 +29,38 @@ namespace hoomd
     \param n_group_types Number of bonded group types to initialize
  */
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
-    std::shared_ptr<ParticleData> pdata,
-    unsigned int n_group_types)
-    : BondedGroupData<group_size, Group, name, true>(pdata, n_group_types) {};
+MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types)
+    : BondedGroupData<group_size, Group, name, true>(pdata)
+    {
+
+    this->m_exec_conf->msg->notice(5) << "Constructing MeshGroupData (" << name << "s, n=" << group_size
+                                << ") " << endl;
+
+    // connect to particle sort signal
+    this->m_pdata->getParticleSortSignal()
+        .template connect<BondedGroupData<group_size, Group, name, true>,
+                          &BondedGroupData<group_size, Group, name, true>::setDirty>(this);
+
+#ifdef ENABLE_MPI
+    if (this->m_pdata->getDomainDecomposition())
+        {
+        std::cout << "Connect Mesh" << std::endl;
+        this->m_pdata->getSingleParticleMoveSignal()
+            .template connect<MeshGroupData<group_size, Group, name, snap, bond>,
+                              &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(
+                this);
+        }
+#endif
+
+    // offer a default type mapping
+    for (unsigned int i = 0; i < n_group_types; i++)
+        {
+        this->m_type_mapping.push_back(detail::getDefaultTypeName(i));
+        }
+
+    // initialize data structures
+    this->initialize();
+    }
 
 /*! \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
@@ -41,10 +69,9 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     std::shared_ptr<ParticleData> pdata,
     const TriangleData::Snapshot& snapshot)
-    : BondedGroupData<group_size, Group, name, true>(
-        pdata,
-        static_cast<unsigned int>(snapshot.type_mapping.size()))
+    : BondedGroupData<group_size, Group, name, true>(pdata)
     {
+    this->m_exec_conf->msg->notice(5) << "Constructing MeshGroupData (" << name << ") " << endl;
     // connect to particle sort signal
     this->m_pdata->getParticleSortSignal()
         .template connect<BondedGroupData<group_size, Group, name, true>,
@@ -56,6 +83,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
+        std::cout << "Connect Meshbond" << std::endl;
         this->m_pdata->getSingleParticleMoveSignal()
             .template connect<MeshGroupData<group_size, Group, name, snap, bond>,
                               &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(
@@ -592,6 +620,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
     unsigned int group_size_half = group_size / 2;
 
     std::map<unsigned int, unsigned int> rtag_map;
+
     for (unsigned int group_idx = 0; group_idx < this->getN(); group_idx++)
         {
         unsigned int tag = this->m_group_tag[group_idx];
@@ -599,6 +628,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 
         rtag_map.insert(std::pair<unsigned int, unsigned int>(tag, group_idx));
         }
+
 
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
@@ -614,6 +644,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
             members.push_back(this->m_groups[group_idx]);
             }
 
+
         std::vector<std::vector<typeval_t>> typevals_proc; // Group types of every processor
         std::vector<std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t>>
             members_proc; // Group members of every processor
@@ -623,15 +654,23 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 
         unsigned int size = this->m_exec_conf->getNRanks();
 
+
         // resize arrays to accumulate group data of all ranks
         typevals_proc.resize(size);
         members_proc.resize(size);
         rtag_map_proc.resize(size);
 
-        // gather all processors' data
-        gather_v(typevals, typevals_proc, 0, this->m_exec_conf->getMPICommunicator());
-        gather_v(members, members_proc, 0, this->m_exec_conf->getMPICommunicator());
-        gather_v(rtag_map, rtag_map_proc, 0, this->m_exec_conf->getMPICommunicator());
+	std::cout << "MPI" << std::endl;
+
+            // gather all processors' data
+            gather_v(typevals, typevals_proc, 0, this->m_exec_conf->getMPICommunicator());
+	std::cout << "MPI 1" << std::endl;
+            gather_v(members, members_proc, 0, this->m_exec_conf->getMPICommunicator());
+	std::cout << "MPI 2" << std::endl;
+            gather_v(rtag_map, rtag_map_proc, 0, this->m_exec_conf->getMPICommunicator());
+
+	std::cout << "MPI 3" << std::endl;
+
 
         if (this->m_exec_conf->getRank() == 0)
             {
@@ -649,11 +688,13 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
                     rank_rtag_map.insert(
                         std::make_pair(it->first, std::make_pair(irank, it->second)));
 
+
             // add groups to snapshot
             std::map<unsigned int, std::pair<unsigned int, unsigned int>>::iterator rank_rtag_it;
 
             // index in snapshot
             unsigned int snap_id = 0;
+
 
             // loop through active tags
             std::set<unsigned int>::iterator active_tag_it;

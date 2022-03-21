@@ -1849,7 +1849,7 @@ void CommunicatorGPU::migrateParticles()
         m_constraints_changed = false;
 
         // MeshBonds
-        if (m_meshdef != NULL)
+        if (m_meshdef)
             {
             m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
             m_meshbonds_changed = false;
@@ -2209,7 +2209,7 @@ void CommunicatorGPU::exchangeGhosts()
         // constraints
         m_constraint_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
 
-        if (m_meshdef != NULL)
+        if (m_meshdef)
             {
             m_meshbond_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
 
