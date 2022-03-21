@@ -1,6 +1,6 @@
 <!-- Please confirm that your work is based on the correct branch. -->
-<!-- Bug fixes should based on *trunk-patch*. -->
-<!-- Backwards compatible new features should based on *trunk-minor*. -->
+<!-- Bug fixes should be based on *trunk-patch*. -->
+<!-- Backwards compatible new features should be based on *trunk-minor*. -->
 <!-- Incompatible API changes should be based on *trunk-major*. -->
 
 ## Description
