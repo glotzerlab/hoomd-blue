@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '0 19 * * *'
 
+  # Trigger on request.
+  workflow_dispatch:
+
 jobs:
   stale:
     runs-on: ubuntu-latest
