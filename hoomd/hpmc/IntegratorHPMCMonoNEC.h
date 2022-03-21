@@ -32,7 +32,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
     Scalar m_chain_time; //!< the length of a chain, given in units of time
     unsigned int
         m_chain_probability;  //!< how often we do a chain. Replaces translation_move_probability
-    Scalar m_update_fraction; //!< if we perform chains we update several particles as one
+    Scalar m_update_fraction; //!< if we perform chains we update several particles as one move
 
     GlobalArray<hpmc_nec_counters_t> m_nec_count_total; //!< counters for chain statistics
 
@@ -267,42 +267,6 @@ hpmc_nec_counters_t IntegratorHPMCMonoNEC<Shape>::getNECCounters(unsigned int mo
     else
         result = h_nec_counters.data[0] - m_nec_count_step_start;
 
-#ifdef ENABLE_MPI
-    if (this->m_comm)
-        {
-        // MPI Reduction to total result values on all nodes.
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &result.chain_start_count,
-                      1,
-                      MPI_LONG_LONG_INT,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &result.chain_at_collision_count,
-                      1,
-                      MPI_LONG_LONG_INT,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &result.chain_no_collision_count,
-                      1,
-                      MPI_LONG_LONG_INT,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &result.distance_queries,
-                      1,
-                      MPI_LONG_LONG_INT,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &result.overlap_err_count,
-                      1,
-                      MPI_UNSIGNED,
-                      MPI_SUM,
-                      this->m_exec_conf->getMPICommunicator());
-        }
-#endif
     return result;
     }
 
@@ -325,29 +289,6 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
 
     const BoxDim& box = this->m_pdata->getBox();
     unsigned int ndim = this->m_sysdef->getNDimensions();
-
-#ifdef ENABLE_MPI
-    // compute the width of the active region
-    Scalar3 npd = box.getNearestPlaneDistance();
-    Scalar3 ghost_fraction = this->m_nominal_width / npd;
-
-    vec3<Scalar> lattice_x = vec3<Scalar>(box.getLatticeVector(0));
-    vec3<Scalar> lattice_y = vec3<Scalar>(box.getLatticeVector(1));
-    vec3<Scalar> lattice_z = vec3<Scalar>(box.getLatticeVector(2));
-
-    vec3<Scalar> normal_x = cross(lattice_y, lattice_z);
-    normal_x *= fast::rsqrt(dot(normal_x, normal_x));
-    vec3<Scalar> normal_y = cross(lattice_z, lattice_x);
-    normal_y *= fast::rsqrt(dot(normal_y, normal_y));
-    vec3<Scalar> normal_z = cross(lattice_x, lattice_y);
-    normal_z *= fast::rsqrt(dot(normal_z, normal_z));
-
-    Scalar latticeNormal_x = dot(normal_x, lattice_x) * (1 - ghost_fraction.x);
-    Scalar latticeNormal_y = dot(normal_y, lattice_y) * (1 - ghost_fraction.y);
-    Scalar latticeNormal_z = dot(normal_z, lattice_z) * (1 - ghost_fraction.z);
-
-    uchar3 periodic = box.getPeriodic();
-#endif
 
     // reset pressure statistics
     count_pressurevirial = 0.0;
@@ -411,17 +352,6 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
             Scalar4 velocity_i = h_velocities.data[i];
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
-
-#ifdef ENABLE_MPI
-            if (this->m_comm)
-                {
-                // only move particle if active
-                if (!isActive(make_scalar3(postype_i.x, postype_i.y, postype_i.z),
-                              box,
-                              ghost_fraction))
-                    continue;
-                }
-#endif
 
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_chain_i);
             bool move_type_translate
@@ -512,84 +442,6 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                                           nec_counters,
                                           collisionPlaneVector);
 
-#ifdef ENABLE_MPI
-                    if (this->m_comm)
-                        {
-                        // Collide with walls of the active domain for non-periodic dimensions.
-
-                        vec3<Scalar> pos_rel = pos_k - vec3<Scalar>(box.getLo());
-                        // x
-                        if (not periodic.x)
-                            {
-                            Scalar directionNormal = dot(normal_x, direction);
-                            Scalar posNormal = dot(normal_x, pos_rel);
-                            Scalar planeCollisionDistance = 0.0;
-                            if (directionNormal < 0.0)
-                                {
-                                planeCollisionDistance = -posNormal / directionNormal;
-                                }
-                            else
-                                {
-                                planeCollisionDistance
-                                    = (latticeNormal_x - posNormal) / directionNormal;
-                                }
-
-                            if (planeCollisionDistance < sweep)
-                                {
-                                sweep = planeCollisionDistance;
-                                collisionPlaneVector = normal_x;
-                                next = -2;
-                                }
-                            }
-                        // y
-                        if (not periodic.y)
-                            {
-                            Scalar directionNormal = dot(normal_y, direction);
-                            Scalar posNormal = dot(normal_y, pos_rel);
-                            Scalar planeCollisionDistance = 0.0;
-                            if (directionNormal < 0.0)
-                                {
-                                planeCollisionDistance = -posNormal / directionNormal;
-                                }
-                            else
-                                {
-                                planeCollisionDistance
-                                    = (latticeNormal_y - posNormal) / directionNormal;
-                                }
-
-                            if (planeCollisionDistance < sweep)
-                                {
-                                sweep = planeCollisionDistance;
-                                collisionPlaneVector = normal_y;
-                                next = -2;
-                                }
-                            }
-                        // z
-                        if (not periodic.z)
-                            {
-                            Scalar directionNormal = dot(normal_z, direction);
-                            Scalar posNormal = dot(normal_z, pos_rel);
-                            Scalar planeCollisionDistance = 0.0;
-                            if (directionNormal < 0.0)
-                                {
-                                planeCollisionDistance = -posNormal / directionNormal;
-                                }
-                            else
-                                {
-                                planeCollisionDistance
-                                    = (latticeNormal_z - posNormal) / directionNormal;
-                                }
-
-                            if (planeCollisionDistance < sweep)
-                                {
-                                sweep = planeCollisionDistance;
-                                collisionPlaneVector = normal_z;
-                                next = -2;
-                                }
-                            }
-                        }
-#endif
-
                     // Error handling
                     // If the next collision is further than we looked for a collision
                     // limit the possible update and try again in the next iteration
@@ -644,106 +496,51 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
                     hoomd::detail::AABB aabb = aabb_k_local;
                     aabb.translate(vec3<Scalar>(h_postype.data[k]));
                     this->m_aabb_tree.update(k, aabb);
-
-#ifdef ENABLE_MPI
-                    if (this->m_comm and next == -2)
+                    // Update the velocities of 'k' and 'next'
+                    // unless there was no collision
+                    if (next != k and next > -1)
                         {
-                        // collide with walls
+                        vec3<Scalar> pos_n = vec3<Scalar>(h_postype.data[next]);
+
+                        vec3<Scalar> vel_n = vec3<Scalar>(h_velocities.data[next]);
                         vec3<Scalar> vel_k = vec3<Scalar>(h_velocities.data[k]);
 
+                        int3 null_image;
+                        vec3<Scalar> delta_pos = pos_n - pos_k;
+                        box.wrap(delta_pos, null_image);
+
+                        // statistics for pressure  -2-
+                        count_pressurevirial += dot(delta_pos, direction);
+
+                        // Update Velocities (fully elastic)
+                        vec3<Scalar> delta_vel = vel_n - vel_k;
                         vec3<Scalar> vel_change
                             = collisionPlaneVector
-                              * (dot(vel_k, collisionPlaneVector)
+                              * (dot(delta_vel, collisionPlaneVector)
                                  / dot(collisionPlaneVector, collisionPlaneVector));
-                        vel_k = vel_k - 2.0 * vel_change;
 
+                        //
+                        //  Update Velocities when actually colliding
+                        //  otherwise they will collide again in the next step.
+                        //
+                        vel_n -= vel_change;
+                        vel_k += vel_change;
+
+                        h_velocities.data[next]
+                            = make_scalar4(vel_n.x, vel_n.y, vel_n.z, h_velocities.data[next].w);
                         h_velocities.data[k]
                             = make_scalar4(vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
-                        next = k;
 
-                        velocity = fast::sqrt(dot(vel_k, vel_k));
+                        velocity = fast::sqrt(dot(vel_n, vel_n));
 
-                        direction = vel_k / velocity;
-                        }
-                    else
-#endif
-                        // Update the velocities of 'k' and 'next'
-                        // unless there was no collision
-                        if (next != k and next > -1)
+                        direction = vel_n / velocity;
+                        if (velocity == 0.0)
                             {
-                            vec3<Scalar> pos_n = vec3<Scalar>(h_postype.data[next]);
-
-                            vec3<Scalar> vel_n = vec3<Scalar>(h_velocities.data[next]);
-                            vec3<Scalar> vel_k = vec3<Scalar>(h_velocities.data[k]);
-
-                            int3 null_image;
-                            vec3<Scalar> delta_pos = pos_n - pos_k;
-                            box.wrap(delta_pos, null_image);
-
-                            // statistics for pressure  -2-
-                            count_pressurevirial += dot(delta_pos, direction);
-
-#ifdef ENABLE_MPI
-                            if (!this->m_comm
-                                || isActive(vec_to_scalar3(pos_n), box, ghost_fraction))
-                                {
-#endif
-
-                                // Update Velocities (fully elastic)
-                                vec3<Scalar> delta_vel = vel_n - vel_k;
-                                vec3<Scalar> vel_change
-                                    = collisionPlaneVector
-                                      * (dot(delta_vel, collisionPlaneVector)
-                                         / dot(collisionPlaneVector, collisionPlaneVector));
-
-                                //
-                                //  Update Velocities when actually colliding
-                                //  otherwise they will collide again in the next step.
-                                //
-                                vel_n -= vel_change;
-                                vel_k += vel_change;
-
-                                h_velocities.data[next] = make_scalar4(vel_n.x,
-                                                                       vel_n.y,
-                                                                       vel_n.z,
-                                                                       h_velocities.data[next].w);
-                                h_velocities.data[k] = make_scalar4(vel_k.x,
-                                                                    vel_k.y,
-                                                                    vel_k.z,
-                                                                    h_velocities.data[k].w);
-
-                                velocity = fast::sqrt(dot(vel_n, vel_n));
-
-                                direction = vel_n / velocity;
-#ifdef ENABLE_MPI
-                                }
-                            else
-                                { // if colliding with an inactive particle.
-                                vec3<Scalar> vel_change
-                                    = collisionPlaneVector
-                                      * (dot(vel_k, collisionPlaneVector)
-                                         / dot(collisionPlaneVector, collisionPlaneVector));
-                                vel_k = vel_k - 2.0 * vel_change;
-
-                                h_velocities.data[k] = make_scalar4(vel_k.x,
-                                                                    vel_k.y,
-                                                                    vel_k.z,
-                                                                    h_velocities.data[k].w);
-                                next = k;
-
-                                velocity = fast::sqrt(dot(vel_k, vel_k));
-
-                                direction = vel_k / velocity;
-                                }
-#endif
-
-                            if (velocity == 0.0)
-                                {
-                                this->m_exec_conf->msg->warning()
-                                    << "Cannot continue a chain without moving.\n";
-                                next = -1;
-                                }
+                            this->m_exec_conf->msg->warning()
+                                << "Cannot continue a chain without moving.\n";
+                            next = -1;
                             }
+                        }
                     } // end loop over totalDist.
                 }
             else
@@ -831,44 +628,6 @@ template<class Shape> void IntegratorHPMCMonoNEC<Shape>::update(uint64_t timeste
             box.wrap(h_postype.data[i], h_image.data[i]);
             }
         }
-
-// perform the grid shift
-#ifdef ENABLE_MPI
-    if (this->m_comm)
-        {
-        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::readwrite);
-        ArrayHandle<int3> h_image(this->m_pdata->getImages(),
-                                  access_location::host,
-                                  access_mode::readwrite);
-
-        // precalculate the grid shift
-        hoomd::RandomGenerator rng(
-            hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShift, timestep, this->m_sysdef->getSeed()),
-            hoomd::Counter());
-        Scalar3 shift = make_scalar3(0, 0, 0);
-        hoomd::UniformDistribution<Scalar> uniform(-this->m_nominal_width / Scalar(2.0),
-                                                   this->m_nominal_width / Scalar(2.0));
-        shift.x = uniform(rng);
-        shift.y = uniform(rng);
-        if (this->m_sysdef->getNDimensions() == 3)
-            {
-            shift.z = uniform(rng);
-            }
-        for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
-            {
-            // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i];
-            vec3<Scalar> r_i
-                = vec3<Scalar>(postype_i); // translation from local to global coordinates
-            r_i += vec3<Scalar>(shift);
-            h_postype.data[i] = vec_to_scalar4(r_i, postype_i.w);
-            box.wrap(h_postype.data[i], h_image.data[i]);
-            }
-        this->m_pdata->translateOrigin(shift);
-        }
-#endif
 
     // migrate and exchange particles
     this->communicate(true);
