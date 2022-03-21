@@ -7,12 +7,12 @@
 
 <!-- Describe your changes in detail. -->
 
-<!-- Replace ??? with the issue number that this pull request resolves. -->
-Resolves #???
-
 ## Motivation and context
 
 <!--- Why is this change required? What problem does it solve? -->
+
+<!-- Replace ??? with the issue number that this pull request resolves. -->
+Resolves #???
 
 ## How has this been tested?
 
