@@ -101,15 +101,15 @@ __global__ void hpmc_reduce_counters(const unsigned int ngpu,
                                      const hpmc_counters_t* d_per_device_counters,
                                      hpmc_counters_t* d_counters,
                                      const unsigned int implicit_pitch,
-                                     const Index2D depletant_idx,
                                      const hpmc_implicit_counters_t* d_per_device_implicit_counters,
-                                     hpmc_implicit_counters_t* d_implicit_counters)
+                                     hpmc_implicit_counters_t* d_implicit_counters,
+                                     const unsigned int ntypes)
     {
     for (unsigned int igpu = 0; igpu < ngpu; ++igpu)
         {
         *d_counters = *d_counters + d_per_device_counters[igpu * pitch];
 
-        for (unsigned int itype = 0; itype < depletant_idx.getNumElements(); ++itype)
+        for (unsigned int itype = 0; itype < ntypes; ++itype)
             d_implicit_counters[itype]
                 = d_implicit_counters[itype]
                   + d_per_device_implicit_counters[itype + igpu * implicit_pitch];
@@ -122,13 +122,13 @@ __global__ void hpmc_depletants_accept(const uint16_t seed,
                                        const unsigned int select,
                                        const unsigned int rank,
                                        const int* d_deltaF_int,
-                                       const Index2D depletant_idx,
                                        const unsigned int deltaF_pitch,
                                        const Scalar* d_fugacity,
                                        const unsigned int* d_ntrial,
                                        unsigned int* d_reject_out,
                                        const unsigned int nwork,
-                                       const unsigned work_offset)
+                                       const unsigned work_offset,
+                                       const unsigned int ntypes)
     {
     // the particle we are handling
     unsigned int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -138,21 +138,20 @@ __global__ void hpmc_depletants_accept(const uint16_t seed,
 
     // reduce free energy over depletant type pairs
     Scalar deltaF_i(0.0);
-    for (unsigned int itype = 0; itype < depletant_idx.getW(); ++itype)
-        for (unsigned int jtype = itype; jtype < depletant_idx.getH(); ++jtype)
-            {
-            // it is important that this loop is serial, to eliminate non-determism
-            // in the acceptance loop (too much noise can make convergence difficult)
-            unsigned int ntrial = d_ntrial[depletant_idx(itype, jtype)];
-            Scalar fugacity = d_fugacity[depletant_idx(itype, jtype)];
+    for (unsigned int itype = 0; itype < ntypes; ++itype)
+        {
+        // it is important that this loop is serial, to eliminate non-determism
+        // in the acceptance loop (too much noise can make convergence difficult)
+        unsigned int ntrial = d_ntrial[itype];
+        Scalar fugacity = d_fugacity[itype];
 
-            if (fugacity == 0.0 || ntrial == 0)
-                continue;
+        if (fugacity == 0.0 || ntrial == 0)
+            continue;
 
-            // rescale deltaF to units of kBT
-            int dF_int_i = d_deltaF_int[deltaF_pitch * depletant_idx(itype, jtype) + i];
-            deltaF_i += log(1 + 1 / (Scalar)ntrial) * dF_int_i;
-            }
+        // rescale deltaF to units of kBT
+        int dF_int_i = d_deltaF_int[deltaF_pitch * itype + i];
+        deltaF_i += log(1 + 1 / (Scalar)ntrial) * dF_int_i;
+        }
 
     hoomd::RandomGenerator rng_accept(
         hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsAccept, timestep, seed),
@@ -339,9 +338,9 @@ void reduce_counters(const unsigned int ngpu,
                      const hpmc_counters_t* d_per_device_counters,
                      hpmc_counters_t* d_counters,
                      const unsigned int implicit_pitch,
-                     const Index2D depletant_idx,
                      const hpmc_implicit_counters_t* d_per_device_implicit_counters,
-                     hpmc_implicit_counters_t* d_implicit_counters)
+                     hpmc_implicit_counters_t* d_implicit_counters,
+                     const unsigned int ntypes)
     {
     hipLaunchKernelGGL(kernel::hpmc_reduce_counters,
                        1,
@@ -353,9 +352,9 @@ void reduce_counters(const unsigned int ngpu,
                        d_per_device_counters,
                        d_counters,
                        implicit_pitch,
-                       depletant_idx,
                        d_per_device_implicit_counters,
-                       d_implicit_counters);
+                       d_implicit_counters,
+                       ntypes);
     }
 
 void hpmc_depletants_accept(const uint16_t seed,
@@ -363,13 +362,13 @@ void hpmc_depletants_accept(const uint16_t seed,
                             const unsigned int select,
                             const unsigned int rank,
                             const int* d_deltaF_int,
-                            const Index2D depletant_idx,
                             const unsigned int deltaF_pitch,
                             const Scalar* d_fugacity,
                             const unsigned int* d_ntrial,
                             unsigned int* d_reject_out,
                             const GPUPartition& gpu_partition,
-                            const unsigned int block_size)
+                            const unsigned int block_size,
+                            const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -399,13 +398,13 @@ void hpmc_depletants_accept(const uint16_t seed,
                            select,
                            rank,
                            d_deltaF_int,
-                           depletant_idx,
                            deltaF_pitch,
                            d_fugacity,
                            d_ntrial,
                            d_reject_out,
                            nwork,
-                           range.first);
+                           range.first,
+                           ntypes);
         }
     }
     } // end namespace gpu

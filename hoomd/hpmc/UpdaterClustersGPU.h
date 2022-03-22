@@ -297,27 +297,22 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
         }
 
     // Depletants
-    const Index2D& depletant_idx = this->m_mc->getDepletantIndexer();
     unsigned int ntypes = this->m_pdata->getNTypes();
-    GlobalArray<Scalar> lambda(ntypes * depletant_idx.getNumElements(), this->m_exec_conf);
+    GlobalArray<Scalar> lambda(ntypes * ntypes, this->m_exec_conf);
     m_lambda.swap(lambda);
     TAG_ALLOCATION(m_lambda);
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_n_depletants);
     TAG_ALLOCATION(m_n_depletants);
 
-    m_depletant_streams.resize(depletant_idx.getNumElements());
+    m_depletant_streams.resize(ntypes);
     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
         {
-        for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
+        m_depletant_streams[itype].resize(this->m_exec_conf->getNumActiveGPUs());
+        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
             {
-            m_depletant_streams[depletant_idx(itype, jtype)].resize(
-                this->m_exec_conf->getNumActiveGPUs());
-            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                {
-                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-                hipStreamCreate(&m_depletant_streams[depletant_idx(itype, jtype)][idev]);
-                }
+            hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+            hipStreamCreate(&m_depletant_streams[itype][idev]);
             }
         }
     }
@@ -354,20 +349,13 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
     Scalar max_d(0.0);
     for (unsigned int type_i = 0; type_i < this->m_pdata->getNTypes(); ++type_i)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
+        if (this->m_mc->getDepletantFugacity(type_i) == Scalar(0.0))
             {
-            quat<Scalar> o;
-            Shape tmp_i(o, params[type_i]);
-            if (this->m_mc->getDepletantFugacity(type_i, type_j) != Scalar(0.0))
-                {
-                // add range of depletion interaction
-                Shape tmp_j(o, params[type_j]);
-                max_d = std::max(
-                    max_d,
-                    (Scalar)0.5
-                        * (tmp_i.getCircumsphereDiameter() + tmp_j.getCircumsphereDiameter()));
-                }
+            continue;
             }
+        quat<Scalar> o;
+        Shape tmp_i(o, params[type_i]);
+        max_d = std::max(max_d, (Scalar)tmp_i.getCircumsphereDiameter());
         }
     nominal_width += max_d;
     if (this->m_cl->getNominalWidth() != nominal_width)
@@ -411,11 +399,9 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
                 else
                     obb.lengths.z = 0.5f; // unit length
 
-                Scalar lambda = std::abs(this->m_mc->getDepletantFugacity(i_type, j_type)
+                Scalar lambda = std::abs(this->m_mc->getDepletantFugacity(i_type)
                                          * obb.getVolume(this->m_sysdef->getNDimensions()));
-                h_lambda.data[k_type * this->m_mc->getDepletantIndexer().getNumElements()
-                              + this->m_mc->getDepletantIndexer()(i_type, j_type)]
-                    = lambda;
+                h_lambda.data[k_type * this->m_pdata->getNTypes() + i_type] = lambda;
                 }
             }
         }
@@ -820,8 +806,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                                                    access_mode::read);
 
                 // depletants
-                auto depletant_idx = this->m_mc->getDepletantIndexer();
-                m_n_depletants.resize(this->m_pdata->getN() * depletant_idx.getNumElements()
+                m_n_depletants.resize(this->m_pdata->getN() * this->m_pdata->getNTypes()
                                       * this->m_pdata->getMaxN());
 
                 ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
@@ -911,20 +896,21 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                     {
                     for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
                         {
-                        if (h_fugacity.data[depletant_idx(itype, jtype)] == 0)
+                        if (h_fugacity.data[itype] == 0)
                             continue;
 
                         if (itype != jtype)
                             throw std::runtime_error(
                                 "Non-additive depletants are not supported by UpdaterClustersGPU.");
 
-                        if (h_fugacity.data[depletant_idx(itype, jtype)] < 0)
+                        if (h_fugacity.data[itype] < 0)
                             throw std::runtime_error(
                                 "Negative fugacities are not supported by UpdaterClustersGPU.");
 
                         // draw random number of depletant insertions per particle from Poisson
                         // distribution
                         m_tuner_num_depletants->begin();
+
                         gpu::generate_num_depletants(
                             this->m_sysdef->getSeed(),
                             timestep,
@@ -932,13 +918,11 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                             this->m_exec_conf->getRank(),
                             itype,
                             jtype,
-                            depletant_idx,
                             d_lambda.data,
                             d_postype.data,
-                            d_n_depletants.data
-                                + depletant_idx(itype, jtype) * this->m_pdata->getMaxN(),
+                            d_n_depletants.data + itype * this->m_pdata->getMaxN(),
                             m_tuner_num_depletants->getParam(),
-                            &m_depletant_streams[depletant_idx(itype, jtype)].front(),
+                            &m_depletant_streams[itype].front(),
                             m_old_gpu_partition);
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
@@ -947,10 +931,9 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                         // max reduce over result
                         unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
                         gpu::get_max_num_depletants(
-                            d_n_depletants.data
-                                + depletant_idx(itype, jtype) * this->m_pdata->getMaxN(),
+                            d_n_depletants.data + itype * this->m_pdata->getMaxN(),
                             &max_n_depletants[0],
-                            &m_depletant_streams[depletant_idx(itype, jtype)].front(),
+                            &m_depletant_streams[itype].front(),
                             m_old_gpu_partition,
                             this->m_exec_conf->getCachedAllocatorManaged());
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -966,15 +949,13 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                         gpu::hpmc_implicit_args_t implicit_args(
                             itype,
                             jtype,
-                            depletant_idx,
                             0,     // implicit_counters
                             0,     // implicit_counters pitch
                             false, // repulsive
-                            d_n_depletants.data
-                                + depletant_idx(itype, jtype) * this->m_pdata->getMaxN(),
+                            d_n_depletants.data + itype * this->m_pdata->getMaxN(),
                             &max_n_depletants[0],
                             depletants_per_thread,
-                            &m_depletant_streams[depletant_idx(itype, jtype)].front());
+                            &m_depletant_streams[itype].front());
                         gpu::hpmc_clusters_depletants<Shape>(args, implicit_args, params.data());
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();

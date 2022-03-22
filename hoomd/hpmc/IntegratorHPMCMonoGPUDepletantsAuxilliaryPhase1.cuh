@@ -72,7 +72,6 @@ __launch_bounds__(max_threads)
                                                   unsigned int max_extra_bytes,
                                                   unsigned int depletant_type_a,
                                                   unsigned int depletant_type_b,
-                                                  const Index2D depletant_idx,
                                                   hpmc_implicit_counters_t* d_implicit_counters,
                                                   const unsigned int* d_update_order_by_ptl,
                                                   const unsigned int* d_reject_in,
@@ -280,7 +279,7 @@ __launch_bounds__(max_threads)
                     hoomd::Counter(new_config ? seed_i_new : seed_i_old,
                                    i_dep,
                                    i_trial,
-                                   depletant_idx(depletant_type_a, depletant_type_b)));
+                                   depletant_type_a));
 
                 // filter depletants overlapping with particle i
                 vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -375,7 +374,7 @@ __launch_bounds__(max_threads)
                 hoomd::Counter(new_config ? seed_i_new : seed_i_old,
                                i_dep_queue,
                                i_trial_queue,
-                               depletant_idx(depletant_type_a, depletant_type_b)));
+                               depletant_type_a));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -649,13 +648,9 @@ __launch_bounds__(max_threads)
             {
 // increment number of inserted depletants
 #if (__CUDA_ARCH__ >= 600)
-            atomicAdd_system(&d_implicit_counters[depletant_idx(depletant_type_a, depletant_type_b)]
-                                  .insert_count,
-                             n_depletants);
+            atomicAdd_system(&d_implicit_counters[depletant_type_a].insert_count, n_depletants);
 #else
-            atomicAdd(&d_implicit_counters[depletant_idx(depletant_type_a, depletant_type_b)]
-                           .insert_count,
-                      n_depletants);
+            atomicAdd(&d_implicit_counters[depletant_type_a].insert_count, n_depletants);
 #endif
             }
         }
@@ -818,7 +813,6 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
                 max_extra_bytes,
                 implicit_args.depletant_type_a,
                 implicit_args.depletant_type_b,
-                implicit_args.depletant_idx,
                 implicit_args.d_implicit_count + idev * implicit_args.implicit_counters_pitch,
                 args.d_update_order_by_ptl,
                 args.d_reject_in,
