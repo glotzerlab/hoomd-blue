@@ -246,8 +246,9 @@ acceptance criterion accordingly. See `Glaser 2015
 <https://dx.doi.org/10.1063/1.4935175>`_ for details.
 
 Warning:
-    The algorithm and API for implicit depletants is **experimental** and may
-    change in minor releases.
+    The algorithm and API for implicit depletants is **experimental** and will
+    change in a future minor releases. Specifically, it will switch to accepting
+    a single type parameter: ``fugacity['A', 'A']`` -> ``fugacity['A']``
 """
 
 from hoomd import _hoomd
@@ -317,8 +318,13 @@ class HPMCIntegrator(Integrator):
             :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
 
             Allows setting the fugacity per particle type, e.g. ``('A','A')``
-            refers to a depletant of type **A**. The option to set a type pair
-            is temporary and will be removed in a future release.
+            refers to a depletant of type **A**.
+
+            Warning:
+                The algorithm and API for implicit depletants is
+                **experimental** and will change in a future minor releases.
+                Specifically, it will switch to accepting a single type
+                parameter: ``fugacity['A', 'A']`` -> ``fugacity['A']``
 
         depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
             Multiplicative factor for the number of times a depletant is
