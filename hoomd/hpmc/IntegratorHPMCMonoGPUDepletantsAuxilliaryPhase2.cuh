@@ -274,10 +274,7 @@ __launch_bounds__(max_threads)
                 // one RNG per depletant and trial insertion
                 hoomd::RandomGenerator rng(
                     hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
-                    hoomd::Counter(cur_seed_i,
-                                   i_dep,
-                                   i_trial,
-                                   depletant_type_a));
+                    hoomd::Counter(cur_seed_i, i_dep, i_trial, depletant_type_a));
 
                 // filter depletants overlapping with particle i
                 vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -367,10 +364,7 @@ __launch_bounds__(max_threads)
 
             hoomd::RandomGenerator rng(
                 hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
-                hoomd::Counter(cur_seed_i,
-                               i_dep_queue,
-                               i_trial_queue,
-                               depletant_type_a));
+                hoomd::Counter(cur_seed_i, i_dep_queue, i_trial_queue, depletant_type_a));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));

@@ -250,10 +250,7 @@ __launch_bounds__(max_threads)
             // one RNG per depletant
             hoomd::RandomGenerator rng(
                 hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, timestep, seed),
-                hoomd::Counter(i,
-                               i_dep,
-                               depletant_type_a,
-                               static_cast<uint16_t>(select)));
+                hoomd::Counter(i, i_dep, depletant_type_a, static_cast<uint16_t>(select)));
 
             overlap_checks += 2;
 
@@ -356,10 +353,7 @@ __launch_bounds__(max_threads)
             unsigned int i_dep_queue = s_queue_didx[group];
             hoomd::RandomGenerator rng(
                 hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, timestep, seed),
-                hoomd::Counter(i,
-                               i_dep_queue,
-                               depletant_type_a,
-                               static_cast<uint16_t>(select)));
+                hoomd::Counter(i, i_dep_queue, depletant_type_a, static_cast<uint16_t>(select)));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));

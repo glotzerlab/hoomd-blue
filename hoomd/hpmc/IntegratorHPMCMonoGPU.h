@@ -769,14 +769,12 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateGPUAdvice()
                     continue;
                 for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
                     {
-                    cudaMemAdvise(m_n_depletants.get()
-                                      + itype * this->m_pdata->getMaxN()
+                    cudaMemAdvise(m_n_depletants.get() + itype * this->m_pdata->getMaxN()
                                       + range.first,
                                   sizeof(unsigned int) * nelem,
                                   cudaMemAdviseSetPreferredLocation,
                                   gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_n_depletants.get()
-                                             + itype * this->m_pdata->getMaxN()
+                    cudaMemPrefetchAsync(m_n_depletants.get() + itype * this->m_pdata->getMaxN()
                                              + range.first,
                                          sizeof(unsigned int) * nelem,
                                          gpu_map[idev]);
@@ -794,14 +792,12 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateGPUAdvice()
                                          gpu_map[idev]);
                     ntrial_offset += ntrial * 2 * this->m_pdata->getMaxN();
 
-                    cudaMemAdvise(m_deltaF_int.get()
-                                      + itype * this->m_pdata->getMaxN()
+                    cudaMemAdvise(m_deltaF_int.get() + itype * this->m_pdata->getMaxN()
                                       + range.first,
                                   sizeof(int) * nelem,
                                   cudaMemAdviseSetPreferredLocation,
                                   gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_deltaF_int.get()
-                                             + itype * this->m_pdata->getMaxN()
+                    cudaMemPrefetchAsync(m_deltaF_int.get() + itype * this->m_pdata->getMaxN()
                                              + range.first,
                                          sizeof(int) * nelem,
                                          gpu_map[idev]);
@@ -904,11 +900,9 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
             update_gpu_advice = true;
             }
 
-        if (m_n_depletants.getNumElements()
-            < this->m_pdata->getMaxN() * this->m_pdata->getNTypes())
+        if (m_n_depletants.getNumElements() < this->m_pdata->getMaxN() * this->m_pdata->getNTypes())
             {
-            m_n_depletants.resize(this->m_pdata->getMaxN()
-                                  * this->m_pdata->getNTypes());
+            m_n_depletants.resize(this->m_pdata->getMaxN() * this->m_pdata->getNTypes());
             update_gpu_advice = true;
             }
 
@@ -1249,7 +1243,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                         for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes();
                              ++jtype)
                             {
-
                             unsigned int ntrial = h_ntrial.data[itype];
                             if (ntrial)
                                 {
@@ -1262,13 +1255,12 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                     auto range = this->m_pdata->getGPUPartition().getRange(idev);
                                     if (range.second - range.first != 0)
                                         {
-                                        hipMemsetAsync(
-                                            d_deltaF_int.data
-                                                + this->m_pdata->getMaxN() * itype
-                                                + range.first,
-                                            0,
-                                            sizeof(int) * (range.second - range.first),
-                                            m_depletant_streams[itype][idev]);
+                                        hipMemsetAsync(d_deltaF_int.data
+                                                           + this->m_pdata->getMaxN() * itype
+                                                           + range.first,
+                                                       0,
+                                                       sizeof(int) * (range.second - range.first),
+                                                       m_depletant_streams[itype][idev]);
                                         }
                                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                                         CHECK_CUDA_ERROR();
@@ -1419,27 +1411,25 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                         for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes();
                              ++jtype)
                             {
-
                             unsigned int ntrial = h_ntrial.data[itype];
                             if (!ntrial)
                                 {
                                 // draw random number of depletant insertions per particle from
                                 // Poisson distribution
                                 m_tuner_num_depletants->begin();
-                                gpu::generate_num_depletants(
-                                    this->m_sysdef->getSeed(),
-                                    timestep,
-                                    i,
-                                    this->m_exec_conf->getRank(),
-                                    itype,
-                                    jtype,
-                                    d_lambda.data,
-                                    d_postype.data,
-                                    d_n_depletants.data
-                                        + itype * this->m_pdata->getMaxN(),
-                                    m_tuner_num_depletants->getParam(),
-                                    &m_depletant_streams[itype].front(),
-                                    this->m_pdata->getGPUPartition());
+                                gpu::generate_num_depletants(this->m_sysdef->getSeed(),
+                                                             timestep,
+                                                             i,
+                                                             this->m_exec_conf->getRank(),
+                                                             itype,
+                                                             jtype,
+                                                             d_lambda.data,
+                                                             d_postype.data,
+                                                             d_n_depletants.data
+                                                                 + itype * this->m_pdata->getMaxN(),
+                                                             m_tuner_num_depletants->getParam(),
+                                                             &m_depletant_streams[itype].front(),
+                                                             this->m_pdata->getGPUPartition());
                                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                                     CHECK_CUDA_ERROR();
                                 m_tuner_num_depletants->end();
@@ -1526,12 +1516,9 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 
                                 for (int idev = (int)gpu_map.size() - 1; idev >= 0; --idev)
                                     {
-                                    hipStream_t parent
-                                        = m_depletant_streams[itype][idev];
-                                    hipStream_t s1
-                                        = m_depletant_streams_phase1[itype][idev];
-                                    hipStream_t s2
-                                        = m_depletant_streams_phase2[itype][idev];
+                                    hipStream_t parent = m_depletant_streams[itype][idev];
+                                    hipStream_t s1 = m_depletant_streams_phase1[itype][idev];
+                                    hipStream_t s2 = m_depletant_streams_phase2[itype][idev];
                                     hipSetDevice(gpu_map[idev]);
                                     hipEventRecord(m_sync[itype][idev], parent);
                                     hipStreamWaitEvent(s1, m_sync[itype][idev], 0);
@@ -1685,8 +1672,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                       access_mode::readwrite);
                         MPI_Allreduce(MPI_IN_PLACE,
                                       h_deltaF_int.data,
-                                      this->m_pdata->getMaxN()
-                                          * this->m_pdata->getNTypes(),
+                                      this->m_pdata->getMaxN() * this->m_pdata->getNTypes(),
                                       MPI_INT,
                                       MPI_SUM,
                                       (*m_ntrial_comm)());
@@ -1704,8 +1690,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                       access_mode::readwrite);
                         MPI_Allreduce(MPI_IN_PLACE,
                                       d_deltaF_int.data,
-                                      this->m_pdata->getMaxN()
-                                          * this->m_pdata->getNTypes(),
+                                      this->m_pdata->getMaxN() * this->m_pdata->getNTypes(),
                                       MPI_INT,
                                       MPI_SUM,
                                       (*m_particle_comm)());
@@ -1715,8 +1700,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                       access_mode::readwrite);
                         MPI_Allreduce(MPI_IN_PLACE,
                                       h_deltaF_int.data,
-                                      this->m_pdata->getMaxN()
-                                          * this->m_pdata->getNTypes(),
+                                      this->m_pdata->getMaxN() * this->m_pdata->getNTypes(),
                                       MPI_INT,
                                       MPI_SUM,
                                       (*m_particle_comm)());

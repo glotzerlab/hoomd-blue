@@ -274,12 +274,11 @@ __launch_bounds__(max_threads)
             if (i_trial < ntrial && i_dep < n_depletants_i)
                 {
                 // one RNG per depletant and trial insertion
-                hoomd::RandomGenerator rng(
-                    hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
-                    hoomd::Counter(new_config ? seed_i_new : seed_i_old,
-                                   i_dep,
-                                   i_trial,
-                                   depletant_type_a));
+                hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
+                                           hoomd::Counter(new_config ? seed_i_new : seed_i_old,
+                                                          i_dep,
+                                                          i_trial,
+                                                          depletant_type_a));
 
                 // filter depletants overlapping with particle i
                 vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -369,12 +368,11 @@ __launch_bounds__(max_threads)
             unsigned int i_dep_queue = s_queue_didx[group];
             unsigned int i_trial_queue = s_queue_itrial[group];
 
-            hoomd::RandomGenerator rng(
-                hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
-                hoomd::Counter(new_config ? seed_i_new : seed_i_old,
-                               i_dep_queue,
-                               i_trial_queue,
-                               depletant_type_a));
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
+                                       hoomd::Counter(new_config ? seed_i_new : seed_i_old,
+                                                      i_dep_queue,
+                                                      i_trial_queue,
+                                                      depletant_type_a));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));

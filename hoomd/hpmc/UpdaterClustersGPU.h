@@ -911,31 +911,31 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                         // distribution
                         m_tuner_num_depletants->begin();
 
-                        gpu::generate_num_depletants(
-                            this->m_sysdef->getSeed(),
-                            timestep,
-                            0, // is select really always 0 here?
-                            this->m_exec_conf->getRank(),
-                            itype,
-                            jtype,
-                            d_lambda.data,
-                            d_postype.data,
-                            d_n_depletants.data + itype * this->m_pdata->getMaxN(),
-                            m_tuner_num_depletants->getParam(),
-                            &m_depletant_streams[itype].front(),
-                            m_old_gpu_partition);
+                        gpu::generate_num_depletants(this->m_sysdef->getSeed(),
+                                                     timestep,
+                                                     0, // is select really always 0 here?
+                                                     this->m_exec_conf->getRank(),
+                                                     itype,
+                                                     jtype,
+                                                     d_lambda.data,
+                                                     d_postype.data,
+                                                     d_n_depletants.data
+                                                         + itype * this->m_pdata->getMaxN(),
+                                                     m_tuner_num_depletants->getParam(),
+                                                     &m_depletant_streams[itype].front(),
+                                                     m_old_gpu_partition);
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
                         m_tuner_num_depletants->end();
 
                         // max reduce over result
                         unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
-                        gpu::get_max_num_depletants(
-                            d_n_depletants.data + itype * this->m_pdata->getMaxN(),
-                            &max_n_depletants[0],
-                            &m_depletant_streams[itype].front(),
-                            m_old_gpu_partition,
-                            this->m_exec_conf->getCachedAllocatorManaged());
+                        gpu::get_max_num_depletants(d_n_depletants.data
+                                                        + itype * this->m_pdata->getMaxN(),
+                                                    &max_n_depletants[0],
+                                                    &m_depletant_streams[itype].front(),
+                                                    m_old_gpu_partition,
+                                                    this->m_exec_conf->getCachedAllocatorManaged());
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
 

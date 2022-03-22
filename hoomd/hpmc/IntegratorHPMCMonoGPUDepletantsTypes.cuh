@@ -36,10 +36,10 @@ struct hpmc_implicit_args_t
                          const unsigned int _depletants_per_thread,
                          const hipStream_t* _streams)
         : depletant_type_a(_depletant_type_a), depletant_type_b(_depletant_type_b),
-          d_implicit_count(_d_implicit_count),
-          implicit_counters_pitch(_implicit_counters_pitch), repulsive(_repulsive),
-          d_n_depletants(_d_n_depletants), max_n_depletants(_max_n_depletants),
-          depletants_per_thread(_depletants_per_thread), streams(_streams) {};
+          d_implicit_count(_d_implicit_count), implicit_counters_pitch(_implicit_counters_pitch),
+          repulsive(_repulsive), d_n_depletants(_d_n_depletants),
+          max_n_depletants(_max_n_depletants), depletants_per_thread(_depletants_per_thread),
+          streams(_streams) {};
 
     const unsigned int depletant_type_a;        //!< Particle type of first depletant
     const unsigned int depletant_type_b;        //!< Particle type of second depletant
