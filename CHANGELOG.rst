@@ -57,8 +57,8 @@ Changes from v3.0.0-beta.14:
 * [breaking] Renamed the ``hoomd.md.angle.Table`` energy parameter from ``V`` to ``U``.
 * [breaking] Renamed the ``hoomd.md.dihedral.Table`` energy parameter from ``V`` to ``U``.
 * [breaking] Renamed ``hoomd.md.nlist.Nlist`` to ``hoomd.md.nlist.NeighborList``.
-* [developer] ``Updater`` and ``Analyzer`` in C++ have a `m_trigger` member now.
-* [developer] `_TriggeredOperation` has been moved to `TriggeredOperation` and custom trigger
+* [developer] ``Updater`` and ``Analyzer`` in C++ have a ``m_trigger`` member now.
+* [developer] ``_TriggeredOperation`` has been moved to ``TriggeredOperation`` and custom trigger
   setting and getting logic removed.
 
 *Fixed*
@@ -79,8 +79,8 @@ Changes from v3.0.0-beta.14:
 * Removed optional coxeter dependency.
 * The ``limit`` parameter from ``hoomd.md.methods.NVE``.
 * The ``limit`` parameter from ``hoomd.md.methods.rattle.NVE``.
-* The ``diameter_shift`` parameter from `hoomd.md.nlist.NeighborList``.
-* The ``max_diameter`` parameter from `hoomd.md.nlist.NeighborList``.
+* The ``diameter_shift`` parameter from ``hoomd.md.nlist.NeighborList``.
+* The ``max_diameter`` parameter from ``hoomd.md.nlist.NeighborList``.
 
 v3.0.0-beta.14 (2022-02-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
