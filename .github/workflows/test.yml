@@ -69,7 +69,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Checkout
-      uses: actions/checkout@v2.4.0
+      uses: actions/checkout@v3.0.0
       with:
         path: code
         submodules: true
@@ -110,13 +110,13 @@ jobs:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.3.1
+      uses: actions/upload-artifact@v3.0.0
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.3.1
+      uses: actions/upload-artifact@v3.0.0
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -146,7 +146,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download install
-      uses: actions/download-artifact@v2.1.0
+      uses: actions/download-artifact@v3.0.0
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -192,7 +192,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download build
-      uses: actions/download-artifact@v2.1.0
+      uses: actions/download-artifact@v3.0.0
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -229,7 +229,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download install
-      uses: actions/download-artifact@v2.1.0
+      uses: actions/download-artifact@v3.0.0
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -275,7 +275,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Checkout
-      uses: actions/checkout@v2.4.0
+      uses: actions/checkout@v3.0.0
       with:
         path: code
         submodules: true
@@ -316,13 +316,13 @@ jobs:
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
-      uses: actions/upload-artifact@v2.3.1
+      uses: actions/upload-artifact@v3.0.0
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
-      uses: actions/upload-artifact@v2.3.1
+      uses: actions/upload-artifact@v3.0.0
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
@@ -363,7 +363,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download install
-      uses: actions/download-artifact@v2.1.0
+      uses: actions/download-artifact@v3.0.0
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -420,7 +420,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Download build
-      uses: actions/download-artifact@v2.1.0
+      uses: actions/download-artifact@v3.0.0
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -465,10 +465,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.4.0
+      - uses: actions/checkout@v3.0.0
         with:
           path: code
-      - uses: actions/cache@v2.1.7
+      - uses: actions/cache@v3.0.0
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-openstacksdk==0.61.0

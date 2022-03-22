@@ -11,7 +11,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/stale@v4.1.0
+    - uses: actions/stale@v5.0.0
       with:
         days-before-close: 10
         stale-issue-label: stale
