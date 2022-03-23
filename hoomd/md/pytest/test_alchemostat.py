@@ -26,7 +26,7 @@ def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
                           alchemostat_cls, extra_property_1st_value,
                           extra_property_2nd_value):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
-    ljg = LJGauss(hoomd.md.nlist.Cell(), default_r_cut=3.0)
+    ljg = LJGauss(hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=3.0)
     ljg.params[('A', 'A')] = dict(epsilon=1., sigma2=0.02, r0=1.8)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(ljg)
@@ -69,7 +69,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
                          alchemostat_cls, extra_property_1st_value,
                          extra_property_2nd_value):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
-    ljg = LJGauss(hoomd.md.nlist.Cell(), default_r_cut=3.0)
+    ljg = LJGauss(hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=3.0)
     ljg.params[('A', 'A')] = dict(epsilon=1., sigma2=0.02, r0=1.8)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(ljg)
@@ -121,7 +121,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
 #                   alchemostat_cls, extra_property_1st_value,
 #                   extra_property_2nd_value):
 #     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
-#     ljg = LJGauss(hoomd.md.nlist.Cell(), default_r_cut=3.0)
+#     ljg = LJGauss(hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=3.0)
 #     ljg.params[('A', 'A')] = dict(epsilon=1., sigma2=0.02, r0=1.8)
 #     integrator = hoomd.md.Integrator(dt=0.005)
 #     integrator.forces.append(ljg)

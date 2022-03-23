@@ -13,6 +13,10 @@ namespace py = pybind11;
     \brief Contains code for the TwoStepNVEAlchemy class
 */
 
+namespace hoomd {
+
+namespace md {
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
@@ -22,20 +26,6 @@ TwoStepNVEAlchemy::TwoStepNVEAlchemy(std::shared_ptr<SystemDefinition> sysdef,
     : AlchemostatTwoStep(sysdef, alchemTimeFactor)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVEAlchemy" << endl;
-
-    // set a named, but otherwise blank set of integrator variables
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "nve", 0))
-        {
-        v.type = "nve";
-        v.variable.resize(0);
-        setValidRestart(false);
-        }
-    else
-        setValidRestart(true);
-
-    setIntegratorVariables(v);
     }
 
 TwoStepNVEAlchemy::~TwoStepNVEAlchemy()
@@ -51,10 +41,6 @@ void TwoStepNVEAlchemy::integrateStepOne(uint64_t timestep)
     {
     if (timestep != m_nextAlchemTimeStep)
         return;
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVT step 1");
 
     m_nextAlchemTimeStep += m_nTimeFactor;
 
@@ -77,10 +63,6 @@ void TwoStepNVEAlchemy::integrateStepOne(uint64_t timestep)
 
         alpha->m_nextTimestep = m_nextAlchemTimeStep;
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -90,9 +72,6 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
     {
     if (timestep != (m_nextAlchemTimeStep - 1))
         return;
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVE step 2");
 
     // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
@@ -111,11 +90,9 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
         // update position
         q += m_halfDeltaT * p * invM;
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
+
+namespace detail {
 
 void export_TwoStepNVEAlchemy(py::module& m)
     {
@@ -124,3 +101,9 @@ void export_TwoStepNVEAlchemy(py::module& m)
         "TwoStepNVEAlchemy")
         .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
+
+} // end namespace detail
+
+} // end namespace md
+
+} // end namespace hoomd

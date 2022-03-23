@@ -23,6 +23,10 @@
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd {
+
+namespace md {
+
 struct AlchemicalParticle
     {
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
@@ -156,6 +160,8 @@ struct AlchemicalNormalizedPairParticle : AlchemicalPairParticle
         }
     };
 
+namespace detail {
+
 inline void export_AlchemicalMDParticles(pybind11::module& m)
     {
     pybind11::class_<AlchemicalMDParticle, std::shared_ptr<AlchemicalMDParticle>>(
@@ -184,5 +190,11 @@ inline void export_AlchemicalMDParticles(pybind11::module& m)
             "norm_value",
             &AlchemicalNormalizedPairParticle::alchemical_derivative_normalization_value);
     }
+
+} // end namespace detail
+
+} // end namespace md
+
+} // end namespace hoomd
 
 #endif

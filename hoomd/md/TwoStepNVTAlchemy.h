@@ -23,6 +23,10 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
+
+namespace md {
+
 //! Integrates part of the system forward in two steps in the NVE ensemble
 /*! Implements NVT digital alchemy integration through the IntegrationMethodTwoStep interface
 
@@ -70,10 +74,17 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
     //! Performs the second step of the integration
     void integrateStepTwo(uint64_t timestep) override;
 
-    private:
+    protected:
+    struct Thermostat
+        {
+        Scalar xi = 0;
+        Scalar eta = 0;
+        };
+
     Scalar m_Q;
     Scalar m_alchem_KE;
     std::shared_ptr<Variant> m_T;
+    Thermostat m_thermostat; //!< Thermostat degrees of freedom
 
     //! advance the thermostat
     /*!\param timestep The time step
@@ -83,7 +94,15 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
     void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };
 
+namespace detail {
+
 //! Exports the TwoStepNVTAlchemy class to python
 void export_TwoStepNVTAlchemy(pybind11::module& m);
+
+} // end namespace detail
+
+} // end namespace md
+
+} // end namespace hoomd
 
 #endif // __TWOSTEP_NVT_ALCHEMY_H__

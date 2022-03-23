@@ -19,6 +19,10 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <pybind11/pybind11.h>
 
+namespace hoomd {
+
+namespace md {
+
 //! Integrates part of the system forward in two steps in the NVE ensemble
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
 
@@ -44,7 +48,14 @@ class TwoStepNVEAlchemy : public AlchemostatTwoStep
     //! Alchemical Stuff follows
     };
 
+namespace detail
+    {
 //! Exports the TwoStepNVEAlchemy class to python
 void export_TwoStepNVEAlchemy(pybind11::module& m);
+    } // end namespace detail
+
+} // end namespace md
+
+} // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVE_ALCHEMY_H__

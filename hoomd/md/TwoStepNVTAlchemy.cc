@@ -15,6 +15,10 @@ namespace py = pybind11;
     \brief Contains code for the TwoStepNVTAlchemy class
 */
 
+namespace hoomd {
+
+namespace md {
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param skip_restart Skip initialization of the restart information
@@ -26,14 +30,8 @@ TwoStepNVTAlchemy::TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTAlchemy" << std::endl;
 
-    // TODO: alchemy, add restart support, would require alpha matrix to be stored... where?
-    // set initial state
-    IntegratorVariables v = getIntegratorVariables();
-    v.type = "nvt_alchemo";
-    v.variable.resize(2);
-    v.variable[0] = Scalar(0.0); // xi
-    v.variable[1] = Scalar(0.0); // eta
-    setIntegratorVariables(v);
+    m_thermostat.xi = 0;
+    m_thermostat.eta = 0;
     }
 
 TwoStepNVTAlchemy::~TwoStepNVTAlchemy()
@@ -90,16 +88,11 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
     {
     if (timestep != m_nextAlchemTimeStep)
         return;
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVTalchemo step 1");
 
     m_exec_conf->msg->notice(10) << "TwoStepNVTAlchemy: 1st Alchemcial Half Step" << std::endl;
 
     m_nextAlchemTimeStep += m_nTimeFactor;
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& xi = v.variable[0];
     m_alchem_KE = Scalar(0);
 
     // TODO: get any external derivatives, mapped?
@@ -121,31 +114,22 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
         // update momentum
         p += m_halfDeltaT * (netForce - mu - dUextdalpha);
         // rescale velocity
-        p *= exp(-m_halfDeltaT * xi);
+        p *= exp(-m_halfDeltaT * m_thermostat.xi);
         m_alchem_KE += Scalar(0.5) * p * p * invM;
 
         alpha->m_nextTimestep = m_nextAlchemTimeStep;
         }
 
     advanceThermostat(timestep);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
     {
     if ((timestep != (m_nextAlchemTimeStep - 1)) || m_validState)
         return;
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVTalchemo step 2");
 
     m_exec_conf->msg->notice(10) << "TwoStepNVTAlchemy: 2nd Alchemcial Half Step" << std::endl;
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& xi = v.variable[0];
     m_alchem_KE = Scalar(0);
 
     // TODO: get any external derivatives, mapped?
@@ -161,7 +145,7 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
         const Scalar netForce = alpha->getNetForce(timestep + 1);
 
         // rescale velocity
-        p *= exp(-m_halfDeltaT * xi);
+        p *= exp(-m_halfDeltaT * m_thermostat.xi);
         // update momentum
         p += m_halfDeltaT * (netForce - mu - dUextdalpha);
         // update position
@@ -170,28 +154,20 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
         }
 
     m_validState = true;
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
     {
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
-
     // update the state variables Xi and eta
     Scalar half_delta_xi
         = m_halfDeltaT
           * ((Scalar(2) * m_alchem_KE) - (Scalar(m_alchemicalParticles.size()) * (*m_T)(timestep)))
           / m_Q;
-    eta += (half_delta_xi + xi) * m_deltaT * m_nTimeFactor;
-    xi += half_delta_xi + half_delta_xi;
-
-    setIntegratorVariables(v);
+    m_thermostat.eta += (half_delta_xi + m_thermostat.xi) * m_deltaT * m_nTimeFactor;
+    m_thermostat.xi += half_delta_xi + half_delta_xi;
     }
+
+namespace detail {
 
 void export_TwoStepNVTAlchemy(py::module& m)
     {
@@ -205,3 +181,9 @@ void export_TwoStepNVTAlchemy(py::module& m)
         .def_property("kT", &TwoStepNVTAlchemy::getT, &TwoStepNVTAlchemy::setT)
         .def_property("Q", &TwoStepNVTAlchemy::getQ, &TwoStepNVTAlchemy::setQ);
     }
+
+} // end namespace detail
+
+} // end namespace md
+
+} // end namespace hoomd

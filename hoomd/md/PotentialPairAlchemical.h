@@ -33,6 +33,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd {
+
+namespace md {
+
 template<class evaluator> struct AlchemyPackage
     {
     bool calculate_derivatives = false;
@@ -273,6 +277,8 @@ PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::pkgFinalize(
                 }
     }
 
+namespace detail {
+
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
@@ -292,5 +298,11 @@ void export_PotentialPairAlchemical(pybind11::module& m, const std::string& name
         .def("enableAlchemicalPairParticle", &T::enableAlchemicalPairParticle)
         .def("disableAlchemicalPairParticle", &T::disableAlchemicalPairParticle);
     }
+
+} // end namespace detail
+
+} // end namespace md
+
+} // end namespace hoomd
 
 #endif // POTENTIAL_PAIR_ALCHEMICAL_H
