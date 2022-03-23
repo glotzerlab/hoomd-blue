@@ -13,9 +13,11 @@ namespace py = pybind11;
     \brief Contains code for the TwoStepNVEAlchemy class
 */
 
-namespace hoomd {
+namespace hoomd
+    {
 
-namespace md {
+namespace md
+    {
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
@@ -92,7 +94,8 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
         }
     }
 
-namespace detail {
+namespace detail
+    {
 
 void export_TwoStepNVEAlchemy(py::module& m)
     {
@@ -102,8 +105,8 @@ void export_TwoStepNVEAlchemy(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace md
+    } // end namespace md
 
-} // end namespace hoomd
+    } // end namespace hoomd

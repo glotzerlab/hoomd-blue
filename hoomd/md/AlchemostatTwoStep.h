@@ -12,9 +12,11 @@
 #include <cstddef>
 #include <pybind11/stl_bind.h>
 
-namespace hoomd {
+namespace hoomd
+    {
 
-namespace md {
+namespace md
+    {
 
 //! all templating can be removed with c++20, virtual constexpr
 // template<class T = void>
@@ -124,8 +126,8 @@ inline void export_AlchemostatTwoStep(pybind11::module& m)
         .def("setNextAlchemicalTimestep", &AlchemostatTwoStep::setNextAlchemicalTimestep);
     }
 
-} // end namespace md
+    } // end namespace md
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // #ifndef __ALCHEMOSTAT_TWO_STEP__

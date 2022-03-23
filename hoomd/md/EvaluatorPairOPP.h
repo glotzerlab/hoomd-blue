@@ -193,10 +193,10 @@ class EvaluatorPairOPP
 
         alchemical_derivatives[0]
             = -sin(params.k * alphas[0] * (r - Scalar(1.0)) + params.phi * alphas[1]) * params.k
-                * (r - Scalar(1.0)) * r3inv;
+              * (r - Scalar(1.0)) * r3inv;
         alchemical_derivatives[1]
-            = -sin(params.k * alphas[0] * (r - Scalar(1.0)) + params.phi * alphas[1])
-                * params.phi * r3inv;
+            = -sin(params.k * alphas[0] * (r - Scalar(1.0)) + params.phi * alphas[1]) * params.phi
+              * r3inv;
         }
 
     DEVICE Scalar evalPressureLRCIntegral()

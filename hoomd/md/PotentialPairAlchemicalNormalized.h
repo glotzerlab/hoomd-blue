@@ -27,9 +27,11 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace hoomd {
+namespace hoomd
+    {
 
-namespace md {
+namespace md
+    {
 
 template<class evaluator> struct AlchemyPackageNormalized : AlchemyPackage<evaluator>
     {
@@ -188,7 +190,8 @@ PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::pk
                 }
     }
 
-namespace detail {
+namespace detail
+    {
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
@@ -213,10 +216,10 @@ void export_PotentialPairAlchemicalNormalized(pybind11::module& m, const std::st
         .def("setNormalizer", &T::setNormalizer);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace md
+    } // end namespace md
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif // POTENTIAL_PAIR_ALCHEMICAL_NORMALIZED_H

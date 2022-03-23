@@ -15,9 +15,11 @@ namespace py = pybind11;
     \brief Contains code for the TwoStepNVTAlchemy class
 */
 
-namespace hoomd {
+namespace hoomd
+    {
 
-namespace md {
+namespace md
+    {
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
@@ -167,7 +169,8 @@ void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
     m_thermostat.xi += half_delta_xi + half_delta_xi;
     }
 
-namespace detail {
+namespace detail
+    {
 
 void export_TwoStepNVTAlchemy(py::module& m)
     {
@@ -182,8 +185,8 @@ void export_TwoStepNVTAlchemy(py::module& m)
         .def_property("Q", &TwoStepNVTAlchemy::getQ, &TwoStepNVTAlchemy::setQ);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace md
+    } // end namespace md
 
-} // end namespace hoomd
+    } // end namespace hoomd

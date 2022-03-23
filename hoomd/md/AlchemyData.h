@@ -23,9 +23,11 @@
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 
-namespace md {
+namespace md
+    {
 
 struct AlchemicalParticle
     {
@@ -160,7 +162,8 @@ struct AlchemicalNormalizedPairParticle : AlchemicalPairParticle
         }
     };
 
-namespace detail {
+namespace detail
+    {
 
 inline void export_AlchemicalMDParticles(pybind11::module& m)
     {
@@ -191,10 +194,10 @@ inline void export_AlchemicalMDParticles(pybind11::module& m)
             &AlchemicalNormalizedPairParticle::alchemical_derivative_normalization_value);
     }
 
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace md
+    } // end namespace md
 
-} // end namespace hoomd
+    } // end namespace hoomd
 
 #endif
