@@ -2,7 +2,6 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
-#include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -48,10 +47,6 @@ TwoStepBD::~TwoStepBD()
 void TwoStepBD::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("BD step 1");
 
     // grab some initial variables
     const Scalar currentTemp = (*m_T)(timestep);
@@ -250,10 +245,6 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 }
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! @param timestep Current time step

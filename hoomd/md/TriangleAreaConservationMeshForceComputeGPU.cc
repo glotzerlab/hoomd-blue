@@ -75,10 +75,6 @@ void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type,
 
 void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "TriangleAreaConservationForce");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -144,17 +140,10 @@ void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timeste
             }
         }
     m_tuner->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 void TriangleAreaConservationMeshForceComputeGPU::computeArea()
     {
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "TriangleAreaConservationArea");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -210,9 +199,6 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
         }
 #endif
     m_area = h_sumA.data[0];
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

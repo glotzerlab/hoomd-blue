@@ -43,8 +43,6 @@ void mpcd::ATCollisionMethod::rule(uint64_t timestep)
     {
     m_thermo->compute(timestep);
 
-    if (m_prof)
-        m_prof->push("MPCD collide");
     // compute the cell average of the random velocities
     m_pdata->swapVelocities();
     m_mpcd_pdata->swapVelocities();
@@ -52,15 +50,8 @@ void mpcd::ATCollisionMethod::rule(uint64_t timestep)
     m_pdata->swapVelocities();
     m_mpcd_pdata->swapVelocities();
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "apply");
     // apply random velocities
     applyVelocities();
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!

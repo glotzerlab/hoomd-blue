@@ -89,10 +89,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
 
     // compute the total energy on the GPU
     // CPU version is Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "FIRE compute total energy");
-
     unsigned int total_group_size = 0;
 
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -153,9 +149,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     m_energy_total = energy;
     energy /= (Scalar)total_group_size;
 
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
     if (m_was_reset)
         {
         m_was_reset = false;
@@ -163,9 +156,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
         }
 
     // sum P, vnorm, fnorm
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "FIRE P, vnorm, fnorm");
 
 #ifdef ENABLE_MPI
     bool aniso = false;
@@ -328,9 +318,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     wnorm = sqrt(wnorm);
     tnorm = sqrt(tnorm);
 
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
     unsigned int ndof = m_sysdef->getNDimensions() * total_group_size;
     m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " tnorm " << tnorm << " delta_E "
                                  << energy - m_old_energy << std::endl;
@@ -347,9 +334,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
         }
 
     // update velocities
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "FIRE update velocities");
 
     Scalar factor_t;
     if (fabs(fnorm) > 0)
@@ -419,9 +403,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
             }
         }
 
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
     Scalar P = Pt + Pr;
 
     if (P > Scalar(0.0))
@@ -438,9 +419,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
         IntegratorTwoStep::setDeltaT(m_deltaT * m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
-        if (m_prof)
-            m_prof->push(m_exec_conf, "FIRE zero velocities");
-
         m_exec_conf->msg->notice(6) << "FIRE zero velocities" << std::endl;
 
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -469,9 +447,6 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                     CHECK_CUDA_ERROR();
                 }
             }
-
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
         }
 
     m_n_since_start++;

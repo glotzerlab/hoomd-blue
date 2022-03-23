@@ -70,8 +70,8 @@ class Action(metaclass=_AbstractLoggable):
                 pass
 
     Attributes:
-        flags (list[hoomd.custom.Action.Flags]): List of flags from the
-            `hoomd.custom.Action.Flags`. Used to tell the integrator if
+        flags (list[Action.Flags]): List of flags from the
+            `Action.Flags`. Used to tell the integrator if
             specific quantities are needed for the action.
     """
 

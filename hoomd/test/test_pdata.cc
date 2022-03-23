@@ -418,7 +418,7 @@ UP_TEST(BoxDim_triclinic_test)
 //! Test operation of the particle data class
 UP_TEST(ParticleData_test)
     {
-    BoxDim box(10.0, 30.0, 50.0);
+    auto box = std::make_shared<BoxDim>(10.0, 30.0, 50.0);
     std::shared_ptr<ExecutionConfiguration> exec_conf(
         new ExecutionConfiguration(ExecutionConfiguration::CPU));
     ParticleData a(1, box, 1, exec_conf);

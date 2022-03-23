@@ -9,13 +9,10 @@ import warnings
 import hoomd
 from hoomd.md import _md
 from hoomd.md import force
-from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import numpy as np
-from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, nonnegative_real)
-
-validate_nlist = OnlyTypes(NList)
+from hoomd.data.typeconverter import OnlyFrom, nonnegative_real
 
 
 class Pair(force.Force):
@@ -93,6 +90,40 @@ class Pair(force.Force):
     for those pairs that interact via WCA in order to enable shifting of the WCA
     potential to 0 at the cutoff.
 
+    Some pair potentials optionally apply isotropic integrated long range tail
+    corrections when the ``tail_correction`` parameter is ``True``. These
+    corrections are only valid when the shifting/smoothing mode is set to
+    ``"none"``. Following `Sun 1998 <https://doi.org/10.1021/jp980939v>`_, the
+    pressure and energy corrections :math:`\Delta P` and :math:`\Delta E` are
+    given by:
+
+    .. math::
+
+        \Delta P = \frac{-2\pi}{3} \sum_{i=1}^{n} \rho_i \sum_{j=1}^{n} \rho_j
+        \int_{r_\mathrm{cut}}^{\infty} \left( r
+        \frac{\mathrm{d}V_{ij}(r)}{\mathrm{d}r} \right) r^2 \,\,\mathrm{d}r
+
+    and
+
+    .. math::
+
+        \Delta E = 2\pi \sum_{i=1}^{n} N_i \sum_{j=1}^{n} \rho_j
+        \int_{r_\mathrm{cut}}^{\infty} V_{ij}(r) r^2\,\,\mathrm{d}r,
+
+    where :math:`n` is the number of unique particle types in the system,
+    :math:`\rho_i` is the number density of particles of type :math:`i` in the
+    system, :math:`V_{ij}(r)` is the pair potential between particles of type
+    :math:`i` and :math:`j`, and :math:`N_i` is the number of particles of type
+    :math:`i` in the system. These expressions assume that the radial pair
+    distribution functions :math:`g_{ij}(r)` are unity at the cutoff and beyond.
+
+    Warning:
+        The value of the tail corrections depends on the number of each type of
+        particle in the system, and these are precomputed when the pair
+        potential object is initialized. If the number of any of the types of
+        particles changes, the tail corrections will yield invalid results.
+
+
     The following coefficients must be set per unique pair of particle types.
     See `hoomd.md.pair` for information on how to set coefficients.
 
@@ -121,6 +152,12 @@ class Pair(force.Force):
         Possible values: ``"none"``, ``"shift"``, ``"xplor"``
 
         Type: `str`
+
+    .. py:attribute:: nlist
+
+        Neighbor list used to compute the pair potential.
+
+        Type: `hoomd.md.nlist.NList`
     """
 
     # The accepted modes for the potential. Should be reset by subclasses with
@@ -129,7 +166,6 @@ class Pair(force.Force):
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         super().__init__()
-        self._nlist = validate_nlist(nlist)
         tp_r_cut = TypeParameter(
             'r_cut', 'particle_types',
             TypeParameterDict(nonnegative_real, len_keys=2))
@@ -146,8 +182,10 @@ class Pair(force.Force):
 
         self._extend_typeparam(type_params)
         self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(self._accepted_modes)))
+            ParameterDict(mode=OnlyFrom(self._accepted_modes),
+                          nlist=hoomd.md.nlist.NList))
         self.mode = mode
+        self.nlist = nlist
 
     def compute_energy(self, tags1, tags2):
         r"""Compute the energy between two sets of particles.
@@ -186,44 +224,41 @@ class Pair(force.Force):
         return self._cpp_obj.computeEnergyBetweenSets(tags1, tags2)
 
     def _add(self, simulation):
-        # if nlist was associated with multiple pair forces and is still
-        # attached, we need to deepcopy existing nlist.
-        nlist = self._nlist
-        if (not self._attached and nlist._attached
-                and nlist._simulation != simulation):
-            warnings.warn(
-                f"{self} object is creating a new equivalent neighbor list."
-                f" This is happending since the force is moving to a new "
-                f"simulation. To supress the warning explicitly set new nlist.",
-                RuntimeWarning)
-            self._nlist = copy.deepcopy(nlist)
+        super()._add(simulation)
+        self._add_nlist()
+
+    def _add_nlist(self):
+        nlist = self.nlist
+        deepcopy = False
+        if not isinstance(self._simulation, hoomd.Simulation):
+            if nlist._added:
+                deepcopy = True
+            else:
+                return
         # We need to check if the force is added since if it is not then this is
         # being called by a SyncedList object and a disagreement between the
         # simulation and nlist._simulation is an error. If the force is added
         # then the nlist is compatible. We cannot just check the nlist's _added
         # property because _add is also called when the SyncedList is synced.
-        elif (not self._added and nlist._added
-              and nlist._simulation != simulation):
-            raise RuntimeError(
-                f"NeighborList associated with {self} is associated with "
-                f"another simulation.")
-        super()._add(simulation)
-        # this ideopotent given the above check.
-        self._nlist._add(simulation)
+        if deepcopy or nlist._added and nlist._simulation != self._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. To supress the warning explicitly set new nlist.",
+                RuntimeWarning)
+            self.nlist = copy.deepcopy(nlist)
+        self.nlist._add(self._simulation)
         # This is ideopotent, but we need to ensure that if we change
         # neighbor list when not attached we handle correctly.
-        self._add_dependency(self._nlist)
+        self._add_dependency(self.nlist)
 
     def _attach(self):
-        # create the c++ mirror class
-        if not self._nlist._added:
-            self._nlist._add(self._simulation)
-        else:
-            if self._simulation != self._nlist._simulation:
-                raise RuntimeError("{} object's neighbor list is used in a "
-                                   "different simulation.".format(type(self)))
-        if not self.nlist._attached:
-            self.nlist._attach()
+        # This should never happen, but leaving it in case the logic for adding
+        # missed some edge case.
+        if self._simulation != self.nlist._simulation:
+            raise RuntimeError("{} object's neighbor list is used in a "
+                               "different simulation.".format(type(self)))
+        self.nlist._attach()
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
@@ -237,27 +272,20 @@ class Pair(force.Force):
 
         super()._attach()
 
-    @property
-    def nlist(self):
-        """Neighbor list used to compute the pair potential."""
-        return self._nlist
+    def _setattr_param(self, attr, value):
+        if attr == "nlist":
+            self._nlist_setter(value)
+            return
+        super()._setattr_param(attr, value)
 
-    @nlist.setter
-    def nlist(self, value):
+    def _nlist_setter(self, new_nlist):
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
-        nlist = validate_nlist(value)
+        old_nlist = self.nlist
+        self._param_dict._dict["nlist"] = new_nlist
         if self._added:
-            if nlist._added and self._simulation != nlist._simulation:
-                raise RuntimeError(
-                    "Neighbor lists and forces must belong to the same "
-                    "simulation or SyncedList.")
-            self._nlist._add(self._simulation)
-        self._nlist = nlist
-
-    @property
-    def _children(self):
-        return [self.nlist]
+            self._add_nlist()
+            old_nlist._remove_dependent(self)
 
 
 class LJ(Pair):
@@ -268,6 +296,8 @@ class LJ(Pair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
+        tail_correction (bool): Whether to apply the isotropic integrated long
+            range tail correction.
 
     `LJ` specifies that a Lennard-Jones pair potential should be
     applied between every non-excluded particle pair in the simulation.
@@ -276,14 +306,15 @@ class LJ(Pair):
         :nowrap:
 
         \begin{eqnarray*}
-        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left(
+        V_{\mathrm{LJ}}(r) &=& 4 \varepsilon \left[ \left(
         \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r}
         \right)^{6} \right]; & r < r_{\mathrm{cut}} \\
-        = & 0; & r \ge r_{\mathrm{cut}} \\
+        &=& 0; & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes.
+    See `Pair` for details on how forces are calculated, the available
+    energy shifting and smoothing modes, and the deails of the long range tail
+    correction.
 
     .. py:attribute:: params
 
@@ -303,6 +334,12 @@ class LJ(Pair):
 
         Type: `str`
 
+    .. py:attribute:: tail_correction
+
+        Whether to apply the isotropic integrated long range tail correction.
+
+        Type: `bool`
+
     Example::
 
         nl = nlist.Cell()
@@ -312,12 +349,19 @@ class LJ(Pair):
     """
     _cpp_class_name = "PotentialPairLJ"
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.,
+                 mode='none',
+                 tail_correction=False):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
+        self._param_dict.update(
+            ParameterDict(tail_correction=bool(tail_correction)))
 
 
 class Gauss(Pair):
@@ -379,91 +423,6 @@ class Gauss(Pair):
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
-
-
-class SLJ(Pair):
-    r"""Shifted Lennard-Jones pair potential.
-
-    Args:
-        nlist (`hoomd.md.nlist.NList`): Neighbor list.
-        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
-        mode (str): Energy shifting mode.
-
-    `SLJ` specifies that a shifted Lennard-Jones type pair potential
-    should be applied between every non-excluded particle pair in the
-    simulation.
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left(
-                                \frac{\sigma}{r - \Delta} \right)^{12} -
-                                \left( \frac{\sigma}{r - \Delta}
-                                \right)^{6} \right]; & r < (r_{\mathrm{cut}}
-                                + \Delta) \\
-                             = & 0; & r \ge (r_{\mathrm{cut}} + \Delta) \\
-        \end{eqnarray*}
-
-    where :math:`\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of
-    particle :math:`i`.
-
-    See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.
-
-    Attention:
-        Due to the way that `SLJ` modifies the cutoff criteria, a smoothing mode
-        of *xplor* is not supported.
-
-    Set the ``max_diameter`` property of the neighbor list object to the largest
-    particle diameter in the system (where **diameter** is a per-particle
-    property of the same name in `hoomd.State`).
-
-    Warning:
-        Failure to set ``max_diameter`` will result in missing pair
-        interactions.
-
-    .. py:attribute:: params
-
-        The potential parameters. The dictionary has the following keys:
-
-        * ``epsilon`` (`float`, **required**) - energy parameter
-          :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
-          :math:`[\mathrm{length}]`
-
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`]
-
-    Example::
-
-        nl = nlist.Cell()
-        nl.max_diameter = 2.0
-        slj = pair.SLJ(default_r_cut=3.0, nlist=nl)
-        slj.params[('A', 'B')] = dict(epsilon=2.0, r_cut=3.0)
-        slj.r_cut[('B', 'B')] = 2**(1.0/6.0)
-    """
-    _cpp_class_name = 'PotentialPairSLJ'
-
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
-        if mode == 'xplor':
-            raise ValueError("xplor is not a valid mode for SLJ potential")
-
-        super().__init__(nlist, default_r_cut, default_r_on, mode)
-        params = TypeParameter(
-            'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
-        self._add_typeparam(params)
-
-        # mode not allowed to be xplor, so re-do param dict entry without that
-        # option
-        param_dict = ParameterDict(mode=OnlyFrom(['none', 'shift']))
-        self._param_dict.update(param_dict)
-        self.mode = mode
-
-        # this potential needs diameter shifting on
-        self._nlist.diameter_shift = True
 
 
 class ExpandedLJ(Pair):
@@ -717,12 +676,12 @@ class Table(Pair):
     in the pair, ``r_min`` is defined in `params`, and ``r_cut`` is defined in
     `Pair.r_cut`.
 
-    Provide :math:`F(r)` and :math:`V(r)` on an evenly space set of grid points
-    points between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`.
-    `Table` linearly interpolates values when :math:`r` lies between grid points
-    and between the last grid point and :math:`r=r_{\\mathrm{cut}}`.  The force
-    must be specificed commensurate with the potential: :math:`F =
-    -\\frac{\\partial V}{\\partial r}`.
+    Provide :math:`F(r)` and :math:`V(r)` on evenly spaced grid points points
+    between :math:`r_{\\mathrm{min}}` and :math:`r_{\\mathrm{cut}}`. `Table`
+    linearly interpolates values when :math:`r` lies between grid points and
+    between the last grid point and :math:`r=r_{\\mathrm{cut}}`.  The force must
+    be specificed commensurate with the potential: :math:`F = -\\frac{\\partial
+    V}{\\partial r}`.
 
     `Table` does not support energy shifting or smoothing modes.
 
@@ -886,8 +845,8 @@ class DPD(Pair):
     uniformly distributed random number in the range [-1, 1].
 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    describes the DPD implementation details in HOOMD-blue. Cite it if you
-    utilize the DPD functionality in your work.
+    describes the DPD implementation details. Cite it if you utilize the DPD
+    functionality in your work.
 
     `DPD` does not implement any energy shift / smoothing modes due to the
     function of the force.
@@ -1037,8 +996,8 @@ class DPDLJ(Pair):
     simulation.
 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    describes the DPD implementation details in HOOMD-blue. Cite it if you
-    utilize the DPD functionality in your work.
+    describes the DPD implementation details. Cite it if you utilize the DPD
+    functionality in your work.
 
     .. math::
         :nowrap:
@@ -1731,7 +1690,7 @@ class DLVO(Pair):
         self._add_typeparam(params)
 
         # this potential needs diameter shifting on
-        self._nlist.diameter_shift = True
+        self.nlist.diameter_shift = True
 
 
 class Buckingham(Pair):

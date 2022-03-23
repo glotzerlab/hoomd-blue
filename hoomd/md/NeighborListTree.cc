@@ -100,9 +100,6 @@ void NeighborListTree::setupTree()
  */
 void NeighborListTree::mapParticlesByType()
     {
-    if (this->m_prof)
-        this->m_prof->push("Histogram");
-
     // clear out counters
     unsigned int n_types = m_pdata->getNTypes();
     for (unsigned int i = 0; i < n_types; ++i)
@@ -130,9 +127,6 @@ void NeighborListTree::mapParticlesByType()
         m_type_head[i] = local_head;
         local_head += m_num_per_type[i];
         }
-
-    if (this->m_prof)
-        this->m_prof->pop();
     }
 
 /*!
@@ -204,8 +198,6 @@ void NeighborListTree::updateImageVectors()
  */
 void NeighborListTree::buildTree()
     {
-    if (this->m_prof)
-        this->m_prof->push("Build");
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                    access_location::host,
                                    access_mode::read);
@@ -272,8 +264,6 @@ void NeighborListTree::buildTree()
             m_aabb_trees[i].buildTree(&(h_aabbs.data[0]) + m_type_head[i], m_num_per_type[i]);
             }
         }
-    if (this->m_prof)
-        this->m_prof->pop();
     }
 
 /*!
@@ -284,9 +274,6 @@ void NeighborListTree::buildTree()
  */
 void NeighborListTree::traverseTree()
     {
-    if (this->m_prof)
-        this->m_prof->push("Traverse");
-
     // acquire particle data
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                    access_location::host,
@@ -428,9 +415,6 @@ void NeighborListTree::traverseTree()
             }         // end loop over pair types
         h_n_neigh.data[i] = n_neigh_i;
         } // end loop over particles
-
-    if (this->m_prof)
-        this->m_prof->pop();
     }
 
 namespace detail

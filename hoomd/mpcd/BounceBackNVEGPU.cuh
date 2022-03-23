@@ -44,7 +44,7 @@ struct bounce_args_t
     const Scalar3* d_accel;        //!< Particle accelerations
     const unsigned int* d_group;   //!< Indexes in particle group
     const Scalar dt;               //!< Timestep
-    const BoxDim& box;             //!< Simulation box
+    const BoxDim box;              //!< Simulation box
     const unsigned int N;          //!< Number of particles in group
     const unsigned int block_size; //!< Number of threads per block
     };

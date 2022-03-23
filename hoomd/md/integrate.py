@@ -5,10 +5,11 @@
 
 import itertools
 
+import hoomd
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
-from hoomd.integrate import BaseIntegrator
+from hoomd.operation import Integrator as BaseIntegrator
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
@@ -44,9 +45,9 @@ class _DynamicIntegrator(BaseIntegrator):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self.forces._sync(self._simulation, self._cpp_obj.forces)
-        self.constraints._sync(self._simulation, self._cpp_obj.constraints)
-        self.methods._sync(self._simulation, self._cpp_obj.methods)
+        self._forces._sync(self._simulation, self._cpp_obj.forces)
+        self._constraints._sync(self._simulation, self._cpp_obj.constraints)
+        self._methods._sync(self._simulation, self._cpp_obj.methods)
         if self.rigid is not None:
             self.rigid._attach()
         super()._attach()
@@ -104,11 +105,6 @@ class _DynamicIntegrator(BaseIntegrator):
             children.extend(child._children)
 
         return children
-
-    def _getattr_param(self, attr):
-        if attr == "rigid":
-            return self._param_dict._dict["rigid"]
-        return super()._getattr_param(attr)
 
     def _setattr_param(self, attr, value):
         if attr == "rigid":
@@ -256,3 +252,15 @@ class Integrator(_DynamicIntegrator):
         if (attr == 'integrate_rotational_dof' and self._simulation is not None
                 and self._simulation.state is not None):
             self._simulation.state.update_group_dof()
+
+    @hoomd.logging.log(requires_run=True)
+    def linear_momentum(self):
+        """tuple(float,float,float): The linear momentum vector of the system \
+            :math:`[\\mathrm{mass} \\cdot \\mathrm{velocity}]`.
+
+        .. math::
+
+            \\vec{p} = \\sum_{i=0}^\\mathrm{N_particles} m_i \\vec{v}_i
+        """
+        v = self._cpp_obj.computeLinearMomentum()
+        return (v.x, v.y, v.z)

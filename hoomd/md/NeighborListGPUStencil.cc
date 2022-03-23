@@ -113,9 +113,6 @@ void NeighborListGPUStencil::updateRStencil()
  */
 void NeighborListGPUStencil::sortTypes()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "sort");
-
     // always just fill in the particle indexes from 1 to N
     ArrayHandle<unsigned int> d_pids(m_pid_map, access_location::device, access_mode::overwrite);
     ScopedAllocation<unsigned int> d_pids_alt(m_exec_conf->getCachedAllocator(), m_pdata->getN());
@@ -166,9 +163,6 @@ void NeighborListGPUStencil::sortTypes()
                       hipMemcpyDeviceToDevice);
             }
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void NeighborListGPUStencil::buildNlist(uint64_t timestep)
@@ -207,9 +201,6 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
         sortTypes();
         m_needs_resort = false;
         }
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "compute");
 
     // acquire the particle data
     ArrayHandle<unsigned int> d_pid_map(m_pid_map, access_location::device, access_mode::read);
@@ -331,9 +322,6 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
         this->m_tuner->end();
 
     m_last_tuned_timestep = timestep;
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

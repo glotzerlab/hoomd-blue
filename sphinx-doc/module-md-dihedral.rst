@@ -14,6 +14,7 @@ md.dihedral
     Dihedral
     Harmonic
     OPLS
+    Table
 
 .. rubric:: Details
 
@@ -22,4 +23,5 @@ md.dihedral
     :show-inheritance:
     :members: Dihedral,
               Harmonic,
-              OPLS
+              OPLS,
+              Table

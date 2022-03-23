@@ -76,10 +76,6 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     precomputeParameter();
 
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "VolumeConstraint");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
@@ -144,9 +140,6 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
             }
         }
     m_tuner->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! Actually perform the force computation
@@ -154,10 +147,6 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
  */
 void VolumeConservationMeshForceComputeGPU::precomputeParameter()
     {
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "VolumeCalculation");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
@@ -219,9 +208,6 @@ void VolumeConservationMeshForceComputeGPU::precomputeParameter()
         }
 #endif
     m_volume = h_sumVol.data[0];
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

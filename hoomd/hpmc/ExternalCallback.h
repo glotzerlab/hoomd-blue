@@ -50,11 +50,12 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     //! Compute DeltaU = Unew-Uold
     /*! \param position_old_arg Old (local) positions
         \param orientation_old_arg Old (local) orientations
-        \param box_old_arg Old (global) box
+        \param box_old Old (global) box
      */
-    double calculateDeltaE(const Scalar4* const position_old_arg,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim* const box_old_arg)
+                           const BoxDim& box_old)
         {
         auto snap = takeSnapshot();
         double energy_new = getEnergy(snap);
@@ -62,7 +63,7 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
         // update snapshot with old configuration
         // FIXME: this will not work in MPI, we will have to broadcast to root and modify snapshot
         // there
-        snap->global_box = *box_old_arg;
+        snap->global_box = std::make_shared<BoxDim>(box_old);
         unsigned int N = this->m_pdata->getN();
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
                                         access_location::host,
@@ -85,7 +86,8 @@ class __attribute__((visibility("hidden"))) ExternalCallback : public ExternalFi
     void compute(uint64_t timestep) { }
 
     // Compute the energy difference for a proposed move on a single particle
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,

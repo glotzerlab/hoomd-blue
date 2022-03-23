@@ -68,26 +68,14 @@ gpu_compute_TriangleAreaConservation_area_kernel(Scalar* d_partial_sum_area,
             dab = box.minImage(dab);
             dac = box.minImage(dac);
 
-            Scalar rab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-            rab = sqrt(rab);
-            Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-            rac = sqrt(rac);
+            Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+            Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
 
-            Scalar3 nab, nac;
-            nab = dab / rab;
-            nac = dac / rac;
+            Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
 
-            Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+            Scalar Area_3 = sqrt(rsqab * rsqac - rabrac * rabrac) / 6.0;
 
-            if (c_baac > 1.0)
-                c_baac = 1.0;
-            if (c_baac < -1.0)
-                c_baac = -1.0;
-
-            Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-
-            Scalar Area = rab * rac * s_baac;
-            area_transfer += Area / 6.0;
+            area_transfer += Area_3;
             }
         }
 
@@ -301,91 +289,51 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         dab = box.minImage(dab);
         dac = box.minImage(dac);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        rab = sqrt(rab);
-        Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        rac = sqrt(rac);
-
-        Scalar3 nab, nac;
-        nab = dab / rab;
-        nac = dac / rac;
-
-        Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-
-        if (c_baac > 1.0)
-            c_baac = 1.0;
-        if (c_baac < -1.0)
-            c_baac = -1.0;
-
-        Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
-        Scalar inv_s_baac = 1.0 / s_baac;
-
         Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
         Scalar A_mesh = params.y;
         Scalar At = A_mesh / N_tri;
 
-        Scalar3 dc_dra;
-        if (cur_triangle_abc == 0)
-            {
-            dc_dra = -nac / rab - nab / rac + c_baac / rab * nab + c_baac / rac * nac;
-            }
-        else
-            {
-            if (cur_triangle_abc == 1)
-                {
-                dc_dra = nac / rab - c_baac / rab * nab;
-                }
-            else
-                {
-                dc_dra = nab / rac - c_baac / rac * nac;
-                }
-            }
 
-        Scalar3 ds_dra = -c_baac * inv_s_baac * dc_dra;
+        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
+        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
-        Scalar numerator_base;
-        numerator_base = rab * rac * s_baac / 2 - At;
+        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+
+        Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dab.z * dac.z;
+
+        Scalar area2 = sqrt(rsqab * rsqac - rabrac * rabrac);
+
+        Scalar prefactor = -K / (2 * At * area2) * (area2 / 2 - At);
+
+        Scalar energy_pp = K / (6.0 * At) * (area2 / 2 - At) * (area2 / 2 - At);
 
         Scalar3 Fa;
 
         if (cur_triangle_abc == 0)
             {
-            Fa = -nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac;
+            Fa = (rabrac - rsqac) * dab + (rabrac - rsqab) * dac;
             }
         else
             {
             if (cur_triangle_abc == 1)
                 {
-                Fa = nab * rac * s_baac + ds_dra * rab * rac;
+                Fa = rsqac * dab - rabrac * dac;
                 }
             else
                 {
-                Fa = nac * rab * s_baac + ds_dra * rab * rac;
+                Fa = rsqab * dac - rabrac * dab;
                 }
             }
 
-        printf("%d %d %d %d | %f %f %f | %f\n",
-               idx,
-               cur_mem2_idx,
-               cur_mem3_idx,
-               cur_triangle_abc,
-               Fa.x,
-               Fa.y,
-               Fa.z,
-               -K / (2 * At) * numerator_base);
-
-        Fa = -K / (2 * At) * numerator_base * Fa;
+        Fa = prefactor * Fa;
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w
-            += K / (6.0 * At) * numerator_base * numerator_base; // divided by 3 because of three
+        force.w += energy_pp; // divided by 3 because of three
                                                                  // particles sharing the energy
 
         virial[0] += Scalar(1. / 2.) * pos_a.x * Fa.x; // xx

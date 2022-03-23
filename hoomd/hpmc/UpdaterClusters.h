@@ -479,7 +479,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     const uint16_t seed = this->m_sysdef->getSeed();
 
     // get image of particle i after transformation
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     int3 img_i;
     vec3<Scalar> pos_i_transf = pos_i;
     if (line)
@@ -1064,12 +1064,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 template< class Shape >
 void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line)
     {
-    if (this->m_prof)
-        m_prof->push(m_exec_conf, "Transform");
-
     // store old locality data
     m_aabb_tree_old = m_mc->buildAABBTree();
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
         {
         ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -1103,15 +1100,11 @@ void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>
             h_image.data[i] = h_image.data[i] + img;
             }
         }
-
-    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 template< class Shape >
 void UpdaterClusters<Shape>::flip(uint64_t timestep)
     {
-    if (this->m_prof) this->m_prof->push("flip");
-
     // move every cluster independently
     m_count_total.n_clusters += m_clusters.size();
 
@@ -1151,16 +1144,11 @@ void UpdaterClusters<Shape>::flip(uint64_t timestep)
                 }
             } // end loop over clusters
         }
-
-    if (this->m_prof) this->m_prof->pop();
     }
 
 template< class Shape >
 void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf,"Interactions");
-
     // access parameters
     auto& params = m_mc->getParams();
 
@@ -1509,9 +1497,6 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         });
     }); // end task arena execute()
     #endif
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape>
@@ -1546,12 +1531,9 @@ void UpdaterClusters<Shape>::backupState()
 template<class Shape>
 void UpdaterClusters<Shape>::connectedComponents()
     {
-    if (this->m_prof) this->m_prof->push("connected components");
-
     // compute connected components
     m_clusters.clear();
     m_G.connectedComponents(m_clusters);
-    if (this->m_prof) this->m_prof->pop();
     }
 
 /*! Perform a cluster move
@@ -1572,8 +1554,6 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
 
     // if no particles, exit early
     if (! m_pdata->getNGlobal()) return;
-
-    if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     const uint16_t seed = m_sysdef->getSeed();
 
@@ -1625,7 +1605,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         f.z = 0.5;
         }
 
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     pivot = vec3<Scalar>(box.makeCoordinates(f));
     if (m_sysdef->getNDimensions() == 2)
         {
@@ -1645,22 +1625,8 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
     // determine which particles interact
     findInteractions(timestep, q, pivot, line);
 
-    if (this->m_prof)
-        this->m_prof->push("fill");
-
-    // fill in the cluster bonds, using bond formation probability defined in Liu and Luijten
-
-    if (m_prof)
-        m_prof->push("realloc");
-
     // resize the number of graph nodes in place
     m_G.resize(this->m_pdata->getN());
-
-    if (m_prof)
-        m_prof->pop();
-
-    if (m_prof)
-        m_prof->push("overlap");
 
     #ifdef ENABLE_TBB_TASK
     this->m_exec_conf->getTaskArena()->execute([&]{
@@ -1683,10 +1649,6 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         );
     }); // end task arena execute()
     #endif
-
-    if (m_prof)
-        m_prof->pop();
-
 
     if (m_mc->getPatchEnergy())
         {
@@ -1762,15 +1724,11 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         #endif
         } // end if (patch)
 
-    if (m_prof) m_prof->pop(m_exec_conf);
-
     // compute connected components
     connectedComponents();
 
     // flip clusters randomly
     flip(timestep);
-
-    if (m_prof) m_prof->pop(m_exec_conf);
 
     m_mc->invalidateAABBTree();
     }

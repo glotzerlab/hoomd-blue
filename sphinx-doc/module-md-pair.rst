@@ -31,7 +31,6 @@ md.pair
     Moliere
     OPP
     ReactionField
-    SLJ
     Table
     TWF
     Yukawa
@@ -60,7 +59,6 @@ md.pair
         Moliere,
         OPP,
         ReactionField,
-        SLJ,
         ExpandedLJ,
         Table,
         TWF,

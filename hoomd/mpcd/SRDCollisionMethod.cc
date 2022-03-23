@@ -41,8 +41,6 @@ void mpcd::SRDCollisionMethod::rule(uint64_t timestep)
     {
     m_thermo->compute(timestep);
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD collide");
     // resize the rotation vectors and rescale factors
     m_rotvec.resize(m_cl->getNCells());
     if (m_T)
@@ -55,8 +53,6 @@ void mpcd::SRDCollisionMethod::rule(uint64_t timestep)
 
     // apply collision rule
     rotate(timestep);
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::SRDCollisionMethod::drawRotationVectors(uint64_t timestep)

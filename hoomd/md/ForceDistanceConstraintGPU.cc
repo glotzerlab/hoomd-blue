@@ -101,9 +101,6 @@ ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
 
 void ForceDistanceConstraintGPU::fillMatrixVector(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "fill matrix");
-
     // fill the matrix in row-major order
     unsigned int n_constraint = m_cdata->getN() + m_cdata->getNGhosts();
 
@@ -206,9 +203,6 @@ void ForceDistanceConstraintGPU::fillMatrixVector(uint64_t timestep)
 
         m_tuner_fill->end();
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
@@ -239,9 +233,6 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
     // skip if zero constraints
     if (n_constraint == 0)
         return;
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "solve");
 
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);
@@ -345,9 +336,6 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
 
         m_exec_conf->msg->notice(6)
             << "ForceDistanceConstraintGPU: sparsity pattern changed. Solving on CPU" << std::endl;
-
-        if (m_prof)
-            m_prof->push(m_exec_conf, "CPU LU");
 
         /*
          * re-initialize sparse matrix solver on host
@@ -621,13 +609,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
          */
         cusolverRfAnalyze(m_cusolver_rf_handle);
 
-        if (m_prof)
-            m_prof->pop(m_exec_conf);
-
         } // end if sparsity pattern changed
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "refactor");
 
     // reallocate work space for cusolverRf
     m_T.resize(n_constraint);
@@ -677,19 +659,11 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                     d_lagrange.data,
                     n_constraint);
 
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
 #endif
     }
 
 void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "constraint forces");
-
     // access solution vector
     ArrayHandle<double> d_lagrange(m_lagrange, access_location::device, access_mode::read);
 
@@ -737,9 +711,6 @@ void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
         CHECK_CUDA_ERROR();
 
     m_tuner_force->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

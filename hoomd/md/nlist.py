@@ -13,10 +13,13 @@ neighbor lists are shared, they find neighbors within the the maximum
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.logging import log
+from hoomd.mesh import Mesh
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
+import warnings
+import copy
 
 
 class NList(_HOOMDBaseObject):
@@ -60,15 +63,6 @@ class NList(_HOOMDBaseObject):
     * ``1-4``: Exclude particles *i* and *m* whenever there are bonds (i,j),
       (j,k), and (k,m).
 
-    .. rubric:: Diameter shifting
-
-    Set `diameter_shift` to `True` when using `hoomd.md.pair.SLJ` or
-    `hoomd.md.pair.DLVO` so that the neighbor list includes all particles that
-    interact under the modified :math:`r_\mathrm{cut}` conditions in those
-    potentials. When `diameter_shift` is `True`, set `max_diameter` to the
-    largest value that any particle's diameter will achieve (where **diameter**
-    is the per particle quantity stored in the `hoomd.State`).
-
     Attributes:
         buffer (float): Buffer width :math:`[\mathrm{length}]`.
         exclusions (tuple[str]): Defines which particles to exlclude from the
@@ -82,12 +76,15 @@ class NList(_HOOMDBaseObject):
     """
 
     def __init__(self, buffer, exclusions, rebuild_check_delay, diameter_shift,
-                 check_dist, max_diameter):
+                 check_dist, max_diameter, mesh):
 
         validate_exclusions = OnlyFrom([
             'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
             '1-3', '1-4'
         ])
+
+        validate_mesh = OnlyTypes(Mesh, allow_none=True)
+
         # default exclusions
         params = ParameterDict(exclusions=[validate_exclusions],
                                buffer=float(buffer),
@@ -97,6 +94,37 @@ class NList(_HOOMDBaseObject):
                                max_diameter=float(max_diameter))
         params["exclusions"] = exclusions
         self._param_dict.update(params)
+
+        self._mesh = validate_mesh(mesh)
+
+    def _add(self, simulation):
+        # if mesh was associated with multiple pair forces and is still
+        # attached, we need to deepcopy existing mesh.
+        if self._mesh:
+            mesh = self._mesh
+            if (not self._attached and mesh._attached
+                    and mesh._simulation != simulation):
+                warnings.warn(
+                    f"{self} object is creating a new equivalent mesh"
+                    f"structure. This is happending since the force is"
+                    f"moving to a new simulation. To supress the warning"
+                    f"explicitly set new mesh.", RuntimeWarning)
+                self._mesh = copy.deepcopy(mesh)
+            # this ideopotent given the above check.
+            self._mesh._add(simulation)
+            # This is ideopotent, but we need to ensure that if we change
+            # mesh when not attached we handle correctly.
+            self._add_dependency(self._mesh)
+
+        super()._add(simulation)
+
+    def _attach(self):
+        if self._mesh:
+            if not self._mesh._attached:
+                self._mesh._attach()
+            self._cpp_obj.addMesh(self._mesh._cpp_obj)
+
+        super()._attach()
 
     @log(requires_run=True)
     def shortest_rebuild(self):
@@ -159,10 +187,11 @@ class Cell(NList):
                  diameter_shift=False,
                  check_dist=True,
                  max_diameter=1.0,
-                 deterministic=False):
+                 deterministic=False,
+                 mesh=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
-                         diameter_shift, check_dist, max_diameter)
+                         diameter_shift, check_dist, max_diameter, mesh)
 
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
@@ -174,6 +203,7 @@ class Cell(NList):
             nlist_cls = _md.NeighborListGPUBinned
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
                                   self.buffer)
+
         super()._attach()
 
 
@@ -201,8 +231,8 @@ class Stencil(NList):
     are first spatially sorted into cells with the given width `cell_width`.
 
     `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
-    describes this neighbor list implementation in HOOMD-blue. Cite it if you
-    utilize this neighbor list style in your work.
+    describes this neighbor list implementation. Cite it if you utilize this
+    neighbor list style in your work.
 
     This neighbor list style differs from `Cell` in how the adjacent cells are
     searched for particles. One stencil is computed per particle type based on
@@ -238,10 +268,11 @@ class Stencil(NList):
                  diameter_shift=False,
                  check_dist=True,
                  max_diameter=1.0,
-                 deterministic=False):
+                 deterministic=False,
+                 mesh=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
-                         diameter_shift, check_dist, max_diameter)
+                         diameter_shift, check_dist, max_diameter, mesh)
 
         params = ParameterDict(deterministic=bool(deterministic),
                                cell_width=float(cell_width))
@@ -300,10 +331,11 @@ class Tree(NList):
                  rebuild_check_delay=1,
                  diameter_shift=False,
                  check_dist=True,
-                 max_diameter=1.0):
+                 max_diameter=1.0,
+                 mesh=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
-                         diameter_shift, check_dist, max_diameter)
+                         diameter_shift, check_dist, max_diameter, mesh)
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):

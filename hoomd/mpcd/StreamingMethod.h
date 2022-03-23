@@ -45,12 +45,6 @@ class PYBIND11_EXPORT StreamingMethod
     //! Peek if the next step requires streaming
     virtual bool peekStream(uint64_t timestep) const;
 
-    //! Sets the profiler for the integration method to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Set autotuner parameters
     /*!
      * \param enable Enable/disable autotuning
@@ -100,7 +94,6 @@ class PYBIND11_EXPORT StreamingMethod
     std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
-    std::shared_ptr<Profiler> m_prof;                          //!< System profiler
 
     Scalar m_mpcd_dt;         //!< Integration time step
     unsigned int m_period;    //!< Number of MD timesteps between streaming steps

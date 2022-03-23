@@ -147,7 +147,7 @@ def get_mesh_potential_args_forces_and_energies():
             (*_VolumeConservation_arg_list[i], VolumeConservation_forces[i],
              VolumeConservation_energies[i]))
         TriangleAreaConservation_args_and_vals.append(
-            (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
+            (*_TriangleAreaConservation_arg_list[i], AreaConservation_forces[i],
              AreaConservation_energies[i]))
         AreaConservation_args_and_vals.append(
             (*_AreaConservation_arg_list[i], AreaConservation_forces[i],

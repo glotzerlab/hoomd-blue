@@ -41,10 +41,6 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "BD step 1");
-
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
@@ -150,10 +146,6 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
         CHECK_CUDA_ERROR();
 
     m_exec_conf->endMultiGPU();
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step

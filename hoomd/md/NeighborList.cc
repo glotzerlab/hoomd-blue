@@ -32,8 +32,8 @@ namespace md
 NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(0.0), m_rcut_min(0.0),
       m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_diameter_shift(false),
-      m_storage_mode(half), m_rcut_changed(true), m_updates(0), m_forced_updates(0),
-      m_dangerous_updates(0), m_force_update(true), m_dist_check(true),
+      m_storage_mode(half), m_meshbond_data(NULL), m_rcut_changed(true), m_updates(0),
+      m_forced_updates(0), m_dangerous_updates(0), m_force_update(true), m_dist_check(true),
       m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
@@ -357,9 +357,6 @@ void NeighborList::compute(uint64_t timestep)
     if (!shouldCompute(timestep) && !m_force_update)
         return;
 
-    if (m_prof)
-        m_prof->push("Neighbor");
-
     // when the number of particles or bonds in the system changes, rebuild the exclusion list
     if (m_n_particles_changed || m_topology_changed)
         {
@@ -413,8 +410,6 @@ void NeighborList::compute(uint64_t timestep)
         setLastUpdatedPos();
         m_has_been_updated_once = true;
         }
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param num_iters Number of iterations to average for the benchmark
@@ -742,6 +737,12 @@ void NeighborList::setSingleExclusion(std::string exclusion)
     if (exclusion == "bond")
         {
         addExclusionsFromBonds();
+        if (m_meshbond_data)
+            {
+            std::cout << "Set Exclusions" << std::endl;
+            addExclusionsFromMeshBonds();
+            std::cout << "Exclusion Set" << std::endl;
+            }
         m_exclusions.insert("bond");
         }
     else if (exclusion == "special_pair")
@@ -867,6 +868,39 @@ void NeighborList::addExclusionsFromBonds()
     // access bond data by snapshot
     BondData::Snapshot snapshot;
     bond_data->takeSnapshot(snapshot);
+
+    // broadcast global bond list
+    std::vector<BondData::members_t> bonds;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_exec_conf->getRank() == 0)
+            bonds = snapshot.groups;
+
+        bcast(bonds, 0, m_exec_conf->getMPICommunicator());
+        }
+    else
+#endif
+        {
+        bonds = snapshot.groups;
+        }
+
+    // for each bond
+    for (unsigned int i = 0; i < bonds.size(); i++)
+        // add an exclusion
+        addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
+    }
+
+/*! After calling addExclusionsFromMeshBonds() all meshbonds specified in the attached Mesh will be
+    added as exclusions. Any additional meshbonds added after this will not be automatically added
+   as exclusions.
+*/
+void NeighborList::addExclusionsFromMeshBonds()
+    {
+    // access bond data by snapshot
+    BondData::Snapshot snapshot;
+    m_meshbond_data->takeSnapshot(snapshot);
 
     // broadcast global bond list
     std::vector<BondData::members_t> bonds;
@@ -1241,10 +1275,6 @@ bool NeighborList::distanceCheck(uint64_t timestep)
     // sanity check
     assert(h_pos.data);
 
-    // profile
-    if (m_prof)
-        m_prof->push("Dist check");
-
     // temporary storage for the result
     bool result = false;
 
@@ -1292,8 +1322,6 @@ bool NeighborList::distanceCheck(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        if (m_prof)
-            m_prof->push("MPI allreduce");
         // check if migrate criterion is fulfilled on any rank
         int local_result = result ? 1 : 0;
         int global_result = 0;
@@ -1304,15 +1332,10 @@ bool NeighborList::distanceCheck(uint64_t timestep)
                       MPI_MAX,
                       m_exec_conf->getMPICommunicator());
         result = (global_result > 0);
-        if (m_prof)
-            m_prof->pop();
         }
 #endif
 
     // don't worry about computing flops here, this is fast
-    if (m_prof)
-        m_prof->pop();
-
     return result;
     }
 
@@ -1325,10 +1348,6 @@ void NeighborList::setLastUpdatedPos()
     // sanity check
     assert(h_pos.data);
 
-    // profile
-    if (m_prof)
-        m_prof->push("Dist check");
-
     // update the last position arrays
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -1340,9 +1359,6 @@ void NeighborList::setLastUpdatedPos()
     // update last box nearest plane distance
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 bool NeighborList::shouldCheckDistance(uint64_t timestep)
@@ -1484,9 +1500,6 @@ void NeighborList::updateExListIdx()
     {
     assert(!m_n_particles_changed);
 
-    if (m_prof)
-        m_prof->push("update-ex");
-
     // access data
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -1520,18 +1533,12 @@ void NeighborList::updateExListIdx()
             h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! Loops through the neighbor list and filters out any excluded pairs
  */
 void NeighborList::filterNlist()
     {
-    if (m_prof)
-        m_prof->push("filter");
-
     // access data
     ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
@@ -1577,9 +1584,6 @@ void NeighborList::filterNlist()
         // update the number of neighbors
         h_n_neigh.data[idx] = new_n_neigh;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -1590,9 +1594,6 @@ void NeighborList::filterNlist()
  */
 void NeighborList::buildHeadList()
     {
-    if (m_prof)
-        m_prof->push("head-list");
-
     size_t headAddress = 0;
         {
         ArrayHandle<size_t> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
@@ -1612,9 +1613,6 @@ void NeighborList::buildHeadList()
         }
 
     resizeNlist(headAddress);
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -1699,13 +1697,7 @@ void NeighborList::growExclusionList()
  */
 bool NeighborList::peekUpdate(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Neighbor");
-
     bool result = needsUpdating(timestep);
-
-    if (m_prof)
-        m_prof->pop();
 
     return result;
     }
@@ -1806,6 +1798,7 @@ void export_NeighborList(pybind11::module& m)
         .def_property("max_diameter",
                       &NeighborList::getMaximumDiameter,
                       &NeighborList::setMaximumDiameter)
+        .def("addMesh", &NeighborList::AddMesh)
         .def("getMaxRCut", &NeighborList::getMaxRCut)
         .def("getMinRCut", &NeighborList::getMinRCut)
         .def("getMaxRList", &NeighborList::getMaxRList)

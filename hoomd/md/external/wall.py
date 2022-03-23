@@ -101,10 +101,12 @@ class WallPotential(force.Force):
     ``inside=True``.
 
     .. image:: md-wall-potential.svg
+       :alt: Example plot of wall potential.
 
     When ``inside=False`` the potential becomes,
 
     .. image:: md-wall-potential-outside.svg
+       :alt: Example plot of an outside wall potential.
 
     .. rubric: Extrapolated Mode:
 
@@ -141,6 +143,7 @@ class WallPotential(force.Force):
     potential with :math:`\epsilon=1, \sigma=1`.
 
     .. image:: md-wall-extrapolate.svg
+       :alt: Example plot demonstrating potential extrapolation.
 
     To use extrapolated mode ``r_extrap`` must be set per particle type.
 
@@ -212,6 +215,20 @@ class WallPotential(force.Force):
         if self._walls is wall_list:
             return
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_md_cpp_wall)
+        if self._attached:
+            self._walls._sync({
+                hoomd.wall.Sphere:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj,
+                                              hoomd.wall.Sphere)),
+                hoomd.wall.Cylinder:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj,
+                                              hoomd.wall.Cylinder)),
+                hoomd.wall.Plane:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
+            })
 
 
 class LJ(WallPotential):

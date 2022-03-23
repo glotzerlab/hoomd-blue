@@ -32,7 +32,7 @@ class Area(MeshPotential):
     Examples::
         area_conservation_potential =
         mesh.conservation.Area(mesh)
-        tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
+        tringle_area_conservation_potential.parameter = dict(k=10.0, A_mesh=250)
     """
     _cpp_class_name = "AreaConservationMeshForceCompute"
 
@@ -73,7 +73,7 @@ class TriangleArea(MeshPotential):
     Examples::
         tringle_area_conservation_potential =
         mesh.conservation.TriangleArea(mesh)
-        tringle_area_conservation_potential.parameter = dict(k=10.0, A0=250)
+        tringle_area_conservation_potential.parameter = dict(k=10.0, A_mesh=250)
     """
     _cpp_class_name = "TriangleAreaConservationMeshForceCompute"
 
@@ -115,7 +115,7 @@ class Volume(MeshPotential):
     Examples::
 
         volume = mesh.conservation.Volume(mesh)
-        volume.params["mesh"] = dict(k=10.0, r0=100)
+        volume.params["mesh"] = dict(k=10.0, V0=100)
     """
     _cpp_class_name = "VolumeConservationMeshForceCompute"
 

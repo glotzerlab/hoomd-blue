@@ -122,10 +122,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         throw std::runtime_error("Integration group empty.");
         }
 
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 1");
-
     // update degrees of freedom for MTK term
     m_ndof = m_group->getTranslationalDOF();
 
@@ -338,10 +334,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         setIntegratorVariables(v);
         }
 #endif
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -350,10 +342,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
 void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 2");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
@@ -446,10 +434,6 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(timestep + 1);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
