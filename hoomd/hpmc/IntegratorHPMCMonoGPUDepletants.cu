@@ -26,12 +26,12 @@ __global__ void generate_num_depletants(const uint16_t seed,
                                         const unsigned int rank,
                                         const unsigned int depletant_type_a,
                                         const unsigned int depletant_type_b,
-                                        const Index2D depletant_idx,
                                         const unsigned int work_offset,
                                         const unsigned int nwork,
                                         const Scalar* d_lambda,
                                         const Scalar4* d_postype,
-                                        unsigned int* d_n_depletants)
+                                        unsigned int* d_n_depletants,
+                                        const unsigned int ntypes)
     {
     unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -44,12 +44,11 @@ __global__ void generate_num_depletants(const uint16_t seed,
         hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, timestep, seed),
         hoomd::Counter(idx,
                        rank,
-                       depletant_idx(depletant_type_a, depletant_type_b),
+                       depletant_type_a,
                        static_cast<uint16_t>(select)));
     unsigned int type_i = __scalar_as_int(d_postype[idx].w);
     d_n_depletants[idx] = hoomd::PoissonDistribution<Scalar>(
-        d_lambda[type_i * depletant_idx.getNumElements()
-                 + depletant_idx(depletant_type_a, depletant_type_b)])(rng_poisson);
+        d_lambda[type_i * ntypes + depletant_type_a])(rng_poisson);
     }
 
 //! Generate number of depletants per particle (ntrial version)
@@ -58,13 +57,13 @@ __global__ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                                const unsigned int ntrial,
                                                const unsigned int depletant_type_a,
                                                const unsigned int depletant_type_b,
-                                               const Index2D depletant_idx,
                                                const Scalar* d_lambda,
                                                const Scalar4* d_postype,
                                                unsigned int* d_n_depletants,
                                                const unsigned int N_local,
                                                const unsigned int work_offset,
-                                               const unsigned int nwork)
+                                               const unsigned int nwork,
+                                               const unsigned int ntypes)
     {
     unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -85,11 +84,10 @@ __global__ void generate_num_depletants_ntrial(const Scalar4* d_vel,
         = new_config ? __scalar_as_int(d_trial_vel[i].x) : __scalar_as_int(d_vel[i].x);
     hoomd::RandomGenerator rng_num(
         hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, 0, 0),
-        hoomd::Counter(depletant_idx(depletant_type_a, depletant_type_b), seed_i, i_trial));
+        hoomd::Counter(depletant_type_a, seed_i, i_trial));
 
     unsigned int type_i = __scalar_as_int(d_postype[i].w);
-    Scalar lambda = d_lambda[type_i * depletant_idx.getNumElements()
-                             + depletant_idx(depletant_type_a, depletant_type_b)];
+    Scalar lambda = d_lambda[type_i * ntypes + depletant_type_a];
     unsigned int n = hoomd::PoissonDistribution<Scalar>(lambda)(rng_num);
 
     // store result
@@ -173,13 +171,13 @@ void generate_num_depletants(const uint16_t seed,
                              const unsigned int rank,
                              const unsigned int depletant_type_a,
                              const unsigned int depletant_type_b,
-                             const Index2D depletant_idx,
                              const Scalar* d_lambda,
                              const Scalar4* d_postype,
                              unsigned int* d_n_depletants,
                              const unsigned int block_size,
                              const hipStream_t* streams,
-                             const GPUPartition& gpu_partition)
+                             const GPUPartition& gpu_partition,
+                             const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -205,12 +203,12 @@ void generate_num_depletants(const uint16_t seed,
                            rank,
                            depletant_type_a,
                            depletant_type_b,
-                           depletant_idx,
                            range.first,
                            nwork,
                            d_lambda,
                            d_postype,
-                           d_n_depletants);
+                           d_n_depletants,
+                           ntypes);
         }
     }
 
@@ -219,7 +217,6 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const unsigned int ntrial,
                                     const unsigned int depletant_type_a,
                                     const unsigned int depletant_type_b,
-                                    const Index2D depletant_idx,
                                     const Scalar* d_lambda,
                                     const Scalar4* d_postype,
                                     unsigned int* d_n_depletants,
@@ -228,7 +225,8 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const unsigned int n_ghosts,
                                     const GPUPartition& gpu_partition,
                                     const unsigned int block_size,
-                                    const hipStream_t* streams)
+                                    const hipStream_t* streams,
+                                    const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -265,13 +263,13 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                            ntrial,
                            depletant_type_a,
                            depletant_type_b,
-                           depletant_idx,
                            d_lambda,
                            d_postype,
                            d_n_depletants,
                            N_local,
                            range.first,
-                           nwork);
+                           nwork,
+                           ntypes);
         }
     }
 
