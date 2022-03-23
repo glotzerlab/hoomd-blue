@@ -42,10 +42,7 @@ __global__ void generate_num_depletants(const uint16_t seed,
 
     hoomd::RandomGenerator rng_poisson(
         hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, timestep, seed),
-        hoomd::Counter(idx,
-                       rank,
-                       depletant_type_a,
-                       static_cast<uint16_t>(select)));
+        hoomd::Counter(idx, rank, depletant_type_a, static_cast<uint16_t>(select)));
     unsigned int type_i = __scalar_as_int(d_postype[idx].w);
     d_n_depletants[idx] = hoomd::PoissonDistribution<Scalar>(
         d_lambda[type_i * ntypes + depletant_type_a])(rng_poisson);
@@ -82,9 +79,8 @@ __global__ void generate_num_depletants_ntrial(const Scalar4* d_vel,
     // draw a Poisson variate according to the seed stored in the auxillary variable (vel.x)
     unsigned int seed_i
         = new_config ? __scalar_as_int(d_trial_vel[i].x) : __scalar_as_int(d_vel[i].x);
-    hoomd::RandomGenerator rng_num(
-        hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, 0, 0),
-        hoomd::Counter(depletant_type_a, seed_i, i_trial));
+    hoomd::RandomGenerator rng_num(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, 0, 0),
+                                   hoomd::Counter(depletant_type_a, seed_i, i_trial));
 
     unsigned int type_i = __scalar_as_int(d_postype[i].w);
     Scalar lambda = d_lambda[type_i * ntypes + depletant_type_a];
