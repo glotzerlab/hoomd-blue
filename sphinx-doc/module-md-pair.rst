@@ -11,7 +11,6 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    Pair
     Buckingham
     DLVO
     DPD
@@ -31,6 +30,7 @@ md.pair
     Morse
     Moliere
     OPP
+    Pair
     ReactionField
     Table
     TWF
@@ -66,6 +66,7 @@ md.pair
         TWF,
         Yukawa,
         ZBL
+    :show-inheritance:
 
 .. rubric:: Modules
 

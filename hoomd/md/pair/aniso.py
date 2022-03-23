@@ -1,7 +1,23 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Anisotropic potentials."""
+r"""Anisotropic pair forces.
+
+Anisotropic pair force classes apply a force, torque, and virial on every
+particle in the simulation state commensurate with the potential energy:
+
+.. math::
+
+    U_\mathrm{pair,total} = \frac{1}{2} \sum_{i=0}^\mathrm{N_particles-1}
+                      \sum_{j \ne i, (i,j) \notin \mathrm{exclusions}}
+                      U_\mathrm{pair}(r_{ij}, \mathbf{q}_i, \mathbf{q}_j)
+
+`AnisotropicPair` applies cuttoffs, exclusions, and assigns per particle
+energies and virials in the same manner as `hoomd.md.pair.Pair`
+
+`AnisotropicPair` does not support ``'xplor'`` shifting mode or the ``r_on``
+parameter.
+"""
 
 from collections.abc import Sequence
 import json
@@ -15,22 +31,14 @@ from hoomd.data.typeconverter import OnlyIf, to_type_converter
 
 
 class AnisotropicPair(Pair):
-    r"""Generic anisotropic pair potential.
+    r"""Base class anisotropic pair force.
 
-    Users should not instantiate `AnisotropicPair` directly. It is a base
-    class that provides common features to all anisotropic pair forces.
-    All anisotropic pair potential commands specify that a given potential
-    energy, force and torque be computed on all non-excluded particle pairs in
-    the system within a short range cutoff distance :math:`r_{\mathrm{cut}}`.
-    The interaction energy, forces and torque depend on the inter-particle
-    separation :math:`\vec r` and on the orientations :math:`\vec q_i`,
-    :math:`q_j`, of the particles.
-
-    `AnisotropicPair` is similar to `hoomd.md.pair.Pair` except it does not
-    support the ``'xplor'`` shifting mode or `r_on`.
+    Note:
+        `AnisotropicPair` is the base class for all anisotropic pair forces.
+        Users not not instantiate this class directly.
 
     Args:
-        nlist (hoomd.md.nlist.NList) : The neighbor list.
+        nlist (hoomd.md.nlist.NeighborList) : The neighbor list.
         default_r_cut (`float`, optional) : The default cutoff for the
             potential, defaults to ``None`` which means no cutoff
             :math:`[\mathrm{length}]`.
@@ -49,50 +57,44 @@ class AnisotropicPair(Pair):
 
 
 class Dipole(AnisotropicPair):
-    r"""Screened dipole-dipole interactions.
-
-    Implements the force and energy calculations for both magnetic and
-    electronic dipole-dipole interactions. When particles have charge as well as
-    a dipole moment, the interactions are through electronic dipole moments. If
-    the particles have no charge then the interaction is through magnetic or
-    electronic dipoles. Note whether a dipole is magnetic or electronic does not
-    change the functional form of the potential only the units associated with
-    the potential parameters.
+    r"""Screened dipole-dipole pair forces.
 
     Args:
-        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode
 
     `Dipole` computes the (screened) interaction between pairs of
-    particles with dipoles and electrostatic charges. The total energy
-    computed is:
+    particles with dipoles and electrostatic charges:
 
     .. math::
 
-        U_{dipole} = U_{dd} + U_{de} + U_{ee}
+        U &= U_{dd} + U_{de} + U_{ee}
 
-        U_{dd} = A e^{-\kappa r}
+        U_{dd} &= A e^{-\kappa r}
             \left(\frac{\vec{\mu_i}\cdot\vec{\mu_j}}{r^3}
                   - 3\frac{(\vec{\mu_i}\cdot \vec{r_{ji}})
                            (\vec{\mu_j}\cdot \vec{r_{ji}})}
                           {r^5}
             \right)
 
-        U_{de} = A e^{-\kappa r}
+        U_{de} &= A e^{-\kappa r}
             \left(\frac{(\vec{\mu_j}\cdot \vec{r_{ji}})q_i}{r^3}
                 - \frac{(\vec{\mu_i}\cdot \vec{r_{ji}})q_j}{r^3}
             \right)
 
-        U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
-
-    See `hoomd.md.pair.Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use ``params`` dictionary to
-    set potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+        U_{ee} &= A e^{-\kappa r} \frac{q_i q_j}{r}
 
     Note:
-       All units are given for electronic dipole moments.
+       All units are documented electronic dipole moments. However, `Dipole`
+       can also be used to represent magnetic dipoles.
+
+    Example::
+
+        nl = nlist.Cell()
+        dipole = md.pair.Dipole(nl, default_r_cut=3.0)
+        dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
+        dipole.mu['A'] = (4.0, 1.0, 0.0)
 
     .. py:attribute:: params
 
@@ -117,13 +119,6 @@ class Dipole(AnisotropicPair):
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float` ]]
-
-    Example::
-
-        nl = nlist.Cell()
-        dipole = md.pair.Dipole(nl, default_r_cut=3.0)
-        dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
-        dipole.mu['A'] = (4.0, 1.0, 0.0)
     """
     _cpp_class_name = "AnisoPotentialPairDipole"
 
@@ -138,49 +133,44 @@ class Dipole(AnisotropicPair):
 
 
 class GayBerne(AnisotropicPair):
-    r"""Gay-Berne anisotropic pair potential.
-
-    Warning: The code has yet to be updated to the current API.
+    r"""Gay-Berne anisotropic pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 
-    `GayBerne` computes the Gay-Berne potential between anisotropic
-    particles.
+    `GayBerne` computes the Gay-Berne anisotropic pair force on every particle
+    in the simulation state. This version of the Gay-Berne force supports
+    identical pairs of uniaxial ellipsoids, with orientation-independent
+    energy-well depth. The potential comes from the following paper `Allen et.
+    al. 2006`_.
 
-    This version of the Gay-Berne potential supports identical pairs of uniaxial
-    ellipsoids, with orientation-independent energy-well depth. The potential
-    comes from the following paper Allen et. al. 2006 `paper link`_.
-
-    .. _paper link: http://dx.doi.org/10.1080/00268970601075238
-
-    The interaction energy for this anisotropic pair potential is
+    .. _Allen et. al. 2006: http://dx.doi.org/10.1080/00268970601075238
 
     .. math::
-        :nowrap:
+        U(\vec r, \vec e_i, \vec e_j) =
+        \begin{cases}
+        4 \varepsilon \left[ \zeta^{-12} - \zeta^{-6} \right]
+        & \zeta < \zeta_{\mathrm{cut}} \\
+        0 & \zeta \ge \zeta_{\mathrm{cut}} \\
+        \end{cases}
 
-        \begin{eqnarray*}
-        V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)
-            = & 4 \varepsilon \left[ \zeta^{-12} - \zeta^{-6} \right];
-            & \zeta < \zeta_{\mathrm{cut}} \\
-            = & 0; & \zeta \ge \zeta_{\mathrm{cut}} \\
-        \end{eqnarray*}
+    where
 
     .. math::
 
-        \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}
-                           {\sigma_{\mathrm{min}}}\right)
+        \zeta &= \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}
+                           {\sigma_{\mathrm{min}}}\right),
 
-        \sigma^{-2} = \frac{1}{2} \hat{\vec{r}}
-            \cdot \vec{H^{-1}} \cdot \hat{\vec{r}}
+        \sigma^{-2} &= \frac{1}{2} \hat{\vec{r}}
+            \cdot \vec{H^{-1}} \cdot \hat{\vec{r}},
 
-        \vec{H} = 2 \ell_\perp^2 \vec{1}
+        \vec{H} &= 2 \ell_\perp^2 \vec{1}
             + (\ell_\parallel^2 - \ell_\perp^2)
-              (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j})
+              (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j}),
 
-    with :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
+    and :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
 
     The cut-off parameter :math:`r_{\mathrm{cut}}` is defined for two particles
     oriented parallel along the **long** axis, i.e.
@@ -191,8 +181,12 @@ class GayBerne(AnisotropicPair):
     The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the
     semi-axis lengths parallel and perpendicular to particle orientation.
 
-    Use ``params`` dictionary to set potential coefficients. The coefficients
-    must be set per unique pair of particle types.
+    Example::
+
+        nl = nlist.Cell()
+        gay_berne = md.pair.GayBerne(nlist=nl, default_r_cut=2.5)
+        gay_berne.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
+        gay_berne.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
 
     .. py:attribute:: params
 
@@ -208,15 +202,6 @@ class GayBerne(AnisotropicPair):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
-
-
-    Example::
-
-        nl = nlist.Cell()
-        gay_berne = md.pair.GayBerne(nlist=nl, default_r_cut=2.5)
-        gay_berne.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
-        gay_berne.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
-
     """
     _cpp_class_name = "AnisoPotentialPairGB"
 
@@ -246,40 +231,35 @@ class GayBerne(AnisotropicPair):
 
 
 class ALJ(AnisotropicPair):
-    r"""Anistropic LJ potential.
+    r"""Anistropic LJ force.
 
     Args:
-        nlist (hoomd.md.nlist.NList): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
 
-    `ALJ` computes the Lennard-Jones potential between anisotropic particles as
+    `ALJ` computes the Lennard-Jones force between anisotropic particles as
     described in `Ramasubramani, V.  et. al. 2020`_. Specifically we implement
     the formula:
 
     .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
 
     .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        V_{\mathrm{ALJ}}(r, r_c)
-            = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+        U(r, r_c) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
             \left( \frac{\sigma}{r} \right)^{6} \right] +
             4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c} \right)^{12} -
-            \left( \frac{\sigma_c}{r_c} \right)^{6} \right] \\
-        \end{eqnarray*}
+            \left( \frac{\sigma_c}{r_c} \right)^{6} \right]
 
     The first term is the standard center-center interaction between two
     Lennard-Jones spheres. The second term is a contact interaction computed
     based on the smallest distance between the surfaces of the two shapes,
     :math:`r_c`. The total potential energy can thus be viewed as the sum of
     two interactions, a central Lennard-Jones potential and a shifted
-    Lennard-Jones potential where the shift is anisotroipc and depends on the
+    Lennard-Jones potential where the shift is anisotropic and depends on the
     extent of the shape in each direction.
 
     Like a standard LJ potential, each term has an independent cutoff beyond
-    which it decays to zero the behavior of these cutoffs is dependendent on
+    which it decays to zero the behavior of these cutoffs is dependent on
     whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
     (repulsive-only) behavior. This behavior is controlled using the ``alpha``
     parameter, which can take on the following values:
@@ -306,55 +286,9 @@ class ALJ(AnisotropicPair):
     averaging can be turned off by setting the ``average_simplices`` key for the
     type pair to ``False``.
 
-    .. py:attribute:: params
-
-        The ALJ potential parameters. The dictionary has the following keys:
-
-        * ``epsilon`` (`float`, **required**) - base energy scale
-          :math:`\varepsilon` :math:`[energy]`.
-        * ``sigma_i`` (`float`, **required**) - the insphere radius of the first
-          particle type, :math:`[length]`.
-        * ``sigma_j`` (`float`, **required**) - the insphere radius of the
-          second particle type, :math:`[length]`.
-        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
-          not to include the attractive component of the interaction (see
-          above for details).
-        * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
-          sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
-        * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
-          sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
-        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
-          simplices. Defaults to ``True``. See class documentation for more
-          information.
-
-        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
-        ``particle_types``], `dict`]
-
-    .. py:attribute:: shape
-
-        The shape of a given type. The dictionary has the following keys per
-        type:
-
-        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
-          **required**) - The vertices of a convex polytope in 2 or 3
-          dimensions. The third dimension in 2D is ignored.
-        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
-          **required**) - The semimajor axes of a rounding ellipsoid. If a
-          single value is specified, the rounding ellipsoid is a sphere.
-        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
-          polyhedron specified as a list of list of integers.  The vertices
-          must be ordered (see `get_ordered_vertices` for more information).
-
-        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
-
     Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
-    to empty list to create the ellipsoid). To automate the computation of
-    faces, the convenience class method `get_ordered_vertices` can be used.
-    However, because merging of faces requires applying a numerical threshold to
-    find coplanar faces, in some cases `get_ordered_vertices` may result in not
-    all coplanar faces actually being merged. In such cases, users can
-    precompute the faces and provide them.
+    to empty list to create the ellipsoid).
 
     Example::
 
@@ -392,9 +326,82 @@ class ALJ(AnisotropicPair):
                               faces=cube_faces,
                               rounding_radii=1)
 
+    The following example shows how to easily get the faces, with vertex indices
+    properly ordered, for a shape with known vertices by using the
+    `coxeter <https://coxeter.readthedocs.io/>`_ package:
+
+    Example::
+
+        import coxeter
+
+        nl = hoomd.md.nlist.Cell()
+        alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
+
+        cube_verts = [[-0.5, -0.5, -0.5],
+                      [-0.5, -0.5, 0.5],
+                      [-0.5, 0.5, -0.5],
+                      [-0.5, 0.5, 0.5],
+                      [0.5, -0.5, -0.5],
+                      [0.5, -0.5, 0.5],
+                      [0.5, 0.5, -0.5],
+                      [0.5, 0.5, 0.5]]
+
+        cube = coxeter.shapes.ConvexPolyhedron(cube_verts)
+
+        alj.params[("A", "A")] = dict(epsilon=2.0,
+                                      sigma_i=1.0,
+                                      sigma_j=1.0,
+                                      alpha=1,
+                                      )
+        alj.shape["A"] = dict(vertices=cube.vertices,
+                              faces=cube.faces,
+                              rounding_radii=1)
+
     Warning:
         Changing dimension in a simulation will invalidate this force and will
         lead to error or unrealistic behavior.
+
+    .. py:attribute:: params
+
+        The ALJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) - base energy scale
+          :math:`\varepsilon` :math:`[energy]`.
+        * ``sigma_i`` (`float`, **required**) - the insphere radius of the first
+          particle type, :math:`[length]`.
+        * ``sigma_j`` (`float`, **required**) - the insphere radius of the
+          second particle type, :math:`[length]`.
+        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
+          not to include the attractive component of the interaction (see
+          above for details).
+        * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
+          sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
+        * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
+          sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
+        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
+          simplices. Defaults to ``True``. See class documentation for more
+          information.
+
+        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
+        ``particle_types``], `dict`]
+
+    .. py:attribute:: shape
+
+        The shape of a given type. The dictionary has the following keys per
+        type:
+
+        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+          **required**) - The vertices of a convex polytope in 2 or 3
+          dimensions. The third dimension in 2D is ignored.
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
+          **required**) - The semimajor axes of a rounding ellipsoid. If a
+          single value is specified, the rounding ellipsoid is a sphere.
+        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
+          polyhedron specified as a list of list of integers.  The indices
+          corresponding to the vertices must be ordered counterclockwise with
+          respect to the face normal vector pointing outward from the origin.
+
+        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
     """
 
     # We don't define a _cpp_class_name since the dimension is a template
@@ -424,43 +431,6 @@ class ALJ(AnisotropicPair):
                               len_keys=1))
 
         self._extend_typeparam((params, shape))
-
-    @staticmethod
-    def get_ordered_vertices(vertices, return_faces=True):
-        """Compute vertices and faces of a convex hull of given vertices.
-
-        Warning:
-            This method requires the
-            `coxeter <https://coxeter.readthedocs.io/>`_ package.
-
-        Args:
-            vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices to
-                take the convex hull of and get ordered vertices and faces from.
-            return_faces (`bool`, optional): Whether to return faces as a list
-                of list of int which index into the returned vertices. Defaults
-                to ``True``. If ``False`` only vertices are returned and the
-                return type is not a tuple.
-
-        Returns:
-            tuple: A tuple containing:
-
-                * ``vertices`` (:math:`(N_v, 3)` `numpy.ndarray` of `float`) -
-                  The vertices of the convex hull.
-                * ``faces`` (`list` [`list` [`int`]]) - The indices into the
-                  vertices of vertices defining the faces.
-        """
-        try:
-            import coxeter
-        except ImportError as error:
-            raise RuntimeError(
-                "Method requires coxeter as a dependency.") from error
-
-        shape = coxeter.shapes.ConvexPolyhedron(vertices)
-
-        if return_faces:
-            return shape.vertices, shape.faces
-        else:
-            return shape.vertices
 
     def _attach(self):
         self._cpp_class_name = "AnisoPotentialPairALJ{}".format(

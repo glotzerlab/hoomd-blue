@@ -233,6 +233,10 @@ class EvaluatorPairLJ
 
     DEVICE Scalar evalPressureLRCIntegral()
         {
+        if (rcutsq == 0)
+            {
+            return Scalar(0.0);
+            }
         // lj1 = 4.0 * epsilon * pow(sigma,12.0)
         // lj2 = 4.0 * epsilon * pow(sigma,6.0);
         // The complete integral is as follows
@@ -247,6 +251,10 @@ class EvaluatorPairLJ
 
     DEVICE Scalar evalEnergyLRCIntegral()
         {
+        if (rcutsq == 0)
+            {
+            return Scalar(0.0);
+            }
         // Note that lj1 and lj2 are defined above.
         // lj1 = 4.0 * epsilon * pow(sigma,12.0)
         // lj2 = 4.0 * epsilon * pow(sigma,6.0);

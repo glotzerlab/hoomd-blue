@@ -633,7 +633,7 @@ def _valid_params(particle_types=['A', 'B']):
     Vs = [r[::-1] * 5 for r in rs]
     Fs = [-1 * np.diff(V) / np.diff(r) for V, r in zip(Vs, rs)]
     table_arg_dict = {
-        'V': [V[:-1] for V in Vs],
+        'U': [V[:-1] for V in Vs],
         'F': Fs,
         'r_min': [r[0] for r in rs]
     }

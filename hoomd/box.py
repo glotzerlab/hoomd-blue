@@ -64,12 +64,96 @@ class Box:
         xz (float): tilt factor xz :math:`[\\mathrm{dimensionless}]`.
         yz (float): tilt factor yz :math:`[\\mathrm{dimensionless}]`.
 
+    .. image:: box.svg
+       :alt: Example simulation box labelled with lengths and vectors.
+
+    Particles in a simulation exist in a triclinic box with
+    periodic boundary conditions. A triclinic box is defined by six values: the
+    extents :math:`L_x`, :math:`L_y` and :math:`L_z` of the box in the three
+    directions, and three tilt factors :math:`xy`, :math:`xz` and :math:`yz`.
+
+    The parameter matrix is defined in terms of the lattice
+    vectors :math:`\\vec a_1`, :math:`\\vec a_2` and :math:`\\vec a_3`:
+
+    .. math::
+
+        \\left( \\vec a_1, \\vec a_2, \\vec a_3 \\right)
+
+    The first lattice vector :math:`\\vec a_1` is parallel to the unit vector
+    :math:`\\vec e_x = (1,0,0)`. The tilt factor :math:`xy` indicates how the
+    second lattice vector :math:`\\vec a_2` is tilted with respect to the first
+    one. Similarly, :math:`xz` and :math:`yz` indicate the tilt of the third
+    lattice vector :math:`\\vec a_3` with respect to the first and second
+    lattice vector.
+
+    The full cell parameter matrix is:
+
+    .. math::
+        \\left(\\begin{array}{ccc} L_x & xy L_y & xz L_z \\\\
+                                   0   & L_y    & yz L_z \\\\
+                                   0   & 0      & L_z    \\\\
+                \\end{array}\\right)
+
+    The tilt factors :math:`xy`, :math:`xz` and :math:`yz` are dimensionless.
+    The relationships between the tilt factors and the box angles
+    :math:`\\alpha`, :math:`\\beta` and :math:`\\gamma` are as follows:
+
+    .. math::
+        \\cos\\gamma &= \\cos(\\angle\\vec a_1, \\vec a_2) &=&
+            \\frac{xy}{\\sqrt{1+xy^2}}\\\\
+        \\cos\\beta &= \\cos(\\angle\\vec a_1, \\vec a_3) &=&
+            \\frac{xz}{\\sqrt{1+xz^2+yz^2}}\\\\
+        \\cos\\alpha &= \\cos(\\angle\\vec a_2, \\vec a_3) &=&
+            \\frac{xy \\cdot xz + yz}{\\sqrt{1+xy^2} \\sqrt{1+xz^2+yz^2}}
+
+    Given an arbitrarily oriented lattice with box vectors :math:`\\vec v_1,
+    \\vec v_2, \\vec v_3`, the parameters for the rotated box can be found as
+    follows:
+
+    .. math::
+        L_x &= v_1\\\\
+        a_{2x} &= \\frac{\\vec v_1 \\cdot \\vec v_2}{v_1}\\\\
+        L_y &= \\sqrt{v_2^2 - a_{2x}^2}\\\\
+        xy &= \\frac{a_{2x}}{L_y}\\\\
+        L_z &= \\vec v_3 \\cdot \\frac{\\vec v_1 \\times \\vec v_2}{\\left|
+            \\vec v_1 \\times \\vec v_2 \\right|}\\\\
+        a_{3x} &= \\frac{\\vec v_1 \\cdot \\vec v_3}{v_1}\\\\
+        xz &= \\frac{a_{3x}}{L_z}\\\\
+        yz &= \\frac{\\vec v_2 \\cdot \\vec v_3 - a_{2x}a_{3x}}{L_y L_z}
+
+    .. rubric:: Box images
+
+    HOOMD-blue always stores particle positions :math:`\\vec{r}` inside the
+    primary box image which includes the origin at the center. The primary box
+    image include the left, bottom, and back face while excluding the right,
+    top, and front face. In cubic boxes, this implies that the particle
+    coordinates in the primary box image are in the interval :math:`\\left[
+    -\\frac{L}{2},\\frac{L}{2} \\right)`.
+
+    Unless otherwise noted in the documentation, operations apply the
+    minimum image convention when computing pairwise interactions between
+    particles:
+
+    .. math::
+
+        \\vec{r}_{ij} = \\mathrm{minimum\\_image}(\\vec{r}_j - \\vec{r}_i)
+
+    When running simulations with a fixed box size, you use the particle images
+    :math:`\\vec{n}` to compute the unwrapped coordinates:
+
+    .. math::
+
+        \\vec{r}_\\mathrm{unwrapped} = \\vec{r} + n_x \\vec{a}_1
+            + n_y \\vec{a}_2 + n_z \\vec{a}_3
+
+    .. rubric:: The Box class
+
     Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``,
-    ``Lz``, ``xy``, ``xz``, and ``yz``. `Box` provides a way to specify all
-    six parameters for a given box and perform some common operations with them.
-    A `Box` can be passed to an initialization method or to assigned to a
-    saved :py:class:`State` variable (``state.box = new_box``) to set the
-    simulation box.
+    ``Lz``, ``xy``, ``xz``, and ``yz``. `Box` provides a way to specify all six
+    parameters for a given box and perform some common operations with them. A
+    `Box` can be stored in a GSD file, passed to an initialization method or to
+    assigned to a saved :py:class:`State` variable (``state.box = new_box``) to
+    set the simulation box.
 
     Access attributes directly::
 
@@ -80,11 +164,11 @@ class Box:
 
     .. rubric:: Two dimensional systems
 
-    2D simulations in HOOMD use boxes with ``Lz == 0``. 2D boxes ignore ``xz``
-    and ``yz``. If a new `Box` is assigned to a system with different
-    dimensionality, a warning will be shown.
+    Set ``Lz == 0`` to make the box 2D. 2D boxes ignore ``xz`` and ``yz``.
+    Changing the box dimensionality from 2D to 3D (or from 3D to 2D) during
+    a simulation will result in undefined behavior.
 
-    In 2D boxes, *volume* is in units of area.
+    In 2D boxes, *volume* is in units of :math:`[\\mathrm{length}]^2`.
 
     .. rubric:: Factory Methods
 
@@ -92,7 +176,8 @@ class Box:
     `square`, `from_matrix`, and `from_box`. See the method documentation for
     usage.
 
-    Examples:
+    .. rubric:: Examples
+
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
     * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``
@@ -171,7 +256,7 @@ class Box:
 
     @classmethod
     def from_box(cls, box):
-        R"""Initialize a Box instance from a box-like object.
+        r"""Initialize a Box instance from a box-like object.
 
         Args:
             box:
@@ -360,8 +445,8 @@ class Box:
     def volume(self):
         """float: Volume of the box.
 
-        :math:`[\\mathrm{length}^{2}]` in 2D and
-        :math:`[\\mathrm{length}^{3}]` in 3D.
+        :math:`[\\mathrm{length}]^{2}` in 2D and
+        :math:`[\\mathrm{length}]^{3}` in 3D.
 
         When setting volume the aspect ratio of the box is maintained while the
         lengths are changed.
@@ -388,7 +473,7 @@ class Box:
         return np.array([[Lx, xy * Ly, xz * Lz], [0, Ly, yz * Lz], [0, 0, Lz]])
 
     def scale(self, s):
-        R"""Scale box dimensions.
+        r"""Scale box dimensions.
 
         Scales the box in place by the given scale factors. Tilt factors are not
         modified.

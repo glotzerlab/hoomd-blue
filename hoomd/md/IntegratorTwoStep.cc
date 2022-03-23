@@ -141,33 +141,6 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
         }
     }
 
-/*! \returns true If all added integration methods have valid restart information
- */
-bool IntegratorTwoStep::isValidRestart()
-    {
-    bool res = true;
-
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // and them all together
-        res = res && method->isValidRestart();
-        }
-    return res;
-    }
-
-/*! \returns true If all added integration methods have valid restart information
- */
-void IntegratorTwoStep::initializeIntegrationMethods()
-    {
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // initialize each of them
-        method->initializeIntegratorVariables();
-        }
-    }
-
 /*! \param group Group over which to count degrees of freedom.
 
     IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the

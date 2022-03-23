@@ -1,10 +1,13 @@
 # configurations to build and test on every pull request
 # each entry is a mapping with:
 # - config: a string encoded list containing the docker image name and any number of build options.
-# - The build options are `mpi`, `tbb`, and `llvm`.
+# - The build options are `mpi`, `tbb`, `llvm`, `nomd`, and `nohpmc`.
 unit_test_configurations:
 - config: "[clang12_py310, mpi, tbb, llvm]"
 - config: "[gcc11_py310]"
+- config: "[gcc11_py310, nomd]"
+- config: "[gcc11_py310, nohpmc]"
+- config: "[gcc11_py310, nomd, nohpmc]"
 - config: "[cuda115_gcc9_py38, mpi, llvm]"
 - config: "[cuda115_gcc9_py38]"
 

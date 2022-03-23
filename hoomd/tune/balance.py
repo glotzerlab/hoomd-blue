@@ -5,7 +5,6 @@
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.operation import Tuner
-from hoomd.trigger import Trigger
 from hoomd import _hoomd
 import hoomd
 
@@ -42,12 +41,11 @@ class LoadBalancer(Tuner):
 
     Simulations with interfaces (so that there is a particle density gradient)
     or clustering should benefit from load balancing. The potential speedup is
-    roughly :math:`I-1.0`, so that if the largest imbalance is 1.4, then the
-    user can expect a roughly 40% speedup in the simulation. This is of course
-    an estimate that assumes that all algorithms are roughly linear in
-    :math:`N`, all GPUs are fully occupied, and the simulation is limited by the
-    speed of the slowest processor. It also assumes that all particles roughly
-    equal. If you have a simulation where, for example, some particles have
+    :math:`I-1.0`, so that if the largest imbalance is 1.4, then the user can
+    expect a 40% speedup in the simulation. This is of course an estimate that
+    assumes that all algorithms are linear in :math:`N`, all GPUs are fully
+    occupied, and the simulation is limited by the speed of the slowest
+    processor. If you have a simulation where, for example, some particles have
     significantly more pair force neighbors than others, this estimate of the
     load imbalance may not produce the optimal results.
 
@@ -94,18 +92,19 @@ class LoadBalancer(Tuner):
                  z=True,
                  tolerance=1.02,
                  max_iterations=1):
+        super().__init__(trigger)
+
         defaults = dict(x=x,
                         y=y,
                         z=z,
                         tolerance=tolerance,
-                        max_iterations=max_iterations,
-                        trigger=trigger)
-        self._param_dict = ParameterDict(x=bool,
-                                         y=bool,
-                                         z=bool,
-                                         max_iterations=int,
-                                         tolerance=float,
-                                         trigger=Trigger)
+                        max_iterations=max_iterations)
+        load_balancer_params = ParameterDict(x=bool,
+                                             y=bool,
+                                             z=bool,
+                                             max_iterations=int,
+                                             tolerance=float)
+        self._param_dict.update(load_balancer_params)
         self._param_dict.update(defaults)
 
     def _attach(self):

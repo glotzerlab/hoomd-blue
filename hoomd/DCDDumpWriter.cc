@@ -63,13 +63,15 @@ static unsigned int read_int(fstream& file)
     if it is called out of sequence.
 */
 DCDDumpWriter::DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<Trigger> trigger,
                              const std::string& fname,
                              unsigned int period,
                              std::shared_ptr<ParticleGroup> group,
                              bool overwrite)
-    : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
-      m_num_frames_written(0), m_last_written_step(0), m_appending(false), m_unwrap_full(false),
-      m_unwrap_rigid(false), m_angle(false), m_overwrite(overwrite), m_is_initialized(false)
+    : Analyzer(sysdef, trigger), m_fname(fname), m_start_timestep(0), m_period(period),
+      m_group(group), m_num_frames_written(0), m_last_written_step(0), m_appending(false),
+      m_unwrap_full(false), m_unwrap_rigid(false), m_angle(false), m_overwrite(overwrite),
+      m_is_initialized(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing DCDDumpWriter: " << fname << " " << period << " "
                                 << overwrite << endl;
@@ -420,6 +422,7 @@ void export_DCDDumpWriter(pybind11::module& m)
     {
     pybind11::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter>>(m, "DCDDumpWriter")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::string,
                             unsigned int,
                             std::shared_ptr<ParticleGroup>,

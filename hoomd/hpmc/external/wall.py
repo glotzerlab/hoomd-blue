@@ -1,9 +1,14 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+"""Wall potentials HPMC simulations.
+
+Set :math:`U_{\\mathrm{external},i}` evaluated in
+`hoomd.hpmc.integrate.HPMCIntegrator` to a hard particle-wall interaction.
+"""
+
 import hoomd
 from hoomd.wall import _WallsMetaList
-from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.syncedlist import identity
 from hoomd.hpmc.external.field import ExternalField
 from hoomd.logging import log
@@ -24,7 +29,7 @@ def _to_hpmc_cpp_wall(wall):
 
 
 class _HPMCWallsMetaList(_WallsMetaList):
-    """Handle HPMC walls
+    """Handle HPMC walls.
 
     This class supplements the base `_WallsMetaList` class with the
     functionality to ensure that walls added to the `WallPotential` are
@@ -95,21 +100,19 @@ class WallPotential(ExternalField):
 
     .. math::
 
-        U_{\mathrm{walls}} = \sum_{i=0}^{N_{\mathrm{particles}}}
-        \sum_{j=0}^{N_{\mathrm{walls}}} U_{i,j},
+        U_{\mathrm{walls}} = \sum_{i=0}^{N_{\mathrm{particles}-1}}
+        \sum_{j=0}^{N_{\mathrm{walls}-1}} U_{i,j},
 
 
     where the energy of interaction :math:`U_{i,j}` between particle :math:`i`
     and wall :math:`j` is given by
 
     .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        U_{i,j} &=& \infty \,\,\,\text{if } \,\, d_{i,j} <= 0 \\
-                &=& 0; \,\,\, \text{if } \,\, d_{i,j} > 0,
-        \end{eqnarray*}
-
+        U_{i,j} =
+        \begin{cases}
+        \infty & d_{i,j} <= 0 \\
+        0 & d_{i,j} > 0 \\
+        \end{cases}
 
     where :math:`d_{i,j} = \min{\{(\vec{r}_i - \vec{r}_j) \cdot \vec{n}_j :
     \vec{r}_i \in V_I, \vec{r}_j \in W_J\}}` is the minimum signed distance
@@ -121,13 +124,16 @@ class WallPotential(ExternalField):
 
 
     Walls are enforced by the HPMC integrator. Assign a `WallPotential` instance
-    to the `hpmc.integrate.HPMCIntegrator.external_potential` to activate the
-    wall potential. Not all combinations of HPMC integrators and wall geometries
-    have overlap checks implemented, and a `NotImplementedError` is raised if a
-    wall geometry is attached to a simulation with a specific HPMC integrator
+    to `hpmc.integrate.HPMCIntegrator.external_potential` to activate the wall
+    potential. Not all combinations of HPMC integrators and wall geometries have
+    overlap checks implemented, and a `NotImplementedError` is raised if a wall
+    geometry is attached to a simulation with a specific HPMC integrator
     attached and the overlap checks between the specific shape and wall geometry
     are not implemented. See the individual subclasses of
     `hoomd.hpmc.integrate.HPMCIntegrator` for their wall support.
+
+    Note:
+        `WallPotential` does not support execution on GPUs.
 
     See Also:
         `hoomd.wall`

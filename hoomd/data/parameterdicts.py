@@ -707,12 +707,14 @@ class ParameterDict(MutableMapping):
         # need to check if we are attached here.
         if not self._attached and isinstance(other, ParameterDict):
             self._type_converter.update(other._type_converter)
-            self._dict.update(other._dict)
             self._getters.update(other._getters)
             self._setters.update(other._setters)
+            for key, item in other._dict.items():
+                if isinstance(item, _HOOMDSyncedCollection):
+                    item._change_root(self)
+                self._dict[key] = item
         else:
-            for key, value in other.items():
-                self[key] = value
+            super().update(other)
 
     def _attach(self, cpp_obj):
         self._cpp_obj = cpp_obj
