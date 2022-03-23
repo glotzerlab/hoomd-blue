@@ -43,11 +43,11 @@ void test_communicator_migrate(communicator_creator comm_creator,
 
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = dest_box;
+    snap->global_box = std::make_shared<BoxDim>(dest_box);
     snap->particle_data.type_mapping.push_back("A");
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
@@ -711,11 +711,11 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
 
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(4.0, 2.0, 1.0);
+    snap->global_box = std::make_shared<BoxDim>(4.0, 2.0, 1.0);
     snap->particle_data.type_mapping.push_back("A");
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 4, 2, 1));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 4, 2, 1));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
@@ -918,11 +918,11 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
 
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(4.0);
+    snap->global_box = std::make_shared<BoxDim>(4.0);
     snap->particle_data.type_mapping.push_back("A");
 
     auto decomposition
-        = std::make_shared<DomainDecomposition>(exec_conf, snap->global_box.getL(), nx, ny, nz);
+        = std::make_shared<DomainDecomposition>(exec_conf, snap->global_box->getL(), nx, ny, nz);
     auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
 
     // empty MPCD system
@@ -988,9 +988,7 @@ UP_TEST(mpcd_communicator_overdecompose_test)
         // two ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>(),
-                                                                  false,
-                                                                  false);
+                                                                  std::vector<int>());
         exec_conf->getMPIConfig()->splitPartitions(2);
         test_communicator_overdecompose(exec_conf, 2, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
@@ -999,9 +997,7 @@ UP_TEST(mpcd_communicator_overdecompose_test)
         // four ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>(),
-                                                                  false,
-                                                                  false);
+                                                                  std::vector<int>());
         exec_conf->getMPIConfig()->splitPartitions(4);
         test_communicator_overdecompose(exec_conf, 4, 1, 1, false);
         test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
@@ -1010,9 +1006,7 @@ UP_TEST(mpcd_communicator_overdecompose_test)
         // eight ranks in any direction
         {
         auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
-                                                                  std::vector<int>(),
-                                                                  false,
-                                                                  false);
+                                                                  std::vector<int>());
         exec_conf->getMPIConfig()->splitPartitions(8);
         test_communicator_overdecompose(exec_conf, 8, 1, 1, true);
         test_communicator_overdecompose(exec_conf, 1, 8, 1, true);

@@ -102,9 +102,6 @@ pybind11::dict OPLSDihedralForceCompute::getParams(std::string type)
  */
 void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("OPLS Dihedral");
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -360,9 +357,6 @@ void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
             h_virial.data[virial_pitch * k + i4] += dihedral_virial[k];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

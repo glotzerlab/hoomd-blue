@@ -11,6 +11,7 @@
 #include "hoomd/Compute.h"
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/VectorMath.h"
+#include <hoomd/Variant.h>
 
 #include "ExternalField.h"
 
@@ -33,9 +34,9 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
     //! Constructor
     ExternalFieldHarmonic(std::shared_ptr<SystemDefinition> sysdef,
                           pybind11::array_t<double> r0,
-                          Scalar k,
+                          std::shared_ptr<Variant> k,
                           pybind11::array_t<double> q0,
-                          Scalar q,
+                          std::shared_ptr<Variant> q,
                           pybind11::array_t<double> symRotations)
         : ExternalFieldMono<Shape>(sysdef), m_k_translational(k), m_k_rotational(q)
         {
@@ -214,25 +215,25 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         }
 
     //! Setter for translational spring constant
-    void setKTranslational(Scalar k_translational)
+    void setKTranslational(const std::shared_ptr<Variant>& k_translational)
         {
         m_k_translational = k_translational;
         }
 
     //! Getter for translational spring constant
-    Scalar getKTranslational()
+    std::shared_ptr<Variant> getKTranslational()
         {
         return m_k_translational;
         }
 
     //! Setter for rotational spring constant
-    void setKRotational(Scalar k_rotational)
+    void setKRotational(const std::shared_ptr<Variant>& k_rotational)
         {
         m_k_rotational = k_rotational;
         }
 
     //! Getter for rotational spring constant
-    Scalar getKRotational()
+    std::shared_ptr<Variant> getKRotational()
         {
         return m_k_rotational;
         }
@@ -255,9 +256,10 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      * changes. But why would you have a lattice field and a box updater active in the same
      * simulation?
      */
-    double calculateDeltaE(const Scalar4* const position_old_arg,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old_arg,
                            const Scalar4* const orientation_old_arg,
-                           const BoxDim* const box_old_arg)
+                           const BoxDim& box_old) override
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                    access_location::host,
@@ -277,10 +279,14 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         double dE = 0.0;
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
-            Scalar old_E
-                = calcE(i, vec3<Scalar>(*(position_old + i)), quat<Scalar>(*(orientation_old + i)));
-            Scalar new_E
-                = calcE(i, vec3<Scalar>(*(position_new + i)), quat<Scalar>(*(orientation_new + i)));
+            Scalar old_E = calcE(timestep,
+                                 i,
+                                 vec3<Scalar>(*(position_old + i)),
+                                 quat<Scalar>(*(orientation_old + i)));
+            Scalar new_E = calcE(timestep,
+                                 i,
+                                 vec3<Scalar>(*(position_new + i)),
+                                 quat<Scalar>(*(orientation_new + i)));
             dE += new_E - old_E;
             }
 
@@ -319,8 +325,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
             {
             vec3<Scalar> position(h_postype.data[i]);
             quat<Scalar> orientation(h_orient.data[i]);
-            energy_translational += calcE_trans(i, position);
-            energy_rotational += calcE_rot(i, orientation);
+            energy_translational += calcE_trans(timestep, i, position);
+            energy_rotational += calcE_rot(timestep, i, orientation);
             }
 
 #ifdef ENABLE_MPI
@@ -342,39 +348,41 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
         } // end getEnergies(uin64_t)
 
     //! Calculate the change in energy from moving a single particle with tag = index
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
-                      const Shape& shape_new)
+                      const Shape& shape_new) override
         {
-        double old_U = calcE(index, position_old, shape_old),
-               new_U = calcE(index, position_new, shape_new);
+        double old_U = calcE(timestep, index, position_old, shape_old),
+               new_U = calcE(timestep, index, position_new, shape_new);
         return new_U - old_U;
         }
 
     protected:
     //! Calculate the energy associated with the deviation of a single particle from its reference
     //! position
-    Scalar calcE_trans(const unsigned int& index, const vec3<Scalar>& position)
+    Scalar calcE_trans(uint64_t timestep, const unsigned int& index, const vec3<Scalar>& position)
         {
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
                                          access_location::host,
                                          access_mode::read);
         int3 dummy = make_int3(0, 0, 0);
         vec3<Scalar> origin(m_pdata->getOrigin());
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
         vec3<Scalar> r0 = m_reference_positions[h_tags.data[index]];
         Scalar3 t = vec_to_scalar3(position - origin);
         box.wrap(t, dummy);
         vec3<Scalar> shifted_pos(t);
         vec3<Scalar> dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - position + origin)));
-        return Scalar(0.5) * m_k_translational * dot(dr, dr);
+        Scalar k = (*m_k_translational)(timestep);
+        return Scalar(0.5) * k * dot(dr, dr);
         }
 
     //! Calculate the energy associated with the deviation of a single particle from its reference
     //! orientation
-    Scalar calcE_rot(const unsigned int& index, const quat<Scalar>& orientation)
+    Scalar calcE_rot(uint64_t timestep, const unsigned int& index, const quat<Scalar>& orientation)
         {
         assert(m_symmetry.size());
         ArrayHandle<unsigned int> h_tags(m_pdata->getTags(),
@@ -388,7 +396,8 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
             quat<Scalar> dq = q0 - equiv_orientation;
             dqmin = (i == 0) ? norm2(dq) : fmin(dqmin, norm2(dq));
             }
-        return Scalar(0.5) * m_k_rotational * dqmin;
+        Scalar k = (*m_k_rotational)(timestep);
+        return Scalar(0.5) * k * dqmin;
         }
 
     /** Calculate the total energy associated with the deviation of a single particle from its ref.
@@ -397,26 +406,31 @@ template<class Shape> class ExternalFieldHarmonic : public ExternalFieldMono<Sha
      * This function _should_ only be used for logging purposes and not for calculating move
      * acceptance criteria, since it's the energy difference that matters for the latter.
      */
-    Scalar
-    calcE(const unsigned int& index, const vec3<Scalar>& position, const quat<Scalar>& orientation)
+    Scalar calcE(uint64_t timestep,
+                 const unsigned int& index,
+                 const vec3<Scalar>& position,
+                 const quat<Scalar>& orientation)
         {
         Scalar energy = 0.0;
-        energy += calcE_trans(index, position);
-        energy += calcE_rot(index, orientation);
+        energy += calcE_trans(timestep, index, position);
+        energy += calcE_rot(timestep, index, orientation);
         return energy;
         }
 
-    Scalar calcE(const unsigned int& index, const vec3<Scalar>& position, const Shape& shape)
+    Scalar calcE(uint64_t timestep,
+                 const unsigned int& index,
+                 const vec3<Scalar>& position,
+                 const Shape& shape)
         {
-        return calcE(index, position, shape.orientation);
+        return calcE(timestep, index, position, shape.orientation);
         }
 
     private:
     std::vector<vec3<Scalar>> m_reference_positions;    // reference positions
     std::vector<quat<Scalar>> m_reference_orientations; // reference orientations
     std::vector<quat<Scalar>> m_symmetry;               // symmetry-equivalent orientations
-    Scalar m_k_translational;                           // translational spring constant
-    Scalar m_k_rotational;                              // rotational spring constant
+    std::shared_ptr<Variant> m_k_translational;         // translational spring constant
+    std::shared_ptr<Variant> m_k_rotational;            // rotational spring constant
     };
 
 namespace detail
@@ -428,9 +442,9 @@ template<class Shape> void export_HarmonicField(pybind11::module& m, std::string
                      std::shared_ptr<ExternalFieldHarmonic<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             pybind11::array_t<double>,
-                            Scalar,
+                            std::shared_ptr<Variant>,
                             pybind11::array_t<double>,
-                            Scalar,
+                            std::shared_ptr<Variant>,
                             pybind11::array_t<double>>())
         .def_property("reference_positions",
                       &ExternalFieldHarmonic<Shape>::getReferencePositions,
@@ -449,9 +463,6 @@ template<class Shape> void export_HarmonicField(pybind11::module& m, std::string
                       &ExternalFieldHarmonic<Shape>::setSymmetricallyEquivalentOrientations)
         .def("getEnergies", &ExternalFieldHarmonic<Shape>::getEnergies);
     }
-
-void export_HarmonicFields(pybind11::module& m);
-
     } // end namespace detail
     } // namespace hpmc
     } // end namespace hoomd

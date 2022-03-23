@@ -36,7 +36,6 @@ template<typename T> class CommunicatorGrid
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
     std::shared_ptr<ParticleData> m_pdata;                     //!< Particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
-    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
     uint3 m_dim;      //!< Dimensions of grid
     uint3 m_embed;    //!< Embedding dimensions

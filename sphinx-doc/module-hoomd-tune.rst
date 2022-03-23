@@ -29,6 +29,7 @@ hoomd.tune
               ScaleSolver,
               SecantSolver,
               SolverStep
+    :show-inheritance:
 
     .. autoclass:: ManualTuneDefinition
         :inherited-members:

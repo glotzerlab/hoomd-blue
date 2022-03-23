@@ -95,7 +95,7 @@ class UpdaterRemoveDrift : public Updater
         ArrayHandle<int3> h_image(this->m_pdata->getImages(),
                                   access_location::host,
                                   access_mode::readwrite);
-        const BoxDim& box = this->m_pdata->getGlobalBox();
+        const BoxDim box = this->m_pdata->getGlobalBox();
         const vec3<Scalar> origin(this->m_pdata->getOrigin());
         vec3<Scalar> rshift;
         rshift.x = rshift.y = rshift.z = 0.0f;

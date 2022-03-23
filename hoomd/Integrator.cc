@@ -122,12 +122,6 @@ void Integrator::computeAccelerations(uint64_t timestep)
     {
     m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
 
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Sum accel");
-        }
-
     // now, get our own access to the arrays and calculate the accelerations
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
@@ -145,65 +139,37 @@ void Integrator::computeAccelerations(uint64_t timestep)
         h_accel.data[j].y = h_net_force.data[j].y * minv;
         h_accel.data[j].z = h_net_force.data[j].z * minv;
         }
-
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
     }
 
 /** @param timestep Current time step of the simulation
-
-    computeTotalMomentum()  accesses the particle data on the CPU, loops through it and calculates
-   the magnitude of the total system momentum
-*/
-Scalar Integrator::computeTotalMomentum(uint64_t timestep)
+ */
+vec3<double> Integrator::computeLinearMomentum()
     {
     // grab access to the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
-    // sum up the kinetic energy
-    double p_tot_x = 0.0;
-    double p_tot_y = 0.0;
-    double p_tot_z = 0.0;
+    // sum the linear momentum in the system
+    vec3<double> p_total;
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         double mass = h_vel.data[i].w;
-        p_tot_x += mass * (double)h_vel.data[i].x;
-        p_tot_y += mass * (double)h_vel.data[i].y;
-        p_tot_z += mass * (double)h_vel.data[i].z;
+        vec3<double> velocity(h_vel.data[i]);
+        p_total += mass * velocity;
         }
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         MPI_Allreduce(MPI_IN_PLACE,
-                      &p_tot_x,
-                      1,
-                      MPI_DOUBLE,
-                      MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &p_tot_y,
-                      1,
-                      MPI_DOUBLE,
-                      MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &p_tot_z,
-                      1,
+                      &p_total,
+                      3,
                       MPI_DOUBLE,
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
         }
 #endif
 
-    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z)
-                   / Scalar(m_pdata->getNGlobal());
-
-    // done!
-    return Scalar(p_tot);
+    return p_total;
     }
 
 /** @param timestep Current time step of the simulation
@@ -217,12 +183,6 @@ void Integrator::computeNetForce(uint64_t timestep)
     for (auto& force : m_forces)
         {
         force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Net force");
         }
 
     Scalar external_virial[6];
@@ -307,12 +267,6 @@ void Integrator::computeNetForce(uint64_t timestep)
 
     m_pdata->setExternalEnergy(external_energy);
 
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
-
     // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
@@ -330,12 +284,6 @@ void Integrator::computeNetForce(uint64_t timestep)
     for (auto& constraint_force : m_constraint_forces)
         {
         constraint_force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push("Net force");
         }
 
         {
@@ -401,12 +349,6 @@ void Integrator::computeNetForce(uint64_t timestep)
         }
 
     m_pdata->setExternalEnergy(external_energy);
-
-    if (m_prof)
-        {
-        m_prof->pop();
-        m_prof->pop();
-        }
     }
 
 #ifdef ENABLE_HIP
@@ -426,12 +368,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     for (auto& force : m_forces)
         {
         force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "Integrate");
-        m_prof->push(m_exec_conf, "Net force");
         }
 
     Scalar external_virial[6];
@@ -653,12 +589,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
     m_pdata->setExternalEnergy(external_energy);
 
-    if (m_prof)
-        {
-        m_prof->pop(m_exec_conf);
-        m_prof->pop(m_exec_conf);
-        }
-
     // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
@@ -675,12 +605,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     for (auto& constraint_force : m_constraint_forces)
         {
         constraint_force->compute(timestep);
-        }
-
-    if (m_prof)
-        {
-        m_prof->push("Integrate");
-        m_prof->push(m_exec_conf, "Net force");
         }
 
         {
@@ -880,12 +804,6 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
     m_pdata->setExternalEnergy(external_energy);
-
-    if (m_prof)
-        {
-        m_prof->pop(m_exec_conf);
-        m_prof->pop(m_exec_conf);
-        }
     }
 #endif
 
@@ -970,8 +888,8 @@ void Integrator::computeCallback(uint64_t timestep)
 bool Integrator::areForcesAnisotropic()
     {
     bool aniso = false;
-    // pre-compute all active forces
-    for (auto& force : m_forces)
+
+    for (const auto& force : m_forces)
         {
         aniso |= force->isAnisotropic();
         }
@@ -995,7 +913,8 @@ void export_Integrator(pybind11::module& m)
         .def("updateGroupDOF", &Integrator::updateGroupDOF)
         .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
         .def_property_readonly("forces", &Integrator::getForces)
-        .def_property_readonly("constraints", &Integrator::getConstraintForces);
+        .def_property_readonly("constraints", &Integrator::getConstraintForces)
+        .def("computeLinearMomentum", &Integrator::computeLinearMomentum);
     }
 
     } // end namespace detail

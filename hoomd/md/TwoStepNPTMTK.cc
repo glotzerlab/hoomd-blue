@@ -116,10 +116,6 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
 
     unsigned int group_size = m_group->getNumMembers();
 
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 1");
-
     // update degrees of freedom for MTK term
     m_ndof = m_group->getTranslationalDOF();
 
@@ -411,10 +407,6 @@ void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
         setIntegratorVariables(v);
         }
 #endif
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -425,10 +417,6 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NPT step 2");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
@@ -543,10 +531,6 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(timestep + 1);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param nuxx Barostat matrix, xx element

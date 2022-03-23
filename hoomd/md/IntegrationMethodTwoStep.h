@@ -2,7 +2,6 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ParticleGroup.h"
-#include "hoomd/Profiler.h"
 #include "hoomd/SystemDefinition.h"
 
 #include <memory>
@@ -123,9 +122,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
      */
     virtual void includeRATTLEForce(uint64_t timestep) { }
 
-    //! Sets the profiler for the integration method to use
-    void setProfiler(std::shared_ptr<Profiler> prof);
-
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
         \param period period (approximate) in time steps when returning occurs
@@ -198,8 +194,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         m_sysdef; //!< The system definition this method is associated with
     const std::shared_ptr<ParticleGroup> m_group; //!< The group of particles this method works on
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this method is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this method is to use
+        m_pdata; //!< The particle data this method is associated with
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     bool m_aniso;    //!< True if anisotropic integration is requested

@@ -36,10 +36,10 @@ class PYBIND11_EXPORT SimpleCubicInitializer
     virtual std::shared_ptr<SnapshotSystemData<Scalar>> getSnapshot() const;
 
     private:
-    unsigned int m_M;        //!< Number of particles wide to make the box
-    Scalar m_spacing;        //!< Spacing between particles
-    BoxDim box;              //!< Precalculated box
-    std::string m_type_name; //!< Name of the particle type created
+    unsigned int m_M;            //!< Number of particles wide to make the box
+    Scalar m_spacing;            //!< Spacing between particles
+    std::shared_ptr<BoxDim> box; //!< Precalculated box
+    std::string m_type_name;     //!< Name of the particle type created
     };
 
 //! Inits a ParticleData with randomly placed particles in a cube
@@ -62,11 +62,11 @@ class PYBIND11_EXPORT RandomInitializer
     void setSeed(unsigned int seed);
 
     protected:
-    unsigned int m_N;        //!< Number of particles to generate
-    Scalar m_phi_p;          //!< Packing fraction to generate the particles at
-    Scalar m_min_dist;       //!< Minimum distance to separate particles by
-    BoxDim m_box;            //!< Box to put the particles in
-    std::string m_type_name; //!< Name of the particle type created
+    unsigned int m_N;              //!< Number of particles to generate
+    Scalar m_phi_p;                //!< Packing fraction to generate the particles at
+    Scalar m_min_dist;             //!< Minimum distance to separate particles by
+    std::shared_ptr<BoxDim> m_box; //!< Box to put the particles in
+    std::string m_type_name;       //!< Name of the particle type created
     };
 
     } // end namespace hoomd

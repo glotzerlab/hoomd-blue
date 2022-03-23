@@ -16,7 +16,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -44,8 +43,6 @@ void export_union_sphere(pybind11::module& m)
     export_HarmonicField<ShapeUnion<ShapeSphere>>(m, "ExternalFieldHarmonicSphereUnion");
     export_ExternalFieldComposite<ShapeUnion<ShapeSphere>>(m, "ExternalFieldCompositeSphereUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeSphere>>(m, "WallSphereUnion");
-    export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere>>(m,
-                                                             "UpdaterExternalFieldWallSphereUnion");
     export_ExternalCallback<ShapeUnion<ShapeSphere>>(m, "ExternalCallbackSphereUnion");
 
 #ifdef ENABLE_HIP

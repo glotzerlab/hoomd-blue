@@ -84,7 +84,7 @@ struct a_pair_args_t
     const Scalar* d_charge;       //!< particle charges
     const Scalar4* d_orientation; //!< particle orientation to compute forces over
     const unsigned int* d_tag;    //!< particle tags to compute forces over
-    const BoxDim& box;            //!< Simulation box in GPU format
+    const BoxDim box;             //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
@@ -302,7 +302,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
+                const typename evaluator::param_type param = s_params[typpair];
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
@@ -461,11 +461,11 @@ struct AnisoPairForceComputeKernel
             unsigned int available_bytes = max_extra_bytes;
             for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
                 {
-                params[i].load_shared(ptr, available_bytes);
+                params[i].allocate_shared(ptr, available_bytes);
                 }
             for (unsigned int i = 0; i < pair_args.ntypes; ++i)
                 {
-                shape_params[i].load_shared(ptr, available_bytes);
+                shape_params[i].allocate_shared(ptr, available_bytes);
                 }
             extra_bytes = max_extra_bytes - available_bytes;
 

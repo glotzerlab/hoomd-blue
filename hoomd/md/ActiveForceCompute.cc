@@ -304,18 +304,12 @@ void ActiveForceCompute::rotationalDiffusion(Scalar rotational_diffusion, uint64
 */
 void ActiveForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "ActiveForceCompute");
-
     setForces(); // set forces for particles
 
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

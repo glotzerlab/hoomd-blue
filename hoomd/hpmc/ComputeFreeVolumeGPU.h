@@ -144,7 +144,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
     if (this->m_cl->getNominalWidth() != nominal_width)
         this->m_cl->setNominalWidth(nominal_width);
 
-    const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim box = this->m_pdata->getBox();
     Scalar3 npd = box.getNearestPlaneDistance();
 
     if ((box.getPeriodic().x && npd.x <= nominal_width * 2)
@@ -157,9 +157,6 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
 
     // compute cell list
     this->m_cl->compute(timestep);
-
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "Free volume");
 
     // if the cell list is a different size than last time, reinitialize expanded cell list
     uint3 cur_dim = this->m_cl->getDim();
@@ -317,9 +314,6 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
                       this->m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape> void ComputeFreeVolumeGPU<Shape>::initializeExcellMem()

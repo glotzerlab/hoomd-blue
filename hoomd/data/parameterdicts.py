@@ -646,6 +646,13 @@ class ParameterDict(MutableMapping):
         """Access parameter by key."""
         if not self._attached:
             return self._dict[key]
+        # The existence of obj._cpp_obj indicates that the object is split
+        # between C++ and Python and the object is responsible for its own
+        # syncing. Also, no synced data structure has such an attribute so we
+        # just return the object.
+        python_value = self._dict[key]
+        if hasattr(python_value, "_cpp_obj"):
+            return python_value
         try:
             # While trigger remains not a member of  the the C++ classes, we
             # have to allow for attributes that are not gettable.
@@ -655,14 +662,13 @@ class ParameterDict(MutableMapping):
             else:
                 new_value = getter(self, key)
         except AttributeError:
-            return self._dict[key]
+            return python_value
 
-        old_value = self._dict[key]
-        if isinstance(old_value, _HOOMDSyncedCollection):
-            if old_value._update(new_value):
-                return old_value
+        if isinstance(python_value, _HOOMDSyncedCollection):
+            if python_value._update(new_value):
+                return python_value
             else:
-                old_value._isolate()
+                python_value._isolate()
         self._dict[key] = self._to_hoomd_data(key, new_value)
         return self._dict[key]
 

@@ -91,6 +91,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
+                EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDLVO.h
@@ -110,7 +111,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
-                EvaluatorPairSLJ.h
                 EvaluatorPairExpandedLJ.h
                 EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
@@ -174,7 +174,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
-                QuaternionMath.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
@@ -272,7 +271,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
                       PairLJ0804DriverPotentialPairGPU.cu
                       ReactionFieldDriverPotentialPairGPU.cu
-                      SLJDriverPotentialPairGPU.cu
                       ExpandedLJDriverPotentialPairGPU.cu
                       YukawaDriverPotentialPairGPU.cu
                       ZBLDriverPotentialPairGPU.cu

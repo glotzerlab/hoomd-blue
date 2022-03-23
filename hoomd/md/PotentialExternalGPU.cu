@@ -8,7 +8,6 @@
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairMorse.h"
-#include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorWalls.h"
 #include "PotentialExternalGPU.cuh"
@@ -49,12 +48,6 @@ gpu_cpef<EvaluatorWalls<EvaluatorPairYukawa>>(
     const external_potential_args_t& external_potential_args,
     const typename EvaluatorWalls<EvaluatorPairYukawa>::param_type* d_params,
     const typename EvaluatorWalls<EvaluatorPairYukawa>::field_type* d_field);
-//! Evaluator for Shifted Lennard-Jones pair potential.
-template hipError_t __attribute__((visibility("default")))
-gpu_cpef<EvaluatorWalls<EvaluatorPairSLJ>>(
-    const external_potential_args_t& external_potential_args,
-    const typename EvaluatorWalls<EvaluatorPairSLJ>::param_type* d_params,
-    const typename EvaluatorWalls<EvaluatorPairSLJ>::field_type* d_field);
 //! Evaluator for Morse pair potential.
 template hipError_t __attribute__((visibility("default")))
 gpu_cpef<EvaluatorWalls<EvaluatorPairMorse>>(

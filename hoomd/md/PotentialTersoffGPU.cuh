@@ -69,7 +69,7 @@ struct tersoff_args_t
     const size_t virial_pitch;  //!< Pitch for N*6 virial array
     bool compute_virial;        //!< True if we are supposed to compute the virial
     const Scalar4* d_pos;       //!< particle positions
-    const BoxDim& box;          //!< Simulation box in GPU format
+    const BoxDim box;           //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle

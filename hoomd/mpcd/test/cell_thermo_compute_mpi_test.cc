@@ -22,10 +22,10 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
 
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(5.0);
+    snap->global_box = std::make_shared<BoxDim>(5.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<DomainDecomposition> decomposition(
-        new DomainDecomposition(exec_conf, snap->global_box.getL(), 2, 2, 2));
+        new DomainDecomposition(exec_conf, snap->global_box->getL(), 2, 2, 2));
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);

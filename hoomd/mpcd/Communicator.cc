@@ -206,8 +206,6 @@ void mpcd::Communicator::communicate(uint64_t timestep)
     // which will trigger any size change signals
     m_mpcd_sys->getCellList()->computeDimensions();
 
-    if (m_prof)
-        m_prof->push("MPCD comm");
     if (m_check_decomposition)
         {
         checkDecomposition();
@@ -225,9 +223,6 @@ void mpcd::Communicator::communicate(uint64_t timestep)
         migrateParticles(timestep);
         m_force_migrate = false;
         }
-
-    if (m_prof)
-        m_prof->pop();
 
     m_is_communicating = false;
     }
@@ -264,9 +259,6 @@ class MigratePartitionOp
 
 void mpcd::Communicator::migrateParticles(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("migrate");
-
     if (m_mpcd_pdata->getNVirtual() > 0)
         {
         m_exec_conf->msg->warning()
@@ -276,15 +268,11 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
         }
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
     setCommFlags(box);
 
     // fill send buffer once
-    if (m_prof)
-        m_prof->push("pack");
     m_mpcd_pdata->removeParticles(m_sendbuf, 0xffffffff, timestep);
-    if (m_prof)
-        m_prof->pop();
 
     // fill the buffers and send in each direction
     unsigned int n_recv = 0;
@@ -362,8 +350,6 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf,
                                                                access_location::host,
                                                                access_mode::overwrite);
-            if (m_prof)
-                m_prof->push("MPI send/recv");
             m_reqs.resize(4);
             int nreq = 0;
             if (n_send_right != 0)
@@ -407,10 +393,6 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
                           &m_reqs[nreq++]);
                 }
             MPI_Waitall(nreq, m_reqs.data(), MPI_STATUSES_IGNORE);
-            if (m_prof)
-                m_prof->pop(0,
-                            (n_send_left + n_send_right + n_recv_left + n_recv_right)
-                                * sizeof(mpcd::detail::pdata_element));
             }
 
             // now we pass through and unpack the particles, either by holding onto them in the
@@ -443,12 +425,7 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
         m_recvbuf.resize(n_recv); // free up memory from the end of the receive buffer
         }                         // end dir loop
 
-    // fill particle data with wrapped, received particles
-    if (m_prof)
-        {
-        m_prof->push("unpack");
-        }
-
+        // fill particle data with wrapped, received particles
         {
         ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf,
                                                            access_location::host,
@@ -466,11 +443,6 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
 
     // this mask will totally unset any bits that could still be set (there should be none)
     m_mpcd_pdata->addParticles(m_recvbuf, 0xffffffff, timestep);
-    if (m_prof)
-        m_prof->pop();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -481,8 +453,6 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
  */
 void mpcd::Communicator::setCommFlags(const BoxDim& box)
     {
-    if (m_prof)
-        m_prof->push("comm flags");
     // mark all particles which have left the box for sending
     unsigned int N = m_mpcd_pdata->getN();
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
@@ -518,9 +488,6 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
 
         h_comm_flag.data[idx] = flags;
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -531,7 +498,7 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
 void mpcd::Communicator::checkDecomposition()
     {
     // determine the bounds of this box
-    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const BoxDim box = m_mpcd_sys->getCellList()->getCoverageBox();
     const Scalar3 lo = box.getLo();
     const Scalar3 hi = box.getHi();
 

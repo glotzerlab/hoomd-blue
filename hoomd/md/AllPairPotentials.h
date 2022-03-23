@@ -22,7 +22,6 @@
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairReactionField.h"
-#include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairTWF.h"
 #include "EvaluatorPairTable.h"
 #include "EvaluatorPairYukawa.h"
@@ -53,8 +52,6 @@ namespace md
 typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 //! Pair potential force compute for gaussian forces
 typedef PotentialPair<EvaluatorPairGauss> PotentialPairGauss;
-//! Pair potential force compute for slj forces
-typedef PotentialPair<EvaluatorPairSLJ> PotentialPairSLJ;
 //! Pair potential force compute for expanded lj forces
 typedef PotentialPair<EvaluatorPairExpandedLJ> PotentialPairExpandedLJ;
 //! Pair potential force compute for yukawa forces
@@ -107,8 +104,6 @@ typedef PotentialPairGPU<EvaluatorPairLJ, kernel::gpu_compute_ljtemp_forces> Pot
 //! Pair potential force compute for gaussian forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairGauss, kernel::gpu_compute_gauss_forces>
     PotentialPairGaussGPU;
-//! Pair potential force compute for slj forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairSLJ, kernel::gpu_compute_slj_forces> PotentialPairSLJGPU;
 //! Pair potential force compute for expanded lj forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairExpandedLJ, kernel::gpu_compute_expanded_lj_forces>
     PotentialPairExpandedLJGPU;
