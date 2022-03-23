@@ -109,9 +109,6 @@ pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
  */
 void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Harmonic Angle");
-
     precomputeParameter(); // precompute sigmas
 
     assert(m_pdata);
@@ -436,9 +433,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void HelfrichMeshForceCompute::precomputeParameter()

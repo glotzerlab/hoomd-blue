@@ -92,9 +92,6 @@ pybind11::dict TriangleAreaConservationMeshForceCompute::getParams(std::string t
  */
 void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Triangle Area Conservation in Mesh");
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -222,7 +219,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
             h_force.data[idx_a].w += energy_pp; // divided by 3 because of three
-                                                                    // particles sharing the energy
+                                                // particles sharing the energy
 
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += triangle_area_conservation_virial[j];
@@ -268,9 +265,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += triangle_area_conservation_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 Scalar TriangleAreaConservationMeshForceCompute::energyDiff(unsigned int idx_a,

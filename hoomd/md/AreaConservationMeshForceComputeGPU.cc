@@ -76,10 +76,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     precomputeParameter();
 
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "AreaConstraint");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -142,9 +138,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
             }
         }
     m_tuner->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! Actually perform the force computation
@@ -152,10 +145,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
  */
 void AreaConservationMeshForceComputeGPU::precomputeParameter()
     {
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "AreaCalculation");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -215,9 +204,6 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
         }
 #endif
     m_area = h_sumArea.data[0];
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

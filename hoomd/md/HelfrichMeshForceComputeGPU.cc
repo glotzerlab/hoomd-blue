@@ -86,10 +86,6 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     precomputeParameter();
 
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "HelfrichForce");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
@@ -160,9 +156,6 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
             }
         }
     m_tuner_force->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! Actually perform the force computation
@@ -170,10 +163,6 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
  */
 void HelfrichMeshForceComputeGPU::precomputeParameter()
     {
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "HelfrichSigmas");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
@@ -223,9 +212,6 @@ void HelfrichMeshForceComputeGPU::precomputeParameter()
         }
 
     m_tuner_sigma->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

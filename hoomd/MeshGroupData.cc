@@ -439,9 +439,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
             ArrayHandle<unsigned int> h_n_groups(this->m_gpu_n_groups,
                                                  access_location::host,
                                                  access_mode::overwrite);
-            ArrayHandle<members_t> h_gpu_table(this->m_gpu_table,
-                                               access_location::host,
-                                               access_mode::overwrite);
+            ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
+                h_gpu_table(this->m_gpu_table, access_location::host, access_mode::overwrite);
 
             ArrayHandle<unsigned int> h_gpu_pos_table(this->m_gpu_pos_table,
                                                       access_location::host,
@@ -529,9 +528,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
             ArrayHandle<unsigned int> d_n_groups(this->m_gpu_n_groups,
                                                  access_location::device,
                                                  access_mode::overwrite);
-            ArrayHandle<members_t> d_gpu_table(this->m_gpu_table,
-                                               access_location::device,
-                                               access_mode::overwrite);
+            ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
+                d_gpu_table(this->m_gpu_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_gpu_pos_table(this->m_gpu_pos_table,
                                                       access_location::device,
                                                       access_mode::overwrite);
@@ -548,23 +546,26 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
             ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
 
             // fill group table on GPU
-            gpu_update_mesh_table<group_size, members_t>(this->getN() + this->getNGhosts(),
-                                                         nptl,
-                                                         d_groups.data,
-                                                         d_group_typeval.data,
-                                                         d_rtag.data,
-                                                         d_n_groups.data,
-                                                         this->m_gpu_table_indexer.getH(),
-                                                         d_condition.data,
-                                                         this->m_next_flag,
-                                                         flag,
-                                                         d_gpu_table.data,
-                                                         d_gpu_pos_table.data,
-                                                         this->m_gpu_table_indexer.getW(),
-                                                         d_scratch_g.data,
-                                                         d_scratch_idx.data,
-                                                         d_offsets.data,
-                                                         this->m_exec_conf->getCachedAllocator());
+            gpu_update_mesh_table<
+                group_size,
+                typename BondedGroupData<group_size, Group, name, true>::members_t>(
+                this->getN() + this->getNGhosts(),
+                nptl,
+                d_groups.data,
+                d_group_typeval.data,
+                d_rtag.data,
+                d_n_groups.data,
+                this->m_gpu_table_indexer.getH(),
+                d_condition.data,
+                this->m_next_flag,
+                flag,
+                d_gpu_table.data,
+                d_gpu_pos_table.data,
+                this->m_gpu_table_indexer.getW(),
+                d_scratch_g.data,
+                d_scratch_idx.data,
+                d_offsets.data,
+                this->m_exec_conf->getCachedAllocator());
             }
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

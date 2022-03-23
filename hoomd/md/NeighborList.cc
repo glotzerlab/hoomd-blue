@@ -738,7 +738,11 @@ void NeighborList::setSingleExclusion(std::string exclusion)
         {
         addExclusionsFromBonds();
         if (m_meshbond_data)
+            {
+            std::cout << "Set Exclusions" << std::endl;
             addExclusionsFromMeshBonds();
+            std::cout << "Exclusion Set" << std::endl;
+            }
         m_exclusions.insert("bond");
         }
     else if (exclusion == "special_pair")

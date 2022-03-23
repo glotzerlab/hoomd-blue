@@ -18,6 +18,8 @@ from hoomd.logging import log
 from hoomd.mesh import Mesh
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
+import warnings
+import copy
 
 
 class NList(_HOOMDBaseObject):
@@ -95,8 +97,31 @@ class NList(_HOOMDBaseObject):
 
         self._mesh = validate_mesh(mesh)
 
+    def _add(self, simulation):
+        # if mesh was associated with multiple pair forces and is still
+        # attached, we need to deepcopy existing mesh.
+        if self._mesh:
+            mesh = self._mesh
+            if (not self._attached and mesh._attached
+                    and mesh._simulation != simulation):
+                warnings.warn(
+                    f"{self} object is creating a new equivalent mesh"
+                    f"structure. This is happending since the force is"
+                    f"moving to a new simulation. To supress the warning"
+                    f"explicitly set new mesh.", RuntimeWarning)
+                self._mesh = copy.deepcopy(mesh)
+            # this ideopotent given the above check.
+            self._mesh._add(simulation)
+            # This is ideopotent, but we need to ensure that if we change
+            # mesh when not attached we handle correctly.
+            self._add_dependency(self._mesh)
+
+        super()._add(simulation)
+
     def _attach(self):
         if self._mesh:
+            if not self._mesh._attached:
+                self._mesh._attach()
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
         super()._attach()

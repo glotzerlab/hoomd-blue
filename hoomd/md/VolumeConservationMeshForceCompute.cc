@@ -88,9 +88,6 @@ pybind11::dict VolumeConservationMeshForceCompute::getParams(std::string type)
  */
 void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Harmonic Angle");
-
     precomputeParameter(); // precompute volume
 
     assert(m_pdata);
@@ -250,9 +247,6 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += helfrich_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void VolumeConservationMeshForceCompute::precomputeParameter()
