@@ -310,15 +310,12 @@ class HPMCIntegrator(Integrator):
             Maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        depletant_fugacity (`TypeParameter` [\
-                            `tuple` [``particle type``, ``particle type``],\
-                            `float`]):
+        depletant_fugacity (`TypeParameter` [ ``particle type``, `float`]):
             Depletant fugacity
             :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
 
-            Allows setting the fugacity per particle type, e.g. ``('A','A')``
-            refers to a depletant of type **A**. The option to set a type pair
-            is temporary and will be removed in a future release.
+            Allows setting the fugacity per particle type, e.g. ``'A'``
+            refers to a depletant of type **A**.
 
         depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
             Multiplicative factor for the number of times a depletant is
@@ -371,7 +368,7 @@ class HPMCIntegrator(Integrator):
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               0., len_keys=2))
+                                               0., len_keys=1))
 
         typeparam_ntrial = TypeParameter('depletant_ntrial',
                                          type_kind='particle_types',
