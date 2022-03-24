@@ -92,7 +92,6 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const Scalar4* d_trial_vel,
                                     const unsigned int ntrial,
                                     const unsigned int depletant_type_a,
-                                    const unsigned int depletant_type_b,
                                     const Scalar* d_lambda,
                                     const Scalar4* d_postype,
                                     unsigned int* d_n_depletants,
@@ -101,7 +100,8 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const unsigned int n_ghosts,
                                     const GPUPartition& gpu_partition,
                                     const unsigned int block_size,
-                                    const hipStream_t* streams);
+                                    const hipStream_t* streams,
+                                    const unsigned int ntypes);
 
 void get_max_num_depletants_ntrial(const unsigned int ntrial,
                                    unsigned int* d_n_depletants,

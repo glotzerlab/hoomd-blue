@@ -373,7 +373,7 @@ class HPMCIntegrator(Integrator):
         typeparam_ntrial = TypeParameter('depletant_ntrial',
                                          type_kind='particle_types',
                                          param_dict=TypeParameterDict(
-                                             1, len_keys=2))
+                                             1, len_keys=1))
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
                                                type_kind='particle_types',

@@ -71,7 +71,6 @@ __launch_bounds__(max_threads)
                                                   unsigned int max_queue_size,
                                                   unsigned int max_extra_bytes,
                                                   unsigned int depletant_type_a,
-                                                  unsigned int depletant_type_b,
                                                   hpmc_implicit_counters_t* d_implicit_counters,
                                                   const unsigned int* d_update_order_by_ptl,
                                                   const unsigned int* d_reject_in,
@@ -234,11 +233,8 @@ __launch_bounds__(max_threads)
 
         // extend by depletant radius
         Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-        Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
 
-        OverlapReal r = 0.5
-                        * detail::max(shape_test_a.getCircumsphereDiameter(),
-                                      shape_test_b.getCircumsphereDiameter());
+        OverlapReal r = 0.5 * shape_test_a.getCircumsphereDiameter();
         obb_i.lengths.x += r;
         obb_i.lengths.y += r;
         obb_i.lengths.z += r;
@@ -280,16 +276,13 @@ __launch_bounds__(max_threads)
                 vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
 
                 Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-                Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
                 quat<Scalar> o;
-                if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
+                if (shape_test_a.hasOrientation())
                     {
                     o = generateRandomOrientation(rng, dim);
                     }
                 if (shape_test_a.hasOrientation())
                     shape_test_a.orientation = o;
-                if (shape_test_b.hasOrientation())
-                    shape_test_b.orientation = o;
 
                 Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
                 if (shape_i.hasOrientation())
@@ -300,16 +293,7 @@ __launch_bounds__(max_threads)
                                     && check_circumsphere_overlap(r_ij, shape_test_a, shape_i)
                                     && test_overlap(r_ij, shape_test_a, shape_i, err_count));
 
-                bool overlap_i_b = overlap_i_a;
-                if (pairwise)
-                    {
-                    overlap_checks++;
-                    overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
-                                   && check_circumsphere_overlap(r_ij, shape_test_b, shape_i)
-                                   && test_overlap(r_ij, shape_test_b, shape_i, err_count));
-                    }
-
-                if (overlap_i_a || overlap_i_b)
+                if (overlap_i_a)
                     {
                     // add this particle to the queue
                     unsigned int insert_point = atomicAdd(&s_depletant_queue_size, 1);
@@ -369,9 +353,8 @@ __launch_bounds__(max_threads)
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
             Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
-            Shape shape_test_b(quat<Scalar>(), s_params[depletant_type_b]);
             quat<Scalar> o;
-            if (shape_test_a.hasOrientation() || shape_test_b.hasOrientation())
+            if (shape_test_a.hasOrientation())
                 {
                 o = generateRandomOrientation(rng, dim);
                 }
@@ -445,8 +428,6 @@ __launch_bounds__(max_threads)
                     vec3<Scalar> pos_test(s_pos_group[group]);
                     Shape shape_test_a(quat<Scalar>(s_orientation_group[group]),
                                        s_params[depletant_type_a]);
-                    Shape shape_test_b(quat<Scalar>(s_orientation_group[group]),
-                                       s_params[depletant_type_b]);
 
                     // put particle j into the coordinate system of particle i
                     vec3<Scalar> r_j_test = vec3<Scalar>(pos_test) - vec3<Scalar>(postype_j);
@@ -457,10 +438,6 @@ __launch_bounds__(max_threads)
                     bool circumsphere_overlap
                         = s_check_overlaps[overlap_idx(depletant_type_a, type_j)]
                           && check_circumsphere_overlap(r_j_test, shape_j, shape_test_a);
-
-                    circumsphere_overlap
-                        |= pairwise && s_check_overlaps[overlap_idx(depletant_type_b, type_j)]
-                           && check_circumsphere_overlap(r_j_test, shape_j, shape_test_b);
 
                     insert_in_queue &= circumsphere_overlap;
 
@@ -508,8 +485,6 @@ __launch_bounds__(max_threads)
                 Scalar3 pos_test = s_pos_group[check_group];
                 Shape shape_test_a(quat<Scalar>(s_orientation_group[check_group]),
                                    s_params[depletant_type_a]);
-                Shape shape_test_b(quat<Scalar>(s_orientation_group[check_group]),
-                                   s_params[depletant_type_b]);
 
                 // build shape j from global memory
                 Scalar4 postype_j = check_old ? d_postype[check_j] : d_trial_postype[check_j];
@@ -529,36 +504,6 @@ __launch_bounds__(max_threads)
                 bool overlap_j_b = overlap_j_a;
                 bool overlap_i_a = true;
                 bool overlap_i_b = true;
-
-                if (pairwise)
-                    {
-                    overlap_j_b = s_check_overlaps[overlap_idx(depletant_type_b, type_j)]
-                                  && test_overlap(r_j_test, shape_j, shape_test_b, err_count);
-
-                    if (overlap_j_b)
-                        {
-                        // check depletant a against i
-                        Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
-                        if (shape_i.hasOrientation())
-                            shape_i.orientation = quat<Scalar>(s_cur_orientation_i);
-                        vec3<Scalar> r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(s_cur_pos_i);
-                        overlap_i_a = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_a)]
-                                       && check_circumsphere_overlap(r_ik, shape_i, shape_test_a)
-                                       && test_overlap(r_ik, shape_i, shape_test_a, err_count));
-                        }
-
-                    if (overlap_j_a)
-                        {
-                        // check depletant b against i
-                        Shape shape_i(quat<Scalar>(), s_params[s_type_i]);
-                        if (shape_i.hasOrientation())
-                            shape_i.orientation = quat<Scalar>(s_cur_orientation_i);
-                        vec3<Scalar> r_ik = vec3<Scalar>(pos_test) - vec3<Scalar>(s_cur_pos_i);
-                        overlap_i_b = (s_check_overlaps[overlap_idx(s_type_i, depletant_type_b)]
-                                       && check_circumsphere_overlap(r_ik, shape_i, shape_test_b)
-                                       && test_overlap(r_ik, shape_i, shape_test_b, err_count));
-                        }
-                    }
 
                 if ((overlap_i_a && overlap_j_b) || (overlap_i_b && overlap_j_a))
                     {
@@ -852,7 +797,6 @@ void depletants_launcher_phase2(const hpmc_args_t& args,
                 max_queue_size,
                 max_extra_bytes,
                 implicit_args.depletant_type_a,
-                implicit_args.depletant_type_b,
                 implicit_args.d_implicit_count + idev * implicit_args.implicit_counters_pitch,
                 args.d_update_order_by_ptl,
                 args.d_reject_in,
@@ -907,26 +851,13 @@ void hpmc_depletants_auxilliary_phase2(const hpmc_args_t& args,
     while (launch_bounds < args.block_size)
         launch_bounds *= 2;
 
-    if (implicit_args.depletant_type_a == implicit_args.depletant_type_b)
-        {
-        kernel::depletants_launcher_phase2<Shape, false>(
-            args,
-            implicit_args,
-            auxilliary_args,
-            params,
-            launch_bounds,
-            detail::int2type<MAX_BLOCK_SIZE / MIN_BLOCK_SIZE>());
-        }
-    else
-        {
-        kernel::depletants_launcher_phase2<Shape, true>(
-            args,
-            implicit_args,
-            auxilliary_args,
-            params,
-            launch_bounds,
-            detail::int2type<MAX_BLOCK_SIZE / MIN_BLOCK_SIZE>());
-        }
+    kernel::depletants_launcher_phase2<Shape, false>(
+        args,
+        implicit_args,
+        auxilliary_args,
+        params,
+        launch_bounds,
+        detail::int2type<MAX_BLOCK_SIZE / MIN_BLOCK_SIZE>());
     }
 #endif
 

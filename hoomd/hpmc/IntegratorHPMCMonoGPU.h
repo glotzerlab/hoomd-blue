@@ -763,46 +763,41 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateGPUAdvice()
             unsigned int ntrial_offset = 0;
             for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                 {
-                // need to iterate in the same itype <= jtype order as in the update loop where this
-                // array is consumed
                 if (this->m_fugacity[itype] == 0)
-                    continue;
-                for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
                     {
-                    cudaMemAdvise(m_n_depletants.get() + itype * this->m_pdata->getMaxN()
-                                      + range.first,
-                                  sizeof(unsigned int) * nelem,
-                                  cudaMemAdviseSetPreferredLocation,
-                                  gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_n_depletants.get() + itype * this->m_pdata->getMaxN()
-                                             + range.first,
-                                         sizeof(unsigned int) * nelem,
-                                         gpu_map[idev]);
-
-                    unsigned int ntrial = this->m_ntrial[itype];
-                    if (ntrial == 0)
-                        continue;
-
-                    cudaMemAdvise(m_n_depletants_ntrial.get() + ntrial_offset + range.first,
-                                  sizeof(unsigned int) * nelem * 2 * ntrial,
-                                  cudaMemAdviseSetPreferredLocation,
-                                  gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_n_depletants_ntrial.get() + ntrial_offset + range.first,
-                                         sizeof(unsigned int) * nelem * 2 * ntrial,
-                                         gpu_map[idev]);
-                    ntrial_offset += ntrial * 2 * this->m_pdata->getMaxN();
-
-                    cudaMemAdvise(m_deltaF_int.get() + itype * this->m_pdata->getMaxN()
-                                      + range.first,
-                                  sizeof(int) * nelem,
-                                  cudaMemAdviseSetPreferredLocation,
-                                  gpu_map[idev]);
-                    cudaMemPrefetchAsync(m_deltaF_int.get() + itype * this->m_pdata->getMaxN()
-                                             + range.first,
-                                         sizeof(int) * nelem,
-                                         gpu_map[idev]);
-                    CHECK_CUDA_ERROR();
+                    continue;
                     }
+                cudaMemAdvise(m_n_depletants.get() + itype + range.first,
+                              sizeof(unsigned int) * nelem,
+                              cudaMemAdviseSetPreferredLocation,
+                              gpu_map[idev]);
+                cudaMemPrefetchAsync(m_n_depletants.get() + itype + range.first,
+                                     sizeof(unsigned int) * nelem,
+                                     gpu_map[idev]);
+
+                unsigned int ntrial = this->m_ntrial[itype];
+                if (ntrial == 0)
+                    {
+                    continue;
+                    }
+
+                cudaMemAdvise(m_n_depletants_ntrial.get() + ntrial_offset + range.first,
+                              sizeof(unsigned int) * nelem * 2 * ntrial,
+                              cudaMemAdviseSetPreferredLocation,
+                              gpu_map[idev]);
+                cudaMemPrefetchAsync(m_n_depletants_ntrial.get() + ntrial_offset + range.first,
+                                     sizeof(unsigned int) * nelem * 2 * ntrial,
+                                     gpu_map[idev]);
+                ntrial_offset += ntrial * 2 * this->m_pdata->getMaxN();
+
+                cudaMemAdvise(m_deltaF_int.get() + itype + range.first,
+                              sizeof(int) * nelem,
+                              cudaMemAdviseSetPreferredLocation,
+                              gpu_map[idev]);
+                cudaMemPrefetchAsync(m_deltaF_int.get() + itype + range.first,
+                                     sizeof(int) * nelem,
+                                     gpu_map[idev]);
+                CHECK_CUDA_ERROR();
                 }
             }
         }
@@ -1239,32 +1234,27 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                         {
                         if (h_fugacity.data[itype] == 0)
-                            continue;
-                        for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes();
-                             ++jtype)
                             {
-                            unsigned int ntrial = h_ntrial.data[itype];
-                            if (ntrial)
+                            continue;
+                            }
+                        unsigned int ntrial = h_ntrial.data[itype];
+                        if (ntrial)
+                            {
+                            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0;
+                                 --idev)
                                 {
-                                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1;
-                                     idev >= 0;
-                                     --idev)
-                                    {
-                                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+                                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
 
-                                    auto range = this->m_pdata->getGPUPartition().getRange(idev);
-                                    if (range.second - range.first != 0)
-                                        {
-                                        hipMemsetAsync(d_deltaF_int.data
-                                                           + this->m_pdata->getMaxN() * itype
-                                                           + range.first,
-                                                       0,
-                                                       sizeof(int) * (range.second - range.first),
-                                                       m_depletant_streams[itype][idev]);
-                                        }
-                                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                        CHECK_CUDA_ERROR();
+                                auto range = this->m_pdata->getGPUPartition().getRange(idev);
+                                if (range.second - range.first != 0)
+                                    {
+                                    hipMemsetAsync(d_deltaF_int.data + itype + range.first,
+                                                   0,
+                                                   sizeof(int) * (range.second - range.first),
+                                                   m_depletant_streams[itype][idev]);
                                     }
+                                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                    CHECK_CUDA_ERROR();
                                 }
                             }
                         }
@@ -1407,227 +1397,220 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
                         {
                         if (h_fugacity.data[itype] == 0)
-                            continue;
-                        for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes();
-                             ++jtype)
                             {
-                            unsigned int ntrial = h_ntrial.data[itype];
-                            if (!ntrial)
+                            continue;
+                            }
+
+                        unsigned int ntrial = h_ntrial.data[itype];
+                        if (!ntrial)
+                            {
+                            // draw random number of depletant insertions per particle from
+                            // Poisson distribution
+                            m_tuner_num_depletants->begin();
+                            gpu::generate_num_depletants(this->m_sysdef->getSeed(),
+                                                         timestep,
+                                                         i,
+                                                         this->m_exec_conf->getRank(),
+                                                         itype,
+                                                         d_lambda.data,
+                                                         d_postype.data,
+                                                         d_n_depletants.data
+                                                             + itype * this->m_pdata->getMaxN(),
+                                                         m_tuner_num_depletants->getParam(),
+                                                         &m_depletant_streams[itype].front(),
+                                                         this->m_pdata->getGPUPartition(),
+                                                         this->m_pdata->getNTypes());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+                            m_tuner_num_depletants->end();
+
+                            // max reduce over result
+                            unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
+                            gpu::get_max_num_depletants(
+                                d_n_depletants.data + itype * this->m_pdata->getMaxN(),
+                                &max_n_depletants[0],
+                                &m_depletant_streams[itype].front(),
+                                this->m_pdata->getGPUPartition(),
+                                this->m_exec_conf->getCachedAllocatorManaged());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+
+                            // insert depletants on-the-fly
+                            m_tuner_depletants->begin();
+                            unsigned int param = m_tuner_depletants->getParam();
+                            args.block_size = param / 1000000;
+                            unsigned int depletants_per_thread = (param % 1000000) / 10000;
+                            args.tpp = param % 10000;
+
+                            gpu::hpmc_implicit_args_t implicit_args(
+                                itype,
+                                ngpu > 1 ? d_implicit_counters_per_device.data
+                                         : d_implicit_count.data,
+                                (unsigned int)m_implicit_counters.getPitch(),
+                                h_fugacity.data[itype] < 0,
+                                d_n_depletants.data + itype * this->m_pdata->getMaxN(),
+                                &max_n_depletants[0],
+                                depletants_per_thread,
+                                &m_depletant_streams[itype].front());
+                            gpu::hpmc_insert_depletants<Shape>(args, implicit_args, params.data());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+                            m_tuner_depletants->end();
+                            }
+                        else
+                            {
+                            // generate random number of depletant insertions per particle,
+                            // trial insertion and configuration
+                            m_tuner_num_depletants_ntrial->begin();
+                            gpu::generate_num_depletants_ntrial(
+                                d_vel.data,
+                                d_trial_vel.data,
+                                ntrial,
+                                itype,
+                                d_lambda.data,
+                                d_postype.data,
+                                d_n_depletants_ntrial.data + ntrial_offset,
+                                this->m_pdata->getN(),
+                                particle_comm_rank == particle_comm_size - 1,
+                                this->m_pdata->getNGhosts(),
+                                gpu_partition_rank,
+                                m_tuner_num_depletants_ntrial->getParam(),
+                                &m_depletant_streams[itype].front(),
+                                this->m_pdata->getNTypes());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+                            m_tuner_num_depletants_ntrial->end();
+
+                            // max reduce over result
+                            unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
+                            gpu::get_max_num_depletants_ntrial(
+                                ntrial,
+                                d_n_depletants_ntrial.data + ntrial_offset,
+                                &max_n_depletants[0],
+                                particle_comm_rank == particle_comm_size - 1,
+                                this->m_pdata->getNGhosts(),
+                                &m_depletant_streams[itype].front(),
+                                gpu_partition_rank,
+                                this->m_exec_conf->getCachedAllocatorManaged());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+
+                            // the next two kernels can be launched concurrently on different
+                            // streams sync those streams with the parent stream
+                            auto gpu_map = this->m_exec_conf->getGPUIds();
+
+                            for (int idev = (int)gpu_map.size() - 1; idev >= 0; --idev)
                                 {
-                                // draw random number of depletant insertions per particle from
-                                // Poisson distribution
-                                m_tuner_num_depletants->begin();
-                                gpu::generate_num_depletants(this->m_sysdef->getSeed(),
-                                                             timestep,
-                                                             i,
-                                                             this->m_exec_conf->getRank(),
-                                                             itype,
-                                                             jtype,
-                                                             d_lambda.data,
-                                                             d_postype.data,
-                                                             d_n_depletants.data
-                                                                 + itype * this->m_pdata->getMaxN(),
-                                                             m_tuner_num_depletants->getParam(),
-                                                             &m_depletant_streams[itype].front(),
-                                                             this->m_pdata->getGPUPartition());
+                                hipStream_t parent = m_depletant_streams[itype][idev];
+                                hipStream_t s1 = m_depletant_streams_phase1[itype][idev];
+                                hipStream_t s2 = m_depletant_streams_phase2[itype][idev];
+                                hipSetDevice(gpu_map[idev]);
+                                hipEventRecord(m_sync[itype][idev], parent);
+                                hipStreamWaitEvent(s1, m_sync[itype][idev], 0);
+                                hipStreamWaitEvent(s2, m_sync[itype][idev], 0);
                                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                                     CHECK_CUDA_ERROR();
-                                m_tuner_num_depletants->end();
-
-                                // max reduce over result
-                                unsigned int
-                                    max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
-                                gpu::get_max_num_depletants(
-                                    d_n_depletants.data + itype * this->m_pdata->getMaxN(),
-                                    &max_n_depletants[0],
-                                    &m_depletant_streams[itype].front(),
-                                    this->m_pdata->getGPUPartition(),
-                                    this->m_exec_conf->getCachedAllocatorManaged());
-                                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                    CHECK_CUDA_ERROR();
-
-                                // insert depletants on-the-fly
-                                m_tuner_depletants->begin();
-                                unsigned int param = m_tuner_depletants->getParam();
-                                args.block_size = param / 1000000;
-                                unsigned int depletants_per_thread = (param % 1000000) / 10000;
-                                args.tpp = param % 10000;
-
-                                gpu::hpmc_implicit_args_t implicit_args(
-                                    itype,
-                                    jtype,
-                                    ngpu > 1 ? d_implicit_counters_per_device.data
-                                             : d_implicit_count.data,
-                                    (unsigned int)m_implicit_counters.getPitch(),
-                                    h_fugacity.data[itype] < 0,
-                                    d_n_depletants.data + itype * this->m_pdata->getMaxN(),
-                                    &max_n_depletants[0],
-                                    depletants_per_thread,
-                                    &m_depletant_streams[itype].front());
-                                gpu::hpmc_insert_depletants<Shape>(args,
-                                                                   implicit_args,
-                                                                   params.data());
-                                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                    CHECK_CUDA_ERROR();
-                                m_tuner_depletants->end();
                                 }
-                            else
+
+                            // insert depletants
+                            gpu::hpmc_implicit_args_t implicit_args(
+                                itype,
+                                ngpu > 1 ? d_implicit_counters_per_device.data
+                                         : d_implicit_count.data,
+                                (int)m_implicit_counters.getPitch(),
+                                h_fugacity.data[itype] < 0,
+                                0, // d_n_depletants (unused)
+                                &max_n_depletants[0],
+                                0, // depletants_per_thread
+                                0  // stream (unused)
+                            );
+
+                            unsigned int nwork_rank[this->m_exec_conf->getNumActiveGPUs()];
+                            unsigned int work_offset[this->m_exec_conf->getNumActiveGPUs()];
+                            for (unsigned int idev = 0;
+                                 idev < this->m_exec_conf->getNumActiveGPUs();
+                                 ++idev)
                                 {
-                                // generate random number of depletant insertions per particle,
-                                // trial insertion and configuration
-                                m_tuner_num_depletants_ntrial->begin();
-                                gpu::generate_num_depletants_ntrial(
-                                    d_vel.data,
-                                    d_trial_vel.data,
-                                    ntrial,
-                                    itype,
-                                    jtype,
-                                    d_lambda.data,
-                                    d_postype.data,
-                                    d_n_depletants_ntrial.data + ntrial_offset,
-                                    this->m_pdata->getN(),
-                                    particle_comm_rank == particle_comm_size - 1,
-                                    this->m_pdata->getNGhosts(),
-                                    gpu_partition_rank,
-                                    m_tuner_num_depletants_ntrial->getParam(),
-                                    &m_depletant_streams[itype].front());
-                                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                    CHECK_CUDA_ERROR();
-                                m_tuner_num_depletants_ntrial->end();
+                                nwork_rank[idev] = ntrial * max_n_depletants[idev];
+                                work_offset[idev] = 0;
+                                }
 
-                                // max reduce over result
-                                unsigned int
-                                    max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
-                                gpu::get_max_num_depletants_ntrial(
-                                    ntrial,
-                                    d_n_depletants_ntrial.data + ntrial_offset,
-                                    &max_n_depletants[0],
-                                    particle_comm_rank == particle_comm_size - 1,
-                                    this->m_pdata->getNGhosts(),
-                                    &m_depletant_streams[itype].front(),
-                                    gpu_partition_rank,
-                                    this->m_exec_conf->getCachedAllocatorManaged());
-                                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                    CHECK_CUDA_ERROR();
-
-                                // the next two kernels can be launched concurrently on different
-                                // streams sync those streams with the parent stream
-                                auto gpu_map = this->m_exec_conf->getGPUIds();
-
-                                for (int idev = (int)gpu_map.size() - 1; idev >= 0; --idev)
-                                    {
-                                    hipStream_t parent = m_depletant_streams[itype][idev];
-                                    hipStream_t s1 = m_depletant_streams_phase1[itype][idev];
-                                    hipStream_t s2 = m_depletant_streams_phase2[itype][idev];
-                                    hipSetDevice(gpu_map[idev]);
-                                    hipEventRecord(m_sync[itype][idev], parent);
-                                    hipStreamWaitEvent(s1, m_sync[itype][idev], 0);
-                                    hipStreamWaitEvent(s2, m_sync[itype][idev], 0);
-                                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                        CHECK_CUDA_ERROR();
-                                    }
-
-                                // insert depletants
-                                gpu::hpmc_implicit_args_t implicit_args(
-                                    itype,
-                                    jtype,
-                                    ngpu > 1 ? d_implicit_counters_per_device.data
-                                             : d_implicit_count.data,
-                                    (int)m_implicit_counters.getPitch(),
-                                    h_fugacity.data[itype] < 0,
-                                    0, // d_n_depletants (unused)
-                                    &max_n_depletants[0],
-                                    0, // depletants_per_thread
-                                    0  // stream (unused)
-                                );
-
-                                unsigned int nwork_rank[this->m_exec_conf->getNumActiveGPUs()];
-                                unsigned int work_offset[this->m_exec_conf->getNumActiveGPUs()];
+#ifdef ENABLE_MPI
+                            if (m_ntrial_comm)
+                                {
+                                // split up work among ranks
                                 for (unsigned int idev = 0;
                                      idev < this->m_exec_conf->getNumActiveGPUs();
                                      ++idev)
                                     {
-                                    nwork_rank[idev] = ntrial * max_n_depletants[idev];
-                                    work_offset[idev] = 0;
+                                    nwork_rank[idev] = nwork_rank[idev] / ntrial_comm_size
+                                                       + 1; // can't have zero work per rank
+                                    work_offset[idev] = ntrial_comm_rank * nwork_rank[idev];
                                     }
-
-#ifdef ENABLE_MPI
-                                if (m_ntrial_comm)
-                                    {
-                                    // split up work among ranks
-                                    for (unsigned int idev = 0;
-                                         idev < this->m_exec_conf->getNumActiveGPUs();
-                                         ++idev)
-                                        {
-                                        nwork_rank[idev] = nwork_rank[idev] / ntrial_comm_size
-                                                           + 1; // can't have zero work per rank
-                                        work_offset[idev] = ntrial_comm_rank * nwork_rank[idev];
-                                        }
-                                    }
+                                }
 #endif
 
-                                gpu::hpmc_auxilliary_args_t auxilliary_args(
-                                    d_tag.data,
-                                    d_vel.data,
-                                    d_trial_vel.data,
-                                    ntrial,
-                                    &nwork_rank[0],
-                                    &work_offset[0],
-                                    d_n_depletants_ntrial.data + ntrial_offset,
-                                    d_deltaF_int.data + itype * this->m_pdata->getMaxN(),
-                                    &m_depletant_streams_phase1[itype].front(),
-                                    &m_depletant_streams_phase2[itype].front(),
-                                    m_max_len,
-                                    d_req_len.data,
-                                    particle_comm_rank == particle_comm_size - 1,
-                                    this->m_pdata->getNGhosts(),
-                                    gpu_partition_rank);
+                            gpu::hpmc_auxilliary_args_t auxilliary_args(
+                                d_tag.data,
+                                d_vel.data,
+                                d_trial_vel.data,
+                                ntrial,
+                                &nwork_rank[0],
+                                &work_offset[0],
+                                d_n_depletants_ntrial.data + ntrial_offset,
+                                d_deltaF_int.data + itype * this->m_pdata->getMaxN(),
+                                &m_depletant_streams_phase1[itype].front(),
+                                &m_depletant_streams_phase2[itype].front(),
+                                m_max_len,
+                                d_req_len.data,
+                                particle_comm_rank == particle_comm_size - 1,
+                                this->m_pdata->getNGhosts(),
+                                gpu_partition_rank);
 
-                                // phase 1, insert into excluded volume of particle i
-                                m_tuner_depletants_phase1->begin();
-                                unsigned int param = m_tuner_depletants_phase1->getParam();
-                                args.block_size = param / 1000000;
-                                implicit_args.depletants_per_thread = (param % 1000000) / 10000;
-                                args.tpp = param % 10000;
-                                gpu::hpmc_depletants_auxilliary_phase1<Shape>(args,
-                                                                              implicit_args,
-                                                                              auxilliary_args,
-                                                                              params.data());
+                            // phase 1, insert into excluded volume of particle i
+                            m_tuner_depletants_phase1->begin();
+                            unsigned int param = m_tuner_depletants_phase1->getParam();
+                            args.block_size = param / 1000000;
+                            implicit_args.depletants_per_thread = (param % 1000000) / 10000;
+                            args.tpp = param % 10000;
+                            gpu::hpmc_depletants_auxilliary_phase1<Shape>(args,
+                                                                          implicit_args,
+                                                                          auxilliary_args,
+                                                                          params.data());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+                            m_tuner_depletants_phase1->end();
+
+                            // phase 2, reinsert into excluded volume of i's neighbors
+                            m_tuner_depletants_phase2->begin();
+                            param = m_tuner_depletants_phase2->getParam();
+                            args.block_size = param / 1000000;
+                            implicit_args.depletants_per_thread = (param % 1000000) / 10000;
+                            args.tpp = param % 10000;
+                            gpu::hpmc_depletants_auxilliary_phase2<Shape>(args,
+                                                                          implicit_args,
+                                                                          auxilliary_args,
+                                                                          params.data());
+                            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                                CHECK_CUDA_ERROR();
+                            m_tuner_depletants_phase2->end();
+
+                            // wait for worker streams to complete
+                            for (int idev = (int)gpu_map.size() - 1; idev >= 0; --idev)
+                                {
+                                hipStream_t parent = m_depletant_streams[itype][idev];
+                                hipStream_t s1 = m_depletant_streams_phase1[itype][idev];
+                                hipStream_t s2 = m_depletant_streams_phase2[itype][idev];
+                                hipSetDevice(gpu_map[idev]);
+                                hipEventRecord(m_sync_phase1[itype][idev], s1);
+                                hipEventRecord(m_sync_phase2[itype][idev], s2);
+                                hipStreamWaitEvent(parent, m_sync_phase1[itype][idev], 0);
+                                hipStreamWaitEvent(parent, m_sync_phase2[itype][idev], 0);
                                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                                     CHECK_CUDA_ERROR();
-                                m_tuner_depletants_phase1->end();
-
-                                // phase 2, reinsert into excluded volume of i's neighbors
-                                m_tuner_depletants_phase2->begin();
-                                param = m_tuner_depletants_phase2->getParam();
-                                args.block_size = param / 1000000;
-                                implicit_args.depletants_per_thread = (param % 1000000) / 10000;
-                                args.tpp = param % 10000;
-                                gpu::hpmc_depletants_auxilliary_phase2<Shape>(args,
-                                                                              implicit_args,
-                                                                              auxilliary_args,
-                                                                              params.data());
-                                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                    CHECK_CUDA_ERROR();
-                                m_tuner_depletants_phase2->end();
-
-                                // wait for worker streams to complete
-                                for (int idev = (int)gpu_map.size() - 1; idev >= 0; --idev)
-                                    {
-                                    hipStream_t parent = m_depletant_streams[itype][idev];
-                                    hipStream_t s1 = m_depletant_streams_phase1[itype][idev];
-                                    hipStream_t s2 = m_depletant_streams_phase2[itype][idev];
-                                    hipSetDevice(gpu_map[idev]);
-                                    hipEventRecord(m_sync_phase1[itype][idev], s1);
-                                    hipEventRecord(m_sync_phase2[itype][idev], s2);
-                                    hipStreamWaitEvent(parent, m_sync_phase1[itype][idev], 0);
-                                    hipStreamWaitEvent(parent, m_sync_phase2[itype][idev], 0);
-                                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                                        CHECK_CUDA_ERROR();
-                                    }
-
-                                ntrial_offset += ntrial * 2 * this->m_pdata->getMaxN();
                                 }
+
+                            ntrial_offset += ntrial * 2 * this->m_pdata->getMaxN();
                             }
                         }
 

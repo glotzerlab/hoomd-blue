@@ -27,7 +27,6 @@ struct hpmc_implicit_args_t
     {
     //! Construct a hpmc_implicit_args_t
     hpmc_implicit_args_t(const unsigned int _depletant_type_a,
-                         const unsigned int _depletant_type_b,
                          hpmc_implicit_counters_t* _d_implicit_count,
                          const unsigned int _implicit_counters_pitch,
                          const bool _repulsive,
@@ -35,14 +34,12 @@ struct hpmc_implicit_args_t
                          const unsigned int* _max_n_depletants,
                          const unsigned int _depletants_per_thread,
                          const hipStream_t* _streams)
-        : depletant_type_a(_depletant_type_a), depletant_type_b(_depletant_type_b),
-          d_implicit_count(_d_implicit_count), implicit_counters_pitch(_implicit_counters_pitch),
-          repulsive(_repulsive), d_n_depletants(_d_n_depletants),
-          max_n_depletants(_max_n_depletants), depletants_per_thread(_depletants_per_thread),
-          streams(_streams) {};
+        : depletant_type_a(_depletant_type_a), d_implicit_count(_d_implicit_count),
+          implicit_counters_pitch(_implicit_counters_pitch), repulsive(_repulsive),
+          d_n_depletants(_d_n_depletants), max_n_depletants(_max_n_depletants),
+          depletants_per_thread(_depletants_per_thread), streams(_streams) {};
 
     const unsigned int depletant_type_a;        //!< Particle type of first depletant
-    const unsigned int depletant_type_b;        //!< Particle type of second depletant
     hpmc_implicit_counters_t* d_implicit_count; //!< Active cell acceptance/rejection counts
     const unsigned int implicit_counters_pitch; //!< Pitch of 2D array counters per device
     const bool repulsive;                       //!< True if the fugacity is negative
@@ -65,13 +62,13 @@ void generate_num_depletants(const uint16_t seed,
                              const unsigned int select,
                              const unsigned int rank,
                              const unsigned int depletant_type_a,
-                             const unsigned int depletant_type_b,
                              const Scalar* d_lambda,
                              const Scalar4* d_postype,
                              unsigned int* d_n_depletants,
                              const unsigned int block_size,
                              const hipStream_t* streams,
-                             const GPUPartition& gpu_partition);
+                             const GPUPartition& gpu_partition,
+                             const unsigned int ntypes);
 
 void get_max_num_depletants(unsigned int* d_n_depletants,
                             unsigned int* max_n_depletants,

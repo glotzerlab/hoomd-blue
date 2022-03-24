@@ -2,6 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUDepletants.cuh"
+#include "IntegratorHPMCMonoGPUDepletantsTypes.cuh"
 #include "hoomd/CachedAllocator.h"
 #include "hoomd/GPUPartition.cuh"
 #include "hoomd/RNGIdentifiers.h"
@@ -25,7 +26,6 @@ __global__ void generate_num_depletants(const uint16_t seed,
                                         const unsigned int select,
                                         const unsigned int rank,
                                         const unsigned int depletant_type_a,
-                                        const unsigned int depletant_type_b,
                                         const unsigned int work_offset,
                                         const unsigned int nwork,
                                         const Scalar* d_lambda,
@@ -53,7 +53,6 @@ __global__ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                                const Scalar4* d_trial_vel,
                                                const unsigned int ntrial,
                                                const unsigned int depletant_type_a,
-                                               const unsigned int depletant_type_b,
                                                const Scalar* d_lambda,
                                                const Scalar4* d_postype,
                                                unsigned int* d_n_depletants,
@@ -136,14 +135,14 @@ __global__ void hpmc_depletants_accept(const uint16_t seed,
         {
         // it is important that this loop is serial, to eliminate non-determism
         // in the acceptance loop (too much noise can make convergence difficult)
-        unsigned int ntrial = d_ntrial[itype];
-        Scalar fugacity = d_fugacity[itype];
+        const unsigned int ntrial = d_ntrial[itype];
+        const Scalar fugacity = d_fugacity[itype];
 
         if (fugacity == 0.0 || ntrial == 0)
             continue;
 
         // rescale deltaF to units of kBT
-        int dF_int_i = d_deltaF_int[deltaF_pitch * itype + i];
+        const int dF_int_i = d_deltaF_int[deltaF_pitch * itype + i];
         deltaF_i += log(1 + 1 / (Scalar)ntrial) * dF_int_i;
         }
 
@@ -166,7 +165,6 @@ void generate_num_depletants(const uint16_t seed,
                              const unsigned int select,
                              const unsigned int rank,
                              const unsigned int depletant_type_a,
-                             const unsigned int depletant_type_b,
                              const Scalar* d_lambda,
                              const Scalar4* d_postype,
                              unsigned int* d_n_depletants,
@@ -198,7 +196,6 @@ void generate_num_depletants(const uint16_t seed,
                            select,
                            rank,
                            depletant_type_a,
-                           depletant_type_b,
                            range.first,
                            nwork,
                            d_lambda,
@@ -212,7 +209,6 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const Scalar4* d_trial_vel,
                                     const unsigned int ntrial,
                                     const unsigned int depletant_type_a,
-                                    const unsigned int depletant_type_b,
                                     const Scalar* d_lambda,
                                     const Scalar4* d_postype,
                                     unsigned int* d_n_depletants,
@@ -258,7 +254,6 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                            d_trial_vel,
                            ntrial,
                            depletant_type_a,
-                           depletant_type_b,
                            d_lambda,
                            d_postype,
                            d_n_depletants,
