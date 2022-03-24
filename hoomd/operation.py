@@ -278,6 +278,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             typeparam._detach()
 
     def _add_typeparam(self, typeparam):
+        self._append_typeparam(typeparam)
+
+    def _append_typeparam(self, typeparam):
         self._typeparam_dict[typeparam.name] = typeparam
 
     def _extend_typeparam(self, typeparams):
