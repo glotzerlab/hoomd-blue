@@ -175,7 +175,7 @@ class EvaluatorPairLJGauss
         return 0;
         }
 
-    #ifndef __HIPCC__
+#ifndef __HIPCC__
 
     DEVICE void alchemParams(const std::array<Scalar, num_alchemical_parameters>& alphas)
         {

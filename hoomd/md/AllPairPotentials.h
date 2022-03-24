@@ -172,7 +172,8 @@ typedef PotentialPairGPU<EvaluatorPairTable, kernel::gpu_compute_table_forces>
 typedef PotentialPairGPU<EvaluatorPairTWF, kernel::gpu_compute_twf_forces> PotentialPairTWFGPU;
 
 //! Pair potential force compute for lj-gauss pair potential
-typedef PotentialPairGPU<EvaluatorPairLJGauss, kernel::gpu_compute_lj_gauss_forces> PotentialPairLJGaussGPU;
+typedef PotentialPairGPU<EvaluatorPairLJGauss, kernel::gpu_compute_lj_gauss_forces>
+    PotentialPairLJGaussGPU;
 #endif
 
     } // end namespace md

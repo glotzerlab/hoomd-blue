@@ -187,7 +187,7 @@ class EvaluatorPairOPP
         return 0;
         }
 
-    #ifndef __HIPCC__
+#ifndef __HIPCC__
 
     // TODO: update the derivatives for the parameters including Cs and eta(s)
     DEVICE void alchemParams(const Scalar* alphas)
