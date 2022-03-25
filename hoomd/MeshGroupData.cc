@@ -44,7 +44,6 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(std::shared_pt
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        std::cout << "Connect Mesh" << std::endl;
         this->m_pdata->getSingleParticleMoveSignal()
             .template connect<MeshGroupData<group_size, Group, name, snap, bond>,
                               &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(
@@ -83,7 +82,6 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        std::cout << "Connect Meshbond" << std::endl;
         this->m_pdata->getSingleParticleMoveSignal()
             .template connect<MeshGroupData<group_size, Group, name, snap, bond>,
                               &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(
@@ -668,8 +666,6 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
             gather_v(members, members_proc, 0, this->m_exec_conf->getMPICommunicator());
 	std::cout << "MPI 2" << std::endl;
             gather_v(rtag_map, rtag_map_proc, 0, this->m_exec_conf->getMPICommunicator());
-
-	std::cout << "MPI 3" << std::endl;
 
 
         if (this->m_exec_conf->getRank() == 0)

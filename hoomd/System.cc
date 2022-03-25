@@ -101,7 +101,6 @@ void System::run(uint64_t nsteps, bool write_at_start)
         m_comm->forceMigrate();
 
         // communicate here
-	std::cout << "RRRRRRRRRRRRRRRRRRRRRRRRUUUUUUUUUUUUUUUUUUUNNNNNNNNNNNNNNNNNNNNNN" << std::endl;
         m_comm->communicate(m_cur_tstep);
         }
 #endif

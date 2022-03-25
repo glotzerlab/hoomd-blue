@@ -69,7 +69,6 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        std::cout << "Connect Bond" << std::endl;
         m_pdata->getSingleParticleMoveSignal()
             .template connect<
                 BondedGroupData<group_size, Group, name, has_type_mapping>,

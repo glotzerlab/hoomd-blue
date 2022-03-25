@@ -42,6 +42,7 @@ BondData::Snapshot MeshDefinition::getBondData()
     {
     BondData::Snapshot bond_data;
     m_meshbond_data->takeSnapshot(bond_data);
+    bond_data.bcast(0,m_sysdef->getParticleData()->getExecConf()->getMPICommunicator());
     return bond_data;
     }
 
@@ -49,9 +50,8 @@ BondData::Snapshot MeshDefinition::getBondData()
 TriangleData::Snapshot MeshDefinition::getTriangleData()
     {
     TriangleData::Snapshot triangle_data;
-	std::cout << "Schon da?" << std::endl;
     m_meshtriangle_data->takeSnapshot(triangle_data);
-	std::cout << "Schon weg?" << std::endl;
+    triangle_data.bcast(0,m_sysdef->getParticleData()->getExecConf()->getMPICommunicator());
     return triangle_data;
     }
 
@@ -59,18 +59,12 @@ TriangleData::Snapshot MeshDefinition::getTriangleData()
 void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
     {
 
-	std::cout << "Wo sind ma denn hier?" << std::endl;
     TriangleData::Snapshot triangle_data = getTriangleData();
     //TriangleData::Snapshot triangle_data;
-	std::cout << "Schon da?" << std::endl;
     pybind11::buffer_info buf = triangles.request();
-	std::cout << "Fast am Ende" << std::endl;
     int* ptr = static_cast<int*>(buf.ptr);
-	std::cout << "Weiter" << std::endl;
     size_t len_triang = len(triangles);
-	std::cout << "Oha" << std::endl;
     triangle_data.resize(static_cast<unsigned int>(len_triang));
-	std::cout << "Jetzt aber" << std::endl;
     TriangleData::members_t triangle_new;
 
 
@@ -88,7 +82,6 @@ void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
     m_meshbond_data = std::shared_ptr<MeshBondData>(
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
 
-	std::cout << "Ende!" << std::endl;
     }
 
 namespace detail

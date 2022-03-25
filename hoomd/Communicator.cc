@@ -1421,7 +1421,6 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     {
     m_meshdef = meshdef;
 
-        std::cout << "Before Mesh" << std::endl;
 
     m_meshbond_comm.setGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.setGroupData(m_meshdef->getMeshTriangleData());
@@ -1436,7 +1435,6 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
         ->getGroupNumChangeSignal()
         .connect<Communicator, &Communicator::setMeshtrianglesChanged>(this);
 
-        std::cout << "After Mesh" << std::endl;
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1692,11 +1690,9 @@ void Communicator::migrateParticles()
         m_constraint_comm.migrateGroups(m_constraints_changed, true);
         m_constraints_changed = false;
 
-	std::cout << "COMMUNICATION!!!!!!!!!" << std::endl;
 
         if (m_meshdef)
             {
-	    std::cout << "YES!!!!!!!!!" << std::endl;
             // Meshbonds
             m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
             m_meshbonds_changed = false;
@@ -1950,10 +1946,8 @@ void Communicator::exchangeGhosts()
     // constraints
     m_constraint_comm.markGhostParticles(m_plan, mask);
 
-    std::cout << "Ëxchange????????" << std::endl;
     if (m_meshdef)
         {
-    	std::cout << "YES" << std::endl;
         // meshbonds
         m_meshbond_comm.markGhostParticles(m_plan, mask);
 

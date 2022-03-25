@@ -64,6 +64,8 @@ class Mesh(_HOOMDBaseObject):
         print("attach super")
         super()._attach()
 
+        print("after attach super")
+
     def _remove_dependent(self, obj):
         super()._remove_dependent(obj)
         if len(self._dependents) == 0:
