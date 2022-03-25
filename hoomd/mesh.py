@@ -57,7 +57,8 @@ class Mesh(_HOOMDBaseObject):
                 # create the c++ Communicator
                 self._simulation._system_communicator.addMeshDefinition(
                     self._cpp_obj)
-                self._cpp_obj.setCommunicator(self._simulation._system_communicator)
+                self._cpp_obj.setCommunicator(
+                    self._simulation._system_communicator)
 
         self.triangles = self._triangles
 

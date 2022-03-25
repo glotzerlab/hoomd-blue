@@ -461,7 +461,6 @@ template<class group_data, bool inMesh>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bool incomplete,
                                                                               bool local_multiple)
     {
-
     if (m_gdata->getNGlobal())
         {
         m_exec_conf->msg->notice(7)
@@ -1794,7 +1793,7 @@ void CommunicatorGPU::migrateParticles()
 
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
-    
+
     // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
