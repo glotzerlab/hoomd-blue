@@ -61,10 +61,7 @@ class Mesh(_HOOMDBaseObject):
 
         self.triangles = self._triangles
 
-        print("attach super")
         super()._attach()
-
-        print("after attach super")
 
     def _remove_dependent(self, obj):
         super()._remove_dependent(obj)
@@ -90,10 +87,8 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
         if self._attached:
-            print("First Types")
             self._cpp_obj.setTypes(list(self._param_dict['types']))
 
-            print("Then Triangles")
             self._cpp_obj.setTriangleData(triag)
         else:
             self.size = len(triag)

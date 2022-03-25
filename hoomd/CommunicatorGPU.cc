@@ -461,6 +461,7 @@ template<class group_data, bool inMesh>
 void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bool incomplete,
                                                                               bool local_multiple)
     {
+
     if (m_gdata->getNGlobal())
         {
         m_exec_conf->msg->notice(7)
@@ -1793,7 +1794,7 @@ void CommunicatorGPU::migrateParticles()
 
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
-
+    
     // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
@@ -3843,6 +3844,7 @@ void export_CommunicatorGPU(pybind11::module& m)
         "CommunicatorGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<DomainDecomposition>>())
+        .def("addMeshDefinition", &CommunicatorGPU::addMeshDefinition)
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
     } // end namespace detail

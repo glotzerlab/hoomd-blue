@@ -658,14 +658,10 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
         members_proc.resize(size);
         rtag_map_proc.resize(size);
 
-	std::cout << "MPI" << std::endl;
-
-            // gather all processors' data
-            gather_v(typevals, typevals_proc, 0, this->m_exec_conf->getMPICommunicator());
-	std::cout << "MPI 1" << std::endl;
-            gather_v(members, members_proc, 0, this->m_exec_conf->getMPICommunicator());
-	std::cout << "MPI 2" << std::endl;
-            gather_v(rtag_map, rtag_map_proc, 0, this->m_exec_conf->getMPICommunicator());
+        // gather all processors' data
+        gather_v(typevals, typevals_proc, 0, this->m_exec_conf->getMPICommunicator());
+        gather_v(members, members_proc, 0, this->m_exec_conf->getMPICommunicator());
+        gather_v(rtag_map, rtag_map_proc, 0, this->m_exec_conf->getMPICommunicator());
 
 
         if (this->m_exec_conf->getRank() == 0)

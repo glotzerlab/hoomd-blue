@@ -79,6 +79,9 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         forceMigrate();
         }
 
+    //! Helper function to initialize adjacency arrays
+    void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
+
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
     template<class group_data, bool inMesh = false> class GroupCommunicatorGPU
@@ -261,9 +264,6 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
     hipEvent_t m_event; //!< CUDA event for synchronization
-
-    //! Helper function to initialize adjacency arrays
-    void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
 
     //! Helper function to allocate various buffers
     void allocateBuffers();

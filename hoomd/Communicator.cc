@@ -1421,7 +1421,6 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     {
     m_meshdef = meshdef;
 
-
     m_meshbond_comm.setGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.setGroupData(m_meshdef->getMeshTriangleData());
 
@@ -1564,6 +1563,7 @@ void Communicator::communicate(uint64_t timestep)
         // we will make sure that they are inside by doing a second migrate if necessary
         }
 
+
     bool migrate_request = false;
     if (!m_force_migrate)
         {
@@ -1575,6 +1575,7 @@ void Communicator::communicate(uint64_t timestep)
 
     bool migrate = migrate_request || m_force_migrate || !m_has_ghost_particles;
 
+
     // Update ghosts if we are not migrating
     if (!migrate && m_compute_callbacks.empty())
         {
@@ -1582,6 +1583,7 @@ void Communicator::communicate(uint64_t timestep)
 
         finishUpdateGhosts(timestep);
         }
+
 
     // Check if migration of particles is requested
     if (migrate)
@@ -1599,6 +1601,7 @@ void Communicator::communicate(uint64_t timestep)
 
         m_has_ghost_particles = true;
         }
+
 
     m_is_communicating = false;
     }
