@@ -32,8 +32,8 @@ namespace md
 NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(0.0), m_rcut_min(0.0),
       m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_diameter_shift(false),
-      m_storage_mode(half), m_rcut_changed(true), m_updates(0), m_forced_updates(0),
-      m_dangerous_updates(0), m_force_update(true), m_dist_check(true),
+      m_storage_mode(half), m_meshbond_data(NULL), m_rcut_changed(true), m_updates(0),
+      m_forced_updates(0), m_dangerous_updates(0), m_force_update(true), m_dist_check(true),
       m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
@@ -737,6 +737,8 @@ void NeighborList::setSingleExclusion(std::string exclusion)
     if (exclusion == "bond")
         {
         addExclusionsFromBonds();
+        if (m_meshbond_data)
+            addExclusionsFromMeshBonds();
         m_exclusions.insert("bond");
         }
     else if (exclusion == "special_pair")
@@ -862,6 +864,39 @@ void NeighborList::addExclusionsFromBonds()
     // access bond data by snapshot
     BondData::Snapshot snapshot;
     bond_data->takeSnapshot(snapshot);
+
+    // broadcast global bond list
+    std::vector<BondData::members_t> bonds;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_exec_conf->getRank() == 0)
+            bonds = snapshot.groups;
+
+        bcast(bonds, 0, m_exec_conf->getMPICommunicator());
+        }
+    else
+#endif
+        {
+        bonds = snapshot.groups;
+        }
+
+    // for each bond
+    for (unsigned int i = 0; i < bonds.size(); i++)
+        // add an exclusion
+        addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
+    }
+
+/*! After calling addExclusionsFromMeshBonds() all meshbonds specified in the attached Mesh will be
+    added as exclusions. Any additional meshbonds added after this will not be automatically added
+   as exclusions.
+*/
+void NeighborList::addExclusionsFromMeshBonds()
+    {
+    // access bond data by snapshot
+    BondData::Snapshot snapshot;
+    m_meshbond_data->takeSnapshot(snapshot);
 
     // broadcast global bond list
     std::vector<BondData::members_t> bonds;
@@ -1759,6 +1794,7 @@ void export_NeighborList(pybind11::module& m)
         .def_property("max_diameter",
                       &NeighborList::getMaximumDiameter,
                       &NeighborList::setMaximumDiameter)
+        .def("addMesh", &NeighborList::AddMesh)
         .def("getMaxRCut", &NeighborList::getMaxRCut)
         .def("getMinRCut", &NeighborList::getMinRCut)
         .def("getMaxRList", &NeighborList::getMaxRList)

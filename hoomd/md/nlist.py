@@ -13,8 +13,9 @@ neighbor lists are shared, they find neighbors within the the maximum
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.logging import log
+from hoomd.mesh import Mesh
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
 
@@ -48,7 +49,8 @@ class NList(_HOOMDBaseObject):
     is a tuple of strings that enable one more more types of exclusions.
     The valid exclusion types are:
 
-    * ``bond``: Exclude particles that are directly bonded together.
+    * ``bond``: Exclude particles that are directly bonded together (also with
+      the mesh data structure).
     * ``angle``: Exclude the first and third particles in each angle.
     * ``constraint``: Exclude particles that have a distance constraint applied
       between them.
@@ -73,12 +75,15 @@ class NList(_HOOMDBaseObject):
     """
 
     def __init__(self, buffer, exclusions, rebuild_check_delay, diameter_shift,
-                 check_dist, max_diameter):
+                 check_dist, max_diameter, mesh):
 
         validate_exclusions = OnlyFrom([
             'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
             '1-3', '1-4'
         ])
+
+        validate_mesh = OnlyTypes(Mesh, allow_none=True)
+
         # default exclusions
         params = ParameterDict(exclusions=[validate_exclusions],
                                buffer=float(buffer),
@@ -88,6 +93,14 @@ class NList(_HOOMDBaseObject):
                                max_diameter=float(max_diameter))
         params["exclusions"] = exclusions
         self._param_dict.update(params)
+
+        self._mesh = validate_mesh(mesh)
+
+    def _attach(self):
+        if self._mesh:
+            self._cpp_obj.addMesh(self._mesh._cpp_obj)
+
+        super()._attach()
 
     @log(requires_run=True)
     def shortest_rebuild(self):
@@ -126,6 +139,9 @@ class Cell(NList):
             :math:`[\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Cell` finds neighboring particles using a fixed width cell list, allowing
     for *O(kN)* construction of the neighbor list where *k* is the number of
@@ -150,10 +166,11 @@ class Cell(NList):
                  diameter_shift=False,
                  check_dist=True,
                  max_diameter=1.0,
-                 deterministic=False):
+                 deterministic=False,
+                 mesh=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
-                         diameter_shift, check_dist, max_diameter)
+                         diameter_shift, check_dist, max_diameter, mesh)
 
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
@@ -165,6 +182,7 @@ class Cell(NList):
             nlist_cls = _md.NeighborListGPUBinned
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
                                   self.buffer)
+
         super()._attach()
 
 
@@ -185,6 +203,9 @@ class Stencil(NList):
             :math:`[\\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Stencil` creates a cell list based neighbor list object to which pair
     potentials can be attached for computing non-bonded pairwise interactions.
@@ -229,10 +250,11 @@ class Stencil(NList):
                  diameter_shift=False,
                  check_dist=True,
                  max_diameter=1.0,
-                 deterministic=False):
+                 deterministic=False,
+                 mesh=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
-                         diameter_shift, check_dist, max_diameter)
+                         diameter_shift, check_dist, max_diameter, mesh)
 
         params = ParameterDict(deterministic=bool(deterministic),
                                cell_width=float(cell_width))
@@ -262,6 +284,9 @@ class Tree(NList):
         check_dist (bool): Flag to enable / disable distance checking.
         max_diameter (float): The maximum diameter a particle will achieve
             :math:`[\\mathrm{length}]`.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Tree` creates a neighbor list using a bounding volume hierarchy (BVH) tree
     traversal. A BVH tree of axis-aligned bounding boxes is constructed per
@@ -291,10 +316,11 @@ class Tree(NList):
                  rebuild_check_delay=1,
                  diameter_shift=False,
                  check_dist=True,
-                 max_diameter=1.0):
+                 max_diameter=1.0,
+                 mesh=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
-                         diameter_shift, check_dist, max_diameter)
+                         diameter_shift, check_dist, max_diameter, mesh)
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
