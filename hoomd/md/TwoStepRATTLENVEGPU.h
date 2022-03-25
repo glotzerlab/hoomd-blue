@@ -41,7 +41,6 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
     TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<ParticleGroup> group,
                         Manifold manifold,
-                        bool skip_restart,
                         Scalar tolerance);
 
     virtual ~TwoStepRATTLENVEGPU() {};
@@ -92,9 +91,8 @@ template<class Manifold>
 TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group,
                                                    Manifold manifold,
-                                                   bool skip_restart,
                                                    Scalar tolerance)
-    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, skip_restart, tolerance)
+    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, tolerance)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -350,7 +348,6 @@ void export_TwoStepRATTLENVEGPU(pybind11::module& m, const std::string& name)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             Manifold,
-                            bool,
                             Scalar>());
     }
 

@@ -12,7 +12,9 @@ namespace hoomd
 class PYBIND11_EXPORT PythonAnalyzer : public Analyzer
     {
     public:
-    PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef, pybind11::object analyzer);
+    PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<Trigger> trigger,
+                   pybind11::object analyzer);
 
     void analyze(uint64_t timestep);
 

@@ -27,8 +27,9 @@ class UpdaterRemoveDrift : public Updater
     public:
     //! Constructor
     UpdaterRemoveDrift(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<Trigger> trigger,
                        pybind11::array_t<double> ref_positions)
-        : Updater(sysdef)
+        : Updater(sysdef, trigger)
         {
         setReferencePositions(ref_positions);
         }
@@ -151,7 +152,9 @@ void export_UpdaterRemoveDrift(pybind11::module& m)
     pybind11::class_<UpdaterRemoveDrift, Updater, std::shared_ptr<UpdaterRemoveDrift>>(
         m,
         "UpdaterRemoveDrift")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, pybind11::array_t<double>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
+                            pybind11::array_t<double>>())
         .def_property("reference_positions",
                       &UpdaterRemoveDrift::getReferencePositions,
                       &UpdaterRemoveDrift::setReferencePositions);

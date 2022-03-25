@@ -10,7 +10,7 @@
 #endif
 
 #include "BondedGroupData.h"
-#include "IntegratorData.h"
+//#include "IntegratorData.h"
 #include "MeshGroupData.h"
 #include "SystemDefinition.h"
 
@@ -122,7 +122,7 @@ class PYBIND11_EXPORT MeshDefinition
     std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
     Scalar m_mesh_energy; //!< storing energy for dynamic bonding later
-			  
+
 #ifdef ENABLE_MPI
     /// The system communicator
     std::weak_ptr<Communicator> m_communicator;

@@ -14,15 +14,13 @@ See Also:
 """
 
 # Operation is a parent class of almost all other HOOMD objects.
-# Triggered objects should inherit from _TriggeredOperation.
 
 from copy import copy
 import itertools
 
-from hoomd.trigger import Trigger
+import hoomd
 from hoomd.logging import Loggable
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.error import MutabilityError
 
 
 class _HOOMDGetSetAttrBase:
@@ -90,15 +88,7 @@ class _HOOMDGetSetAttrBase:
 
     def _setattr_param(self, attr, value):
         """Hook for setting an attribute in `_param_dict`."""
-        old_value = self._param_dict[attr]
         self._param_dict[attr] = value
-        new_value = self._param_dict[attr]
-        if self._attached:
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                self._param_dict[attr] = old_value
-                raise MutabilityError(attr)
 
     def _setattr_typeparam(self, attr, value):
         """Hook for setting an attribute in `_typeparam_dict`."""
@@ -217,13 +207,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     }
     _remove_for_pickling = ('_simulation', '_cpp_obj')
 
-    def _getattr_param(self, attr):
-        return self._param_dict[attr]
-
-    def _setattr_param(self, attr, value):
-        """Hook for setting an attribute in `_param_dict`."""
-        self._param_dict[attr] = value
-
     def _detach(self):
         if self._attached:
             self._unapply_typeparam_dict()
@@ -314,46 +297,26 @@ class Operation(_HOOMDBaseObject):
         `file`_ for information on HOOMD-blue's architecture decisions regarding
         operations.
 
-    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ \
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ \
         ARCHITECTURE.md
     """
-    pass
 
 
-class _TriggeredOperation(Operation):
-    """Light wrapper around `Operation` for some C++ implementations."""
-    _cpp_list_name = None
+class TriggeredOperation(Operation):
+    """Operations that include a trigger to determine when to run.
 
-    _override_setattr = {'trigger'}
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
 
     def __init__(self, trigger):
-        trigger_dict = ParameterDict(trigger=Trigger)
-        trigger_dict['trigger'] = trigger
-        self._param_dict.update(trigger_dict)
-
-    @property
-    def trigger(self):
-        return self._param_dict._dict['trigger']
-
-    @trigger.setter
-    def trigger(self, new_trigger):
-        # Overwrite python trigger
-        old_trigger = self.trigger
-        self._param_dict._dict['trigger'] = self._param_dict._type_converter[
-            "trigger"](new_trigger)
-        new_trigger = self.trigger
-        if self._attached:
-            sys = self._simulation._cpp_sys
-            triggered_ops = getattr(sys, self._cpp_list_name)
-            for index in range(len(triggered_ops)):
-                op, trigger = triggered_ops[index]
-                # If tuple is the operation and trigger according to memory
-                # location (python's is), replace with new trigger
-                if op is self._cpp_obj and trigger is old_trigger:
-                    triggered_ops[index] = (op, new_trigger)
+        trigger_param = ParameterDict(trigger=hoomd.trigger.Trigger)
+        self._param_dict.update(trigger_param)
+        self.trigger = trigger
 
 
-class Updater(_TriggeredOperation):
+class Updater(TriggeredOperation):
     """Change the simulation's state.
 
     An updater is an operation which modifies a simulation's state.
@@ -365,7 +328,7 @@ class Updater(_TriggeredOperation):
     _cpp_list_name = 'updaters'
 
 
-class Writer(_TriggeredOperation):
+class Writer(TriggeredOperation):
     """Write output that depends on the simulation's state.
 
     A writer is an operation which writes out a simulation's state.
@@ -390,7 +353,7 @@ class Compute(Operation):
     pass
 
 
-class Tuner(Operation):
+class Tuner(TriggeredOperation):
     """Adjust the parameters of other operations to improve performance.
 
     A tuner is an operation which tunes the parameters of another operation for

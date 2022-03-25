@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3.0.0
         with:
           fetch-depth: 0
           submodules: true
@@ -67,7 +67,7 @@ jobs:
         run: tar -cvzf ${name}-${tag}.tar.gz ${name}-${tag}
 
       - name: Upload release files
-        uses: actions/upload-artifact@v2.3.1
+        uses: actions/upload-artifact@v3.0.0
         with:
           name: release
           path: |
@@ -81,7 +81,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v2.1.0
+        uses: actions/download-artifact@v3.0.0
         with:
           name: release
 

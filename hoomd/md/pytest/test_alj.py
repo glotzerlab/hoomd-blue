@@ -122,7 +122,7 @@ def test_conservation(simulation_factory, lattice_snapshot_factory):
     # Ensure energy conservation up to the 3 digit per-particle.
     npt.assert_allclose(total_energies,
                         total_energies[0],
-                        atol=0.003 * sim.state.N_particles)
+                        atol=0.03 * sim.state.N_particles)
 
     # Test momentum conservation.
     p_magnitude = np.linalg.norm(momentum, axis=-1)

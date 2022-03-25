@@ -42,7 +42,9 @@ BondData::Snapshot MeshDefinition::getBondData()
     {
     BondData::Snapshot bond_data;
     m_meshbond_data->takeSnapshot(bond_data);
-    bond_data.bcast(0,m_sysdef->getParticleData()->getExecConf()->getMPICommunicator());
+#ifdef ENABLE_MPI
+    bond_data.bcast(0, m_sysdef->getParticleData()->getExecConf()->getMPICommunicator());
+#endif
     return bond_data;
     }
 
@@ -51,22 +53,22 @@ TriangleData::Snapshot MeshDefinition::getTriangleData()
     {
     TriangleData::Snapshot triangle_data;
     m_meshtriangle_data->takeSnapshot(triangle_data);
-    triangle_data.bcast(0,m_sysdef->getParticleData()->getExecConf()->getMPICommunicator());
+#ifdef ENABLE_MPI
+    triangle_data.bcast(0, m_sysdef->getParticleData()->getExecConf()->getMPICommunicator());
+#endif
     return triangle_data;
     }
 
 //! Triangle array setter
 void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
     {
-
     TriangleData::Snapshot triangle_data = getTriangleData();
-    //TriangleData::Snapshot triangle_data;
+    // TriangleData::Snapshot triangle_data;
     pybind11::buffer_info buf = triangles.request();
     int* ptr = static_cast<int*>(buf.ptr);
     size_t len_triang = len(triangles);
     triangle_data.resize(static_cast<unsigned int>(len_triang));
     TriangleData::members_t triangle_new;
-
 
     for (size_t i = 0; i < len_triang; i++)
         {
@@ -76,12 +78,10 @@ void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
         triangle_data.groups[i] = triangle_new;
         }
 
-
     m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(
         new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
     m_meshbond_data = std::shared_ptr<MeshBondData>(
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
-
     }
 
 namespace detail
@@ -103,7 +103,7 @@ void export_MeshDefinition(pybind11::module& m)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &MeshDefinition::setCommunicator)
 #endif
-	;
+        ;
     }
 
     } // end namespace detail

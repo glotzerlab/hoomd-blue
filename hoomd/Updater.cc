@@ -12,8 +12,9 @@ namespace hoomd
 /*! \param sysdef System this compute will act on. Must not be NULL.
     \post The Updater is constructed with the given particle data.
 */
-Updater::Updater(std::shared_ptr<SystemDefinition> sysdef)
-    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf())
+Updater::Updater(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_trigger(trigger)
     {
     // sanity check
     assert(m_sysdef);
@@ -25,9 +26,10 @@ namespace detail
 void export_Updater(pybind11::module& m)
     {
     pybind11::class_<Updater, std::shared_ptr<Updater>>(m, "Updater")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def("update", &Updater::update)
-        .def("notifyDetach", &Updater::notifyDetach);
+        .def("notifyDetach", &Updater::notifyDetach)
+        .def_property("trigger", &Updater::getTrigger, &Updater::setTrigger);
     }
 
     } // end namespace detail

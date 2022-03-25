@@ -73,7 +73,6 @@ set(_hoomd_sources Analyzer.cc
                    HOOMDVersion.cc
                    Initializers.cc
                    Integrator.cc
-                   IntegratorData.cc
                    LoadBalancer.cc
                    MeshGroupData.cc
                    MeshDefinition.cc
@@ -155,7 +154,6 @@ set(_hoomd_headers
     Index1D.h
     Initializers.h
     Integrator.cuh
-    IntegratorData.h
     Integrator.h
     LoadBalancerGPU.cuh
     LoadBalancerGPU.h
@@ -226,7 +224,11 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 # Work around support for the delete operator with pybind11 and older versions of clang
 # https://github.com/pybind/pybind11/issues/1604
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(_hoomd PUBLIC -fsized-deallocation)
+    if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.11)
+        target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
+    else()
+        target_compile_options(_hoomd PUBLIC -fsized-deallocation)
+    endif()
 endif()
 
 # add quick hull as its own library so that it's symbols can be public

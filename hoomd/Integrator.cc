@@ -23,7 +23,7 @@ namespace hoomd
     @param deltaT Time step to use
 */
 Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Updater(sysdef), m_deltaT(deltaT)
+    : Updater(sysdef, std::make_shared<PeriodicTrigger>(1)), m_deltaT(deltaT)
     {
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
