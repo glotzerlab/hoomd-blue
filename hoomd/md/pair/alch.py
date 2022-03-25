@@ -325,7 +325,7 @@ class Alchemostat(Method):
             self._outer._update()
 
         def __delitem__(self, i):
-            self._outer._alchemical_particles[i]._disown()
+            self._outer.alchemical_particles[i]._disown()
             super().__delitem__(i)
             self._outer._update()
 
