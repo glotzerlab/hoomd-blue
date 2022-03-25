@@ -49,7 +49,8 @@ class NList(_HOOMDBaseObject):
     is a tuple of strings that enable one more more types of exclusions.
     The valid exclusion types are:
 
-    * ``bond``: Exclude particles that are directly bonded together.
+    * ``bond``: Exclude particles that are directly bonded together (also with
+      the mesh data structure).
     * ``angle``: Exclude the first and third particles in each angle.
     * ``constraint``: Exclude particles that have a distance constraint applied
       between them.
@@ -138,6 +139,9 @@ class Cell(NList):
             :math:`[\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Cell` finds neighboring particles using a fixed width cell list, allowing
     for *O(kN)* construction of the neighbor list where *k* is the number of
@@ -199,6 +203,9 @@ class Stencil(NList):
             :math:`[\\mathrm{length}]`.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Stencil` creates a cell list based neighbor list object to which pair
     potentials can be attached for computing non-bonded pairwise interactions.
@@ -277,6 +284,9 @@ class Tree(NList):
         check_dist (bool): Flag to enable / disable distance checking.
         max_diameter (float): The maximum diameter a particle will achieve
             :math:`[\\mathrm{length}]`.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Tree` creates a neighbor list using a bounding volume hierarchy (BVH) tree
     traversal. A BVH tree of axis-aligned bounding boxes is constructed per
