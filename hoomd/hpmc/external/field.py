@@ -45,8 +45,8 @@ class Harmonic(ExternalField):
             minimum, the identity quaternion (``[1, 0, 0, 0]``) must be included
             here :math:`[\mathrm{dimensionless}]`.
 
-    :py:class:`Harmonic` specifies that harmonic springs are used to
-    restrain the position and orientation of every particle:
+    :py:class:`Harmonic` computes harmonic spring energies between the
+    particle positions/orientations and given reference positions/orientations:
 
     .. math::
 

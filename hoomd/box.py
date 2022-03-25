@@ -89,49 +89,37 @@ class Box:
     The full cell parameter matrix is:
 
     .. math::
-        :nowrap:
-
-        \\begin{eqnarray*}
         \\left(\\begin{array}{ccc} L_x & xy L_y & xz L_z \\\\
                                    0   & L_y    & yz L_z \\\\
                                    0   & 0      & L_z    \\\\
                 \\end{array}\\right)
-        \\end{eqnarray*}
 
     The tilt factors :math:`xy`, :math:`xz` and :math:`yz` are dimensionless.
     The relationships between the tilt factors and the box angles
     :math:`\\alpha`, :math:`\\beta` and :math:`\\gamma` are as follows:
 
     .. math::
-        :nowrap:
-
-        \\begin{eqnarray*}
-        \\cos\\gamma = \\cos(\\angle\\vec a_1, \\vec a_2) &=&
+        \\cos\\gamma &= \\cos(\\angle\\vec a_1, \\vec a_2) &=&
             \\frac{xy}{\\sqrt{1+xy^2}}\\\\
-        \\cos\\beta = \\cos(\\angle\\vec a_1, \\vec a_3) &=&
+        \\cos\\beta &= \\cos(\\angle\\vec a_1, \\vec a_3) &=&
             \\frac{xz}{\\sqrt{1+xz^2+yz^2}}\\\\
-        \\cos\\alpha = \\cos(\\angle\\vec a_2, \\vec a_3) &=&
+        \\cos\\alpha &= \\cos(\\angle\\vec a_2, \\vec a_3) &=&
             \\frac{xy \\cdot xz + yz}{\\sqrt{1+xy^2} \\sqrt{1+xz^2+yz^2}}
-        \\end{eqnarray*}
 
     Given an arbitrarily oriented lattice with box vectors :math:`\\vec v_1,
     \\vec v_2, \\vec v_3`, the parameters for the rotated box can be found as
     follows:
 
     .. math::
-        :nowrap:
-
-        \\begin{eqnarray*}
-        L_x &=& v_1\\\\
-        a_{2x} &=& \\frac{\\vec v_1 \\cdot \\vec v_2}{v_1}\\\\
-        L_y &=& \\sqrt{v_2^2 - a_{2x}^2}\\\\
-        xy &=& \\frac{a_{2x}}{L_y}\\\\
-        L_z &=& \\vec v_3 \\cdot \\frac{\\vec v_1 \\times \\vec v_2}{\\left|
+        L_x &= v_1\\\\
+        a_{2x} &= \\frac{\\vec v_1 \\cdot \\vec v_2}{v_1}\\\\
+        L_y &= \\sqrt{v_2^2 - a_{2x}^2}\\\\
+        xy &= \\frac{a_{2x}}{L_y}\\\\
+        L_z &= \\vec v_3 \\cdot \\frac{\\vec v_1 \\times \\vec v_2}{\\left|
             \\vec v_1 \\times \\vec v_2 \\right|}\\\\
-        a_{3x} &=& \\frac{\\vec v_1 \\cdot \\vec v_3}{v_1}\\\\
-        xz &=& \\frac{a_{3x}}{L_z}\\\\
-        yz &=& \\frac{\\vec v_2 \\cdot \\vec v_3 - a_{2x}a_{3x}}{L_y L_z}
-        \\end{eqnarray*}
+        a_{3x} &= \\frac{\\vec v_1 \\cdot \\vec v_3}{v_1}\\\\
+        xz &= \\frac{a_{3x}}{L_z}\\\\
+        yz &= \\frac{\\vec v_2 \\cdot \\vec v_3 - a_{2x}a_{3x}}{L_y L_z}
 
     .. rubric:: Box images
 
@@ -268,7 +256,7 @@ class Box:
 
     @classmethod
     def from_box(cls, box):
-        R"""Initialize a Box instance from a box-like object.
+        r"""Initialize a Box instance from a box-like object.
 
         Args:
             box:
@@ -485,7 +473,7 @@ class Box:
         return np.array([[Lx, xy * Ly, xz * Lz], [0, Ly, yz * Lz], [0, 0, Lz]])
 
     def scale(self, s):
-        R"""Scale box dimensions.
+        r"""Scale box dimensions.
 
         Scales the box in place by the given scale factors. Tilt factors are not
         modified.

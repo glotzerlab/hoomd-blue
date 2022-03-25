@@ -34,6 +34,7 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
         \param seed PRNG seed
     */
     UpdaterClustersGPU(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<Trigger> trigger,
                        std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                        std::shared_ptr<CellList> cl);
 
@@ -141,9 +142,10 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
 template<class Shape>
 UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                              std::shared_ptr<Trigger> trigger,
                                               std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                                               std::shared_ptr<CellList> cl)
-    : UpdaterClusters<Shape>(sysdef, mc), m_cl(cl)
+    : UpdaterClusters<Shape>(sysdef, trigger, mc), m_cl(cl)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing UpdaterClustersGPU" << std::endl;
 
@@ -1076,6 +1078,7 @@ template<class Shape> void export_UpdaterClustersGPU(pybind11::module& m, const 
                      UpdaterClusters<Shape>,
                      std::shared_ptr<UpdaterClustersGPU<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             std::shared_ptr<CellList>>());
     }

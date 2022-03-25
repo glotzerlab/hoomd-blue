@@ -19,13 +19,12 @@ on:
   <% endblock %>
 
   <% block on_push %>
-  # Trigger on pushes to the mainline branches. This prevents building commits twice when the pull
+  # Trigger on pushes to the trunk branches. This prevents building commits twice when the pull
   # request source branch is in the same repository.
   push:
     <% block on_push_branches %>
     branches:
-    - "master"
-    - "maint"
+    - "trunk-*"
     <% endblock %>
     <% block on_push_tags %>
     <% endblock %>

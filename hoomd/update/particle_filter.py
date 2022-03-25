@@ -89,7 +89,7 @@ class FilterUpdater(hoomd.operation.Updater):
         # query groups from filters.
         self._filters._to_synced_list_conversion._attach(self._simulation)
         self._cpp_obj = hoomd._hoomd.ParticleFilterUpdater(
-            self._simulation.state._cpp_sys_def)
+            self._simulation.state._cpp_sys_def, self.trigger)
         self._filters._sync(self._simulation, self._cpp_obj.groups)
         super()._attach()
 

@@ -1,15 +1,41 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Potentials between special pairs of particles.
+r"""Special pair forces.
+
+Special pair force classes apply a force and virial on every particle in the
+simulation state commensurate with the potential energy:
+
+.. math::
+
+    U_\mathrm{special~pairs} = \sum_{(j,k) \in \mathrm{special~pairs}} U_{jk}(r)
 
 Special pairs are used to implement interactions between designated pairs of
 particles. They act much like bonds, except that the interaction potential is
 typically a pair potential, such as LJ.
 
-By themselves, special pairs that have been specified in an initial
-configuration do nothing. Only when you specify an force (i.e.
-special_pairs.lj), are forces actually calculated between the listed particles.
+Each special pair is defined by an ordered pair of particle tags in the
+`hoomd.State` member ``pair_group``. HOOMD-blue does not compute special pair
+groups, users must explicitly define special pairs in the initial condition.
+
+.. image:: md-bond.svg
+    :alt: Definition of the special pair between particles j and k.
+
+In the special pair group (j,k), :math:`r` is the length of the vector between
+the particle positions :math:`r= |\mathrm{minimum\_image}(\vec{r}_k -
+\vec{r}_j)|`.
+
+.. rubric Per-particle energies and virials
+
+Special pair force classes assign 1/2 of the potential energy to each of the
+particles in the bond group:
+
+.. math::
+
+    U_i = \frac{1}{2} \sum_{(j,k) \in \mathrm{special~pairs}}
+    U_{jk}(r) [i=j \lor i=k]
+
+and similarly for virials.
 """
 
 from hoomd.md import _md
@@ -24,15 +50,14 @@ class SpecialPair(Force):
 
     Note:
         :py:class:`SpecialPair` is the base class for all special pair
-        potentials. Users should not instantiate this class directly.
-
+        forces. Users should not instantiate this class directly.
     """
 
     def __init__(self):
         super().__init__()
 
     def _attach(self):
-        # check that some bonds are defined
+        # check that some special pairs are defined
         if self._simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
             self._simulation.device._cpp_msg.error("No pairs are defined.\n")
 
@@ -46,29 +71,25 @@ class SpecialPair(Force):
 
 
 class LJ(SpecialPair):
-    r"""LJ special pair potential.
+    r"""LJ special pair force.
 
-    :py:class:`LJ` specifies a Lennard-Jones potential energy between the two
-    particles in each defined pair.
-
-    This is useful for implementing e.g. special 1-4 interactions in all-atom
-    force fields.
-
-    The pair potential uses the standard LJ definition.
+    `LJ` computes forces, virials, and energies on all special pairs
+    in the simulation state with:
 
     .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon
+        U(r) =
+        \begin{cases}
+         4 \varepsilon
             \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                   \left( \frac{\sigma}{r} \right)^{6} \right];
+                   \left( \frac{\sigma}{r} \right)^{6} \right]
                               & r < r_{\mathrm{cut}} \\
-                            = & 0; & r \ge r_{\mathrm{cut}} \\
-        \end{eqnarray*}
+         0 & r \ge r_{\mathrm{cut}} \\
+        \end{cases}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond.
+    Note:
+        Use `LJ` to implement special 1-4 interactions in atomistic force
+        fields, such as the scaled 1-4 interactions in OPLS where both the 1-4
+        `LJ` and `Coulomb` interactions are scaled by 0.5.
 
     Attributes:
         params (TypeParameter[``special pair type``, dict]):
@@ -90,9 +111,6 @@ class LJ(SpecialPair):
         lj = special_pair.LJ()
         lj.params['cluster'] = dict(epsilon=3, sigma=0.5)
         lj.r_cut['cluster'] = 5
-
-    .. versionadded:: 2.1
-
     """
 
     _cpp_class_name = "PotentialSpecialPairLJ"
@@ -110,28 +128,23 @@ class LJ(SpecialPair):
 
 
 class Coulomb(SpecialPair):
-    r"""Coulomb special pair potential.
+    r"""Coulomb special pair force.
 
-    :py:class:`Coulomb` specifies a Coulomb potential energy between the two
-    particles in each defined pair.
-
-    This is useful for implementing e.g. special 1-4 interactions in all-atom
-    force fields. It uses a standard Coulomb interaction with a scaling
-    parameter. This allows for using this for scaled 1-4 interactions like in
-    OPLS where both the 1-4 LJ and Coulomb interactions are scaled by 0.5.
+    `Coulomb` computes forces, virials, and energies on all special pairs
+    in the simulation state with:
 
     .. math::
-        :nowrap:
+        U(r) =
+        \begin{cases}
+        \alpha \cdot \left[ \frac{q_{a}q_{b}}{r} \right]
+        & r < r_{\mathrm{cut}} \\
+        0 & r \ge r_{\mathrm{cut}} \\
+        \end{cases}
 
-        \begin{eqnarray*}
-        V_{\mathrm{Coulomb}}(r)  = & \alpha \cdot
-                                     \left[ \frac{q_{a}q_{b}}{r} \right];
-                                   & r < r_{\mathrm{cut}} \\
-                                 = & 0; & r \ge r_{\mathrm{cut}} \\
-        \end{eqnarray*}
-
-    where :math:`\vec{r}` is the vector pointing from one particle to the other
-    in the bond.
+    Note:
+        Use `Coulomb` to implement special 1-4 interactions in atomistic force
+        fields, such as the scaled 1-4 interactions in OPLS where both the 1-4
+        `LJ` and `Coulomb` interactions are scaled by 0.5.
 
     Attributes:
         params (TypeParameter[``special pair type``, dict]):
@@ -145,16 +158,11 @@ class Coulomb(SpecialPair):
             The cut-off distance for special pair potential
             :math:`[\mathrm{length}]`
 
-
     Examples::
 
         coulomb = special_pair.Coulomb()
         coulomb.params['cluster'] = dict(alpha=1.0)
         coulomb.r_cut['cluster'] = 2
-
-    .. versionadded:: 2.2
-    .. versionchanged:: 2.2
-
     """
 
     _cpp_class_name = "PotentialSpecialPairCoulomb"

@@ -268,25 +268,23 @@ class BoxMC(Updater):
             different streams of random numbers.
     """
 
-    def __init__(self, betaP, trigger=1):
+    def __init__(self, trigger, betaP):
         super().__init__(trigger)
 
         _default_dict = dict(weight=0.0, delta=0.0)
-        param_dict = ParameterDict(volume={
-            "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
-            **_default_dict
-        },
-                                   aspect=_default_dict,
-                                   length=dict(weight=0.0, delta=(0.0,) * 3),
-                                   shear=dict(weight=0.0,
-                                              delta=(0.0,) * 3,
-                                              reduce=0.0),
-                                   betaP=hoomd.variant.Variant,
-                                   instance=int,
-                                   _defaults={'volume': {
-                                       'mode': 'standard'
-                                   }})
+        param_dict = ParameterDict(
+            volume={
+                "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
+                **_default_dict
+            },
+            aspect=_default_dict,
+            length=dict(weight=0.0, delta=(0.0,) * 3),
+            shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
+            betaP=hoomd.variant.Variant,
+            instance=int,
+        )
         self._param_dict.update(param_dict)
+        self.volume["mode"] = "standard"
         self.betaP = betaP
         self.instance = 0
 
@@ -309,7 +307,8 @@ class BoxMC(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
-                                           integrator._cpp_obj, self.betaP)
+                                           self.trigger, integrator._cpp_obj,
+                                           self.betaP)
         super()._attach()
 
     @property
@@ -457,7 +456,7 @@ class MuVT(Updater):
         cpp_cls = getattr(_hpmc, cpp_cls_name)
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj, self.ngibbs)
+                                self.trigger, integrator._cpp_obj, self.ngibbs)
         super()._attach()
 
     @log(category='sequence', requires_run=True)
@@ -600,10 +599,11 @@ class Clusters(Updater):
             sys_def = self._simulation.state._cpp_sys_def
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                    integrator._cpp_obj, self._cpp_cell)
+                                    self.trigger, integrator._cpp_obj,
+                                    self._cpp_cell)
         else:
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                    integrator._cpp_obj)
+                                    self.trigger, integrator._cpp_obj)
         super()._attach()
 
     @log(requires_run=True)
@@ -617,7 +617,7 @@ class Clusters(Updater):
 
 
 class QuickCompress(Updater):
-    """Quickly compress a hard particle system to a target box.
+    r"""Quickly compress a hard particle system to a target box.
 
     Args:
         trigger (Trigger): Update the box dimensions on triggered time steps.
@@ -636,27 +636,95 @@ class QuickCompress(Updater):
     systems to near random close packing densities in tens of thousands of time
     steps.
 
-    It operates by making small changes toward the `target_box`: ``L_new = scale
-    * L_current`` for each box parameter and then scaling the particle positions
-    into the new box. If there are more than ``max_overlaps_per_particle *
-    N_particles`` hard particle overlaps in the system, the box move is
-    rejected. Otherwise, the small number of overlaps remain. `QuickCompress`
-    then waits until local MC trial moves provided by the HPMC integrator
-    remove all overlaps before it makes another box change.
+    It operates by making small changes toward the `target_box`, but only
+    when there are no particle overlaps in the current simulation state. In 3D:
 
-    Note:
-        The target box size may be larger or smaller than the current system
-        box, and also may have different tilt factors. When the target box
-        parameter is larger than the current, it scales by ``L_new = 1/scale *
-        L_current``
+    .. math::
 
-    `QuickCompress` adjusts the value of ``scale`` based on the particle and
+          L_x' &= \begin{cases}
+          \max( L_x \cdot s, L_{\mathrm{target},x} )
+          & L_{\mathrm{target},x} < L_x \\
+          \min( L_x / s, L_{\mathrm{target},x} )
+          & L_{\mathrm{target},x} \ge L_x
+          \end{cases} \\
+          L_y' &= \begin{cases}
+          \max( L_y \cdot s, L_{\mathrm{target},y} )
+          & L_{\mathrm{target},y} < L_y \\
+          \min( L_y / s, L_{\mathrm{target},y} )
+          & L_{\mathrm{target},y} \ge L_y
+          \end{cases} \\
+          L_z' &= \begin{cases}
+          \max( L_z \cdot s, L_{\mathrm{target},z} )
+          & L_{\mathrm{target},z} < L_z \\
+          \min( L_z / s, L_{\mathrm{target},z} )
+          & L_{\mathrm{target},z} \ge L_z
+          \end{cases} \\
+          xy' &= \begin{cases}
+          \max( xy \cdot s, xy_\mathrm{target} )
+          & xy_\mathrm{target} < xy \\
+          \min( xy / s, xy_\mathrm{target} )
+          & xy_\mathrm{target} \ge xy
+          \end{cases} \\
+          xz' &= \begin{cases}
+          \max( xz \cdot s, xz_\mathrm{target} )
+          & xz_\mathrm{target} < xz \\
+          \min( xz / s, xz_\mathrm{target} )
+          & xz_\mathrm{target} \ge xz
+          \end{cases} \\
+          yz' &= \begin{cases}
+          \max( yz \cdot s, yz_\mathrm{target} )
+          & yz_\mathrm{target} < yz \\
+          \min( yz / s, yz_\mathrm{target} )
+          & yz_\mathrm{target} \ge yz
+          \end{cases} \\
+
+    and in 2D:
+
+    .. math::
+
+          L_x' &= \begin{cases}
+          \max( L_x \cdot s, L_{\mathrm{target},x} )
+          & L_{\mathrm{target},x} < L_x \\
+          \min( L_x / s, L_{\mathrm{target},x} )
+          & L_{\mathrm{target},x} \ge L_x
+          \end{cases} \\
+          L_y' &= \begin{cases}
+          \max( L_y \cdot s, L_{\mathrm{target},y} )
+          & L_{\mathrm{target},y} < L_y \\
+          \min( L_y / s, L_{\mathrm{target},y} )
+          & L_{\mathrm{target},y} \ge L_y
+          \end{cases} \\
+          L_z' &= L_z \\
+          xy' &= \begin{cases}
+          \max( xy \cdot s, xy_\mathrm{target} )
+          & xy_\mathrm{target} < xy \\
+          \min( xy / s, xy_\mathrm{target} )
+          & xy_\mathrm{target} \ge xy
+          \end{cases} \\
+          xz' &= xz \\
+          yz' &= yz \\
+
+    where the current simulation box is :math:`(L_x, L_y, L_z, xy, xz, yz)`,
+    the target is :math:`(L_{\mathrm{target},x}, L_{\mathrm{target},y},
+    L_{\mathrm{target},z}, xy_\mathrm{target}, xz_\mathrm{target},
+    yz_\mathrm{target})`, the new simulation box set is
+    :math:`(L_x', L_y', L_z', xy', xz', yz')` and :math:`s` is the scale factor
+    chosen for this step (see below). `QuickCompress` scales particle
+    coordinates (see `BoxMC` for details) when it sets a new box.
+
+    When there are more than ``max_overlaps_per_particle * N_particles`` hard
+    particle overlaps in the system in the new box, the box move is rejected.
+    Otherwise, the small number of overlaps remain when the new box is set.
+    `QuickCompress` then waits until `hoomd.hpmc.integrate.HPMCIntegrator` makes
+    local MC trial moves that remove all overlaps.
+
+    `QuickCompress` adjusts the value of :math:`s` based on the particle and
     translational trial move sizes to ensure that the trial moves will be able
-    to remove the overlaps. It chooses a value of ``scale`` randomly between
-    ``max(min_scale, 1.0 - min_move_size / max_diameter)`` and 1.0 where
-    ``min_move_size`` is the smallest MC translational move size adjusted
-    by the acceptance ratio and ``max_diameter`` is the circumsphere diameter
-    of the largest particle type.
+    to remove the overlaps. It randomly chooses a value of :math:`s` uniformly
+    distributed between ``max(min_scale, 1.0 - min_move_size / max_diameter)``
+    and 1.0 where ``min_move_size`` is the smallest MC translational move size
+    adjusted by the acceptance ratio and ``max_diameter`` is the circumsphere
+    diameter of the largest particle type.
 
     Tip:
         Use the `hoomd.hpmc.tune.MoveSize` in conjunction with
@@ -666,6 +734,9 @@ class QuickCompress(Updater):
     Warning:
         When the smallest MC translational move size is 0, `QuickCompress`
         will scale the box by 1.0 and not progress toward the target box.
+
+    Warning:
+        Use `QuickCompress` *OR* `BoxMC`. Do not use both at the same time.
 
     .. rubric:: Mixed precision
 
@@ -728,8 +799,8 @@ class QuickCompress(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
-            self._simulation.state._cpp_sys_def, integrator._cpp_obj,
-            self.max_overlaps_per_particle, self.min_scale,
+            self._simulation.state._cpp_sys_def, self.trigger,
+            integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
             self.target_box._cpp_obj)
         super()._attach()
 

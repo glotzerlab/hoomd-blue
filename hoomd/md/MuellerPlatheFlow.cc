@@ -17,6 +17,7 @@ const unsigned int INVALID_TAG = UINT_MAX;
 const Scalar INVALID_VEL = FLT_MAX; // should be ok, even for double.
 
 MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger,
                                      std::shared_ptr<ParticleGroup> group,
                                      std::shared_ptr<Variant> flow_target,
                                      std::string slab_direction_str,
@@ -25,9 +26,10 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      const unsigned int min_slab,
                                      const unsigned int max_slab,
                                      Scalar flow_epsilon)
-    : Updater(sysdef), m_group(group), m_flow_target(flow_target), m_flow_epsilon(flow_epsilon),
-      m_N_slabs(N_slabs), m_min_slab(min_slab), m_max_slab(max_slab), m_exchanged_momentum(0),
-      m_has_min_slab(true), m_has_max_slab(true), m_needs_orthorhombic_check(true)
+    : Updater(sysdef, trigger), m_group(group), m_flow_target(flow_target),
+      m_flow_epsilon(flow_epsilon), m_N_slabs(N_slabs), m_min_slab(min_slab), m_max_slab(max_slab),
+      m_exchanged_momentum(0), m_has_min_slab(true), m_has_max_slab(true),
+      m_needs_orthorhombic_check(true)
     {
     assert(m_flow_target);
 
@@ -469,6 +471,7 @@ void export_MuellerPlatheFlow(pybind11::module& m)
         m,
         "MuellerPlatheFlow");
     flow.def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
                             std::string,
