@@ -357,7 +357,7 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
             }
         quat<Scalar> o;
         Shape tmp_i(o, params[type_i]);
-        max_d = std::max(max_d, (Scalar)tmp_i.getCircumsphereDiameter());
+        max_d = std::max(max_d, static_cast<Scalar>(tmp_i.getCircumsphereDiameter());
         }
     nominal_width += max_d;
     if (this->m_cl->getNominalWidth() != nominal_width)

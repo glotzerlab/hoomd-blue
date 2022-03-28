@@ -1618,7 +1618,7 @@ void IntegratorHPMCMono<Shape>::updateCellWidth()
             // add range of depletion interaction
             quat<Scalar> o;
             Shape tmp_shape(o, this->m_params[type_i]);
-            max_d = std::max(max_d, (Scalar)tmp_shape.getCircumsphereDiameter()); // maybe need (Scalar) here
+            max_d = std::max(max_d, static_cast<Scalar>(tmp_shape.getCircumsphereDiameter()));
             }
         }
 
@@ -1728,10 +1728,10 @@ template <class Shape>
 void IntegratorHPMCMono<Shape>::limitMoveDistances()
     {
     Scalar3 npd_global = m_pdata->getGlobalBox().getNearestPlaneDistance();
-    Scalar min_npd = detail::min((Scalar) npd_global.x, (Scalar) npd_global.y);
+    Scalar min_npd = detail::min(npd_global.x, npd_global.y);
     if (this->m_sysdef->getNDimensions() == 3)
         {
-        min_npd = detail::min(min_npd, (Scalar) npd_global.z);
+        min_npd = detail::min(min_npd, npd_global.z);
         }
 
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
