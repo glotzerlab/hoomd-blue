@@ -125,9 +125,9 @@ def test_tag_filter_equality():
     filter_b = Tags(tags=[2, 3, 4, 5, 6])
     filter_c = Tags(tags=[0, 1, 2, 3, 4])
     filter_d = Tags(tags=[0, 1, 2, 3])
-    assert filter_a.__eq__(filter_b) == False
-    assert filter_b.__eq__(filter_c) == False
-    assert filter_d.__eq__(filter_a) == True
+    assert filter_a != filter_b
+    assert filter_b != filter_c
+    assert filter_d == filter_a
 
 
 def type_not_in_combo(combo, particle_types):
