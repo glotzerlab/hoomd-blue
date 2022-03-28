@@ -120,7 +120,7 @@ def set_indices(request):
     return deepcopy(request.param)
 
 
-def test_filter_equality(make_filter_snapshot):
+def test_tag_filter_equality():
     filter_a = Tags(tags=[0, 1, 2, 3])
     filter_b = Tags(tags=[2, 3, 4, 5, 6])
     filter_c = Tags(tags=[0, 1, 2, 3, 4])
