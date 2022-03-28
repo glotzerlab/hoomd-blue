@@ -35,8 +35,7 @@ class Tags(ParticleFilter, ParticleFilterTags):
     def __eq__(self, other):
         """Test for equality between two particle filters."""
         return type(self) == type(other) and np.array_equal(
-                self.tags, other.tags
-        )
+            self.tags, other.tags)
 
     @property
     def tags(self):
