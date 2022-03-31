@@ -115,14 +115,21 @@ def test_run(simulation_factory, lattice_snapshot_factory):
     assert sim.operations._scheduled
 
 
-def test_tps(simulation_factory, lattice_snapshot_factory):
+def test_tps(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory()
     assert sim.tps is None
 
-    sim = simulation_factory(lattice_snapshot_factory())
-    sim.run(100)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    assert sim.tps == 0
 
-    assert sim.tps > 0
+    sim.run(10)
+    tps = sim.tps
+    assert tps > 0
+    assert tps == sim.tps
+
+    # Test that tps updates
+    sim.run(10)
+    assert sim.tps != tps
 
 
 def test_timestep(simulation_factory, lattice_snapshot_factory):
