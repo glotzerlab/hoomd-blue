@@ -50,6 +50,8 @@ class Mesh(_HOOMDBaseObject):
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def)
 
+        self.triangles = self._triangles
+
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
@@ -59,8 +61,6 @@ class Mesh(_HOOMDBaseObject):
                     self._cpp_obj)
                 self._cpp_obj.setCommunicator(
                     self._simulation._system_communicator)
-
-        self.triangles = self._triangles
 
         super()._attach()
 
