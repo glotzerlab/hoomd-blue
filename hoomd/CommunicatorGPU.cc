@@ -53,8 +53,7 @@ CommunicatorGPU::~CommunicatorGPU()
 
 void CommunicatorGPU::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     {
-    m_meshdef = meshdef;
-
+    Communicator::addMeshDefinition(meshdef);
     m_meshbond_comm.addGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.addGroupData(m_meshdef->getMeshTriangleData());
     }
