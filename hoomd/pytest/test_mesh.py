@@ -93,7 +93,7 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
     mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
 
     assert mesh.size == 2
-    assert numpy.array_equal(mesh.triangles,
-                             numpy.array([[0, 1, 2], [1, 2, 3]]))
+    assert numpy.array_equal(mesh.triangles, numpy.array([[0, 1, 2], [1, 2,
+                                                                      3]]))
     assert numpy.array_equal(
         mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))
