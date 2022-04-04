@@ -7,7 +7,7 @@ import pytest
 from copy import deepcopy
 from hoomd.error import MutabilityError
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check
+from hoomd.conftest import logging_check, ListWriter
 try:
     import gsd.hoomd
     skip_gsd = False
@@ -122,14 +122,11 @@ def test_tps(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     assert sim.tps == 0
 
+    list_writer = ListWriter(sim, "tps")
+    sim += list_writer
     sim.run(10)
-    tps = sim.tps
-    assert tps > 0
-    assert tps == sim.tps
-
-    # Test that tps updates
-    sim.run(10)
-    assert sim.tps != tps
+    tps = list_writer.data
+    assert len(np.unique(tps)) > 1
 
 
 def test_timestep(simulation_factory, lattice_snapshot_factory):
