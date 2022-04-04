@@ -98,9 +98,10 @@ class PYBIND11_EXPORT MeshDefinition
         return m_meshtriangle_data->getTypesPy();
         }
 
-    unsigned int getSize() const
+    unsigned int getSize()
         {
-        return m_meshtriangle_data->getN();
+	TriangleData::Snapshot triangles = getTriangleData();
+        return triangles.getSize();
         }
 
     void setTypes(pybind11::list types);
