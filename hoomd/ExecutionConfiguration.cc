@@ -418,7 +418,7 @@ void ExecutionConfiguration::scanGPUs()
         if (compoundComputeVer < CUDA_ARCH)
             {
             ostringstream s;
-            s << "The device " << prop.name << " with computed capability " << prop.major << "."
+            s << "The device " << prop.name << " with compute capability " << prop.major << "."
               << prop.minor << " does not support HOOMD-blue.";
             s_gpu_scan_messages.push_back(s.str());
             continue;
