@@ -100,7 +100,7 @@ class PYBIND11_EXPORT MeshDefinition
 
     unsigned int getSize()
         {
-	TriangleData::Snapshot triangles = getTriangleData();
+        TriangleData::Snapshot triangles = getTriangleData();
         return triangles.getSize();
         }
 
