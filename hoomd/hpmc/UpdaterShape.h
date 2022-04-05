@@ -268,7 +268,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
     Scalar log_boltz;
     for (unsigned int i_sweep = 0; i_sweep < m_nsweeps; i_sweep++)
         {
-
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
         GPUArray<Scalar> determinant_inertia_tensor_old(m_determinant_inertia_tensor);
         m_move_function->prepare(timestep);
@@ -331,48 +330,49 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             assert(h_det.data[typ_i] != 0 && h_det_old.data[typ_i] != 0);
 
             // compute log_boltz factor
-            log_boltz = (*m_move_function)(timestep,             // current timestep
-                        h_ntypes.data[typ_i], // number of particles of type typ_i,
-                                      typ_i,                // the type id
-                                      shape_param_new,      // new shape parameter
-                                      h_det.data[typ_i],    // new determinant_inertia_tensor
-                                      shape_param_old,      // old shape parameter
-                                      h_det_old.data[typ_i] // old determinant_inertia_tensor
+            log_boltz
+                = (*m_move_function)(timestep,             // current timestep
+                                     h_ntypes.data[typ_i], // number of particles of type typ_i,
+                                     typ_i,                // the type id
+                                     shape_param_new,      // new shape parameter
+                                     h_det.data[typ_i],    // new determinant_inertia_tensor
+                                     shape_param_old,      // old shape parameter
+                                     h_det_old.data[typ_i] // old determinant_inertia_tensor
                 );
 
             // actually update the shape parameter in the integrator
             m_mc->setParam(typ_i, shape_param_new);
 
             // check if at least one overlap was caused
-            bool overlaps = (bool) m_mc->countOverlaps(true, typ_i, false);
+            bool overlaps = (bool)m_mc->countOverlaps(true, typ_i, false);
             // automatically reject if there are overlaps
             if (overlaps)
                 {
-                m_exec_conf->msg->notice(5) << "UpdaterShape move rejected -- overlaps found" << std::endl;
+                m_exec_conf->msg->notice(5)
+                    << "UpdaterShape move rejected -- overlaps found" << std::endl;
                 // revert shape parameter changes
                 h_det.data[typ_i] = h_det_old.data[typ_i];
                 m_mc->setParam(typ_i, shape_param_old);
                 }
             else // potentially accept, check Metropolis first
                 {
-
                 Scalar p = hoomd::detail::generate_canonical<Scalar>(rng_i);
                 Scalar Z = slow::exp(log_boltz);
 
-                #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
                 if (m_multi_phase)
                     {
                     std::vector<Scalar> Zs;
                     all_gather_v(Z, Zs, MPI_COMM_WORLD);
                     Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
                     }
-                #endif
+#endif
 
                 bool accept = p < Z;
 
                 if (accept)
                     {
-                    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
                     if (m_multi_phase)
                         {
                         m_box_accepted[typ_i]++;
@@ -380,24 +380,25 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                     std::vector<int> all_a;
                     all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
                     accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
-                    #endif
+#endif
 
                     // if pretend mode, rever shape changes but keep acceptance count
                     if (m_pretend)
                         {
-                        m_exec_conf->msg->notice(5) << "UpdaterShape move accepted -- pretend mode" << std::endl;
+                        m_exec_conf->msg->notice(5)
+                            << "UpdaterShape move accepted -- pretend mode" << std::endl;
                         m_move_function->retreat(timestep);
                         h_det.data[typ_i] = h_det_old.data[typ_i];
                         m_mc->setParam(typ_i, shape_param_old);
                         m_count_accepted[typ_i]++;
                         }
                     else // actually accept the move
-                       {
+                        {
                         m_exec_conf->msg->notice(5) << "UpdaterShape move accepted" << std::endl;
                         m_count_accepted[typ_i]++;
-                       }
+                        }
                     }
-                else  // actually reject move
+                else // actually reject move
                     {
                     m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
                     // revert shape parameter changes
@@ -406,8 +407,8 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                     }
                 }
 
-            }  // end loop over particle types
-        }  // end loop over n_sweeps
+            } // end loop over particle types
+        }     // end loop over n_sweeps
     m_exec_conf->msg->notice(4) << "UpdaterShape update done" << std::endl;
     } // end UpdaterShape<Shape>::update(unsigned int timestep)
 
@@ -491,6 +492,6 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
     }
 
     } // namespace hpmc
-} // namespace hoomd
+    } // namespace hoomd
 
 #endif

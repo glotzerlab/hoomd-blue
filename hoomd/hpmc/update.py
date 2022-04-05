@@ -598,8 +598,7 @@ class Shape(Updater):
         typeparam_step_size = TypeParameter('step_size',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                                float(step_size),
-                                                len_keys=1))
+                                                float(step_size), len_keys=1))
 
         self._extend_typeparam([typeparam_step_size])
 
@@ -627,7 +626,8 @@ class Shape(Updater):
         old_move = self.shape_move
 
         if new_move is not None and new_move._added:
-            raise ValueError("Cannot add ShapeMove object to multiple integrators.")
+            raise ValueError(
+                "Cannot add ShapeMove object to multiple integrators.")
 
         if old_move is not None:
             if self._attached:
