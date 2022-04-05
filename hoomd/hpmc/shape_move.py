@@ -167,10 +167,12 @@ class PythonShapeMove(ShapeMove):
             that will be called to perform custom shape moves on arbitrary shape
             parameters. The function must take the particle type and a list of
             parameters as arguments and return a dictionary with the shape
-            definition whose keys must match the shape definition of the
+            definition whose keys **must** match the shape definition of the
             integrator:
 
                 ``callable[[str, list], dict]``
+
+            Note that there is no type validation of the callback.
 
         params (`TypeParameter` [``particle type``, `list`]): List of tunable
             parameters to be updated.
