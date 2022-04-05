@@ -10,12 +10,11 @@ on:
   pull_request:
       types: [opened, labeled, reopened, synchronize]
 
-  # Trigger on pushes to the mainline branches. This prevents building commits twice when the pull
+  # Trigger on pushes to the trunk branches. This prevents building commits twice when the pull
   # request source branch is in the same repository.
   push:
     branches:
-    - "master"
-    - "maint"
+    - "trunk-*"
 
   # Trigger on request.
   workflow_dispatch:
