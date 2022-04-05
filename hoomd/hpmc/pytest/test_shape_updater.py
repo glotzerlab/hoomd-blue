@@ -134,7 +134,6 @@ def test_vertex_shape_move(device, simulation_factory,
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory(d=10))
-    sim.seed = 13
     sim.operations.integrator = mc
     sim.operations += updater
 
@@ -204,7 +203,6 @@ def test_python_callback_shape_move(device, simulation_factory,
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory(d=10))
-    sim.seed = 4
     sim.operations.integrator = mc
     sim.operations += updater
 
@@ -239,11 +237,11 @@ def test_python_callback_shape_move(device, simulation_factory,
     assert updater.shape_moves[0] != 0
     assert updater.shape_moves[1] != 0
     assert np.sum(updater.shape_moves) == 40
-    assert not np.isclose(mc.shape["A"]["a"], ellipsoid["a"])
-    assert not np.isclose(mc.shape["A"]["b"], ellipsoid["b"])
-    assert not np.isclose(mc.shape["A"]["c"], ellipsoid["c"])
-    assert not np.isclose(move.params["A"], [1])
-    assert np.isclose(updater.total_particle_volume, 2*4*np.pi/3)
+    assert not np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
+    assert not np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
+    assert not np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
+    assert not np.allclose(move.params["A"], [1])
+    assert np.allclose(updater.total_particle_volume, 2*4*np.pi/3)
 
 
 def test_elastic_shape_move(device, simulation_factory,

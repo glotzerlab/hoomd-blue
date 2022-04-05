@@ -127,9 +127,7 @@ class ElasticShapeMove(ShapeMove):
         integrator = self._simulation.operations.integrator
         if isinstance(integrator, integrate.Ellipsoid):
             for shape in integrator.shape.items():
-                if not numpy.isclose(shape["a"], shape["b"]) or \
-                   not numpy.isclose(shape["a"], shape["c"]) or \
-                   not numpy.isclose(shape["b"], shape["c"]):
+                if not numpy.allclose((shape["a"], shape["b"], shape["c"])):
                     raise ValueError("This updater only works when a=b=c.")
         else:
             super()._attach()
@@ -165,13 +163,14 @@ class PythonShapeMove(ShapeMove):
         python_move.callback = ExampleCallback()
 
     Attributes:
-        callback (`callable`): The python function that will be called to perform
-            custom shape moves on arbitrary shape parameters. The function must
-            take the particle type and a list of parameters as arguments and
-            return a dictionary with the shape definition whose keys must match
-            the shape definition of the integrator:
+        callback (``callable`` [`str`, `list`], `dict` ]): The python function
+            that will be called to perform custom shape moves on arbitrary shape
+            parameters. The function must take the particle type and a list of
+            parameters as arguments and return a dictionary with the shape
+            definition whose keys must match the shape definition of the
+            integrator:
 
-                ``fun(typeid, param_list) -> dict``
+                ``callable[[str, list], dict]``
 
         params (`TypeParameter` [``particle type``, `list`]): List of tunable
             parameters to be updated.

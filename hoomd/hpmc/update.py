@@ -620,7 +620,7 @@ class Shape(Updater):
     def _set_shape_move(self, new_move):
         """Handles the adding and detaching of shape_move objects."""
         # this generally only happens when attaching and we can ignore it since
-        # we attach the rigid body in _attach.
+        # we attach the shape move in _attach.
         if new_move is self.shape_move:
             return
 
