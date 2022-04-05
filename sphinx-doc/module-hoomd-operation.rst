@@ -15,6 +15,7 @@ hoomd.operation
     Integrator
     Operation
     Tuner
+    TriggeredOperation
     Updater
     Writer
 
@@ -22,11 +23,8 @@ hoomd.operation
 
 .. automodule:: hoomd.operation
     :synopsis: Classes define the interfaces and types for HOOMD-blue operations.
-    :members: Compute, Integrator, Tuner, Updater, Writer
+    :members: Compute, Integrator, Tuner, TriggeredOperation, Updater, Writer
     :show-inheritance:
 
     .. autoclass:: Operation
         :inherited-members:
-
-    .. autoclass:: _TriggeredOperation
-        :show-inheritance:

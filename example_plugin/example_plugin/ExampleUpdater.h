@@ -38,7 +38,7 @@ class ExampleUpdater : public Updater
     {
     public:
     //! Constructor
-    ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef);
+    ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep);
@@ -65,7 +65,7 @@ class ExampleUpdaterGPU : public ExampleUpdater
     {
     public:
     //! Constructor
-    ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
+    ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep);

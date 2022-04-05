@@ -5,6 +5,7 @@
 #include "HOOMDMath.h"
 #include "SharedSignal.h"
 #include "SystemDefinition.h"
+#include "Trigger.h"
 
 #include <memory>
 
@@ -57,7 +58,7 @@ class PYBIND11_EXPORT Updater
     {
     public:
     //! Constructs the compute and associates it with the ParticleData
-    Updater(std::shared_ptr<SystemDefinition> sysdef);
+    Updater(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
     virtual ~Updater() {};
 
     //! Abstract method that performs the update
@@ -117,6 +118,18 @@ class PYBIND11_EXPORT Updater
             }
         }
 
+    /// Get Trigger
+    std::shared_ptr<Trigger> getTrigger()
+        {
+        return m_trigger;
+        }
+
+    /// Set Trigger
+    void setTrigger(std::shared_ptr<Trigger> trigger)
+        {
+        m_trigger = trigger;
+        }
+
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
@@ -134,7 +147,8 @@ class PYBIND11_EXPORT Updater
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots; //!< Stored shared ptr to the system signals
+        m_slots;                        //!< Stored shared ptr to the system signals
+    std::shared_ptr<Trigger> m_trigger; /// Trigger that determines if updater runs.
     };
 
 namespace detail

@@ -96,6 +96,6 @@ class DCD(Writer):
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.DCDDumpWriter(
-            self._simulation.state._cpp_sys_def, self.filename,
+            self._simulation.state._cpp_sys_def, self.trigger, self.filename,
             int(self.trigger.period), group, self.overwrite)
         super()._attach()

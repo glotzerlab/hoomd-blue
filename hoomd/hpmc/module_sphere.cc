@@ -5,6 +5,7 @@
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoNEC.h"
 
 #include "ComputeSDF.h"
 #include "ShapeSphere.h"
@@ -38,6 +39,7 @@ namespace detail
 void export_sphere(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeSphere>(m, "IntegratorHPMCMonoSphere");
+    export_IntegratorHPMCMonoNEC<ShapeSphere>(m, "IntegratorHPMCMonoNECSphere");
     export_ComputeFreeVolume<ShapeSphere>(m, "ComputeFreeVolumeSphere");
     export_ComputeSDF<ShapeSphere>(m, "ComputeSDFSphere");
     export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");

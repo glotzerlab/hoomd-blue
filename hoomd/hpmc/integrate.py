@@ -246,8 +246,9 @@ acceptance criterion accordingly. See `Glaser 2015
 <https://dx.doi.org/10.1063/1.4935175>`_ for details.
 
 Warning:
-    The algorithm and API for implicit depletants is **experimental** and may
-    change in minor releases.
+    The algorithm and API for implicit depletants is **experimental** and will
+    change in a future minor releases. Specifically, it will switch to accepting
+    a single type parameter: ``fugacity['A', 'A']`` -> ``fugacity['A']``
 """
 
 from hoomd import _hoomd
@@ -317,8 +318,13 @@ class HPMCIntegrator(Integrator):
             :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
 
             Allows setting the fugacity per particle type, e.g. ``('A','A')``
-            refers to a depletant of type **A**. The option to set a type pair
-            is temporary and will be removed in a future release.
+            refers to a depletant of type **A**.
+
+            Warning:
+                The algorithm and API for implicit depletants is
+                **experimental** and will change in a future minor releases.
+                Specifically, it will switch to accepting a single type
+                parameter: ``fugacity['A', 'A']`` -> ``fugacity['A']``
 
         depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
             Multiplicative factor for the number of times a depletant is
@@ -613,7 +619,7 @@ class Sphere(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.Sphere` supports all `hoomd.wall` geometries.
+    `Sphere` supports all `hoomd.wall` geometries.
 
     Examples::
 
@@ -634,7 +640,6 @@ class Sphere(HPMCIntegrator):
               `True` to ignore tracked statistics.
             * ``orientable`` (`bool`, **default:** `False`) - set to `True` to
               allow rotation moves on this particle type.
-
     """
     _cpp_cls = 'IntegratorHPMCMonoSphere'
 
@@ -699,7 +704,7 @@ class ConvexPolygon(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.ConvexPolygon` supports no `hoomd.wall` geometries.
+    `ConvexPolygon` supports no `hoomd.wall` geometries.
 
     Examples::
 
@@ -805,8 +810,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.ConvexSpheropolygon` supports no `hoomd.wall`
-    geometries.
+    `ConvexSpheropolygon` supports no `hoomd.wall` geometries.
 
     Examples::
 
@@ -910,7 +914,7 @@ class SimplePolygon(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.SimplePolygon` supports no `hoomd.wall` geometries.
+    `SimplePolygon` supports no `hoomd.wall` geometries.
 
     Examples::
 
@@ -1010,7 +1014,7 @@ class Polyhedron(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.Polyhedron` supports no `hoomd.wall` geometries.
+    `Polyhedron` supports no `hoomd.wall` geometries.
 
     Example::
 
@@ -1150,8 +1154,7 @@ class ConvexPolyhedron(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.ConvexPolyhedron` supports all `hoomd.wall`
-    geometries.
+    `ConvexPolyhedron` supports all `hoomd.wall` geometries.
 
     Example::
 
@@ -1245,8 +1248,7 @@ class FacetedEllipsoid(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.FacetedEllipsoid` supports no `hoomd.wall`
-    geometries.
+    `FacetedEllipsoid` supports no `hoomd.wall` geometries.
 
     Example::
 
@@ -1373,7 +1375,7 @@ class Sphinx(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.Sphinx` supports no `hoomd.wall` geometries.
+    `Sphinx` supports no `hoomd.wall` geometries.
 
     Example::
 
@@ -1443,8 +1445,8 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.ConvexSpheropolyhedron` supports the
-    `hoomd.wall.Sphere` and `hoomd.wall.Plane` geometries.
+    `ConvexSpheropolyhedron` supports the `hoomd.wall.Sphere` and
+    `hoomd.wall.Plane` geometries.
 
     Example::
 
@@ -1556,7 +1558,7 @@ class Ellipsoid(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.Ellipsoid` supports no `hoomd.wall`  geometries.
+    `Ellipsoid` supports no `hoomd.wall`  geometries.
 
     Example::
 
@@ -1648,7 +1650,7 @@ class SphereUnion(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.SphereUnion` supports no `hoomd.wall`  geometries.
+    `SphereUnion` supports no `hoomd.wall`  geometries.
 
     Example::
 
@@ -1777,7 +1779,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.ConvexSpheropolyhedronUnion` supports no `hoomd.wall`
+    `ConvexSpheropolyhedronUnion` supports no `hoomd.wall`
     geometries.
 
     Example::
@@ -1904,8 +1906,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
 
     .. rubric:: Wall support.
 
-    `integrate.FacetedEllipsoidUnion` supports no `hoomd.wall`
-    geometries.
+    `FacetedEllipsoidUnion` supports no `hoomd.wall` geometries.
 
     Example::
 

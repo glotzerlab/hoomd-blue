@@ -2,7 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.trigger import Trigger
-from hoomd.operation import Operation, _TriggeredOperation
+from hoomd.operation import Operation
 
 
 class DummySimulation:
@@ -85,14 +85,6 @@ class DummyOperation(Operation):
 
     def __eq__(self, other):
         return self.id == other.id
-
-
-class DummyTriggeredOp(_TriggeredOperation):
-    _cpp_list_name = 'dummy_list'
-
-    def _attach(self):
-        self._cpp_obj = DummyCppObj()
-        super()._attach()
 
 
 class DummyTrigger(Trigger):

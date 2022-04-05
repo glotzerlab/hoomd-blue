@@ -16,6 +16,7 @@ namespace hoomd
 namespace md
     {
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                           std::shared_ptr<Trigger> trigger,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
                                            std::string slab_direction_str,
@@ -25,6 +26,7 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
                                            const unsigned int max_slab,
                                            Scalar flow_epsilon)
     : MuellerPlatheFlow(sysdef,
+                        trigger,
                         group,
                         flow_target,
                         slab_direction_str,
@@ -135,6 +137,7 @@ void export_MuellerPlatheFlowGPU(pybind11::module& m)
                      MuellerPlatheFlow,
                      std::shared_ptr<MuellerPlatheFlowGPU>>(m, "MuellerPlatheFlowGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
                             std::string,

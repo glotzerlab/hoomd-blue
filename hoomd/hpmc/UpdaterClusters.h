@@ -289,6 +289,7 @@ class UpdaterClusters : public Updater
             \param mc HPMC integrator
         */
         UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger,
                         std::shared_ptr<IntegratorHPMCMono<Shape> > mc);
 
         //! Destructor
@@ -418,8 +419,9 @@ class UpdaterClusters : public Updater
 
 template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger,
                                  std::shared_ptr<IntegratorHPMCMono<Shape> > mc)
-        : Updater(sysdef), m_mc(mc), m_move_ratio(0.5),
+        : Updater(sysdef, trigger), m_mc(mc), m_move_ratio(0.5),
             m_flip_probability(0.5)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
@@ -1738,7 +1740,7 @@ namespace detail {
 template < class Shape> void export_UpdaterClusters(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< UpdaterClusters<Shape>, Updater, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str())
-          .def( pybind11::init< std::shared_ptr<SystemDefinition>,
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>,
                          std::shared_ptr< IntegratorHPMCMono<Shape> > >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
         .def_property("pivot_move_probability", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)

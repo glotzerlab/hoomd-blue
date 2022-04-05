@@ -49,12 +49,6 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
     _cpp_list_name = 'tuners'
     _cpp_class_name = 'PythonTuner'
 
-    def _attach(self):
-        self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
-            self._simulation.state._cpp_sys_def, self.trigger, self._action)
-        self._action.attach(self._simulation)
-        Operation._attach(self)
-
 
 class _InternalCustomTuner(_InternalCustomOperation, Tuner):
     _cpp_list_name = 'tuners'
