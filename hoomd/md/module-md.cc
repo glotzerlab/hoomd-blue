@@ -220,7 +220,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
     export_AlchemicalMDParticles(m);
 
-    export_PotentialPair<PotentialPair<Normalized<EvaluatorPairLJGauss>>>(m, "PotentialPairNormalizedLJGauss");
+    export_PotentialPair<PotentialPair<Normalized<EvaluatorPairLJGauss>>>(
+        m,
+        "PotentialPairNormalizedLJGauss");
     export_PotentialPairAlchemical<EvaluatorPairLJGauss>(m, "PotentialPairAlchemicalLJGauss");
     export_PotentialPairAlchemicalNormalized<EvaluatorPairLJGauss>(
         m,

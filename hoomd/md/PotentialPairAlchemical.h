@@ -127,12 +127,12 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
     // Extra steps to insert
     virtual inline extra_pkg pkgInitialize(const uint64_t& timestep);
     virtual inline void pkgPerNeighbor(const unsigned int& i,
-                               const unsigned int& j,
-                               const unsigned int& typei,
-                               const unsigned int& typej,
-                               const bool& in_rcut,
-                               evaluator& eval,
-                               extra_pkg&);
+                                       const unsigned int& j,
+                                       const unsigned int& typei,
+                                       const unsigned int& typej,
+                                       const bool& in_rcut,
+                                       evaluator& eval,
+                                       extra_pkg&);
     virtual inline void pkgFinalize(extra_pkg&);
 
     virtual void computeForces(uint64_t timestep);
@@ -288,9 +288,10 @@ PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::pkgFinalize(
     }
 
 /*! Compute pair forces with extra alchemical derivatives.
-*/
+ */
 template<class evaluator, typename extra_pkg, typename alpha_particle_type>
-void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::computeForces(uint64_t timestep)
+void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::computeForces(
+    uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -517,11 +518,13 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
 
 template<class evaluator, typename extra_pkg, typename alpha_particle_type>
 template<class InputIterator>
-inline void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::computeEnergyBetweenSets(InputIterator first1,
-                                                                          InputIterator last1,
-                                                                          InputIterator first2,
-                                                                          InputIterator last2,
-                                                                          Scalar& energy)
+inline void
+PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::computeEnergyBetweenSets(
+    InputIterator first1,
+    InputIterator last1,
+    InputIterator first2,
+    InputIterator last2,
+    Scalar& energy)
     {
     if (first1 == last1 || first2 == last2)
         return;
@@ -692,7 +695,6 @@ inline void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::
         }
 #endif
     }
-
 
 namespace detail
     {

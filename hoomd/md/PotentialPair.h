@@ -82,8 +82,7 @@ namespace md
    parameters is defined by \a param_type in the potential evaluator class passed in. See the
    appropriate documentation for the evaluator for the definition of each element of the parameters.
 */
-template<class evaluator>
-class PotentialPair : public ForceCompute
+template<class evaluator> class PotentialPair : public ForceCompute
     {
     public:
     //! Param type from evaluator
@@ -341,7 +340,7 @@ class PotentialPair : public ForceCompute
 */
 template<class evaluator>
 PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
-                                                   std::shared_ptr<NeighborList> nlist)
+                                        std::shared_ptr<NeighborList> nlist)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift),
       m_typpair_idx(m_pdata->getNTypes())
     {
@@ -459,8 +458,8 @@ template<class evaluator> PotentialPair<evaluator>::~PotentialPair()
 */
 template<class evaluator>
 void PotentialPair<evaluator>::setParams(unsigned int typ1,
-                                                    unsigned int typ2,
-                                                    const param_type& param)
+                                         unsigned int typ2,
+                                         const param_type& param)
     {
     validateTypes(typ1, typ2, "setting params");
     m_params[m_typpair_idx(typ1, typ2)] = param;
@@ -468,16 +467,14 @@ void PotentialPair<evaluator>::setParams(unsigned int typ1,
     }
 
 template<class evaluator>
-void PotentialPair<evaluator>::setParamsPython(pybind11::tuple typ,
-                                                          pybind11::dict params)
+void PotentialPair<evaluator>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
     setParams(typ1, typ2, param_type(params, m_exec_conf->isCUDAEnabled()));
     }
 
-template<class evaluator>
-pybind11::dict PotentialPair<evaluator>::getParams(pybind11::tuple typ)
+template<class evaluator> pybind11::dict PotentialPair<evaluator>::getParams(pybind11::tuple typ)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
@@ -488,8 +485,8 @@ pybind11::dict PotentialPair<evaluator>::getParams(pybind11::tuple typ)
 
 template<class evaluator>
 void PotentialPair<evaluator>::validateTypes(unsigned int typ1,
-                                                        unsigned int typ2,
-                                                        std::string action)
+                                             unsigned int typ2,
+                                             std::string action)
     {
     auto n_types = this->m_pdata->getNTypes();
     if (typ1 >= n_types || typ2 >= n_types)
@@ -534,8 +531,7 @@ void PotentialPair<evaluator>::setRCutPython(pybind11::tuple types, Scalar r_cut
     setRcut(typ1, typ2, r_cut);
     }
 
-template<class evaluator>
-Scalar PotentialPair<evaluator>::getRCut(pybind11::tuple types)
+template<class evaluator> Scalar PotentialPair<evaluator>::getRCut(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
@@ -559,8 +555,7 @@ void PotentialPair<evaluator>::setRon(unsigned int typ1, unsigned int typ2, Scal
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
     }
 
-template<class evaluator>
-Scalar PotentialPair<evaluator>::getROn(pybind11::tuple types)
+template<class evaluator> Scalar PotentialPair<evaluator>::getROn(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
@@ -581,9 +576,8 @@ template<class evaluator>
 void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&PotentialPair<evaluator>::slotWriteGSDShapeSpec,
-                          this,
-                          std::placeholders::_1);
+    auto func
+        = std::bind(&PotentialPair<evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
@@ -603,8 +597,7 @@ int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
 
     \param timestep specifies the current time step of the simulation
 */
-template<class evaluator>
-void PotentialPair<evaluator>::computeForces(uint64_t timestep)
+template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -851,10 +844,10 @@ CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
 template<class evaluator>
 template<class InputIterator>
 inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator first1,
-                                                                          InputIterator last1,
-                                                                          InputIterator first2,
-                                                                          InputIterator last2,
-                                                                          Scalar& energy)
+                                                               InputIterator last1,
+                                                               InputIterator first2,
+                                                               InputIterator last2,
+                                                               Scalar& energy)
     {
     if (first1 == last1 || first2 == last2)
         return;
