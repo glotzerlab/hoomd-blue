@@ -300,9 +300,6 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialPairMoliereGPU");
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
-    export_PotentialPairGPU<PotentialPairLJGaussGPU, PotentialPairLJGauss>(
-        m,
-        "PotentialPairLJGaussGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(
         m,
         "PotentialTersoffGPU");
