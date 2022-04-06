@@ -144,9 +144,6 @@ class PYBIND11_EXPORT ParticleGroup
     //! \name Initialization methods
     // @{
 
-    //! Constructs an empty particle group
-    ParticleGroup() : m_num_local_members(0) {};
-
     //! Constructs a particle group of all particles that meet the given selection
     ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
                   std::shared_ptr<ParticleFilter> selector,

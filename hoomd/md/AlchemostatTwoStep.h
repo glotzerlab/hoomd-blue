@@ -8,6 +8,7 @@
 
 #include "AlchemyData.h"
 #include "IntegrationMethodTwoStep.h"
+#include "hoomd/filter/ParticleFilterNull.h"
 
 #include <cstddef>
 #include <pybind11/stl_bind.h>
@@ -25,7 +26,9 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     public:
     //! Constructs the integration method and associates it with the system
     AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef, unsigned int alchemTimeFactor)
-        : IntegrationMethodTwoStep(sysdef, std::make_shared<ParticleGroup>()),
+        : IntegrationMethodTwoStep(
+            sysdef,
+            std::make_shared<ParticleGroup>(sysdef, std::make_shared<ParticleFilterNull>())),
           m_nTimeFactor(alchemTimeFactor), m_halfDeltaT(0.5 * m_deltaT * alchemTimeFactor) {};
 
     virtual ~AlchemostatTwoStep() { }
