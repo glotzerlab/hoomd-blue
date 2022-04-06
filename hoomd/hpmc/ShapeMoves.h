@@ -643,7 +643,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     std::vector<Matrix3S> m_F;      // matrix representing shape deformation at the current step
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
         m_reference_shapes; // shape to reference shape move against
-    // std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
     std::shared_ptr<Variant> m_k; // shape move stiffness
 
     private:
