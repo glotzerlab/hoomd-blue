@@ -762,8 +762,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         Scalar lnx = log(param.x / param.y);
         Scalar dlnx = hoomd::UniformDistribution<Scalar>(-stepsize, stepsize)(rng);
         Scalar x = fast::exp(lnx + dlnx);
-        // m_mass_props[type_id].updateParam(param);
-        // Scalar volume = m_mass_props[type_id].getVolume();
         detail::MassProperties<ShapeEllipsoid> mp(param);
         Scalar volume = mp.getVolume();
         Scalar b = fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0);
