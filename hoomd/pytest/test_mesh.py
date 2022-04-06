@@ -42,20 +42,20 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
 
     sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
     mesh = Mesh()
-    if sim.device.communicator.rank == 0:
-        assert mesh.size == 0
-        assert mesh.types == ["mesh"]
-        assert len(mesh.triangles) == 0
-        with pytest.raises(DataAccessError):
-            mesh.bonds == 0
 
-        mesh._add(sim)
-        mesh._attach()
+    assert mesh.size == 0
+    assert mesh.types == ["mesh"]
+    assert len(mesh.triangles) == 0
+    with pytest.raises(DataAccessError):
+        mesh.bonds == 0
 
-        assert mesh.size == 0
-        assert mesh.types == ["mesh"]
-        assert len(mesh.triangles) == 0
-        assert len(mesh.bonds) == 0
+    mesh._add(sim)
+    mesh._attach()
+
+    assert mesh.size == 0
+    assert mesh.types == ["mesh"]
+    assert len(mesh.triangles) == 0
+    assert len(mesh.bonds) == 0
 
 
 def test_mesh_setter():
