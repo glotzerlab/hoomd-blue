@@ -361,9 +361,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         {
         unsigned int typid = getValidateType(typ);
         this->m_volume[typid] = volume;
-        // ShapeMoveBase::setVolume(typid, volume);
-
-        // auto shape = this->m_mc->getParams()[typid];
         auto& mc_params = this->m_mc->getParams();
         param_type shape = mc_params[typid];
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
