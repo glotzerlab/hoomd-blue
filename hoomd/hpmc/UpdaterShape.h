@@ -265,7 +265,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
 
     // Shuffle the order of particles types for this step
     m_update_order.resize(m_pdata->getNTypes());
-    m_update_order.shuffle(timestep, this->m_sysdef->getSeed(), m_exec_conf->getRank());
+    m_update_order.shuffle(timestep, this->m_sysdef->getSeed(), RNGIdentifier::HPMCShapeMoveUpdateOrder);
 
     Scalar log_boltz;
     for (unsigned int i_sweep = 0; i_sweep < m_nsweeps; i_sweep++)
