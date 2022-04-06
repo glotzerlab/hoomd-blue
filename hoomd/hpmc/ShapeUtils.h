@@ -35,8 +35,7 @@ typedef PolyhedronVertices convex_polyhedron_param;
 template<class Shape> class MassPropertiesBase
     {
     public:
-    MassPropertiesBase()
-        : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0)
+    MassPropertiesBase() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0)
         {
         for (unsigned int i = 0; i < 6; i++)
             m_inertia[i] = 0.0;
