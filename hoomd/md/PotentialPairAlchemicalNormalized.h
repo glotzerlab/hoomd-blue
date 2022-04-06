@@ -11,14 +11,6 @@
 #include "pybind11/functional.h"
 #include "pybind11/stl.h"
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
-#endif
-
-#ifdef ENABLE_MPI
-#include "hoomd/Communicator.h"
-#endif
-
 /*! \file PotentialPairAlchemicalNormalized.h
     \brief Defines the template class for alchemical pair potentials
 */
@@ -100,8 +92,8 @@ class PotentialPairAlchemicalNormalized
     using PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::m_alchemy_index;
     using PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::
         m_alchemical_particles;
-    using PotentialPair<evaluator, extra_pkg>::m_params;
-    using PotentialPair<evaluator, extra_pkg>::m_typpair_idx;
+    using PotentialPair<evaluator>::m_params;
+    using PotentialPair<evaluator>::m_typpair_idx;
 
     pybind11::function m_normalizer = {};
 

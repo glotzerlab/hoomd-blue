@@ -11,19 +11,7 @@
 #include <memory>
 #include <numeric>
 
-#include "AlchemyData.h"
-#include "hoomd/GlobalArray.h"
-#include "hoomd/Index1D.h"
-#include "hoomd/extern/nano-signal-slot/nano_observer.hpp"
 #include "hoomd/md/PotentialPair.h"
-
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
-#endif
-
-#ifdef ENABLE_MPI
-#include "hoomd/Communicator.h"
-#endif
 
 /*! \file PotentialPairAlchemical.h
     \brief Defines the template class for alchemical pair potentials
@@ -62,7 +50,7 @@ template<class evaluator> struct AlchemyPackage
 template<class evaluator,
          typename extra_pkg = AlchemyPackage<evaluator>,
          typename alpha_particle_type = AlchemicalPairParticle>
-class PotentialPairAlchemical : public PotentialPair<evaluator, extra_pkg>
+class PotentialPairAlchemical : public PotentialPair<evaluator>
     {
     public:
     //! Construct the pair potential
@@ -106,9 +94,21 @@ class PotentialPairAlchemical : public PotentialPair<evaluator, extra_pkg>
     typedef std::bitset<evaluator::num_alchemical_parameters> mask_type;
     typedef std::array<Scalar, evaluator::num_alchemical_parameters> alpha_array_t;
 
-    // templated base classes need us to pull members we want into scope or overuse this->
-    using PotentialPair<evaluator, extra_pkg>::m_exec_conf;
-    using PotentialPair<evaluator, extra_pkg>::m_pdata;
+    // allow copy and paste from PotentialPair without using this-> on every member
+    using PotentialPair<evaluator>::m_exec_conf;
+    using PotentialPair<evaluator>::m_nlist;
+    using PotentialPair<evaluator>::m_virial;
+    using PotentialPair<evaluator>::m_ronsq;
+    using PotentialPair<evaluator>::m_rcutsq;
+    using PotentialPair<evaluator>::m_force;
+    using PotentialPair<evaluator>::m_typpair_idx;
+    using PotentialPair<evaluator>::m_pdata;
+    using PotentialPair<evaluator>::m_shift_mode;
+    using PotentialPair<evaluator>::xplor;
+    using PotentialPair<evaluator>::shift;
+    using PotentialPair<evaluator>::m_virial_pitch;
+    using PotentialPair<evaluator>::m_params;
+    using PotentialPair<evaluator>::computeTailCorrection;
 
     Index2DUpperTriangular m_alchemy_index; //!< upper triangular typepair index
     std::vector<mask_type> m_alchemy_mask;  //!< Type pair mask for if alchemical forces are used
@@ -125,22 +125,30 @@ class PotentialPairAlchemical : public PotentialPair<evaluator, extra_pkg>
         };
 
     // Extra steps to insert
-    inline extra_pkg pkgInitialize(const uint64_t& timestep) override;
-    inline void pkgPerNeighbor(const unsigned int& i,
+    virtual inline extra_pkg pkgInitialize(const uint64_t& timestep);
+    virtual inline void pkgPerNeighbor(const unsigned int& i,
                                const unsigned int& j,
                                const unsigned int& typei,
                                const unsigned int& typej,
                                const bool& in_rcut,
                                evaluator& eval,
-                               extra_pkg&) override;
-    inline void pkgFinalize(extra_pkg&) override;
+                               extra_pkg&);
+    virtual inline void pkgFinalize(extra_pkg&);
+
+    virtual void computeForces(uint64_t timestep);
+    template<class InputIterator>
+    void computeEnergyBetweenSets(InputIterator first1,
+                                  InputIterator last1,
+                                  InputIterator first2,
+                                  InputIterator last2,
+                                  Scalar& energy);
     };
 
 template<class evaluator, typename extra_pkg, typename alpha_particle_type>
 PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::PotentialPairAlchemical(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<NeighborList> nlist)
-    : PotentialPair<evaluator, extra_pkg>(sysdef, nlist)
+    : PotentialPair<evaluator>(sysdef, nlist)
     {
     m_alchemy_index = Index2DUpperTriangular(m_pdata->getNTypes());
     m_alchemical_particles.resize(m_alchemy_index.getNumElements()
@@ -279,6 +287,413 @@ PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::pkgFinalize(
                 }
     }
 
+/*! Compute pair forces with extra alchemical derivatives.
+*/
+template<class evaluator, typename extra_pkg, typename alpha_particle_type>
+void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::computeForces(uint64_t timestep)
+    {
+    // start by updating the neighborlist
+    m_nlist->compute(timestep);
+
+    // depending on the neighborlist settings, we can take advantage of newton's third law
+    // to reduce computations at the cost of memory access complexity: set that flag now
+    bool third_law = m_nlist->getStorageMode() == NeighborList::half;
+
+    // access the neighbor list, particle data, and system box
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+                                        access_location::host,
+                                        access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+                                      access_location::host,
+                                      access_mode::read);
+    //     Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<size_t> h_head_list(m_nlist->getHeadList(),
+                                    access_location::host,
+                                    access_mode::read);
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    // force arrays
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
+
+    const BoxDim box = m_pdata->getGlobalBox();
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
+
+    // need to start from a zero force, energy and virial
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+
+    extra_pkg pkg = pkgInitialize(timestep);
+
+    // for each particle
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
+        {
+        // access the particle's position and type (MEM TRANSFER: 4 scalars)
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+
+        // sanity check
+        assert(typei < m_pdata->getNTypes());
+
+        // access diameter and charge (if needed)
+        Scalar di = Scalar(0.0);
+        Scalar qi = Scalar(0.0);
+        if (evaluator::needsDiameter())
+            di = h_diameter.data[i];
+        if (evaluator::needsCharge())
+            qi = h_charge.data[i];
+
+        // initialize current particle force, potential energy, and virial to 0
+        Scalar3 fi = make_scalar3(0, 0, 0);
+        Scalar pei = 0.0;
+        Scalar virialxxi = 0.0;
+        Scalar virialxyi = 0.0;
+        Scalar virialxzi = 0.0;
+        Scalar virialyyi = 0.0;
+        Scalar virialyzi = 0.0;
+        Scalar virialzzi = 0.0;
+
+        // loop over all of the neighbors of this particle
+        const size_t myHead = h_head_list.data[i];
+        const unsigned int size = (unsigned int)h_n_neigh.data[i];
+        for (unsigned int k = 0; k < size; k++)
+            {
+            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+            unsigned int j = h_nlist.data[myHead + k];
+            assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+
+            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pi - pj;
+
+            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+            assert(typej < m_pdata->getNTypes());
+
+            // access diameter and charge (if needed)
+            Scalar dj = Scalar(0.0);
+            Scalar qj = Scalar(0.0);
+            if (evaluator::needsDiameter())
+                dj = h_diameter.data[j];
+            if (evaluator::needsCharge())
+                qj = h_charge.data[j];
+
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
+
+            // calculate r_ij squared (FLOPS: 5)
+            Scalar rsq = dot(dx, dx);
+
+            // get parameters for this type pair
+            unsigned int typpair_idx = m_typpair_idx(typei, typej);
+            auto param = m_params[typpair_idx];
+            Scalar rcutsq = h_rcutsq.data[typpair_idx];
+            Scalar ronsq = Scalar(0.0);
+            if (m_shift_mode == xplor)
+                ronsq = h_ronsq.data[typpair_idx];
+
+            // design specifies that energies are shifted if
+            // 1) shift mode is set to shift
+            // or 2) shift mode is explor and ron > rcut
+            bool energy_shift = false;
+            if (m_shift_mode == shift)
+                energy_shift = true;
+            else if (m_shift_mode == xplor)
+                {
+                if (ronsq > rcutsq)
+                    energy_shift = true;
+                }
+
+            // compute the force and potential energy
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
+            evaluator eval(rsq, rcutsq, param);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, dj);
+            if (evaluator::needsCharge())
+                eval.setCharge(qi, qj);
+
+            pkgPerNeighbor(i, j, typei, typej, (rsq < rcutsq), eval, pkg);
+
+            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+            if (evaluated)
+                {
+                // modify the potential for xplor shifting
+                if (m_shift_mode == xplor)
+                    {
+                    if (rsq >= ronsq && rsq < rcutsq)
+                        {
+                        // Implement XPLOR smoothing (FLOPS: 16)
+                        Scalar old_pair_eng = pair_eng;
+                        Scalar old_force_divr = force_divr;
+
+                        // calculate 1.0 / (xplor denominator)
+                        Scalar xplor_denom_inv
+                            = Scalar(1.0)
+                              / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+
+                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
+                                   * (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq)
+                                   * xplor_denom_inv;
+                        Scalar ds_dr_divr
+                            = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+
+                        // make modifications to the old pair energy and force
+                        pair_eng = old_pair_eng * s;
+                        // note: I'm not sure why the minus sign needs to be there: my notes have a
+                        // + But this is verified correct via plotting
+                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                        }
+                    }
+
+                Scalar force_div2r = force_divr * Scalar(0.5);
+                // add the force, potential energy and virial to the particle i
+                // (FLOPS: 8)
+                fi += dx * force_divr;
+                pei += pair_eng * Scalar(0.5);
+                if (compute_virial)
+                    {
+                    virialxxi += force_div2r * dx.x * dx.x;
+                    virialxyi += force_div2r * dx.x * dx.y;
+                    virialxzi += force_div2r * dx.x * dx.z;
+                    virialyyi += force_div2r * dx.y * dx.y;
+                    virialyzi += force_div2r * dx.y * dx.z;
+                    virialzzi += force_div2r * dx.z * dx.z;
+                    }
+
+                // add the force to particle j if we are using the third law (MEM TRANSFER: 10
+                // scalars / FLOPS: 8) only add force to local particles
+                if (third_law && j < m_pdata->getN())
+                    {
+                    unsigned int mem_idx = j;
+                    h_force.data[mem_idx].x -= dx.x * force_divr;
+                    h_force.data[mem_idx].y -= dx.y * force_divr;
+                    h_force.data[mem_idx].z -= dx.z * force_divr;
+                    h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
+                    if (compute_virial)
+                        {
+                        h_virial.data[0 * m_virial_pitch + mem_idx] += force_div2r * dx.x * dx.x;
+                        h_virial.data[1 * m_virial_pitch + mem_idx] += force_div2r * dx.x * dx.y;
+                        h_virial.data[2 * m_virial_pitch + mem_idx] += force_div2r * dx.x * dx.z;
+                        h_virial.data[3 * m_virial_pitch + mem_idx] += force_div2r * dx.y * dx.y;
+                        h_virial.data[4 * m_virial_pitch + mem_idx] += force_div2r * dx.y * dx.z;
+                        h_virial.data[5 * m_virial_pitch + mem_idx] += force_div2r * dx.z * dx.z;
+                        }
+                    }
+                }
+            }
+
+        // finally, increment the force, potential energy and virial for particle i
+        unsigned int mem_idx = i;
+        h_force.data[mem_idx].x += fi.x;
+        h_force.data[mem_idx].y += fi.y;
+        h_force.data[mem_idx].z += fi.z;
+        h_force.data[mem_idx].w += pei;
+        if (compute_virial)
+            {
+            h_virial.data[0 * m_virial_pitch + mem_idx] += virialxxi;
+            h_virial.data[1 * m_virial_pitch + mem_idx] += virialxyi;
+            h_virial.data[2 * m_virial_pitch + mem_idx] += virialxzi;
+            h_virial.data[3 * m_virial_pitch + mem_idx] += virialyyi;
+            h_virial.data[4 * m_virial_pitch + mem_idx] += virialyzi;
+            h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
+            }
+        }
+    pkgFinalize(pkg);
+
+    computeTailCorrection();
+    }
+
+template<class evaluator, typename extra_pkg, typename alpha_particle_type>
+template<class InputIterator>
+inline void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::computeEnergyBetweenSets(InputIterator first1,
+                                                                          InputIterator last1,
+                                                                          InputIterator first2,
+                                                                          InputIterator last2,
+                                                                          Scalar& energy)
+    {
+    if (first1 == last1 || first2 == last2)
+        return;
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        // temporarily add tag comm flag
+        CommFlags old_flags = m_comm->getFlags();
+        CommFlags new_flags = old_flags;
+        new_flags[comm_flag::tag] = 1;
+        m_comm->setFlags(new_flags);
+
+        // force communication
+        m_comm->migrateParticles();
+        m_comm->exchangeGhosts();
+
+        // reset the old flags
+        m_comm->setFlags(old_flags);
+        }
+#endif
+
+    energy = Scalar(0.0);
+
+    // max value will be special timestep case for extra packages
+    extra_pkg pkg = pkgInitialize(UINT64_MAX);
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(),
+                                      access_location::host,
+                                      access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    const BoxDim box = m_pdata->getGlobalBox();
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+    // for each particle in tags1
+    while (first1 != last1)
+        {
+        unsigned int i = h_rtags.data[*first1];
+        first1++;
+        if (i >= m_pdata->getN()) // not owned by this processor.
+            continue;
+        // access the particle's position and type (MEM TRANSFER: 4 scalars)
+        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+
+        // sanity check
+        assert(typei < m_pdata->getNTypes());
+
+        // access diameter and charge (if needed)
+        Scalar di = Scalar(0.0);
+        Scalar qi = Scalar(0.0);
+        if (evaluator::needsDiameter())
+            di = h_diameter.data[i];
+        if (evaluator::needsCharge())
+            qi = h_charge.data[i];
+
+        // loop over all particles in tags2
+        for (InputIterator iter = first2; iter != last2; ++iter)
+            {
+            // access the index of this neighbor (MEM TRANSFER: 1 scalar)
+            unsigned int j = h_rtags.data[*iter];
+            if (j >= m_pdata->getN() + m_pdata->getNGhosts()) // not on this processor at all
+                continue;
+            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pi - pj;
+
+            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+            assert(typej < m_pdata->getNTypes());
+
+            // access diameter and charge (if needed)
+            Scalar dj = Scalar(0.0);
+            Scalar qj = Scalar(0.0);
+            if (evaluator::needsDiameter())
+                dj = h_diameter.data[j];
+            if (evaluator::needsCharge())
+                qj = h_charge.data[j];
+
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
+
+            // calculate r_ij squared (FLOPS: 5)
+            Scalar rsq = dot(dx, dx);
+
+            // get parameters for this type pair
+            unsigned int typpair_idx = m_typpair_idx(typei, typej);
+            const auto& param = m_params[typpair_idx];
+            Scalar rcutsq = h_rcutsq.data[typpair_idx];
+            Scalar ronsq = Scalar(0.0);
+            if (m_shift_mode == xplor)
+                ronsq = h_ronsq.data[typpair_idx];
+
+            // design specifies that energies are shifted if
+            // 1) shift mode is set to shift
+            // or 2) shift mode is explor and ron > rcut
+            bool energy_shift = false;
+            if (m_shift_mode == shift)
+                energy_shift = true;
+            else if (m_shift_mode == xplor)
+                {
+                if (ronsq > rcutsq)
+                    energy_shift = true;
+                }
+
+            // compute the force and potential energy
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
+            evaluator eval(rsq, rcutsq, param);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, dj);
+            if (evaluator::needsCharge())
+                eval.setCharge(qi, qj);
+
+            pkgPerNeighbor(i, j, typei, typej, (rsq < rcutsq), eval, pkg);
+
+            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+            if (evaluated)
+                {
+                // modify the potential for xplor shifting
+                if (m_shift_mode == xplor)
+                    {
+                    if (rsq >= ronsq && rsq < rcutsq)
+                        {
+                        // Implement XPLOR smoothing (FLOPS: 16)
+                        Scalar old_pair_eng = pair_eng;
+                        Scalar old_force_divr = force_divr;
+
+                        // calculate 1.0 / (xplor denominator)
+                        Scalar xplor_denom_inv
+                            = Scalar(1.0)
+                              / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+
+                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
+                                   * (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq)
+                                   * xplor_denom_inv;
+                        Scalar ds_dr_divr
+                            = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+
+                        // make modifications to the old pair energy and force
+                        pair_eng = old_pair_eng * s;
+                        // note: I'm not sure why the minus sign needs to be there: my notes have a
+                        // + But this is verified correct via plotting
+                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                        }
+                    }
+                energy += pair_eng;
+                }
+            }
+        }
+#ifdef ENABLE_MPI
+    if (this->m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &energy,
+                      1,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+#endif
+    }
+
+
 namespace detail
     {
 
@@ -291,8 +706,7 @@ template<class evaluator,
          typename alpha_particle_type = AlchemicalPairParticle>
 void export_PotentialPairAlchemical(pybind11::module& m, const std::string& name)
     {
-    typedef PotentialPair<evaluator, extra_pkg> base;
-    export_PotentialPair<base>(m, name + std::string("Base").c_str());
+    typedef PotentialPair<evaluator> base;
     typedef PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type> T;
     pybind11::class_<T, base, std::shared_ptr<T>> PotentialPairAlchemical(m, name.c_str());
     PotentialPairAlchemical

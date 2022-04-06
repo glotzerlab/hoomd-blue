@@ -82,7 +82,7 @@ namespace md
    parameters is defined by \a param_type in the potential evaluator class passed in. See the
    appropriate documentation for the evaluator for the definition of each element of the parameters.
 */
-template<class evaluator, typename extra_pkg = std::nullptr_t>
+template<class evaluator>
 class PotentialPair : public ForceCompute
     {
     public:
@@ -244,22 +244,6 @@ class PotentialPair : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
-    // Extra steps to insert (used for alchemy)
-    virtual inline extra_pkg pkgInitialize(const uint64_t& timestep)
-        {
-        return nullptr;
-        };
-
-    virtual inline void pkgPerNeighbor(const unsigned int& i,
-                                       const unsigned int& j,
-                                       const unsigned int& typei,
-                                       const unsigned int& typej,
-                                       const bool& in_rcut,
-                                       evaluator& eval,
-                                       extra_pkg&) {};
-
-    virtual inline void pkgFinalize(extra_pkg&) {};
-
     //! Compute the long-range corrections to energy and pressure to account for truncating the pair
     //! potentials
     virtual void computeTailCorrection()
@@ -355,8 +339,8 @@ class PotentialPair : public ForceCompute
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
 */
-template<class evaluator, typename extra_pkg>
-PotentialPair<evaluator, extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+template<class evaluator>
+PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<NeighborList> nlist)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift),
       m_typpair_idx(m_pdata->getNTypes())
@@ -456,7 +440,7 @@ PotentialPair<evaluator, extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinit
 #endif
     }
 
-template<class evaluator, typename extra_pkg> PotentialPair<evaluator, extra_pkg>::~PotentialPair()
+template<class evaluator> PotentialPair<evaluator>::~PotentialPair()
     {
     m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">"
                                 << std::endl;
@@ -473,8 +457,8 @@ template<class evaluator, typename extra_pkg> PotentialPair<evaluator, extra_pkg
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
    automatically set.
 */
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::setParams(unsigned int typ1,
+template<class evaluator>
+void PotentialPair<evaluator>::setParams(unsigned int typ1,
                                                     unsigned int typ2,
                                                     const param_type& param)
     {
@@ -483,8 +467,8 @@ void PotentialPair<evaluator, extra_pkg>::setParams(unsigned int typ1,
     m_params[m_typpair_idx(typ2, typ1)] = param;
     }
 
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::setParamsPython(pybind11::tuple typ,
+template<class evaluator>
+void PotentialPair<evaluator>::setParamsPython(pybind11::tuple typ,
                                                           pybind11::dict params)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
@@ -492,8 +476,8 @@ void PotentialPair<evaluator, extra_pkg>::setParamsPython(pybind11::tuple typ,
     setParams(typ1, typ2, param_type(params, m_exec_conf->isCUDAEnabled()));
     }
 
-template<class evaluator, typename extra_pkg>
-pybind11::dict PotentialPair<evaluator, extra_pkg>::getParams(pybind11::tuple typ)
+template<class evaluator>
+pybind11::dict PotentialPair<evaluator>::getParams(pybind11::tuple typ)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
@@ -502,8 +486,8 @@ pybind11::dict PotentialPair<evaluator, extra_pkg>::getParams(pybind11::tuple ty
     return m_params[m_typpair_idx(typ1, typ2)].asDict();
     }
 
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::validateTypes(unsigned int typ1,
+template<class evaluator>
+void PotentialPair<evaluator>::validateTypes(unsigned int typ1,
                                                         unsigned int typ2,
                                                         std::string action)
     {
@@ -520,8 +504,8 @@ void PotentialPair<evaluator, extra_pkg>::validateTypes(unsigned int typ1,
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
    automatically set.
 */
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
+template<class evaluator>
+void PotentialPair<evaluator>::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
     validateTypes(typ1, typ2, "setting r_cut");
         {
@@ -542,16 +526,16 @@ void PotentialPair<evaluator, extra_pkg>::setRcut(unsigned int typ1, unsigned in
     m_nlist->notifyRCutMatrixChange();
     }
 
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::setRCutPython(pybind11::tuple types, Scalar r_cut)
+template<class evaluator>
+void PotentialPair<evaluator>::setRCutPython(pybind11::tuple types, Scalar r_cut)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
     setRcut(typ1, typ2, r_cut);
     }
 
-template<class evaluator, typename extra_pkg>
-Scalar PotentialPair<evaluator, extra_pkg>::getRCut(pybind11::tuple types)
+template<class evaluator>
+Scalar PotentialPair<evaluator>::getRCut(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
@@ -566,8 +550,8 @@ Scalar PotentialPair<evaluator, extra_pkg>::getRCut(pybind11::tuple types)
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
    automatically set.
 */
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
+template<class evaluator>
+void PotentialPair<evaluator>::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
     validateTypes(typ1, typ2, "setting r_on");
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
@@ -575,8 +559,8 @@ void PotentialPair<evaluator, extra_pkg>::setRon(unsigned int typ1, unsigned int
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
     }
 
-template<class evaluator, typename extra_pkg>
-Scalar PotentialPair<evaluator, extra_pkg>::getROn(pybind11::tuple types)
+template<class evaluator>
+Scalar PotentialPair<evaluator>::getROn(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
@@ -585,27 +569,27 @@ Scalar PotentialPair<evaluator, extra_pkg>::getROn(pybind11::tuple types)
     return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
     }
 
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::setROnPython(pybind11::tuple types, Scalar r_on)
+template<class evaluator>
+void PotentialPair<evaluator>::setROnPython(pybind11::tuple types, Scalar r_on)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
     setRon(typ1, typ2, r_on);
     }
 
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
+template<class evaluator>
+void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&PotentialPair<evaluator, extra_pkg>::slotWriteGSDShapeSpec,
+    auto func = std::bind(&PotentialPair<evaluator>::slotWriteGSDShapeSpec,
                           this,
                           std::placeholders::_1);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
-template<class evaluator, typename extra_pkg>
-int PotentialPair<evaluator, extra_pkg>::slotWriteGSDShapeSpec(gsd_handle& handle) const
+template<class evaluator>
+int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
     hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: "
@@ -619,8 +603,8 @@ int PotentialPair<evaluator, extra_pkg>::slotWriteGSDShapeSpec(gsd_handle& handl
 
     \param timestep specifies the current time step of the simulation
 */
-template<class evaluator, typename extra_pkg>
-void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
+template<class evaluator>
+void PotentialPair<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -661,8 +645,6 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
     // need to start from a zero force, energy and virial
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
-
-    extra_pkg pkg = pkgInitialize(timestep);
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -752,8 +734,6 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            pkgPerNeighbor(i, j, typei, typej, (rsq < rcutsq), eval, pkg);
-
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
             if (evaluated)
@@ -840,7 +820,6 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
             h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
             }
         }
-    pkgFinalize(pkg);
 
     computeTailCorrection();
     }
@@ -848,8 +827,8 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-template<class evaluator, typename extra_pkg>
-CommFlags PotentialPair<evaluator, extra_pkg>::getRequestedCommFlags(uint64_t timestep)
+template<class evaluator>
+CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -869,9 +848,9 @@ CommFlags PotentialPair<evaluator, extra_pkg>::getRequestedCommFlags(uint64_t ti
 //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.
 //! \param energy is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i
 //! \in tags1, j \in tags2} u_{ij}.
-template<class evaluator, typename extra_pkg>
+template<class evaluator>
 template<class InputIterator>
-inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputIterator first1,
+inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator first1,
                                                                           InputIterator last1,
                                                                           InputIterator first2,
                                                                           InputIterator last2,
@@ -899,9 +878,6 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
 #endif
 
     energy = Scalar(0.0);
-
-    // max value will be special timestep case for extra packages
-    extra_pkg pkg = pkgInitialize(UINT64_MAX);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(),
@@ -996,8 +972,6 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            pkgPerNeighbor(i, j, typei, typej, (rsq < rcutsq), eval, pkg);
-
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
             if (evaluated)
@@ -1048,8 +1022,8 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
     }
 
 //! Calculates the energy between two lists of particles.
-template<class evaluator, typename extra_pkg>
-Scalar PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSetsPythonList(
+template<class evaluator>
+Scalar PotentialPair<evaluator>::computeEnergyBetweenSetsPythonList(
     pybind11::array_t<int, pybind11::array::c_style> tags1,
     pybind11::array_t<int, pybind11::array::c_style> tags2)
     {
