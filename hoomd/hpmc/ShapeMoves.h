@@ -244,7 +244,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     private:
-    // Scalar this->m_move_probability;
     unsigned int m_num_params;                        // cache the number of parameters.
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
     std::vector<std::vector<Scalar>> m_params;        // all params are from 0,1
