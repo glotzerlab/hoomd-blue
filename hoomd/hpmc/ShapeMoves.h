@@ -709,10 +709,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         : ShapeMoveBase<ShapeEllipsoid>(sysdef, mc)
         {
         m_mass_props.resize(this->m_ntypes);
-        // // typename ShapeEllipsoid::param_type shape(shape_params);
-        // m_reference_shapes = shape;
-        // detail::MassProperties<ShapeEllipsoid> mp(m_reference_shapes);
-        // m_volume = mp.getVolume();
         }
 
     Scalar getShearScaleRatio()
