@@ -18,8 +18,6 @@ template<class Shape> void export_MassPropertiesBase(pybind11::module& m, std::s
         name.c_str())
         .def(pybind11::init<>())
         .def("getVolume", &MassPropertiesBase<Shape>::getVolume)
-        .def("getCenterOfMassElement", &MassPropertiesBase<Shape>::getCenterOfMassElement)
-        .def("getInertiaTensor", &MassPropertiesBase<Shape>::getInertiaTensor)
         .def("getDetInertiaTensor", &MassPropertiesBase<Shape>::getDetInertiaTensor);
     }
 

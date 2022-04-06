@@ -36,8 +36,7 @@ template<class Shape> class MassPropertiesBase
     {
     public:
     MassPropertiesBase()
-        : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0),
-          m_isoperimetric_quotient(0.0)
+        : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0)
         {
         for (unsigned int i = 0; i < 6; i++)
             m_inertia[i] = 0.0;
@@ -50,38 +49,9 @@ template<class Shape> class MassPropertiesBase
         return m_volume;
         }
 
-    Scalar getSurfaceArea()
-        {
-        return m_surface_area;
-        }
-
-    Scalar getIsoperimetricQuotient()
-        {
-        return m_isoperimetric_quotient;
-        }
-
     const vec3<Scalar>& getCenterOfMass()
         {
         return m_center_of_mass;
-        }
-
-    Scalar getCenterOfMassElement(unsigned int i)
-        {
-        if (i == 0)
-            return m_center_of_mass.x;
-        else if (i == 1)
-            return m_center_of_mass.y;
-        else if (i == 2)
-            return m_center_of_mass.z;
-        else
-            throw std::runtime_error("index out of range");
-        }
-
-    Scalar getInertiaTensor(unsigned int i)
-        {
-        if (i >= 6)
-            throw std::runtime_error("index out of range");
-        return m_inertia[i];
         }
 
     Scalar getDetInertiaTensor()
@@ -103,7 +73,6 @@ template<class Shape> class MassPropertiesBase
     Scalar m_volume;
     Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
-    Scalar m_isoperimetric_quotient;
     Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
     };                   // end class MassPropertiesBase
 
@@ -261,9 +230,6 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
 
         m_volume = intg[0];
         m_surface_area = surface_area;
-        m_isoperimetric_quotient
-            = 36 * M_PI * m_volume * m_volume / (m_surface_area * m_surface_area * m_surface_area);
-
         m_center_of_mass.x = intg[1];
         m_center_of_mass.y = intg[2];
         m_center_of_mass.z = intg[3];
@@ -309,11 +275,6 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
     Scalar getDetInertiaTensor()
         {
         return m_inertia[0] * m_inertia[1] * m_inertia[2];
-        }
-
-    Scalar getSurfaceArea()
-        {
-        throw std::runtime_error("Surface area calculation not implemented!");
         }
 
     static constexpr Scalar m_vol_factor = Scalar(4.0) / Scalar(3.0) * M_PI;
