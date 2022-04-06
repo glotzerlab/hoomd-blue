@@ -337,7 +337,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     void initializeMassProperties()
         {
         auto& mc_params = this->m_mc->getParams();
-        for (unsigned int i; i < this->m_ntypes; i++)
+        for (unsigned int i = 0; i < this->m_ntypes; i++)
             {
             detail::MassProperties<ShapeConvexPolyhedron> mp(mc_params[i]);
             this->m_centroids[i] = mp.getCenterOfMass();
