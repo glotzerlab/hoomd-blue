@@ -612,10 +612,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                       const Scalar& iold)
         {
         Scalar newdivold = inew / iold;
-        if (newdivold < 0.0)
-            {
-            newdivold = -1.0 * newdivold;
-            } // MOI may be negative depending on order of vertices
         Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(newdivold);
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);

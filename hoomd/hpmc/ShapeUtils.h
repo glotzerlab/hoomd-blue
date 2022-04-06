@@ -59,7 +59,13 @@ template<class Shape> class MassPropertiesBase
         vec3<Scalar> a(m_inertia[0], m_inertia[3], m_inertia[5]),
             b(m_inertia[3], m_inertia[1], m_inertia[4]),
             c(m_inertia[5], m_inertia[4], m_inertia[2]);
-        return dot(a, cross(b, c));
+        Scalar det = dot(a, cross(b, c));
+        // determinant can be negative depending on order of vertices
+        if (det < 0.0)
+            {
+            det *= -1.0;
+            }
+        return det;
         }
 
     virtual void updateParam(const typename Shape::param_type& param, bool force = true) { }
