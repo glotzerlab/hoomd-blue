@@ -638,9 +638,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     protected:
-    // Scalar this->m_move_probability;
-    ; // probability of performing a scaling move vs a
-      // rotation-scale-rotation move
     std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
     std::vector<Matrix3S> m_F_last; // matrix representing shape deformation at the last step
     std::vector<Matrix3S> m_F;      // matrix representing shape deformation at the current step
