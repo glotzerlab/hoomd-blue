@@ -1796,7 +1796,7 @@ class LJGauss(Pair):
     r"""Lennard-Jones-Gauss pair potential.
 
     Args:
-        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius (in distance units).
         default_r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mod
@@ -1829,7 +1829,7 @@ class LJGauss(Pair):
 
     Example::
 
-        nl = nlist.cell()
+        nl = hoomd.md.nlist.Cell()
         ljg = pair.LJGauss(nl, r_cut=3.0)
         ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma2=0.02, r0=1.6)
         ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
