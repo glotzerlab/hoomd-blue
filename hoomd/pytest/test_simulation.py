@@ -123,7 +123,9 @@ def test_tps(simulation_factory, two_particle_snapshot_factory):
     assert sim.tps == 0
 
     list_writer = ListWriter(sim, "tps")
-    sim.operations.writers.append(hoomd.write.CustomWriter(action=list_writer, trigger=hoomd.trigger.Periodic(1)))
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=list_writer,
+                                 trigger=hoomd.trigger.Periodic(1)))
     sim.run(10)
     tps = list_writer.data
     assert len(np.unique(tps)) > 1
@@ -137,7 +139,9 @@ def test_walltime(simulation_factory, two_particle_snapshot_factory):
     assert sim.walltime == 0
 
     list_writer = ListWriter(sim, "walltime")
-    sim.operations.writers.append(hoomd.write.CustomWriter(action=list_writer, trigger=hoomd.trigger.Periodic(1)))
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=list_writer,
+                                 trigger=hoomd.trigger.Periodic(1)))
     sim.run(10)
     walltime = list_writer.data
     assert all(a > b for a, b in zip(walltime[1:], walltime[:-1]))
