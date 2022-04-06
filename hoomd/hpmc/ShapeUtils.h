@@ -325,9 +325,9 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
         Scalar a2 = m_param.x * m_param.x;
         Scalar b2 = m_param.y * m_param.y;
         Scalar c2 = m_param.z * m_param.z;
-        m_inertia[0] = (b2 + c2) / Scalar(5.0);
-        m_inertia[1] = (a2 + c2) / Scalar(5.0);
-        m_inertia[2] = (a2 + b2) / Scalar(5.0);
+        m_inertia[0] = m_volume * (b2 + c2) / Scalar(5.0);
+        m_inertia[1] = m_volume * (a2 + c2) / Scalar(5.0);
+        m_inertia[2] = m_volume * (a2 + b2) / Scalar(5.0);
         m_inertia[3] = Scalar(0);
         m_inertia[4] = Scalar(0);
         m_inertia[5] = Scalar(0);

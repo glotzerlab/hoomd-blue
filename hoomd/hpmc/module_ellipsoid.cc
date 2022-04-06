@@ -43,6 +43,8 @@ void export_ellipsoid(pybind11::module& m)
     export_UpdaterMuVT<ShapeEllipsoid>(m, "UpdaterMuVTEllipsoid");
     export_UpdaterClusters<ShapeEllipsoid>(m, "UpdaterClustersEllipsoid");
 
+    export_MassProperties<ShapeEllipsoid>(m, "MassPropertiesEllipsoid");
+
     export_UpdaterShape<ShapeEllipsoid>(m, "UpdaterShapeEllipsoid");
     export_ShapeMoveBase<ShapeEllipsoid>(m, "ShapeMoveBaseShapeEllipsoid");
     export_PythonShapeMove<ShapeEllipsoid>(m, "PythonShapeMoveEllipsoid");

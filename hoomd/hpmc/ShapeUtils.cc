@@ -17,10 +17,10 @@ template<class Shape> void export_MassPropertiesBase(pybind11::module& m, std::s
         m,
         name.c_str())
         .def(pybind11::init<>())
-        .def("volume", &MassPropertiesBase<Shape>::getVolume)
-        .def("center_of_mass", &MassPropertiesBase<Shape>::getCenterOfMassElement)
-        .def("moment_of_inertia", &MassPropertiesBase<Shape>::getInertiaTensor)
-        .def("moment_of_inertia_determinant", &MassPropertiesBase<Shape>::getDetInertiaTensor);
+        .def("getVolume", &MassPropertiesBase<Shape>::getVolume)
+        .def("getCenterOfMassElement", &MassPropertiesBase<Shape>::getCenterOfMassElement)
+        .def("getInertiaTensor", &MassPropertiesBase<Shape>::getInertiaTensor)
+        .def("getDetInertiaTensor", &MassPropertiesBase<Shape>::getDetInertiaTensor);
     }
 
 template<class Shape> void export_MassProperties(pybind11::module& m, std::string name)
@@ -36,6 +36,7 @@ template<class Shape> void export_MassProperties(pybind11::module& m, std::strin
     }
 
 template void export_MassProperties<ShapeConvexPolyhedron>(pybind11::module& m, std::string name);
+template void export_MassProperties<ShapeEllipsoid>(pybind11::module& m, std::string name);
 
     } // end namespace hpmc
     } // end namespace hoomd
