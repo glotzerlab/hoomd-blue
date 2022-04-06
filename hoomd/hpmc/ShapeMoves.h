@@ -118,7 +118,7 @@ template<typename Shape> class ShapeMoveBase
 
     protected:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
-    Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
+    Scalar m_det_inertia_tensor; // determinant of the moment of inertia tensor of the shape
     std::shared_ptr<SystemDefinition> m_sysdef;
     unsigned m_ntypes;
     std::vector<Scalar> m_volume;
