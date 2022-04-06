@@ -801,7 +801,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         }
 
     private:
-    // Scalar this->m_move_probability;
     std::vector<detail::MassProperties<ShapeEllipsoid>>
         m_mass_props; // mass properties of the shape
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
