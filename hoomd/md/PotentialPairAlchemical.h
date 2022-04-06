@@ -94,6 +94,7 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
 
     // allow copy and paste from PotentialPair without using this-> on every member
     using PotentialPair<evaluator>::m_exec_conf;
+    using PotentialPair<evaluator>::m_sysdef;
     using PotentialPair<evaluator>::m_nlist;
     using PotentialPair<evaluator>::m_virial;
     using PotentialPair<evaluator>::m_ronsq;
@@ -107,6 +108,9 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
     using PotentialPair<evaluator>::m_virial_pitch;
     using PotentialPair<evaluator>::m_params;
     using PotentialPair<evaluator>::computeTailCorrection;
+#ifdef ENABLE_MPI
+    using PotentialPair<evaluator>::m_comm;
+#endif
 
     Index2DUpperTriangular m_alchemy_index; //!< upper triangular typepair index
     std::vector<mask_type> m_alchemy_mask;  //!< Type pair mask for if alchemical forces are used
