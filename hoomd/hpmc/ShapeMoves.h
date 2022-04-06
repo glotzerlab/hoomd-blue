@@ -360,7 +360,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
 
     void setVolume(std::string typ, Scalar volume)
         {
-
         unsigned int typid = getValidateType(typ);
         this->m_volume[typid] = volume;
         // ShapeMoveBase::setVolume(typid, volume);
@@ -374,7 +373,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         OverlapReal scale = (OverlapReal)fast::pow(volume / current_volume, 1.0 / 3.0);
         this->scaleParticleVolume(shape, dr, scale);
         this->m_mc->setParam(typid, shape);
-
         }
 
     void scaleParticleVolume(param_type& shape, vec3<Scalar> dr, OverlapReal scale)
@@ -444,9 +442,8 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     private:
-    std::vector<bool> m_calculated;        // whether or not mass properties has been calculated
-    };                                     // end class ConvexPolyhedronVertexShapeMove
-
+    std::vector<bool> m_calculated; // whether or not mass properties has been calculated
+    };                              // end class ConvexPolyhedronVertexShapeMove
 
 template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     {

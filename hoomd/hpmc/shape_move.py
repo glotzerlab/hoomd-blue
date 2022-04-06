@@ -48,8 +48,9 @@ class ShapeMove(_HOOMDBaseObject):
                                      self.__class__.__name__ + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
-        self._cpp_obj = self._move_cls(self._simulation.state._cpp_sys_def,
-                                       self._simulation.operations.integrator._cpp_obj)
+        self._cpp_obj = self._move_cls(
+            self._simulation.state._cpp_sys_def,
+            self._simulation.operations.integrator._cpp_obj)
         super()._attach()
 
 
@@ -80,6 +81,7 @@ class Constant(ShapeMove):
     See Also:
         hoomd.hpmc.integrate for required shape parameters.
     """
+
     def __init__(self, shape_params):
         self._param_dict.update(ParameterDict(shape_params=dict(shape_params)))
 
@@ -194,7 +196,7 @@ class PythonShapeMove(ShapeMove):
         typeparam_shapeparams = TypeParameter('params',
                                               type_kind='particle_types',
                                               param_dict=TypeParameterDict(
-                                                [float], len_keys=1))
+                                                  [float], len_keys=1))
         self._add_typeparam(typeparam_shapeparams)
 
     @log(category='object', requires_run=True)
