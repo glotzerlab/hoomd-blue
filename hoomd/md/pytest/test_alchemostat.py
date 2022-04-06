@@ -22,6 +22,7 @@ def get_alchemostat():
 @pytest.mark.parametrize(
     "alchemostat_cls, extra_property_1st_value, extra_property_2nd_value",
     get_alchemostat())
+@pytest.mark.cpu
 def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
                           alchemostat_cls, extra_property_1st_value,
                           extra_property_2nd_value):
@@ -65,6 +66,7 @@ def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
 @pytest.mark.parametrize(
     "alchemostat_cls, extra_property_1st_value, extra_property_2nd_value",
     get_alchemostat())
+@pytest.mark.cpu
 def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
                          alchemostat_cls, extra_property_1st_value,
                          extra_property_2nd_value):
