@@ -237,7 +237,7 @@ class PYBIND11_EXPORT ParticleGroup
         checkRebuild();
 
         ArrayHandle<unsigned int> h_handle(m_is_member, access_location::host, access_mode::read);
-        return h_handle.data[idx] == 1;
+        return h_handle.data && h_handle.data[idx] == 1;
         }
 
     //! Direct access to the index list
