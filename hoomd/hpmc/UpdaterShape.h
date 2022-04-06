@@ -24,6 +24,7 @@ template<typename Shape> class UpdaterShape : public Updater
     {
     public:
     UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
+                 std::shared_ptr<Trigger> trigger,
                  std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                  std::shared_ptr<ShapeMoveBase<Shape>> move);
 
@@ -221,9 +222,10 @@ template<typename Shape> class UpdaterShape : public Updater
 
 template<class Shape>
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
+                                  std::shared_ptr<Trigger> trigger,
                                   std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                                   std::shared_ptr<ShapeMoveBase<Shape>> move)
-    : Updater(sysdef), m_mc(mc), m_move_function(move), m_global_partition(0),
+    : Updater(sysdef, trigger), m_mc(mc), m_move_function(move), m_global_partition(0),
       m_determinant_inertia_tensor(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_initialized(false)
     {
@@ -468,6 +470,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         m,
         name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             std::shared_ptr<ShapeMoveBase<Shape>>>())
         .def("getShapeMovesCount", &UpdaterShape<Shape>::getShapeMovesCount)

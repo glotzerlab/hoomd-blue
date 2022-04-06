@@ -199,7 +199,8 @@ class PythonShapeMove(ShapeMove):
 
     @log(category='object', requires_run=True)
     def type_params(self):
-        """dict:
+        """dict: Tunable parameters as dictionary. The particle types are the
+                 keys of the dictionary.
 
         Example:
             >>> python_shape_move.type_params()
