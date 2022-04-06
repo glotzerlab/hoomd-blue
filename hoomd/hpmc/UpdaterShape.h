@@ -237,7 +237,6 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     initializeDeterminatsInertiaTensor();
     countParticlesPerType();
 
-    // TODO: add a sanity check to makesure that MPI is setup correctly
     if (m_multi_phase)
         {
 #ifdef ENABLE_MPI
