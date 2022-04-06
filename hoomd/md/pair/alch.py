@@ -30,7 +30,7 @@ class _AlchemicalPairPotential(Loggable):
         new_cpp_name = [
             'PotentialPair', 'Alchemical', superclasses[0]._cpp_class_name[13:]
         ]
-        if attributedict.get('noramlized', False):
+        if attributedict.get('normalized', False):
             new_cpp_name.insert(2, 'Normalized')
             attributedict['_particle_type'] = AlchemicalNormalizedPairParticle
         else:
