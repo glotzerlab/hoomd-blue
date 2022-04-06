@@ -167,9 +167,9 @@ void System::run(uint64_t nsteps, bool write_at_start)
             if ((*analyzer->getTrigger())(m_cur_tstep))
                 analyzer->analyze(m_cur_tstep);
             }
-        }
 
-    updateTPS();
+        updateTPS();
+        }
 
     // propagate Python exceptions related to signals
     if (PyErr_CheckSignals() != 0)
