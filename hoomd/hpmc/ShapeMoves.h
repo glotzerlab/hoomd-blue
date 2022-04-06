@@ -95,12 +95,6 @@ template<typename Shape> class ShapeMoveBase
         this->m_move_probability = fmin(move_probability, 1.0);
         }
 
-    // Get the isoperimetric quotient of the shape
-    Scalar getIsoperimetricQuotient() const
-        {
-        return m_isoperimetric_quotient;
-        }
-
     virtual Scalar operator()(uint64_t timestep,
                               const unsigned int& N,
                               const unsigned int type_id,
@@ -110,10 +104,6 @@ template<typename Shape> class ShapeMoveBase
                               const Scalar& iold)
         {
         Scalar newdivold = inew / iold;
-        if (newdivold < 0.0)
-            {
-            newdivold = -1.0 * newdivold;
-            } // MOI may be negative depending on order of vertices
         return (Scalar(N) / Scalar(2.0)) * log(newdivold);
         }
 
@@ -129,7 +119,6 @@ template<typename Shape> class ShapeMoveBase
     protected:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
     Scalar m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
-    Scalar m_isoperimetric_quotient; // isoperimetric quotient of the shape
     std::shared_ptr<SystemDefinition> m_sysdef;
     unsigned m_ntypes;
     std::vector<Scalar> m_volume;
