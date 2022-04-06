@@ -676,8 +676,7 @@ class Shape(Updater):
                     are only enabled for polyhedral and spherical particles.")
         self._attach_shape_move()
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
-                                    self.trigger,
-                                    integrator._cpp_obj,
+                                    self.trigger, integrator._cpp_obj,
                                     self.shape_move._cpp_obj)
         super()._attach()
 
