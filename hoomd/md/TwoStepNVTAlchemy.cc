@@ -30,6 +30,14 @@ TwoStepNVTAlchemy::TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef,
 
     m_thermostat.xi = 0;
     m_thermostat.eta = 0;
+
+#ifdef ENABLE_MPI
+    if (this->m_sysdef->isDomainDecomposed())
+        {
+        // This code is not tested or validated with MPI.
+        throw std::runtime_error("Alchemical NVT integration method does not support MPI.");
+        }
+#endif
     }
 
 TwoStepNVTAlchemy::~TwoStepNVTAlchemy()
