@@ -1195,7 +1195,7 @@ class Mie(Pair):
 
 
 class ExpandedMie(Pair):
-    """Expanded Mie pair force.
+    r"""Expanded Mie pair force.
 
     Args:
         nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
@@ -1207,11 +1207,11 @@ class ExpandedMie(Pair):
     in the simulation state:
 
     .. math::
-        U(r) = \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
-          \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
-          \\frac{\\sigma}{r-\\Delta} \\right)^{n} - \\left( \\frac
-          {\\sigma}{r-\\Delta}
-          \\right)^{m} \\right]
+        U(r) = \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
+          \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left(
+          \frac{\sigma}{r-\Delta} \right)^{n} - \left( \frac
+          {\sigma}{r-\Delta}
+          \right)^{m} \right]
 
     Example::
 
@@ -1231,15 +1231,15 @@ class ExpandedMie(Pair):
         The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          :math:`\\epsilon` :math:`[\\mathrm{energy}]`.
+          :math:`\epsilon` :math:`[\mathrm{energy}]`.
         * ``sigma`` (`float`, **required**) -
-          :math:`\\sigma` :math:`[\\mathrm{length}]`.
+          :math:`\sigma` :math:`[\mathrm{length}]`.
         * ``n`` (`float`, **required**) -
-          :math:`n` :math:`[\\mathrm{dimensionless}]`.
+          :math:`n` :math:`[\mathrm{dimensionless}]`.
         * ``m`` (`float`, **required**) -
-          :math:`m` :math:`[\\mathrm{dimensionless}]`.
+          :math:`m` :math:`[\mathrm{dimensionless}]`.
         * ``delta`` (`float`, **required**) -
-          :math:`\\Delta` :math:`[\\mathrm{length}]`.
+          :math:`\Delta` :math:`[\mathrm{length}]`.
 
         Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
         `dict`]
