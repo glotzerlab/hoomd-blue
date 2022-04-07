@@ -946,7 +946,7 @@ def _forces_and_energies():
         for pot in F_and_E.keys():
             if pot[0].isalpha():
                 kT_dict = {'DPD': {'kT': 2}, 'DPDLJ': {'kT': 1}}.get(pot, {})
-                for i in range(3):
+                for i in range(len(F_and_E[pot]["params"])):
                     param_list.append(
                         FEtuple(getattr(md.pair, pot),
                                 F_and_E[pot]["params"][i], kT_dict, [
