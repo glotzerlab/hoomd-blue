@@ -1199,8 +1199,8 @@ class ExpandedMie(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
-        default_r_cut (float): Default cutoff radius (in distance units).
-        default_r_on (float): Default turn-on radius (in distance units).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
     `ExpandedMie` computes the radially shifted Mie pair force on every particle
@@ -1729,9 +1729,9 @@ class TWF(Pair):
     r"""Pair potential model for globular proteins.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist.NeighborList`): Neighbor list.
-        default_r_cut (float): Default cutoff radius (in distance units).
-        default_r_on (float): Default turn-on radius (in distance units).
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
     `TWF` computes the Ten-wolde Frenkel potential on all particles in the
@@ -1760,11 +1760,11 @@ class TWF(Pair):
         The LJ potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          energy parameter :math:`\varepsilon` :math:`[energy]`
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
-          particle size :math:`\sigma` :math:`[length]`
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
         * ``alpha`` (`float`, **required**) -
-          controls well-width :math:`\alpha` :math:`[dimensionless]`
+          controls well-width :math:`\alpha` :math:`[\mathrm{dimensionless}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1796,41 +1796,35 @@ class LJGauss(Pair):
     r"""Lennard-Jones-Gauss pair potential.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
-        default_r_cut (float): Default cutoff radius (in distance units).
-        default_r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mod
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
 
-    `LJGauss` specifies that a Lennard-Jones-Gauss pair potential should be
-    applied between every non-excluded particle pair in the simulation.
+    `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
+    simulation state:
 
     .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        V_{\mathrm{LJGauss}}(r) = \frac{1}{r^{12}} - \frac{2}{r^{6}} - \epsilon
-            e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}} \\
-            = & 0 & r \ge r_{\mathrm{cut}} \\
-        \end{eqnarray*}
-
-    See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes.  Use the `params` dictionary to set
-    potential coefficients.
+        U(r) = 1\ [\mathrm{energy}] \cdot \left[
+                 \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
+                 \left ( \frac{2\ [\mathrm{length}]}{r} \right)^{6} \right] -
+            \epsilon
+            e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}}
 
     .. py:attribute:: params
         The potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          energy parameter :math:`\varepsilon` :math:`[energy]`
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma2`` (`float`, **required**) -
-          Gaussian variance :math:`\\sigma^2` :math:`[\mathrm{length}^2]`
+          Gaussian variance :math:`\sigma^2` :math:`[\mathrm{length}]^2`
         * ``r0`` (`float`, **required**) -
-          Gaussian center :math:`\\r_0` :math:`[distance]`
+          Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
 
     Example::
 
         nl = hoomd.md.nlist.Cell()
-        ljg = pair.LJGauss(nl, r_cut=3.0)
+        ljg = pair.LJGauss(nl)
         ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma2=0.02, r0=1.6)
         ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
         ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
