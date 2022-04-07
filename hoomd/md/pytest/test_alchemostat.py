@@ -3,12 +3,12 @@
 
 import hoomd
 # from hoomd.conftest import pickling_check
-from hoomd.md.pair.alch import LJGauss, NVT, NVE
+import hoomd.md.alchemy
 import pytest
 
-_NVE_args = (NVE, {}, {})
+_NVE_args = (hoomd.md.alchemy.methods.NVE, {}, {})
 
-_NVT_args = (NVT, {
+_NVT_args = (hoomd.md.alchemy.methods.NVT, {
     'kT': hoomd.variant.Constant(1)
 }, {
     'kT': hoomd.variant.Constant(0.5)
@@ -28,7 +28,8 @@ def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
                           alchemostat_cls, extra_property_1st_value,
                           extra_property_2nd_value):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
-    ljg = LJGauss(hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=3.0)
+    nlist = hoomd.md.nlist.Cell(buffer=0.4)
+    ljg = hoomd.md.alchemy.pairLJGauss(nlist, default_r_cut=3.0)
     ljg.params[('A', 'A')] = dict(epsilon=1., sigma2=0.02, r0=1.8)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(ljg)
@@ -73,7 +74,8 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
                          alchemostat_cls, extra_property_1st_value,
                          extra_property_2nd_value):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
-    ljg = LJGauss(hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=3.0)
+    nlist = hoomd.md.nlist.Cell(buffer=0.4)
+    ljg = hoomd.md.alchemy.pair.LJGauss(nlist, default_r_cut=3.0)
     ljg.params[('A', 'A')] = dict(epsilon=1., sigma2=0.02, r0=1.8)
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(ljg)
