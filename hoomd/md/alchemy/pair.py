@@ -1,12 +1,14 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Alchemical potentials."""
-import hoomd
+"""Alchemical pair potentials."""
+
 from hoomd.logging import log, Loggable
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.md.alchemy.methods import _AlchemicalMethods
+from hoomd.md.pair import LJGauss
+
+from hoomd.md.alchemy._alchemical_methods import _AlchemicalMethods
 
 
 class _AlchemicalPairPotential(Loggable):
@@ -176,7 +178,7 @@ class AlchemicalNormalizedPairParticle(AlchemicalPairParticle):
         return self._cpp_obj.forces * self._cpp_obj.norm_value
 
 
-class LJGauss(hoomd.md.pair.LJGauss, metaclass=_AlchemicalPairPotential):
+class LJGauss(LJGauss, metaclass=_AlchemicalPairPotential):
     """Alchemical Lennard Jones Gauss pair potential."""
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
 
@@ -189,7 +191,7 @@ class LJGauss(hoomd.md.pair.LJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
-class NLJGauss(hoomd.md.pair.LJGauss, metaclass=_AlchemicalPairPotential):
+class NLJGauss(LJGauss, metaclass=_AlchemicalPairPotential):
     """Alchemical Lennard Jones Gauss pair potential."""
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
     noramlized = True

@@ -1,4 +1,5 @@
 set(files __init__.py
+          _alchemical_methods.py
           pair.py
           methods.py
    )
