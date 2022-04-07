@@ -12,16 +12,6 @@ from hoomd.md.pair import pair
 from hoomd.md.methods import Method
 from hoomd.variant import Variant
 
-# alternative access? hoomd.alch.md.pair would be nice to somehow link here
-# without making overly complicated
-# I just like alch(MD/MC) as alchemy specification aliases
-
-# TODO: remove this variable when the log names are finalized
-_api = {}
-_api[0.1] = [
-    'value', 'mass', 'mu', 'avalue', 'amomentum', 'net_aforce', 'aforces'
-]
-
 
 class _AlchemicalPairPotential(Loggable):
     """A metaclass to make alchemical modifications to the pair potential."""
@@ -47,8 +37,6 @@ class _AlchemicalPairPotential(Loggable):
         super().__init__(name, superclasses, attributedict)
 
 
-# Perhaps define a true base alch particle to base this off of just adding the
-# MD components mirroring the cpp side
 class AlchemicalPairParticle(_HOOMDBaseObject):
     """Alchemical pair particle associated with a specific force."""
 

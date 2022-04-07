@@ -95,7 +95,6 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
 
     m_alchem_KE = Scalar(0);
 
-    // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
 
     m_validState = false;
@@ -132,7 +131,6 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
 
     m_alchem_KE = Scalar(0);
 
-    // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
 
     for (auto& alpha : m_alchemicalParticles)

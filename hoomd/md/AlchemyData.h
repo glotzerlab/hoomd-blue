@@ -81,7 +81,6 @@ struct AlchemicalMDParticle : AlchemicalParticle
                                      access_mode::read);
         for (unsigned int i = 0; i < m_alchemical_derivatives.getNumElements(); i++)
             netForce += h_forces.data[i];
-        // TODO: make clear the implementation choices being averaged quantities
         netForce /= Scalar(m_alchemical_derivatives.getNumElements());
         m_timestep_net_force.second = netForce;
         }
@@ -132,9 +131,6 @@ struct AlchemicalMDParticle : AlchemicalParticle
     std::pair<uint64_t, Scalar> m_timestep_net_force;
     };
 
-// TODO: add additional constructor that can work just off of python objects, maybe see
-// ComputeFreeVolume for the string conversion to type pair
-// parameter dict must be the same
 struct AlchemicalPairParticle : AlchemicalMDParticle
     {
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
@@ -152,7 +148,6 @@ struct AlchemicalNormalizedPairParticle : AlchemicalPairParticle
     void NormalizeNetForce(Scalar norm_value, Scalar energy_value)
         {
         m_timestep_net_force.second *= norm_value;
-        // FIXME: only valid for single type single interaction system
         energy_value /= Scalar(m_alchemical_derivatives.getNumElements());
         m_timestep_net_force.second += energy_value * alchemical_derivative_normalization_value;
         }

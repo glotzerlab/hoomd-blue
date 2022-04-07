@@ -44,7 +44,6 @@ void TwoStepNVEAlchemy::integrateStepOne(uint64_t timestep)
 
     m_nextAlchemTimeStep += m_nTimeFactor;
 
-    // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
 
     for (auto& alpha : m_alchemicalParticles)
@@ -73,7 +72,6 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
     if (timestep != (m_nextAlchemTimeStep - 1))
         return;
 
-    // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
 
     for (auto& alpha : m_alchemicalParticles)

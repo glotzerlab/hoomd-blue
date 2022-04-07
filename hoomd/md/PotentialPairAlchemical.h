@@ -70,8 +70,6 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
 
     void enableAlchemicalPairParticle(std::shared_ptr<alpha_particle_type> alpha_p)
         {
-        // TODO: make sure only adding a particle to an alchemostat can enable it
-        // TODO: is this where the momentum etc should be initilized?
         m_alchemy_mask[m_alchemy_index(alpha_p->m_type_pair_param.x, alpha_p->m_type_pair_param.y)]
                       [alpha_p->m_type_pair_param.z]
             = true;
@@ -80,13 +78,10 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
 
     void disableAlchemicalPairParticle(std::shared_ptr<alpha_particle_type> alpha_p)
         {
-        // TODO: handle resetting param value and alpha
         m_alchemy_mask[m_alchemy_index(alpha_p->m_type_pair_param.x, alpha_p->m_type_pair_param.y)]
                       [alpha_p->m_type_pair_param.z]
             = false;
         }
-
-    // TODO: disable alchemical particle by resetting params, mask, should remain shared_ptr?
 
     protected:
     typedef std::bitset<evaluator::num_alchemical_parameters> mask_type;
@@ -251,8 +246,6 @@ inline void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::
     unsigned int alchemy_index = m_alchemy_index(typei, typej);
     mask_type& mask {pkg.compute_mask[alchemy_index]};
     alpha_array_t& alphas {pkg.alphas[alchemy_index]};
-
-    // TODO: make sure that when we disable an alchemical particle, we rewrite its parameter
 
     // calculate alchemical derivatives if needed
     if (pkg.calculate_derivatives && in_rcut && mask.any())

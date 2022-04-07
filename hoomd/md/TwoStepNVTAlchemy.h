@@ -89,7 +89,6 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
     //! advance the thermostat
     /*!\param timestep The time step
      * \param broadcast True if we should broadcast the integrator variables via MPI
-     TODO: implement mpi support
      */
     void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };

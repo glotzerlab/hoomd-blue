@@ -17,8 +17,6 @@ namespace hoomd
 namespace md
     {
 
-//! all templating can be removed with c++20, virtual constexpr
-// template<class T = void>
 class AlchemostatTwoStep : public IntegrationMethodTwoStep
     {
     public:
@@ -93,25 +91,16 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
 
     protected:
     //!< A vector of all alchemical particles belonging to this integrator
-    // TODO: make sure this is a synced list
     std::vector<std::shared_ptr<AlchemicalMDParticle>> m_alchemicalParticles;
     unsigned int m_nTimeFactor = 1; //!< Trotter factorization power
     Scalar m_halfDeltaT;            //!< The time step
     uint64_t m_nextAlchemTimeStep;
     unsigned int m_iteratorDOF = 0;
     bool m_validState = true; //!< Valid states are full alchemical timesteps
-    // TODO: general templating possible for two step methods?
     };
 
-// template<> inline unsigned int AlchemostatTwoStep<void>::getNDOF(){return 0;};
-
-// TODO: base alchemostat methods need to be exported
 inline void export_AlchemostatTwoStep(pybind11::module& m)
     {
-    // pybind11::bind_vector<std::vector<std::shared_ptr<AlchemicalMDParticle>>>(
-    //     m,
-    //     "AlchemicalParticlesList");
-
     pybind11::class_<AlchemostatTwoStep,
                      IntegrationMethodTwoStep,
                      std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")

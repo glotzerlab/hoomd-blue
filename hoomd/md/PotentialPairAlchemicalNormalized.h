@@ -130,7 +130,6 @@ PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::pk
                 norm_function_input[idx]
                     = evaluator::alchemParams(m_params[m_typpair_idx(i, j)], pkg.alphas[idx])
                           .asDict();
-                // TODO: to_string makes the bitset order reversed, note or alternative?
                 norm_function_input[idx]["mask"] = pkg.compute_mask[idx].to_string();
                 norm_function_input[idx]["pair"] = std::pair<unsigned int, unsigned int>(i, j);
                 }

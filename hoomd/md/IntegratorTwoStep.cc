@@ -105,7 +105,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
 
     // perform the second step of the integration on all groups
     // reversed for integrators so that the half steps will be performed symmetrically
-    // TODO: make sure this is valid for non-alchemical integrators
     for (auto method_ptr = m_methods.rbegin(); method_ptr != m_methods.rend(); method_ptr++)
         {
         auto method = (*method_ptr);
