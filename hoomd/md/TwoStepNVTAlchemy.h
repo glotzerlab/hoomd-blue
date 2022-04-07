@@ -1,11 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-#ifndef __TWOSTEP_NVT_ALCHEMY_H__
-#define __TWOSTEP_NVT_ALCHEMY_H__
+#pragma once
 
 #include "AlchemostatTwoStep.h"
 #include "hoomd/Variant.h"
@@ -63,11 +59,6 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
         return m_T;
         }
 
-    // static unsigned int getIntegraorNDOF()
-    // {
-    // return 1;
-    // }
-
     //! Performs the first step of the integration
     void integrateStepOne(uint64_t timestep) override;
 
@@ -104,5 +95,3 @@ void export_TwoStepNVTAlchemy(pybind11::module& m);
     } // end namespace md
 
     } // end namespace hoomd
-
-#endif // __TWOSTEP_NVT_ALCHEMY_H__

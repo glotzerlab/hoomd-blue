@@ -1,8 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef POTENTIAL_PAIR_ALCHEMICAL_H
-#define POTENTIAL_PAIR_ALCHEMICAL_H
+#pragma once
 
 #include <bitset>
 #include <cstddef>
@@ -221,7 +220,7 @@ inline extra_pkg PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_ty
                                    [particle->m_type_pair_param.z])
                 {
                 // zero force array and set current timestep for tracking
-                particle->setNetForce(timestep);
+                particle->zeroNetForce(timestep);
                 pkg.force_handles.push_back(
                     ArrayHandle<Scalar>(particle->m_alchemical_derivatives));
                 }
@@ -718,5 +717,3 @@ void export_PotentialPairAlchemical(pybind11::module& m, const std::string& name
     } // end namespace md
 
     } // end namespace hoomd
-
-#endif // POTENTIAL_PAIR_ALCHEMICAL_H

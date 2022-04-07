@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// NVE Alchemo
-
 #include "TwoStepNVTAlchemy.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/md/AlchemostatTwoStep.h"
@@ -38,51 +36,6 @@ TwoStepNVTAlchemy::~TwoStepNVTAlchemy()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNVTAlchemy" << std::endl;
     }
-
-// /*! Returns a list of log quantities this compute calculates
-//  */
-// std::vector<std::string> TwoStepNVTAlchemy::getProvidedLogQuantities()
-//     {
-//     vector<string> result;
-//     result.push_back(m_log_name + string("_reservoir_energy"));
-//     result.push_back(m_log_name + string("_alchemical_kinetic_energy"));
-//     return result;
-//     }
-
-// /*! \param quantity Name of the log quantity to get
-//     \param timestep Current time step of the simulation
-//     \param my_quantity_flag passed as false, changed to true if quanity logged here
-// */
-// Scalar TwoStepNVTAlchemy::getLogValue(const std::string& quantity,
-//                                       uint64_t timestep,
-//                                       bool& my_quantity_flag)
-//     {
-//     IntegratorVariables v = getIntegratorVariables();
-
-//     if (quantity == m_log_name + string("_reservoir_energy"))
-//         {
-//         my_quantity_flag = true;
-//         IntegratorVariables v = getIntegratorVariables();
-
-//         Scalar& xi = v.variable[0];
-//         Scalar& eta = v.variable[1];
-
-//         Scalar thermostat_energy
-//             = Scalar(0.5) * xi * xi * m_Q + eta * m_alchemicalParticles.size() *
-//             (*m_T)(timestep);
-
-//         return thermostat_energy;
-//         }
-//     else if (quantity == m_log_name + string("_alchemical_kinetic_energy"))
-//         {
-//         my_quantity_flag = true;
-//         return m_alchem_KE;
-//         }
-//     else
-//         {
-//         return Scalar(0);
-//         }
-//     }
 
 void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
     {

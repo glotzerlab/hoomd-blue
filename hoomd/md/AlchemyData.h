@@ -5,8 +5,7 @@
     \brief Contains declarations for AlchemyData.
  */
 
-#ifndef __ALCHEMYDATA_H__
-#define __ALCHEMYDATA_H__
+#pragma once
 
 #include "hoomd/ExecutionConfiguration.h"
 #include <algorithm>
@@ -67,7 +66,7 @@ struct AlchemicalMDParticle : AlchemicalParticle
         m_alchemical_derivatives.swap(new_forces);
         }
 
-    void setNetForce(uint64_t timestep)
+    void zeroNetForce(uint64_t timestep)
         {
         zeroForces();
         m_timestep_net_force.first = timestep;
@@ -190,5 +189,3 @@ inline void export_AlchemicalMDParticles(pybind11::module& m)
     } // end namespace md
 
     } // end namespace hoomd
-
-#endif

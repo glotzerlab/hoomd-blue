@@ -1,8 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef __TWO_STEP_NVE_ALCHEMY_H__
-#define __TWO_STEP_NVE_ALCHEMY_H__
+#pragma once
 
 #include "AlchemostatTwoStep.h"
 
@@ -45,7 +44,6 @@ class TwoStepNVEAlchemy : public AlchemostatTwoStep
         {
         return 0;
         }
-    //! Alchemical Stuff follows
     };
 
 namespace detail
@@ -57,5 +55,3 @@ void export_TwoStepNVEAlchemy(pybind11::module& m);
     } // end namespace md
 
     } // end namespace hoomd
-
-#endif // #ifndef __TWO_STEP_NVE_ALCHEMY_H__

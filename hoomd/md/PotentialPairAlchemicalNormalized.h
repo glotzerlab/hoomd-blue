@@ -1,8 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef POTENTIAL_PAIR_ALCHEMICAL_NORMALIZED_H
-#define POTENTIAL_PAIR_ALCHEMICAL_NORMALIZED_H
+#pragma once
 
 #include "PotentialPairAlchemical.h"
 
@@ -210,5 +209,3 @@ void export_PotentialPairAlchemicalNormalized(pybind11::module& m, const std::st
     } // end namespace md
 
     } // end namespace hoomd
-
-#endif // POTENTIAL_PAIR_ALCHEMICAL_NORMALIZED_H
