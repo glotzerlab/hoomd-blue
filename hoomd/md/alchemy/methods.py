@@ -3,7 +3,7 @@
 
 """Alchemical potentials."""
 import hoomd
-from hoomd.alchemy.pair import AlchemicalPairParticle
+from hoomd.md.alchemy.pair import AlchemicalPairParticle
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import SetOnce
