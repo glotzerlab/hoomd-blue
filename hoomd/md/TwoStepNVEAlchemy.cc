@@ -83,7 +83,7 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
 
         const Scalar& invM = alpha->mass.y;
         const Scalar& mu = alpha->mu;
-        const Scalar netForce = alpha->getNetForce(timestep);
+        const Scalar netForce = alpha->getNetForce(timestep + 1);
 
         // update velocity
         p += m_halfDeltaT * (netForce - mu - dUextdalpha);

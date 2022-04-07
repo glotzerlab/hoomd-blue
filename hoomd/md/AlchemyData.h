@@ -69,7 +69,6 @@ struct AlchemicalMDParticle : AlchemicalParticle
 
     void setNetForce(uint64_t timestep)
         {
-        // TODO: remove this sanity check after we're done making sure timing works
         zeroForces();
         m_timestep_net_force.first = timestep;
         }
@@ -89,7 +88,6 @@ struct AlchemicalMDParticle : AlchemicalParticle
 
     Scalar getNetForce(uint64_t timestep)
         {
-        // TODO: remove this sanity check after we're done making sure timing works
         assert(m_timestep_net_force.first == timestep);
         return m_timestep_net_force.second;
         }
