@@ -35,10 +35,7 @@ def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
     sim.run(0)
 
     ar0 = ljg.alchemical_particles[('A', 'A'), 'r0']
-
-    # filt = hoomd.filter.All()
     time_factor = 10
-
     alchemostat = alchemostat_cls(time_factor=time_factor,
                                   alchemical_particles=[ar0],
                                   **extra_property_1st_value)
@@ -118,8 +115,8 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
 @pytest.mark.parametrize(
     "alchemical_potential",
     [hoomd.md.alchemy.pair.LJGauss, hoomd.md.alchemy.pair.NLJGauss])
-def test_pickling_ljgauss(simulation_factory, two_particle_snapshot_factory,
-                          alchemical_potential):
+def test_pickling_potential(simulation_factory, two_particle_snapshot_factory,
+                            alchemical_potential):
     """Test that md.constrain.Distance can be pickled and unpickled."""
     # detached
     nlist = hoomd.md.nlist.Cell(buffer=0.4)
