@@ -144,7 +144,7 @@ def test_walltime(simulation_factory, two_particle_snapshot_factory):
                                  trigger=hoomd.trigger.Periodic(1)))
     sim.run(10)
     walltime = list_writer.data
-    assert all(a > b for a, b in zip(walltime[1:], walltime[:-1]))
+    assert all(a >= b for a, b in zip(walltime[1:], walltime[:-1]))
 
 
 def test_timestep(simulation_factory, lattice_snapshot_factory):
