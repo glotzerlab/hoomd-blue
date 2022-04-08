@@ -6,8 +6,6 @@ import hoomd
 import hoomd.md.alchemy
 import pytest
 
-_NVE_args = (hoomd.md.alchemy.methods.NVE, {}, {})
-
 _NVT_args = (hoomd.md.alchemy.methods.NVT, {
     'kT': hoomd.variant.Constant(1)
 }, {
@@ -16,7 +14,7 @@ _NVT_args = (hoomd.md.alchemy.methods.NVT, {
 
 
 def get_alchemostat():
-    return [_NVE_args, _NVT_args]
+    return [_NVT_args]
 
 
 @pytest.mark.parametrize(

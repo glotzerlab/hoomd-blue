@@ -110,39 +110,3 @@ class NVT(Alchemostat):
         self._cpp_obj = cpp_class(cpp_sys_def, self.time_factor, self.kT)
         self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach()
-
-
-class NVE(Alchemostat):
-    r"""Alchemical NVE Integration.
-
-    Args:
-        time_factor (`int`): Time factor for the alchemostat
-
-        alchemical_particles (list): List of alchemical particles
-
-    Examples::
-
-        nve=hoomd.md.methods.NVE()
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
-
-    Attributes:
-        time_factor (int): Time factor for the alchemostat
-
-        alchemical_particles (list): List of alchemical particles
-
-    """
-
-    def __init__(self, time_factor=1, alchemical_particles=[]):
-
-        # store metadata
-        param_dict = ParameterDict(time_factor=int(time_factor))
-        # set defaults
-        self._param_dict.update(param_dict)
-        super().__init__(alchemical_particles)
-
-    def _attach(self):
-        cpp_class = hoomd.md._md.TwoStepNVEAlchemy
-        cpp_sys_def = self._simulation.state._cpp_sys_def
-        self._cpp_obj = cpp_class(cpp_sys_def, self.time_factor)
-        self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
-        super()._attach()

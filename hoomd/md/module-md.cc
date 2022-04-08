@@ -58,7 +58,6 @@
 #include "TwoStepLangevinBase.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepNVE.h"
-#include "TwoStepNVEAlchemy.h"
 #include "TwoStepNVTAlchemy.h"
 #include "TwoStepNVTMTK.h"
 #include "TwoStepRATTLEBD.h"
@@ -227,7 +226,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairAlchemicalNormalized<EvaluatorPairLJGauss>(
         m,
         "PotentialPairAlchemicalNormalizedLJGauss");
-    // export_PotentialPairAlchemical<EvaluatorPairOPP>(m, "PotentialPairAlchemicalLJGauss");
     export_AnisoPotentialPair<AnisoPotentialPairALJ2D>(m, "AnisoPotentialPairALJ2D");
     export_AnisoPotentialPair<AnisoPotentialPairALJ3D>(m, "AnisoPotentialPairALJ3D");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
@@ -421,7 +419,6 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
     export_AlchemostatTwoStep(m);
-    export_TwoStepNVEAlchemy(m);
     export_TwoStepNVTAlchemy(m);
 
     // RATTLE

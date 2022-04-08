@@ -13,12 +13,10 @@ md.alchemy.methods
 
     Alchemostat
     NVT
-    NVE
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.alchemy.methods
     :synopsis: Alchemical MD integration methods.
     :members: Alchemostat,
-        NVT,
-        NVE
+        NVT
