@@ -2,7 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-# from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check
 import hoomd.md.alchemy
 import pytest
 
@@ -113,34 +113,24 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     sim.run(10)
 
 
-# TODO: pickling likely needs some defs from
-# https://docs.python.org/3/library/pickle.html#pickling-class-instances  to be
-# able to work properly for the python alchemy stuff due to somewhat complicated
-# interlinking
-# @pytest.mark.parametrize(
-#     "alchemostat_cls, extra_property_1st_value, extra_property_2nd_value",
-#     get_alchemostat())
-# # TODO: fix pickling, might work after mirroring python
-# def test_pickling(simulation_factory, two_particle_snapshot_factory,
-#                   alchemostat_cls, extra_property_1st_value,
-#                   extra_property_2nd_value):
-#     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
-#     ljg = LJGauss(hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=3.0)
-#     ljg.params[('A', 'A')] = dict(epsilon=1., sigma2=0.02, r0=1.8)
-#     integrator = hoomd.md.Integrator(dt=0.005)
-#     integrator.forces.append(ljg)
-#     sim.operations.integrator = integrator
-#     sim.run(0)
+@pytest.mark.cpu
+@pytest.mark.serial
+@pytest.mark.parametrize(
+    "alchemical_potential",
+    [hoomd.md.alchemy.pair.LJGauss, hoomd.md.alchemy.pair.NLJGauss])
+def test_pickling_ljgauss(simulation_factory, two_particle_snapshot_factory,
+                          alchemical_potential):
+    """Test that md.constrain.Distance can be pickled and unpickled."""
+    # detached
+    nlist = hoomd.md.nlist.Cell(buffer=0.4)
+    ljg = alchemical_potential(nlist, default_r_cut=3.0)
+    ljg.params[('A', 'A')] = dict(epsilon=1., sigma2=0.02, r0=1.8)
+    pickling_check(ljg)
 
-#     ar0 = ljg.alchemical_particles[('A', 'A'), 'r0']
-
-#     filt = hoomd.filter.All()
-#     time_factor = 10
-
-#     alchemostat = alchemostat_cls(time_factor=time_factor,
-#                                   alchemical_particles=[ar0],
-#                                   **extra_property_1st_value)
-#     pickling_check(alchemostat)
-#     sim.operations.integrator.methods.insert(0, alchemostat)
-#     sim.run(0)
-#     pickling_check(alchemostat)
+    # attached
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=1))
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(ljg)
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(ljg)

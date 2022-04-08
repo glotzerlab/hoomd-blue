@@ -34,10 +34,6 @@ class Alchemostat(Method):
         self.alchemical_particles._sync(None, [])
         self._update()
 
-        # if we're holding onto a temporary variable, ditch it now
-        if hasattr(self, "_time_factor"):
-            self.time_factor
-
     class _OwnedAlchemicalParticles(syncedlist.SyncedList):
         """Owned alchemical particles.
 

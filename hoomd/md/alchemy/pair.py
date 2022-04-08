@@ -6,7 +6,7 @@
 from hoomd.logging import log, Loggable
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.md.pair import LJGauss
+from hoomd.md.pair import LJGauss as BaseLJGauss
 
 from hoomd.md.alchemy._alchemical_methods import _AlchemicalMethods
 
@@ -126,14 +126,14 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
             self._cpp_obj.alpha if self._attached else 1.)
 
     @log(default=False, requires_run=True)
-    def avalue(self):
+    def alpha(self):
         """Dimensionless alchemical alpha space value."""
         return self._cpp_obj.alpha
 
     @log(default=False, requires_run=True)
-    def amomentum(self):
+    def alchemical_momentum(self):
         """Momentum in alchemical alpha space."""
-        return self._cpp_obj.alpha
+        return self._cpp_obj.momentum
 
     @log(default=False, requires_run=True)
     def mu(self):
@@ -141,12 +141,12 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
         return self._cpp_obj.mu
 
     @log(default=False, requires_run=True, category='particle')
-    def aforces(self):
+    def alchemical_forces(self):
         """Per particle forces in alchemical alpha space."""
         return self._cpp_obj.forces
 
     @log(requires_run=True)
-    def net_aforce(self):
+    def net_alchemical_force(self):
         """Net force in alchemical alpha space."""
         return self._cpp_obj.net_force
 
@@ -178,7 +178,7 @@ class AlchemicalNormalizedPairParticle(AlchemicalPairParticle):
         return self._cpp_obj.forces * self._cpp_obj.norm_value
 
 
-class LJGauss(LJGauss, metaclass=_AlchemicalPairPotential):
+class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
     """Alchemical Lennard Jones Gauss pair potential."""
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
 
@@ -191,10 +191,10 @@ class LJGauss(LJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
-class NLJGauss(LJGauss, metaclass=_AlchemicalPairPotential):
+class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
     """Alchemical Lennard Jones Gauss pair potential."""
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
-    noramlized = True
+    normalized = True
 
     def __init__(self,
                  nlist,
