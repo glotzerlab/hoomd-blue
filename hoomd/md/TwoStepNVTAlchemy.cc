@@ -138,7 +138,7 @@ void export_TwoStepNVTAlchemy(py::module& m)
         .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int, std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTAlchemy::setT)
         .def("setQ", &TwoStepNVTAlchemy::setQ)
-        .def_property("kT", &TwoStepNVTAlchemy::getT, &TwoStepNVTAlchemy::setT)
+        .def_property("alchemical_kT", &TwoStepNVTAlchemy::getT, &TwoStepNVTAlchemy::setT)
         .def_property("Q", &TwoStepNVTAlchemy::getQ, &TwoStepNVTAlchemy::setQ);
     }
 

@@ -4,7 +4,7 @@
 """Alchemical MD integration methods."""
 
 import hoomd
-from hoomd.md.alchemy.pair import AlchemicalPairParticle
+from hoomd.md.alchemy.pair import AlchemicalDOF
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method
@@ -14,24 +14,23 @@ from hoomd.variant import Variant
 class Alchemostat(Method):
     """Alchemostat Base Class."""
 
-    def __init__(self, alchemical_particles):
-        self.alchemical_particles = self._OwnedAlchemicalParticles(self)
-        if alchemical_particles is not None:
-            self.alchemical_particles.extend(alchemical_particles)
+    def __init__(self, alchemical_dof):
+        self.alchemical_dof = self._OwnedAlchemicalParticles(self)
+        if alchemical_dof is not None:
+            self.alchemical_dof.extend(alchemical_dof)
 
     def _update(self):
         if self._attached:
-            self._cpp_obj.alchemical_particles = \
-                    self.alchemical_particles._synced_list
+            self._cpp_obj.alchemical_dof = self.alchemical_dof._synced_list
 
     def _attach(self):
         super()._attach()
         # TODO: handle forces not attached
-        # for force in {alpha.force for alpha in self.alchemical_particles}
+        # for force in {alpha.force for alpha in self.alchemical_dof}
 
         # keep a separate local cpp list because static casting
         # won't let us access directly
-        self.alchemical_particles._sync(None, [])
+        self.alchemical_dof._sync(None, [])
         self._update()
 
     class _OwnedAlchemicalParticles(syncedlist.SyncedList):
@@ -39,13 +38,13 @@ class Alchemostat(Method):
 
         Accessor/wrapper to specialize a synced list
 
-        Alchemical particles which will be integrated by this integrator
-        method.
+        Alchemical degrees of freedom which will be integrated by this
+        integration method.
         """
 
         def __init__(self, outer):
             self._outer = outer
-            super().__init__(AlchemicalPairParticle,
+            super().__init__(AlchemicalDOF,
                              syncedlist._PartialGetAttr('_cpp_obj'))
 
         def __setitem__(self, i, item):
@@ -54,7 +53,7 @@ class Alchemostat(Method):
             self._outer._update()
 
         def __delitem__(self, i):
-            self._outer.alchemical_particles[i]._disown()
+            self._outer.alchemical_dof[i]._disown()
             super().__delitem__(i)
             self._outer._update()
 
@@ -69,12 +68,12 @@ class NVT(Alchemostat):
     r"""Alchemical NVT Integration.
 
     Args:
-        kT (`hoomd.variant.Variant` or `float`): Temperature set point
-            for the alchemostat :math:`[\mathrm{energy}]`.
+        alchemical_kT (`hoomd.variant.Variant` or `float`): Temperature set
+            point for the alchemostat :math:`[\mathrm{energy}]`.
 
-        time_factor (`int`): Time factor for the alchemostat
+        alchemical_dof (list): List of alchemical particles
 
-        alchemical_particles (list): List of alchemical particles
+        period (`int`): Time factor for the alchemostat
 
     Examples::
 
@@ -85,24 +84,24 @@ class NVT(Alchemostat):
         kT (hoomd.variant.Variant): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        time_factor (int): Time factor for the alchemostat
+        alchemical_dof (list): List of alchemical particles
 
-        alchemical_particles (list): List of alchemical particles
+        period (int): Time factor for the alchemostat
 
     """
 
-    def __init__(self, kT, time_factor=1, alchemical_particles=[]):
+    def __init__(self, alchemical_kT, alchemical_dof, period=1):
 
         # store metadata
-        param_dict = ParameterDict(kT=Variant, time_factor=int(time_factor))
-        param_dict.update(dict(kT=kT))
+        param_dict = ParameterDict(alchemical_kT=Variant, period=int)
+        param_dict.update(dict(alchemical_kT=alchemical_kT, period=period))
         # set defaults
         self._param_dict.update(param_dict)
-        super().__init__(alchemical_particles)
+        super().__init__(alchemical_dof)
 
     def _attach(self):
         cpp_class = hoomd.md._md.TwoStepNVTAlchemy
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        self._cpp_obj = cpp_class(cpp_sys_def, self.time_factor, self.kT)
+        self._cpp_obj = cpp_class(cpp_sys_def, self.period, self.alchemical_kT)
         self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
         super()._attach()

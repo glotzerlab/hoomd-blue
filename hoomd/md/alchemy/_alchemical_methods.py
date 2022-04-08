@@ -9,13 +9,13 @@ from hoomd.operation import _HOOMDBaseObject
 class _AlchemicalMethods(_HOOMDBaseObject):
 
     def __init__(self):
-        self.alchemical_particles = self.AlchemicalParticleAccess(self)
+        self._alchemical_dof = self.AlchemicalParticleAccess(self)
 
     class AlchemicalParticleAccess(TypeParameterDict):
 
         def __init__(self, outer):
             self.outer = outer
-            super().__init__(SetOnce(outer._particle_type), len_keys=2)
+            super().__init__(SetOnce(outer._dof_type), len_keys=2)
 
         # FIXME: breaks delayed instantiation by validating types
         def _validate_and_split_alchem(self, key):
@@ -41,8 +41,7 @@ class _AlchemicalMethods(_HOOMDBaseObject):
                 for p in param:
                     k = (t, p)
                     if k not in self._dict:
-                        self._dict[k] = self.outer._particle_type(
-                            self.outer, p, t)
+                        self._dict[k] = self.outer._dof_type(self.outer, p, t)
                     vals[k] = self._dict[k]
             if len(vals) > 1:
                 return vals
@@ -61,5 +60,5 @@ class _AlchemicalMethods(_HOOMDBaseObject):
 
     def _attach(self):
         super()._attach()
-        for v in self.alchemical_particles._dict.values():
+        for v in self._alchemical_dof._dict.values():
             v._attach()

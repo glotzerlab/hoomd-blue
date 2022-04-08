@@ -104,14 +104,10 @@ inline void export_AlchemostatTwoStep(pybind11::module& m)
                      IntegrationMethodTwoStep,
                      std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
-        .def_property("time_factor",
-                      &AlchemostatTwoStep::getAlchemTimeFactor,
-                      &AlchemostatTwoStep::setAlchemTimeFactor)
-        .def_property("alchemical_particles",
+        .def_property_readonly("period", &AlchemostatTwoStep::getAlchemTimeFactor)
+        .def_property("alchemical_dof",
                       &AlchemostatTwoStep::getAlchemicalParticleList,
                       &AlchemostatTwoStep::setAlchemicalParticleList)
-        .def("getAlchemicalParticleList", &AlchemostatTwoStep::getAlchemicalParticleList)
-        .def("getNDOF", &AlchemostatTwoStep::getNDOF)
         .def("setNextAlchemicalTimestep", &AlchemostatTwoStep::setNextAlchemicalTimestep);
     }
 

@@ -142,7 +142,7 @@ struct AlchemicalNormalizedPairParticle : AlchemicalPairParticle
     {
     using AlchemicalPairParticle::AlchemicalPairParticle;
 
-    Scalar alchemical_derivative_normalization_value = 0.;
+    Scalar alchemical_derivative_normalization_value = 0.0;
 
     void NormalizeNetForce(Scalar norm_value, Scalar energy_value)
         {

@@ -20,10 +20,10 @@ class _AlchemicalPairPotential(Loggable):
         ]
         if attributedict.get('normalized', False):
             new_cpp_name.insert(2, 'Normalized')
-            attributedict['_particle_type'] = AlchemicalNormalizedPairParticle
+            attributedict['_dof_type'] = AlchemicalNormalizedDOF
         else:
             attributedict['normalized'] = False
-            attributedict['_particle_type'] = AlchemicalPairParticle
+            attributedict['_dof_type'] = AlchemicalDOF
         attributedict['_cpp_class_name'] = ''.join(new_cpp_name)
 
         superclasses += (_AlchemicalMethods,)
@@ -35,36 +35,43 @@ class _AlchemicalPairPotential(Loggable):
         super().__init__(name, superclasses, attributedict)
 
 
-class AlchemicalPairParticle(_HOOMDBaseObject):
-    """Alchemical pair particle associated with a specific force."""
-
-    __slots__ = ['force', 'name', 'typepair', '_cpp_obj', '_mass']
+class AlchemicalDOF(_HOOMDBaseObject):
+    """Alchemical degree of freedom associated with a specific pair force."""
 
     def __new__(cls,
                 force: _AlchemicalPairPotential,
                 name: str = '',
                 typepair: tuple = None,
                 mass: float = 1.0):
-        """This is not a public method @flake8."""
+        """Cache existing instances of AlchemicalDOF."""
         typepair = tuple(sorted(typepair))
         # if an instenace already exists, return that one
-        if (typepair, name) in force.alchemical_particles:
-            return force.alchemical_particles[typepair, name]
+        if (typepair, name) in force._alchemical_dof:
+            return force._alchemical_dof[typepair, name]
         return super().__new__(cls)
 
     def __init__(self,
                  force: _AlchemicalPairPotential,
                  name: str = '',
                  typepair: tuple = None,
-                 mass: float = 1.0):
+                 alpha: float = 1.0,
+                 mass: float = 1.0,
+                 mu: float = 0.0):
         self.force = force
         self.name = name
         self.typepair = typepair
-        self._mass = mass
         if self.force._attached:
             self._attach()
         # store metadata
-        param_dict = ParameterDict(force=force, typepair=tuple)
+        param_dict = ParameterDict(mass=float,
+                                   mu=float,
+                                   alpha=float,
+                                   alchemical_momentum=float)
+        param_dict['mass'] = mass
+        param_dict['mu'] = mu
+        param_dict['alpha'] = alpha
+        param_dict['alchemical_momentum'] = 0.0
+
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -74,8 +81,6 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
             *map(self.force._simulation.state.particle_types.index,
                  self.typepair),
             self.force._alchemical_parameters.index(self.name))
-        self.mass = self._mass
-        self._mass = self.mass
         if self._owned:
             self._enable()
 
@@ -90,7 +95,7 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
     def _own(self, alchemostat):
         if self._owned:
             raise RuntimeError(
-                "Attempting to iterate an alchemical particle twice")
+                "Attempting to iterate an alchemical degree of freedom twice")
         self._owner = alchemostat
         if self._attached:
             self._enable()
@@ -104,41 +109,34 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
             self._disable()
             super()._detach()
 
-    @log(default=False)
-    def mass(self):
-        """Alchemical mass."""
-        if self._attached:
-            return self._cpp_obj.mass
-        else:
-            return self._mass
-
-    @mass.setter
-    def mass(self, M):
-        if self._attached:
-            self._cpp_obj.mass = M
-        else:
-            self._mass = M
+    #@log(default=False)
+    #def mass(self):
+    #    """Alchemical mass."""
+    #    if self._attached:
+    #        return self._cpp_obj.mass
+    #    else:
+    #        return self._mass
 
     @log
     def value(self):
-        """Current value of the alchemical parameter."""
+        """Current value of the alchemical degree of freedom."""
         return self.force.params[self.typepair][self.name] * (
             self._cpp_obj.alpha if self._attached else 1.)
 
-    @log(default=False, requires_run=True)
-    def alpha(self):
-        """Dimensionless alchemical alpha space value."""
-        return self._cpp_obj.alpha
+    #@log(default=False, requires_run=True)
+    #def alpha(self):
+    #    """Dimensionless alchemical alpha space value."""
+    #    return self._cpp_obj.alpha
 
-    @log(default=False, requires_run=True)
-    def alchemical_momentum(self):
-        """Momentum in alchemical alpha space."""
-        return self._cpp_obj.momentum
+    #@log(default=False, requires_run=True)
+    #def alchemical_momentum(self):
+    #    """Momentum in alchemical alpha space."""
+    #    return self._cpp_obj.momentum
 
-    @log(default=False, requires_run=True)
-    def mu(self):
-        """Alchemical potential."""
-        return self._cpp_obj.mu
+    #@log(default=False, requires_run=True)
+    #def mu(self):
+    #    """Alchemical potential."""
+    #    return self._cpp_obj.mu
 
     @log(default=False, requires_run=True, category='particle')
     def alchemical_forces(self):
@@ -160,20 +158,27 @@ class AlchemicalPairParticle(_HOOMDBaseObject):
         self.force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
 
-class AlchemicalNormalizedPairParticle(AlchemicalPairParticle):
-    """Alchemical normalized pair particle."""
+class AlchemicalNormalizedDOF(AlchemicalDOF):
+    """Alchemical normalized degree of freedom."""
 
-    @log(default=False, requires_run=True)
-    def norm_value(self):
-        """Normalization Value."""
-        return self._cpp_obj.norm_value
+    def __init__(self,
+                 force: _AlchemicalPairPotential,
+                 name: str = '',
+                 typepair: tuple = None,
+                 alpha: float = 1.0,
+                 norm_value: float = 0.0,
+                 mass: float = 1.0,
+                 mu: float = 0.0):
+        super().__init__(force, name, typepair, alpha, mass, mu)
+        self._param_dict.update(dict(norm_value=norm_value))
 
-    @norm_value.setter
-    def norm_value(self, value):
-        self._cpp_obj.norm_value = value
+    #@log(default=False, requires_run=True)
+    #def norm_value(self):
+    #    """Normalization Value."""
+    #    return self._cpp_obj.norm_value
 
     @log(default=False, requires_run=True, category='particle')
-    def aforces(self):
+    def alchemical_forces(self):
         """Per particle forces in alchemical alpha space."""
         return self._cpp_obj.forces * self._cpp_obj.norm_value
 
@@ -190,9 +195,13 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
         _AlchemicalMethods.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
+    def create_alchemical_dof(self, typepair, parameter):
+        """Create an alchemical degree of freedom on a potential parameter."""
+        return self._alchemical_dof[typepair, parameter]
+
 
 class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
-    """Alchemical Lennard Jones Gauss pair potential."""
+    """Alchemical normalized Lennard Jones Gauss pair potential."""
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
     normalized = True
 
@@ -203,3 +212,7 @@ class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
                  mode='none'):
         _AlchemicalMethods.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
+
+    def create_alchemical_dof(self, typepair, parameter):
+        """Create an alchemical degree of freedom on a potential parameter."""
+        return self._alchemical_dof[typepair, parameter]

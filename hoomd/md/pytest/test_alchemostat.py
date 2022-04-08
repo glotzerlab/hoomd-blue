@@ -7,9 +7,9 @@ import hoomd.md.alchemy
 import pytest
 
 _NVT_args = (hoomd.md.alchemy.methods.NVT, {
-    'kT': hoomd.variant.Constant(1)
+    'alchemical_kT': hoomd.variant.Constant(1)
 }, {
-    'kT': hoomd.variant.Constant(0.5)
+    'alchemical_kT': hoomd.variant.Constant(0.5)
 })
 
 
@@ -34,25 +34,25 @@ def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
     sim.operations.integrator = integrator
     sim.run(0)
 
-    ar0 = ljg.alchemical_particles[('A', 'A'), 'r0']
-    time_factor = 10
-    alchemostat = alchemostat_cls(time_factor=time_factor,
-                                  alchemical_particles=[ar0],
+    ar0 = ljg.create_alchemical_dof(('A', 'A'), 'r0')
+    period = 10
+    alchemostat = alchemostat_cls(period=period,
+                                  alchemical_dof=[ar0],
                                   **extra_property_1st_value)
 
-    assert alchemostat.time_factor == time_factor
-    time_factor = 5
-    alchemostat.time_factor = time_factor
-    assert alchemostat.time_factor == time_factor
+    assert alchemostat.period == period
+    period = 5
+    alchemostat.period = period
+    assert alchemostat.period == period
 
-    assert len(alchemostat.alchemical_particles) == 1
-    assert alchemostat.alchemical_particles[0] == ar0
+    assert len(alchemostat.alchemical_dof) == 1
+    assert alchemostat.alchemical_dof[0] == ar0
 
-    alchemostat.alchemical_particles.remove(ar0)
-    assert len(alchemostat.alchemical_particles) == 0
+    alchemostat.alchemical_dof.remove(ar0)
+    assert len(alchemostat.alchemical_dof) == 0
 
-    alchemostat.alchemical_particles.append(ar0)
-    assert alchemostat.alchemical_particles[0] == ar0
+    alchemostat.alchemical_dof.append(ar0)
+    assert alchemostat.alchemical_dof[0] == ar0
 
     for name in extra_property_1st_value.keys():
         assert getattr(alchemostat, name) == extra_property_1st_value[name]
@@ -77,30 +77,21 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     sim.operations.integrator = integrator
     sim.run(0)
 
-    ar0 = ljg.alchemical_particles[('A', 'A'), 'r0']
-
-    # filt = hoomd.filter.All()
-    time_factor = 10
-
-    alchemostat = alchemostat_cls(time_factor=time_factor,
-                                  alchemical_particles=[ar0],
+    ar0 = ljg.create_alchemical_dof(('A', 'A'), 'r0')
+    period = 10
+    alchemostat = alchemostat_cls(period=period,
+                                  alchemical_dof=[ar0],
                                   **extra_property_1st_value)
     sim.operations.integrator.methods.insert(0, alchemostat)
-    sim.run(0)
+    assert alchemostat.period == period
+    assert len(alchemostat.alchemical_dof) == 1
+    assert alchemostat.alchemical_dof[0] == ar0
 
-    assert alchemostat.time_factor == time_factor
-    time_factor = 5
-    alchemostat.time_factor = time_factor
-    assert alchemostat.time_factor == time_factor
+    alchemostat.alchemical_dof.remove(ar0)
+    assert len(alchemostat.alchemical_dof) == 0
 
-    assert len(alchemostat.alchemical_particles) == 1
-    assert alchemostat.alchemical_particles[0] == ar0
-
-    alchemostat.alchemical_particles.remove(ar0)
-    assert len(alchemostat.alchemical_particles) == 0
-
-    alchemostat.alchemical_particles.append(ar0)
-    assert alchemostat.alchemical_particles[0] == ar0
+    alchemostat.alchemical_dof.append(ar0)
+    assert alchemostat.alchemical_dof[0] == ar0
 
     for name in extra_property_1st_value.keys():
         assert getattr(alchemostat, name) == extra_property_1st_value[name]
