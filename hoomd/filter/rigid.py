@@ -11,7 +11,7 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
     """Select particles based on inclusion in rigid bodies.
 
     Args:
-        flags (tuple[str], optional):
+        flags (`tuple` [`str` ], optional):
             A tuple of strings of values "center", "constituent", or "free".
             These string flags specify what kinds of particles to filter:
             "center" will include central particles in a rigid body,
