@@ -13,8 +13,8 @@ md.alchemy.pair
 
     LJGauss
     NLJGauss
-    AlchemicalPairParticle
-    AlchemicalNormalizedPairParticle
+    AlchemicalDOF
+    AlchemicalNormalizedDOF
 
 .. rubric:: Details
 
@@ -22,5 +22,5 @@ md.alchemy.pair
     :synopsis: Pair potentials for MD alchemy.
     :members: LJGauss,
         NLJGauss,
-        AlchemicalPairParticle,
-        AlchemicalNormalizedPairParticle
+        AlchemicalDOF,
+        AlchemicalNormalizedDOF
