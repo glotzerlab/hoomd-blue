@@ -75,6 +75,16 @@ class NVT(Alchemostat):
 
         period (`int`): Time factor for the alchemostat
 
+    Attention:
+        `hoomd.md.alchemy.methods.NVT` does not support execution on GPUs.
+
+    Attention:
+        `hoomd.md.alchemy.methods.NVT` does not support MPI parallel
+        simulations.
+
+    Attention:
+        `hoomd.md.alchemy.methods.NVT` objects are not picklable.
+
     Examples::
 
         nvt=hoomd.md.methods.NVT(kT=1.0, tau=0.5)

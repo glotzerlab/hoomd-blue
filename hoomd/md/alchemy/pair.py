@@ -36,7 +36,19 @@ class _AlchemicalPairPotential(Loggable):
 
 
 class AlchemicalDOF(_HOOMDBaseObject):
-    """Alchemical degree of freedom associated with a specific pair force."""
+    """Alchemical degree of freedom associated with a specific pair force.
+
+    Args:
+        force (`_AlchemicalPairPotential`): Pair force containing the alchemical
+            degree of freedom.
+        name (str): The name of the pair force.
+        typepair (tuple[str]): The particle types upon which the pair force
+            acts.
+        alpha (float): The value of the alchemical parameter.
+        mass (float): The mass of the alchemical degree of freedom.
+        mu (float): The alchemical potential.
+
+    """
 
     def __new__(cls,
                 force: _AlchemicalPairPotential,
@@ -156,7 +168,16 @@ class AlchemicalNormalizedDOF(AlchemicalDOF):
 
 
 class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
-    """Alchemical Lennard Jones Gauss pair potential."""
+    """Alchemical Lennard Jones Gauss pair potential.
+
+    Attention:
+        `hoomd.md.alchemy.pair.LJGauss` does not support execution on GPUs.
+
+    Attention:
+        `hoomd.md.alchemy.pair.LJGauss` does not support MPI parallel
+        simulations.
+
+    """
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
 
     def __init__(self,
@@ -173,7 +194,20 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
 
 
 class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
-    """Alchemical normalized Lennard Jones Gauss pair potential."""
+    """Alchemical normalized Lennard Jones Gauss pair potential.
+
+    Attention:
+        `hoomd.md.alchemy.pair.NLJGauss` does not support execution on GPUs.
+
+    Attention:
+        `hoomd.md.alchemy.pair.NLJGauss` does not support MPI parallel
+        simulations.
+
+    Attention:
+        `hoomd.md.alchemy.pair.NLJGauss` is only valid for systems that contain
+        a single particle type with a single pair potential.
+
+    """
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
     normalized = True
 
