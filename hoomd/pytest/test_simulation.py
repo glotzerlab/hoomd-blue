@@ -20,7 +20,7 @@ skip_gsd = pytest.mark.skipif(skip_gsd,
                               reason="gsd Python package was not found.")
 
 
-class SleepUpdater:
+class SleepUpdater(hoomd.custom.Action):
 
     def act(self, timestep):
         time.sleep(1e-6 * timestep)
