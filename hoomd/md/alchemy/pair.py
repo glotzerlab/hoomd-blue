@@ -109,34 +109,11 @@ class AlchemicalDOF(_HOOMDBaseObject):
             self._disable()
             super()._detach()
 
-    #@log(default=False)
-    #def mass(self):
-    #    """Alchemical mass."""
-    #    if self._attached:
-    #        return self._cpp_obj.mass
-    #    else:
-    #        return self._mass
-
     @log
     def value(self):
         """Current value of the alchemical degree of freedom."""
         return self.force.params[self.typepair][self.name] * (
             self._cpp_obj.alpha if self._attached else 1.)
-
-    #@log(default=False, requires_run=True)
-    #def alpha(self):
-    #    """Dimensionless alchemical alpha space value."""
-    #    return self._cpp_obj.alpha
-
-    #@log(default=False, requires_run=True)
-    #def alchemical_momentum(self):
-    #    """Momentum in alchemical alpha space."""
-    #    return self._cpp_obj.momentum
-
-    #@log(default=False, requires_run=True)
-    #def mu(self):
-    #    """Alchemical potential."""
-    #    return self._cpp_obj.mu
 
     @log(default=False, requires_run=True, category='particle')
     def alchemical_forces(self):
@@ -171,11 +148,6 @@ class AlchemicalNormalizedDOF(AlchemicalDOF):
                  mu: float = 0.0):
         super().__init__(force, name, typepair, alpha, mass, mu)
         self._param_dict.update(dict(norm_value=norm_value))
-
-    #@log(default=False, requires_run=True)
-    #def norm_value(self):
-    #    """Normalization Value."""
-    #    return self._cpp_obj.norm_value
 
     @log(default=False, requires_run=True, category='particle')
     def alchemical_forces(self):
