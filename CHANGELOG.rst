@@ -7,6 +7,18 @@ Change Log
 v3.x
 ----
 
+v3.0.1 (2022-04-08)
+^^^^^^^^^^^^^^^^^^^
+
+*Fixed*:
+
+* Display status of ``trunk-patch`` branch in the GitHub actions badge.
+* Add ``EvaluatorPairTable.h`` to installation directory.
+* Add ``hoomd.filter.Rigid`` to the documentation.
+* Prevent ``TypeError: 'bool' object is not iterable`` errors when comparing ``Tag`` filters with
+  different lengths arrays.
+* ``Simulation.tps`` and ``Simulation.walltime`` update every step of the run.
+
 v3.0.0 (2022-03-22)
 ^^^^^^^^^^^^^^^^^^^
 
