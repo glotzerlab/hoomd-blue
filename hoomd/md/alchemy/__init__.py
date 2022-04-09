@@ -3,7 +3,8 @@
 
 """Alchemical molecular dynamics.
 
-Description of alchmical molecular dynamics.
+Alchemical molecular dynamics is the numerical integration of the equations of
+motion of alchemical degrees of freedom.
 
 Important:
     `van Anders et al. 2015 <https://doi.org/10.1021/acsnano.5b04181>`_

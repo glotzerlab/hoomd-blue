@@ -4,16 +4,10 @@
 md.alchemy
 --------------
 
-.. rubric:: Overview
-
-.. py:currentmodule:: hoomd.md.alchemy
-
-.. autosummary::
-    :nosignatures:
-
 .. rubric:: Details
 
 .. automodule:: hoomd.md.alchemy
+    :synopsis: Alchemical molecular dynamics.
 
 .. rubric:: Modules
 

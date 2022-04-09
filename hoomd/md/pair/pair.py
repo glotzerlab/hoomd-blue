@@ -1812,6 +1812,7 @@ class LJGauss(Pair):
             e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}}
 
     .. py:attribute:: params
+
         The potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -

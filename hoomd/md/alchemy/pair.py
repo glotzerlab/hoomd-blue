@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Alchemical pair potentials."""
+"""Alchemical pair forces."""
 
 from hoomd.logging import log, Loggable
 from hoomd.operation import _HOOMDBaseObject
@@ -39,14 +39,21 @@ class AlchemicalDOF(_HOOMDBaseObject):
     """Alchemical degree of freedom associated with a specific pair force.
 
     Args:
-        force (`_AlchemicalPairPotential`): Pair force containing the alchemical
-            degree of freedom.
+        force (``_AlchemicalPairPotential``): Pair force containing the
+        alchemical degree of freedom.
         name (str): The name of the pair force.
         typepair (tuple[str]): The particle types upon which the pair force
             acts.
         alpha (float): The value of the alchemical parameter.
         mass (float): The mass of the alchemical degree of freedom.
         mu (float): The alchemical potential.
+
+    `AlchemicalDOF` defines alchemical degrees of freedom that are to be
+    numerically integrated via an alchemical MD integration method.
+
+    Tip:
+        Use the ``create_alchemical_dof`` method of any of the alchemical pair
+        forces to construct an `AlchemicalDOF` instance.
 
     """
 
@@ -55,7 +62,17 @@ class AlchemicalDOF(_HOOMDBaseObject):
                 name: str = '',
                 typepair: tuple = None,
                 mass: float = 1.0):
-        """Cache existing instances of AlchemicalDOF."""
+        """Cache existing instances of AlchemicalDOF.
+
+        Args:
+            force (``_AlchemicalPairPotential``): Pair force containing the
+            alchemical degree of freedom.
+            name (str): The name of the pair force.
+            typepair (tuple[str]): The particle types upon which the pair force
+                acts.
+            mass (float): The mass of the alchemical degree of freedom.
+
+        """
         typepair = tuple(sorted(typepair))
         # if an instenace already exists, return that one
         if (typepair, name) in force._alchemical_dof:
@@ -168,7 +185,16 @@ class AlchemicalNormalizedDOF(AlchemicalDOF):
 
 
 class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
-    """Alchemical Lennard Jones Gauss pair potential.
+    r"""Alchemical Lennard Jones Gauss pair force.
+
+    Args:
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
+    simulation state, see `hoomd.md.pair.LJGauss` for more details.
 
     Attention:
         `hoomd.md.alchemy.pair.LJGauss` does not support execution on GPUs.
@@ -176,6 +202,17 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
     Attention:
         `hoomd.md.alchemy.pair.LJGauss` does not support MPI parallel
         simulations.
+
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma2`` (`float`, **required**) -
+          Gaussian variance :math:`\sigma^2` :math:`[\mathrm{length}]^2`
+        * ``r0`` (`float`, **required**) -
+          Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
 
     """
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
@@ -189,12 +226,23 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
     def create_alchemical_dof(self, typepair, parameter):
-        """Create an alchemical degree of freedom on a potential parameter."""
+        """Create an alchemical degree of freedom on a potential parameter.
+
+        Args:
+            typepair (tuple[str]): The pair of particle types for which to
+                create the alchemical degree of freedom
+            parameter (str): The name of the parameter to make an alchemical
+                degree of freedom
+
+
+        """
         return self._alchemical_dof[typepair, parameter]
 
 
 class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
-    """Alchemical normalized Lennard Jones Gauss pair potential.
+    """Alchemical normalized Lennard Jones Gauss pair force.
+
+    See `LJGauss` for more information.
 
     Attention:
         `hoomd.md.alchemy.pair.NLJGauss` does not support execution on GPUs.
@@ -205,7 +253,7 @@ class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
 
     Attention:
         `hoomd.md.alchemy.pair.NLJGauss` is only valid for systems that contain
-        a single particle type with a single pair potential.
+        a single particle type with a single pair force.
 
     """
     _alchemical_parameters = ['epsilon', 'sigma2', 'r0']
