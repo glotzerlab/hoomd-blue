@@ -694,10 +694,7 @@ class Shape(Updater):
 
         None when not attached
         """
-        if self._attached:
-            return self._cpp_obj.total_particle_volume
-        else:
-            return None
+        return self._cpp_obj.total_particle_volume
 
     @log(category="scalar", requires_run=True)
     def shape_move_energy(self):
