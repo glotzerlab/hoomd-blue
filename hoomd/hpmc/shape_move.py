@@ -16,8 +16,8 @@ class ShapeMove(_HOOMDBaseObject):
     """Base class for all shape moves.
 
     Args:
-        move_probability (`float`): Probability of performing a shape move in
-            in some way. See the  documentation of each derived class for a
+        move_probability (`float`): Probability of performing a shape move.
+        See the  documentation of each derived class for a
             descrition of how this parameter is interpreted in the context of
             each shape move subclass.
 
