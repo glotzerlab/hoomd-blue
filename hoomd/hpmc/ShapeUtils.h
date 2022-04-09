@@ -62,7 +62,7 @@ template<class Shape> class MassPropertiesBase
         return std::abs(dot(a, cross(b, c)));
         }
 
-    virtual void updateParam(const typename Shape::param_type& param, bool force = true) { }
+    virtual void updateParam(const typename Shape::param_type& param) { }
 
     virtual void compute()
         {
@@ -146,9 +146,9 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
         return std::make_pair(v, faces);
         }
 
-    void updateParam(const typename ShapeConvexPolyhedron::param_type& param, bool force = true)
+    void updateParam(const typename ShapeConvexPolyhedron::param_type& param)
         {
-        if (force || param.N != points.size())
+        if (param.N != points.size())
             {
             auto p = getQuickHullVertsAndFaces(param);
             points = p.first;
@@ -266,7 +266,7 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
             this->compute();
         }
 
-    virtual void updateParam(const typename ShapeEllipsoid::param_type& param, bool force = true)
+    virtual void updateParam(const typename ShapeEllipsoid::param_type& param)
         {
         m_param = param;
         this->compute();

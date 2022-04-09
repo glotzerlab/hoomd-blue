@@ -494,7 +494,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             }
         param.diameter = OverlapReal(2.0 * fast::sqrt(dsq));
         // update allows caching since for some shapes a full compute is not necessary.
-        m_mass_props[type_id].updateParam(param, false);
+        m_mass_props[type_id].updateParam(param);
         // update det(I)
         this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
 #ifdef DEBUG
