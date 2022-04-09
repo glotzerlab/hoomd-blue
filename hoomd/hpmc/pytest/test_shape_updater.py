@@ -148,7 +148,6 @@ def test_vertex_shape_move(device, simulation_factory,
     move.move_probability = 0
     sim.run(20)
     assert np.allclose(mc.shape["A"]["vertices"], verts)
-    print(updater.shape_moves)
     assert updater.shape_moves[0] == 40
     assert updater.shape_moves[1] == 0
 
