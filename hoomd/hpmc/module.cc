@@ -50,7 +50,6 @@ PYBIND11_MODULE(_hpmc, m)
     export_wall_list(m);
 
     export_sphere(m);
-
     export_convex_polygon(m);
 
     export_simple_polygon(m);
