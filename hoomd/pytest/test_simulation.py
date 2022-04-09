@@ -1,13 +1,15 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+import time
+
 import hoomd
 import numpy as np
 import pytest
 from copy import deepcopy
 from hoomd.error import MutabilityError
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check
+from hoomd.conftest import logging_check, ListWriter
 try:
     import gsd.hoomd
     skip_gsd = False
@@ -16,6 +18,16 @@ except ImportError:
 
 skip_gsd = pytest.mark.skipif(skip_gsd,
                               reason="gsd Python package was not found.")
+
+
+class SleepUpdater(hoomd.custom.Action):
+
+    def act(self, timestep):
+        time.sleep(1e-6 * timestep)
+
+    @classmethod
+    def wrapped(cls):
+        return hoomd.update.CustomUpdater(1, cls())
 
 
 def make_gsd_snapshot(hoomd_snapshot):
@@ -115,14 +127,38 @@ def test_run(simulation_factory, lattice_snapshot_factory):
     assert sim.operations._scheduled
 
 
-def test_tps(simulation_factory, lattice_snapshot_factory):
+def test_tps(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory()
     assert sim.tps is None
 
-    sim = simulation_factory(lattice_snapshot_factory())
-    sim.run(100)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    assert sim.tps == 0
 
-    assert sim.tps > 0
+    list_writer = ListWriter(sim, "tps")
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=list_writer,
+                                 trigger=hoomd.trigger.Periodic(1)))
+    sim.operations += SleepUpdater.wrapped()
+    sim.run(10)
+    tps = list_writer.data
+    assert len(np.unique(tps)) > 1
+
+
+def test_walltime(simulation_factory, two_particle_snapshot_factory):
+    sim = simulation_factory()
+    assert sim.walltime == 0
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    assert sim.walltime == 0
+
+    list_writer = ListWriter(sim, "walltime")
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=list_writer,
+                                 trigger=hoomd.trigger.Periodic(1)))
+    sim.operations += SleepUpdater.wrapped()
+    sim.run(10)
+    walltime = list_writer.data
+    assert all(a >= b for a, b in zip(walltime[1:], walltime[:-1]))
 
 
 def test_timestep(simulation_factory, lattice_snapshot_factory):
