@@ -800,8 +800,6 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
     pybind11::class_<PythonShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<IntegratorHPMCMono<Shape>>>())
         .def("getParams", &PythonShapeMove<Shape>::getParams)
         .def("setParams", &PythonShapeMove<Shape>::setParams)
         .def_property("callback",
