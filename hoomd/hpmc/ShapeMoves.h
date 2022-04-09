@@ -35,7 +35,6 @@ template<typename Shape> class ShapeMoveBase
     //! prepare is called at the beginning of every update()
     virtual void prepare(uint64_t timestep)
         {
-        throw std::runtime_error("Shape move function not implemented.");
         }
 
     //! construct is called for each particle type that will be changed in update()
@@ -45,13 +44,11 @@ template<typename Shape> class ShapeMoveBase
                               typename Shape::param_type&,
                               hoomd::RandomGenerator&)
         {
-        throw std::runtime_error("Shape move function not implemented.");
         }
 
     //! retreat whenever the proposed move is rejected.
     virtual void retreat(uint64_t timestep)
         {
-        throw std::runtime_error("Shape move function not implemented.");
         }
 
     Scalar getDetInertiaTensor() const
@@ -210,16 +207,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             ret[type_name.c_str()] = l;
             }
         return ret;
-        }
-
-    Scalar getParamMoveProbability()
-        {
-        return this->m_move_probability;
-        }
-
-    void setParamMoveProbability(Scalar select_ratio)
-        {
-        this->m_move_probability = fmin(select_ratio, 1.0);
         }
 
     pybind11::object getCallback()
