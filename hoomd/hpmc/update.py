@@ -683,8 +683,6 @@ class Shape(Updater):
     @log(category='sequence', requires_run=True)
     def shape_moves(self):
         """tuple[int, int]: Count of the accepted and rejected shape moves.
-
-        (0, 0) before the first call to `Simulation.run`.
         """
         return self._cpp_obj.getShapeMovesCount()
 
@@ -698,14 +696,9 @@ class Shape(Updater):
 
     @log(category="scalar", requires_run=True)
     def shape_move_energy(self):
-        """float: Energy penalty due to shape changes
-
-        None when not attached
+        """float: Energy penalty due to shape changes.
         """
-        if self._attached:
-            return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
-        else:
-            return None
+        return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
 
 
 class Clusters(Updater):
