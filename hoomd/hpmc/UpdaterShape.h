@@ -217,7 +217,6 @@ template<typename Shape> class UpdaterShape : public Updater
         m_box_total; // number of attempted moves between boxes in multi-phase simulations
     detail::UpdateOrder m_update_order;      // order of particle types to apply the updater to
     unsigned int m_instance = 0;             //!< Unique ID for RNG seeding
-    static constexpr Scalar m_tol = 0.00001; // minimum move size required to not be ignored.
     };
 
 template<class Shape>
@@ -281,7 +280,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             // make a trial move for i
             unsigned int typ_i = m_update_order[cur_type];
             // Skip move if step size is smaller than allowed tolerance
-            if (m_step_size[typ_i] < m_tol)
+            if (m_step_size[typ_i] == 0)
                 {
                 m_exec_conf->msg->notice(5) << " Skipping moves for particle typeid=" << typ_i
                                             << ", " << cur_type << std::endl;
