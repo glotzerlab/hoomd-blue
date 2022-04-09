@@ -8,9 +8,6 @@ import pytest
 from hoomd.hpmc.update import Shape
 from hoomd.hpmc.shape_move import VertexShapeMove, PythonShapeMove, ElasticShapeMove
 
-verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
-                    [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
-
 shape_move_classes = [VertexShapeMove, PythonShapeMove, ElasticShapeMove]
 
 shape_move_constructor_args = [
@@ -115,6 +112,9 @@ def test_type_parameters(obj, attr, value):
 
 def test_vertex_shape_move(device, simulation_factory,
                            two_particle_snapshot_factory):
+
+    verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
+                        [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
 
     move = VertexShapeMove()
     move.volume["A"] = 1
