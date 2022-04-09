@@ -33,9 +33,7 @@ template<typename Shape> class ShapeMoveBase
     virtual ~ShapeMoveBase() {};
 
     //! prepare is called at the beginning of every update()
-    virtual void prepare(uint64_t timestep)
-        {
-        }
+    virtual void prepare(uint64_t timestep) { }
 
     //! construct is called for each particle type that will be changed in update()
     virtual void update_shape(uint64_t,
@@ -47,9 +45,7 @@ template<typename Shape> class ShapeMoveBase
         }
 
     //! retreat whenever the proposed move is rejected.
-    virtual void retreat(uint64_t timestep)
-        {
-        }
+    virtual void retreat(uint64_t timestep) { }
 
     Scalar getDetInertiaTensor() const
         {

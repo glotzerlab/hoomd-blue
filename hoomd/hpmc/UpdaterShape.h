@@ -215,8 +215,8 @@ template<typename Shape> class UpdaterShape : public Updater
         m_box_accepted; // number of accepted moves between boxes in multi-phase simulations
     std::vector<unsigned int>
         m_box_total; // number of attempted moves between boxes in multi-phase simulations
-    detail::UpdateOrder m_update_order;      // order of particle types to apply the updater to
-    unsigned int m_instance = 0;             //!< Unique ID for RNG seeding
+    detail::UpdateOrder m_update_order; // order of particle types to apply the updater to
+    unsigned int m_instance = 0;        //!< Unique ID for RNG seeding
     };
 
 template<class Shape>
