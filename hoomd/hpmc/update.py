@@ -686,10 +686,7 @@ class Shape(Updater):
 
         (0, 0) before the first call to `Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getShapeMovesCount()
-        else:
-            return (0, 0)
+        return self._cpp_obj.getShapeMovesCount()
 
     @log(category='scalar', requires_run=True)
     def total_particle_volume(self):
@@ -697,10 +694,7 @@ class Shape(Updater):
 
         None when not attached
         """
-        if self._attached:
-            return self._cpp_obj.total_particle_volume
-        else:
-            return None
+        return self._cpp_obj.total_particle_volume
 
     @log(category="scalar", requires_run=True)
     def shape_move_energy(self):
