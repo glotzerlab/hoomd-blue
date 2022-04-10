@@ -234,7 +234,7 @@ template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
             {
             std::string type_name = pybind11::cast<std::string>(name_and_params.first);
             pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
-            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+            unsigned int type_i = this->getValidateType(type_name);
             shape_params_vector[type_i] = type_params;
             }
         m_shape_params = shape_params_vector;
