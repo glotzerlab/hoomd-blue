@@ -1072,7 +1072,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     \returns number of overlaps if early_exit=false, 1 if early_exit=true
 */
 template <class Shape>
-unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit, int query_type, bool build_tree)
+unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
