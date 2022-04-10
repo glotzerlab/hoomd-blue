@@ -125,7 +125,7 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     public:
     PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                     std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
-        : ShapeMoveBase<Shape>(sysdef, mc), m_num_params(0)
+        : ShapeMoveBase<Shape>(sysdef, mc)
         {
         m_params.resize(this->m_ntypes);
         m_params_backup.resize(this->m_ntypes);
@@ -216,7 +216,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     private:
-    unsigned int m_num_params;                        // cache the number of parameters.
     std::vector<std::vector<Scalar>> m_params_backup; // all params are from 0,1
     std::vector<std::vector<Scalar>> m_params;        // all params are from 0,1
     pybind11::object m_python_callback; // callback that takes m_params as an argiment and returns

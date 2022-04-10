@@ -27,8 +27,6 @@ class ShapeMove(_HOOMDBaseObject):
     """
 
     _suported_shapes = None
-    _shape_move_name = None
-    _move_class = None
 
     def __init__(self, move_probability):
         # Set base parameter dict for all shape_moves
