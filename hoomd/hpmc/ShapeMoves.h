@@ -443,11 +443,11 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
                       param_type& param,
                       hoomd::RandomGenerator& rng)
         {
-        Matrix3S transform;
+        Matrix3S F_curr;
         // perform a scaling move
         if (hoomd::detail::generate_canonical<double>(rng) < this->m_move_probability)
             {
-            generateExtentional(transform, rng, stepsize + 1.0);
+            generateExtentional(F_curr, rng, stepsize + 1.0);
             }
         else // perform a rotation-scale-rotation move
             {
@@ -458,10 +458,11 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             rot = eq.toRotationMatrix();
             rot_inv = rot.transpose();
             generateExtentional(scale, rng, stepsize + 1.0);
-            transform = rot * scale * rot_inv;
+            F_curr = rot * scale * rot_inv;
             }
 
-        m_F[type_id] = transform * m_F[type_id];
+        m_F[type_id] = F_curr * m_F[type_id];
+        auto transform = F_curr.cast<OverlapReal>();
         Scalar dsq = 0.0;
         for (unsigned int i = 0; i < param.N; i++)
             {
