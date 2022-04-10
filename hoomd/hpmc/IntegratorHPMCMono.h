@@ -290,7 +290,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Count overlaps with the option to exit early at the first detected overlap
-        virtual unsigned int countOverlaps(bool early_exit, int query_type = -1, bool build_tree = true);
+        virtual unsigned int countOverlaps(bool early_exit);
 
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<std::pair<unsigned int, unsigned int> > mapOverlaps();
