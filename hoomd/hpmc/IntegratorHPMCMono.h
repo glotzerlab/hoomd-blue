@@ -1695,7 +1695,7 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
     the tree needs to be rebuilt or if the current tree can be used.
 
     buildAABBTree() relies on the member variable m_aabb_tree_invalid to work correctly. Any time particles
-    are moved (and not updated with buildAABBTree->update()) or the particle list changes order, m_aabb_tree_invalid
+    are moved (and not updated with m_aabb_tree->update()) or the particle list changes order, m_aabb_tree_invalid
     needs to be set to true. Then buildAABBTree() will know to rebuild the tree from scratch on the next call. Typically
     this is on the next timestep. But in some cases (i.e. NPT), the tree may need to be rebuilt several times in a
     single step because of box volume moves.
