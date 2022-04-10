@@ -346,7 +346,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             m_mc->setParam(typ_i, shape_param_new);
 
             // check if at least one overlap was caused
-            bool overlaps = (bool)m_mc->countOverlaps(true, typ_i, false);
+            bool overlaps = (bool)m_mc->countOverlaps(true);
             // automatically reject if there are overlaps
             if (overlaps)
                 {

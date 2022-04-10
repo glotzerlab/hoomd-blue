@@ -1100,9 +1100,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
         Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-        if (query_type >= 0 && (unsigned int) query_type != typ_i)
-            continue;
-
         // Check particle against AABB tree for neighbors
         hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
