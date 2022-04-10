@@ -1077,13 +1077,10 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
 
-    if (build_tree)
-        {
-        // build an up to date AABB tree
-        buildAABBTree();
-        // update the image list
-        updateImageList();
-        }
+    // build an up to date AABB tree
+    buildAABBTree();
+    // update the image list
+    updateImageList();
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
