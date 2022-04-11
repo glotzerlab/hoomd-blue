@@ -41,7 +41,7 @@ namespace gpu
 namespace kernel
     {
 //! Kernel for computing the depletion Metropolis-Hastings weight  (phase 1)
-template<class Shape, unsigned int max_threads, bool pairwise>
+template<class Shape, unsigned int max_threads>
 #ifdef __HIP_PLATFORM_NVCC__
 __launch_bounds__(max_threads)
 #endif
@@ -596,7 +596,7 @@ __launch_bounds__(max_threads)
     }
 
 //! Launcher for hpmc_insert_depletants_phase1 kernel with templated launch bounds
-template<class Shape, bool pairwise, unsigned int cur_launch_bounds>
+template<class Shape, unsigned int cur_launch_bounds>
 void depletants_launcher_phase1(const hpmc_args_t& args,
                                 const hpmc_implicit_args_t& implicit_args,
                                 const hpmc_auxilliary_args_t& auxilliary_args,
@@ -615,8 +615,7 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
             &attr,
             reinterpret_cast<const void*>(
                 &kernel::hpmc_insert_depletants_phase1<Shape,
-                                                       launch_bounds_nonzero * MIN_BLOCK_SIZE,
-                                                       pairwise>));
+                                                       launch_bounds_nonzero * MIN_BLOCK_SIZE>));
         max_block_size = attr.maxThreadsPerBlock;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
@@ -719,8 +718,7 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
 
             hipLaunchKernelGGL(
                 (kernel::hpmc_insert_depletants_phase1<Shape,
-                                                       launch_bounds_nonzero * MIN_BLOCK_SIZE,
-                                                       pairwise>),
+                                                       launch_bounds_nonzero * MIN_BLOCK_SIZE>),
                 dim3(grid),
                 dim3(threads),
                 shared_bytes,
@@ -770,12 +768,12 @@ void depletants_launcher_phase1(const hpmc_args_t& args,
         }
     else
         {
-        depletants_launcher_phase1<Shape, pairwise>(args,
-                                                    implicit_args,
-                                                    auxilliary_args,
-                                                    params,
-                                                    max_threads,
-                                                    detail::int2type<cur_launch_bounds / 2>());
+        depletants_launcher_phase1<Shape>(args,
+                                          implicit_args,
+                                          auxilliary_args,
+                                          params,
+                                          max_threads,
+                                          detail::int2type<cur_launch_bounds / 2>());
         }
     }
 
