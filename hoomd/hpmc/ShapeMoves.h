@@ -222,86 +222,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     pybind11::object m_python_callback; // callback that takes m_params as an argiment and returns
     };
 
-template<typename Shape> class ConstantShapeMove : public ShapeMoveBase<Shape>
-    {
-    public:
-    ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                      pybind11::dict shape_params)
-        : ShapeMoveBase<Shape>(sysdef, mc), m_shape_moves({})
-        {
-        std::vector<pybind11::dict> shape_params_vector(this->m_ntypes);
-        for (auto name_and_params : shape_params)
-            {
-            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-            pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
-            unsigned int type_i = this->getValidateType(type_name);
-            shape_params_vector[type_i] = type_params;
-            }
-        m_shape_params = shape_params_vector;
-        for (unsigned int i = 0; i < this->m_ntypes; i++)
-            {
-            typename Shape::param_type pt(m_shape_params[i]);
-            m_shape_moves.push_back(pt);
-            }
-        if (this->m_ntypes != m_shape_moves.size())
-            throw std::runtime_error("Must supply a shape move for each type");
-        for (unsigned int i = 0; i < m_shape_moves.size(); i++)
-            {
-            detail::MassProperties<Shape> mp(m_shape_moves[i]);
-            m_determinants.push_back(mp.getDetInertiaTensor());
-            }
-        }
-
-    void prepare(uint64_t timestep) { }
-
-    void update_shape(uint64_t timestep,
-                      Scalar& stepsize,
-                      const unsigned int& type_id,
-                      typename Shape::param_type& shape,
-                      hoomd::RandomGenerator& rng)
-        {
-        shape = m_shape_moves[type_id];
-        this->m_det_inertia_tensor = m_determinants[type_id];
-        }
-
-    void retreat(uint64_t timestep)
-        {
-        // move has been rejected.
-        }
-
-    pybind11::dict getShapeParams()
-        {
-        pybind11::dict shape_params;
-        for (unsigned int i = 0; i < m_shape_params.size(); i++)
-            {
-            pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
-            shape_params[type_name] = m_shape_params[i];
-            }
-        return shape_params;
-        }
-
-    void setShapeParams(pybind11::dict shape_params)
-        {
-        std::vector<pybind11::dict> shape_params_vector(m_shape_params.size());
-        for (auto name_and_params : shape_params)
-            {
-            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
-            pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
-            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
-            shape_params_vector[type_i] = type_params;
-            typename Shape::param_type pt(type_params);
-            m_shape_moves[type_i] = pt;
-            }
-        m_shape_params = shape_params_vector;
-        }
-
-    private:
-    std::vector<typename Shape::param_type> m_shape_moves;
-    std::vector<Scalar> m_determinants;
-    std::vector<pybind11::dict> m_shape_params;
-    };
-
 class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedron>
     {
     public:
@@ -814,20 +734,6 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
                             std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>>>())
         .def("getVolume", &ConvexPolyhedronVertexShapeMove::getVolume)
         .def("setVolume", &ConvexPolyhedronVertexShapeMove::setVolume);
-    }
-
-template<class Shape>
-inline void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
-    {
-    pybind11::class_<ConstantShapeMove<Shape>,
-                     ShapeMoveBase<Shape>,
-                     std::shared_ptr<ConstantShapeMove<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
-                            pybind11::dict>())
-        .def_property("shape_params",
-                      &ConstantShapeMove<Shape>::getShapeParams,
-                      &ConstantShapeMove<Shape>::setShapeParams);
     }
 
 template<class Shape>

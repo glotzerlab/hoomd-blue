@@ -52,38 +52,6 @@ class ShapeMove(_HOOMDBaseObject):
         super()._attach()
 
 
-class Constant(ShapeMove):
-    """Apply a transition to a specified shape, changing a particle shape by
-    the same way every time the updater is called.
-
-    Note:
-        This is useful for calculating a specific transition probability and
-        derived thermodynamic quantities.
-
-    Args:
-        shape_params (dict): Arguments defining the shape to transition to
-
-    Examples::
-
-        mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-        tetrahedron_verts = [(1, 1, 1), (-1, -1, 1),
-                             (1, -1, -1), (-1, 1, -1)]
-        mc.shape["A"] = dict(vertices=tetrahedron_verts)
-        cube_verts = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1),
-                      (1, -1, -1), (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)])
-        constant_move = shape_move.Constant(shape_params=cube_verts)
-
-    Attributes:
-        shape_params (dict): Arguments defining the shape to transition to
-
-    See Also:
-        hoomd.hpmc.integrate for required shape parameters.
-    """
-
-    def __init__(self, shape_params):
-        self._param_dict.update(ParameterDict(shape_params=dict(shape_params)))
-
-
 class ElasticShapeMove(ShapeMove):
     """Apply scale and shear shape moves to particles with an energy penalty.
 
