@@ -751,7 +751,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args,
     while (launch_bounds < args.block_size)
         launch_bounds *= 2;
 
-    kernel::depletants_launcher<Shape, false>(args,
+    kernel::depletants_launcher<Shape>(args,
                                               implicit_args,
                                               params,
                                               launch_bounds,

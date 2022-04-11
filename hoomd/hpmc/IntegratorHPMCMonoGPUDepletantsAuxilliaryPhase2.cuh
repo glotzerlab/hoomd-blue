@@ -849,7 +849,7 @@ void hpmc_depletants_auxilliary_phase2(const hpmc_args_t& args,
     while (launch_bounds < args.block_size)
         launch_bounds *= 2;
 
-    kernel::depletants_launcher_phase2<Shape, false>(
+    kernel::depletants_launcher_phase2<Shape>(
         args,
         implicit_args,
         auxilliary_args,
