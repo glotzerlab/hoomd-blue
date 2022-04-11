@@ -50,7 +50,8 @@ void export_convex_polyhedron(pybind11::module& m)
 
     export_UpdaterShape<ShapeConvexPolyhedron>(m, "UpdaterShapeConvexPolyhedron");
     export_ShapeMoveBase<ShapeConvexPolyhedron>(m, "ShapeMoveBaseShapeConvexPolyhedron");
-    export_PythonShapeMove<ShapeConvexPolyhedron>(m, "PythonShapeMoveConvexPolyhedron");;
+    export_PythonShapeMove<ShapeConvexPolyhedron>(m, "PythonShapeMoveConvexPolyhedron");
+    ;
     export_ElasticShapeMove<ShapeConvexPolyhedron>(m, "ElasticShapeMoveConvexPolyhedron");
     export_ConvexPolyhedronVertexShapeMove(m, "VertexShapeMoveConvexPolyhedron");
 
