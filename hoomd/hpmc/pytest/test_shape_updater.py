@@ -157,7 +157,6 @@ def test_vertex_shape_move(device, simulation_factory,
     move.move_probability = 1
     sim.run(20)
     assert updater.shape_moves[0] != 0
-    assert updater.shape_moves[1] != 0
     assert np.sum(updater.shape_moves) == 40
     assert not np.allclose(mc.shape["A"]["vertices"], verts)
     assert np.isclose(updater.total_particle_volume, 2)
