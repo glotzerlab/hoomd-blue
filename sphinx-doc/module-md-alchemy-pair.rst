@@ -11,16 +11,15 @@ md.alchemy.pair
 .. autosummary::
     :nosignatures:
 
-    LJGauss
-    NLJGauss
     AlchemicalDOF
-    AlchemicalNormalizedDOF
+    LJGauss
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.alchemy.pair
     :synopsis: Pair potentials for MD alchemy.
+    :show-inheritance:
     :members: LJGauss,
-        NLJGauss,
-        AlchemicalDOF,
-        AlchemicalNormalizedDOF
+
+    .. autoclass:: AlchemicalDOF()
+        :members: alchemical_forces, net_alchemical_force

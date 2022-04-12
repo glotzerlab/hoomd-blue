@@ -12,7 +12,14 @@ from hoomd.variant import Variant
 
 
 class Alchemostat(Method):
-    """Alchemostat Base Class."""
+    """Alchemostat base class.
+
+    Note:
+        :py:class:`Alchemostat` is the base class for all alchemical integration
+        methods. Users should use the subclasses and not instantiate
+        `Alchemostat` directly.
+
+    """
 
     def __init__(self, alchemical_dof):
         self.alchemical_dof = self._OwnedAlchemicalParticles(self)
@@ -25,11 +32,6 @@ class Alchemostat(Method):
 
     def _attach(self):
         super()._attach()
-        # TODO: handle forces not attached
-        # for force in {alpha.force for alpha in self.alchemical_dof}
-
-        # keep a separate local cpp list because static casting
-        # won't let us access directly
         self.alchemical_dof._sync(None, [])
         self._update()
 
@@ -67,13 +69,18 @@ class Alchemostat(Method):
 class NVT(Alchemostat):
     r"""Alchemical NVT Integration.
 
+    Implements molecular dynamics simulations of an extended statistical
+    mechanical ensemble that includes alchemical degrees of freedom describing
+    particle attributes as thermodynamic variables.
+
     Args:
         alchemical_kT (`hoomd.variant.Variant` or `float`): Temperature set
             point for the alchemostat :math:`[\mathrm{energy}]`.
 
-        alchemical_dof (list): List of alchemical particles
+        alchemical_dof (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List of
+            alchemical degrees of freedom.
 
-        period (`int`): Time factor for the alchemostat
+        period (int): Timesteps between applications of the alchemostat.
 
     Attention:
         `hoomd.md.alchemy.methods.NVT` does not support execution on GPUs.
@@ -85,18 +92,20 @@ class NVT(Alchemostat):
     Attention:
         `hoomd.md.alchemy.methods.NVT` objects are not picklable.
 
-    Examples::
+    Danger:
+        `NVT` must be the first item in the `hoomd.md.Integrator.methods` list.
 
-        nvt=hoomd.md.methods.NVT(kT=1.0, tau=0.5)
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+    See Also:
+        `Zhou et al. 2019 <https://doi.org/10.1080/00268976.2019.1680886>`_.
 
     Attributes:
-        kT (hoomd.variant.Variant): Temperature set point
+        alchemical_kT (hoomd.variant.Variant): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        alchemical_dof (list): List of alchemical particles
+        alchemical_dof (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List of
+            alchemical degrees of freedom.
 
-        period (int): Time factor for the alchemostat
+        period (int): Timesteps between applications of the alchemostat.
 
     """
 

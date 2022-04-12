@@ -3,16 +3,25 @@
 
 """Alchemical molecular dynamics.
 
-Alchemical molecular dynamics is the numerical integration of the equations of
-motion of alchemical degrees of freedom.
+Implements molecular dynamics simulations of an extended statistical
+mechanical ensemble that includes alchemical degrees of freedom describing
+particle attributes as thermodynamic variables.
 
-Important:
-    `van Anders et al. 2015 <https://doi.org/10.1021/acsnano.5b04181>`_
-    describes the digital alchemy method, and `Zhou et al. 2019
-    <https://doi.org/10.1080/00268976.2019.1680886>`_ describes the application
-    of digital alchemy to molecular dynamics simulations. Cite both works if you
-    use `hoomd.md.alchemy` in your research.
+Example::
 
+    nvt = hoomd.md.methods.NVT(...)
+    integrator.methods.append(nvt)
+    ljg = hoomd.md.alchemy.pair.LJGauss(...)
+    integrator.forces.append(ljg)
+    sim.run(0)
+    ar0 = ljg.create_alchemical_dof(('A', 'A'), 'r0')
+    alchemostat = hoomd.md.alchemy.methods.NVT(
+        period=period,
+        alchemical_dof=[ar0],
+        alchemical_kT=hoomd.variant.Constant(0.1),
+    )
+    integrator.methods.insert(0, alchemostat)
+    sim.run(n_steps)
 """
 
 from . import methods

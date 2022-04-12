@@ -36,24 +36,24 @@ class _AlchemicalPairPotential(Loggable):
 
 
 class AlchemicalDOF(_HOOMDBaseObject):
-    """Alchemical degree of freedom associated with a specific pair force.
+    """Alchemical degree of freedom :math:`\\alpha_i` associated with a\
+    specific pair force.
 
-    Args:
-        force (``_AlchemicalPairPotential``): Pair force containing the
-        alchemical degree of freedom.
-        name (str): The name of the pair force.
-        typepair (tuple[str]): The particle types upon which the pair force
-            acts.
-        alpha (float): The value of the alchemical parameter.
+    `AlchemicalDOF` represents an alchemical degree of freedom to be
+    numerically integrated via an `alchemical integration method
+    <hoomd.md.alchemy.methods>`.
+
+    Note:
+        Call the ``create_alchemical_dof`` method of the alchemical pair force
+        to create an `AlchemicalDOF` instance.
+
+    Attributes:
         mass (float): The mass of the alchemical degree of freedom.
-        mu (float): The alchemical potential.
+        mu (float): The value of the alchemical potential.
+        alpha (float): The value of the dimensionless alchemical degree of
+            freedom :math:`\\alpha_i`.
 
-    `AlchemicalDOF` defines alchemical degrees of freedom that are to be
-    numerically integrated via an alchemical MD integration method.
-
-    Tip:
-        Use the ``create_alchemical_dof`` method of any of the alchemical pair
-        forces to construct an `AlchemicalDOF` instance.
+        alchemical_momentum (float): The momentum of the alchemical parameter.
 
     """
 
@@ -66,7 +66,7 @@ class AlchemicalDOF(_HOOMDBaseObject):
 
         Args:
             force (``_AlchemicalPairPotential``): Pair force containing the
-            alchemical degree of freedom.
+                alchemical degree of freedom.
             name (str): The name of the pair force.
             typepair (tuple[str]): The particle types upon which the pair force
                 acts.
@@ -86,6 +86,19 @@ class AlchemicalDOF(_HOOMDBaseObject):
                  alpha: float = 1.0,
                  mass: float = 1.0,
                  mu: float = 0.0):
+        """Cache existing instances of AlchemicalDOF.
+
+        Args:
+            force (``_AlchemicalPairPotential``): Pair force containing the
+                alchemical degree of freedom.
+            name (str): The name of the pair force.
+            typepair (tuple[str]): The particle types upon which the pair force
+                acts.
+            alpha (float): The value of the alchemical parameter.
+            mass (float): The mass of the alchemical degree of freedom.
+            mu (float): The alchemical potential.
+
+        """
         self.force = force
         self.name = name
         self.typepair = typepair
@@ -138,20 +151,26 @@ class AlchemicalDOF(_HOOMDBaseObject):
             self._disable()
             super()._detach()
 
-    @log
-    def value(self):
-        """Current value of the alchemical degree of freedom."""
-        return self.force.params[self.typepair][self.name] * (
-            self._cpp_obj.alpha if self._attached else 1.)
-
     @log(default=False, requires_run=True, category='particle')
     def alchemical_forces(self):
-        """Per particle forces in alchemical alpha space."""
+        r"""Per particle forces in alchemical alpha space.
+
+        .. math::
+
+            F_{\mathrm{alchemical},i} = -\frac{\mathrm{d}U_i}{\mathrm{d}\alpha}
+
+        """
         return self._cpp_obj.forces
 
     @log(requires_run=True)
     def net_alchemical_force(self):
-        """Net force in alchemical alpha space."""
+        """Net force in alchemical alpha space.
+
+        .. math::
+            F_{\\mathrm{alchemical}} = \\sum_{i=0}^{N_{\\mathrm{paricles}}-1}
+            F_{\\mathrm{alchemical},i}
+
+        """
         return self._cpp_obj.net_force
 
     def _enable(self):
@@ -164,6 +183,8 @@ class AlchemicalDOF(_HOOMDBaseObject):
         self.force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
 
+# hiding this class from the sphinx docs until we figure out how the
+# normalization scheme works
 class AlchemicalNormalizedDOF(AlchemicalDOF):
     """Alchemical normalized degree of freedom."""
 
@@ -194,7 +215,20 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
         mode (str): Energy shifting/smoothing mode.
 
     `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
-    simulation state, see `hoomd.md.pair.LJGauss` for more details.
+    simulation state, with additional alchemical degrees of freedom:
+
+    .. math::
+        U(r) = 1\ [\mathrm{energy}] \cdot \left[
+                 \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
+                 \left ( \frac{2\ [\mathrm{length}]}{r} \right)^{6} \right] -
+            \alpha_{1}\epsilon
+            \exp \left[ - \frac{\left(r - \alpha_{2}r_{0}\right)^{2}}{2
+            (\alpha_{3}\sigma)^{2}} \right],
+
+    where :math:`\alpha_i` are the alchemical degrees of freedom.
+
+    Note:
+        :math:`\alpha_i` not specified via `create_alchemical_dof` are set to 1.
 
     Attention:
         `hoomd.md.alchemy.pair.LJGauss` does not support execution on GPUs.
@@ -226,36 +260,44 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
     def create_alchemical_dof(self, typepair, parameter):
-        """Create an alchemical degree of freedom on a potential parameter.
+        """Create an alchemical degree of freedom.
+
+        Creates an alchemical degree of freedom on the :math:`\\alpha_i`
+        corresponding to the chosen parameter.
+
+        Note:
+            `create_alchemical_dof` must be called after `Simulation.run`:
+            ``sim.run(0)``.
 
         Args:
             typepair (tuple[str]): The pair of particle types for which to
-                create the alchemical degree of freedom
+                create the alchemical degree of freedom.
             parameter (str): The name of the parameter to make an alchemical
-                degree of freedom
+                degree of freedom, one of ``'epsilon'``, ``'r0'``, or
+                ``'sigma2'``.
 
         Returns:
-            AlchemicalDOF: The alchemical degree of freedom that can be\
-                    integrated via the :doc:`alchemical integration methods\
-                    </module-md-alchemy-methods>`.
+            AlchemicalDOF: The alchemical degree of freedom that can be
+            integrated via the `alchemical integration methods
+            <hoomd.md.alchemy.methods>`.
         """
         return self._alchemical_dof[typepair, parameter]
 
 
-class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
+# hiding this class from the sphinx docs until we figure out how the
+# normalization scheme works
+class _NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
     """Alchemical normalized Lennard Jones Gauss pair force.
 
-    See `LJGauss` for more information.
+    Attention:
+        `hoomd.md.alchemy.pair._NLJGauss` does not support execution on GPUs.
 
     Attention:
-        `hoomd.md.alchemy.pair.NLJGauss` does not support execution on GPUs.
-
-    Attention:
-        `hoomd.md.alchemy.pair.NLJGauss` does not support MPI parallel
+        `hoomd.md.alchemy.pair._NLJGauss` does not support MPI parallel
         simulations.
 
     Attention:
-        `hoomd.md.alchemy.pair.NLJGauss` is only valid for systems that contain
+        `hoomd.md.alchemy.pair._NLJGauss` is only valid for systems that contain
         a single particle type with a single pair force.
 
     """
@@ -271,18 +313,21 @@ class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
     def create_alchemical_dof(self, typepair, parameter):
-        """Create an alchemical degree of freedom on a potential parameter.
+        """Create an alchemical degree of freedom.
+
+        Creates an alchemical degree of freedom on the :math:`\\alpha_i`
+        corresponding to the chosen parameter.
 
         Args:
             typepair (tuple[str]): The pair of particle types for which to
-                create the alchemical degree of freedom
+                create the alchemical degree of freedom.
             parameter (str): The name of the parameter to make an alchemical
-                degree of freedom
+                degree of freedom, one of ``'epsilon'``, ``'r0'``, or
+                ``'sigma2'``.
 
         Returns:
-            AlchemicalDOF: The alchemical degree of freedom that can be\
-                    integrated via the :doc:`alchemical integration methods\
-                    </module-md-alchemy-methods>`.
-
+            AlchemicalDOF: The alchemical degree of freedom that can be
+            integrated via the `alchemical integration methods
+            <hoomd.md.alchemy.methods>`.
         """
         return self._alchemical_dof[typepair, parameter]
