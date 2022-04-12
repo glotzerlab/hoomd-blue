@@ -234,7 +234,10 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
             parameter (str): The name of the parameter to make an alchemical
                 degree of freedom
 
-
+        Returns:
+            AlchemicalDOF: The alchemical degree of freedom that can be\
+                    integrated via the :doc:`alchemical integration methods\
+                    </module-md-alchemy-methods>`.
         """
         return self._alchemical_dof[typepair, parameter]
 
@@ -268,5 +271,18 @@ class NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
     def create_alchemical_dof(self, typepair, parameter):
-        """Create an alchemical degree of freedom on a potential parameter."""
+        """Create an alchemical degree of freedom on a potential parameter.
+
+        Args:
+            typepair (tuple[str]): The pair of particle types for which to
+                create the alchemical degree of freedom
+            parameter (str): The name of the parameter to make an alchemical
+                degree of freedom
+
+        Returns:
+            AlchemicalDOF: The alchemical degree of freedom that can be\
+                    integrated via the :doc:`alchemical integration methods\
+                    </module-md-alchemy-methods>`.
+
+        """
         return self._alchemical_dof[typepair, parameter]
