@@ -232,7 +232,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, mc)
         {
         this->m_det_inertia_tensor = 1.0;
-        m_calculated.resize(this->m_ntypes, false);
         this->m_centroids.resize(this->m_ntypes, vec3<Scalar>(0, 0, 0));
         initializeMassProperties();
         }
@@ -244,8 +243,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             {
             detail::MassProperties<ShapeConvexPolyhedron> mp(mc_params[i]);
             this->m_centroids[i] = mp.getCenterOfMass();
-            // possibly add det I here
-            m_calculated[i] = true;
             }
         }
 
@@ -298,12 +295,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                       param_type& shape,
                       hoomd::RandomGenerator& rng)
         {
-        if (!m_calculated[type_id])
-            {
-            detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
-            this->m_centroids[type_id] = mp.getCenterOfMass();
-            m_calculated[type_id] = true;
-            }
+
         // mix the shape.
         for (unsigned int i = 0; i < shape.N; i++)
             {
@@ -330,7 +322,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     private:
-    std::vector<bool> m_calculated; // whether or not mass properties has been calculated
     };                              // end class ConvexPolyhedronVertexShapeMove
 
 template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>

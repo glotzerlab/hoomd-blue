@@ -525,7 +525,7 @@ class Shape(Updater):
             the shape definitions. Instead, moves will be proposed and the
             acceptance statistics will be updated correctly.
 
-        nselect (int, optional): Number of types to change every time the
+        type_select (int, optional): Number of types to change every time the
             updater is called.
 
         nsweeps (int, optional): Number of times to update shape definitions
@@ -547,7 +547,7 @@ class Shape(Updater):
                                                    volume=1.0)
         updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
                                           trigger=hoomd.trigger.Periodic(1),
-                                          nselect=1,
+                                          type_select=1,
                                           nsweeps=1,
                                           multi_phase=False,
                                           num_phase=1)
@@ -565,7 +565,7 @@ class Shape(Updater):
             definitions, instead moves will be proposed and the acceptance
             statistics will be updated correctly.
 
-        nselect (int): Number of types to change every time the updater is
+        type_select (int): Number of types to change every time the updater is
             called.
 
         nsweeps (int): Number of times to update shape definitions during each
@@ -582,14 +582,14 @@ class Shape(Updater):
                  trigger,
                  step_size=0.2,
                  pretend=False,
-                 nselect=1,
+                 type_select=1,
                  nsweeps=1,
                  multi_phase=False,
                  num_phase=1):
         super().__init__(trigger)
         param_dict = ParameterDict(shape_move=hoomd.hpmc.shape_move.ShapeMove,
                                    pretend=bool(pretend),
-                                   nselect=int(nselect),
+                                   type_select=int(type_select),
                                    nsweeps=int(nsweeps),
                                    multi_phase=bool(multi_phase),
                                    num_phase=int(num_phase))

@@ -36,7 +36,7 @@ shape_move_valid_attrs = [
 shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
                              ("trigger", hoomd.trigger.After(100)),
                              ("trigger", hoomd.trigger.Before(100)),
-                             ("nselect", 2), ("nweeps", 4), ("num_phase", 2),
+                             ("type_select", 2), ("nweeps", 4), ("num_phase", 2),
                              ("multi_phase", True),
                              ("shape_move", VertexShapeMove()),
                              ("shape_move", PythonShapeMove()),
@@ -44,10 +44,10 @@ shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
 
 updater_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10)),
-    dict(trigger=hoomd.trigger.After(100), nselect=4, nsweeps=2),
-    dict(trigger=hoomd.trigger.Before(100), nselect=4, nsweeps=4, num_phase=2),
+    dict(trigger=hoomd.trigger.After(100), type_select=4, nsweeps=2),
+    dict(trigger=hoomd.trigger.Before(100), type_select=4, nsweeps=4, num_phase=2),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         nselect=1,
+         type_select=1,
          nsweeps=5,
          num_phase=2,
          multi_phase=True)
