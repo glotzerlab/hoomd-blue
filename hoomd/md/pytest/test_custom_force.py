@@ -392,7 +392,6 @@ def test_force_zeroing(force_simulation_factory, two_particle_snapshot_factory):
                 force.force[:] += timestep
                 force.torque[:] += timestep
                 force.virial[:] += timestep
-                print(f"{force.virial.shape=}")
 
     snap = two_particle_snapshot_factory()
     test_force = TestForceZeroing()
