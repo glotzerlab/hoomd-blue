@@ -7,10 +7,17 @@ Change Log
 v3.x
 ----
 
+v3.1.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* ALJ unit test passes in Debug builds.
+
 v3.0.1 (2022-04-08)
 ^^^^^^^^^^^^^^^^^^^
 
-*Fixed*:
+*Fixed*
 
 * Display status of ``trunk-patch`` branch in the GitHub actions badge.
 * Add ``EvaluatorPairTable.h`` to installation directory.
