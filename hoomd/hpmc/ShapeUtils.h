@@ -29,9 +29,6 @@ namespace hpmc
 namespace detail
     {
 
-typedef EllipsoidParams ellipsoid_param;
-typedef PolyhedronVertices convex_polyhedron_param;
-
 template<class Shape> class MassPropertiesBase
     {
     public:
@@ -62,11 +59,12 @@ template<class Shape> class MassPropertiesBase
         return std::abs(dot(a, cross(b, c)));
         }
 
-    virtual void updateParam(const typename Shape::param_type& param) { }
+    virtual void updateParam(const typename Shape::param_type& param)
+        {
+        }
 
     virtual void compute()
         {
-        throw std::runtime_error("MassProperties::compute() is not implemented for this shape.");
         }
 
     protected:
@@ -75,6 +73,7 @@ template<class Shape> class MassPropertiesBase
     vec3<Scalar> m_center_of_mass;
     Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
     };                   // end class MassPropertiesBase
+
 
 template<class Shape> class MassProperties : public MassPropertiesBase<Shape>
     {
@@ -87,33 +86,27 @@ template<class Shape> class MassProperties : public MassPropertiesBase<Shape>
         }
     };
 
+
 template<>
 class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeConvexPolyhedron>
     {
     public:
     MassProperties() : MassPropertiesBase() {};
 
-    MassProperties(const typename ShapeConvexPolyhedron::param_type& param, bool compute = true)
+    MassProperties(const typename ShapeConvexPolyhedron::param_type& param)
         : MassPropertiesBase()
         {
         auto p = getQuickHullVertsAndFaces(param);
         points = p.first;
         faces = p.second;
-        if (compute)
-            {
-            this->compute();
-            }
+        this->compute();
         }
 
     MassProperties(const std::vector<vec3<Scalar>>& p,
-                   const std::vector<std::vector<unsigned int>>& f,
-                   bool compute = true)
+                   const std::vector<std::vector<unsigned int>>& f)
         : points(p), faces(f)
         {
-        if (compute)
-            {
-            this->compute();
-            }
+        this->compute();
         }
 
     std::pair<std::vector<vec3<Scalar>>, std::vector<std::vector<unsigned int>>>
@@ -254,35 +247,27 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
     std::vector<std::vector<unsigned int>> faces;
     }; // end class MassProperties < ShapeConvexPolyhedron >
 
+
 template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
     {
     public:
     MassProperties() : MassPropertiesBase() {};
 
-    MassProperties(const typename ShapeEllipsoid::param_type& param, bool compute = true)
+    MassProperties(const typename ShapeEllipsoid::param_type& param)
         : MassPropertiesBase(), m_param(param)
         {
-        if (compute)
-            this->compute();
+        this->compute();
         }
 
-    virtual void updateParam(const typename ShapeEllipsoid::param_type& param)
+    void updateParam(const typename ShapeEllipsoid::param_type& param)
         {
         m_param = param;
         this->compute();
         }
 
-    Scalar getDetInertiaTensor()
+    void compute()
         {
-        return m_inertia[0] * m_inertia[1] * m_inertia[2];
-        }
-
-    static constexpr Scalar m_vol_factor = Scalar(4.0) / Scalar(3.0) * M_PI;
-
-    protected:
-    virtual void compute()
-        {
-        m_volume = m_vol_factor * m_param.x * m_param.y * m_param.z;
+        m_volume = Scalar(4.0) / Scalar(3.0) * M_PI * m_param.x * m_param.y * m_param.z;
         Scalar a2 = m_param.x * m_param.x;
         Scalar b2 = m_param.y * m_param.y;
         Scalar c2 = m_param.z * m_param.z;
@@ -298,40 +283,33 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
     typename ShapeEllipsoid::param_type m_param;
     };
 
+
 template<>
 class MassProperties<ShapeSpheropolyhedron> : public MassProperties<ShapeConvexPolyhedron>
     {
     public:
     MassProperties(const typename ShapeSpheropolyhedron::param_type& param)
-        // Prevent computation on construction of the parent
-        // so we can first check if it's possible.
-        : MassProperties<ShapeConvexPolyhedron>(param, false)
+        : MassProperties<ShapeConvexPolyhedron>(param)
         {
-        if (param.sweep_radius != 0 and param.N > 0)
+        // error out if the shape is a true spheropolyhedron
+        if (param.sweep_radius != 0 && param.N > 0)
             {
             throw std::runtime_error(
-                "The ShapeSpheropolyhedra class currently only supports the calculation of mass "
-                "properties for spheres or convex polyhedra");
+                "This class currently only supports the computation of mass properties \
+                 for spheres or convex polyhedra, but not for true spheropolyhedra");
             }
 
-        // Explicit typecast required here
         m_sweep_radius = param.sweep_radius;
         this->compute();
         }
 
-    virtual void compute()
+    void compute()
         {
+        // Assuming it's a sphere, return that moment of inertia tensor.
+        // Otherwise, fall back to convex polyhedra specialization.
         if (m_sweep_radius > 0)
             {
-            // Ensure it's not a true spheropolyhedron
-            if (this->points.size() > 0)
-                {
-                throw std::runtime_error(
-                    "The ShapeSpheropolyhedra class currently only supports the calculation of "
-                    "mass properties for spheres or convex polyhedra");
-                }
-            // Assuming it's a sphere, return that moment of inertia tensor
-            float moment_inertia = 2 * m_sweep_radius * m_sweep_radius / 5;
+            Scalar moment_inertia = 2 * m_sweep_radius * m_sweep_radius / 5;
             m_inertia[0] = moment_inertia;
             m_inertia[1] = moment_inertia;
             m_inertia[2] = moment_inertia;
@@ -341,7 +319,7 @@ class MassProperties<ShapeSpheropolyhedron> : public MassProperties<ShapeConvexP
             }
         else
             {
-            return MassProperties<ShapeConvexPolyhedron>::compute();
+            MassProperties<ShapeConvexPolyhedron>::compute();
             }
         }
 
