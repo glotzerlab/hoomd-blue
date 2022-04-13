@@ -50,7 +50,7 @@ namespace orc
 class KaleidoscopeJIT
     {
     public:
-    ExecutionSession ES;
+    std::unique_ptr<ExecutionSession> ES;
     RTDyldObjectLinkingLayer ObjectLayer;
     IRCompileLayer CompileLayer;
 
@@ -60,8 +60,9 @@ class KaleidoscopeJIT
     JITDylib& mainJD;
     SectionMemoryManager* memory_manager = nullptr;
 
-    KaleidoscopeJIT(JITTargetMachineBuilder JTMB, DataLayout DL)
-        : ObjectLayer(ES,
+    KaleidoscopeJIT(std::unique_ptr<ExecutionSession> ES, JITTargetMachineBuilder JTMB, DataLayout DL)
+        : ES(std::move(ES)),
+          ObjectLayer(*this->ES,
                       [&]()
                       {
                           auto smgr = std::make_unique<SectionMemoryManager>();
@@ -69,14 +70,14 @@ class KaleidoscopeJIT
                           return smgr;
                       }),
           CompileLayer(
-              ES,
+              *this->ES,
               ObjectLayer,
               std::make_unique<ConcurrentIRCompiler>(ConcurrentIRCompiler(std::move(JTMB)))),
-          DL(std::move(DL)), Mangle(ES, this->DL), Ctx(std::make_unique<LLVMContext>()),
+          DL(std::move(DL)), Mangle(*this->ES, this->DL), Ctx(std::make_unique<LLVMContext>()),
 #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 10
-          mainJD(this->ES.createBareJITDylib("<main>"))
+          mainJD(this->ES->createBareJITDylib("<main>"))
 #else
-            mainJD(this->ES.createJITDylib("<main>"))
+            mainJD(this->ES->createJITDylib("<main>"))
 #endif
         {
         mainJD.addGenerator(
@@ -99,6 +100,12 @@ class KaleidoscopeJIT
 
     static std::unique_ptr<KaleidoscopeJIT> Create()
         {
+        auto EPC = SelfExecutorProcessControl::Create();
+        if (!EPC)
+            return nullptr;
+
+        auto ES = std::make_unique<ExecutionSession>(std::move(*EPC));
+
         auto JTMB = JITTargetMachineBuilder::detectHost();
 
         if (!JTMB)
@@ -109,7 +116,7 @@ class KaleidoscopeJIT
         if (!DL)
             return nullptr;
 
-        return std::make_unique<KaleidoscopeJIT>(std::move(*JTMB), std::move(*DL));
+        return std::make_unique<KaleidoscopeJIT>(std::move(ES), std::move(*JTMB), std::move(*DL));
         }
 
     Error addModule(std::unique_ptr<Module> M)
@@ -119,7 +126,7 @@ class KaleidoscopeJIT
 
     Expected<JITEvaluatedSymbol> findSymbol(std::string Name)
         {
-        return ES.lookup({&mainJD}, Mangle(Name));
+        return ES->lookup({&mainJD}, Mangle(Name));
         }
 
     JITTargetAddress getSymbolAddress(const std::string Name)
