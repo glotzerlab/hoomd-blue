@@ -60,15 +60,16 @@ class KaleidoscopeJIT
     JITDylib& mainJD;
     SectionMemoryManager* memory_manager = nullptr;
 
-    KaleidoscopeJIT(std::unique_ptr<ExecutionSession> ES, JITTargetMachineBuilder JTMB, DataLayout DL)
-        : ES(std::move(ES)),
-          ObjectLayer(*this->ES,
-                      [&]()
-                      {
-                          auto smgr = std::make_unique<SectionMemoryManager>();
-                          memory_manager = smgr.get();
-                          return smgr;
-                      }),
+    KaleidoscopeJIT(std::unique_ptr<ExecutionSession> ES,
+                    JITTargetMachineBuilder JTMB,
+                    DataLayout DL)
+        : ES(std::move(ES)), ObjectLayer(*this->ES,
+                                         [&]()
+                                         {
+                                             auto smgr = std::make_unique<SectionMemoryManager>();
+                                             memory_manager = smgr.get();
+                                             return smgr;
+                                         }),
           CompileLayer(
               *this->ES,
               ObjectLayer,
