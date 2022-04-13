@@ -132,7 +132,8 @@ template<typename Shape> class UpdaterShape : public Updater
         {
         if (type_select > m_pdata->getNTypes())
             {
-            throw std::runtime_error("type_select must be less than or equal to the number of types");
+            throw std::runtime_error(
+                "type_select must be less than or equal to the number of types");
             }
         m_type_select = type_select;
         }
@@ -482,7 +483,9 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                       &UpdaterShape<Shape>::getShapeMove,
                       &UpdaterShape<Shape>::setShapeMove)
         .def_property("pretend", &UpdaterShape<Shape>::getPretend, &UpdaterShape<Shape>::setPretend)
-        .def_property("type_select", &UpdaterShape<Shape>::getTypeSelect, &UpdaterShape<Shape>::setTypeSelect)
+        .def_property("type_select",
+                      &UpdaterShape<Shape>::getTypeSelect,
+                      &UpdaterShape<Shape>::setTypeSelect)
         .def_property("nsweeps", &UpdaterShape<Shape>::getNsweeps, &UpdaterShape<Shape>::setNsweeps)
         .def_property("multi_phase",
                       &UpdaterShape<Shape>::getMultiPhase,

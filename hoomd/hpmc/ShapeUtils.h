@@ -59,13 +59,9 @@ template<class Shape> class MassPropertiesBase
         return std::abs(dot(a, cross(b, c)));
         }
 
-    virtual void updateParam(const typename Shape::param_type& param)
-        {
-        }
+    virtual void updateParam(const typename Shape::param_type& param) { }
 
-    virtual void compute()
-        {
-        }
+    virtual void compute() { }
 
     protected:
     Scalar m_volume;
@@ -73,7 +69,6 @@ template<class Shape> class MassPropertiesBase
     vec3<Scalar> m_center_of_mass;
     Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
     };                   // end class MassPropertiesBase
-
 
 template<class Shape> class MassProperties : public MassPropertiesBase<Shape>
     {
@@ -86,15 +81,13 @@ template<class Shape> class MassProperties : public MassPropertiesBase<Shape>
         }
     };
 
-
 template<>
 class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeConvexPolyhedron>
     {
     public:
     MassProperties() : MassPropertiesBase() {};
 
-    MassProperties(const typename ShapeConvexPolyhedron::param_type& param)
-        : MassPropertiesBase()
+    MassProperties(const typename ShapeConvexPolyhedron::param_type& param) : MassPropertiesBase()
         {
         auto p = getQuickHullVertsAndFaces(param);
         points = p.first;
@@ -247,7 +240,6 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
     std::vector<std::vector<unsigned int>> faces;
     }; // end class MassProperties < ShapeConvexPolyhedron >
 
-
 template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
     {
     public:
@@ -282,7 +274,6 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
     private:
     typename ShapeEllipsoid::param_type m_param;
     };
-
 
 template<>
 class MassProperties<ShapeSpheropolyhedron> : public MassProperties<ShapeConvexPolyhedron>

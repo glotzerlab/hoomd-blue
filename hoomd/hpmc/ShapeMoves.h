@@ -295,7 +295,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                       param_type& shape,
                       hoomd::RandomGenerator& rng)
         {
-
         // mix the shape.
         for (unsigned int i = 0; i < shape.N; i++)
             {
@@ -322,7 +321,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         }
 
     private:
-    };                              // end class ConvexPolyhedronVertexShapeMove
+    }; // end class ConvexPolyhedronVertexShapeMove
 
 template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
     {
