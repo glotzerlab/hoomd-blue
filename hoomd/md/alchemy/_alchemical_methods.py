@@ -21,6 +21,7 @@ class _AlchemicalMethods(_HOOMDBaseObject):
         def _validate_and_split_alchem(self, key):
             if isinstance(key, tuple) and len(key) == self._len_keys:
                 for param, typepair in zip(key, reversed(key)):
+                    # Check that types specified exist in the simulation.
                     if set(self.outer._alchemical_parameters).issuperset(
                             self._validate_and_split_len_one(param)) and set(
                                 self.outer._simulation.state.particle_types
@@ -35,7 +36,7 @@ class _AlchemicalMethods(_HOOMDBaseObject):
                     self._validate_and_split_len_one(param))
 
         def __getitem__(self, key):
-            typepair, param = self._validate_and_split_alchem(key)
+            typepairs, params = self._validate_and_split_alchem(key)
             vals = dict()
             for t in typepair:
                 for p in param:

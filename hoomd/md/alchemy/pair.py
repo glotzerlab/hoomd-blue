@@ -61,7 +61,8 @@ class AlchemicalDOF(_HOOMDBaseObject):
                 force: _AlchemicalPairPotential,
                 name: str = '',
                 typepair: tuple = None,
-                mass: float = 1.0):
+                *args,
+                **kwargs):
         """Cache existing instances of AlchemicalDOF.
 
         Args:

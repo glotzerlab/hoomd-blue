@@ -12,7 +12,6 @@
 
 /*! \file EvaluatorPairLJGauss.h
     \brief Defines the pair evaluator class for Lennard Jones Gaussian potentials
-    \details .....
 */
 
 // need to declare these class methods with __device__ qualifiers when building
@@ -138,31 +137,29 @@ class EvaluatorPairLJGauss
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
         // compute the force divided by r in force_divr
-        if (rsq < rcutsq)
+        if (rsq >= rcutsq)
             {
-            Scalar r = fast::sqrt(rsq);
-            Scalar rdiff = r - r0;
-            Scalar rdiff_sigma2 = rdiff / sigma2;
-            Scalar exp_val = fast::exp(-Scalar(0.5) * rdiff_sigma2 * rdiff);
-            Scalar r2inv = Scalar(1.0) / rsq;
-            Scalar r6inv = r2inv * r2inv * r2inv;
-
-            force_divr = (r2inv * r6inv * Scalar(12.0) * (r6inv - Scalar(1.0)))
-                         - (exp_val * epsilon * rdiff_sigma2 / r);
-            pair_eng = r6inv * (r6inv - Scalar(2.0)) - exp_val * epsilon;
-
-            if (energy_shift)
-                {
-                Scalar rcut2inv = Scalar(1.0) / rcutsq;
-                Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-                pair_eng
-                    -= rcut6inv * (rcut6inv - Scalar(2.0))
-                       - (epsilon * fast::exp(-Scalar(1.0) / Scalar(2.0) * (rcutsq - r0) / sigma2));
-                }
-            return true;
-            }
-        else
             return false;
+            }
+        Scalar r = fast::sqrt(rsq);
+        Scalar rdiff = r - r0;
+        Scalar rdiff_sigma2 = rdiff / sigma2;
+        Scalar exp_val = fast::exp(-Scalar(0.5) * rdiff_sigma2 * rdiff);
+        Scalar r2inv = Scalar(1.0) / rsq;
+        Scalar r6inv = r2inv * r2inv * r2inv;
+
+        force_divr = (r2inv * r6inv * Scalar(12.0) * (r6inv - Scalar(1.0)))
+                     - (exp_val * epsilon * rdiff_sigma2 / r);
+        pair_eng = r6inv * (r6inv - Scalar(2.0)) - exp_val * epsilon;
+
+        if (energy_shift)
+            {
+            Scalar rcut2inv = Scalar(1.0) / rcutsq;
+            Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+            pair_eng
+                -= rcut6inv * (rcut6inv - Scalar(2.0))
+                   - (epsilon * fast::exp(-Scalar(1.0) / Scalar(2.0) * (rcutsq - r0) / sigma2));
+            }
         }
 
     DEVICE Scalar evalPressureLRCIntegral()
@@ -200,7 +197,6 @@ class EvaluatorPairLJGauss
         {
             {
             Scalar r = fast::sqrt(rsq);
-            // Scalar sigma = fast::sqrt(sigma2);
             Scalar inva1 = 1.0 / alphas[1];
             Scalar invsiga1sq = inva1 * inva1 * (1 / sigma2);
             Scalar rdiff = r - alphas[2] * r0;
@@ -214,8 +210,8 @@ class EvaluatorPairLJGauss
         }
 
     //! Get the name of this potential
-    /*! \returns The potential name. Must be short and all lowercase, as this is the name energies
-       will be logged as via analyze.log.
+    /*! \returns The potential name. Must be short and all lowercase, used for warnings messages,
+        and autotuners.
     */
     static std::string getName()
         {
