@@ -100,11 +100,15 @@ class KaleidoscopeJIT
 
     static std::unique_ptr<KaleidoscopeJIT> Create()
         {
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 12
         auto EPC = SelfExecutorProcessControl::Create();
         if (!EPC)
             return nullptr;
 
         auto ES = std::make_unique<ExecutionSession>(std::move(*EPC));
+#else
+        auto ES = std::make_unique<ExecutionSession>();
+#endif
 
         auto JTMB = JITTargetMachineBuilder::detectHost();
 
