@@ -10,6 +10,10 @@ v3.x
 v3.1.0 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+*Changed*
+
+* Change HPMC fugacity to a per-type quantity.
+
 *Fixed*
 
 * ALJ unit test passes in Debug builds.
