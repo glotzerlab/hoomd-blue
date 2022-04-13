@@ -71,7 +71,6 @@ __launch_bounds__(max_threads)
                                                unsigned int max_queue_size,
                                                unsigned int max_extra_bytes,
                                                unsigned int depletant_type,
-                                               const Index2D depletant_idx,
                                                unsigned int* d_nneigh,
                                                unsigned int* d_adjacency,
                                                const unsigned int maxn,
@@ -225,7 +224,7 @@ __launch_bounds__(max_threads)
             // one RNG per depletant
             hoomd::RandomGenerator rng(
                 hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsClusters, timestep, seed),
-                hoomd::Counter(i, i_dep, depletant_idx(depletant_type, depletant_type)));
+                hoomd::Counter(i, i_dep, depletant_type));
 
             n_inserted++;
             overlap_checks += 2;
@@ -293,7 +292,7 @@ __launch_bounds__(max_threads)
             unsigned int i_dep_queue = s_queue_didx[group];
             hoomd::RandomGenerator rng(
                 hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsClusters, timestep, seed),
-                hoomd::Counter(i, i_dep_queue, depletant_idx(depletant_type, depletant_type)));
+                hoomd::Counter(i, i_dep_queue, depletant_type));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -926,7 +925,6 @@ void clusters_depletants_launcher(const cluster_args_t& args,
                 max_queue_size,
                 max_extra_bytes,
                 implicit_args.depletant_type_a,
-                implicit_args.depletant_idx,
                 args.d_nneigh,
                 args.d_adjacency,
                 args.maxn,
