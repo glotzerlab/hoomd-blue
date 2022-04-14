@@ -169,6 +169,7 @@ def test_python_callback_shape_move(device, simulation_factory,
     """Test PythonShapeMove with a toy class to randomly squash a sphere
        into oblate ellipsoid with constant volume.
     """
+
     class ScaleEllipsoid:
 
         def __init__(self, a, b, c):
