@@ -56,13 +56,20 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
     //! Destructor
     virtual ~PotentialPairAlchemical();
 
-    std::shared_ptr<alpha_particle_type> getAlchemicalPairParticle(int i, int j, int k)
+    std::shared_ptr<alpha_particle_type> getAlchemicalPairParticle(pybind11::tuple types,
+                                                                   std::string param_name)
         {
+        int type_i = static_cast<int>(m_pdata->getTypeByName(types[0].cast<std::string>()));
+        int type_j = static_cast<int>(m_pdata->getTypeByName(types[1].cast<std::string>()));
+        int param_index = evaluator::getAlchemicalParameterIndex(param_name);
+
         std::shared_ptr<alpha_particle_type>& alpha_p
-            = m_alchemical_particles[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
+            = m_alchemical_particles[param_index * m_alchemy_index.getNumElements()
+                                     + m_alchemy_index(type_i, type_j)];
         if (alpha_p == nullptr)
             {
-            alpha_p = std::make_shared<alpha_particle_type>(m_exec_conf, make_int3(i, j, k));
+            alpha_p = std::make_shared<alpha_particle_type>(m_exec_conf,
+                                                            make_int3(type_i, type_j, param_index));
             }
         return alpha_p;
         }

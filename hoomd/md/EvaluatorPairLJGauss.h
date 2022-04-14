@@ -176,6 +176,25 @@ class EvaluatorPairLJGauss
 
 #ifndef __HIPCC__
 
+    /** Get the index of am alchemical parameter based on the string name.
+     */
+    static int getAlchemicalParameterIndex(std::string param_name)
+        {
+        if (param_name == "epsilon")
+            {
+            return 0;
+            }
+        else if (param_name == "sigma")
+            {
+            return 1;
+            }
+        else if (param_name == "r0")
+            {
+            return 2;
+            }
+        throw std::runtime_error("Unknown alchemical parameter name.");
+        }
+
     /** Update parameters with alchemical degrees of freedom.
 
         Interoperate with PotentialPairAlchemical to modify the given potential parameters:
