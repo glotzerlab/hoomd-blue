@@ -171,8 +171,7 @@ inline void export_AlchemicalMDParticles(pybind11::module& m)
 
     pybind11::class_<AlchemicalPairParticle,
                      AlchemicalMDParticle,
-                     std::shared_ptr<AlchemicalPairParticle>>
-        nameThatShouldNeverAppear(m, "AlchemicalPairParticle");
+                     std::shared_ptr<AlchemicalPairParticle>>(m, "AlchemicalPairParticle");
 
     pybind11::class_<AlchemicalNormalizedPairParticle,
                      AlchemicalPairParticle,
