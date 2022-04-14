@@ -160,6 +160,8 @@ class EvaluatorPairLJGauss
                 -= rcut6inv * (rcut6inv - Scalar(2.0))
                    - (epsilon * fast::exp(-Scalar(1.0) / Scalar(2.0) * (rcutsq - r0) / sigma2));
             }
+
+        return true;
         }
 
     DEVICE Scalar evalPressureLRCIntegral()
