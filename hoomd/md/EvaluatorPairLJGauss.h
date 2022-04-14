@@ -93,8 +93,7 @@ class EvaluatorPairLJGauss
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairLJGauss(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma),
-          r0(_params.r0)
+        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma), r0(_params.r0)
         {
         }
 
