@@ -10,6 +10,10 @@ v3.x
 v3.1.0 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+*Added*
+
+* Support LLVM 13 when ``ENABLE_LLVM=on``.
+
 *Changed*
 
 * Change HPMC fugacity to a per-type quantity.
