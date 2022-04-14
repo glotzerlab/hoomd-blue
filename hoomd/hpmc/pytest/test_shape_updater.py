@@ -6,8 +6,7 @@ from hoomd import hpmc
 import numpy as np
 import pytest
 from hoomd.hpmc.update import Shape
-from hoomd.hpmc.shape_move import (VertexShapeMove,
-                                   PythonShapeMove,
+from hoomd.hpmc.shape_move import (VertexShapeMove, PythonShapeMove,
                                    ElasticShapeMove)
 
 shape_move_classes = [VertexShapeMove, PythonShapeMove, ElasticShapeMove]
