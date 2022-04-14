@@ -75,7 +75,6 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
 
     void setNextAlchemicalTimestep(unsigned int timestep)
         {
-        assert(m_validState);
         m_nextAlchemTimeStep = timestep;
         updateAlchemicalTimestep();
         }
@@ -95,7 +94,6 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     Scalar m_halfDeltaT;            //!< The time step
     uint64_t m_nextAlchemTimeStep;
     unsigned int m_iteratorDOF = 0;
-    bool m_validState = true; //!< Valid states are full alchemical timesteps
     };
 
 inline void export_AlchemostatTwoStep(pybind11::module& m)

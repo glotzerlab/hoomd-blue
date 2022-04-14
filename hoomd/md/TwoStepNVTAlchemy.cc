@@ -58,8 +58,6 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
 
     Scalar dUextdalpha = Scalar(0);
 
-    m_validState = false;
-
     for (auto& alpha : m_alchemicalParticles)
         {
         Scalar& q = alpha->value;
@@ -85,7 +83,7 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
 
 void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
     {
-    if ((timestep != (m_nextAlchemTimeStep - 1)) || m_validState)
+    if (timestep != (m_nextAlchemTimeStep - 1))
         return;
 
     m_exec_conf->msg->notice(10) << "TwoStepNVTAlchemy: 2nd Alchemcial Half Step" << std::endl;
@@ -111,8 +109,6 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
         q += m_halfDeltaT * p * invM;
         m_alchem_KE += Scalar(0.5) * p * p * invM;
         }
-
-    m_validState = true;
     }
 
 void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
