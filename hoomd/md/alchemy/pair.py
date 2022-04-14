@@ -8,7 +8,7 @@ from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.md.pair import LJGauss as BaseLJGauss
 
-from hoomd.md.alchemy._alchemical_methods import _AlchemicalMethods
+from hoomd.md.alchemy._alchemical_pair_force import _AlchemicalPairForce
 
 
 class _AlchemicalPairPotential(Loggable):
@@ -26,7 +26,7 @@ class _AlchemicalPairPotential(Loggable):
             attributedict['_dof_type'] = AlchemicalDOF
         attributedict['_cpp_class_name'] = ''.join(new_cpp_name)
 
-        superclasses += (_AlchemicalMethods,)
+        superclasses += (_AlchemicalPairForce,)
         return super().__new__(cls, name, superclasses, attributedict)
 
     def __init__(self, name, superclasses, attributedict):
@@ -269,7 +269,7 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
                  default_r_cut=None,
                  default_r_on=0.0,
                  mode='none'):
-        _AlchemicalMethods.__init__(self)
+        _AlchemicalPairForce.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
     def create_alchemical_dof(self, typepair, parameter):
@@ -322,7 +322,7 @@ class _NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
                  default_r_cut=None,
                  default_r_on=0.0,
                  mode='none'):
-        _AlchemicalMethods.__init__(self)
+        _AlchemicalPairForce.__init__(self)
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
     def create_alchemical_dof(self, typepair, parameter):

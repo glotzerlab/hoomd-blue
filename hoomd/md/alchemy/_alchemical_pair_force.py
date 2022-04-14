@@ -6,7 +6,7 @@ from hoomd.data.typeconverter import SetOnce
 from hoomd.operation import _HOOMDBaseObject
 
 
-class _AlchemicalMethods(_HOOMDBaseObject):
+class _AlchemicalPairForce(_HOOMDBaseObject):
 
     def __init__(self):
         self._alchemical_dof = self.AlchemicalParticleAccess(self)

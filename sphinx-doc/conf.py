@@ -79,7 +79,7 @@ IGNORE_CLASSES = [
     '_InternalCustomWriter',
     '_WriterProperty',
     '_HOOMDBaseObject',
-    '_AlchemicalMethods',
+    '_AlchemicalPairForce',
 ]
 
 
