@@ -165,17 +165,6 @@ class PythonShapeMove(ShapeMove):
                                                   [float], len_keys=1))
         self._add_typeparam(typeparam_shapeparams)
 
-    @log(category='object', requires_run=True)
-    def type_params(self):
-        """dict: Tunable parameters as dictionary. The particle types are the
-                 keys of the dictionary.
-
-        Example:
-            >>> python_shape_move.type_params()
-            {'A': [0.21, 0.33], 'B': [0.561, 0.331, 0.123]}
-        """
-        return self._cpp_obj.getTypeParams()
-
 
 class VertexShapeMove(ShapeMove):
     """Apply shape moves where particle vertices are translated.

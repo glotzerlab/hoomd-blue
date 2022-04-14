@@ -189,22 +189,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
             }
         }
 
-    pybind11::dict getTypeParams()
-        {
-        pybind11::dict ret;
-        for (unsigned int type_id = 0; type_id < this->m_ntypes; type_id++)
-            {
-            std::string type_name = this->m_sysdef->getParticleData()->getNameByType(type_id);
-            pybind11::list l;
-            for (unsigned int i = 0; i < m_params[type_id].size(); i++)
-                {
-                l.append(m_params[type_id][i]);
-                }
-            ret[type_name.c_str()] = l;
-            }
-        return ret;
-        }
-
     pybind11::object getCallback()
         {
         return m_python_callback;
@@ -712,7 +696,7 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
         .def_property("callback",
                       &PythonShapeMove<Shape>::getCallback,
                       &PythonShapeMove<Shape>::setCallback)
-        .def("getTypeParams", &PythonShapeMove<Shape>::getTypeParams);
+        ;
     }
 
 inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const std::string& name)
