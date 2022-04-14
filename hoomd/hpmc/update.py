@@ -537,8 +537,21 @@ class Shape(Updater):
         num_phase (int, optional): How many boxes are simulated at the same
             time, supported values are 1, 2 and 3.
 
-    Examples::
+    .. rubric:: Shape support.
 
+    The following shapes are supported:
+        * `hoomd.hpmc.integrate.ConvexPolyhedron`
+        * `hoomd.hpmc.integrate.ConvexSpheropolyhedron`
+        * `hoomd.hpmc.integrate.Ellipsoid`
+
+    Attention:
+        The acceptance criteria of shape moves requires computing the particle's
+        moment of inertia before and after the trial moves. Currently, computing
+        the moments of inertia for spheropolyhedra is not fully implemented.
+        However, the use of this updater with spheropolyhedra is currently
+        enabled to allow the use of spherical depletants with shape moves.
+
+    Examples:
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
         mc.shape["A"] = dict(vertices=numpy.asarray([(1, 1, 1), (-1, -1, 1),
                                                     (1, -1, -1), (-1, 1, -1)]) / 2)
@@ -654,20 +667,14 @@ class Shape(Updater):
 
         updater_cls = None
         supported_shapes = {
-            'Sphere', 'ConvexPolygon', 'SimplePolygon', 'ConvexPolyhedron',
-            'ConvexSpheropolyhedron', 'Ellipsoid', 'ConvexSpheropolygon',
-            'Polyhedron', 'Sphinx', 'SphereUnion'
+            'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
         }
         integrator_name = integrator.__class__.__name__
         if integrator_name in supported_shapes:
             updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
         else:
             raise RuntimeError("Integrator not supported")
-        # TODO: Make this possible
-        # Currently computing the moments of inertia for spheropolyhedra is not implemented
-        # In order to prevent improper usage, we throw an error here. The use of this
-        # updater with spheropolyhedra is currently enabled to allow the use of spherical
-        # depletants
+
         if isinstance(integrator, integrate.ConvexSpheropolyhedron):
             for shape in integrator.shape.values():
                 if shape['sweep_radius'] != 0 and len(shape['vertices']) > 1:
