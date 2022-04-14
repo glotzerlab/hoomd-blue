@@ -119,7 +119,9 @@ class AlchemicalDOF(_HOOMDBaseObject):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        assert self.force._attached
+        if not self.force._attached:
+            raise RuntimeError("Call Simulation.run(0) before creating "
+                               "alchemical degrees of freedom.")
         self._cpp_obj = self.force._cpp_obj.getAlchemicalPairParticle(
             *map(self.force._simulation.state.particle_types.index,
                  self.typepair),
@@ -181,11 +183,15 @@ class AlchemicalDOF(_HOOMDBaseObject):
         return self._cpp_obj.net_force
 
     def _enable(self):
-        assert self._attached
+        if not self._attached:
+            raise RuntimeError("Call Simulation.run(0) before creating "
+                               "alchemical degrees of freedom.")
         self.force._cpp_obj.enableAlchemicalPairParticle(self._cpp_obj)
 
     def _disable(self):
-        assert self._attached
+        if not self._attached:
+            raise RuntimeError("Call Simulation.run(0) before creating "
+                               "alchemical degrees of freedom.")
         self.force.params[self.typepair][self.name] = self.value
         self.force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
