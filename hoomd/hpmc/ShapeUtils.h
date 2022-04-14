@@ -72,7 +72,7 @@ template<class Shape> class MassPropertiesBase
     Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
     std::vector<Scalar> m_inertia; // xx, yy, zz, xy, yz, xz
-    };                   // end class MassPropertiesBase
+    };                             // end class MassPropertiesBase
 
 template<class Shape> class MassProperties : public MassPropertiesBase<Shape>
     {
@@ -283,8 +283,7 @@ template<>
 class MassProperties<ShapeSpheropolyhedron> : public MassPropertiesBase<ShapeSpheropolyhedron>
     {
     public:
-    MassProperties(const typename ShapeSpheropolyhedron::param_type& param)
-        : MassPropertiesBase()
+    MassProperties(const typename ShapeSpheropolyhedron::param_type& param) : MassPropertiesBase()
         {
         // error out if the shape is a true spheropolyhedron
         if (param.sweep_radius != 0 && param.N > 1)
@@ -304,7 +303,8 @@ class MassProperties<ShapeSpheropolyhedron> : public MassPropertiesBase<ShapeSph
         if (m_param.sweep_radius > 0)
             {
             Scalar sweep_radius = m_param.sweep_radius;
-            this->m_volume = Scalar(4)/Scalar(3)*M_PI*sweep_radius*sweep_radius*sweep_radius;
+            this->m_volume
+                = Scalar(4) / Scalar(3) * M_PI * sweep_radius * sweep_radius * sweep_radius;
             Scalar moment_inertia = m_volume * 2 * sweep_radius * sweep_radius / 5;
             this->m_inertia[0] = moment_inertia;
             this->m_inertia[1] = moment_inertia;

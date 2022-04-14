@@ -87,7 +87,7 @@ shape_list = [
     }),
     # sphere as convex spheropolyhedron
     ("ConvexSpheropolyhedron", {
-        "vertices": [[0,0,0]],
+        "vertices": [[0, 0, 0]],
         "sweep_radius": 1,
         "ignore_statistics": True
     }),
@@ -105,7 +105,8 @@ shape_list = [
 volume_list = [
     8.0, 9.906613237811571, 2.5813333333333337, 3.406051603090999,
     4.1887902047863905, 8.377580409572781, 6.283185307179586,
-    3.3510321638291125, 10.291857533160162, 4.1887902047863905, 2.6653333333333333
+    3.3510321638291125, 10.291857533160162, 4.1887902047863905,
+    2.6653333333333333
 ]
 
 det_moi_list = [
@@ -117,7 +118,7 @@ det_moi_list = [
 
 def _get_cpp_cls(shape_type):
     if shape_type in ("ConvexPolyhedron", "ConvexSpheropolyhedron"):
-        return (PolyhedronVertices, eval("MassProperties"+shape_type))
+        return (PolyhedronVertices, eval("MassProperties" + shape_type))
     elif shape_type == "Ellipsoid":
         return (EllipsoidParams, MassPropertiesEllipsoid)
 
