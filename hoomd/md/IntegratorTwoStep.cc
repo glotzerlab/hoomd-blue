@@ -107,7 +107,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // reversed for integrators so that the half steps will be performed symmetrically
     for (auto method_ptr = m_methods.rbegin(); method_ptr != m_methods.rend(); method_ptr++)
         {
-        auto method = (*method_ptr);
+        auto method = *method_ptr;
         method->integrateStepTwo(timestep);
         method->includeRATTLEForce(timestep + 1);
         }
