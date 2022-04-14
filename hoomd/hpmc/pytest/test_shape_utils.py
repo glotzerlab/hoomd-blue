@@ -3,10 +3,10 @@
 
 import numpy as np
 import pytest
-import hoomd
-import hoomd.hpmc
 from hoomd.hpmc._hpmc import PolyhedronVertices, EllipsoidParams
-from hoomd.hpmc._hpmc import MassPropertiesConvexPolyhedron, MassPropertiesConvexSpheropolyhedron, MassPropertiesEllipsoid
+from hoomd.hpmc._hpmc import (MassPropertiesConvexPolyhedron,
+                              MassPropertiesConvexSpheropolyhedron,
+                              MassPropertiesEllipsoid)
 
 shape_list = [
     # cube
@@ -117,8 +117,10 @@ det_moi_list = [
 
 
 def _get_cpp_cls(shape_type):
-    if shape_type in ("ConvexPolyhedron", "ConvexSpheropolyhedron"):
-        return (PolyhedronVertices, eval("MassProperties" + shape_type))
+    if shape_type == "ConvexPolyhedron":
+        return (PolyhedronVertices, MassPropertiesConvexPolyhedron)
+    if shape_type == "ConvexSpheropolyhedron":
+        return (PolyhedronVertices, MassPropertiesConvexSpheropolyhedron)
     elif shape_type == "Ellipsoid":
         return (EllipsoidParams, MassPropertiesEllipsoid)
 

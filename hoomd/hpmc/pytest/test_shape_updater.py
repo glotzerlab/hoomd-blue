@@ -6,7 +6,9 @@ from hoomd import hpmc
 import numpy as np
 import pytest
 from hoomd.hpmc.update import Shape
-from hoomd.hpmc.shape_move import VertexShapeMove, PythonShapeMove, ElasticShapeMove
+from hoomd.hpmc.shape_move import (VertexShapeMove,
+                                   PythonShapeMove,
+                                   ElasticShapeMove)
 
 shape_move_classes = [VertexShapeMove, PythonShapeMove, ElasticShapeMove]
 
@@ -90,7 +92,6 @@ def test_valid_construction_shape_updater(updater_constructor_args):
 @pytest.mark.parametrize("shape_move_class,attr,value", shape_move_valid_attrs)
 def test_valid_setattr_shape_move(shape_move_class, attr, value):
     """Test that the shape move classes can get and set attributes."""
-
     move = shape_move_class()
 
     setattr(move, attr, value)
@@ -100,7 +101,6 @@ def test_valid_setattr_shape_move(shape_move_class, attr, value):
 @pytest.mark.parametrize("attr,value", shape_updater_valid_attrs)
 def test_valid_setattr_shape_updater(attr, value):
     """Test that the Shape updater can get and set attributes."""
-
     updater = hpmc.update.Shape(trigger=1)
 
     setattr(updater, attr, value)
@@ -243,5 +243,6 @@ def test_python_callback_shape_move(device, simulation_factory,
 
 def test_elastic_shape_move(device, simulation_factory,
                             two_particle_snapshot_factory):
-    # test pending a solutioon th the typeparam validation for the reference_shape
+    # test pending a solutioon th the typeparam
+    # validation for the reference_shape
     pass

@@ -7,9 +7,7 @@ from . import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.logging import log
 import numpy
-import json
 
 
 class ShapeMove(_HOOMDBaseObject):
@@ -111,9 +109,9 @@ class PythonShapeMove(ShapeMove):
     Note:
         Parameters must be given for every particle type and must be between 0
         and 1. This class is limited to performing MC moves on the predefined
-        shape parameters, it does not performs any consistency checks internally.
-        Therefore, any shape constraint (e.g. constant volume, etc) must be
-        performed within the callback.
+        shape parameters, it does not performs any consistency checks
+        internally. Therefore, any shape constraint (e.g. constant volume, etc)
+        must be performed within the callback.
 
     Example::
 

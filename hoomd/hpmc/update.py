@@ -19,7 +19,6 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
-from hoomd.custom import Action
 
 
 class BoxMC(Updater):
@@ -690,8 +689,7 @@ class Shape(Updater):
 
     @log(category='sequence', requires_run=True)
     def shape_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected shape moves.
-        """
+        """tuple[int, int]: Count of the accepted and rejected shape moves."""
         return self._cpp_obj.getShapeMovesCount()
 
     @log(category='scalar', requires_run=True)
@@ -704,8 +702,7 @@ class Shape(Updater):
 
     @log(category="scalar", requires_run=True)
     def shape_move_energy(self):
-        """float: Energy penalty due to shape changes.
-        """
+        """float: Energy penalty due to shape changes."""
         return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
 
 
