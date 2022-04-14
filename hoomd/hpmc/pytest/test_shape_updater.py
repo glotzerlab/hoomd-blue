@@ -166,10 +166,8 @@ def test_vertex_shape_move(device, simulation_factory,
 
 def test_python_callback_shape_move(device, simulation_factory,
                                     two_particle_snapshot_factory):
-    """Test PythonShapeMove with a toy class to randomly squash a sphere
-       into oblate ellipsoid with constant volume.
-    """
-
+    """Test PythonShapeMove with a toy class that randomly squashes spheres \
+           into oblate ellipsoids with constant volume."""
     class ScaleEllipsoid:
 
         def __init__(self, a, b, c):
