@@ -34,8 +34,7 @@ template<class Shape> class MassPropertiesBase
     public:
     MassPropertiesBase() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0)
         {
-        for (unsigned int i = 0; i < 6; i++)
-            m_inertia[i] = 0.0;
+        m_inertia.resize(6, 0.0);
         }
 
     virtual ~MassPropertiesBase() {};
@@ -43,6 +42,11 @@ template<class Shape> class MassPropertiesBase
     Scalar getVolume()
         {
         return m_volume;
+        }
+
+    std::vector<Scalar>& getInertiaTensor()
+        {
+        return m_inertia;
         }
 
     const vec3<Scalar>& getCenterOfMass()
@@ -67,7 +71,7 @@ template<class Shape> class MassPropertiesBase
     Scalar m_volume;
     Scalar m_surface_area;
     vec3<Scalar> m_center_of_mass;
-    Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
+    std::vector<Scalar> m_inertia; // xx, yy, zz, xy, yz, xz
     };                   // end class MassPropertiesBase
 
 template<class Shape> class MassProperties : public MassPropertiesBase<Shape>
@@ -155,7 +159,7 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
         algorithm taken from
         http://www.geometrictools.com/Documentation/PolyhedralMassProperties.pdf
     */
-    virtual void compute()
+    void compute()
         {
         const Scalar mult[10] = {1.0 / 6.0,
                                  1.0 / 24.0,
@@ -276,21 +280,20 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
     };
 
 template<>
-class MassProperties<ShapeSpheropolyhedron> : public MassProperties<ShapeConvexPolyhedron>
+class MassProperties<ShapeSpheropolyhedron> : public MassPropertiesBase<ShapeSpheropolyhedron>
     {
     public:
     MassProperties(const typename ShapeSpheropolyhedron::param_type& param)
-        : MassProperties<ShapeConvexPolyhedron>(param)
+        : MassPropertiesBase()
         {
         // error out if the shape is a true spheropolyhedron
-        if (param.sweep_radius != 0 && param.N > 0)
+        if (param.sweep_radius != 0 && param.N > 1)
             {
             throw std::runtime_error(
                 "This class currently only supports the computation of mass properties \
-                 for spheres or convex polyhedra, but not for true spheropolyhedra");
+                for spheres or convex polyhedra, but not for true spheropolyhedra");
             }
-
-        m_sweep_radius = param.sweep_radius;
+        m_param = param;
         this->compute();
         }
 
@@ -298,24 +301,28 @@ class MassProperties<ShapeSpheropolyhedron> : public MassProperties<ShapeConvexP
         {
         // Assuming it's a sphere, return that moment of inertia tensor.
         // Otherwise, fall back to convex polyhedra specialization.
-        if (m_sweep_radius > 0)
+        if (m_param.sweep_radius > 0)
             {
-            Scalar moment_inertia = 2 * m_sweep_radius * m_sweep_radius / 5;
-            m_inertia[0] = moment_inertia;
-            m_inertia[1] = moment_inertia;
-            m_inertia[2] = moment_inertia;
-            m_inertia[3] = 0;
-            m_inertia[4] = 0;
-            m_inertia[5] = 0;
+            Scalar sweep_radius = m_param.sweep_radius;
+            this->m_volume = Scalar(4)/Scalar(3)*M_PI*sweep_radius*sweep_radius*sweep_radius;
+            Scalar moment_inertia = m_volume * 2 * sweep_radius * sweep_radius / 5;
+            this->m_inertia[0] = moment_inertia;
+            this->m_inertia[1] = moment_inertia;
+            this->m_inertia[2] = moment_inertia;
+            this->m_inertia[3] = 0;
+            this->m_inertia[4] = 0;
+            this->m_inertia[5] = 0;
             }
         else
             {
-            MassProperties<ShapeConvexPolyhedron>::compute();
+            MassProperties<ShapeConvexPolyhedron> obj(m_param);
+            this->m_inertia = obj.getInertiaTensor();
+            this->m_volume = obj.getVolume();
             }
         }
 
     private:
-    OverlapReal m_sweep_radius;
+    typename ShapeSpheropolyhedron::param_type m_param;
     };
     } // end namespace detail
 

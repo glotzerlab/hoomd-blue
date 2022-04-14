@@ -6,18 +6,18 @@ import pytest
 import hoomd
 import hoomd.hpmc
 from hoomd.hpmc._hpmc import PolyhedronVertices, EllipsoidParams
-from hoomd.hpmc._hpmc import MassPropertiesConvexPolyhedron, MassPropertiesEllipsoid
+from hoomd.hpmc._hpmc import MassPropertiesConvexPolyhedron, MassPropertiesConvexSpheropolyhedron, MassPropertiesEllipsoid
 
 shape_list = [
     # cube
-    ("polyhedron", {
+    ("ConvexPolyhedron", {
         "vertices": [[-1, -1, -1], [-1, -1, 1], [-1, 1, 1], [-1, 1, -1],
                      [1, -1, -1], [1, -1, 1], [1, 1, 1], [1, 1, -1]],
         "sweep_radius": 0,
         "ignore_statistics": True
     }),
     # deformed cubed
-    ("polyhedron", {
+    ("ConvexPolyhedron", {
         "vertices": [[-1.00010558, -1.05498028, -1.02785711],
                      [-0.60306277, -0.94357813, 1.15216173],
                      [-0.93980368, 1.10805945, 1.07469946],
@@ -30,7 +30,7 @@ shape_list = [
         "ignore_statistics": True
     }),
     # truncated tetrahedron with truncation  = 0.4
-    ("polyhedron", {
+    ("ConvexPolyhedron", {
         "vertices": [[-1., -0.6, 0.6], [-1., 0.6, -0.6], [-0.6, -1., 0.6],
                      [-0.6, -0.6, 1.], [-0.6, 0.6, -1.], [-0.6, 1., -0.6],
                      [0.6, -1., -0.6], [0.6, -0.6, -1.], [0.6, 0.6, 1.],
@@ -39,7 +39,7 @@ shape_list = [
         "ignore_statistics": True
     }),
     # deformed truncated tetrahedron
-    ("polyhedron", {
+    ("ConvexPolyhedron", {
         "vertices": [[-1.38818127, -0.43327022, 0.48655642],
                      [-0.76510261, 0.66381377, -0.56182591],
                      [-0.52614596, -1.02022957, 0.4116381],
@@ -55,34 +55,49 @@ shape_list = [
         "sweep_radius": 0,
         "ignore_statistics": True
     }),
-    ("ellipsoid", {
+    ("Ellipsoid", {
         "a": 1,
         "b": 1,
         "c": 1,
         "ignore_statistics": True
     }),
-    ("ellipsoid", {
+    ("Ellipsoid", {
         "a": 1,
         "b": 1,
         "c": 2,
         "ignore_statistics": True
     }),
-    ("ellipsoid", {
+    ("Ellipsoid", {
         "a": 1.5,
         "b": 1,
         "c": 1,
         "ignore_statistics": True
     }),
-    ("ellipsoid", {
+    ("Ellipsoid", {
         "a": 1,
         "b": 0.8,
         "c": 1,
         "ignore_statistics": True
     }),
-    ("ellipsoid", {
+    ("Ellipsoid", {
         "a": 1.3,
         "b": 2.7,
         "c": 0.7,
+        "ignore_statistics": True
+    }),
+    # sphere as convex spheropolyhedron
+    ("ConvexSpheropolyhedron", {
+        "vertices": [[0,0,0]],
+        "sweep_radius": 1,
+        "ignore_statistics": True
+    }),
+    # truncated tetrahedra (trunc = 0.1) as convex spheropolyhedron
+    ("ConvexSpheropolyhedron", {
+        "vertices": [[-1., -0.9, 0.9], [-1., 0.9, -0.9], [-0.9, -1., 0.9],
+                     [-0.9, -0.9, 1.], [-0.9, 0.9, -1.], [-0.9, 1., -0.9],
+                     [0.9, -1., -0.9], [0.9, -0.9, -1.], [0.9, 0.9, 1.],
+                     [0.9, 1., 0.9], [1., -0.9, -0.9], [1., 0.9, 0.9]],
+        "sweep_radius": 0,
         "ignore_statistics": True
     }),
 ]
@@ -90,20 +105,20 @@ shape_list = [
 volume_list = [
     8.0, 9.906613237811571, 2.5813333333333337, 3.406051603090999,
     4.1887902047863905, 8.377580409572781, 6.283185307179586,
-    3.3510321638291125, 10.291857533160162
+    3.3510321638291125, 10.291857533160162, 4.1887902047863905, 2.6653333333333333
 ]
 
 det_moi_list = [
     151.70370370370372, 433.6939933469258, 0.873927553653835, 2.754115599932528,
     4.70376701046326, 235.18835052316288, 41.920486071765346,
-    1.6193602241717742, 1328.2618881466828
+    1.6193602241717742, 1328.2618881466828, 4.70376701046326, 1.2054288640850612
 ]
 
 
 def _get_cpp_cls(shape_type):
-    if shape_type == "polyhedron":
-        return (PolyhedronVertices, MassPropertiesConvexPolyhedron)
-    elif shape_type == "ellipsoid":
+    if shape_type in ("ConvexPolyhedron", "ConvexSpheropolyhedron"):
+        return (PolyhedronVertices, eval("MassProperties"+shape_type))
+    elif shape_type == "Ellipsoid":
         return (EllipsoidParams, MassPropertiesEllipsoid)
 
 
