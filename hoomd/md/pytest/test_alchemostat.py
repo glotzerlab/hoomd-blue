@@ -105,7 +105,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
 @pytest.mark.serial
 @pytest.mark.parametrize(
     "alchemical_potential",
-    [hoomd.md.alchemy.pair.LJGauss, hoomd.md.alchemy.pair.NLJGauss])
+    [hoomd.md.alchemy.pair.LJGauss])
 def test_pickling_potential(simulation_factory, two_particle_snapshot_factory,
                             alchemical_potential):
     """Test that md.constrain.Distance can be pickled and unpickled."""

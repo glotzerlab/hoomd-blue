@@ -38,8 +38,8 @@ class _AlchemicalMethods(_HOOMDBaseObject):
         def __getitem__(self, key):
             typepairs, params = self._validate_and_split_alchem(key)
             vals = dict()
-            for t in typepair:
-                for p in param:
+            for t in typepairs:
+                for p in params:
                     k = (t, p)
                     if k not in self._dict:
                         self._dict[k] = self.outer._dof_type(self.outer, p, t)
