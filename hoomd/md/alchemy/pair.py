@@ -69,10 +69,10 @@ class AlchemicalDOF(_HOOMDBaseObject):
             mu (float): The alchemical potential.
 
         """
-        self.force = force
+        self._force = force
         self.name = name
         self.typepair = typepair
-        if self.force._attached:
+        if self._force._attached:
             self._attach()
         # store metadata
         param_dict = ParameterDict(mass=float,
@@ -88,45 +88,26 @@ class AlchemicalDOF(_HOOMDBaseObject):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        if not self.force._attached:
-            raise RuntimeError("Call Simulation.run(0) before creating "
+        if not self._force._attached:
+            raise RuntimeError("Call Simulation.run(0) before attaching "
                                "alchemical degrees of freedom.")
-        self._cpp_obj = self.force._cpp_obj.getAlchemicalPairParticle(
-            *map(self.force._simulation.state.particle_types.index,
-                 self.typepair),
-            self.force._alchemical_parameters.index(self.name))
-        if self._owned:
-            self._enable()
+        self._cpp_obj = self._force._cpp_obj.getAlchemicalPairParticle(
+            self.typepair, self.name)
+        self._force._cpp_obj.enableAlchemicalPairParticle(self._cpp_obj)
 
-    # Need to enable and disable via synced list of alchemostat
     def _add(self, simulation):
         super()._add(simulation)
 
-    @property
-    def _owned(self):
-        return hasattr(self, '_owner')
-
-    def _own(self, alchemostat):
-        if self._owned:
-            raise RuntimeError(
-                "Attempting to iterate an alchemical degree of freedom twice")
-        self._owner = alchemostat
-        if self._attached:
-            self._enable()
-
-    def _disown(self):
-        self._disable()
-        delattr(self, '_owner')
-
     def _detach(self):
         if self._attached:
-            self._disable()
+            self._force.params[self.typepair][self.name] = self.value
+            self._force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
             super()._detach()
 
     @log(requires_run=True)
     def value(self):
         """Current value of alpha multiplied by its corresponding parameter."""
-        return self.force.params[self.typepair][self.name] * (
+        return self._force.params[self.typepair][self.name] * (
             self._cpp_obj.alpha)
 
     @log(default=False, requires_run=True, category='particle')
@@ -138,7 +119,7 @@ class AlchemicalDOF(_HOOMDBaseObject):
             F_{\mathrm{alchemical},i} = -\frac{\mathrm{d}U_i}{\mathrm{d}\alpha}
 
         """
-        return self._cpp_obj.forces
+        return self._cpp_obj._forces
 
     @log(requires_run=True)
     def net_alchemical_force(self):
@@ -150,19 +131,6 @@ class AlchemicalDOF(_HOOMDBaseObject):
 
         """
         return self._cpp_obj.net_force
-
-    def _enable(self):
-        if not self._attached:
-            raise RuntimeError("Call Simulation.run(0) before creating "
-                               "alchemical degrees of freedom.")
-        self.force._cpp_obj.enableAlchemicalPairParticle(self._cpp_obj)
-
-    def _disable(self):
-        if not self._attached:
-            raise RuntimeError("Call Simulation.run(0) before creating "
-                               "alchemical degrees of freedom.")
-        self.force.params[self.typepair][self.name] = self.value
-        self.force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
 
 # hiding this class from the sphinx docs until we figure out how the
@@ -184,7 +152,7 @@ class AlchemicalNormalizedDOF(AlchemicalDOF):
     @log(default=False, requires_run=True, category='particle')
     def alchemical_forces(self):
         """Per particle forces in alchemical alpha space."""
-        return self._cpp_obj.forces * self._cpp_obj.norm_value
+        return self._cpp_obj._forces * self._cpp_obj.norm_value
 
 
 @_modify_pair_cls_to_alchemical
