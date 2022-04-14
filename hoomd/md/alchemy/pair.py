@@ -3,7 +3,7 @@
 
 """Alchemical pair forces."""
 
-from hoomd.logging import log, Loggable
+from hoomd.logging import log
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.md.pair import LJGauss as BaseLJGauss
@@ -11,28 +11,20 @@ from hoomd.md.pair import LJGauss as BaseLJGauss
 from hoomd.md.alchemy._alchemical_pair_force import _AlchemicalPairForce
 
 
-class _AlchemicalPairPotential(Loggable):
-    """A metaclass to make alchemical modifications to the pair potential."""
-
-    def __new__(cls, name, superclasses, attributedict):
-        new_cpp_name = [
-            'PotentialPair', 'Alchemical', superclasses[0]._cpp_class_name[13:]
-        ]
-        if attributedict.get('normalized', False):
-            new_cpp_name.insert(2, 'Normalized')
-            attributedict['_dof_type'] = AlchemicalNormalizedDOF
-        else:
-            attributedict['normalized'] = False
-            attributedict['_dof_type'] = AlchemicalDOF
-        attributedict['_cpp_class_name'] = ''.join(new_cpp_name)
-
-        superclasses += (_AlchemicalPairForce,)
-        return super().__new__(cls, name, superclasses, attributedict)
-
-    def __init__(self, name, superclasses, attributedict):
-        self._reserved_default_attrs['_alchemical_parameters'] = list
-        self._accepted_modes = ('none', 'shift')
-        super().__init__(name, superclasses, attributedict)
+def _modify_pair_cls_to_alchemical(cls):
+    new_cpp_name = [
+        'PotentialPair', 'Alchemical', cls.__mro__[0]._cpp_class_name[13:]
+    ]
+    if getattr(cls, 'normalized', False):
+        new_cpp_name.insert(2, 'Normalized')
+        cls._dof_type = AlchemicalNormalizedDOF
+    else:
+        cls.normalized = False
+        cls._dof_type = AlchemicalDOF
+    cls._cpp_class_name = ''.join(new_cpp_name)
+    cls._reserved_default_attrs['_alchemical_parameters'] = list
+    cls._accepted_modes = ('none', 'shift')
+    return cls
 
 
 class AlchemicalDOF(_HOOMDBaseObject):
@@ -57,31 +49,8 @@ class AlchemicalDOF(_HOOMDBaseObject):
 
     """
 
-    def __new__(cls,
-                force: _AlchemicalPairPotential,
-                name: str = '',
-                typepair: tuple = None,
-                *args,
-                **kwargs):
-        """Cache existing instances of AlchemicalDOF.
-
-        Args:
-            force (``_AlchemicalPairPotential``): Pair force containing the
-                alchemical degree of freedom.
-            name (str): The name of the pair force.
-            typepair (tuple[str]): The particle types upon which the pair force
-                acts.
-            mass (float): The mass of the alchemical degree of freedom.
-
-        """
-        typepair = tuple(sorted(typepair))
-        # if an instenace already exists, return that one
-        if (typepair, name) in force._alchemical_dof:
-            return force._alchemical_dof[typepair, name]
-        return super().__new__(cls)
-
     def __init__(self,
-                 force: _AlchemicalPairPotential,
+                 force: _AlchemicalPairForce,
                  name: str = '',
                  typepair: tuple = None,
                  alpha: float = 1.0,
@@ -90,7 +59,7 @@ class AlchemicalDOF(_HOOMDBaseObject):
         """Cache existing instances of AlchemicalDOF.
 
         Args:
-            force (``_AlchemicalPairPotential``): Pair force containing the
+            force (``_AlchemicalPairForce``): Pair force containing the
                 alchemical degree of freedom.
             name (str): The name of the pair force.
             typepair (tuple[str]): The particle types upon which the pair force
@@ -202,7 +171,7 @@ class AlchemicalNormalizedDOF(AlchemicalDOF):
     """Alchemical normalized degree of freedom."""
 
     def __init__(self,
-                 force: _AlchemicalPairPotential,
+                 force: _AlchemicalPairForce,
                  name: str = '',
                  typepair: tuple = None,
                  alpha: float = 1.0,
@@ -218,7 +187,8 @@ class AlchemicalNormalizedDOF(AlchemicalDOF):
         return self._cpp_obj.forces * self._cpp_obj.norm_value
 
 
-class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
+@_modify_pair_cls_to_alchemical
+class LJGauss(BaseLJGauss, _AlchemicalPairForce):
     r"""Alchemical Lennard Jones Gauss pair force.
 
     Args:
@@ -299,7 +269,8 @@ class LJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
 
 # hiding this class from the sphinx docs until we figure out how the
 # normalization scheme works
-class _NLJGauss(BaseLJGauss, metaclass=_AlchemicalPairPotential):
+@_modify_pair_cls_to_alchemical
+class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
     """Alchemical normalized Lennard Jones Gauss pair force.
 
     Attention:
