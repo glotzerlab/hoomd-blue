@@ -127,7 +127,7 @@ PotentialPairAlchemicalNormalized<evaluator, extra_pkg, alpha_particle_type>::pk
                 {
                 unsigned int idx = m_alchemy_index(i, j);
                 norm_function_input[idx]
-                    = evaluator::alchemParams(m_params[m_typpair_idx(i, j)], pkg.alphas[idx])
+                    = evaluator::updateAlchemyParams(m_params[m_typpair_idx(i, j)], pkg.alphas[idx])
                           .asDict();
                 norm_function_input[idx]["mask"] = pkg.compute_mask[idx].to_string();
                 norm_function_input[idx]["pair"] = std::pair<unsigned int, unsigned int>(i, j);

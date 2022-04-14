@@ -176,15 +176,26 @@ class EvaluatorPairLJGauss
 
 #ifndef __HIPCC__
 
-    DEVICE void alchemParams(const std::array<Scalar, num_alchemical_parameters>& alphas)
+    /** Update parameters with alchemical degrees of freedom.
+
+        Interoperate with PotentialPairAlchemical to modify the given potential parameters:
+        p -> p * alpha, where p is a parameter.
+    */
+    DEVICE void updateAlchemyParams(const std::array<Scalar, num_alchemical_parameters>& alphas)
         {
         epsilon *= alphas[0];
         sigma *= alphas[1];
         r0 *= alphas[2];
         }
 
-    DEVICE static param_type alchemParams(const param_type& initial_params,
-                                          std::array<Scalar, num_alchemical_parameters>& alphas)
+    /** Update parameters with alchemical degrees of freedom.
+
+        Interoperate with PotentialPairAlchemical to modify the given potential parameters:
+        p -> p * alpha, where p is a parameter.
+    */
+    DEVICE static param_type
+    updateAlchemyParams(const param_type& initial_params,
+                        std::array<Scalar, num_alchemical_parameters>& alphas)
         {
         param_type params(initial_params);
         params.epsilon *= alphas[0];
@@ -193,9 +204,13 @@ class EvaluatorPairLJGauss
         return params;
         }
 
+    /** Calculate derivative of the alchemical potential with repsect to alpha.
+
+        Interoperate with PotentialPairAlchemical to compute dU/d alpha.
+    */
     DEVICE void
-    evalAlchDerivatives(std::array<Scalar, num_alchemical_parameters>& alchemical_derivatives,
-                        const std::array<Scalar, num_alchemical_parameters>& alphas)
+    evalAlchemyDerivatives(std::array<Scalar, num_alchemical_parameters>& alchemical_derivatives,
+                           const std::array<Scalar, num_alchemical_parameters>& alphas)
         {
             {
             Scalar r = fast::sqrt(rsq);

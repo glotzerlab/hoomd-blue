@@ -244,7 +244,7 @@ inline void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::
     if (pkg.calculate_derivatives && in_rcut && mask.any())
         {
         std::array<Scalar, evaluator::num_alchemical_parameters> alchemical_derivatives = {};
-        eval.evalAlchDerivatives(alchemical_derivatives, alphas);
+        eval.evalAlchemyDerivatives(alchemical_derivatives, alphas);
         for (unsigned int k = 0; k < evaluator::num_alchemical_parameters; k++)
             {
             if (mask[k])
@@ -259,7 +259,7 @@ inline void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::
         }
 
     // update parameter values with current alphas (MUST! be performed after dAlpha calculations)
-    eval.alchemParams(alphas);
+    eval.updateAlchemyParams(alphas);
     }
 
 template<class evaluator, typename extra_pkg, typename alpha_particle_type>
