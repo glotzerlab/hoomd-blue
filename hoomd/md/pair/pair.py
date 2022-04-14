@@ -1809,7 +1809,7 @@ class LJGauss(Pair):
                  \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
                  \left ( \frac{2\ [\mathrm{length}]}{r} \right)^{6} \right] -
             \epsilon
-            e^{- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}}}
+            \exp \left[- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}} \right]
 
     .. py:attribute:: params
 
@@ -1817,8 +1817,8 @@ class LJGauss(Pair):
 
         * ``epsilon`` (`float`, **required**) -
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma2`` (`float`, **required**) -
-          Gaussian variance :math:`\sigma^2` :math:`[\mathrm{length}]^2`
+        * ``sigma`` (`float`, **required**) -
+          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
 
@@ -1826,9 +1826,9 @@ class LJGauss(Pair):
 
         nl = hoomd.md.nlist.Cell()
         ljg = pair.LJGauss(nl)
-        ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma2=0.02, r0=1.6)
-        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
-        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
+        ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6)
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
     """
     _cpp_class_name = "PotentialPairLJGauss"
 
@@ -1840,6 +1840,6 @@ class LJGauss(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma2=float, r0=float,
+            TypeParameterDict(epsilon=float, sigma=float, r0=float,
                               len_keys=2))
         self._add_typeparam(params)

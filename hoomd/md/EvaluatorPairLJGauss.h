@@ -49,7 +49,7 @@ class EvaluatorPairLJGauss
     struct param_type
         {
         Scalar epsilon;
-        Scalar sigma2;
+        Scalar sigma;
         Scalar r0;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
@@ -65,12 +65,12 @@ class EvaluatorPairLJGauss
 #endif
 
 #ifndef __HIPCC__
-        param_type() : epsilon(0), sigma2(1.0), r0(0) { }
+        param_type() : epsilon(0), sigma(1.0), r0(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             epsilon = v["epsilon"].cast<Scalar>();
-            sigma2 = v["sigma2"].cast<Scalar>();
+            sigma = v["sigma"].cast<Scalar>();
             r0 = v["r0"].cast<Scalar>();
             }
 
@@ -78,7 +78,7 @@ class EvaluatorPairLJGauss
             {
             pybind11::dict v;
             v["epsilon"] = epsilon;
-            v["sigma2"] = sigma2;
+            v["sigma"] = sigma;
             v["r0"] = r0;
             return v;
             }
@@ -93,7 +93,7 @@ class EvaluatorPairLJGauss
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairLJGauss(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma2(_params.sigma2),
+        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma),
           r0(_params.r0)
         {
         }
@@ -142,6 +142,7 @@ class EvaluatorPairLJGauss
             return false;
             }
         Scalar r = fast::sqrt(rsq);
+        Scalar sigma2 = sigma * sigma;
         Scalar rdiff = r - r0;
         Scalar rdiff_sigma2 = rdiff / sigma2;
         Scalar exp_val = fast::exp(-Scalar(0.5) * rdiff_sigma2 * rdiff);
@@ -179,7 +180,7 @@ class EvaluatorPairLJGauss
     DEVICE void alchemParams(const std::array<Scalar, num_alchemical_parameters>& alphas)
         {
         epsilon *= alphas[0];
-        sigma2 *= alphas[1] * alphas[1];
+        sigma *= alphas[1];
         r0 *= alphas[2];
         }
 
@@ -188,7 +189,7 @@ class EvaluatorPairLJGauss
         {
         param_type params(initial_params);
         params.epsilon *= alphas[0];
-        params.sigma2 *= alphas[1] * alphas[1];
+        params.sigma *= alphas[1];
         params.r0 *= alphas[2];
         return params;
         }
@@ -199,6 +200,7 @@ class EvaluatorPairLJGauss
         {
             {
             Scalar r = fast::sqrt(rsq);
+            Scalar sigma2 = sigma * sigma;
             Scalar inva1 = 1.0 / alphas[1];
             Scalar invsiga1sq = inva1 * inva1 * (1 / sigma2);
             Scalar rdiff = r - alphas[2] * r0;
@@ -230,7 +232,7 @@ class EvaluatorPairLJGauss
     Scalar rsq;     //!< Stored rsq from the constructor
     Scalar rcutsq;  //!< Stored rcutsq from the constructor
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
-    Scalar sigma2;  //!< sigma^2 parameter extracted from the params passed to the constructor
+    Scalar sigma;   //!< sigma parameter extracted from the params passed to the constructor
     Scalar r0;      //!< r0 prarameter extracted from the params passed to the constructor
     };
 

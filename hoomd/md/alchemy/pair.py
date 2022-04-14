@@ -152,6 +152,12 @@ class AlchemicalDOF(_HOOMDBaseObject):
             self._disable()
             super()._detach()
 
+    @log(requires_run=True)
+    def value(self):
+        """Current value of alpha multiplied by its corresponding parameter."""
+        return self.force.params[self.typepair][self.name] * (
+            self._cpp_obj.alpha)
+
     @log(default=False, requires_run=True, category='particle')
     def alchemical_forces(self):
         r"""Per particle forces in alchemical alpha space.
