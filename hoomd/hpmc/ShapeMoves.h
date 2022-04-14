@@ -695,8 +695,7 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
         .def("setParams", &PythonShapeMove<Shape>::setParams)
         .def_property("callback",
                       &PythonShapeMove<Shape>::getCallback,
-                      &PythonShapeMove<Shape>::setCallback)
-        ;
+                      &PythonShapeMove<Shape>::setCallback);
     }
 
 inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const std::string& name)
