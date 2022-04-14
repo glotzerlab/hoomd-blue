@@ -551,10 +551,11 @@ class Shape(Updater):
         However, the use of this updater with spheropolyhedra is currently
         enabled to allow the use of spherical depletants with shape moves.
 
-    Examples:
+    Example::
+
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
         mc.shape["A"] = dict(vertices=numpy.asarray([(1, 1, 1), (-1, -1, 1),
-                                                    (1, -1, -1), (-1, 1, -1)]) / 2)
+                                                    (1, -1, -1), (-1, 1, -1)]))
         vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
                                                    param_ratio=0.2,
                                                    volume=1.0)
