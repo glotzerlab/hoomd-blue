@@ -445,7 +445,7 @@ class MuVT(Updater):
             param_dict=TypeParameterDict(hoomd.variant.Variant,
                                          len_keys=1,
                                          _defaults=hoomd.variant.Constant(0.0)))
-        self._extend_typeparam([typeparam_fugacity])
+        self._append_typeparam(typeparam_fugacity)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
