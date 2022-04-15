@@ -21,49 +21,30 @@ class Alchemostat(Method):
 
     """
 
-    def __init__(self, alchemical_dof):
-        self.alchemical_dof = self._OwnedAlchemicalParticles(self)
-        if alchemical_dof is not None:
-            self.alchemical_dof.extend(alchemical_dof)
-
-    def _update(self):
-        if self._attached:
-            self._cpp_obj.alchemical_dof = self.alchemical_dof._synced_list
+    def __init__(self, alchemical_particles):
+        self._alchemical_particles = syncedlist.SyncedList(
+            AlchemicalDOF, syncedlist._PartialGetAttr("_cpp_obj"))
+        if alchemical_particles is not None:
+            self._alchemical_particles.extend(alchemical_particles)
 
     def _attach(self):
         super()._attach()
-        self.alchemical_dof._sync(None, [])
-        self._update()
+        self._alchemical_particles._sync(self._simulation,
+                                         self._cpp_obj.alchemical_dof)
 
-    class _OwnedAlchemicalParticles(syncedlist.SyncedList):
-        """Owned alchemical particles.
+    def _detach(self):
+        self._alchemical_particles._unsync()
 
-        Accessor/wrapper to specialize a synced list
+    @property
+    def alchemical_particles(self):
+        """`list` [`hoomd.md.alchemy.pair.AlchemicalDOF` ]: List of \
+                alchemical degrees of freedom."""
+        return self._alchemical_particles
 
-        Alchemical degrees of freedom which will be integrated by this
-        integration method.
-        """
-
-        def __init__(self, outer):
-            self._outer = outer
-            super().__init__(AlchemicalDOF,
-                             syncedlist._PartialGetAttr('_cpp_obj'))
-
-        def __setitem__(self, i, item):
-            item._own(self._outer)
-            super().__setitem__(i, item)
-            self._outer._update()
-
-        def __delitem__(self, i):
-            self._outer.alchemical_dof[i]._disown()
-            super().__delitem__(i)
-            self._outer._update()
-
-        def insert(self, i, item):
-            """Insert value to list at index, handling list syncing."""
-            item._own(self._outer)
-            super().insert(i, item)
-            self._outer._update()
+    @alchemical_particles.setter
+    def alchemical_particles(self, new_particles):
+        self._alchemical_particles.clear()
+        self._alchemical_particles.extend(new_particles)
 
 
 class NVT(Alchemostat):
@@ -77,8 +58,8 @@ class NVT(Alchemostat):
         alchemical_kT (`hoomd.variant.Variant` or `float`): Temperature set
             point for the alchemostat :math:`[\mathrm{energy}]`.
 
-        alchemical_dof (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List of
-            alchemical degrees of freedom.
+        alchemical_particles (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List
+            of alchemical degrees of freedom.
 
         period (int): Timesteps between applications of the alchemostat.
 
@@ -102,21 +83,21 @@ class NVT(Alchemostat):
         alchemical_kT (hoomd.variant.Variant): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        alchemical_dof (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List of
-            alchemical degrees of freedom.
+        alchemical_particles (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List
+            of alchemical degrees of freedom.
 
         period (int): Timesteps between applications of the alchemostat.
 
     """
 
-    def __init__(self, alchemical_kT, alchemical_dof, period=1):
+    def __init__(self, alchemical_kT, alchemical_particles, period=1):
 
         # store metadata
         param_dict = ParameterDict(alchemical_kT=Variant, period=int)
         param_dict.update(dict(alchemical_kT=alchemical_kT, period=period))
         # set defaults
         self._param_dict.update(param_dict)
-        super().__init__(alchemical_dof)
+        super().__init__(alchemical_particles)
 
     def _attach(self):
         cpp_class = hoomd.md._md.TwoStepNVTAlchemy
