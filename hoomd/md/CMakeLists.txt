@@ -52,6 +52,10 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintComputeGPU.h
                 ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
+                AnisoPotentialPairALJ2GPUKernel.cuh
+                AnisoPotentialPairALJ3GPUKernel.cuh
+                AnisoPotentialPairDipoleGPUKernel.cuh
+                AnisoPotentialPairGBGPUKernel.cuh
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
@@ -227,7 +231,10 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
 endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
-                      AllDriverAnisoPotentialPairGPU.cu
+                      AnisoPotentialPairALJ2GPUKernel.cu
+                      AnisoPotentialPairALJ3GPUKernel.cu
+                      AnisoPotentialPairDipoleGPUKernel.cu
+                      AnisoPotentialPairGBGPUKernel.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
@@ -241,7 +248,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       GaussDriverPotentialPairGPU.cu
                       LJDriverPotentialPairGPU.cu
                       MieDriverPotentialPairGPU.cu
-		      ExpandedMieDriverPotentialPairGPU.cu
+		              ExpandedMieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
                       OPPDriverPotentialPairGPU.cu

@@ -561,7 +561,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 }
             case 1:
                 {
-                AnisoPairForceComputeKernel<evaluator, 1, 1, gpu_aniso_pair_force_max_tpp>::launch(
+                AnisoPairForceComputeKernel<evaluator, 1 && evaluator::implementsEnergyShift(), 1, gpu_aniso_pair_force_max_tpp>::launch(
                     pair_args,
                     range,
                     d_params,
@@ -587,7 +587,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 }
             case 1:
                 {
-                AnisoPairForceComputeKernel<evaluator, 1, 0, gpu_aniso_pair_force_max_tpp>::launch(
+                AnisoPairForceComputeKernel<evaluator, 1 && evaluator::implementsEnergyShift(), 0, gpu_aniso_pair_force_max_tpp>::launch(
                     pair_args,
                     range,
                     d_params,
@@ -601,6 +601,11 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
         }
     return hipSuccess;
     }
+#else
+template<class evaluator>
+hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
+                                         const typename evaluator::param_type* d_params,
+                                         const typename evaluator::shape_type* d_shape_params);
 #endif
 
     } // end namespace kernel
