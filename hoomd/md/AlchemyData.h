@@ -16,6 +16,8 @@
 #include <memory>
 #include <string>
 
+#include <pybind11/stl_bind.h>
+
 #include "hoomd/ForceCompute.h"
 #include "hoomd/HOOMDMPI.h"
 #include "hoomd/HOOMDMath.h"
@@ -151,6 +153,15 @@ struct AlchemicalNormalizedPairParticle : AlchemicalPairParticle
         m_timestep_net_force.second += energy_value * alchemical_derivative_normalization_value;
         }
     };
+    } // namespace md
+    } // namespace hoomd
+
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::AlchemicalMDParticle>>);
+
+namespace hoomd
+    {
+namespace md
+    {
 
 namespace detail
     {
@@ -181,6 +192,10 @@ inline void export_AlchemicalMDParticles(pybind11::module& m)
         .def_readwrite(
             "norm_value",
             &AlchemicalNormalizedPairParticle::alchemical_derivative_normalization_value);
+
+    pybind11::bind_vector<std::vector<std::shared_ptr<hoomd::md::AlchemicalMDParticle>>>(
+        m,
+        "AlchemicalMDParticleList");
     }
 
     } // end namespace detail

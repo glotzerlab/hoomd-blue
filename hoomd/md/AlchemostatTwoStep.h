@@ -61,7 +61,7 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         return m_nTimeFactor;
         }
 
-    std::vector<std::shared_ptr<AlchemicalMDParticle>> getAlchemicalParticleList()
+    std::vector<std::shared_ptr<AlchemicalMDParticle>>& getAlchemicalParticleList()
         {
         return m_alchemicalParticles;
         }
@@ -103,9 +103,7 @@ inline void export_AlchemostatTwoStep(pybind11::module& m)
                      std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
         .def_property_readonly("period", &AlchemostatTwoStep::getAlchemTimeFactor)
-        .def_property("alchemical_dof",
-                      &AlchemostatTwoStep::getAlchemicalParticleList,
-                      &AlchemostatTwoStep::setAlchemicalParticleList)
+        .def_property_readonly("alchemical_dof", &AlchemostatTwoStep::getAlchemicalParticleList)
         .def("setNextAlchemicalTimestep", &AlchemostatTwoStep::setNextAlchemicalTimestep);
     }
 
