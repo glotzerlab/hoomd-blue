@@ -277,6 +277,33 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
           Gaussian variance :math:`\sigma^2` :math:`[\mathrm{length}]^2`
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: epsilon
+
+        Store/mapping of alchemical particles for alchemical degrees of freedom
+        for the potential parameter :math:`\epsilon`.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `AlchemicalDOF`])
+
+    .. py:attribute:: sigma
+
+        Store/mapping of alchemical particles for alchemical degrees of freedom
+        for the potential parameter :math:`\sigma`.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `AlchemicalDOF`])
+
+    .. py:attribute:: r0
+
+        Store/mapping of alchemical particles for alchemical degrees of freedom
+        for the potential parameter :math:`r_0`.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `AlchemicalDOF`])
     """
     _alchemical_dofs = ['epsilon', 'sigma2', 'r0']
 

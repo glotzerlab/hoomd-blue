@@ -13,8 +13,7 @@ Example::
     integrator.methods.append(nvt)
     ljg = hoomd.md.alchemy.pair.LJGauss(...)
     integrator.forces.append(ljg)
-    sim.run(0)
-    ar0 = ljg.create_alchemical_dof(('A', 'A'), 'r0')
+    ar0 = ljg.r0[('A', 'A')]
     alchemostat = hoomd.md.alchemy.methods.NVT(
         period=period,
         alchemical_dof=[ar0],
