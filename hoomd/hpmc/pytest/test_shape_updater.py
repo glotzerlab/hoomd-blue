@@ -6,10 +6,9 @@ from hoomd import hpmc
 import numpy as np
 import pytest
 from hoomd.hpmc.update import Shape
-from hoomd.hpmc.shape_move import (VertexShapeMove, PythonShapeMove,
-                                   ElasticShapeMove)
+from hoomd.hpmc.shape_move import Vertex, ShapeSpace, Elastic
 
-shape_move_classes = [VertexShapeMove, PythonShapeMove, ElasticShapeMove]
+shape_move_classes = [Vertex, ShapeSpace, Elastic]
 
 shape_move_constructor_args = [
     dict(move_probability=0),
@@ -23,15 +22,13 @@ def _test_callback(typeid, param_list):
 
 
 shape_move_valid_attrs = [
-    (VertexShapeMove, "move_probability", 0.1),
-    (PythonShapeMove, "move_probability", 0.1),
-    (PythonShapeMove, "callback", _test_callback),
-    (ElasticShapeMove, "move_probability", 0.5),
-    (ElasticShapeMove, "stiffness", hoomd.variant.Constant(10)),
-    (ElasticShapeMove, "stiffness", hoomd.variant.Ramp(1, 5, 0, 100)),
-    (ElasticShapeMove, "stiffness", hoomd.variant.Cycle(1, 5, 0, 10, 20, 10,
-                                                        15)),
-    (ElasticShapeMove, "stiffness", hoomd.variant.Power(1, 5, 3, 0, 100))
+    (Vertex, "move_probability", 0.1), (ShapeSpace, "move_probability", 0.1),
+    (ShapeSpace, "callback", _test_callback),
+    (Elastic, "move_probability", 0.5),
+    (Elastic, "stiffness", hoomd.variant.Constant(10)),
+    (Elastic, "stiffness", hoomd.variant.Ramp(1, 5, 0, 100)),
+    (Elastic, "stiffness", hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
+    (Elastic, "stiffness", hoomd.variant.Power(1, 5, 3, 0, 100))
 ]
 
 shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
@@ -39,9 +36,9 @@ shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
                              ("trigger", hoomd.trigger.Before(100)),
                              ("type_select", 2), ("nweeps", 4),
                              ("num_phase", 2), ("multi_phase", True),
-                             ("shape_move", VertexShapeMove()),
-                             ("shape_move", PythonShapeMove()),
-                             ("shape_move", ElasticShapeMove())]
+                             ("shape_move", Vertex()),
+                             ("shape_move", ShapeSpace()),
+                             ("shape_move", Elastic())]
 
 updater_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10)),
@@ -58,9 +55,9 @@ updater_constructor_args = [
 ]
 
 type_parameters = [
-    (PythonShapeMove(), "params", [0.1, 0.3, 0.4]),
-    (VertexShapeMove(), "volume", 1.2),
-    # (ElasticShapeMove(), "reference_shape", {"diameter": 1}),
+    (ShapeSpace(), "params", [0.1, 0.3, 0.4]),
+    (Vertex(), "volume", 1.2),
+    # (Elastic(), "reference_shape", {"diameter": 1}),
     (Shape(trigger=1), "step_size", 0.4)
 ]
 
@@ -118,7 +115,7 @@ def test_vertex_shape_move(device, simulation_factory,
     verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
                         [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
 
-    move = VertexShapeMove()
+    move = Vertex()
     move.volume["A"] = 1
 
     updater = hpmc.update.Shape(trigger=1, step_size=0.2, nsweeps=2)
@@ -166,7 +163,7 @@ def test_vertex_shape_move(device, simulation_factory,
 
 def test_python_callback_shape_move(device, simulation_factory,
                                     two_particle_snapshot_factory):
-    """Test PythonShapeMove with a toy class that randomly squashes spheres \
+    """Test ShapeSpace with a toy class that randomly squashes spheres \
            into oblate ellipsoids with constant volume."""
 
     class ScaleEllipsoid:
@@ -184,7 +181,7 @@ def test_python_callback_shape_move(device, simulation_factory,
 
     ellipsoid = dict(a=1, b=1, c=1)
 
-    move = PythonShapeMove()
+    move = ShapeSpace()
     move.callback = ScaleEllipsoid(**ellipsoid)
     move.params["A"] = [1]
 
