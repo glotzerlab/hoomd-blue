@@ -52,7 +52,7 @@ class ShapeMove(_HOOMDBaseObject):
         super()._attach()
 
 
-class ElasticShapeMove(ShapeMove):
+class Elastic(ShapeMove):
     """Apply scale and shear shape moves to particles with an energy penalty.
 
     Args:
@@ -63,7 +63,7 @@ class ElasticShapeMove(ShapeMove):
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
         verts = [(1, 1, 1), (-1, -1, 1), (1, -1, -1), (-1, 1, -1)]
         mc.shape["A"] = dict(vertices=verts)
-        elastic_move = hoomd.hpmc.shape_move.ElasticShapeMove(0.5)
+        elastic_move = hoomd.hpmc.shape_move.Elastic(0.5)
         elastic_move.stiffness = 100
         elastic_move.reference_shape["A"] = verts
 
@@ -167,7 +167,7 @@ class ShapeSpace(ShapeMove):
         self._add_typeparam(typeparam_shapeparams)
 
 
-class VertexShapeMove(ShapeMove):
+class Vertex(ShapeMove):
     """Apply shape moves where particle vertices are translated.
 
     Args:
@@ -189,7 +189,7 @@ class VertexShapeMove(ShapeMove):
         cube_verts = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1),
                       (1, -1, -1), (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)])
         mc.shape["A"] = dict(vertices=numpy.asarray(cube_verts) / 2)
-        vertex_move = shape_move.VertexShapeMove()
+        vertex_move = shape_move.Vertex()
         vertex_move.volume["A"] = 1
 
     Attributes:
