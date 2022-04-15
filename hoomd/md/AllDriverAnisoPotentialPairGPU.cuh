@@ -22,26 +22,35 @@ namespace md
     {
 namespace kernel
     {
-hipError_t __attribute__((visibility("default")))
-gpu_compute_pair_aniso_forces_gb(const a_pair_args_t&,
-                                 const EvaluatorPairGB::param_type*,
-                                 const EvaluatorPairGB::shape_type*);
+template<class evaluator>
+hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
+                                         const typename evaluator::param_type* d_params,
+                                         const typename evaluator::shape_type* d_shape_params);
 
+extern template
 hipError_t __attribute__((visibility("default")))
-gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t&,
-                                     const EvaluatorPairDipole::param_type*,
-                                     const EvaluatorPairDipole::shape_type*);
+gpu_compute_pair_aniso_forces<EvaluatorPairGB>(const a_pair_args_t& pair_args,
+                                            const EvaluatorPairGB::param_type* d_param,
+                                            const EvaluatorPairGB::shape_type* d_shape_param);
+
+extern template
+hipError_t __attribute__((visibility("default")))
+gpu_compute_pair_aniso_forces<EvaluatorPairDipole>(const a_pair_args_t& pair_args,
+                                     const EvaluatorPairDipole::param_type* d_param,
+                                     const EvaluatorPairDipole::shape_type* d_shape_param);
 
 //! Compute anisotropic Lennard-Jones forces and torques on the GPU with EvaluatorPairALJ
+extern template
 hipError_t __attribute__((visibility("default")))
-gpu_compute_pair_aniso_forces_ALJ_2D(const a_pair_args_t&,
-                                     const EvaluatorPairALJ<2>::param_type*,
-                                     const EvaluatorPairALJ<2>::shape_type*);
+gpu_compute_pair_aniso_forces<EvaluatorPairALJ<2>>(const a_pair_args_t& pair_args,
+                                     const EvaluatorPairALJ<2>::param_type* d_param,
+                                     const EvaluatorPairALJ<2>::shape_type* d_shape_param);
 
+extern template
 hipError_t __attribute__((visibility("default")))
-gpu_compute_pair_aniso_forces_ALJ_3D(const a_pair_args_t&,
-                                     const EvaluatorPairALJ<3>::param_type*,
-                                     const EvaluatorPairALJ<3>::shape_type*);
+gpu_compute_pair_aniso_forces<EvaluatorPairALJ<3>>(const a_pair_args_t& pair_args,
+                                     const EvaluatorPairALJ<3>::param_type* d_param,
+                                     const EvaluatorPairALJ<3>::shape_type* d_shape_param);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

@@ -35,16 +35,16 @@ typedef AnisoPotentialPair<EvaluatorPairALJ<3>> AnisoPotentialPairALJ3D;
 
 #ifdef ENABLE_HIP
 //! Pair potential force compute for Gay-Berne forces and torques on the GPU
-typedef AnisoPotentialPairGPU<EvaluatorPairGB, kernel::gpu_compute_pair_aniso_forces_gb>
+typedef AnisoPotentialPairGPU<EvaluatorPairGB>
     AnisoPotentialPairGBGPU;
 //! Pair potential force compute for dipole forces and torques on the GPU
-typedef AnisoPotentialPairGPU<EvaluatorPairDipole, kernel::gpu_compute_pair_aniso_forces_dipole>
+typedef AnisoPotentialPairGPU<EvaluatorPairDipole>
     AnisoPotentialPairDipoleGPU;
 //! Pair potential force compute for 2D anisotropic LJ forces and torques on the GPU
-typedef AnisoPotentialPairGPU<EvaluatorPairALJ<2>, kernel::gpu_compute_pair_aniso_forces_ALJ_2D>
+typedef AnisoPotentialPairGPU<EvaluatorPairALJ<2>>
     AnisoPotentialPairALJ2DGPU;
 //! Pair potential force compute for 3D anisotropicl LJ forces and torques on the GPU
-typedef AnisoPotentialPairGPU<EvaluatorPairALJ<3>, kernel::gpu_compute_pair_aniso_forces_ALJ_3D>
+typedef AnisoPotentialPairGPU<EvaluatorPairALJ<3>>
     AnisoPotentialPairALJ3DGPU;
 #endif
 
