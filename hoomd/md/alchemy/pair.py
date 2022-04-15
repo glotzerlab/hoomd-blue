@@ -27,11 +27,11 @@ def _modify_pair_cls_to_alchemical(cls):
     return cls
 
 
-class AlchemicalPairDOF(Mapping):
+class AlchemicalPairDOFStore(Mapping):
     """A read-only mapping of alchemical particles accessed by type."""
 
     def __init__(self, name, pair_instance, dof_cls):
-        """Create an `AlchemicalPairDOF` object.
+        """Create an `AlchemicalPairDOFStore` object.
 
         Warning:
             Should not be instantiated by users.
@@ -91,7 +91,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     def _set_alchemical_parameters(self):
         self._alchemical_params = {}
         for dof in self._alchemical_dofs:
-            self._alchemical_params[dof] = AlchemicalPairDOF(
+            self._alchemical_params[dof] = AlchemicalPairDOFStore(
                 name=dof, pair_instance=self, dof_cls=self._dof_cls)
 
     def _setattr_hook(self, attr, value):
