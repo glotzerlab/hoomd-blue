@@ -17,10 +17,10 @@ def _modify_pair_cls_to_alchemical(cls):
     ]
     if getattr(cls, 'normalized', False):
         new_cpp_name.insert(2, 'Normalized')
-        cls._dof_type = AlchemicalNormalizedDOF
+        cls._dof_cls = AlchemicalNormalizedDOF
     else:
         cls.normalized = False
-        cls._dof_type = AlchemicalDOF
+        cls._dof_cls = AlchemicalDOF
     cls._cpp_class_name = ''.join(new_cpp_name)
     cls._reserved_default_attrs['_alchemical_parameters'] = list
     cls._accepted_modes = ('none', 'shift')

@@ -45,6 +45,10 @@ class AlchemicalPairDOF(Mapping):
             return keys[0] in self._data
         return [k in self._data for k in keys]
 
+    def __len__(self):
+        """Get the length of the mapping."""
+        return len(self._data)
+
     def _attach(self, types):
         self._indexer.valid_types = types
         for key in self:
@@ -71,7 +75,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
                 name=dof, pair_instance=self, dof_cls=self._dof_cls)
 
     def _setattr_hook(self, attr, value):
-        if attr in self._alchemical_params:
+        if attr in self._alchemical_dofs:
             raise RuntimeError(f"{attr} is not settable.")
         super()._setattr_hook(attr, value)
 
