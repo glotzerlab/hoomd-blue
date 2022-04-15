@@ -62,7 +62,7 @@ class Dipole(AnisotropicPair):
     Args:
         nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        mode (str): energy shifting/smoothing mode
+        mode (str): energy shifting/smoothing mode (ignored)
 
     `Dipole` computes the (screened) interaction between pairs of
     particles with dipoles and electrostatic charges:
@@ -88,6 +88,10 @@ class Dipole(AnisotropicPair):
     Note:
        All units are documented electronic dipole moments. However, `Dipole`
        can also be used to represent magnetic dipoles.
+
+    Note:
+        `Dipole` accepts the ``mode`` parameter, but computes the same energy
+        regardless of the value of ``mode``.
 
     Example::
 
@@ -236,7 +240,8 @@ class ALJ(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
-        mode (`str`, optional) : the energy shifting mode, defaults to "none".
+        mode (`str`, optional) : the energy shifting mode, defaults to "none"
+          (ignored).
 
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
     described in `Ramasubramani, V.  et. al. 2020`_. Specifically we implement
@@ -289,6 +294,10 @@ class ALJ(AnisotropicPair):
     Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
     to empty list to create the ellipsoid).
+
+    Note:
+        `ALJ` accepts the ``mode`` parameter, but computes the same energy
+        regardless of the value of ``mode``.
 
     Example::
 
