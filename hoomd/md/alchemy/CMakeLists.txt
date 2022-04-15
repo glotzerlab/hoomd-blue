@@ -1,5 +1,4 @@
 set(files __init__.py
-          _alchemical_pair_force.py
           pair.py
           methods.py
    )
