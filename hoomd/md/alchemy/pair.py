@@ -12,6 +12,12 @@ from hoomd.md.pair import LJGauss as BaseLJGauss
 
 
 def _modify_pair_cls_to_alchemical(cls):
+    """Modifies a created class inheriting from `_AlchemicalPairForce`.
+
+    This decorator sets the _dof_cls type, updates the ``_cpp_class_name``,
+    ``_accepted_modes``, and ``_reserved_default_attrs``, and sets ``normalize =
+    False`` if not set.
+    """
     new_cpp_name = [
         'PotentialPair', 'Alchemical', cls.__mro__[0]._cpp_class_name[13:]
     ]
@@ -22,13 +28,16 @@ def _modify_pair_cls_to_alchemical(cls):
         cls.normalized = False
         cls._dof_cls = AlchemicalDOF
     cls._cpp_class_name = ''.join(new_cpp_name)
-    cls._reserved_default_attrs['_alchemical_parameters'] = list
     cls._accepted_modes = ('none', 'shift')
     return cls
 
 
 class AlchemicalPairDOFStore(Mapping):
-    """A read-only mapping of alchemical particles accessed by type."""
+    """A read-only mapping of alchemical particles accessed by type.
+
+    The class acts as a cache so once a DOF/particle is querried it is returned
+    and not recreated when querried again.
+    """
 
     def __init__(self, name, pair_instance, dof_cls):
         """Create an `AlchemicalPairDOFStore` object.
@@ -82,6 +91,18 @@ class AlchemicalPairDOFStore(Mapping):
 
 
 class _AlchemicalPairForce(_HOOMDBaseObject):
+    """Base class for Alchemical pair potentials.
+
+    Expects to use diamond inheritance with a `hoomd.md.pair.Pair` subclass.
+    Automatically creates the `AlchemicalPairDOFStore` objects in `__init__` and
+    implements a type parameter like interface for accessing them.
+
+    Attributes:
+        _alchemical_dofs (`list`[ `str`]): A list of all potential degrees of
+            freedom. This must match that of the ``params`` type parameter.
+        _dof_cls (AlchemicalDOF): The correct DOF class. Automatically set via
+            `_modify_pair_cls_to_alchemical`.
+    """
     _alchemical_dofs = []
     _dof_cls = None
 
