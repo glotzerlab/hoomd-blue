@@ -32,12 +32,10 @@ def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(ljg)
     sim.operations.integrator = integrator
-    sim.run(0)
-
-    ar0 = ljg.create_alchemical_dof(('A', 'A'), 'r0')
+    ar0 = ljg.r0[('A', 'A')]
     period = 10
     alchemostat = alchemostat_cls(period=period,
-                                  alchemical_dof=[ar0],
+                                  alchemical_particles=[ar0],
                                   **extra_property_1st_value)
 
     assert alchemostat.period == period
@@ -45,14 +43,14 @@ def test_before_attaching(simulation_factory, two_particle_snapshot_factory,
     alchemostat.period = period
     assert alchemostat.period == period
 
-    assert len(alchemostat.alchemical_dof) == 1
-    assert alchemostat.alchemical_dof[0] == ar0
+    assert len(alchemostat.alchemical_particles) == 1
+    assert alchemostat.alchemical_particles[0] == ar0
 
-    alchemostat.alchemical_dof.remove(ar0)
-    assert len(alchemostat.alchemical_dof) == 0
+    alchemostat.alchemical_particles.remove(ar0)
+    assert len(alchemostat.alchemical_particles) == 0
 
-    alchemostat.alchemical_dof.append(ar0)
-    assert alchemostat.alchemical_dof[0] == ar0
+    alchemostat.alchemical_particles.append(ar0)
+    assert alchemostat.alchemical_particles[0] == ar0
 
     for name in extra_property_1st_value.keys():
         assert getattr(alchemostat, name) == extra_property_1st_value[name]
@@ -75,23 +73,21 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(ljg)
     sim.operations.integrator = integrator
-    sim.run(0)
-
-    ar0 = ljg.create_alchemical_dof(('A', 'A'), 'r0')
+    ar0 = ljg.r0[('A', 'A')]
     period = 10
     alchemostat = alchemostat_cls(period=period,
-                                  alchemical_dof=[ar0],
+                                  alchemical_particles=[ar0],
                                   **extra_property_1st_value)
     sim.operations.integrator.methods.insert(0, alchemostat)
     assert alchemostat.period == period
-    assert len(alchemostat.alchemical_dof) == 1
-    assert alchemostat.alchemical_dof[0] == ar0
+    assert len(alchemostat.alchemical_particles) == 1
+    assert alchemostat.alchemical_particles[0] == ar0
 
-    alchemostat.alchemical_dof.remove(ar0)
-    assert len(alchemostat.alchemical_dof) == 0
+    alchemostat.alchemical_particles.remove(ar0)
+    assert len(alchemostat.alchemical_particles) == 0
 
-    alchemostat.alchemical_dof.append(ar0)
-    assert alchemostat.alchemical_dof[0] == ar0
+    alchemostat.alchemical_particles.append(ar0)
+    assert alchemostat.alchemical_particles[0] == ar0
 
     for name in extra_property_1st_value.keys():
         assert getattr(alchemostat, name) == extra_property_1st_value[name]
