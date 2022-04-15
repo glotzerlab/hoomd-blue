@@ -101,8 +101,8 @@ class ElasticShapeMove(ShapeMove):
             super()._attach()
 
 
-class PythonShapeMove(ShapeMove):
-    """Apply custom shape moves to particles through a Python callback.
+class ShapeSpace(ShapeMove):
+    """Apply shape moves in a :math:`N` dimensional shape space.
 
     Args:
         move_probability (`float`): Average fraction of shape parameters to
@@ -127,13 +127,13 @@ class PythonShapeMove(ShapeMove):
             def __call__(self, type, param_list):
                 # do something with params and define verts
                 return dict("vertices":verts, **self.default_dict))
-        python_move = hpmc.shape_move.PythonShapeMove()
-        python_move.callback = ExampleCallback()
+        move = hpmc.shape_move.ShapeSpace()
+        move.callback = ExampleCallback()
 
     Attributes:
         callback (``callable`` [`str`, `list`], `dict` ]): The python function
-            that will be called to perform custom shape moves on arbitrary shape
-            parameters. The function must take the particle type and a list of
+            that will be called to map the given shape parameters to a shape
+            definition. The function takes the particle type and a list of
             parameters as arguments and return a dictionary with the shape
             definition whose keys **must** match the shape definition of the
             integrator:
@@ -143,7 +143,8 @@ class PythonShapeMove(ShapeMove):
             Note that there is no type validation of the callback.
 
         params (`TypeParameter` [``particle type``, `list`]): List of tunable
-            parameters to be updated.
+            parameters to be updated. The length of the list defines the
+            dimension of the shape space for each particle type.
 
         move_probability (`float`): Average fraction of shape parameters to
             change each timestep.
