@@ -11,10 +11,10 @@ hoomd.hpmc.shape_move
 .. autosummary::
     :nosignatures:
 
-    ElasticShapeMove
-    PythonShapeMove
+    Elastic
     ShapeMove
-    VertexShapeMove
+    ShapeSpace
+    Vertex
 
 .. rubric:: Details
 
