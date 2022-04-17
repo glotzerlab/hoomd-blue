@@ -91,7 +91,6 @@ def test_valid_construction_shape_updater(updater_constructor_args):
 @pytest.mark.parametrize("shape_move_obj,attr,value", shape_move_valid_attrs)
 def test_valid_setattr_shape_move(shape_move_obj, attr, value):
     """Test that the shape move classes can get and set attributes."""
-
     setattr(shape_move_obj, attr, value)
     assert getattr(shape_move_obj, attr) == value
 

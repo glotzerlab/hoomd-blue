@@ -236,8 +236,8 @@ class Vertex(ShapeMove):
         vertex_move.volume["A"] = 1
 
     Attributes:
-        move_probability (`float`): Average fraction of vertices to change during
-            each shape move.
+        move_probability (`float`): Average fraction of vertices to change
+            during each shape move.
 
         volume (`TypeParameter` [``particle type``, `float`]): Volume of the
             particles to hold constant.
