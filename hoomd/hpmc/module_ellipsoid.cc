@@ -47,7 +47,7 @@ void export_ellipsoid(pybind11::module& m)
 
     export_UpdaterShape<ShapeEllipsoid>(m, "UpdaterShapeEllipsoid");
     export_ShapeMoveBase<ShapeEllipsoid>(m, "ShapeMoveBaseShapeEllipsoid");
-    export_PythonShapeMove<ShapeEllipsoid>(m, "PythonShapeMoveEllipsoid");
+    export_PythonShapeMove<ShapeEllipsoid>(m, "ShapeSpaceEllipsoid");
     export_ElasticShapeMove<ShapeEllipsoid>(m, "ElasticShapeMoveEllipsoid");
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");

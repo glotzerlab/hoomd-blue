@@ -47,7 +47,7 @@ void export_convex_spheropolyhedron(pybind11::module& m)
 
     export_UpdaterShape<ShapeSpheropolyhedron>(m, "UpdaterShapeSpheropolyhedron");
     export_ShapeMoveBase<ShapeSpheropolyhedron>(m, "ShapeMoveBaseShapeSpheropolyhedron");
-    export_PythonShapeMove<ShapeSpheropolyhedron>(m, "PythonShapeMoveSpheropolyhedron");
+    export_PythonShapeMove<ShapeSpheropolyhedron>(m, "ShapeSpaceSpheropolyhedron");
 
     export_ExternalFieldInterface<ShapeSpheropolyhedron>(m, "ExternalFieldSpheropolyhedron");
     export_HarmonicField<ShapeSpheropolyhedron>(m, "ExternalFieldHarmonicSpheropolyhedron");

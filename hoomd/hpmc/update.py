@@ -530,12 +530,6 @@ class Shape(Updater):
         nsweeps (int, optional): Number of times to update shape definitions
             during each triggered timesteps.
 
-        multi_phase (bool, optional): When True MPI is enforced and shapes are
-            updated together for two boxes.
-
-        num_phase (int, optional): How many boxes are simulated at the same
-            time, supported values are 1, 2 and 3.
-
     .. rubric:: Shape support.
 
     The following shapes are supported:
@@ -561,9 +555,7 @@ class Shape(Updater):
         updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
                                           trigger=hoomd.trigger.Periodic(1),
                                           type_select=1,
-                                          nsweeps=1,
-                                          multi_phase=False,
-                                          num_phase=1)
+                                          nsweeps=1)
 
     Attributes:
         trigger (Trigger): Call the updater on triggered time steps.
@@ -583,12 +575,6 @@ class Shape(Updater):
 
         nsweeps (int): Number of times to update shape definitions during each
             triggered timesteps.
-
-        multi_phase (bool): When True MPI is enforced and shapes are updated
-            together for two boxes.
-
-        num_phase (int): How many boxes are simulated at the same time,
-            supported values are 1, 2 and 3.
     """
 
     def __init__(self,
@@ -596,16 +582,12 @@ class Shape(Updater):
                  step_size=0.2,
                  pretend=False,
                  type_select=1,
-                 nsweeps=1,
-                 multi_phase=False,
-                 num_phase=1):
+                 nsweeps=1):
         super().__init__(trigger)
         param_dict = ParameterDict(shape_move=hoomd.hpmc.shape_move.ShapeMove,
                                    pretend=bool(pretend),
                                    type_select=int(type_select),
-                                   nsweeps=int(nsweeps),
-                                   multi_phase=bool(multi_phase),
-                                   num_phase=int(num_phase))
+                                   nsweeps=int(nsweeps))
         self._param_dict.update(param_dict)
 
         typeparam_step_size = TypeParameter('step_size',

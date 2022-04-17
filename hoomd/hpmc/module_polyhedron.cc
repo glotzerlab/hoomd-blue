@@ -45,7 +45,7 @@ void export_polyhedron(pybind11::module& m)
 
     export_UpdaterShape<ShapePolyhedron>(m, "UpdaterShapePolyhedron");
     export_ShapeMoveBase<ShapePolyhedron>(m, "ShapeMoveBasePolyhedron");
-    export_PythonShapeMove<ShapePolyhedron>(m, "PythonShapeMovePolyhedron");
+    export_PythonShapeMove<ShapePolyhedron>(m, "ShapeSpacePolyhedron");
 
     export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
     export_HarmonicField<ShapePolyhedron>(m, "ExternalFieldHarmonicPolyhedron");
