@@ -536,21 +536,11 @@ class Shape(Updater):
 
     .. rubric:: Shape support.
 
-    The following shapes are supported:
-        * `hoomd.hpmc.integrate.ConvexPolyhedron`
-        * `hoomd.hpmc.integrate.ConvexSpheropolyhedron`
-        * `hoomd.hpmc.integrate.Ellipsoid`
-
-    Attention:
-        The acceptance criteria of shape moves requires computing the particle's
-        moment of inertia before and after the trial moves. Currently, computing
-        the moments of inertia for spheropolyhedra is not fully implemented.
-        However, the use of this updater with spheropolyhedra is currently
-        enabled to allow the use of spherical depletants with shape moves.
+    See :py:mod:`hoomd.hpmc.shape_move` for supported shapes.
 
     Example::
 
-        mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+        mc = hoomd.hpmc.integrate.ConvexPolyhedron()
         mc.shape["A"] = dict(vertices=numpy.asarray([(1, 1, 1), (-1, -1, 1),
                                                     (1, -1, -1), (-1, 1, -1)]))
         vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},

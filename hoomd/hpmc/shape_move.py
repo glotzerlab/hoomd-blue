@@ -22,7 +22,7 @@ class ShapeMove(_HOOMDBaseObject):
             each shape move subclass.
 
     Note:
-        See the  documentation of each derived class for a list of supported
+        See the documentation of each derived class for a list of supported
         shapes.
 
     Note:
@@ -65,6 +65,19 @@ class Elastic(ShapeMove):
 
         move_probability (`float`, **default**: 0.5): Fraction of scale to shear
             moves.
+
+    .. rubric:: Shape support.
+
+    The following shapes are supported:
+        * `hoomd.hpmc.integrate.ConvexPolyhedron`
+        * `hoomd.hpmc.integrate.Ellipsoid`
+
+    Attention:
+        The acceptance criteria of shape moves requires computing the particle's
+        moment of inertia before and after the trial moves. Currently, computing
+        the moments of inertia for spheropolyhedra is not fully implemented.
+        However, the use of this updater with spheropolyhedra is currently
+        enabled to allow the use of spherical depletants with shape moves.
 
     Example::
 
@@ -127,6 +140,20 @@ class ShapeSpace(ShapeMove):
 
         move_probability (`float`, **default**: 1): Average fraction of shape
             parameters to change each timestep.
+
+    .. rubric:: Shape support.
+
+    The following shapes are supported:
+        * `hoomd.hpmc.integrate.ConvexPolyhedron`
+        * `hoomd.hpmc.integrate.ConvexSpheropolyhedron`
+        * `hoomd.hpmc.integrate.Ellipsoid`
+
+    Attention:
+        The acceptance criteria of shape moves requires computing the particle's
+        moment of inertia before and after the trial moves. Currently, computing
+        the moments of inertia for spheropolyhedra is not fully implemented.
+        However, the use of this shape move with spheropolyhedra is currently
+        enabled to allow the use of spherical depletants with shape moves.
 
     Note:
         Parameters must be given for every particle type and must be between 0
@@ -192,6 +219,11 @@ class Vertex(ShapeMove):
         move_probability (`float`,  **default**: 1): Average fraction of
             vertices to change during each shape move.
 
+    .. rubric:: Shape support.
+
+    The following shapes are supported:
+        * `hoomd.hpmc.integrate.ConvexPolyhedron`
+
     Note:
         Vertices are rescaled during each shape move to ensure that the shape
         maintains a constant volume. To preserve detail balance, the maximum
@@ -218,7 +250,7 @@ class Vertex(ShapeMove):
             particles to hold constant.
     """
 
-    _suported_shapes = {'ConvexPolyhedron', 'ConvexSpheropolyhedron'}
+    _suported_shapes = {'ConvexPolyhedron'}
 
     def __init__(self, move_probability=1):
 
