@@ -72,13 +72,6 @@ class Elastic(ShapeMove):
         * `hoomd.hpmc.integrate.ConvexPolyhedron`
         * `hoomd.hpmc.integrate.Ellipsoid`
 
-    Attention:
-        The acceptance criteria of shape moves requires computing the particle's
-        moment of inertia before and after the trial moves. Currently, computing
-        the moments of inertia for spheropolyhedra is not fully implemented.
-        However, the use of this updater with spheropolyhedra is currently
-        enabled to allow the use of spherical depletants with shape moves.
-
     Example::
 
         mc = hoomd.hpmc.integrate.ConvexPolyhedron()
