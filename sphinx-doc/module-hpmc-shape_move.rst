@@ -20,5 +20,5 @@ hoomd.hpmc.shape_move
 
 .. automodule:: hoomd.hpmc.shape_move
     :synopsis: HPMC shape moves.
-    :members: ElasticShapeMove, PythonShapeMove, ShapeMove, VertexShapeMove
+    :members: Elastic, ShapeMove, ShapeSpace, Vertex
     :show-inheritance:
