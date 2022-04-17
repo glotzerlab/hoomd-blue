@@ -79,10 +79,11 @@ class Elastic(ShapeMove):
 
     _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
 
-    def __init__(self, move_probability=1):
+    def __init__(self, stiffness, move_probability=1):
 
         super().__init__(move_probability)
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant)
+        param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
 
         typeparam_ref_shape = TypeParameter('reference_shape',
@@ -154,10 +155,11 @@ class ShapeSpace(ShapeMove):
         'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
     }
 
-    def __init__(self, move_probability=1):
+    def __init__(self, callback, move_probability=1):
 
         super().__init__(move_probability)
         param_dict = ParameterDict(callback=object)
+        param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
         typeparam_shapeparams = TypeParameter('params',

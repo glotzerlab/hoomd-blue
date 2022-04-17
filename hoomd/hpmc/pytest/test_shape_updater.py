@@ -6,29 +6,29 @@ from hoomd import hpmc
 import numpy as np
 import pytest
 from hoomd.hpmc.update import Shape
-from hoomd.hpmc.shape_move import Vertex, ShapeSpace, Elastic
+from hoomd.hpmc.shape_move import ShapeMove, Vertex, ShapeSpace, Elastic
 
 shape_move_classes = [Vertex, ShapeSpace, Elastic]
 
-shape_move_constructor_args = [
-    dict(move_probability=0),
-    dict(move_probability=0.5)
-]
-
 
 def _test_callback(typeid, param_list):
-
     pass
 
+shape_move_constructor_args = [
+    (Vertex, dict(move_probability=0.7)),
+    (ShapeSpace, dict(callback=_test_callback, move_probability=1)),
+    (Elastic, dict(stiffness=hoomd.variant.Constant(10), move_probability=0.5)),
+]
 
 shape_move_valid_attrs = [
-    (Vertex, "move_probability", 0.1), (ShapeSpace, "move_probability", 0.1),
-    (ShapeSpace, "callback", _test_callback),
-    (Elastic, "move_probability", 0.5),
-    (Elastic, "stiffness", hoomd.variant.Constant(10)),
-    (Elastic, "stiffness", hoomd.variant.Ramp(1, 5, 0, 100)),
-    (Elastic, "stiffness", hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
-    (Elastic, "stiffness", hoomd.variant.Power(1, 5, 3, 0, 100))
+    (Vertex(), "move_probability", 0.1),
+    (ShapeSpace(callback=_test_callback), "move_probability", 0.1),
+    (ShapeSpace(callback=_test_callback), "callback", lambda type, param_list: {}),
+    (Elastic(1), "move_probability", 0.5),
+    (Elastic(1), "stiffness", hoomd.variant.Constant(10)),
+    (Elastic(1), "stiffness", hoomd.variant.Ramp(1, 5, 0, 100)),
+    (Elastic(1), "stiffness", hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
+    (Elastic(1), "stiffness", hoomd.variant.Power(1, 5, 3, 0, 100))
 ]
 
 shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
@@ -36,38 +36,44 @@ shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
                              ("trigger", hoomd.trigger.Before(100)),
                              ("type_select", 2), ("nweeps", 4),
                              ("shape_move", Vertex()),
-                             ("shape_move", ShapeSpace()),
-                             ("shape_move", Elastic())]
+                             ("shape_move", ShapeSpace(callback=_test_callback)),
+                             ("shape_move", Elastic(stiffness=10))]
 
 updater_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10)),
-    dict(trigger=hoomd.trigger.After(100), type_select=4, nsweeps=2),
-    dict(trigger=hoomd.trigger.Before(100),
+    dict(trigger=hoomd.trigger.Periodic(10),
+         shape_move=ShapeMove(move_probability=1)),
+    dict(trigger=hoomd.trigger.After(100),
+         shape_move=Vertex(),
          type_select=4,
+         nsweeps=2),
+    dict(trigger=hoomd.trigger.Before(100),
+         shape_move=ShapeSpace(callback=_test_callback),
          nsweeps=4),
     dict(trigger=hoomd.trigger.Periodic(1000),
-         type_select=1,
-         nsweeps=5)
+         shape_move=ShapeSpace(callback=_test_callback),
+         type_select=1),
+    dict(trigger=hoomd.trigger.Periodic(10),
+         shape_move=Elastic(stiffness=10),
+         type_select=3,
+         pretend=True)
 ]
 
 type_parameters = [
-    (ShapeSpace(), "params", [0.1, 0.3, 0.4]),
+    (ShapeSpace(callback=_test_callback), "params", [0.1, 0.3, 0.4]),
     (Vertex(), "volume", 1.2),
     # (Elastic(), "reference_shape", {"diameter": 1}),
-    (Shape(trigger=1), "step_size", 0.4)
+    (Shape(trigger=1, shape_move=Vertex()), "step_size", 0.4)
 ]
 
 
-@pytest.mark.parametrize("shape_move_class", shape_move_classes)
-@pytest.mark.parametrize("shape_move_constructor_args",
+@pytest.mark.parametrize("shape_move_class,params",
                          shape_move_constructor_args)
-def test_valid_construction_shape_moves(shape_move_class,
-                                        shape_move_constructor_args):
+def test_valid_construction_shape_moves(shape_move_class,params):
 
-    move = shape_move_class(**shape_move_constructor_args)
+    move = shape_move_class(**params)
 
     # validate the params were set properly
-    for attr, value in shape_move_constructor_args.items():
+    for attr, value in params.items():
         assert getattr(move, attr) == value
 
 
@@ -81,19 +87,19 @@ def test_valid_construction_shape_updater(updater_constructor_args):
         assert getattr(updater, attr) == value
 
 
-@pytest.mark.parametrize("shape_move_class,attr,value", shape_move_valid_attrs)
-def test_valid_setattr_shape_move(shape_move_class, attr, value):
+@pytest.mark.parametrize("shape_move_obj,attr,value", shape_move_valid_attrs)
+def test_valid_setattr_shape_move(shape_move_obj, attr, value):
     """Test that the shape move classes can get and set attributes."""
-    move = shape_move_class()
 
-    setattr(move, attr, value)
-    assert getattr(move, attr) == value
+    setattr(shape_move_obj, attr, value)
+    assert getattr(shape_move_obj, attr) == value
 
 
 @pytest.mark.parametrize("attr,value", shape_updater_valid_attrs)
 def test_valid_setattr_shape_updater(attr, value):
     """Test that the Shape updater can get and set attributes."""
-    updater = hpmc.update.Shape(trigger=1)
+    updater = hpmc.update.Shape(trigger=1,
+                                shape_move=ShapeMove(move_probability=1))
 
     setattr(updater, attr, value)
     assert getattr(updater, attr) == value
@@ -114,7 +120,7 @@ def test_vertex_shape_move(device, simulation_factory,
     move = Vertex()
     move.volume["A"] = 1
 
-    updater = hpmc.update.Shape(trigger=1, step_size=0.2, nsweeps=2)
+    updater = hpmc.update.Shape(trigger=1, shape_move=move, step_size=0.2, nsweeps=2)
     updater.shape_move = move
 
     mc = hoomd.hpmc.integrate.ConvexPolyhedron()
@@ -177,11 +183,10 @@ def test_python_callback_shape_move(device, simulation_factory,
 
     ellipsoid = dict(a=1, b=1, c=1)
 
-    move = ShapeSpace()
-    move.callback = ScaleEllipsoid(**ellipsoid)
+    move = ShapeSpace(callback=ScaleEllipsoid(**ellipsoid))
     move.params["A"] = [1]
 
-    updater = hpmc.update.Shape(trigger=1, step_size=0.2, nsweeps=2)
+    updater = hpmc.update.Shape(trigger=1, shape_move=move, step_size=0.2, nsweeps=2)
     updater.shape_move = move
 
     mc = hoomd.hpmc.integrate.Ellipsoid()

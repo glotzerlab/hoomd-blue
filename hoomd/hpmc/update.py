@@ -579,6 +579,7 @@ class Shape(Updater):
 
     def __init__(self,
                  trigger,
+                 shape_move,
                  step_size=0.2,
                  pretend=False,
                  type_select=1,
@@ -588,6 +589,7 @@ class Shape(Updater):
                                    pretend=bool(pretend),
                                    type_select=int(type_select),
                                    nsweeps=int(nsweeps))
+        param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
 
         typeparam_step_size = TypeParameter('step_size',
