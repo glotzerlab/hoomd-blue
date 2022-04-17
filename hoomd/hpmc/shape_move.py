@@ -22,6 +22,10 @@ class ShapeMove(_HOOMDBaseObject):
             each shape move subclass.
 
     Note:
+        See the  documentation of each derived class for a list of supported
+        shapes.
+
+    Note:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
@@ -56,14 +60,18 @@ class Elastic(ShapeMove):
     """Apply scale and shear shape moves to particles with an energy penalty.
 
     Args:
-        move_probability (`float`): Fraction of scale to shear moves.
+        stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
+            deformations.
+
+        move_probability (`float`, **default**: 0.5): Fraction of scale to shear
+            moves.
 
     Example::
 
-        mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+        mc = hoomd.hpmc.integrate.ConvexPolyhedron()
         verts = [(1, 1, 1), (-1, -1, 1), (1, -1, -1), (-1, 1, -1)]
         mc.shape["A"] = dict(vertices=verts)
-        elastic_move = hoomd.hpmc.shape_move.Elastic(0.5)
+        elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=10)
         elastic_move.stiffness = 100
         elastic_move.reference_shape["A"] = verts
 
@@ -79,7 +87,7 @@ class Elastic(ShapeMove):
 
     _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
 
-    def __init__(self, stiffness, move_probability=1):
+    def __init__(self, stiffness, move_probability=0.5):
 
         super().__init__(move_probability)
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant)
@@ -106,8 +114,19 @@ class ShapeSpace(ShapeMove):
     """Apply shape moves in a :math:`N` dimensional shape space.
 
     Args:
-        move_probability (`float`): Average fraction of shape parameters to
-            change each timestep.
+        callback (``callable`` [`str`, `list`], `dict` ]): The python function
+            that will be called to map the given shape parameters to a shape
+            definition. The function takes the particle type and a list of
+            parameters as arguments and return a dictionary with the shape
+            definition whose keys **must** match the shape definition of the
+            integrator:
+
+                ``callable[[str, list], dict]``
+
+            Note that there is no type validation of the callback.
+
+        move_probability (`float`, **default**: 1): Average fraction of shape
+            parameters to change each timestep.
 
     Note:
         Parameters must be given for every particle type and must be between 0
@@ -128,8 +147,7 @@ class ShapeSpace(ShapeMove):
             def __call__(self, type, param_list):
                 # do something with params and define verts
                 return dict("vertices":verts, **self.default_dict))
-        move = hpmc.shape_move.ShapeSpace()
-        move.callback = ExampleCallback()
+        move = hpmc.shape_move.ShapeSpace(callback = ExampleCallback)
 
     Attributes:
         callback (``callable`` [`str`, `list`], `dict` ]): The python function
@@ -140,8 +158,6 @@ class ShapeSpace(ShapeMove):
             integrator:
 
                 ``callable[[str, list], dict]``
-
-            Note that there is no type validation of the callback.
 
         params (`TypeParameter` [``particle type``, `list`]): List of tunable
             parameters to be updated. The length of the list defines the
@@ -173,8 +189,8 @@ class Vertex(ShapeMove):
     """Apply shape moves where particle vertices are translated.
 
     Args:
-        move_probability (float): Average fraction of vertices to change during
-            each shape move.
+        move_probability (`float`,  **default**: 1): Average fraction of
+            vertices to change during each shape move.
 
     Note:
         Vertices are rescaled during each shape move to ensure that the shape
@@ -195,10 +211,11 @@ class Vertex(ShapeMove):
         vertex_move.volume["A"] = 1
 
     Attributes:
-        move_probability (float): Average fraction of vertices to change during
+        move_probability (`float`): Average fraction of vertices to change during
             each shape move.
 
-        volume (float): Volume of the particles to hold constant.
+        volume (`TypeParameter` [``particle type``, `float`]): Volume of the
+            particles to hold constant.
     """
 
     _suported_shapes = {'ConvexPolyhedron', 'ConvexSpheropolyhedron'}

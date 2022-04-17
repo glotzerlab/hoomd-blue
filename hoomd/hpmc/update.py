@@ -518,17 +518,21 @@ class Shape(Updater):
     Args:
         trigger (Trigger): Call the updater on triggered time steps.
 
-        step_size (float): Default maximum size of shape trial moves.
+        shape_move (ShapeMove): Type of shape move to apply when updating shape
+            definitions
 
-        pretend (bool, optional): When True the updater will not actually update
-            the shape definitions. Instead, moves will be proposed and the
-            acceptance statistics will be updated correctly.
+        step_size (float, **default**: 0.2): Default maximum size of shape trial
+            moves.
 
-        type_select (int, optional): Number of types to change every time the
-            updater is called.
+        pretend (bool, **default**: `False`): When True the updater will not
+            actually update the shape definitions. Instead, moves will be
+            proposed and the acceptance statistics will be updated correctly.
 
-        nsweeps (int, optional): Number of times to update shape definitions
-            during each triggered timesteps.
+        type_select (int, **default**: 1): Number of types to change every time
+            the updater is called.
+
+        nsweeps (int, **default**: 1): Number of times to update shape
+            definitions during each triggered timesteps.
 
     .. rubric:: Shape support.
 
