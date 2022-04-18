@@ -127,12 +127,6 @@ class ManifoldDiamond
     Scalar epsilon;
     };
 
-namespace detail
-    {
-//! Exports the Diamond manifold class to python
-void export_ManifoldDiamond(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

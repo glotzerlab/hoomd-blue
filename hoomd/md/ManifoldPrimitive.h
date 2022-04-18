@@ -118,12 +118,6 @@ class ManifoldPrimitive
     Scalar epsilon;
     };
 
-namespace detail
-    {
-//! Exports the Primitive manifold class to python
-void export_ManifoldPrimitive(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

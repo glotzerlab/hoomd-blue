@@ -116,12 +116,6 @@ class ManifoldZCylinder
     Scalar R_sq;
     };
 
-namespace detail
-    {
-//! Exports the Cylinder manifold class to python
-void export_ManifoldZCylinder(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

@@ -8,15 +8,6 @@
 #include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
 #include "EvaluatorTersoff.h"
-#include "IntegratorTwoStep.h"
-#include "ManifoldDiamond.h"
-#include "ManifoldEllipsoid.h"
-#include "ManifoldGyroid.h"
-#include "ManifoldPrimitive.h"
-#include "ManifoldSphere.h"
-#include "ManifoldXYPlane.h"
-#include "ManifoldZCylinder.h"
-#include "PotentialBond.h"
 #include "PotentialExternal.h"
 #include "PotentialPair.h"
 #include "PotentialPairDPDThermo.h"
@@ -24,7 +15,6 @@
 
 // include GPU classes
 #ifdef ENABLE_HIP
-#include "PotentialBondGPU.h"
 #include "PotentialExternalGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairGPU.h"
@@ -112,6 +102,14 @@ void export_TwoStepRATTLENVEGyroid(pybind11::module &m);
 void export_TwoStepRATTLENVEPlane(pybind11::module &m);
 void export_TwoStepRATTLENVEPrimitive(pybind11::module &m);
 void export_TwoStepRATTLENVESphere(pybind11::module &m);
+
+void export_ManifoldDiamond(pybind11::module& m);
+void export_ManifoldEllipsoid(pybind11::module& m);
+void export_ManifoldGyroid(pybind11::module& m);
+void export_ManifoldPrimitive(pybind11::module& m);
+void export_ManifoldSphere(pybind11::module& m);
+void export_ManifoldXYPlane(pybind11::module& m);
+void export_ManifoldZCylinder(pybind11::module& m);
 
 #ifdef ENABLE_HIP
 
