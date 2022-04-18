@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "TwoStepRATTLEBDGPU.cuh"
-#include "TwoStepRATTLELangevinGPU.cuh"
-#include "TwoStepRATTLENVEGPU.cuh"
+#include "hoomd/md/TwoStepRATTLEBDGPU.cuh"
+#include "hoomd/md/TwoStepRATTLELangevinGPU.cuh"
+#include "hoomd/md/TwoStepRATTLENVEGPU.cuh"
 
-#include "ManifoldXYPlane.h"
+#include "hoomd/md/Manifold@_manifold_cpp@.h"
 
 namespace hoomd
     {
@@ -14,7 +14,7 @@ namespace md
 namespace kernel
     {
 template hipError_t
-gpu_rattle_brownian_step_one<ManifoldXYPlane>(Scalar4* d_pos,
+gpu_rattle_brownian_step_one<Manifold@_manifold_cpp@>(Scalar4* d_pos,
                                               int3* d_image,
                                               Scalar4* d_vel,
                                               const BoxDim& box,
@@ -29,7 +29,7 @@ gpu_rattle_brownian_step_one<ManifoldXYPlane>(Scalar4* d_pos,
                                               const Scalar3* d_inertia,
                                               Scalar4* d_angmom,
                                               const rattle_bd_step_one_args& rattle_bd_args,
-                                              ManifoldXYPlane manifold,
+                                              Manifold@_manifold_cpp@ manifold,
                                               const bool aniso,
                                               const Scalar deltaT,
                                               const unsigned int D,
@@ -38,7 +38,7 @@ gpu_rattle_brownian_step_one<ManifoldXYPlane>(Scalar4* d_pos,
                                               const GPUPartition& gpu_partition);
 
 template hipError_t
-gpu_include_rattle_force_bd<ManifoldXYPlane>(const Scalar4* d_pos,
+gpu_include_rattle_force_bd<Manifold@_manifold_cpp@>(const Scalar4* d_pos,
                                              Scalar4* d_net_force,
                                              Scalar* d_net_virial,
                                              const Scalar* d_diameter,
@@ -46,13 +46,13 @@ gpu_include_rattle_force_bd<ManifoldXYPlane>(const Scalar4* d_pos,
                                              const unsigned int* d_group_members,
                                              const unsigned int group_size,
                                              const rattle_bd_step_one_args& rattle_bd_args,
-                                             ManifoldXYPlane manifold,
+                                             Manifold@_manifold_cpp@ manifold,
                                              size_t net_virial_pitch,
                                              const Scalar deltaT,
                                              const bool d_noiseless_t,
                                              const GPUPartition& gpu_partition);
 
-template hipError_t gpu_rattle_langevin_step_two<ManifoldXYPlane>(
+template hipError_t gpu_rattle_langevin_step_two<Manifold@_manifold_cpp@>(
     const Scalar4* d_pos,
     Scalar4* d_vel,
     Scalar3* d_accel,
@@ -62,17 +62,17 @@ template hipError_t gpu_rattle_langevin_step_two<ManifoldXYPlane>(
     unsigned int group_size,
     Scalar4* d_net_force,
     const rattle_langevin_step_two_args& rattle_langevin_args,
-    ManifoldXYPlane manifold,
+    Manifold@_manifold_cpp@ manifold,
     Scalar deltaT,
     unsigned int D);
 
-template hipError_t gpu_rattle_nve_step_two<ManifoldXYPlane>(Scalar4* d_pos,
+template hipError_t gpu_rattle_nve_step_two<Manifold@_manifold_cpp@>(Scalar4* d_pos,
                                                              Scalar4* d_vel,
                                                              Scalar3* d_accel,
                                                              unsigned int* d_group_members,
                                                              const GPUPartition& gpu_partition,
                                                              Scalar4* d_net_force,
-                                                             ManifoldXYPlane manifold,
+                                                             Manifold@_manifold_cpp@ manifold,
                                                              Scalar eta,
                                                              Scalar deltaT,
                                                              bool limit,
@@ -80,7 +80,7 @@ template hipError_t gpu_rattle_nve_step_two<ManifoldXYPlane>(Scalar4* d_pos,
                                                              bool zero_force,
                                                              unsigned int block_size);
 
-template hipError_t gpu_include_rattle_force_nve<ManifoldXYPlane>(const Scalar4* d_pos,
+template hipError_t gpu_include_rattle_force_nve<Manifold@_manifold_cpp@>(const Scalar4* d_pos,
                                                                   const Scalar4* d_vel,
                                                                   Scalar3* d_accel,
                                                                   Scalar4* d_net_force,
@@ -88,7 +88,7 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldXYPlane>(const Scalar4*
                                                                   unsigned int* d_group_members,
                                                                   const GPUPartition& gpu_partition,
                                                                   size_t net_virial_pitch,
-                                                                  ManifoldXYPlane manifold,
+                                                                  Manifold@_manifold_cpp@ manifold,
                                                                   Scalar eta,
                                                                   Scalar deltaT,
                                                                   bool zero_force,

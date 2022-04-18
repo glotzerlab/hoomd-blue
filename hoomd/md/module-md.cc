@@ -52,9 +52,6 @@
 #include "TwoStepNPTMTK.h"
 #include "TwoStepNVE.h"
 #include "TwoStepNVTMTK.h"
-#include "TwoStepRATTLEBD.h"
-#include "TwoStepRATTLELangevin.h"
-#include "TwoStepRATTLENVE.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 
@@ -90,9 +87,6 @@
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
-#include "TwoStepRATTLEBDGPU.h"
-#include "TwoStepRATTLELangevinGPU.h"
-#include "TwoStepRATTLENVEGPU.h"
 #endif
 
 #include <pybind11/pybind11.h>
@@ -114,6 +108,30 @@ void export_AnisoPotentialPairALJ3D(pybind11::module &m);
 void export_AnisoPotentialPairDipole(pybind11::module &m);
 void export_AnisoPotentialPairGB(pybind11::module &m);
 
+void export_TwoStepRATTLEBDCylinder(pybind11::module &m);
+void export_TwoStepRATTLEBDDiamond(pybind11::module &m);
+void export_TwoStepRATTLEBDEllipsoid(pybind11::module &m);
+void export_TwoStepRATTLEBDGyroid(pybind11::module &m);
+void export_TwoStepRATTLEBDPlane(pybind11::module &m);
+void export_TwoStepRATTLEBDPrimitive(pybind11::module &m);
+void export_TwoStepRATTLEBDSphere(pybind11::module &m);
+
+void export_TwoStepRATTLELangevinCylinder(pybind11::module &m);
+void export_TwoStepRATTLELangevinDiamond(pybind11::module &m);
+void export_TwoStepRATTLELangevinEllipsoid(pybind11::module &m);
+void export_TwoStepRATTLELangevinGyroid(pybind11::module &m);
+void export_TwoStepRATTLELangevinPlane(pybind11::module &m);
+void export_TwoStepRATTLELangevinPrimitive(pybind11::module &m);
+void export_TwoStepRATTLELangevinSphere(pybind11::module &m);
+
+void export_TwoStepRATTLENVECylinder(pybind11::module &m);
+void export_TwoStepRATTLENVEDiamond(pybind11::module &m);
+void export_TwoStepRATTLENVEEllipsoid(pybind11::module &m);
+void export_TwoStepRATTLENVEGyroid(pybind11::module &m);
+void export_TwoStepRATTLENVEPlane(pybind11::module &m);
+void export_TwoStepRATTLENVEPrimitive(pybind11::module &m);
+void export_TwoStepRATTLENVESphere(pybind11::module &m);
+
 #ifdef ENABLE_HIP
 
 void export_ActiveForceConstraintComputeCylinderGPU(pybind11::module &m);
@@ -128,6 +146,30 @@ void export_AnisoPotentialPairALJ2DGPU(pybind11::module &m);
 void export_AnisoPotentialPairALJ3DGPU(pybind11::module &m);
 void export_AnisoPotentialPairDipoleGPU(pybind11::module &m);
 void export_AnisoPotentialPairGBGPU(pybind11::module &m);
+
+void export_TwoStepRATTLEBDGPUZCylinder(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUDiamond(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUGyroid(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUXYPlane(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUPrimitive(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUSphere(pybind11::module& m);
+
+void export_TwoStepRATTLELangevinGPUZCylinder(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUDiamond(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUGyroid(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUXYPlane(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUPrimitive(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUSphere(pybind11::module& m);
+
+void export_TwoStepRATTLENVEGPUZCylinder(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUDiamond(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUGyroid(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUXYPlane(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUPrimitive(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUSphere(pybind11::module& m);
 #endif
 } } }
 
@@ -380,29 +422,29 @@ PYBIND11_MODULE(_md, m)
     export_MuellerPlatheFlow(m);
 
     // RATTLE
-    export_TwoStepRATTLEBD<ManifoldZCylinder>(m, "TwoStepRATTLEBDCylinder");
-    export_TwoStepRATTLEBD<ManifoldDiamond>(m, "TwoStepRATTLEBDDiamond");
-    export_TwoStepRATTLEBD<ManifoldEllipsoid>(m, "TwoStepRATTLEBDEllipsoid");
-    export_TwoStepRATTLEBD<ManifoldGyroid>(m, "TwoStepRATTLEBDGyroid");
-    export_TwoStepRATTLEBD<ManifoldXYPlane>(m, "TwoStepRATTLEBDPlane");
-    export_TwoStepRATTLEBD<ManifoldPrimitive>(m, "TwoStepRATTLEBDPrimitive");
-    export_TwoStepRATTLEBD<ManifoldSphere>(m, "TwoStepRATTLEBDSphere");
+    export_TwoStepRATTLEBDCylinder(m);
+    export_TwoStepRATTLEBDDiamond(m);
+    export_TwoStepRATTLEBDEllipsoid(m);
+    export_TwoStepRATTLEBDGyroid(m);
+    export_TwoStepRATTLEBDPlane(m);
+    export_TwoStepRATTLEBDPrimitive(m);
+    export_TwoStepRATTLEBDSphere(m);
 
-    export_TwoStepRATTLELangevin<ManifoldZCylinder>(m, "TwoStepRATTLELangevinCylinder");
-    export_TwoStepRATTLELangevin<ManifoldDiamond>(m, "TwoStepRATTLELangevinDiamond");
-    export_TwoStepRATTLELangevin<ManifoldEllipsoid>(m, "TwoStepRATTLELangevinEllipsoid");
-    export_TwoStepRATTLELangevin<ManifoldGyroid>(m, "TwoStepRATTLELangevinGyroid");
-    export_TwoStepRATTLELangevin<ManifoldXYPlane>(m, "TwoStepRATTLELangevinPlane");
-    export_TwoStepRATTLELangevin<ManifoldPrimitive>(m, "TwoStepRATTLELangevinPrimitive");
-    export_TwoStepRATTLELangevin<ManifoldSphere>(m, "TwoStepRATTLELangevinSphere");
+    export_TwoStepRATTLELangevinCylinder(m);
+    export_TwoStepRATTLELangevinDiamond(m);
+    export_TwoStepRATTLELangevinEllipsoid(m);
+    export_TwoStepRATTLELangevinGyroid(m);
+    export_TwoStepRATTLELangevinPlane(m);
+    export_TwoStepRATTLELangevinPrimitive(m);
+    export_TwoStepRATTLELangevinSphere(m);
 
-    export_TwoStepRATTLENVE<ManifoldZCylinder>(m, "TwoStepRATTLENVECylinder");
-    export_TwoStepRATTLENVE<ManifoldDiamond>(m, "TwoStepRATTLENVEDiamond");
-    export_TwoStepRATTLENVE<ManifoldEllipsoid>(m, "TwoStepRATTLENVEEllipsoid");
-    export_TwoStepRATTLENVE<ManifoldGyroid>(m, "TwoStepRATTLENVEGyroid");
-    export_TwoStepRATTLENVE<ManifoldXYPlane>(m, "TwoStepRATTLENVEPlane");
-    export_TwoStepRATTLENVE<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitive");
-    export_TwoStepRATTLENVE<ManifoldSphere>(m, "TwoStepRATTLENVESphere");
+    export_TwoStepRATTLENVECylinder(m);
+    export_TwoStepRATTLENVEDiamond(m);
+    export_TwoStepRATTLENVEEllipsoid(m);
+    export_TwoStepRATTLENVEGyroid(m);
+    export_TwoStepRATTLENVEPlane(m);
+    export_TwoStepRATTLENVEPrimitive(m);
+    export_TwoStepRATTLENVESphere(m);
 
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
@@ -414,29 +456,29 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizerGPU(m);
     export_MuellerPlatheFlowGPU(m);
 
-    export_TwoStepRATTLEBDGPU<ManifoldZCylinder>(m, "TwoStepRATTLEBDCylinderGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldDiamond>(m, "TwoStepRATTLEBDDiamondGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldEllipsoid>(m, "TwoStepRATTLEBDEllipsoidGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldGyroid>(m, "TwoStepRATTLEBDGyroidGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldXYPlane>(m, "TwoStepRATTLEBDPlaneGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldPrimitive>(m, "TwoStepRATTLEBDPrimitiveGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldSphere>(m, "TwoStepRATTLEBDSphereGPU");
+    export_TwoStepRATTLEBDGPUZCylinder(m);
+    export_TwoStepRATTLEBDGPUDiamond(m);
+    export_TwoStepRATTLEBDGPUEllipsoid(m);
+    export_TwoStepRATTLEBDGPUGyroid(m);
+    export_TwoStepRATTLEBDGPUXYPlane(m);
+    export_TwoStepRATTLEBDGPUPrimitive(m);
+    export_TwoStepRATTLEBDGPUSphere(m);
 
-    export_TwoStepRATTLELangevinGPU<ManifoldZCylinder>(m, "TwoStepRATTLELangevinCylinderGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldDiamond>(m, "TwoStepRATTLELangevinDiamondGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldEllipsoid>(m, "TwoStepRATTLELangevinEllipsoidGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldGyroid>(m, "TwoStepRATTLELangevinGyroidGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldXYPlane>(m, "TwoStepRATTLELangevinPlaneGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldPrimitive>(m, "TwoStepRATTLELangevinPrimitiveGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldSphere>(m, "TwoStepRATTLELangevinSphereGPU");
+    export_TwoStepRATTLELangevinGPUZCylinder(m);
+    export_TwoStepRATTLELangevinGPUDiamond(m);
+    export_TwoStepRATTLELangevinGPUEllipsoid(m);
+    export_TwoStepRATTLELangevinGPUGyroid(m);
+    export_TwoStepRATTLELangevinGPUXYPlane(m);
+    export_TwoStepRATTLELangevinGPUPrimitive(m);
+    export_TwoStepRATTLELangevinGPUSphere(m);
 
-    export_TwoStepRATTLENVEGPU<ManifoldZCylinder>(m, "TwoStepRATTLENVECylinderGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldDiamond>(m, "TwoStepRATTLENVEDiamondGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldEllipsoid>(m, "TwoStepRATTLENVEEllipsoidGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldGyroid>(m, "TwoStepRATTLENVEGyroidGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldXYPlane>(m, "TwoStepRATTLENVEPlaneGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitiveGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldSphere>(m, "TwoStepRATTLENVESphereGPU");
+    export_TwoStepRATTLENVEGPUZCylinder(m);
+    export_TwoStepRATTLENVEGPUDiamond(m);
+    export_TwoStepRATTLENVEGPUEllipsoid(m);
+    export_TwoStepRATTLENVEGPUGyroid(m);
+    export_TwoStepRATTLENVEGPUXYPlane(m);
+    export_TwoStepRATTLENVEGPUPrimitive(m);
+    export_TwoStepRATTLENVEGPUSphere(m);
 #endif
 
     // manifolds

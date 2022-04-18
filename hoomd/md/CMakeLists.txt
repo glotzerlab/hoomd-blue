@@ -301,13 +301,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
-                      all_kernels_diamond_manifold.cu
-                      all_kernels_ellipsoid_manifold.cu
-                      all_kernels_gyroid_manifold.cu
-                      all_kernels_primitive_manifold.cu
-                      all_kernels_sphere_manifold.cu
-                      all_kernels_xyplane_manifold.cu
-                      all_kernels_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
@@ -322,6 +315,8 @@ set(_manifolds Cylinder
                Plane
                Primitive
                Sphere)
+
+set(_rattle_methods BD Langevin NVE)
 
 foreach(_manifold ${_manifolds})
     set(_manifold_cpp ${_manifold})
@@ -343,11 +338,30 @@ foreach(_manifold ${_manifolds})
         configure_file(ActiveForceConstraintComputeGPU.cu.inc
                        ActiveForceConstraintCompute${_manifold}GPU.cu
                        @ONLY)
+        configure_file(TwoStepRATTLEGPU.cu.inc
+                       TwoStepRATTLE${_manifold}GPU.cu
+                       @ONLY)
         set(_cuda_sources ${_cuda_sources}
             export_ActiveForceConstraintCompute${_manifold}GPU.cc
             ActiveForceConstraintCompute${_manifold}GPU.cu
+            TwoStepRATTLE${_manifold}GPU.cu
             )
     endif()
+
+    foreach (_method ${_rattle_methods})
+        configure_file(export_TwoStepRATTLE.cc.inc
+                    export_TwoStepRATTLE${_method}${_manifold}.cc
+                    @ONLY)
+        set(_md_sources ${_md_sources} export_TwoStepRATTLE${_method}${_manifold}.cc)
+
+        if (ENABLE_HIP)
+            configure_file(export_TwoStepRATTLEGPU.cc.inc
+                        export_TwoStepRATTLE${_method}${_manifold}GPU.cc
+                        @ONLY)
+            set(_cuda_sources ${_cuda_sources} export_TwoStepRATTLE${_method}${_manifold}GPU.cc)
+        endif()
+    endforeach()
+
 endforeach()
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
