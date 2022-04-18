@@ -4,13 +4,16 @@
 #include "ActiveForceCompute.h"
 #include "ActiveForceConstraintCompute.h"
 #include "ActiveRotationalDiffusionUpdater.h"
-#include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
 #include "AllPairPotentials.h"
 #include "AllSpecialPairPotentials.h"
 #include "AllTripletPotentials.h"
 #include "AnisoPotentialPair.h"
+#include "AnisoPotentialPairALJ2.h"
+#include "AnisoPotentialPairALJ3.h"
+#include "AnisoPotentialPairDipole.h"
+#include "AnisoPotentialPairGB.h"
 #include "BondTablePotential.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
@@ -112,33 +115,6 @@ using namespace hoomd::md::detail;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-// Template specification for Dipole anisotropic pair potential. A specific
-// template instance is needed since we expose the shape as just mu in Python
-// when the default behavior exposes setting and getting the shape through
-// 'shape'.
-template<>
-void hoomd::md::detail::export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
-                                                                            const std::string& name)
-    {
-    pybind11::
-        class_<AnisoPotentialPairDipole, ForceCompute, std::shared_ptr<AnisoPotentialPairDipole>>
-            anisopotentialpair(m, name.c_str());
-    anisopotentialpair
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setParams", &AnisoPotentialPairDipole::setParamsPython)
-        .def("getParams", &AnisoPotentialPairDipole::getParamsPython)
-        .def("setMu", &AnisoPotentialPairDipole::setShapePython)
-        .def("getMu", &AnisoPotentialPairDipole::getShapePython)
-        .def("setRCut", &AnisoPotentialPairDipole::setRCutPython)
-        .def("getRCut", &AnisoPotentialPairDipole::getRCut)
-        .def_property("mode",
-                      &AnisoPotentialPairDipole::getShiftMode,
-                      &AnisoPotentialPairDipole::setShiftModePython)
-        .def("slotWriteGSDShapeSpec", &AnisoPotentialPairDipole::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &AnisoPotentialPairDipole::connectGSDShapeSpec)
-        .def("getTypeShapesPy", &AnisoPotentialPairDipole::getTypeShapesPy);
-    }
-
 //! Export setParamsPython and getParams as a different name
 // Electric field only has one parameter, so we can get its parameter from
 // python with by a name other than getParams and setParams
@@ -212,10 +188,10 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
-    export_AnisoPotentialPair<AnisoPotentialPairALJ2D>(m, "AnisoPotentialPairALJ2D");
-    export_AnisoPotentialPair<AnisoPotentialPairALJ3D>(m, "AnisoPotentialPairALJ3D");
-    export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
-    export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
+    export_AnisoPotentialPair<EvaluatorPairALJ<2>>(m, "AnisoPotentialPairALJ2D");
+    export_AnisoPotentialPair<EvaluatorPairALJ<3>>(m, "AnisoPotentialPairALJ3D");
+    export_AnisoPotentialPair<EvaluatorPairGB>(m, "AnisoPotentialPairGB");
+    export_AnisoPotentialPair<EvaluatorPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(
         m,
@@ -310,18 +286,11 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
         "PotentialPairDPDLJThermoDPDGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ2DGPU, AnisoPotentialPairALJ2D>(
-        m,
-        "AnisoPotentialPairALJ2DGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ3DGPU, AnisoPotentialPairALJ3D>(
-        m,
-        "AnisoPotentialPairALJ3DGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(
-        m,
-        "AnisoPotentialPairGBGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(
-        m,
-        "AnisoPotentialPairDipoleGPU");
+    // TODO: replace with non-templated method
+    export_AnisoPotentialPairGPU<EvaluatorPairALJ<2>>(m, "AnisoPotentialPairALJ2DGPU");
+    export_AnisoPotentialPairGPU<EvaluatorPairALJ<3>>(m, "AnisoPotentialPairALJ3DGPU");
+    export_AnisoPotentialPairGPU<EvaluatorPairGB>(m, "AnisoPotentialPairGBGPU");
+    export_AnisoPotentialPairGPU<EvaluatorPairDipole>(m, "AnisoPotentialPairDipoleGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(
         m,
         "PotentialBondHarmonicGPU");

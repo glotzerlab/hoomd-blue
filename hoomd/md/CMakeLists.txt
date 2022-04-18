@@ -3,6 +3,10 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
+                   AnisoPotentialPairALJ2.cc
+                   AnisoPotentialPairALJ3.cc
+                   AnisoPotentialPairDipole.cc
+                   AnisoPotentialPairGB.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -10,7 +14,7 @@ set(_md_sources module-md.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
                    EvaluatorWalls.cc
-                       FIREEnergyMinimizer.cc
+                   FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
                    HarmonicAngleForceCompute.cc
@@ -55,8 +59,11 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairALJ2GPUKernel.cuh
                 AnisoPotentialPairALJ3GPUKernel.cuh
                 AnisoPotentialPairDipoleGPUKernel.cuh
+                AnisoPotentialPairALJ2.h
+                AnisoPotentialPairALJ3.h
+                AnisoPotentialPairDipole.h
+                AnisoPotentialPairGB.h
                 AnisoPotentialPairGBGPUKernel.cuh
-                AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
                 AllPairPotentials.h
@@ -200,6 +207,10 @@ set(_md_headers ActiveForceComputeGPU.h
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
+                           AnisoPotentialPairALJ2GPU.cc
+                           AnisoPotentialPairALJ3GPU.cc
+                           AnisoPotentialPairDipoleGPU.cc
+                           AnisoPotentialPairGBGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc

@@ -250,12 +250,12 @@ namespace detail
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as
    used in \a T.
 */
-template<class T, class Base>
+template<class T>
 void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<AnisoPotentialPairGPU<T>, AnisoPotentialPair<T>, std::shared_ptr<AnisoPotentialPairGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setTuningParam", &T::setTuningParam);
+        .def("setTuningParam", &AnisoPotentialPairGPU<T>::setTuningParam);
     }
 
     } // end namespace detail

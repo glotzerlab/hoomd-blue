@@ -17,7 +17,8 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
-#include "hoomd/md/AllAnisoPairPotentials.h"
+#include "hoomd/md/AnisoPotentialPair.h"
+#include "hoomd/md/EvaluatorPairGB.h"
 #include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
@@ -573,7 +574,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator,
     std::shared_ptr<NeighborList> nlist;
 
     // set up Gay-Berne
-    std::shared_ptr<AnisoPotentialPairGB> fc;
+    std::shared_ptr<AnisoPotentialPair<EvaluatorPairGB>> fc;
     std::shared_ptr<CellList> cl;
 
     Scalar r_cut = 2.5;
