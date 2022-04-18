@@ -308,18 +308,47 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       all_kernels_sphere_manifold.cu
                       all_kernels_xyplane_manifold.cu
                       all_kernels_zcylinder_manifold.cu
-                      all_kernels_active_diamond_manifold.cu
-                      all_kernels_active_ellipsoid_manifold.cu
-                      all_kernels_active_gyroid_manifold.cu
-                      all_kernels_active_primitive_manifold.cu
-                      all_kernels_active_sphere_manifold.cu
-                      all_kernels_active_xyplane_manifold.cu
-                      all_kernels_active_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
 endif (ENABLE_HIP)
+
+# generate pybind11 export cc files
+set(_manifolds Cylinder
+               Diamond
+               Ellipsoid
+               Gyroid
+               Plane
+               Primitive
+               Sphere)
+
+foreach(_manifold ${_manifolds})
+    set(_manifold_cpp ${_manifold})
+    if (_manifold STREQUAL "Cylinder")
+        set(_manifold_cpp "ZCylinder")
+    elseif (_manifold STREQUAL "Plane")
+        set(_manifold_cpp "XYPlane")
+    endif()
+
+    configure_file(export_ActiveForceConstraintCompute.cc.inc
+                   export_ActiveForceConstraintCompute${_manifold}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_ActiveForceConstraintCompute${_manifold}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_ActiveForceConstraintComputeGPU.cc.inc
+                       export_ActiveForceConstraintCompute${_manifold}GPU.cc
+                       @ONLY)
+        configure_file(ActiveForceConstraintComputeGPU.cu.inc
+                       ActiveForceConstraintCompute${_manifold}GPU.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_ActiveForceConstraintCompute${_manifold}GPU.cc
+            ActiveForceConstraintCompute${_manifold}GPU.cu
+            )
+    endif()
+endforeach()
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work

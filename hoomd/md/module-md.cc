@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "ActiveForceConstraintCompute.h"
 #include "ActiveRotationalDiffusionUpdater.h"
 #include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
@@ -61,7 +60,6 @@
 
 // include GPU classes
 #ifdef ENABLE_HIP
-#include "ActiveForceConstraintComputeGPU.h"
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoHMAGPU.h"
@@ -103,6 +101,14 @@
 namespace hoomd { namespace md { namespace detail {
 
 void export_ActiveForceCompute(pybind11::module &m);
+void export_ActiveForceConstraintComputeCylinder(pybind11::module &m);
+void export_ActiveForceConstraintComputeDiamond(pybind11::module &m);
+void export_ActiveForceConstraintComputeEllipsoid(pybind11::module &m);
+void export_ActiveForceConstraintComputeGyroid(pybind11::module &m);
+void export_ActiveForceConstraintComputePlane(pybind11::module &m);
+void export_ActiveForceConstraintComputePrimitive(pybind11::module &m);
+void export_ActiveForceConstraintComputeSphere(pybind11::module &m);
+void export_ActiveRotationalDiffusionUpdater(pybind11::module &m);
 void export_AnisoPotentialPairALJ2D(pybind11::module &m);
 void export_AnisoPotentialPairALJ3D(pybind11::module &m);
 void export_AnisoPotentialPairDipole(pybind11::module &m);
@@ -110,6 +116,13 @@ void export_AnisoPotentialPairGB(pybind11::module &m);
 
 #ifdef ENABLE_HIP
 
+void export_ActiveForceConstraintComputeCylinderGPU(pybind11::module &m);
+void export_ActiveForceConstraintComputeDiamondGPU(pybind11::module &m);
+void export_ActiveForceConstraintComputeEllipsoidGPU(pybind11::module &m);
+void export_ActiveForceConstraintComputeGyroidGPU(pybind11::module &m);
+void export_ActiveForceConstraintComputePlaneGPU(pybind11::module &m);
+void export_ActiveForceConstraintComputePrimitiveGPU(pybind11::module &m);
+void export_ActiveForceConstraintComputeSphereGPU(pybind11::module &m);
 void export_ActiveForceComputeGPU(pybind11::module &m);
 void export_AnisoPotentialPairALJ2DGPU(pybind11::module &m);
 void export_AnisoPotentialPairALJ3DGPU(pybind11::module &m);
@@ -152,16 +165,13 @@ void export_WallPotential(pybind11::module& m, const std::string& name)
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
-    export_ActiveForceConstraintCompute<ManifoldZCylinder>(m,
-                                                           "ActiveForceConstraintComputeCylinder");
-    export_ActiveForceConstraintCompute<ManifoldDiamond>(m, "ActiveForceConstraintComputeDiamond");
-    export_ActiveForceConstraintCompute<ManifoldEllipsoid>(m,
-                                                           "ActiveForceConstraintComputeEllipsoid");
-    export_ActiveForceConstraintCompute<ManifoldGyroid>(m, "ActiveForceConstraintComputeGyroid");
-    export_ActiveForceConstraintCompute<ManifoldXYPlane>(m, "ActiveForceConstraintComputePlane");
-    export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,
-                                                           "ActiveForceConstraintComputePrimitive");
-    export_ActiveForceConstraintCompute<ManifoldSphere>(m, "ActiveForceConstraintComputeSphere");
+    export_ActiveForceConstraintComputeCylinder(m);
+    export_ActiveForceConstraintComputeDiamond(m);
+    export_ActiveForceConstraintComputeEllipsoid(m);
+    export_ActiveForceConstraintComputeGyroid(m);
+    export_ActiveForceConstraintComputePlane(m);
+    export_ActiveForceConstraintComputePrimitive(m);
+    export_ActiveForceConstraintComputeSphere(m);
     export_ActiveRotationalDiffusionUpdater(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
@@ -322,24 +332,16 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
-    export_ActiveForceConstraintComputeGPU<ManifoldZCylinder>(
-        m,
-        "ActiveForceConstraintComputeCylinderGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldDiamond>(
-        m,
-        "ActiveForceConstraintComputeDiamondGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldEllipsoid>(
-        m,
-        "ActiveForceConstraintComputeEllipsoidGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldGyroid>(m,
-                                                           "ActiveForceConstraintComputeGyroidGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldXYPlane>(m,
-                                                            "ActiveForceConstraintComputePlaneGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldPrimitive>(
-        m,
-        "ActiveForceConstraintComputePrimitiveGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldSphere>(m,
-                                                           "ActiveForceConstraintComputeSphereGPU");
+    export_ActiveForceConstraintComputeCylinderGPU(
+        m);
+    export_ActiveForceConstraintComputeDiamondGPU(
+        m);
+    export_ActiveForceConstraintComputeEllipsoidGPU(
+        m);
+    export_ActiveForceConstraintComputeGyroidGPU(m);
+    export_ActiveForceConstraintComputePlaneGPU(m);
+    export_ActiveForceConstraintComputePrimitiveGPU(m);
+    export_ActiveForceConstraintComputeSphereGPU(m);
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(
         m,
         "PotentialExternalPeriodicGPU");
