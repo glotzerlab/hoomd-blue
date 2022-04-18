@@ -249,11 +249,11 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         Scalar rsq = 0.0;
         for (unsigned int i = 0; i < shape.N; i++)
             {
-            shape.x[i] += (OverlapReal)dr.x;
+            shape.x[i] += static_cast<OverlapReal>(dr.x);
             shape.x[i] *= scale;
-            shape.y[i] += (OverlapReal)dr.y;
+            shape.y[i] += static_cast<OverlapReal>(dr.y);
             shape.y[i] *= scale;
-            shape.z[i] += (OverlapReal)dr.z;
+            shape.z[i] += static_cast<OverlapReal>(dr.z);
             shape.z[i] *= scale;
             vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
             rsq = fmax(rsq, dot(vert, vert));
@@ -286,15 +286,16 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
                 move_translate(vert, rng, stepsize, 3);
-                shape.x[i] = (OverlapReal)vert.x;
-                shape.y[i] = (OverlapReal)vert.y;
-                shape.z[i] = (OverlapReal)vert.z;
+                shape.x[i] = static_cast<OverlapReal>(vert.x);
+                shape.y[i] = static_cast<OverlapReal>(vert.y);
+                shape.z[i] = static_cast<OverlapReal>(vert.z);
                 }
             }
         detail::MassProperties<ShapeConvexPolyhedron> mp(shape);
         Scalar volume = mp.getVolume();
         vec3<Scalar> dr = this->m_centroids[type_id] - mp.getCenterOfMass();
-        OverlapReal scale = (OverlapReal)fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0);
+        OverlapReal scale
+            = static_cast<OverlapReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
         scaleParticleVolume(shape, dr, scale);
         stepsize *= scale;
         }
