@@ -3,7 +3,6 @@
 
 #include "AllExternalPotentials.h"
 #include "AllPairPotentials.h"
-#include "AllSpecialPairPotentials.h"
 #include "AllTripletPotentials.h"
 #include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
@@ -65,6 +64,9 @@ void export_AnisoPotentialPairGB(pybind11::module &m);
 void export_PotentialBondHarmonic(pybind11::module& m);
 void export_PotentialBondFENE(pybind11::module& m);
 void export_PotentialBondTether(pybind11::module& m);
+
+void export_PotentialSpecialPairLJ(pybind11::module &m);
+void export_PotentialSpecialPairCoulomb(pybind11::module &m);
 
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
@@ -147,6 +149,9 @@ void export_AnisoPotentialPairGBGPU(pybind11::module &m);
 void export_PotentialBondHarmonicGPU(pybind11::module& m);
 void export_PotentialBondFENEGPU(pybind11::module& m);
 void export_PotentialBondTetherGPU(pybind11::module& m);
+
+void export_PotentialSpecialPairLJGPU(pybind11::module &m);
+void export_PotentialSpecialPairCoulombGPU(pybind11::module &m);
 
 void export_TwoStepNVEGPU(pybind11::module& m);
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
@@ -279,8 +284,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBondFENE(m);
     export_PotentialBondTether(m);
 
-    export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
-    export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
+    export_PotentialSpecialPairLJ(m);
+    export_PotentialSpecialPairCoulomb(m);
 
     export_CustomForceCompute(m);
     export_NeighborList(m);
@@ -372,12 +377,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBondFENEGPU(m);
     export_PotentialBondTetherGPU(m);
 
-    export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
-        m,
-        "PotentialSpecialPairLJGPU");
-    export_PotentialSpecialPairGPU<PotentialSpecialPairCoulombGPU, PotentialSpecialPairCoulomb>(
-        m,
-        "PotentialSpecialPairCoulombGPU");
+    export_PotentialSpecialPairLJGPU(m);
+    export_PotentialSpecialPairCoulombGPU(m);
     export_BondTablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);
     export_CosineSqAngleForceComputeGPU(m);

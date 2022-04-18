@@ -24,7 +24,7 @@ namespace md
     {
 namespace kernel
     {
-//! Wraps arguments to gpu_cgbf
+//! Wraps arguments to kernel driver
 struct bond_args_t
     {
     //! Construct a bond_args_t

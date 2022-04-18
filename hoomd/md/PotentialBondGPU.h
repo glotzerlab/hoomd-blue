@@ -26,7 +26,6 @@ namespace md
 //! Template class for computing bond potentials on the GPU
 /*!
     \tparam evaluator EvaluatorBond class used to evaluate V(r) and F(r)/r
-    \tparam gpu_cgbf Driver function that calls gpu_compute_bond_forces<evaluator>()
 
     \sa export_PotentialBondGPU()
 */

@@ -27,14 +27,10 @@ namespace md
 //! Template class for computing special pair potentials on the GPU
 /*!
     \tparam evaluator EvaluatorSpecialPair class used to evaluate V(r) and F(r)/r
-    \tparam gpu_cgbf Driver function that calls gpu_compute_bond_forces<evaluator>()
 
     \sa export_PotentialSpecialPairGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
-                             const typename evaluator::param_type* d_params,
-                             unsigned int* d_flags)>
+template<class evaluator>
 class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
     {
     public:
@@ -62,11 +58,8 @@ class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
-                             const typename evaluator::param_type* d_params,
-                             unsigned int* d_flags)>
-PotentialSpecialPairGPU<evaluator, gpu_cgbf>::PotentialSpecialPairGPU(
+template<class evaluator>
+PotentialSpecialPairGPU<evaluator>::PotentialSpecialPairGPU(
     std::shared_ptr<SystemDefinition> sysdef)
     : PotentialSpecialPair<evaluator>(sysdef)
     {
@@ -102,11 +95,8 @@ PotentialSpecialPairGPU<evaluator, gpu_cgbf>::PotentialSpecialPairGPU(
                                 this->m_exec_conf));
     }
 
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
-                             const typename evaluator::param_type* d_params,
-                             unsigned int* d_flags)>
-void PotentialSpecialPairGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
+template<class evaluator>
+void PotentialSpecialPairGPU<evaluator>::computeForces(uint64_t timestep)
     {
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -149,7 +139,7 @@ void PotentialSpecialPairGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timest
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
-        gpu_cgbf(kernel::bond_args_t(d_force.data,
+        kernel::gpu_compute_bond_forces<evaluator>(kernel::bond_args_t(d_force.data,
                                      d_virial.data,
                                      this->m_virial.getPitch(),
                                      this->m_pdata->getN(),
@@ -190,14 +180,12 @@ namespace detail
     {
 //! Export this special pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
-    \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as
-   used in \a T.
+    \tparam T evaluator type to export.
 */
-template<class T, class Base>
+template<class T>
 void export_PotentialSpecialPairGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialSpecialPairGPU<T>, PotentialSpecialPair<T>, std::shared_ptr<PotentialSpecialPairGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

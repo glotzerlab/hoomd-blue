@@ -66,7 +66,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairGBGPUKernel.cuh
                 AllExternalPotentials.h
                 AllPairPotentials.h
-                AllSpecialPairPotentials.h
                 AllTripletPotentials.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
@@ -245,7 +244,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
-                      AllDriverPotentialSpecialPairGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
@@ -389,6 +387,28 @@ foreach(_bond ${_bonds})
         set(_cuda_sources ${_cuda_sources}
             export_PotentialBond${_bond}GPU.cc
             PotentialBond${_bond}GPUKernel.cu
+            )
+    endif()
+endforeach()
+
+set(_pairs LJ Coulomb)
+
+foreach(_pair ${_pairs})
+    configure_file(export_PotentialSpecialPair.cc.inc
+                   export_PotentialSpecialPair${_pair}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialSpecialPair${_pair}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialSpecialPairGPU.cc.inc
+                       export_PotentialSpecialPair${_pair}GPU.cc
+                       @ONLY)
+        configure_file(PotentialSpecialPairGPUKernel.cu.inc
+                       PotentialSpecialPair${_pair}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialSpecialPair${_pair}GPU.cc
+            PotentialSpecialPair${_pair}GPUKernel.cu
             )
     endif()
 endforeach()

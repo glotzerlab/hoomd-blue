@@ -373,16 +373,16 @@ namespace detail
     {
 //! Exports the PotentialSpecialPair class to python
 /*! \param name Name of the class in the exported python module
-    \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
+    \tparam T evaluator type to export.
 */
 template<class T> void export_PotentialSpecialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialSpecialPair<T>, ForceCompute, std::shared_ptr<PotentialSpecialPair<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams)
-        .def("setRCut", &T::setRCut)
-        .def("getRCut", &T::getRCut);
+        .def("setParams", &PotentialSpecialPair<T>::setParamsPython)
+        .def("getParams", &PotentialSpecialPair<T>::getParams)
+        .def("setRCut", &PotentialSpecialPair<T>::setRCut)
+        .def("getRCut", &PotentialSpecialPair<T>::getRCut);
     }
 
     } // end namespace detail
