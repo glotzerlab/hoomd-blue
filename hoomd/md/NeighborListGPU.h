@@ -162,12 +162,6 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
     };
 
-namespace detail
-    {
-//! Exports NeighborListGPU to python
-void export_NeighborListGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

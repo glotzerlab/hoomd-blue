@@ -189,12 +189,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     Scalar m_deltaT; //!< The time step
     };
 
-namespace detail
-    {
-//! Exports the IntegrationMethodTwoStep class to python
-void export_IntegrationMethodTwoStep(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

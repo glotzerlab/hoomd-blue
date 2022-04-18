@@ -210,10 +210,5 @@ DEVICE inline Scalar distWall(const PlaneWall& wall, const vec3<Scalar>& positio
     return dot(wall.normal, position) - dot(wall.normal, wall.origin);
     };
 
-#ifndef __HIPCC__
-// Export all wall data types into Python. This is needed to allow for syncing Python and C++
-// list/array data structures containing walls for WallPotential objects.
-void export_wall_data(pybind11::module& m);
-#endif
     } // end namespace md
     } // end namespace hoomd

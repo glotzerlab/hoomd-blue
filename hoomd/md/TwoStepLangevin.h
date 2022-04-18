@@ -77,11 +77,5 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
     bool m_noiseless_r;
     };
 
-namespace detail
-    {
-//! Exports the TwoStepLangevin class to python
-void export_TwoStepLangevin(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

@@ -93,11 +93,5 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
     GlobalVector<Scalar3> m_gamma_r;
     };
 
-namespace detail
-    {
-//! Exports the TwoStepLangevinBase class to python
-void export_TwoStepLangevinBase(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

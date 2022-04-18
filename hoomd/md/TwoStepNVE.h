@@ -62,7 +62,6 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
 namespace detail
     {
 //! Exports the TwoStepNVE class to python
-void export_TwoStepNVE(pybind11::module& m);
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

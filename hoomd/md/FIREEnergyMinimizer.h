@@ -193,12 +193,6 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     private:
     };
 
-namespace detail
-    {
-//! Exports the FIREEnergyMinimizer class to python
-void export_FIREEnergyMinimizer(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

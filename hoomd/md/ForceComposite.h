@@ -261,12 +261,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     bool m_global_max_d_changed; //!< True if we updated any rigid body
     };
 
-namespace detail
-    {
-//! Exports the ForceComposite to python
-void export_ForceComposite(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

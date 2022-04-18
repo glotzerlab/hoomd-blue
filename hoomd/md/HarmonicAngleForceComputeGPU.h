@@ -65,12 +65,6 @@ class PYBIND11_EXPORT HarmonicAngleForceComputeGPU : public HarmonicAngleForceCo
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Export the AngleForceComputeGPU class to python
-void export_HarmonicAngleForceComputeGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 
