@@ -63,6 +63,10 @@ class Elastic(ShapeMove):
         stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
             deformations.
 
+        mc (`type` or `hoomd.hpmc.integrate.HPMCIntegrator`): The class of
+            the MC shape integrator or an instance (see `hoomd.hpmc.integrate`)
+            to use with this elastic shape. Must be a compatible class.
+
         move_probability (`float`, **default**: 0.5): Fraction of scale to shear
             moves.
 
@@ -72,12 +76,16 @@ class Elastic(ShapeMove):
         * `hoomd.hpmc.integrate.ConvexPolyhedron`
         * `hoomd.hpmc.integrate.Ellipsoid`
 
+    Note:
+        An instance is only able to be used with the passed HPMC integrator
+        class.
+
     Example::
 
         mc = hoomd.hpmc.integrate.ConvexPolyhedron()
         verts = [(1, 1, 1), (-1, -1, 1), (1, -1, -1), (-1, 1, -1)]
         mc.shape["A"] = dict(vertices=verts)
-        elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=10)
+        elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=10, mc)
         elastic_move.stiffness = 100
         elastic_move.reference_shape["A"] = verts
 
@@ -93,18 +101,27 @@ class Elastic(ShapeMove):
 
     _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
 
-    def __init__(self, stiffness, move_probability=0.5):
+    def __init__(self, stiffness, mc, move_probability=0.5):
 
         super().__init__(move_probability)
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant)
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
+        self._add_typeparam(self._get_shape_param(mc))
 
-        typeparam_ref_shape = TypeParameter('reference_shape',
-                                            type_kind='particle_types',
-                                            param_dict=TypeParameterDict(
-                                                dict, len_keys=1))
-        self._add_typeparam(typeparam_ref_shape)
+    def _get_shape_param(self, mc):
+        if isinstance(mc, hoomd.hpmc.integrate.HPMCIntegrator):
+            cls = mc.__class__
+        else:
+            cls = mc
+        if cls.__name__ not in self._suported_shapes:
+            raise ValueError(f"Unsupported integrator type {cls}. Supported "
+                             f"types are {self._suported_shapes}")
+        # Class can only be used for this type of integrator now.
+        self._suported_shapes = {cls.__name__}
+        shape = cls().shape
+        shape.name = "reference_shape"
+        return shape
 
     def _attach(self):
         integrator = self._simulation.operations.integrator

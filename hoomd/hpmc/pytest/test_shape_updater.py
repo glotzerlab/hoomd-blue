@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+import hoomd.conftest
 from hoomd import hpmc
 import numpy as np
 import pytest
@@ -18,18 +19,26 @@ def _test_callback(typeid, param_list):
 shape_move_constructor_args = [
     (Vertex, dict(move_probability=0.7)),
     (ShapeSpace, dict(callback=_test_callback, move_probability=1)),
-    (Elastic, dict(stiffness=hoomd.variant.Constant(10), move_probability=0.5)),
+    (Elastic,
+     dict(stiffness=hoomd.variant.Constant(10),
+          mc=hpmc.integrate.ConvexPolyhedron,
+          move_probability=0.5)),
 ]
 
 shape_move_valid_attrs = [
     (Vertex(), "move_probability", 0.1),
     (ShapeSpace(callback=_test_callback), "move_probability", 0.1),
     (ShapeSpace(callback=_test_callback), "callback",
-     lambda type, param_list: {}), (Elastic(1), "move_probability", 0.5),
-    (Elastic(1), "stiffness", hoomd.variant.Constant(10)),
-    (Elastic(1), "stiffness", hoomd.variant.Ramp(1, 5, 0, 100)),
-    (Elastic(1), "stiffness", hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
-    (Elastic(1), "stiffness", hoomd.variant.Power(1, 5, 3, 0, 100))
+     lambda type, param_list: {}),
+    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "move_probability", 0.5),
+    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
+     hoomd.variant.Constant(10)),
+    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
+     hoomd.variant.Ramp(1, 5, 0, 100)),
+    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
+     hoomd.variant.Cycle(1, 5, 0, 10, 20, 10, 15)),
+    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
+     hoomd.variant.Power(1, 5, 3, 0, 100))
 ]
 
 shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
@@ -39,7 +48,9 @@ shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
                              ("shape_move", Vertex()),
                              ("shape_move",
                               ShapeSpace(callback=_test_callback)),
-                             ("shape_move", Elastic(stiffness=10))]
+                             ("shape_move",
+                              Elastic(stiffness=10,
+                                      mc=hpmc.integrate.ConvexPolyhedron))]
 
 updater_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
@@ -55,7 +66,7 @@ updater_constructor_args = [
          shape_move=ShapeSpace(callback=_test_callback),
          type_select=1),
     dict(trigger=hoomd.trigger.Periodic(10),
-         shape_move=Elastic(stiffness=10),
+         shape_move=Elastic(stiffness=10, mc=hpmc.integrate.ConvexPolyhedron),
          type_select=3,
          pretend=True)
 ]
@@ -63,8 +74,11 @@ updater_constructor_args = [
 type_parameters = [
     (ShapeSpace(callback=_test_callback), "params", [0.1, 0.3, 0.4]),
     (Vertex(), "volume", 1.2),
-    # (Elastic(), "reference_shape", {"diameter": 1}),
-    (Shape(trigger=1, shape_move=Vertex()), "step_size", 0.4)
+    (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "reference_shape", {
+        "a": 1,
+        "b": 2,
+        "c": 3
+    }), (Shape(trigger=1, shape_move=Vertex()), "step_size", 0.4)
 ]
 
 
@@ -75,7 +89,8 @@ def test_valid_construction_shape_moves(shape_move_class, params):
 
     # validate the params were set properly
     for attr, value in params.items():
-        assert getattr(move, attr) == value
+        if hasattr(move, attr):
+            assert getattr(move, attr) == value
 
 
 @pytest.mark.parametrize("updater_constructor_args", updater_constructor_args)
@@ -108,7 +123,7 @@ def test_valid_setattr_shape_updater(attr, value):
 @pytest.mark.parametrize("obj,attr,value", type_parameters)
 def test_type_parameters(obj, attr, value):
     getattr(obj, attr)["A"] = value
-    assert getattr(obj, attr)["A"] == value
+    hoomd.conftest.equality_check(getattr(obj, attr)["A"], value)
 
 
 def test_vertex_shape_move(device, simulation_factory,
