@@ -313,7 +313,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct,
                                                      timestep,
                                                      this->m_sysdef->getSeed()),
-                                         hoomd::Counter(typ_i, m_exec_conf->getRank(), i_sweep));
+                                         hoomd::Counter(typ_i, 0, i_sweep));
 
             // perform an in-place shape update on shape_param_new
             m_move_function->update_shape(timestep,
