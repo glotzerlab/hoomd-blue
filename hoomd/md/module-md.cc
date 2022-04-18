@@ -3,27 +3,22 @@
 
 #include "AllExternalPotentials.h"
 #include "AllPairPotentials.h"
-#include "AllTripletPotentials.h"
-#include "EvaluatorRevCross.h"
-#include "EvaluatorSquareDensity.h"
-#include "EvaluatorTersoff.h"
 #include "PotentialExternal.h"
 #include "PotentialPair.h"
 #include "PotentialPairDPDThermo.h"
-#include "PotentialTersoff.h"
 
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "PotentialExternalGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairGPU.h"
-#include "PotentialTersoffGPU.h"
 #endif
 
 #include <pybind11/pybind11.h>
 
 
 namespace hoomd { namespace md { namespace detail {
+
 
 void export_ActiveForceCompute(pybind11::module &m);
 void export_ActiveForceConstraintComputeCylinder(pybind11::module &m);
@@ -67,6 +62,10 @@ void export_PotentialBondTether(pybind11::module& m);
 
 void export_PotentialSpecialPairLJ(pybind11::module &m);
 void export_PotentialSpecialPairCoulomb(pybind11::module &m);
+
+void export_PotentialTersoff(pybind11::module &m);
+void export_PotentialSquareDensity(pybind11::module &m);
+void export_PotentialRevCross(pybind11::module &m);
 
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
@@ -152,6 +151,10 @@ void export_PotentialBondTetherGPU(pybind11::module& m);
 
 void export_PotentialSpecialPairLJGPU(pybind11::module &m);
 void export_PotentialSpecialPairCoulombGPU(pybind11::module &m);
+
+void export_PotentialTersoffGPU(pybind11::module &m);
+void export_PotentialSquareDensityGPU(pybind11::module &m);
+void export_PotentialRevCrossGPU(pybind11::module &m);
 
 void export_TwoStepNVEGPU(pybind11::module& m);
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
@@ -262,9 +265,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
 
-    export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
-    export_PotentialTersoff<PotentialTripletSquareDensity>(m, "PotentialSquareDensity");
-    export_PotentialTersoff<PotentialTripletRevCross>(m, "PotentialRevCross");
+    export_PotentialTersoff(m);
+    export_PotentialSquareDensity(m);
+    export_PotentialRevCross(m);
 
     export_AnisoPotentialPairALJ2D(m);
     export_AnisoPotentialPairALJ3D(m);
@@ -341,15 +344,9 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialPairMoliereGPU");
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
-    export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(
-        m,
-        "PotentialTersoffGPU");
-    export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity>(
-        m,
-        "PotentialSquareDensityGPU");
-    export_PotentialTersoffGPU<PotentialTripletRevCrossGPU, PotentialTripletRevCross>(
-        m,
-        "PotentialRevCrossGPU");
+    export_PotentialTersoffGPU(m);
+    export_PotentialSquareDensityGPU(m);
+    export_PotentialRevCrossGPU(m);
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(
         m,
         "PotentialPairForceShiftedLJGPU");

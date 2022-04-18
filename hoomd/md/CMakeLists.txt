@@ -66,7 +66,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairGBGPUKernel.cuh
                 AllExternalPotentials.h
                 AllPairPotentials.h
-                AllTripletPotentials.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
@@ -270,7 +269,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ZBLDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
-                      DriverTersoffGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu
                       ForceDistanceConstraintGPU.cu
@@ -409,6 +407,28 @@ foreach(_pair ${_pairs})
         set(_cuda_sources ${_cuda_sources}
             export_PotentialSpecialPair${_pair}GPU.cc
             PotentialSpecialPair${_pair}GPUKernel.cu
+            )
+    endif()
+endforeach()
+
+set(_triplets Tersoff SquareDensity RevCross)
+
+foreach(_evaluator ${_triplets})
+    configure_file(export_PotentialTersoff.cc.inc
+                   export_PotentialTersoff${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialTersoff${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialTersoffGPU.cc.inc
+                       export_PotentialTersoff${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialTersoffGPUKernel.cu.inc
+                       PotentialTersoff${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialTersoff${_evaluator}GPU.cc
+            PotentialTersoff${_evaluator}GPUKernel.cu
             )
     endif()
 endforeach()

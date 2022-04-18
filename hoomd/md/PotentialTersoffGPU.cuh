@@ -93,7 +93,7 @@ struct tersoff_args_t
     \param address Address to write the double to
     \param val Value to add to address
 */
-__device__ double myAtomicAdd(double* address, double val)
+__device__ inline double myAtomicAdd(double* address, double val)
     {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -109,7 +109,7 @@ __device__ double myAtomicAdd(double* address, double val)
     return __longlong_as_double(old);
     }
 #else // CUDA_ARCH > 600)
-__device__ double myAtomicAdd(double* address, double val)
+__device__ inline double myAtomicAdd(double* address, double val)
     {
     return atomicAdd(address, val);
     }
@@ -118,7 +118,7 @@ __device__ double myAtomicAdd(double* address, double val)
 
 // workaround for HIP bug
 #ifdef __HIP_PLATFORM_HCC__
-inline __device__ float myAtomicAdd(float* address, float val)
+inline __device__ inline float myAtomicAdd(float* address, float val)
     {
     unsigned int* address_as_uint = (unsigned int*)address;
     unsigned int old = *address_as_uint, assumed;
@@ -868,34 +868,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
         }
     }
 
-//! Kernel for zeroing forces and virial before computation with atomic additions.
-/*! \param d_force Device memory to write forces to
-    \param N Number of particles in the system
-
-*/
-__global__ void gpu_zero_forces_kernel(Scalar4* d_force,
-                                       Scalar* d_virial,
-                                       size_t virial_pitch,
-                                       const unsigned int N)
-    {
-    // identify the particle we are supposed to handle
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= N)
-        return;
-
-    // zero the force
-    d_force[idx] = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-    // zero the virial
-    d_virial[0 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[1 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[2 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[3 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[4 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[5 * virial_pitch + idx] = Scalar(0.0);
-    }
-
 template<typename T>
 void get_max_block_size(T func,
                         const tersoff_args_t& pair_args,
@@ -958,15 +930,8 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
                 }
 
             // zero the forces
-            hipLaunchKernelGGL((gpu_zero_forces_kernel),
-                               dim3((pair_args.N + pair_args.Nghosts) / run_block_size + 1),
-                               dim3(run_block_size),
-                               0,
-                               0,
-                               pair_args.d_force,
-                               pair_args.d_virial,
-                               pair_args.virial_pitch,
-                               pair_args.N + pair_args.Nghosts);
+            hipMemset(pair_args.d_force, 0, sizeof(Scalar4) * (pair_args.N + pair_args.Nghosts));
+            hipMemset(pair_args.d_virial, 0, sizeof(Scalar) * pair_args.virial_pitch * (pair_args.N + pair_args.Nghosts));
 
             // setup the grid to run the kernel
             dim3 grid(pair_args.N / (run_block_size / pair_args.tpp) + 1, 1, 1);
@@ -1015,6 +980,7 @@ struct TersoffComputeKernel<evaluator, compute_virial, 0>
     This is just a driver function for gpu_compute_triplet_forces_kernel(), see it for details.
 */
 template<class evaluator>
+__attribute__((visibility("default")))
 hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                       const typename evaluator::param_type* d_params)
     {
@@ -1033,6 +999,11 @@ hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         }
     return hipSuccess;
     }
+#else
+template<class evaluator>
+__attribute__((visibility("default")))
+hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
+                                      const typename evaluator::param_type* d_params);
 #endif
 
     } // end namespace kernel

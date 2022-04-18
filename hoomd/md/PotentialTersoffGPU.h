@@ -10,6 +10,7 @@
 
 #include "PotentialTersoff.h"
 #include "PotentialTersoffGPU.cuh"
+#include "hoomd/Autotuner.h"
 
 /*! \file PotentialTersoffGPU.h
     \brief Defines the template class computing certain three-body forces on the GPU
@@ -35,9 +36,7 @@ namespace md
 
     \sa export_PotentialTersoffGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
+template<class evaluator>
 class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
     public:
@@ -65,10 +64,8 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-PotentialTersoffGPU<evaluator, gpu_cgpf>::PotentialTersoffGPU(
+template<class evaluator>
+PotentialTersoffGPU<evaluator>::PotentialTersoffGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<NeighborList> nlist)
     : PotentialTersoff<evaluator>(sysdef, nlist)
@@ -105,18 +102,14 @@ PotentialTersoffGPU<evaluator, gpu_cgpf>::PotentialTersoffGPU(
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_tersoff", this->m_exec_conf));
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-PotentialTersoffGPU<evaluator, gpu_cgpf>::~PotentialTersoffGPU()
+template<class evaluator>
+PotentialTersoffGPU<evaluator>::~PotentialTersoffGPU()
     {
     this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
+template<class evaluator>
+void PotentialTersoffGPU<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -165,7 +158,7 @@ void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_cgpf(kernel::tersoff_args_t(d_force.data,
+    kernel::gpu_compute_triplet_forces<evaluator>(kernel::tersoff_args_t(d_force.data,
                                     this->m_pdata->getN(),
                                     this->m_pdata->getNGhosts(),
                                     d_virial.data,
@@ -194,14 +187,12 @@ namespace detail
     {
 //! Export this three-body potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialTersoffGPU class template.
-    \tparam Base Base class of \a T. \b Must be PotentialTersoff<evaluator> with the same evaluator
-   as used in \a T.
+    \tparam T Evaluator type to export.
 */
-template<class T, class Base>
+template<class T>
 void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialTersoffGPU<T>, PotentialTersoff<T>, std::shared_ptr<PotentialTersoffGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
 
