@@ -30,10 +30,7 @@ namespace md
 
     \sa export_PotentialBondGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
-                             const typename evaluator::param_type* d_params,
-                             unsigned int* d_flags)>
+template<class evaluator>
 class PotentialBondGPU : public PotentialBond<evaluator>
     {
     public:
@@ -61,11 +58,8 @@ class PotentialBondGPU : public PotentialBond<evaluator>
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
-                             const typename evaluator::param_type* d_params,
-                             unsigned int* d_flags)>
-PotentialBondGPU<evaluator, gpu_cgbf>::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef)
+template<class evaluator>
+PotentialBondGPU<evaluator>::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef)
     : PotentialBond<evaluator>(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -95,11 +89,8 @@ PotentialBondGPU<evaluator, gpu_cgbf>::PotentialBondGPU(std::shared_ptr<SystemDe
         new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
-template<class evaluator,
-         hipError_t gpu_cgbf(const kernel::bond_args_t& bond_args,
-                             const typename evaluator::param_type* d_params,
-                             unsigned int* d_flags)>
-void PotentialBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
+template<class evaluator>
+void PotentialBondGPU<evaluator>::computeForces(uint64_t timestep)
     {
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -142,7 +133,7 @@ void PotentialBondGPU<evaluator, gpu_cgbf>::computeForces(uint64_t timestep)
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
-        gpu_cgbf(kernel::bond_args_t(d_force.data,
+        kernel::gpu_compute_bond_forces<evaluator>(kernel::bond_args_t(d_force.data,
                                      d_virial.data,
                                      this->m_virial.getPitch(),
                                      this->m_pdata->getN(),
@@ -183,14 +174,12 @@ namespace detail
     {
 //! Export this bond potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
-    \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as
-   used in \a T.
+    \tparam T Evaluator type to export.
 */
-template<class T, class Base>
+template<class T>
 void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialBondGPU<T>, PotentialBond<T>, std::shared_ptr<PotentialBondGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

@@ -335,14 +335,14 @@ namespace detail
     {
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module
-    \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
+    \tparam T Evaluator type to export.
 */
 template<class T> void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialBond<T>, ForceCompute, std::shared_ptr<PotentialBond<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams);
+        .def("setParams", &PotentialBond<T>::setParamsPython)
+        .def("getParams", &PotentialBond<T>::getParams);
     }
 
     } // end namespace detail

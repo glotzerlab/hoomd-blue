@@ -719,7 +719,7 @@ namespace detail
     {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPair class template.
+    \tparam T Evaluator type to export.
 */
 template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {

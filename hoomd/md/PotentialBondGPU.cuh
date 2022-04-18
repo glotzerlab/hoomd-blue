@@ -242,7 +242,9 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template<class evaluator>
-hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
+__attribute__((visibility("default")))
+hipError_t
+gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {
@@ -289,6 +291,13 @@ hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
 
     return hipSuccess;
     }
+#else
+template<class evaluator>
+__attribute__((visibility("default")))
+hipError_t
+gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
+                                   const typename evaluator::param_type* d_params,
+                                   unsigned int* d_flags);
 #endif
 
     } // end namespace kernel

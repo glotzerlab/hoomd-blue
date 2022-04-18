@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
 #include "AllPairPotentials.h"
 #include "AllSpecialPairPotentials.h"
@@ -73,6 +72,10 @@ void export_AnisoPotentialPairALJ3D(pybind11::module &m);
 void export_AnisoPotentialPairDipole(pybind11::module &m);
 void export_AnisoPotentialPairGB(pybind11::module &m);
 
+void export_PotentialBondHarmonic(pybind11::module& m);
+void export_PotentialBondFENE(pybind11::module& m);
+void export_PotentialBondTether(pybind11::module& m);
+
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
 void export_ZeroMomentumUpdater(pybind11::module& m);
@@ -142,6 +145,10 @@ void export_AnisoPotentialPairALJ2DGPU(pybind11::module &m);
 void export_AnisoPotentialPairALJ3DGPU(pybind11::module &m);
 void export_AnisoPotentialPairDipoleGPU(pybind11::module &m);
 void export_AnisoPotentialPairGBGPU(pybind11::module &m);
+
+void export_PotentialBondHarmonicGPU(pybind11::module& m);
+void export_PotentialBondFENEGPU(pybind11::module& m);
+void export_PotentialBondTetherGPU(pybind11::module& m);
 
 void export_TwoStepNVEGPU(pybind11::module& m);
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
@@ -230,6 +237,7 @@ PYBIND11_MODULE(_md, m)
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
     export_BondTablePotential(m);
+
     export_PotentialPair<PotentialPairBuckingham>(m, "PotentialPairBuckingham");
     export_PotentialPair<PotentialPairLJ>(m, "PotentialPairLJ");
     export_PotentialPair<PotentialPairLJ1208>(m, "PotentialPairLJ1208");
@@ -243,20 +251,23 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairDPD>(m, "PotentialPairDPD");
     export_PotentialPair<PotentialPairMoliere>(m, "PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
-    export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
-    export_PotentialTersoff<PotentialTripletSquareDensity>(m, "PotentialSquareDensity");
-    export_PotentialTersoff<PotentialTripletRevCross>(m, "PotentialRevCross");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
+    export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
+
+    export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
+    export_PotentialTersoff<PotentialTripletSquareDensity>(m, "PotentialSquareDensity");
+    export_PotentialTersoff<PotentialTripletRevCross>(m, "PotentialRevCross");
+
     export_AnisoPotentialPairALJ2D(m);
     export_AnisoPotentialPairALJ3D(m);
     export_AnisoPotentialPairDipole(m);
     export_AnisoPotentialPairGB(m);
-    export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
+
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(
         m,
         "PotentialPairDPDThermoDPD");
@@ -265,11 +276,14 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>(
         m,
         "PotentialPairDPDLJThermoDPD");
-    export_PotentialBond<PotentialBondHarmonic>(m, "PotentialBondHarmonic");
-    export_PotentialBond<PotentialBondFENE>(m, "PotentialBondFENE");
-    export_PotentialBond<PotentialBondTether>(m, "PotentialBondTether");
+
+    export_PotentialBondHarmonic(m);
+    export_PotentialBondFENE(m);
+    export_PotentialBondTether(m);
+
     export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
     export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
+
     export_CustomForceCompute(m);
     export_NeighborList(m);
     export_NeighborListBinned(m);
@@ -350,16 +364,16 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
         "PotentialPairDPDLJThermoDPDGPU");
+
     export_AnisoPotentialPairALJ2DGPU(m);
     export_AnisoPotentialPairALJ3DGPU(m);
     export_AnisoPotentialPairDipoleGPU(m);
     export_AnisoPotentialPairGBGPU(m);
-    export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(
-        m,
-        "PotentialBondHarmonicGPU");
-    export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
-    export_PotentialBondGPU<PotentialBondTetherGPU, PotentialBondTether>(m,
-                                                                         "PotentialBondTetherGPU");
+
+    export_PotentialBondHarmonicGPU(m);
+    export_PotentialBondFENEGPU(m);
+    export_PotentialBondTetherGPU(m);
+
     export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
         m,
         "PotentialSpecialPairLJGPU");

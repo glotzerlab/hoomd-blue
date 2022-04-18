@@ -64,7 +64,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairDipole.h
                 AnisoPotentialPairGB.h
                 AnisoPotentialPairGBGPUKernel.cuh
-                AllBondPotentials.h
                 AllExternalPotentials.h
                 AllPairPotentials.h
                 AllSpecialPairPotentials.h
@@ -246,7 +245,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
-                      AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
                       ComputeThermoGPU.cu
@@ -362,6 +360,37 @@ foreach(_manifold ${_manifolds})
         endif()
     endforeach()
 
+endforeach()
+
+# generate pybind11 export cc files
+set(_manifolds Cylinder
+               Diamond
+               Ellipsoid
+               Gyroid
+               Plane
+               Primitive
+               Sphere)
+
+set(_bonds Harmonic FENE Tether)
+
+foreach(_bond ${_bonds})
+    configure_file(export_PotentialBond.cc.inc
+                   export_PotentialBond${_bond}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialBond${_bond}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialBondGPU.cc.inc
+                       export_PotentialBond${_bond}GPU.cc
+                       @ONLY)
+        configure_file(PotentialBondGPUKernel.cu.inc
+                       PotentialBond${_bond}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialBond${_bond}GPU.cc
+            PotentialBond${_bond}GPUKernel.cu
+            )
+    endif()
 endforeach()
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
