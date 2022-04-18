@@ -55,12 +55,6 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     virtual void rotationalDiffusion(Scalar rotational_diffusion, uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Exports the ActiveForceComputeGPU Class to python
-void export_ActiveForceComputeGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 #endif

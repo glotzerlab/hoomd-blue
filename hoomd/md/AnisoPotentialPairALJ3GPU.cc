@@ -8,6 +8,11 @@ template class AnisoPotentialPair<EvaluatorPairALJ<3>>;
 
 namespace detail {
 template void export_AnisoPotentialPair<EvaluatorPairALJ<3>>(pybind11::module& m, const std::string& name);
+
+void export_AnisoPotentialPairALJ3DGPU(pybind11::module &m)
+    {
+    export_AnisoPotentialPairGPU<EvaluatorPairALJ<3>>(m, "AnisoPotentialPairALJ3DGPU");
+    }
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

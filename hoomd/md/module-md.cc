@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "ActiveForceCompute.h"
 #include "ActiveForceConstraintCompute.h"
 #include "ActiveRotationalDiffusionUpdater.h"
 #include "AllBondPotentials.h"
@@ -9,11 +8,6 @@
 #include "AllPairPotentials.h"
 #include "AllSpecialPairPotentials.h"
 #include "AllTripletPotentials.h"
-#include "AnisoPotentialPair.h"
-#include "AnisoPotentialPairALJ2.h"
-#include "AnisoPotentialPairALJ3.h"
-#include "AnisoPotentialPairDipole.h"
-#include "AnisoPotentialPairGB.h"
 #include "BondTablePotential.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
@@ -67,9 +61,7 @@
 
 // include GPU classes
 #ifdef ENABLE_HIP
-#include "ActiveForceComputeGPU.h"
 #include "ActiveForceConstraintComputeGPU.h"
-#include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoHMAGPU.h"
@@ -107,13 +99,28 @@
 
 #include <pybind11/pybind11.h>
 
+
+namespace hoomd { namespace md { namespace detail {
+
+void export_ActiveForceCompute(pybind11::module &m);
+void export_AnisoPotentialPairALJ2D(pybind11::module &m);
+void export_AnisoPotentialPairALJ3D(pybind11::module &m);
+void export_AnisoPotentialPairDipole(pybind11::module &m);
+void export_AnisoPotentialPairGB(pybind11::module &m);
+
+#ifdef ENABLE_HIP
+
+void export_ActiveForceComputeGPU(pybind11::module &m);
+void export_AnisoPotentialPairALJ2DGPU(pybind11::module &m);
+void export_AnisoPotentialPairALJ3DGPU(pybind11::module &m);
+void export_AnisoPotentialPairDipoleGPU(pybind11::module &m);
+void export_AnisoPotentialPairGBGPU(pybind11::module &m);
+#endif
+} } }
+
 using namespace hoomd;
 using namespace hoomd::md;
 using namespace hoomd::md::detail;
-
-/*! \file hoomd_module.cc
-    \brief Brings all of the export_* functions together to export the hoomd python module
-*/
 
 //! Export setParamsPython and getParams as a different name
 // Electric field only has one parameter, so we can get its parameter from
@@ -188,10 +195,10 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
-    export_AnisoPotentialPair<EvaluatorPairALJ<2>>(m, "AnisoPotentialPairALJ2D");
-    export_AnisoPotentialPair<EvaluatorPairALJ<3>>(m, "AnisoPotentialPairALJ3D");
-    export_AnisoPotentialPair<EvaluatorPairGB>(m, "AnisoPotentialPairGB");
-    export_AnisoPotentialPair<EvaluatorPairDipole>(m, "AnisoPotentialPairDipole");
+    export_AnisoPotentialPairALJ2D(m);
+    export_AnisoPotentialPairALJ3D(m);
+    export_AnisoPotentialPairDipole(m);
+    export_AnisoPotentialPairGB(m);
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(
         m,
@@ -286,11 +293,10 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
         "PotentialPairDPDLJThermoDPDGPU");
-    // TODO: replace with non-templated method
-    export_AnisoPotentialPairGPU<EvaluatorPairALJ<2>>(m, "AnisoPotentialPairALJ2DGPU");
-    export_AnisoPotentialPairGPU<EvaluatorPairALJ<3>>(m, "AnisoPotentialPairALJ3DGPU");
-    export_AnisoPotentialPairGPU<EvaluatorPairGB>(m, "AnisoPotentialPairGBGPU");
-    export_AnisoPotentialPairGPU<EvaluatorPairDipole>(m, "AnisoPotentialPairDipoleGPU");
+    export_AnisoPotentialPairALJ2DGPU(m);
+    export_AnisoPotentialPairALJ3DGPU(m);
+    export_AnisoPotentialPairDipoleGPU(m);
+    export_AnisoPotentialPairGBGPU(m);
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(
         m,
         "PotentialBondHarmonicGPU");

@@ -10,6 +10,12 @@ template class AnisoPotentialPair<EvaluatorPairALJ<2>>;
 
 namespace detail {
 template void export_AnisoPotentialPair<EvaluatorPairALJ<2>>(pybind11::module& m, const std::string& name);
+
+void export_AnisoPotentialPairEvaluatorPairALJ2D(pybind11::module& m)
+    {
+    export_AnisoPotentialPair<EvaluatorPairALJ<2>>(m, "AnisoPotentialPairALJ2D");
+    }
+
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

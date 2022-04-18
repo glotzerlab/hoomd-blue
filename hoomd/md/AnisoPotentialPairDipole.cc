@@ -8,6 +8,12 @@ template class AnisoPotentialPair<EvaluatorPairDipole>;
 
 namespace detail {
 template void export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m, const std::string& name);
+
+void export_AnisoPotentialPairDipole(pybind11::module &m)
+    {
+    export_AnisoPotentialPair<EvaluatorPairDipole>(m, "AnisoPotentialPairDipole");
+    }
+
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

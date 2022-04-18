@@ -8,6 +8,11 @@ template class AnisoPotentialPair<EvaluatorPairGB>;
 
 namespace detail {
 template void export_AnisoPotentialPair<EvaluatorPairGB>(pybind11::module& m, const std::string& name);
+
+void export_AnisoPotentialPairGB(pybind11::module &m)
+    {
+    export_AnisoPotentialPair<EvaluatorPairGB>(m, "AnisoPotentialPairGB");
+    }
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
