@@ -17,6 +17,7 @@
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairLJ0804.h"
 #include "EvaluatorPairLJ1208.h"
+#include "EvaluatorPairLJGauss.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairMoliere.h"
 #include "EvaluatorPairMorse.h"
@@ -95,6 +96,8 @@ typedef PotentialPair<EvaluatorPairOPP> PotentialPairOPP;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPair<EvaluatorPairTWF> PotentialPairTWF;
+//! Pair potential force compute for lj-gauss pair potential
+typedef PotentialPair<EvaluatorPairLJGauss> PotentialPairLJGauss;
 /// Tabulateed pair potential
 typedef PotentialPair<EvaluatorPairTable> PotentialPairTable;
 
@@ -168,6 +171,9 @@ typedef PotentialPairGPU<EvaluatorPairTable, kernel::gpu_compute_table_forces>
 /// model
 typedef PotentialPairGPU<EvaluatorPairTWF, kernel::gpu_compute_twf_forces> PotentialPairTWFGPU;
 
+//! Pair potential force compute for lj-gauss pair potential
+typedef PotentialPairGPU<EvaluatorPairLJGauss, kernel::gpu_compute_lj_gauss_forces>
+    PotentialPairLJGaussGPU;
 #endif
 
     } // end namespace md

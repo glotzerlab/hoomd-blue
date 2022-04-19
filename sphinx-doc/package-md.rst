@@ -15,6 +15,7 @@ hoomd.md
 .. toctree::
     :maxdepth: 3
 
+    module-md-alchemy
     module-md-angle
     module-md-bond
     module-md-constrain

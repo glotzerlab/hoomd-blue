@@ -57,7 +57,7 @@ class Triplet(Force):
 
     .. py:attribute:: r_cut
 
-        *r_cut* (in distance units), *optional*: defaults to the value
+        *r_cut* :math:`[\\mathrm{length}]`, *optional*: defaults to the value
         ``default_r_cut`` specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
