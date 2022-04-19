@@ -48,7 +48,7 @@ class Alchemostat(Method):
 
 
 class NVT(Alchemostat):
-    r"""Alchemical NVT Integration.
+    r"""Alchemical NVT integration.
 
     Implements molecular dynamics simulations of an extended statistical
     mechanical ensemble that includes alchemical degrees of freedom describing
