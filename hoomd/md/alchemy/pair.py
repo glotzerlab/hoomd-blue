@@ -135,9 +135,8 @@ class AlchemicalDOF(_HOOMDBaseObject):
     <hoomd.md.alchemy.methods>`.
 
     Note:
-        To access an alchemical particle for a particular degree of freedom
-        query the corresponding attribute in the class instance with alchemical
-        degrees of freedom.
+        To access an alchemical degree of freedom for a particular type pair,
+        query the corresponding attribute in the alchemical pair force instance.
 
     Attributes:
         mass (`float`): The mass of the alchemical degree of freedom.
