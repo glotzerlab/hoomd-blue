@@ -289,6 +289,7 @@ class UpdaterClusters : public Updater
             \param mc HPMC integrator
         */
         UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger,
                         std::shared_ptr<IntegratorHPMCMono<Shape> > mc);
 
         //! Destructor
@@ -418,8 +419,9 @@ class UpdaterClusters : public Updater
 
 template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger,
                                  std::shared_ptr<IntegratorHPMCMono<Shape> > mc)
-        : Updater(sysdef), m_mc(mc), m_move_ratio(0.5),
+        : Updater(sysdef, trigger), m_mc(mc), m_move_ratio(0.5),
             m_flip_probability(0.5)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
@@ -479,7 +481,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     const uint16_t seed = this->m_sysdef->getSeed();
 
     // get image of particle i after transformation
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     int3 img_i;
     vec3<Scalar> pos_i_transf = pos_i;
     if (line)
@@ -501,6 +503,10 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     for (unsigned int type_a = 0; type_a < this->m_pdata->getNTypes(); ++type_a)
     #endif
         {
+        if (h_fugacity[type_a] == 0.0)
+            {
+            continue;
+            }
         #ifdef ENABLE_TBB_TASK
         tbb::parallel_for(tbb::blocked_range<unsigned int>(type_a, this->m_pdata->getNTypes()),
             [=, &shape_i](const tbb::blocked_range<unsigned int>& w) {
@@ -509,9 +515,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
         for (unsigned int type_b = type_a; type_b < this->m_pdata->getNTypes(); ++type_b)
         #endif
             {
-            if (h_fugacity[this->m_mc->getDepletantIndexer()(type_a,type_b)] == 0.0
-                || !h_overlaps[overlap_idx(type_a, typ_i)]
-                || !h_overlaps[overlap_idx(type_b, typ_i)])
+            if (!h_overlaps[overlap_idx(type_a, typ_i)] || !h_overlaps[overlap_idx(type_b, typ_i)])
                 continue;
 
             std::vector<vec3<Scalar> > pos_j;
@@ -519,7 +523,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
             std::vector<unsigned int> type_j;
             std::vector<unsigned int> idx_j;
 
-            bool repulsive = h_fugacity[this->m_mc->getDepletantIndexer()(type_a,type_b)] < 0.0;
+            bool repulsive = h_fugacity[type_a] < 0.0;
 
             if (repulsive)
                 throw std::runtime_error("Negative fugacities not supported in UpdaterClusters.\n");
@@ -617,7 +621,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
             // chooose the number of depletants in the intersection volume
             hoomd::PoissonDistribution<Scalar> poisson(
-                std::abs(h_fugacity[this->m_mc->getDepletantIndexer()(type_a,type_b)]*V_tot));
+                std::abs(h_fugacity[type_a]*V_tot));
             unsigned int ntypes = this->m_pdata->getNTypes();
             hoomd::RandomGenerator rng_num(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNumClusters, timestep, seed),
                                            hoomd::Counter(type_a, type_b, i));
@@ -1064,12 +1068,9 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 template< class Shape >
 void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line)
     {
-    if (this->m_prof)
-        m_prof->push(m_exec_conf, "Transform");
-
     // store old locality data
     m_aabb_tree_old = m_mc->buildAABBTree();
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
         {
         ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -1103,15 +1104,11 @@ void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>
             h_image.data[i] = h_image.data[i] + img;
             }
         }
-
-    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 template< class Shape >
 void UpdaterClusters<Shape>::flip(uint64_t timestep)
     {
-    if (this->m_prof) this->m_prof->push("flip");
-
     // move every cluster independently
     m_count_total.n_clusters += m_clusters.size();
 
@@ -1151,16 +1148,11 @@ void UpdaterClusters<Shape>::flip(uint64_t timestep)
                 }
             } // end loop over clusters
         }
-
-    if (this->m_prof) this->m_prof->pop();
     }
 
 template< class Shape >
 void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf,"Interactions");
-
     // access parameters
     auto& params = m_mc->getParams();
 
@@ -1473,13 +1465,10 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
     bool has_depletants = false;
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
-        for (unsigned int j = 0; j < this->m_pdata->getNTypes(); ++j)
+        if (h_fugacity.data[i] != 0.0)
             {
-            if (h_fugacity.data[this->m_mc->getDepletantIndexer()(i,j)] != 0.0)
-                {
-                has_depletants = true;
-                break;
-                }
+            has_depletants = true;
+            break;
             }
         }
 
@@ -1509,9 +1498,6 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         });
     }); // end task arena execute()
     #endif
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Shape>
@@ -1546,12 +1532,9 @@ void UpdaterClusters<Shape>::backupState()
 template<class Shape>
 void UpdaterClusters<Shape>::connectedComponents()
     {
-    if (this->m_prof) this->m_prof->push("connected components");
-
     // compute connected components
     m_clusters.clear();
     m_G.connectedComponents(m_clusters);
-    if (this->m_prof) this->m_prof->pop();
     }
 
 /*! Perform a cluster move
@@ -1572,8 +1555,6 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
 
     // if no particles, exit early
     if (! m_pdata->getNGlobal()) return;
-
-    if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     const uint16_t seed = m_sysdef->getSeed();
 
@@ -1625,7 +1606,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         f.z = 0.5;
         }
 
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     pivot = vec3<Scalar>(box.makeCoordinates(f));
     if (m_sysdef->getNDimensions() == 2)
         {
@@ -1645,22 +1626,8 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
     // determine which particles interact
     findInteractions(timestep, q, pivot, line);
 
-    if (this->m_prof)
-        this->m_prof->push("fill");
-
-    // fill in the cluster bonds, using bond formation probability defined in Liu and Luijten
-
-    if (m_prof)
-        m_prof->push("realloc");
-
     // resize the number of graph nodes in place
     m_G.resize(this->m_pdata->getN());
-
-    if (m_prof)
-        m_prof->pop();
-
-    if (m_prof)
-        m_prof->push("overlap");
 
     #ifdef ENABLE_TBB_TASK
     this->m_exec_conf->getTaskArena()->execute([&]{
@@ -1683,10 +1650,6 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         );
     }); // end task arena execute()
     #endif
-
-    if (m_prof)
-        m_prof->pop();
-
 
     if (m_mc->getPatchEnergy())
         {
@@ -1762,15 +1725,11 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         #endif
         } // end if (patch)
 
-    if (m_prof) m_prof->pop(m_exec_conf);
-
     // compute connected components
     connectedComponents();
 
     // flip clusters randomly
     flip(timestep);
-
-    if (m_prof) m_prof->pop(m_exec_conf);
 
     m_mc->invalidateAABBTree();
     }
@@ -1780,7 +1739,7 @@ namespace detail {
 template < class Shape> void export_UpdaterClusters(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< UpdaterClusters<Shape>, Updater, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str())
-          .def( pybind11::init< std::shared_ptr<SystemDefinition>,
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>,
                          std::shared_ptr< IntegratorHPMCMono<Shape> > >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
         .def_property("pivot_move_probability", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)

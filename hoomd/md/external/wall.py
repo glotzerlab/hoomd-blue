@@ -1,11 +1,141 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Wall potentials.
+r"""Wall forces.
 
-Wall potentials add forces to any particles within a certain distance,
-:math:`r_{\mathrm{cut}}`, of each wall surface. In the extrapolated mode, all
-particles outside of the wall boundary are included as well.
+Wall potential classes compute forces, virials, and energies between all
+particles and the given walls consistent with the energy:
+
+.. math::
+
+    U_\mathrm{wall} = \sum_{i=0}^{\mathrm{N_particles-1}}
+                      \sum_{w \in walls} U_w(d_i),
+
+where :math:`d_i` is the signed distance between particle :math:`i` and the wall
+:math:`w`.
+
+The potential :math:`U_w(d)` is a function of the signed cutoff distance between
+the particle and a wall's surface :math:`d`. The resulting force :math:`\vec{F}`
+is is parallel to :math:`\vec{d}`, the vector pointing from the closest point on
+the wall's surface to the particle. :math:`U_w(d)` is related to a pair
+potential :math:`U_{\mathrm{pair}}` as defined below and each subclass of
+`WallPotential` implements a different functional form of
+:math:`U_{\mathrm{pair}}`.
+
+Walls are two-sided surfaces with positive signed distances to points on the
+active side of the wall and negative signed distances to points on the inactive
+side. Additionally, the wall's mode controls how forces and energies are
+computed for particles on or near the inactive side. The ``inside`` flag (or
+``normal`` in the case of `hoomd.wall.Plane`) determines which side of the
+surface is active.
+
+.. rubric:: Standard Mode
+
+In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
+energy is only computed on the active side. :math:`U(d)` is evaluated in the
+same manner as when the mode is shift for the analogous :py:mod:`pair
+<hoomd.md.pair>` potentials within the boundaries of the active space:
+
+.. math::
+
+    U(d) = U_{\mathrm{pair}}(d) - U_{\mathrm{pair}}(r_{\mathrm{cut}})
+
+For ``open=True`` spaces:
+
+.. math::
+
+    \vec{F} =
+    \begin{cases}
+    -\frac{\partial U}{\partial d}\hat{d} & 0 < d < r_{\mathrm{cut}} \\
+    0 & d \ge r_{\mathrm{cut}} \\
+    0 & d \le 0
+    \end{cases}
+
+For ``open=False`` (closed) spaces:
+
+.. math::
+    \vec{F} =
+    \begin{cases}
+    -\frac{\partial U}{\partial d}\hat{d} & 0 \le d < r_{\mathrm{cut}} \\
+    0 & d \ge r_{\mathrm{cut}} \\
+    0 & d < 0
+    \end{cases}
+
+Below we show the potential for a `hoomd.wall.Sphere` with radius 5 in 2D,
+using the Gaussian potential with :math:`\epsilon=1, \sigma=1` and
+``inside=True``:
+
+.. image:: md-wall-potential.svg
+    :alt: Example plot of wall potential.
+
+When ``inside=False``, the potential becomes:
+
+.. image:: md-wall-potential-outside.svg
+    :alt: Example plot of an outside wall potential.
+
+.. rubric:: Extrapolated Mode:
+
+The wall potential can be linearly extrapolated starting at
+:math:`d = r_{\mathrm{extrap}}` on the active side and continuing to the
+inactive side. This can be useful to move particles from the inactive side
+to the active side.
+
+The extrapolated potential has the following form:
+
+.. math::
+    V_{\mathrm{extrap}}(d) =
+    \begin{cases}
+    U(d) & d > r_{\rm extrap} \\
+    U(r_{\rm extrap}) + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap})
+    \cdot \vec{n} & d \le r_{\rm extrap}
+    \end{cases}
+
+where :math:`\vec{n}` is such that the force points towards the active space
+for repulsive potentials. This gives an effective force on the particle due
+to the wall:
+
+.. math::
+    \vec{F}(d) =
+    \begin{cases}
+    \vec{F}(d) & d > r_{\rm extrap} \\
+    \vec{F}(r_{\rm extrap}) & d \le r_{\rm extrap}
+    \end{cases}
+
+Below is an example of extrapolation with ``r_extrap=1.1`` for a LJ
+potential with :math:`\epsilon=1, \sigma=1`.
+
+.. image:: md-wall-extrapolate.svg
+    :alt: Example plot demonstrating potential extrapolation.
+
+To use extrapolated mode ``r_extrap`` must be set per particle type.
+
+.. attention::
+    Walls are fixed in space and do not adjust with the box size. For
+    example, NPT simulations may not behave as expected.
+
+Note:
+    - The virial due to walls is computed, but the pressure computed and
+      reported by `hoomd.md.compute.ThermodynamicQuantities` is not well
+      defined. The volume (or area) of the box enters into the pressure
+      computation, which is not correct in a confined system. It may not
+      even be possible to define an appropriate volume with soft walls.
+    - An effective use of wall forces **requires** considering the geometry
+      of the system. Each wall is only evaluated in one simulation box and
+      thus is not periodic. Forces will be evaluated and added to all
+      particles from all walls. Additionally there are no
+      safeguards requiring a wall to exist inside the box to have
+      interactions. This means that an attractive force existing outside the
+      simulation box would pull particles across the periodic boundary where
+      they would immediately cease to have any interaction with that wall.
+      It is therefore up to the user to use walls in a physically meaningful
+      manner. This includes the geometry of the walls, their interactions,
+      and as noted here their location.
+    - When :math:`r_{\mathrm{cut}} \le 0` or is set to ``False`` the
+      particle type wall interaction is excluded.
+    - While wall potentials are based on the same potential energy
+      calculations as pair potentials, features of pair potentials such as
+      specified neighborlists, and alternative force shifting modes are not
+      supported.
 """
 
 from hoomd.md import force
@@ -42,135 +172,7 @@ class _WallArrayViewFactory:
 
 
 class WallPotential(force.Force):
-    r"""Generic wall potential.
-
-    Wall potential classes compute the potential energy and force between all
-    particles and the given walls. The potential :math:`V(d)` is a function of
-    the signed cutoff distance between the particle and wall's surface
-    :math:`d`. The resulting force :math:`\vec{F}` is is parallel to
-    :math:`\vec{d}`, the vector pointing from the closest point on the wall's
-    surface to the particle. :math:`V(d)` is related to a pair potential
-    :math:`V_{\mathrm{pair}}` as defined below and each subclass of
-    `WallPotential` implements a different functional form of
-    :math:`V_{\mathrm{pair}}`.
-
-    Walls are two-sided surfaces with positive signed distances to points on the
-    active side of the wall and negative signed distances to points on the
-    inactive side. Additionally, the wall's mode controls how forces and
-    energies are computed for particles on or near the inactive side. The
-    ``inside`` flag (or ``normal`` in the case of `hoomd.wall.Plane`) determines
-    which side of the surface is active.
-
-    .. rubric:: Standard Mode
-
-    In the standard mode, when :math:`r_{\mathrm{extrap}} \le 0`, the potential
-    energy is only computed on the active side. :math:`V(d)` is evaluated in the
-    same manner as when the mode is shift for the analogous :py:mod:`pair
-    <hoomd.md.pair>` potentials within the boundaries of the active space:
-
-    .. math::
-
-        V(d)  = V_{\mathrm{pair}}(d) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
-
-    For ``open=True`` spaces:
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        \vec{F}  = & -\frac{\partial V}{\partial d}\hat{d}
-                   \,\,\, & 0 < d < r_{\mathrm{cut}} \\
-                 = & 0 & d \ge r_{\mathrm{cut}} \\
-                 = & 0 & d \le 0
-        \end{eqnarray*}
-
-    For ``open=False`` (closed) spaces:
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        \vec{F}  = & -\frac{\partial V}{\partial d}\hat{d}
-                   \,\,\, & 0 \le d < r_{\mathrm{cut}} \\
-                 = & 0 & d \ge r_{\mathrm{cut}} \\
-                 = & 0 & d < 0
-        \end{eqnarray*}
-
-    Below we show the potential for a `hoomd.wall.Sphere` with radius 5 in 2D,
-    using the Gaussian potential with :math:`\epsilon=1, \sigma=1` and
-    ``inside=True``.
-
-    .. image:: md-wall-potential.svg
-
-    When ``inside=False`` the potential becomes,
-
-    .. image:: md-wall-potential-outside.svg
-
-    .. rubric: Extrapolated Mode:
-
-    The wall potential can be linearly extrapolated starting at
-    :math:`d = r_{\mathrm{extrap}}` on the active side and continuing to the
-    inactive side. This can be useful to move particles from the inactive side
-    to the active side.
-
-    The extrapolated potential has the following form:
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        V_{\mathrm{extrap}}(d) =& V(d) \,\,\,& d > r_{\rm extrap} \\
-             =& V(r_{\rm extrap})
-                + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap})
-                \cdot \vec{n}& r \le r_{\rm extrap}
-        \end{eqnarray*}
-
-    where :math:`\vec{n}` is such that the force points towards the active space
-    for repulsive potentials. This gives an effective force on the particle due
-    to the wall:
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        \vec{F}(r) =& \vec{F}(d) \,\,\,& d > r_{\rm extrap} \\
-                =& \vec{F}(r_{\rm extrap}) & r \le r_{\rm extrap}
-        \end{eqnarray*}
-
-    Below is an example of extrapolation with ``r_extrap=1.1`` for a LJ
-    potential with :math:`\epsilon=1, \sigma=1`.
-
-    .. image:: md-wall-extrapolate.svg
-
-    To use extrapolated mode ``r_extrap`` must be set per particle type.
-
-    .. attention::
-        Walls are fixed in space and do not adjust with the box size. For
-        example, NPT simulations may not behave as expected.
-
-    Note:
-        - The virial due to walls is computed, but the pressure computed and
-          reported by ``hoomd.md.compute.ThermodynamicQuantities`` is not well
-          defined. The volume (or area) of the box enters into the pressure
-          computation, which is not correct in a confined system. It may not
-          even be possible to define an appropriate volume with soft walls.
-        - An effective use of wall forces **requires** considering the geometry
-          of the system. Each wall is only evaluated in one simulation box and
-          thus is not periodic. Forces will be evaluated and added to all
-          particles from all walls. Additionally there are no
-          safeguards requiring a wall to exist inside the box to have
-          interactions. This means that an attractive force existing outside the
-          simulation box would pull particles across the periodic boundary where
-          they would immediately cease to have any interaction with that wall.
-          It is therefore up to the user to use walls in a physically meaningful
-          manner. This includes the geometry of the walls, their interactions,
-          and as noted here their location.
-        - When :math:`r_{\mathrm{cut}} \le 0` or is set to ``False`` the
-          particle type wall interaction is excluded.
-        - While wall potentials are based on the same potential energy
-          calculations as pair potentials, features of pair potentials such as
-          specified neighborlists, and alternative force shifting modes are not
-          supported.
+    r"""Base class wall force.
 
     Warning:
         `WallPotential` should not be used directly.  It is a base class that
@@ -212,18 +214,31 @@ class WallPotential(force.Force):
         if self._walls is wall_list:
             return
         self._walls = hoomd.wall._WallsMetaList(wall_list, _to_md_cpp_wall)
+        if self._attached:
+            self._walls._sync({
+                hoomd.wall.Sphere:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj,
+                                              hoomd.wall.Sphere)),
+                hoomd.wall.Cylinder:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj,
+                                              hoomd.wall.Cylinder)),
+                hoomd.wall.Plane:
+                    _ArrayViewWrapper(
+                        _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
+            })
 
 
 class LJ(WallPotential):
-    r"""Lennard-Jones wall potential.
+    r"""Lennard-Jones wall force.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
-    Wall force evaluated using the Lennard-Jones potential.  See
-    `hoomd.md.pair.LJ` for force details and base parameters and `WallPotential`
-    for generalized wall potential implementation.
+    Wall force evaluated using the Lennard-Jones force. See `hoomd.md.pair.LJ`
+    for the functional form of the force and parameter definitions.
 
     Example::
 
@@ -245,9 +260,8 @@ class LJ(WallPotential):
         * ``r_cut`` (`float`, **required**) -
           The cut off distance for the wall potential :math:`[\mathrm{length}]`
         * ``r_extrap`` (`float`, **optional**) -
-          The distance to extrapolate the potential, defauts to 0
-          :math:`[\mathrm{length}]`
-          .
+          The distance to extrapolate the potential, defaults to 0
+          :math:`[\mathrm{length}]`.
 
         Type: `TypeParameter` [``particle_types``, `dict`]
     """
@@ -270,15 +284,14 @@ class LJ(WallPotential):
 
 
 class Gauss(WallPotential):
-    r"""Gaussian wall potential.
+    r"""Gaussian wall force.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
-    Wall force evaluated using the Gaussian potential.  See
-    `hoomd.md.pair.Gauss` for force details and base parameters and
-    `WallPotential` for generalized wall potential implementation.
+    Wall force evaluated using the Gaussian force.  See `hoomd.md.pair.Gauss`
+    for the functional form of the force and parameter definitions.
 
     Example::
 
@@ -290,7 +303,7 @@ class Gauss(WallPotential):
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
     .. py:attribute:: params
 
@@ -328,15 +341,14 @@ class Gauss(WallPotential):
 
 
 class Yukawa(WallPotential):
-    r"""Yukawa wall potential.
+    r"""Yukawa wall force.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
-    Wall force evaluated using the Yukawa potential.  See `hoomd.md.pair.Yukawa`
-    for force details and base parameters and `WallPotential` for generalized
-    wall potential implementation.
+    Wall force evaluated using the Yukawa force.  See `hoomd.md.pair.Yukawa`
+    for the functional form of the force and parameter definitions.
 
     Example::
 
@@ -350,7 +362,7 @@ class Yukawa(WallPotential):
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
     .. py:attribute:: params
 
@@ -388,15 +400,15 @@ class Yukawa(WallPotential):
 
 
 class Morse(WallPotential):
-    r"""Morse wall potential.
+    r"""Morse wall force.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
-    Wall force evaluated using the Morse potential.  See
-    :py:class:`hoomd.md.pair.Morse` for force details and base parameters and
-    :py:class:`WallPotential` for generalized wall potential implementation.
+    Wall force evaluated using the Morse force.  See
+    :py:class:`hoomd.md.pair.Morse` for the functional form of the force and
+    parameter definitions.
 
     Example::
 
@@ -410,7 +422,7 @@ class Morse(WallPotential):
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
     .. py:attribute:: params
 
@@ -449,15 +461,15 @@ class Morse(WallPotential):
 
 
 class ForceShiftedLJ(WallPotential):
-    r"""Force-shifted Lennard-Jones wall potential.
+    r"""Force-shifted Lennard-Jones wall force.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
-    Wall force evaluated using the Force-shifted Lennard-Jones potential.  See
-    `hoomd.md.pair.ForceShiftedLJ` for force details and base parameters and
-    `WallPotential` for generalized wall potential implementation.
+    Wall force evaluated using the Force-shifted Lennard-Jones force.  See
+    `hoomd.md.pair.ForceShiftedLJ` for the functional form of the force and
+    parameter definitions.
 
     Example::
 
@@ -471,7 +483,7 @@ class ForceShiftedLJ(WallPotential):
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
     .. py:attribute:: params
 
@@ -509,15 +521,14 @@ class ForceShiftedLJ(WallPotential):
 
 
 class Mie(WallPotential):
-    r"""Mie wall potential.
+    r"""Mie wall force.
 
     Args:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
-    Wall force evaluated using the Mie potential.  See `hoomd.md.pair.Mie` for
-    force details and base parameters and `WallPotential` for generalized wall
-    potential implementation.
+    Wall force evaluated using the Mie force.  See `hoomd.md.pair.Mie` for the
+    functional form of the force and parameter definitions.
 
     Example::
 
@@ -530,7 +541,7 @@ class Mie(WallPotential):
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions
-            to use for the potential.
+            to use for the force.
 
     .. py:attribute:: params
 

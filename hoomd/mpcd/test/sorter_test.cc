@@ -19,7 +19,7 @@ template<class T> void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_
     {
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
         {
         // embed one particle
@@ -212,7 +212,7 @@ template<class T> void sorter_virtual_test(std::shared_ptr<ExecutionConfiguratio
     {
     // default initialize an empty snapshot in the reference box
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 

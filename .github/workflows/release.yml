@@ -10,12 +10,11 @@ on:
   # Trigger on pull requests.
   pull_request:
 
-  # Trigger on pushes to the mainline branches. This prevents building commits twice when the pull
+  # Trigger on pushes to the trunk branches. This prevents building commits twice when the pull
   # request source branch is in the same repository.
   push:
     branches:
-    - "master"
-    - "maint"
+    - "trunk-*"
     # Trigger on tags. Tag builds create GitHub releases with the change log and source tarball.
     tags:
       - "v*"
@@ -37,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3.0.0
         with:
           fetch-depth: 0
           submodules: true
@@ -67,7 +66,7 @@ jobs:
         run: tar -cvzf ${name}-${tag}.tar.gz ${name}-${tag}
 
       - name: Upload release files
-        uses: actions/upload-artifact@v2.3.1
+        uses: actions/upload-artifact@v3.0.0
         with:
           name: release
           path: |
@@ -81,7 +80,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v2.1.0
+        uses: actions/download-artifact@v3.0.0
         with:
           name: release
 

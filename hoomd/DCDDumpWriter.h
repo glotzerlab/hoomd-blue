@@ -52,6 +52,7 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     public:
     //! Construct the writer
     DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<Trigger> trigger,
                   const std::string& fname,
                   unsigned int period,
                   std::shared_ptr<ParticleGroup> group,

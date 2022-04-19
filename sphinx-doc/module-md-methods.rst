@@ -33,6 +33,7 @@ md.methods
               NVE,
               NVT,
               OverdampedViscous
+    :show-inheritance:
 
 .. rubric:: Modules
 

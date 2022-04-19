@@ -104,10 +104,6 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
 
-    // start the profile for this compute
-    if (this->m_prof)
-        this->m_prof->push(this->m_prof_name);
-
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
@@ -137,7 +133,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     ArrayHandle<Scalar4> h_force(this->m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(this->m_virial, access_location::host, access_mode::overwrite);
 
-    const BoxDim& box = this->m_pdata->getBox();
+    const BoxDim box = this->m_pdata->getBox();
     ArrayHandle<Scalar> h_ronsq(this->m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
 
@@ -269,9 +265,6 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
         for (unsigned int l = 0; l < 6; l++)
             h_virial.data[l * this->m_virial_pitch + mem_idx] += viriali[l];
         }
-
-    if (this->m_prof)
-        this->m_prof->pop();
     }
 
 #ifdef ENABLE_MPI

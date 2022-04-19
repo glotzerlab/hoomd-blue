@@ -41,11 +41,10 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-
     GPUArray<Scalar> sum(1, m_exec_conf);
     m_sum.swap(sum);
 
-    m_block_size=256;
+    m_block_size = 256;
     unsigned int group_size = m_pdata->getN();
     m_num_blocks = group_size / m_block_size + 1;
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
@@ -75,12 +74,7 @@ void VolumeConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar 
  */
 void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
-
     computeVolume();
-
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "VolumeConstraint");
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -146,9 +140,6 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
             }
         }
     m_tuner->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! Actually perform the force computation
@@ -156,10 +147,6 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
  */
 void VolumeConservationMeshForceComputeGPU::computeVolume()
     {
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "VolumeCalculation");
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
@@ -191,8 +178,8 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
     ArrayHandle<Scalar> d_sumVol(m_sum, access_location::device, access_mode::overwrite);
 
     kernel::gpu_compute_volume_constraint_volume(d_sumVol.data,
-                                                 d_partial_sumVol.data, 
-						 m_pdata->getN(),
+                                                 d_partial_sumVol.data,
+                                                 m_pdata->getN(),
                                                  d_pos.data,
                                                  d_image.data,
                                                  box,
@@ -221,9 +208,6 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
         }
 #endif
     m_volume = h_sumVol.data[0];
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail

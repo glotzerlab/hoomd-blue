@@ -70,5 +70,8 @@ class BuildInfo
 
     /// Get the installation directory
     static std::string getInstallDir();
+
+    /// Get the floating point precision
+    static std::pair<unsigned int, unsigned int> getFloatingPointPrecision();
     };
     } // namespace hoomd

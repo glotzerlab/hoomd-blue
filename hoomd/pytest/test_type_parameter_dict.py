@@ -169,19 +169,19 @@ class TestTypeParameterDict(BaseMappingTest):
 
     # we use populated_collection to ensure that types are correctly captured
     # for TestTypeParameterDictAttached.
-    def test_validated_keys(self, populated_collection, valid_key_specs,
-                            invalid_key_specs):
+    def test_invalid_keys(self, populated_collection, valid_key_specs,
+                          invalid_key_specs):
         test_mapping, _ = populated_collection
         for key_spec, expected_keys in valid_key_specs(self._len_keys):
-            assert set(test_mapping._validated_keys(key_spec)) == expected_keys
+            assert set(test_mapping._indexer(key_spec)) == expected_keys
         for key_spec in invalid_key_specs(self._len_keys):
             with pytest.raises(KeyError):
-                list(test_mapping._validated_keys(key_spec))
+                test_mapping[key_spec]
         if self._len_keys == 1:
             return
         for key_spec, expected_keys in valid_key_specs(1):
             with pytest.raises(KeyError):
-                list(test_mapping._validated_keys(key_spec))
+                test_mapping[key_spec]
 
     def test_defaults(self, populated_collection):
         test_mapping, _ = populated_collection

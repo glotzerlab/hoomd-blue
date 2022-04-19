@@ -34,7 +34,6 @@ namespace hoomd
     {
 //! Forward declarations for some classes
 class SystemDefinition;
-class Profiler;
 struct BoxDim;
 class ParticleData;
 
@@ -85,15 +84,6 @@ class PYBIND11_EXPORT Communicator
      * \param period period (approximate) in time steps when returning occurs
      */
     virtual void setAutotunerParams(bool enable, unsigned int period) { }
-
-    //! Set the profiler.
-    /*!
-     * \param prof Profiler to use with this class
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
 
     //@}
 
@@ -177,7 +167,6 @@ class PYBIND11_EXPORT Communicator
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
-    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
     bool m_is_communicating;    //!< Whether we are currently communicating
     bool m_check_decomposition; //!< Flag to check the simulation box decomposition

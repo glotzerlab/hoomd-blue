@@ -38,6 +38,7 @@ class PYBIND11_EXPORT ActiveRotationalDiffusionUpdater : public Updater
     public:
     /// Constructor
     ActiveRotationalDiffusionUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger,
                                      std::shared_ptr<Variant> rotational_diffusion,
                                      std::shared_ptr<ActiveForceCompute> active_force);
 

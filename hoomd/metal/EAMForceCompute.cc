@@ -297,10 +297,6 @@ void EAMForceCompute::computeForces(uint64_t timestep)
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
-    // start the profile for this compute
-    if (m_prof)
-        m_prof->push("EAM pair");
-
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == md::NeighborList::half;
@@ -564,16 +560,6 @@ void EAMForceCompute::computeForces(uint64_t timestep)
         for (int k = 0; k < 6; k++)
             h_virial.data[k * virial_pitch + i] += viriali[k];
         }
-
-    int64_t flops = m_pdata->getN() * 5 + n_calc * (3 + 5 + 9 + 1 + 9 + 6 + 8);
-    if (third_law)
-        flops += n_calc * 8;
-    int64_t mem_transfer
-        = m_pdata->getN() * (5 + 4 + 10) * sizeof(Scalar) + n_calc * (1 + 3 + 1) * sizeof(Scalar);
-    if (third_law)
-        mem_transfer += n_calc * 10 * sizeof(Scalar);
-    if (m_prof)
-        m_prof->pop(flops, mem_transfer);
     }
 
 void EAMForceCompute::set_neighbor_list(std::shared_ptr<md::NeighborList> nlist)

@@ -129,10 +129,6 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
 template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "RATTLELangevin step 1");
-
     if (this->m_box_changed)
         {
         if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
@@ -215,10 +211,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -228,10 +220,6 @@ template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
-
-    // profile this step
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "RATTLELangevin step 2");
 
     // get the dimensionality of the system
     const unsigned int D = this->m_sysdef->getNDimensions();
@@ -354,9 +342,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         this->m_reservoir_energy -= h_sumBD.data[0] * this->m_deltaT;
         this->m_extra_energy_overdeltaT = 0.5 * h_sumBD.data[0];
         }
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Manifold>

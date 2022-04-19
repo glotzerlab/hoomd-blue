@@ -5,6 +5,7 @@
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoNEC.h"
 
 #include "ComputeSDF.h"
 #include "ShapeSphere.h"
@@ -17,7 +18,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
@@ -35,6 +35,7 @@ namespace detail
 void export_sphere(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeSphere>(m, "IntegratorHPMCMonoSphere");
+    export_IntegratorHPMCMonoNEC<ShapeSphere>(m, "IntegratorHPMCMonoNECSphere");
     export_ComputeFreeVolume<ShapeSphere>(m, "ComputeFreeVolumeSphere");
     export_ComputeSDF<ShapeSphere>(m, "ComputeSDFSphere");
     export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");
@@ -44,7 +45,6 @@ void export_sphere(pybind11::module& m)
     export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
-    export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
 
 #ifdef ENABLE_HIP

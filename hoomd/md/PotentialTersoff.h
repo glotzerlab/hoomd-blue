@@ -65,9 +65,6 @@ namespace md
    parameters is defined by \a param_type in the potential evaluator class passed in. See the
    appropriate documentation for the evaluator for the definition of each element of the parameters.
 
-    For profiling PotentialTersoff needs to know the name of the potential. For
-    now, that will be queried from the evaluator.
-
     \sa export_PotentialTersoff()
 */
 template<class evaluator> class PotentialTersoff : public ForceCompute
@@ -115,7 +112,6 @@ template<class evaluator> class PotentialTersoff : public ForceCompute
     Index2D m_typpair_idx;                 //!< Helper class for indexing per type pair arrays
     GPUArray<Scalar> m_rcutsq;             //!< Cutoff radius squared per type pair
     GPUArray<param_type> m_params;         //!< Pair parameters per type pair
-    std::string m_prof_name;               //!< Cached profiler name
 
     // track whether we are attached to the simulation
     bool m_attached = true;
@@ -148,9 +144,6 @@ PotentialTersoff<evaluator>::PotentialTersoff(std::shared_ptr<SystemDefinition> 
     m_r_cut_nlist
         = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
-
-    // initialize name
-    m_prof_name = std::string("Triplet ") + evaluator::getName();
     }
 
 template<class evaluator> PotentialTersoff<evaluator>::~PotentialTersoff()
@@ -270,10 +263,6 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         // start by updating the neighborlist
         m_nlist->compute(timestep);
 
-        // start the profile for this compute
-        if (m_prof)
-            m_prof->push(m_prof_name);
-
         // The three-body potentials can't handle a half neighbor list, so check now.
         bool third_law = m_nlist->getStorageMode() == NeighborList::half;
         if (third_law)
@@ -306,7 +295,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -537,10 +526,6 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         // start by updating the neighborlist
         m_nlist->compute(timestep);
 
-        // start the profile for this compute
-        if (m_prof)
-            m_prof->push(m_prof_name);
-
         // The three-body potentials can't handle a half neighbor list, so check now.
         bool third_law = m_nlist->getStorageMode() == NeighborList::half;
         if (third_law)
@@ -573,7 +558,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
         PDataFlags flags = this->m_pdata->getFlags();
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -967,9 +952,6 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                 }
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI

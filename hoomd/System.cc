@@ -21,10 +21,8 @@ using namespace std;
 
 // the typedef works around an issue with older versions of the preprocessor
 // specifically, gcc8
-typedef std::pair<std::shared_ptr<hoomd::Analyzer>, std::shared_ptr<hoomd::Trigger>> _analyzer_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_analyzer_pair>)
-typedef std::pair<std::shared_ptr<hoomd::Updater>, std::shared_ptr<hoomd::Trigger>> _updater_pair;
-PYBIND11_MAKE_OPAQUE(std::vector<_updater_pair>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Analyzer>>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Updater>>)
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::Tuner>>)
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ParticleGroup>>);
 
@@ -34,12 +32,10 @@ namespace hoomd
     \param initial_tstep Initial time step of the simulation
 
     \post The System is constructed with no attached computes, updaters,
-    analyzers or integrators. Profiling defaults to disabled and
-    statistics are printed every 10 seconds.
+    analyzers or integrators.
 */
 System::System(std::shared_ptr<SystemDefinition> sysdef, uint64_t initial_tstep)
-    : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
-      m_profile(false)
+    : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep)
     {
     // sanity check
     assert(m_sysdef);
@@ -88,7 +84,6 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
     // initialize the last status time
     m_initial_time = m_clk.getTime();
-    setupProfiling();
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
     // info they need but set the flags before prepRun, as prepRun may remove some flags that it
@@ -123,10 +118,10 @@ void System::run(uint64_t nsteps, bool write_at_start)
     // execute analyzers on initial step if requested
     if (write_at_start)
         {
-        for (auto& analyzer_trigger_pair : m_analyzers)
+        for (auto& analyzer : m_analyzers)
             {
-            if ((*analyzer_trigger_pair.second)(m_cur_tstep))
-                analyzer_trigger_pair.first->analyze(m_cur_tstep);
+            if ((*analyzer->getTrigger())(m_cur_tstep))
+                analyzer->analyze(m_cur_tstep);
             }
         }
 
@@ -140,13 +135,12 @@ void System::run(uint64_t nsteps, bool write_at_start)
             }
 
         // execute updaters
-        for (auto& updater_trigger_pair : m_updaters)
+        for (auto& updater : m_updaters)
             {
-            if ((*updater_trigger_pair.second)(m_cur_tstep))
+            if ((*updater->getTrigger())(m_cur_tstep))
                 {
-                updater_trigger_pair.first->update(m_cur_tstep);
-                m_update_group_dof_next_step
-                    |= updater_trigger_pair.first->mayChangeDegreesOfFreedom(m_cur_tstep);
+                updater->update(m_cur_tstep);
+                m_update_group_dof_next_step |= updater->mayChangeDegreesOfFreedom(m_cur_tstep);
                 }
             }
 
@@ -168,19 +162,19 @@ void System::run(uint64_t nsteps, bool write_at_start)
         m_cur_tstep++;
 
         // execute analyzers after incrementing the step counter
-        for (auto& analyzer_trigger_pair : m_analyzers)
+        for (auto& analyzer : m_analyzers)
             {
-            if ((*analyzer_trigger_pair.second)(m_cur_tstep))
-                analyzer_trigger_pair.first->analyze(m_cur_tstep);
+            if ((*analyzer->getTrigger())(m_cur_tstep))
+                analyzer->analyze(m_cur_tstep);
             }
 
         updateTPS();
+        }
 
-        // propagate Python exceptions related to signals
-        if (PyErr_CheckSignals() != 0)
-            {
-            throw pybind11::error_already_set();
-            }
+    // propagate Python exceptions related to signals
+    if (PyErr_CheckSignals() != 0)
+        {
+        throw pybind11::error_already_set();
         }
 
 #ifdef ENABLE_MPI
@@ -201,13 +195,6 @@ void System::updateTPS()
     m_last_TPS = double(m_cur_tstep - m_start_tstep) / m_last_walltime;
     }
 
-/*! \param enable Set to true to enable profiling during calls to run()
- */
-void System::enableProfiler(bool enable)
-    {
-    m_profile = enable;
-    }
-
 /*! \param enable Enable/disable autotuning
     \param period period (approximate) in time steps when returning occurs
 */
@@ -218,12 +205,12 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         m_integrator->setAutotunerParams(enabled, period);
 
     // analyzers
-    for (auto& analyzer_trigger_pair : m_analyzers)
-        analyzer_trigger_pair.first->setAutotunerParams(enabled, period);
+    for (auto& analyzer : m_analyzers)
+        analyzer->setAutotunerParams(enabled, period);
 
     // updaters
-    for (auto& updater_trigger_pair : m_updaters)
-        updater_trigger_pair.first->setAutotunerParams(enabled, period);
+    for (auto& updater : m_updaters)
+        updater->setAutotunerParams(enabled, period);
 
     // computes
     for (auto compute : m_computes)
@@ -237,59 +224,18 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
 
 // --------- Steps in the simulation run implemented in helper functions
 
-void System::setupProfiling()
-    {
-    if (m_profile)
-        m_profiler = std::shared_ptr<Profiler>(new Profiler("Simulation"));
-    else
-        m_profiler = std::shared_ptr<Profiler>();
-
-    // set the profiler on everything
-    if (m_integrator)
-        m_integrator->setProfiler(m_profiler);
-    m_sysdef->getParticleData()->setProfiler(m_profiler);
-    m_sysdef->getBondData()->setProfiler(m_profiler);
-    m_sysdef->getPairData()->setProfiler(m_profiler);
-    m_sysdef->getAngleData()->setProfiler(m_profiler);
-    m_sysdef->getDihedralData()->setProfiler(m_profiler);
-    m_sysdef->getImproperData()->setProfiler(m_profiler);
-    m_sysdef->getConstraintData()->setProfiler(m_profiler);
-
-    // analyzers
-    for (auto& analyzer_trigger_pair : m_analyzers)
-        analyzer_trigger_pair.first->setProfiler(m_profiler);
-
-    // updaters
-    for (auto& updater_trigger_pair : m_updaters)
-        {
-        if (!updater_trigger_pair.first)
-            throw runtime_error("Invalid updater_trigger_pair");
-        updater_trigger_pair.first->setProfiler(m_profiler);
-        }
-
-    // computes
-    for (auto compute : m_computes)
-        compute->setProfiler(m_profiler);
-
-#ifdef ENABLE_MPI
-    // communicator
-    if (m_sysdef->isDomainDecomposed())
-        m_comm->setProfiler(m_profiler);
-#endif
-    }
-
 void System::resetStats()
     {
     if (m_integrator)
         m_integrator->resetStats();
 
     // analyzers
-    for (auto& analyzer_trigger_pair : m_analyzers)
-        analyzer_trigger_pair.first->resetStats();
+    for (auto& analyzer : m_analyzers)
+        analyzer->resetStats();
 
     // updaters
-    for (auto& updater_trigger_pair : m_updaters)
-        updater_trigger_pair.first->resetStats();
+    for (auto& updater : m_updaters)
+        updater->resetStats();
 
     // computes
     for (auto compute : m_computes)
@@ -307,16 +253,16 @@ PDataFlags System::determineFlags(uint64_t tstep)
     if (m_integrator)
         flags |= m_integrator->getRequestedPDataFlags();
 
-    for (auto& analyzer_trigger_pair : m_analyzers)
+    for (auto& analyzer : m_analyzers)
         {
-        if ((*analyzer_trigger_pair.second)(tstep))
-            flags |= analyzer_trigger_pair.first->getRequestedPDataFlags();
+        if ((*analyzer->getTrigger())(tstep))
+            flags |= analyzer->getRequestedPDataFlags();
         }
 
-    for (auto& updater_trigger_pair : m_updaters)
+    for (auto& updater : m_updaters)
         {
-        if ((*updater_trigger_pair.second)(tstep))
-            flags |= updater_trigger_pair.first->getRequestedPDataFlags();
+        if ((*updater->getTrigger())(tstep))
+            flags |= updater->getRequestedPDataFlags();
         }
 
     for (auto& tuner : m_tuners)
@@ -350,14 +296,8 @@ namespace detail
     {
 void export_System(pybind11::module& m)
     {
-    pybind11::bind_vector<
-        std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>>(
-        m,
-        "AnalyzerTriggerList");
-    pybind11::bind_vector<
-        std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>>(
-        m,
-        "UpdaterTriggerList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Analyzer>>>(m, "AnalyzerList");
+    pybind11::bind_vector<std::vector<std::shared_ptr<Updater>>>(m, "UpdaterList");
     pybind11::bind_vector<std::vector<std::shared_ptr<Tuner>>>(m, "TunerList");
     pybind11::bind_vector<std::vector<std::shared_ptr<Compute>>>(m, "ComputeList");
 
@@ -368,7 +308,6 @@ void export_System(pybind11::module& m)
         .def("getIntegrator", &System::getIntegrator)
 
         .def("setAutotunerParams", &System::setAutotunerParams)
-        .def("enableProfiler", &System::enableProfiler)
         .def("run", &System::run)
 
         .def("getLastTPS", &System::getLastTPS)

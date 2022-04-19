@@ -16,6 +16,7 @@ namespace hoomd
 namespace md
     {
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                           std::shared_ptr<Trigger> trigger,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
                                            std::string slab_direction_str,
@@ -25,6 +26,7 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
                                            const unsigned int max_slab,
                                            Scalar flow_epsilon)
     : MuellerPlatheFlow(sysdef,
+                        trigger,
                         group,
                         flow_target,
                         slab_direction_str,
@@ -64,8 +66,6 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
         return;
     if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlowGPU::search");
     const ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                      access_location::device,
                                      access_mode::read);
@@ -106,15 +106,10 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     m_tuner->end();
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
     {
-    if (m_prof)
-        m_prof->push("MuellerPlatheFlowGPU::update");
     const ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(),
                                            access_location::device,
                                            access_mode::read);
@@ -132,9 +127,6 @@ void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
@@ -145,6 +137,7 @@ void export_MuellerPlatheFlowGPU(pybind11::module& m)
                      MuellerPlatheFlow,
                      std::shared_ptr<MuellerPlatheFlowGPU>>(m, "MuellerPlatheFlowGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
                             std::string,

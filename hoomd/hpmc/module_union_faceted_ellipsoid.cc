@@ -16,7 +16,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -56,9 +55,6 @@ void export_union_faceted_ellipsoid(pybind11::module& m)
         m,
         "ExternalFieldCompositeFacetedEllipsoidUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(m, "WallFacetedEllipsoidUnion");
-    export_UpdaterExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(
-        m,
-        "UpdaterExternalFieldWallFacetedEllipsoidUnion");
 
 #ifdef ENABLE_HIP
 

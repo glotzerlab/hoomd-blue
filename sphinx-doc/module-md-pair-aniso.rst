@@ -11,6 +11,7 @@ md.pair.aniso
 .. autosummary::
     :nosignatures:
 
+    ALJ
     AnisotropicPair
     Dipole
     GayBerne
@@ -19,6 +20,9 @@ md.pair.aniso
 
 .. automodule:: hoomd.md.pair.aniso
     :synopsis: Anisotropic pair potentials.
-    :members: AnisotropicPair,
+    :members:
+        ALJ,
+        AnisotropicPair,
         Dipole,
         GayBerne,
+    :show-inheritance:

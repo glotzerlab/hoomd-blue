@@ -63,7 +63,6 @@ template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     protected:
     GPUArray<param_type> m_params;      //!< Bond parameters per type
     std::shared_ptr<Bonds> m_bond_data; //!< Bond data to use in computing bonds
-    std::string m_prof_name;            //!< Cached profiler name
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -79,7 +78,6 @@ PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition>
 
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
@@ -97,7 +95,6 @@ PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition>
 
     // access the bond data for later use
     m_bond_data = meshdef->getMeshBondData();
-    m_prof_name = std::string("MeshBond ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
@@ -169,9 +166,6 @@ pybind11::dict PotentialBond<evaluator, Bonds>::getParams(std::string type)
 template<class evaluator, class Bonds>
 void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     assert(m_pdata);
 
     // access the particle data arrays
@@ -202,7 +196,7 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
     // we are using the minimum image of the global box here
     // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
     // length)
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
@@ -333,9 +327,6 @@ void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
             throw std::runtime_error("Error in bond calculation");
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI

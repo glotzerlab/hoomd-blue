@@ -29,9 +29,7 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
-    TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef,
-               std::shared_ptr<ParticleGroup> group,
-               bool skip_restart = false);
+    TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group);
     virtual ~TwoStepNVE();
 
     /// Get the movement limit

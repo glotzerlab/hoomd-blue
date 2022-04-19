@@ -2,14 +2,18 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUDepletants.cuh"
+#include "IntegratorHPMCMonoGPUDepletantsTypes.cuh"
 #include "hoomd/CachedAllocator.h"
 #include "hoomd/GPUPartition.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/reduce.h>
+#pragma GCC diagnostic pop
 
 namespace hoomd
     {
@@ -25,13 +29,12 @@ __global__ void generate_num_depletants(const uint16_t seed,
                                         const unsigned int select,
                                         const unsigned int rank,
                                         const unsigned int depletant_type_a,
-                                        const unsigned int depletant_type_b,
-                                        const Index2D depletant_idx,
                                         const unsigned int work_offset,
                                         const unsigned int nwork,
                                         const Scalar* d_lambda,
                                         const Scalar4* d_postype,
-                                        unsigned int* d_n_depletants)
+                                        unsigned int* d_n_depletants,
+                                        const unsigned int ntypes)
     {
     unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -42,14 +45,10 @@ __global__ void generate_num_depletants(const uint16_t seed,
 
     hoomd::RandomGenerator rng_poisson(
         hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, timestep, seed),
-        hoomd::Counter(idx,
-                       rank,
-                       depletant_idx(depletant_type_a, depletant_type_b),
-                       static_cast<uint16_t>(select)));
+        hoomd::Counter(idx, rank, depletant_type_a, static_cast<uint16_t>(select)));
     unsigned int type_i = __scalar_as_int(d_postype[idx].w);
     d_n_depletants[idx] = hoomd::PoissonDistribution<Scalar>(
-        d_lambda[type_i * depletant_idx.getNumElements()
-                 + depletant_idx(depletant_type_a, depletant_type_b)])(rng_poisson);
+        d_lambda[type_i * ntypes + depletant_type_a])(rng_poisson);
     }
 
 //! Generate number of depletants per particle (ntrial version)
@@ -57,14 +56,13 @@ __global__ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                                const Scalar4* d_trial_vel,
                                                const unsigned int ntrial,
                                                const unsigned int depletant_type_a,
-                                               const unsigned int depletant_type_b,
-                                               const Index2D depletant_idx,
                                                const Scalar* d_lambda,
                                                const Scalar4* d_postype,
                                                unsigned int* d_n_depletants,
                                                const unsigned int N_local,
                                                const unsigned int work_offset,
-                                               const unsigned int nwork)
+                                               const unsigned int nwork,
+                                               const unsigned int ntypes)
     {
     unsigned int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -83,13 +81,11 @@ __global__ void generate_num_depletants_ntrial(const Scalar4* d_vel,
     // draw a Poisson variate according to the seed stored in the auxillary variable (vel.x)
     unsigned int seed_i
         = new_config ? __scalar_as_int(d_trial_vel[i].x) : __scalar_as_int(d_vel[i].x);
-    hoomd::RandomGenerator rng_num(
-        hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, 0, 0),
-        hoomd::Counter(depletant_idx(depletant_type_a, depletant_type_b), seed_i, i_trial));
+    hoomd::RandomGenerator rng_num(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, 0, 0),
+                                   hoomd::Counter(depletant_type_a, seed_i, i_trial));
 
     unsigned int type_i = __scalar_as_int(d_postype[i].w);
-    Scalar lambda = d_lambda[type_i * depletant_idx.getNumElements()
-                             + depletant_idx(depletant_type_a, depletant_type_b)];
+    Scalar lambda = d_lambda[type_i * ntypes + depletant_type_a];
     unsigned int n = hoomd::PoissonDistribution<Scalar>(lambda)(rng_num);
 
     // store result
@@ -101,15 +97,15 @@ __global__ void hpmc_reduce_counters(const unsigned int ngpu,
                                      const hpmc_counters_t* d_per_device_counters,
                                      hpmc_counters_t* d_counters,
                                      const unsigned int implicit_pitch,
-                                     const Index2D depletant_idx,
                                      const hpmc_implicit_counters_t* d_per_device_implicit_counters,
-                                     hpmc_implicit_counters_t* d_implicit_counters)
+                                     hpmc_implicit_counters_t* d_implicit_counters,
+                                     const unsigned int ntypes)
     {
     for (unsigned int igpu = 0; igpu < ngpu; ++igpu)
         {
         *d_counters = *d_counters + d_per_device_counters[igpu * pitch];
 
-        for (unsigned int itype = 0; itype < depletant_idx.getNumElements(); ++itype)
+        for (unsigned int itype = 0; itype < ntypes; ++itype)
             d_implicit_counters[itype]
                 = d_implicit_counters[itype]
                   + d_per_device_implicit_counters[itype + igpu * implicit_pitch];
@@ -122,13 +118,13 @@ __global__ void hpmc_depletants_accept(const uint16_t seed,
                                        const unsigned int select,
                                        const unsigned int rank,
                                        const int* d_deltaF_int,
-                                       const Index2D depletant_idx,
                                        const unsigned int deltaF_pitch,
                                        const Scalar* d_fugacity,
                                        const unsigned int* d_ntrial,
                                        unsigned int* d_reject_out,
                                        const unsigned int nwork,
-                                       const unsigned work_offset)
+                                       const unsigned work_offset,
+                                       const unsigned int ntypes)
     {
     // the particle we are handling
     unsigned int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -138,21 +134,20 @@ __global__ void hpmc_depletants_accept(const uint16_t seed,
 
     // reduce free energy over depletant type pairs
     Scalar deltaF_i(0.0);
-    for (unsigned int itype = 0; itype < depletant_idx.getW(); ++itype)
-        for (unsigned int jtype = itype; jtype < depletant_idx.getH(); ++jtype)
-            {
-            // it is important that this loop is serial, to eliminate non-determism
-            // in the acceptance loop (too much noise can make convergence difficult)
-            unsigned int ntrial = d_ntrial[depletant_idx(itype, jtype)];
-            Scalar fugacity = d_fugacity[depletant_idx(itype, jtype)];
+    for (unsigned int itype = 0; itype < ntypes; ++itype)
+        {
+        // it is important that this loop is serial, to eliminate non-determism
+        // in the acceptance loop (too much noise can make convergence difficult)
+        const unsigned int ntrial = d_ntrial[itype];
+        const Scalar fugacity = d_fugacity[itype];
 
-            if (fugacity == 0.0 || ntrial == 0)
-                continue;
+        if (fugacity == 0.0 || ntrial == 0)
+            continue;
 
-            // rescale deltaF to units of kBT
-            int dF_int_i = d_deltaF_int[deltaF_pitch * depletant_idx(itype, jtype) + i];
-            deltaF_i += log(1 + 1 / (Scalar)ntrial) * dF_int_i;
-            }
+        // rescale deltaF to units of kBT
+        const int dF_int_i = d_deltaF_int[deltaF_pitch * itype + i];
+        deltaF_i += log(1 + 1 / (Scalar)ntrial) * dF_int_i;
+        }
 
     hoomd::RandomGenerator rng_accept(
         hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsAccept, timestep, seed),
@@ -173,14 +168,13 @@ void generate_num_depletants(const uint16_t seed,
                              const unsigned int select,
                              const unsigned int rank,
                              const unsigned int depletant_type_a,
-                             const unsigned int depletant_type_b,
-                             const Index2D depletant_idx,
                              const Scalar* d_lambda,
                              const Scalar4* d_postype,
                              unsigned int* d_n_depletants,
                              const unsigned int block_size,
                              const hipStream_t* streams,
-                             const GPUPartition& gpu_partition)
+                             const GPUPartition& gpu_partition,
+                             const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -205,13 +199,12 @@ void generate_num_depletants(const uint16_t seed,
                            select,
                            rank,
                            depletant_type_a,
-                           depletant_type_b,
-                           depletant_idx,
                            range.first,
                            nwork,
                            d_lambda,
                            d_postype,
-                           d_n_depletants);
+                           d_n_depletants,
+                           ntypes);
         }
     }
 
@@ -219,8 +212,6 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const Scalar4* d_trial_vel,
                                     const unsigned int ntrial,
                                     const unsigned int depletant_type_a,
-                                    const unsigned int depletant_type_b,
-                                    const Index2D depletant_idx,
                                     const Scalar* d_lambda,
                                     const Scalar4* d_postype,
                                     unsigned int* d_n_depletants,
@@ -229,7 +220,8 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                                     const unsigned int n_ghosts,
                                     const GPUPartition& gpu_partition,
                                     const unsigned int block_size,
-                                    const hipStream_t* streams)
+                                    const hipStream_t* streams,
+                                    const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -265,14 +257,13 @@ void generate_num_depletants_ntrial(const Scalar4* d_vel,
                            d_trial_vel,
                            ntrial,
                            depletant_type_a,
-                           depletant_type_b,
-                           depletant_idx,
                            d_lambda,
                            d_postype,
                            d_n_depletants,
                            N_local,
                            range.first,
-                           nwork);
+                           nwork,
+                           ntypes);
         }
     }
 
@@ -339,9 +330,9 @@ void reduce_counters(const unsigned int ngpu,
                      const hpmc_counters_t* d_per_device_counters,
                      hpmc_counters_t* d_counters,
                      const unsigned int implicit_pitch,
-                     const Index2D depletant_idx,
                      const hpmc_implicit_counters_t* d_per_device_implicit_counters,
-                     hpmc_implicit_counters_t* d_implicit_counters)
+                     hpmc_implicit_counters_t* d_implicit_counters,
+                     const unsigned int ntypes)
     {
     hipLaunchKernelGGL(kernel::hpmc_reduce_counters,
                        1,
@@ -353,9 +344,9 @@ void reduce_counters(const unsigned int ngpu,
                        d_per_device_counters,
                        d_counters,
                        implicit_pitch,
-                       depletant_idx,
                        d_per_device_implicit_counters,
-                       d_implicit_counters);
+                       d_implicit_counters,
+                       ntypes);
     }
 
 void hpmc_depletants_accept(const uint16_t seed,
@@ -363,13 +354,13 @@ void hpmc_depletants_accept(const uint16_t seed,
                             const unsigned int select,
                             const unsigned int rank,
                             const int* d_deltaF_int,
-                            const Index2D depletant_idx,
                             const unsigned int deltaF_pitch,
                             const Scalar* d_fugacity,
                             const unsigned int* d_ntrial,
                             unsigned int* d_reject_out,
                             const GPUPartition& gpu_partition,
-                            const unsigned int block_size)
+                            const unsigned int block_size,
+                            const unsigned int ntypes)
     {
     // determine the maximum block size and clamp the input block size down
     unsigned int max_block_size;
@@ -399,13 +390,13 @@ void hpmc_depletants_accept(const uint16_t seed,
                            select,
                            rank,
                            d_deltaF_int,
-                           depletant_idx,
                            deltaF_pitch,
                            d_fugacity,
                            d_ntrial,
                            d_reject_out,
                            nwork,
-                           range.first);
+                           range.first,
+                           ntypes);
         }
     }
     } // end namespace gpu

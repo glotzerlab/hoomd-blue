@@ -66,10 +66,6 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Langevin step 1");
-
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
@@ -145,10 +141,6 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -157,10 +149,6 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
 void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Langevin step 2");
 
     // get the dimensionality of the system
     const unsigned int D = m_sysdef->getNDimensions();
@@ -281,9 +269,6 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         m_reservoir_energy -= h_sumBD.data[0] * m_deltaT;
         m_extra_energy_overdeltaT = 0.5 * h_sumBD.data[0];
         }
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

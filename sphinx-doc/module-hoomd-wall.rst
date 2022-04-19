@@ -21,3 +21,4 @@ hoomd.wall
 .. automodule:: hoomd.wall
     :synopsis: Wall data classes that specify wall geometries for use in other hoomd submodules.
     :members: Cylinder, Plane, Sphere, WallGeometry
+    :show-inheritance:
