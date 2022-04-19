@@ -931,7 +931,7 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
 
             // zero the forces
             hipMemset(pair_args.d_force, 0, sizeof(Scalar4) * (pair_args.N + pair_args.Nghosts));
-            hipMemset(pair_args.d_virial, 0, sizeof(Scalar) * pair_args.virial_pitch * (pair_args.N + pair_args.Nghosts));
+            hipMemset(pair_args.d_virial, 0, sizeof(Scalar) * pair_args.virial_pitch * 6);
 
             // setup the grid to run the kernel
             dim3 grid(pair_args.N / (run_block_size / pair_args.tpp) + 1, 1, 1);
