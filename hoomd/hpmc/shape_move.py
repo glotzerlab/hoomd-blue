@@ -67,8 +67,8 @@ class Elastic(ShapeMove):
             the MC shape integrator or an instance (see `hoomd.hpmc.integrate`)
             to use with this elastic shape. Must be a compatible class.
 
-        move_probability (`float`, **default**: 0.5): Fraction of scale to shear
-            moves.
+        move_probability (`float`, optional): Fraction of scale to shear
+            moves (**default**: 0.5).
 
     .. rubric:: Shape support.
 
@@ -148,8 +148,8 @@ class ShapeSpace(ShapeMove):
 
             Note that there is no type validation of the callback.
 
-        move_probability (`float`, **default**: 1): Average fraction of shape
-            parameters to change each timestep.
+        move_probability (`float`, optional): Average fraction of shape
+            parameters to change each timestep (**default**: 1).
 
     .. rubric:: Shape support.
 
@@ -200,8 +200,8 @@ class ShapeSpace(ShapeMove):
             parameters to be updated. The length of the list defines the
             dimension of the shape space for each particle type.
 
-        move_probability (`float`): Average fraction of shape parameters to
-            change each timestep.
+        move_probability (`float`, optional): Average fraction of shape
+            parameters to change each timestep (**default**: 1).
     """
 
     _suported_shapes = {
@@ -226,8 +226,8 @@ class Vertex(ShapeMove):
     """Apply shape moves where particle vertices are translated.
 
     Args:
-        move_probability (`float`,  **default**: 1): Average fraction of
-            vertices to change during each shape move.
+        move_probability (`float`, optional): Average fraction of
+            vertices to change during each shape move (**default**: 1).
 
     .. rubric:: Shape support.
 
