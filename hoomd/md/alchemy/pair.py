@@ -33,10 +33,10 @@ def _modify_pair_cls_to_alchemical(cls):
 
 
 class AlchemicalPairDOFStore(Mapping):
-    """A read-only mapping of alchemical particles accessed by type.
+    """A read-only mapping of alchemical degrees of freedom accessed by type.
 
-    The class acts as a cache so once a DOF/particle is querried it is returned
-    and not recreated when querried again.
+    The class acts as a cache so once an alchemical DOF is queried it is
+    returned and not recreated when queried again.
     """
 
     def __init__(self, name, pair_instance, dof_cls):
@@ -52,7 +52,7 @@ class AlchemicalPairDOFStore(Mapping):
         self._data = {}
 
     def __getitem__(self, key):
-        """Get the alchemical particle for the given type pair."""
+        """Get the alchemical degree of freedom for the given type pair."""
         items = {}
         for k in self._indexer(key):
             if k not in self._data:
@@ -100,7 +100,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     Attributes:
         _alchemical_dofs (`list`[ `str`]): A list of all potential degrees of
             freedom. This must match that of the ``params`` type parameter.
-        _dof_cls (AlchemicalDOF): The correct DOF class. Automatically set via
+        _dof_cls (`AlchemicalDOF`): The correct DOF class. Automatically set via
             `_modify_pair_cls_to_alchemical`.
     """
     _alchemical_dofs = []
@@ -140,12 +140,12 @@ class AlchemicalDOF(_HOOMDBaseObject):
         degrees of freedom.
 
     Attributes:
-        mass (float): The mass of the alchemical degree of freedom.
-        mu (float): The value of the alchemical potential.
-        alpha (float): The value of the dimensionless alchemical degree of
+        mass (`float`): The mass of the alchemical degree of freedom.
+        mu (`float`): The value of the alchemical potential.
+        alpha (`float`): The value of the dimensionless alchemical degree of
             freedom :math:`\\alpha_i`.
 
-        alchemical_momentum (float): The momentum of the alchemical parameter.
+        alchemical_momentum (`float`): The momentum of the alchemical parameter.
 
     """
 
@@ -159,14 +159,14 @@ class AlchemicalDOF(_HOOMDBaseObject):
         """Cache existing instances of AlchemicalDOF.
 
         Args:
-            force (``_AlchemicalPairForce``): Pair force containing the
+            force (`_AlchemicalPairForce`): Pair force containing the
                 alchemical degree of freedom.
             name (str): The name of the pair force.
             typepair (tuple[str]): The particle types upon which the pair force
                 acts.
-            alpha (float): The value of the alchemical parameter.
-            mass (float): The mass of the alchemical degree of freedom.
-            mu (float): The alchemical potential.
+            alpha (`float`): The value of the alchemical parameter.
+            mass (`float`): The mass of the alchemical degree of freedom.
+            mu (`float`): The alchemical potential.
 
         """
         self._force = force
@@ -226,7 +226,7 @@ class AlchemicalDOF(_HOOMDBaseObject):
         """Net force in alchemical alpha space.
 
         .. math::
-            F_{\\mathrm{alchemical}} = \\sum_{i=0}^{N_{\\mathrm{paricles}}-1}
+            F_{\\mathrm{alchemical}} = \\sum_{i=0}^{N_{\\mathrm{particles}}-1}
             F_{\\mathrm{alchemical},i}
 
         """
@@ -261,9 +261,11 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
 
     Args:
         nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
-        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
-        mode (str): Energy shifting/smoothing mode.
+        default_r_cut (`float`): Default cutoff radius
+            :math:`[\mathrm{length}]`.
+        default_r_on (`float`): Default turn-on radius
+            :math:`[\mathrm{length}]`.
+        mode (`str`): Energy shifting/smoothing mode.
 
     `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
     simulation state, with additional alchemical degrees of freedom:
