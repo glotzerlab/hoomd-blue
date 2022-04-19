@@ -3,9 +3,9 @@
 
 #include "Communicator.h"
 #include "HOOMDMath.h"
-#include "Profiler.h"
 #include "SharedSignal.h"
 #include "SystemDefinition.h"
+#include "Trigger.h"
 
 #include <memory>
 
@@ -58,7 +58,7 @@ class PYBIND11_EXPORT Updater
     {
     public:
     //! Constructs the compute and associates it with the ParticleData
-    Updater(std::shared_ptr<SystemDefinition> sysdef);
+    Updater(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
     virtual ~Updater() {};
 
     //! Abstract method that performs the update
@@ -66,9 +66,6 @@ class PYBIND11_EXPORT Updater
         \param timestep Current time step of the simulation
     */
     virtual void update(uint64_t timestep) {};
-
-    //! Sets the profiler for the compute to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -121,6 +118,18 @@ class PYBIND11_EXPORT Updater
             }
         }
 
+    /// Get Trigger
+    std::shared_ptr<Trigger> getTrigger()
+        {
+        return m_trigger;
+        }
+
+    /// Set Trigger
+    void setTrigger(std::shared_ptr<Trigger> trigger)
+        {
+        m_trigger = trigger;
+        }
+
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
@@ -134,12 +143,12 @@ class PYBIND11_EXPORT Updater
     const std::shared_ptr<SystemDefinition>
         m_sysdef; //!< The system definition this compute is associated with
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this compute is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this compute is to use
+        m_pdata; //!< The particle data this compute is associated with
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots; //!< Stored shared ptr to the system signals
+        m_slots;                        //!< Stored shared ptr to the system signals
+    std::shared_ptr<Trigger> m_trigger; /// Trigger that determines if updater runs.
     };
 
 namespace detail

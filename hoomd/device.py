@@ -1,7 +1,24 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Choose which hardware device(s) should execute the simulation."""
+"""Devices.
+
+Use a `Device` class to choose which hardware device(s) should execute the
+simulation. `Device` also sets where to write log messages and how verbose
+the message output should be. Pass a `Device` object to `hoomd.Simulation`
+on instantiation to set the options for that simulation.
+
+User scripts may instantiate multiple `Device` objects and use each with a
+different `hoomd.Simulation` object. One `Device` object may also be shared
+with many `hoomd.Simulation` objects.
+
+Tip:
+    Reuse `Device` objects when possible. There is a non-negligible overhead
+    to creating each `Device`, especially on the GPU.
+
+See Also:
+    `hoomd.Simulation`
+"""
 
 import contextlib
 import hoomd
@@ -23,8 +40,9 @@ class Device:
     HOOMD will use this value. You can also set `num_cpu_threads` explicitly.
 
     Note:
-        At this time **very few** features in HOOMD use TBB for threading.
-        Most users should employ MPI for parallel simulations.
+        At this time **very few** features use TBB for threading. Most users
+        should employ MPI for parallel simulations. See `features` for more
+        information.
     """
 
     def __init__(self, communicator, notice_level, msg_file):
@@ -168,8 +186,6 @@ class GPU(Device):
         ``[1]`` will select the second, and so on.
 
         The ordering of the devices is determined by the GPU driver and runtime.
-        It may change when you upgrade this software.
-
 
     .. rubric:: Device auto-selection
 
@@ -192,9 +208,9 @@ class GPU(Device):
     code path.
 
     Note:
-        Not all features in HOOMD are optimized to use this code path, and it
-        requires that all GPUs support concurrent manged memory access and have
-        high bandwidth interconnects.
+        Not all features are optimized to use this code path, and it requires
+        that all GPUs support concurrent managed memory access and have high
+        bandwidth interconnects.
 
     """
 

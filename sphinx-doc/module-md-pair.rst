@@ -11,7 +11,6 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    Pair
     Buckingham
     DLVO
     DPD
@@ -26,12 +25,13 @@ md.pair
     LJ
     LJ1208
     LJ0804
+    LJGauss
     Mie
     Morse
     Moliere
     OPP
+    Pair
     ReactionField
-    SLJ
     Table
     TWF
     Yukawa
@@ -55,17 +55,18 @@ md.pair
         LJ,
         LJ1208,
         LJ0804,
+        LJGauss,
         Mie,
         Morse,
         Moliere,
         OPP,
         ReactionField,
-        SLJ,
         ExpandedLJ,
         Table,
         TWF,
         Yukawa,
         ZBL
+    :show-inheritance:
 
 .. rubric:: Modules
 

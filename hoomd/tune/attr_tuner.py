@@ -125,10 +125,10 @@ class _TuneDefinition(metaclass=ABCMeta):
         """tuple[``any``, ``any``]: A tuple pair of the minimum and maximum \
             accepted values of x.
 
-        When, the domain is ``None`` then any value of x is accepted. Either
-        the minimum or maximum can be set to ``None`` as well which means
-        there is no maximum or minimum. The domain is used to wrap values
-        within the specified domain when setting x.
+        When the domain is None, any value of x is accepted. Either the minimum
+        or maximum can be set to ``None`` as well which means there is no
+        maximum or minimum. The domain is used to wrap values within the
+        specified domain when setting x.
         """
         if self._domain is not None:
             return tuple(self._domain)
@@ -163,6 +163,14 @@ class ManualTuneDefinition(_TuneDefinition):
     handle this automatically. Since we check for ``None`` internally in
     `SolverStep` objects, a `ManualTuneDefinition` object's ``y`` property
     should be consistant when called multiple times within a timestep.
+
+    When setting ``x`` the value is clamped between the given domain via,
+
+    .. math::
+
+        x &= x_{max}, \\text{ if } x_n > x_{max},\\\\
+        x &= x_{min}, \\text{ if } x_n < x_{min},\\\\
+        x &= x_n, \\text{ otherwise}
 
     Args:
         get_y (``callable``): A callable that gets the current value for y.
@@ -223,10 +231,9 @@ class ManualTuneDefinition(_TuneDefinition):
 class SolverStep(metaclass=ABCMeta):
     """Abstract base class for "solving" stepwise equations of f(x) = y.
 
-    Requires a single method `SolverStep.solve_one` that steps forward one
-    iteration in solving the given variable relationship. Users can use
-    subclasses of this with `hoomd.tune.ManualTuneDefinition` to tune attributes
-    with a functional relation.
+    Requires a single method `solve_one` that steps forward one iteration in
+    solving the given variable relationship. Users can use subclasses of this
+    with `ManualTuneDefinition` to tune attributes with a functional relation.
 
     Note:
         A `SolverStep` object requires manual iteration to converge. This is to
@@ -278,8 +285,25 @@ class SolverStep(metaclass=ABCMeta):
 
 
 class ScaleSolver(SolverStep):
-    """Solves equations of f(x) = y using a ratio of the current y with the \
-    target.
+    r"""Solves equations of f(x) = y using a ratio of y with the target.
+
+    Each time this solver is called it takes updates according to the following
+    equation if the correlation is positive:
+
+    .. math::
+
+        x_n = \min{\left(\frac{\gamma + t}{y + \gamma}, s_{max}\right)} \cdot x
+
+    and
+
+    .. math::
+
+        x_n = \min{\left(\frac{y + \gamma}{\gamma + t}, s_{max}\right)} \cdot x
+
+    if the correlation is negative, where :math:`t` is the target and
+    :math:`x_n` is the new x.
+
+    The solver will stop updating when :math:`\lvert y - t \rvert \le tol`.
 
     Args:
         max_scale (`float`, optional): The maximum amount to scale the
@@ -347,7 +371,19 @@ class ScaleSolver(SolverStep):
 
 
 class SecantSolver(SolverStep):
-    """Solves equations of f(x) = y using the secant method.
+    r"""Solves equations of f(x) = y using the secant method.
+
+    The solver updates ``x`` each step via,
+
+    .. math::
+
+        x_n = x - \gamma \cdot (y - t) \cdot \frac{x - x_{o}}{y - y_{old}}
+
+    where :math:`o` represent the old values, :math:`n` the new, and :math:`t`
+    the target. Due to the need for a previous value, then first time this is
+    called it makes a slight jump higher or lower to start the method.
+
+    The solver will stop updating when :math:`\lvert y - t \rvert \le tol`.
 
     Args:
         gamma (`float`, optional): real number between 0 and 1 used to
@@ -392,7 +428,7 @@ class SecantSolver(SolverStep):
             dxdf = (x - old_x) / (f_x - old_f_x)
         except ZeroDivisionError:  # Implies that y has not changed
             # Given the likelihood for use cases in HOOMD that this implies
-            # a lack of equilibriation of y or too small of a change.
+            # a lack of equilibration of y or too small of a change.
             new_x = self._handle_static_y(tunable, x, old_x)
         else:
             # We can use the secant formula
@@ -430,12 +466,12 @@ class SecantSolver(SolverStep):
         """Handles when y is constant for multiple calls to solve_one.
 
         We do nothing for the first SecantSolver._max_allowable_counter
-        consequetive times, but afterwards we attempt to perturb x in the
+        consecutive times, but afterwards we attempt to perturb x in the
         direction of last change, and reset the counter.
 
         This method is useful to handle y that vary slowly with x (such as move
         sizes and acceptance rates for low density HPMC simulations), or cases
-        where y takes a while to equilibriate.
+        where y takes a while to equilibrate.
         """
         counter = self._counters.get(tunable, 0) + 1
         if counter > self._max_allowable_counter:

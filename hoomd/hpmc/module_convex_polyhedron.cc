@@ -5,6 +5,7 @@
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoNEC.h"
 
 #include "ComputeSDF.h"
 #include "ShapeConvexPolyhedron.h"
@@ -17,7 +18,6 @@
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -36,6 +36,7 @@ namespace detail
 void export_convex_polyhedron(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoConvexPolyhedron");
+    export_IntegratorHPMCMonoNEC<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoNECConvexPolyhedron");
     export_ComputeFreeVolume<ShapeConvexPolyhedron>(m, "ComputeFreeVolumeConvexPolyhedron");
     export_ComputeSDF<ShapeConvexPolyhedron>(m, "ComputeSDFConvexPolyhedron");
     export_UpdaterMuVT<ShapeConvexPolyhedron>(m, "UpdaterMuVTConvexPolyhedron");
@@ -46,9 +47,6 @@ void export_convex_polyhedron(pybind11::module& m)
     export_ExternalFieldComposite<ShapeConvexPolyhedron>(m,
                                                          "ExternalFieldCompositeConvexPolyhedron");
     export_ExternalFieldWall<ShapeConvexPolyhedron>(m, "WallConvexPolyhedron");
-    export_UpdaterExternalFieldWall<ShapeConvexPolyhedron>(
-        m,
-        "UpdaterExternalFieldWallConvexPolyhedron");
     export_ExternalCallback<ShapeConvexPolyhedron>(m, "ExternalCallbackConvexPolyhedron");
 
 #ifdef ENABLE_HIP

@@ -82,7 +82,7 @@ struct pair_args_t
     const Scalar4* d_pos;      //!< particle positions
     const Scalar* d_diameter;  //!< particle diameters
     const Scalar* d_charge;    //!< particle charges
-    const BoxDim& box;         //!< Simulation box in GPU format
+    const BoxDim box;          //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;                //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist;  //!< Device array listing the neighbors of each particle
@@ -283,7 +283,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
+                const typename evaluator::param_type& param = s_params[typpair];
                 Scalar ronsq = Scalar(0.0);
                 if (shift_mode == 2)
                     ronsq = s_ronsq[typpair];

@@ -44,9 +44,6 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
 
 void CellListGPU::computeCellList()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "compute");
-
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
@@ -234,9 +231,6 @@ void CellListGPU::computeCellList()
 
     if (ngpu > 1 && !m_per_device)
         combineCellLists();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void CellListGPU::combineCellLists()
@@ -311,8 +305,6 @@ void CellListGPU::initializeMemory()
         return;
 
     m_exec_conf->msg->notice(10) << "CellListGPU initialize multiGPU memory" << endl;
-    if (m_prof)
-        m_prof->push("init");
 
 #if defined(__HIP_PLATFORM_NVCC__)
     if (m_compute_adj_list && m_exec_conf->allConcurrentManagedAccess())
@@ -462,9 +454,6 @@ void CellListGPU::initializeMemory()
         CHECK_CUDA_ERROR();
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

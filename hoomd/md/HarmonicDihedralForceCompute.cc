@@ -115,9 +115,6 @@ pybind11::dict HarmonicDihedralForceCompute::getParams(std::string type)
  */
 void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Harmonic Dihedral");
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -356,9 +353,6 @@ void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
         for (int k = 0; k < 6; k++)
             h_virial.data[virial_pitch * k + idx_d] += dihedral_virial[k];
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

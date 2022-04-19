@@ -19,7 +19,6 @@
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
@@ -52,17 +51,6 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     {
     public:
-    //! Group size
-    //
-    //! Group data element type
-    typedef union group_storage<group_size> members_t;
-
-#ifdef ENABLE_MPI
-    //! Type for storing per-member ranks
-    typedef members_t ranks_t;
-    typedef packed_storage<group_size> packed_t;
-#endif
-
     //! Constructor for empty MeshGroupData
     MeshGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
 
@@ -86,6 +74,15 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     /*! \param g Definition of group to add
      */
     unsigned int addBondedGroup(Group g);
+
+#ifdef ENABLE_MPI
+    //! Helper function to transfer bonded groups connected to a single particle
+    /*! \param tag Tag of particle that moves between domains
+        \param old_rank Old MPI rank for particle
+        \param new_rank New MPI rank
+     */
+    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+#endif
 
     private:
     virtual void rebuildGPUTable();

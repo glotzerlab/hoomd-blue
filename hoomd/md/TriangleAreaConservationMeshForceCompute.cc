@@ -92,9 +92,6 @@ pybind11::dict TriangleAreaConservationMeshForceCompute::getParams(std::string t
  */
 void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Triangle Area Conservation in Mesh");
-
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -289,9 +286,6 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += triangle_area_conservation_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail

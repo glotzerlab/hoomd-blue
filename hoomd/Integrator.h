@@ -124,8 +124,8 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Count the total number of degrees of freedom removed by all constraint forces
     Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
-    /// helper function to compute total momentum
-    virtual Scalar computeTotalMomentum(uint64_t timestep);
+    /// Compute the linear momentum of the system
+    virtual vec3<double> computeLinearMomentum();
 
     /// Prepare for the run
     virtual void prepRun(uint64_t timestep);

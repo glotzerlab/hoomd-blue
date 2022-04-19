@@ -3,6 +3,7 @@
 
 """Implement Mesh."""
 
+import hoomd
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
@@ -51,6 +52,16 @@ class Mesh(_HOOMDBaseObject):
 
         self.triangles = self._triangles
 
+        if hoomd.version.mpi_enabled:
+            pdata = self._simulation.state._cpp_sys_def.getParticleData()
+            decomposition = pdata.getDomainDecomposition()
+            if decomposition is not None:
+                # create the c++ Communicator
+                self._simulation._system_communicator.addMeshDefinition(
+                    self._cpp_obj)
+                self._cpp_obj.setCommunicator(
+                    self._simulation._system_communicator)
+
         super()._attach()
 
     def _remove_dependent(self, obj):
@@ -78,6 +89,7 @@ class Mesh(_HOOMDBaseObject):
     def triangles(self, triag):
         if self._attached:
             self._cpp_obj.setTypes(list(self._param_dict['types']))
+
             self._cpp_obj.setTriangleData(triag)
         else:
             self.size = len(triag)

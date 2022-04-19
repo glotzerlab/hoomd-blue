@@ -38,8 +38,8 @@ namespace md
 
     EvaluatorPairExpandedLJ evaluates the function:
     \f{eqnarray*}
-    V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
-                           \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r <
+    V_{\mathrm{ExpandedLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta}
+   \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r <
     (r_{\mathrm{cut}}) \\
                          = & 0 & r \ge (r_{\mathrm{cut}}) \\
     \f}
@@ -188,6 +188,16 @@ class EvaluatorPairExpandedLJ
             }
         else
             return false;
+        }
+
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
         }
 
 #ifndef __HIPCC__

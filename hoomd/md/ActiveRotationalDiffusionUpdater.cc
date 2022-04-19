@@ -22,9 +22,11 @@ namespace md
 
 ActiveRotationalDiffusionUpdater::ActiveRotationalDiffusionUpdater(
     std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<Trigger> trigger,
     std::shared_ptr<Variant> rotational_diffusion,
     std::shared_ptr<ActiveForceCompute> active_force)
-    : Updater(sysdef), m_rotational_diffusion(rotational_diffusion), m_active_force(active_force)
+    : Updater(sysdef, trigger), m_rotational_diffusion(rotational_diffusion),
+      m_active_force(active_force)
     {
     assert(m_pdata);
     assert(m_rotational_diffusion);
@@ -55,6 +57,7 @@ void export_ActiveRotationalDiffusionUpdater(pybind11::module& m)
         m,
         "ActiveRotationalDiffusionUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<Variant>,
                             std::shared_ptr<ActiveForceCompute>>())
         .def_property("rotational_diffusion",

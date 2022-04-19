@@ -9,34 +9,74 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
 from hoomd.filter import ParticleFilter, All
-
-
-def _box_getter(param_dict, attr):
-    return param_dict._dict[attr]
-
-
-def _box_setter(param_dict, attr, value):
-    param_dict._dict[attr] = param_dict._type_converter[attr](value)
-    setattr(param_dict._cpp_obj, attr, param_dict._dict[attr])
+from hoomd.trigger import Periodic
 
 
 class BoxResize(Updater):
     """Resizes the box between an initial and final box.
 
-    When part of a `hoomd.Simulation` ``updater`` list, this object will resize
-    the box between the initial and final boxes passed. The behavior is a linear
-    interpolation between the initial and final boxes where the minimum of the
-    variant is tagged to `box1` and the maximum is tagged to `box2`. All values
-    between the minimum and maximum result in a box that is the interpolation of
-    the three lengths and tilt factors of the initial and final boxes.
+    `BoxResize` resizes the box between gradually from the initial box to the
+    final box. The simulation box follows the linear interpolation between the
+    initial and final boxes where the minimum of the variant gives `box1` and
+    the maximum gives `box2`:
+
+    .. math::
+
+        \\begin{align*}
+        L_{x}' &= \\lambda L_{2x} + (1 - \\lambda) L_{1x} \\\\
+        L_{y}' &= \\lambda L_{2y} + (1 - \\lambda) L_{1y} \\\\
+        L_{z}' &= \\lambda L_{2z} + (1 - \\lambda) L_{1z} \\\\
+        xy' &= \\lambda xy_{2} + (1 - \\lambda) xy_{2} \\\\
+        xz' &= \\lambda xz_{2} + (1 - \\lambda) xz_{2} \\\\
+        yz' &= \\lambda yz_{2} + (1 - \\lambda) yz_{2} \\\\
+        \\end{align*}
+
+    Where `box1` is :math:`(L_{1x}, L_{1y}, L_{1z}, xy_1, xz_1, yz_1)`,
+    `box2` is :math:`(L_{2x}, L_{2y}, L_{2z}, xy_2, xz_2, yz_2)`,
+    :math:`\\lambda = \\frac{f(t) - \\min f}{\\max f - \\min f}`, :math:`t`
+    is the timestep, and :math:`f(t)` is given by `variant`.
+
+    For each particle :math:`i` matched by `filter`, `BoxResize` scales the
+    particle to fit in the new box:
+
+    .. math::
+
+        \\vec{r}_i \\leftarrow s_x \\vec{a}_1' + s_y \\vec{a}_2' +
+                               s_z \\vec{a}_3' -
+                    \\frac{\\vec{a}_1' + \\vec{a}_2' + \\vec{a}_3'}{2}
+
+    where :math:`\\vec{a}_k'` are the new box vectors determined by
+    :math:`(L_x', L_y', L_z', xy', xz', yz')` and the scale factors are
+    determined by the current particle position :math:`\\vec{r}_i` and the old
+    box vectors :math:`\\vec{a}_k`:
+
+    .. math::
+
+        \\vec{r}_i = s_x \\vec{a}_1 + s_y \\vec{a}_2 + s_z \\vec{a}_3 -
+                    \\frac{\\vec{a}_1 + \\vec{a}_2 + \\vec{a}_3}{2}
+
+    After scaling particles that match the filter, `BoxResize` wraps all
+    particles :math:`j` back into the new box:
+
+    .. math::
+
+        \\vec{r_j} \\leftarrow \\mathrm{minimum\\_image}_{\\vec{a}_k}'
+                               (\\vec{r}_j)
+
+    Important:
+        The passed `Variant` must be bounded on the interval :math:`t \\in
+        [0,\\infty)` or the behavior of the updater is undefined.
+
+    Warning:
+        Rescaling particles fails in HPMC simulations with more than one MPI
+        rank.
 
     Note:
-        The passed `Variant` must be bounded (i.e. it must have a true minimum
-        and maximum) or the behavior of the updater is undefined.
-
-    Note:
-        Currently for MPI simulations the rescaling of particles does not work
-        properly in HPMC.
+        When using rigid bodies, ensure that the `BoxResize` updater is last in
+        the operations updater list. Immediately after the `BoxResize` updater
+        triggers, rigid bodies (`hoomd.md.constrain.Rigid`) will be temporarily
+        deformed. `hoomd.md.Integrator` will run after the last updater and
+        resets the constituent particle positions before computing forces.
 
     Args:
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
@@ -71,16 +111,14 @@ class BoxResize(Updater):
         params['variant'] = variant
         params['trigger'] = trigger
         params['filter'] = filter
-        for attr in ("box1", "box2"):
-            params._set_special_getset(attr, _box_getter, _box_setter)
         self._param_dict.update(params)
         super().__init__(trigger)
 
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
-            self._simulation.state._cpp_sys_def, self.box1, self.box2,
-            self.variant, group)
+            self._simulation.state._cpp_sys_def, self.trigger,
+            self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
         super()._attach()
 
     def get_box(self, timestep):
@@ -113,6 +151,7 @@ class BoxResize(Updater):
                 update.
         """
         group = state._get_group(filter)
-        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, state.box, box,
+        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, Periodic(1),
+                                          state.box._cpp_obj, box._cpp_obj,
                                           Constant(1), group)
         updater.update(state._simulation.timestep)

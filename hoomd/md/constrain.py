@@ -1,23 +1,22 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# features
+"""Constraints.
 
-r"""Constraints.
+Constraint force classes apply forces and the resulting virial to particles that
+enforce specific constraints on the positions of the particles. The constraint
+is satisfied at all times, so there is no potential energy associated with the
+constraint.
 
-Constraint forces can constrain particles to be a set distance from each other,
-to have some relative orientation, or impose other types of constraint.
-
-The `Rigid` class is special in that only one is allowed in a system and is set
-to an `hoomd.md.Integrator` object separately in the
-`rigid <hoomd.md.Integrator.rigid>` attribute.
+Each constraint removes a number of degrees of freedom from the system.
+`hoomd.md.compute.ThermodynamicQuantities` accounts for these lost degrees of
+freedom when computing kinetic temperature and pressure. See
+`hoomd.State.update_group_dof` for details on when the degrees of freedom for a
+group are calculated.
 
 Warning:
-    Constraints will be invalidated if two separate constraints apply to the
-    same particle.
-
-The degrees of freedom removed from the system by constraints are
-accounted for in `hoomd.md.compute.ThermodynamicQuantities`.
+    Do not apply multiple constraint class instances to the same particle. Each
+    instance solves for its constraints independently.
 """
 
 from hoomd.md import _md
@@ -29,7 +28,12 @@ from hoomd.operation import _HOOMDBaseObject
 
 
 class Constraint(_HOOMDBaseObject):
-    """A constraint force that acts on the system."""
+    """Constraint force base class.
+
+    Note:
+        :py:class:`Constraint` is the base class for all constraint forces.
+        Users should not instantiate this class directly.
+    """
 
     def _attach(self):
         """Create the c++ mirror class."""
@@ -49,7 +53,7 @@ class Distance(Constraint):
     Args:
         tolerance (float): Relative tolerance for constraint violation warnings.
 
-    `Distance` applies forces between particles to constrain the distances
+    `Distance` applies forces between particles that constrain the distances
     between particles to specific values. The algorithm implemented is described
     in:
 
@@ -64,29 +68,28 @@ class Distance(Constraint):
 
     .. math::
 
-        \\chi_{ij}(r) = (\\vec{r}_j - \\vec{r}_i) \\cdot
-          (\\vec{r}_j - \\vec{r}_i)
-          - d_{ij}^2 = 0
+        \\chi_{ij}(r) = \\mathrm{minimum\\_image}(\\vec{r}_j - \\vec{r}_i)^2
+            - d_{ij}^2 = 0
 
-    In brief, the second derivative of the Lagrange multipliers with respect to
-    time is set to zero, such that both the distance constraints and their time
-    derivatives are conserved within the accuracy of the Velocity Verlet scheme,
-    i.e. within :math:`\\Delta t^2`. The corresponding linear system of
-    equations is solved. Because constraints are satisfied at :math:`t + 2
-    \\Delta t`, the scheme is self-correcting and drifts are avoided.
+    Where :math:`i` and :math:`j` are the the particle tags in the
+    ``constraint_group`` and :math:`d_{ij}` is the constraint distance.
+    Define any number of constraint groups in the system state.
 
-    .. hint::
+    The method sets the second derivative of the Lagrange multipliers with
+    respect to time to zero, such that both the distance constraints and their
+    time derivatives are conserved within the accuracy of the Velocity Verlet
+    scheme (:math:`O(\\delta t^2)`. It solves the corresponding linear system of
+    equations to determine the force. The constraints are satisfied at :math:`t
+    + 2 \\delta t`, so the scheme is self-correcting and avoids drifts.
 
-        Define the particles (:math:`i,j`) and distances (:math:`d_{ij}`) for
-        each pairwise distance constraint in a GSD file with
-        `gsd.hoomd.Snapshot.constraints` or in a `hoomd.Snapshot` with
-        `hoomd.Snapshot.constraints`.
+    Add an instance of `Distance` to the integrator constraints list
+    `hoomd.md.Integrator.constraints` to apply the force during the simulation.
 
     Warning:
-        In MPI simulations, all particles connected through constraints will be
-        communicated between ranks as ghost particles. Therefore, it is an
-        error when molecules defined by constraints extend over more than half
-        the local domain size.
+        In MPI simulations, it is an error when molecules defined by constraints
+        extend over more than half the local domain size because all particles
+        connected through constraints will be communicated between ranks as
+        ghost particles.
 
     Note:
         `tolerance` sets the tolerance to detect constraint violations and
@@ -104,53 +107,82 @@ class Distance(Constraint):
 
 
 class Rigid(Constraint):
-    R"""Constrain particles in rigid bodies.
+    r"""Constrain particles in rigid bodies.
 
     .. rubric:: Overview
 
     Rigid bodies are defined by a single central particle and a number of
-    constituent particles. All of these are particles in the HOOMD system
-    configuration and can interact with other particles via md forces. The
-    mass and moment of inertia of the central particle set the full mass and
-    moment of inertia of the rigid body (constituent particle mass is ignored).
+    constituent particles. All of these are particles in the simulation state
+    and can interact with other particles via forces. The mass and moment of
+    inertia of the central particle set the full mass and moment of inertia of
+    the rigid body (constituent particle mass is ignored).
 
     The central particle is at the center of mass of the rigid body and the
     orientation quaternion defines the rotation from the body space into the
     simulation box. Body space refers to a rigid body viewed in a particular
-    reference frame, namely, in body space, the center of mass of the body is at
+    reference frame. In body space, the center of mass of the body is at
     :math:`(0,0,0)` and the moment of inertia is diagonal. You specify the
     constituent particles to `Rigid` for each type of body in body coordinates.
     Then, `Rigid` takes control of those particles, and sets their position and
     orientation in the simulation box relative to the position and orientation
-    of the central particle. `Rigid` also transfers forces and torques from
-    constituent particles to the central particle. Then, MD integrators can use
-    these forces and torques to integrate the equations of motion of the central
-    particles (representing the whole rigid body) forward in time.
+    of the central particle:
+
+    .. math::
+
+        \vec{r}_c &= \vec{r}_b
+                    + \mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^* \\
+        \mathbf{q}_c &= \mathbf{q}_b \mathbf{q}_{c,\mathrm{body}}
+
+    where :math:`\vec{r}_c` and :math:`\mathbf{q}_c` are the position and
+    orientation of a constituent particle in the simulation box,
+    :math:`\vec{r}_{c,\mathrm{body}}` and :math:`\mathbf{q}_{c,\mathrm{body}}`
+    are the position and orientation of that particle in body coordinates, and
+    :math:`\vec{r}_b` and :math:`\mathbf{q}_b` are the position and orientation
+    of the central particle of that rigid body. In the simulation state, the
+    ``body`` particle property defines the particle tag of the central particle:
+    ``b = body[c]``. In setting the ``body`` array, central particles should be
+    set to their tag :math:`b_i = t_i`, constituent particles to their central
+    particle's tag :math:`b_i = t_{center}`, and free particles :math:`b_i = -1`
+
+    `Rigid` transfers forces, energies, and torques from constituent particles
+    to the central particle and adds them to those from the interaction on the
+    central particle itself. The molecular integration methods use these forces
+    and torques to integrate the equations of motion of the central particles
+    (representing the whole rigid body) forward in time.
+
+    .. math::
+
+        \vec{F}_b' &= \vec{F}_b + \sum_c \vec{F}_c \\
+        \vec{U}_b' &= U_b + \sum_c U_c \\
+        \vec{\tau}_b' &= \vec{\tau}_b + \sum_c \vec{\tau}_c +
+            (\mathbf{q}_b \vec{r}_{c,\mathrm{body}} \mathbf{q}_b^*)
+            \times \vec{F}_c
+
+    `Rigid` also computes the corrected virial accounting for the effective
+    constraint force (see `Glaser 2020
+    <https://dx.doi.org/10.1016/j.commatsci.2019.109430>`_).
 
     .. rubric:: Defining bodies
 
-    `Rigid` accepts one local body definition per body type. The
-    type of a body is the particle type of the central particle in that body.
-    In this way, each particle of type *R* in the system configuration defines
-    a body of type *R*.
+    `Rigid` accepts one local body definition per body type. The type of a body
+    is the particle type of the central particle in that body. In this way, each
+    particle of type *R* in the system configuration defines a body of type *R*.
 
     As a convenience, you do not need to create placeholder entries for all of
-    the constituent particles in your initial configuration. You only need to
-    specify the positions and orientations of all the central particles. When
-    you call `create_bodies`, it will create all constituent particles.
+    the constituent particles in your initial configuration. You can specify
+    only the positions and orientations of all the central particles, then call
+    `create_bodies` to create all constituent particles.
 
     Warning:
-        Automatic creation of constituent particles changes particle tags. When
-        there are bonds between particles in the initial configuration, or bonds
-        connect to constituent particles, include the constituent particles in
-        the initial configuration manually.
+        Place constituent particle placeholders in the simulation state when
+        there are bonds between particles. `create_bodies` changes particle
+        tags.
 
-    When you create the constituent particles manually (i.e. in an input file
-    or with snapshots), the central particle of a rigid body must have a lower
-    tag than all of its constituent particles. Constituent particles follow in
-    monotonically increasing tag order, corresponding to the order they were
-    defined in the argument to `Rigid` initialization. The order of central and
-    contiguous particles need **not** to be contiguous. Additionally, you must
+    In the simulation state, the central particle of a rigid body must have a
+    lower tag than all of its constituent particles. Constituent particles
+    follow in monotonically increasing tag order, corresponding to the order
+    they are defined in the argument to `Rigid` initialization. The central and
+    constituent particles do not need to be contiguous. Additionally, you must
     set the ``body`` field for each of the particles in the rigid body to the
     tag of the central particle (for both the central and constituent
     particles). Set ``body`` to -1 for particles that do not belong to a rigid
@@ -158,10 +190,12 @@ class Rigid(Constraint):
 
     .. rubric:: Integrating bodies
 
-    Most integrators in HOOMD support the integration of rotational degrees of
-    freedom. When there are rigid bodies present in the system, do not apply
-    integrators to the constituent particles, only the central and non-rigid
-    particles.
+    Set the ``rigid`` attribute of `hoomd.md.Integrator` to an instance of
+    `Rigid` to apply rigid body constraints and apply an integration method (or
+    methods) to the central and non-rigid particles (leave the constituent
+    particles out - `Rigid` will set their position and orientation). Most
+    integration methods support the integration of rotational degrees of
+    freedom.
 
     Example::
 
@@ -173,45 +207,25 @@ class Rigid(Constraint):
 
     .. rubric:: Thermodynamic quantities of bodies
 
-    HOOMD computes thermodynamic quantities (temperature, kinetic energy,
-    etc.) appropriately when there are rigid bodies present in the system.
-    When it does so, it ignores all constituent particles and computes the
-    translational and rotational energies of the central particles, which
-    represent the whole body.
+    `hoomd.md.compute.ThermodynamicQuantities` computes thermodynamic quantities
+    (temperature, kinetic energy, etc.) over the central and non-rigid particles
+    in the system, ignoring the consitutent particles. The body central
+    particles contribute translational and rotational energies to the total.
 
-    .. rubric:: Restarting simulations with rigid bodies.
+    .. rubric:: Continuing simulations with rigid bodies.
 
-    To restart, use `hoomd.write.GSD` to write restart files. GSD
-    stores all of the particle data fields needed to reconstruct the state of
-    the system, including the body tag, rotational momentum, and orientation of
-    the body. Restarting from a gsd file is equivalent to manual constituent
-    particle creation. You still need to specify the same local body space
-    environment to `Rigid` as you did in the earlier simulation.
+    To continue a simulation, use `hoomd.write.GSD` to write the system state to
+    a file. GSD stores all of the particle data fields needed to reconstruct the
+    state of the system, including the body tag, angular momentum, and
+    orientation of the body. Continuing from a gsd file is equivalent to
+    manually placing constituent particles. You must specify the same local body
+    space environment to `body` as you did in the earlier simulation.
 
     To set constituent particle types and coordinates for a rigid body use the
     `body` attribute.
 
-    .. py:attribute:: body
-
-        body is a mapping from the central particle type to a body definition
-        represented as a dictionary. The mapping respects ``None`` as meaning
-        that the type is not a rigid body center. All types are set to ``None``
-        by default. The keys for the body definition are
-
-        - ``constituent_types`` (list[str]): List of types of constituent
-          particles
-        - ``positions`` (list[tuple[float, float, float]]): List of relative
-          positions of constituent particles
-        - ``orientations`` (list[tuple[float, float, float, float]]): List of
-          orientations (as quaternions) of constituent particles
-        - ``charge`` (list[float]): List of charges of constituent particles
-        - ``diameters`` (list[float]): List of diameters of constituent
-          particles
-
-        Type: `TypeParameter` [``particle_type``, `dict`]
-
     .. caution::
-        The constituent particle type must exist.
+        The constituent particle type(s) must exist in the simulation state.
 
     Example::
 
@@ -235,9 +249,30 @@ class Rigid(Constraint):
         rigid.body["A"] = None
 
     Warning:
-        `Rigid` will significantly slow down a simulation when
-        frequently changing rigid body definitions or adding/removing particles
-        from the simulation.
+        `Rigid` will significantly slow simulation performance when frequently
+        changing rigid body definitions or adding/removing particles from the
+        simulation.
+
+    .. py:attribute:: body
+
+        `body` is a mapping from the central particle type to a body definition
+        represented as a dictionary. The mapping respects ``None`` as meaning
+        that the type is not a rigid body center. All types are set to ``None``
+        by default. The keys for the body definition are:
+
+        - ``constituent_types`` (`list` [`str`]): List of types of constituent
+          particles.
+        - ``positions`` (`list` [`tuple` [`float`, `float`, `float`]]): List of
+          relative positions of constituent particles.
+        - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
+          `float`]]): List of orientations (as quaternions) of constituent
+          particles.
+        - ``charge`` (`list` [`float`]): List of charges of constituent
+          particles.
+        - ``diameters`` (`list` [`float`]): List of diameters of constituent
+          particles.
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
     """
 
     _cpp_class_name = "ForceComposite"
@@ -258,26 +293,14 @@ class Rigid(Constraint):
         self.body.default = None
 
     def create_bodies(self, state):
-        R"""Create rigid bodies from central particles in state.
+        r"""Create rigid bodies from central particles in state.
 
         Args:
             state (hoomd.State): The state in which to create rigid bodies.
 
-        This method will remove any existing constituent particles (defined as
-        having a valid body flag without a central particle definition in the
-        rigid `body` attribute).
-
-        Note:
-            This method will change any exiting body tags.
-
-        Tip:
-            If planning on using this function, initialize the `hoomd.State`
-            with free and central particles without worrying about the body
-            tag. Existing body values or constituent particles in the state
-            won't cause errors, but the method does not need it.
-
-        Warning:
-            This method must be called before its associated simulation is run.
+        `create_bodies` removes any existing constituent particles and adds new
+        ones based on the body definitions in `body`. It overwrites all existing
+        particle ``body`` tags in the state.
         """
         if self._attached:
             raise RuntimeError(

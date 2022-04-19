@@ -23,7 +23,6 @@ set(_hpmc_gpu_union_shapes ShapeSphere
    )
 
 set(_hpmc_sources   module.cc
-                    module_external_field.cc
                     module_sphere.cc
                     module_convex_polygon.cc
                     module_simple_polygon.cc
@@ -37,6 +36,7 @@ set(_hpmc_sources   module.cc
                     module_union_sphere.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
+                    ExternalFieldWall.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
@@ -89,7 +89,6 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterClustersGPU.cuh
     UpdaterClustersGPUDepletants.cuh
-    UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterQuickCompress.h
     XenoCollide2D.h
@@ -188,6 +187,7 @@ add_subdirectory(pytest)
 add_subdirectory(tune)
 add_subdirectory(pair)
 add_subdirectory(external)
+add_subdirectory(nec)
 
 if (BUILD_TESTING)
     add_subdirectory(test)

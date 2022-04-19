@@ -34,7 +34,9 @@ Version control
 Base your work off the correct branch
 _____________________________________
 
-During the v3.0.0-beta release cycle, all work must be based on ``master``.
+- Base backwards compatible bug fixes on ``trunk-patch``.
+- Base additional functionality on ``trunk-minor``.
+- Base API incompatible changes on ``trunk-major``.
 
 Propose a minimal set of related changes
 ________________________________________

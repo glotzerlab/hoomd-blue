@@ -66,8 +66,6 @@ void mpcd::CellThermoCompute::compute(uint64_t timestep)
     // ensure optional flags are up to date
     updateFlags();
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD thermo");
     const unsigned int ncells = m_cl->getNCells();
     if (ncells != m_ncells_alloc)
         {
@@ -76,8 +74,6 @@ void mpcd::CellThermoCompute::compute(uint64_t timestep)
 
     computeCellProperties(timestep);
     m_needs_net_reduce = true;
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::CellThermoCompute::computeCellProperties(uint64_t timestep)
@@ -457,8 +453,6 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
 
 void mpcd::CellThermoCompute::computeNetProperties()
     {
-    if (m_prof)
-        m_prof->push("MPCD thermo");
     // first reduce the properties on the rank
     unsigned int n_temp_cells = 0;
         {
@@ -556,8 +550,6 @@ void mpcd::CellThermoCompute::computeNetProperties()
         }
 
     m_needs_net_reduce = false;
-    if (m_prof)
-        m_prof->pop();
     }
 
 void mpcd::CellThermoCompute::updateFlags()

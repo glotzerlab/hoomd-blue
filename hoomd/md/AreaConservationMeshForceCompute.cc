@@ -88,9 +88,6 @@ pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
  */
 void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Harmonic Angle");
-
     precomputeParameter(); // precompute area
 
     assert(m_pdata);
@@ -276,9 +273,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += area_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void AreaConservationMeshForceCompute::precomputeParameter()

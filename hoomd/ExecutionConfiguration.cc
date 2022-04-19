@@ -418,7 +418,7 @@ void ExecutionConfiguration::scanGPUs()
         if (compoundComputeVer < CUDA_ARCH)
             {
             ostringstream s;
-            s << "The device " << prop.name << " with computed capability " << prop.major << "."
+            s << "The device " << prop.name << " with compute capability " << prop.major << "."
               << prop.minor << " does not support HOOMD-blue.";
             s_gpu_scan_messages.push_back(s.str());
             continue;
@@ -433,6 +433,26 @@ void ExecutionConfiguration::scanGPUs()
             s_gpu_scan_messages.push_back(s.str());
             continue;
             }
+
+        // exclude a GPU when it doesn't support mapped memory
+#ifdef __HIP_PLATFORM_NVCC__
+        int supports_managed_memory = 0;
+        cudaError_t cuda_error
+            = cudaDeviceGetAttribute(&supports_managed_memory, cudaDevAttrManagedMemory, dev);
+        if (cuda_error != cudaSuccess)
+            {
+            s_gpu_scan_messages.push_back("Failed to get device attribute: "
+                                          + string(cudaGetErrorString(cuda_error)));
+            continue;
+            }
+        if (!supports_managed_memory)
+            {
+            ostringstream s;
+            s << "The device " << prop.name << " does not support managed memory.";
+            s_gpu_scan_messages.push_back(s.str());
+            continue;
+            }
+#endif
 
         s_capable_gpu_descriptions.push_back(describeGPU((int)s_capable_gpu_ids.size(), prop));
         s_capable_gpu_ids.push_back(dev);

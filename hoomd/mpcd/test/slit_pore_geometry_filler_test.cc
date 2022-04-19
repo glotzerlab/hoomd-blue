@@ -16,7 +16,7 @@ using namespace hoomd;
 template<class F> void slit_pore_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(20.0);
+    snap->global_box = std::make_shared<BoxDim>(20.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 

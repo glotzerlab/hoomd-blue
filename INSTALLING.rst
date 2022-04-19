@@ -16,8 +16,7 @@ Singularity / Docker images
 ---------------------------
 
 See the glotzerlab-software_ documentation for instructions to install and use the containers on
-supported HPC clusters. Containers that include HOOMD-blue v3.0.0-beta releases have ``beta`` in
-their tag name.
+supported HPC clusters.
 
 Conda package
 -------------
@@ -27,14 +26,10 @@ Install the ``hoomd`` package from the conda-forge_ channel into a conda environ
 
     $ conda install -c conda-forge hoomd
 
-Install the v3.0.0-beta release with::
-
-    $ conda install -c conda-forge/label/hoomd_dev -c conda-forge hoomd
-
 Recent versions of ``conda`` auto-detect whether your system has a GPU and installs the appropriate
 package. Override this and force GPU package installation with::
 
-    $ conda install -c conda-forge hoomd=*=*gpu*
+    $ conda install -c conda-forge "hoomd=*=*gpu*"
 
 .. tip::
 

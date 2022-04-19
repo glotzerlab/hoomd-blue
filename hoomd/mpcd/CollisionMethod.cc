@@ -43,12 +43,8 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
     if (!shouldCollide(timestep))
         return;
 
-    if (m_prof)
-        m_prof->push("MPCD collide");
     // set random grid shift
     drawGridShift(timestep);
-    if (m_prof)
-        m_prof->pop();
 
     // update cell list
     m_cl->compute(timestep);

@@ -47,10 +47,6 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "NVE step 1");
-
     // access all the needed data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                access_location::device,
@@ -127,10 +123,6 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
         m_tuner_angular_one->end();
         m_exec_conf->endMultiGPU();
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -139,10 +131,6 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
 void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "NVE step 2");
 
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                access_location::device,
@@ -212,10 +200,6 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
         m_tuner_angular_two->end();
         m_exec_conf->endMultiGPU();
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail
