@@ -16,7 +16,7 @@ Example::
     r0_alchemical_dof = ljg.r0[('A', 'A')]
     alchemostat = hoomd.md.alchemy.methods.NVT(
         period=period,
-        alchemical_dof=[ar0],
+        alchemical_dof=[r0_alchemical_dof],
         alchemical_kT=hoomd.variant.Constant(0.1),
     )
     integrator.methods.insert(0, alchemostat)
