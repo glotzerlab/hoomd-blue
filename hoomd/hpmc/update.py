@@ -644,22 +644,10 @@ class Shape(Updater):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        updater_cls = None
-        supported_shapes = {
-            'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
-        }
+        # check for supported shapes is done in the shape move classes
         integrator_name = integrator.__class__.__name__
-        if integrator_name in supported_shapes:
-            updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
-        else:
-            raise RuntimeError("Integrator not supported")
+        updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
 
-        if isinstance(integrator, integrate.ConvexSpheropolyhedron):
-            for shape in integrator.shape.values():
-                if shape['sweep_radius'] != 0 and len(shape['vertices']) > 1:
-                    raise RuntimeError(
-                        "Currently alchemical moves with ConvexSpheropolyhedron\
-                    are only enabled for polyhedral and spherical particles.")
         self._attach_shape_move()
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     self.trigger, integrator._cpp_obj,
