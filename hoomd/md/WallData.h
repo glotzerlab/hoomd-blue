@@ -17,10 +17,6 @@
 #define DEVICE
 #endif
 
-#ifndef __HIPCC__
-#include <pybind11/pybind11.h>
-#endif
-
 //! SphereWall Constructor
 /*! \param r Radius of the sphere
     \param origin The x,y,z coordinates of the center of the sphere

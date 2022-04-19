@@ -216,7 +216,7 @@ template<class T> void export_PotentialExternal(pybind11::module& m, const std::
     // void* serves as a sentinel type indicating that no field_type actually exists.
     if constexpr (!std::is_same<typename T::field_type, void*>::value)
         {
-        cls.def_property("field", &T::getField, &T::setField);
+        cls.def_property("field", &PotentialExternal<T>::getField, &PotentialExternal<T>::setField);
         }
     }
     } // end namespace detail

@@ -453,6 +453,28 @@ foreach(_evaluator ${_external_evaluators})
     endif()
 endforeach()
 
+set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse)
+
+foreach(_evaluator ${_wall_evaluators})
+    configure_file(export_PotentialExternalWall.cc.inc
+                   export_PotentialExternalWall${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialExternalWall${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialExternalWallGPU.cc.inc
+                       export_PotentialExternalWall${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialExternalWallGPUKernel.cu.inc
+                       PotentialExternalWall${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialExternalWall${_evaluator}GPU.cc
+            PotentialExternalWall${_evaluator}GPUKernel.cu
+            )
+    endif()
+endforeach()
+
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_md ALIAS _md)

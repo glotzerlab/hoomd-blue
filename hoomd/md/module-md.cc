@@ -67,6 +67,13 @@ void export_PotentialRevCross(pybind11::module &m);
 void export_PotentialExternalPeriodic(pybind11::module &m);
 void export_PotentialExternalElectricField(pybind11::module &m);
 
+void export_PotentialExternalWallLJ(pybind11::module &m);
+void export_PotentialExternalWallYukawa(pybind11::module &m);
+void export_PotentialExternalWallForceShiftedLJ(pybind11::module &m);
+void export_PotentialExternalWallMie(pybind11::module &m);
+void export_PotentialExternalWallGauss(pybind11::module &m);
+void export_PotentialExternalWallMorse(pybind11::module &m);
+
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
 void export_ZeroMomentumUpdater(pybind11::module& m);
@@ -159,6 +166,13 @@ void export_PotentialRevCrossGPU(pybind11::module &m);
 void export_PotentialExternalPeriodicGPU(pybind11::module &m);
 void export_PotentialExternalElectricFieldGPU(pybind11::module &m);
 
+void export_PotentialExternalWallLJGPU(pybind11::module &m);
+void export_PotentialExternalWallYukawaGPU(pybind11::module &m);
+void export_PotentialExternalWallForceShiftedLJGPU(pybind11::module &m);
+void export_PotentialExternalWallMieGPU(pybind11::module &m);
+void export_PotentialExternalWallGaussGPU(pybind11::module &m);
+void export_PotentialExternalWallMorseGPU(pybind11::module &m);
+
 void export_TwoStepNVEGPU(pybind11::module& m);
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
 void export_TwoStepLangevinGPU(pybind11::module& m);
@@ -197,13 +211,6 @@ void export_TwoStepRATTLENVEGPUSphere(pybind11::module& m);
 using namespace hoomd;
 using namespace hoomd::md;
 using namespace hoomd::md::detail;
-
-// // Simplify the exporting of wall potential subclasses
-// template<class EvaluatorPairType>
-// void export_WallPotential(pybind11::module& m, const std::string& name)
-//     {
-//     export_PotentialExternal<PotentialExternal<EvaluatorWalls<EvaluatorPairType>>>(m, name);
-//     }
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
@@ -286,16 +293,19 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
     export_PPPMForceCompute(m);
+
     export_PotentialExternalPeriodic(m);
     export_PotentialExternalElectricField(m);
+
     export_wall_data(m);
     export_wall_field(m);
-    // export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    // export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    // export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    // export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
-    // export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    // export_WallPotential<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+
+    export_PotentialExternalWallLJ(m);
+    export_PotentialExternalWallYukawa(m);
+    export_PotentialExternalWallForceShiftedLJ(m);
+    export_PotentialExternalWallMie(m);
+    export_PotentialExternalWallGauss(m);
+    export_PotentialExternalWallMorse(m);
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -389,20 +399,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
 
-    // export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
-    // export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
-    //     m,
-    //     "WallsPotentialYukawaGPU");
-    // export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
-    //     m,
-    //     "WallsPotentialForceShiftedLJGPU");
-    // export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>(m, "WallsPotentialMieGPU");
-    // export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>(
-    //     m,
-    //     "WallsPotentialGaussGPU");
-    // export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
-    //     m,
-    //     "WallsPotentialMorseGPU");
+    export_PotentialExternalWallLJGPU(m);
+    export_PotentialExternalWallYukawaGPU(m);
+    export_PotentialExternalWallForceShiftedLJGPU(m);
+    export_PotentialExternalWallMieGPU(m);
+    export_PotentialExternalWallGaussGPU(m);
+    export_PotentialExternalWallMorseGPU(m);
 #endif
 
     // updaters
