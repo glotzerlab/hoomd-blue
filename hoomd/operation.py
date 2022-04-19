@@ -61,8 +61,10 @@ class _HOOMDGetSetAttrBase:
         elif attr in self._typeparam_dict:
             return self._getattr_typeparam(attr)
         else:
-            raise AttributeError("Object {} has no attribute {}".format(
-                type(self), attr))
+            return self._getattr_hook(attr)
+
+    def _getattr_hook(self, attr):
+        raise AttributeError(f"Object {type(self)} has no attribute {attr}")
 
     def _getattr_param(self, attr):
         """Hook for getting an attribute from `_param_dict`."""
@@ -261,6 +263,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             typeparam._detach()
 
     def _add_typeparam(self, typeparam):
+        self._append_typeparam(typeparam)
+
+    def _append_typeparam(self, typeparam):
         self._typeparam_dict[typeparam.name] = typeparam
 
     def _extend_typeparam(self, typeparams):

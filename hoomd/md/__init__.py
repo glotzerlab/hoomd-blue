@@ -19,6 +19,7 @@ See Also:
     Tutorial: :doc:`tutorial/01-Introducing-Molecular-Dynamics/00-index`
 """
 
+from hoomd.md import alchemy
 from hoomd.md import angle
 from hoomd.md import bond
 from hoomd.md import compute

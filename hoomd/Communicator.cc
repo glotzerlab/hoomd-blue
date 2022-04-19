@@ -275,9 +275,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                                                          access_location::host,
                                                          access_mode::read);
 
-            unsigned int send_bytes = 0;
-            unsigned int recv_bytes = 0;
-
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
@@ -307,8 +304,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                           0,
                           m_comm.m_mpi_comm,
                           &req[nreq++]);
-                send_bytes += (unsigned int)sizeof(unsigned int);
-                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -340,9 +335,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
             std::vector<MPI_Request> reqs;
             MPI_Request req;
 
-            unsigned int send_bytes = 0;
-            unsigned int recv_bytes = 0;
-
             // loop over neighbors
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 {
@@ -361,7 +353,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                               &req);
                     reqs.push_back(req);
                     }
-                send_bytes += (unsigned int)(n_send_groups[ineigh] * sizeof(rank_element_t));
 
                 if (n_recv_groups[ineigh])
                     {
@@ -374,7 +365,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                               &req);
                     reqs.push_back(req);
                     }
-                recv_bytes += (unsigned int)(n_recv_groups[ineigh] * sizeof(rank_element_t));
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
@@ -614,9 +604,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                                                          access_location::host,
                                                          access_mode::read);
 
-            unsigned int send_bytes = 0;
-            unsigned int recv_bytes = 0;
-
             // compute send counts
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
@@ -646,8 +633,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                           0,
                           m_comm.m_mpi_comm,
                           &req[nreq++]);
-                send_bytes += (unsigned int)sizeof(unsigned int);
-                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -679,9 +664,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
             std::vector<MPI_Request> reqs;
             MPI_Request req;
 
-            unsigned int send_bytes = 0;
-            unsigned int recv_bytes = 0;
-
             // loop over neighbors
             for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
                 {
@@ -700,7 +682,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                               &req);
                     reqs.push_back(req);
                     }
-                send_bytes += (unsigned int)(n_send_groups[ineigh] * sizeof(group_element_t));
 
                 if (n_recv_groups[ineigh])
                     {
@@ -713,7 +694,6 @@ void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool inc
                               &req);
                     reqs.push_back(req);
                     }
-                recv_bytes += (unsigned int)(n_recv_groups[ineigh] * sizeof(group_element_t));
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
@@ -2782,7 +2762,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
-        size_t sz = 0;
         // only non-permanent fields (position, velocity, orientation) need to be considered here
         // charge, body, image and diameter are not updated between neighbor list builds
         if (flags[comm_flag::position])
@@ -2813,8 +2792,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                       m_mpi_comm,
                       &m_reqs[1]);
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
-
-            sz += sizeof(Scalar4);
             }
 
         if (flags[comm_flag::velocity])
@@ -2845,8 +2822,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                       m_mpi_comm,
                       &m_reqs[1]);
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
-
-            sz += sizeof(Scalar4);
             }
 
         if (flags[comm_flag::orientation])
@@ -2877,8 +2852,6 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                       m_mpi_comm,
                       &m_reqs[1]);
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
-
-            sz += sizeof(Scalar4);
             }
 
         // wrap particle positions (only if copying positions)
@@ -3136,7 +3109,6 @@ void Communicator::updateNetForce(uint64_t timestep)
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
-        size_t sz = 0;
         if (flags[comm_flag::net_force])
             {
             m_reqs.clear();
@@ -3165,8 +3137,6 @@ void Communicator::updateNetForce(uint64_t timestep)
                       m_mpi_comm,
                       &m_reqs[1]);
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
-
-            sz += sizeof(Scalar4);
             }
 
         // We add new particle data for reverse ghosts after the particle data already received, so
@@ -3211,8 +3181,6 @@ void Communicator::updateNetForce(uint64_t timestep)
                           m_mpi_comm,
                           &m_reqs[1]);
                 MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
-
-                sz += sizeof(Scalar4);
                 }
 
             // Add forces
@@ -3277,8 +3245,6 @@ void Communicator::updateNetForce(uint64_t timestep)
                       m_mpi_comm,
                       &m_reqs[1]);
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
-
-            sz += sizeof(Scalar4);
             }
 
         if (flags[comm_flag::net_virial])
@@ -3309,8 +3275,6 @@ void Communicator::updateNetForce(uint64_t timestep)
                       m_mpi_comm,
                       &m_reqs[1]);
             MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
-
-            sz += 6 * sizeof(Scalar);
             }
 
         if (flags[comm_flag::net_virial])

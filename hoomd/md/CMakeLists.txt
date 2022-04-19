@@ -42,6 +42,7 @@ set(_md_sources module-md.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
+                   TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
                    )
@@ -52,6 +53,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintComputeGPU.h
                 ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
+                AlchemyData.h
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
@@ -97,13 +99,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairLJ1208.h
                 EvaluatorPairLJ0804.h
                 EvaluatorPairMie.h
-		EvaluatorPairExpandedMie.h
+                EvaluatorPairExpandedMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairExpandedLJ.h
+                EvaluatorPairTable.h
                 EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
@@ -151,6 +154,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialExternalGPU.h
                 PotentialExternalGPU.cuh
                 PotentialExternal.h
+                PotentialPairAlchemical.h
+                PotentialPairAlchemicalNormalized.h
                 PotentialPairDPDThermoGPU.h
                 PotentialPairDPDThermoGPU.cuh
                 PotentialPairDPDThermo.h
@@ -189,6 +194,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
+                AlchemostatTwoStep.h
+                TwoStepNVTAlchemy.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
@@ -239,6 +246,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ForceShiftedLJDriverPotentialPairGPU.cu
                       GaussDriverPotentialPairGPU.cu
                       LJDriverPotentialPairGPU.cu
+                      LJGaussDriverPotentialPairGPU.cu
                       MieDriverPotentialPairGPU.cu
 		      ExpandedMieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
@@ -371,6 +379,7 @@ add_subdirectory(long_range)
 
 add_subdirectory(external)
 add_subdirectory(minimize)
+add_subdirectory(alchemy)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

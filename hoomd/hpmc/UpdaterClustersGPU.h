@@ -299,27 +299,22 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
         }
 
     // Depletants
-    const Index2D& depletant_idx = this->m_mc->getDepletantIndexer();
     unsigned int ntypes = this->m_pdata->getNTypes();
-    GlobalArray<Scalar> lambda(ntypes * depletant_idx.getNumElements(), this->m_exec_conf);
+    GlobalArray<Scalar> lambda(ntypes * ntypes, this->m_exec_conf);
     m_lambda.swap(lambda);
     TAG_ALLOCATION(m_lambda);
 
     GlobalArray<unsigned int>(1, this->m_exec_conf).swap(m_n_depletants);
     TAG_ALLOCATION(m_n_depletants);
 
-    m_depletant_streams.resize(depletant_idx.getNumElements());
+    m_depletant_streams.resize(ntypes);
     for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
         {
-        for (unsigned int jtype = 0; jtype < this->m_pdata->getNTypes(); ++jtype)
+        m_depletant_streams[itype].resize(this->m_exec_conf->getNumActiveGPUs());
+        for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
             {
-            m_depletant_streams[depletant_idx(itype, jtype)].resize(
-                this->m_exec_conf->getNumActiveGPUs());
-            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                {
-                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
-                hipStreamCreate(&m_depletant_streams[depletant_idx(itype, jtype)][idev]);
-                }
+            hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+            hipStreamCreate(&m_depletant_streams[itype][idev]);
             }
         }
     }
@@ -356,20 +351,13 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
     Scalar max_d(0.0);
     for (unsigned int type_i = 0; type_i < this->m_pdata->getNTypes(); ++type_i)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
+        if (this->m_mc->getDepletantFugacity(type_i) == Scalar(0.0))
             {
-            quat<Scalar> o;
-            Shape tmp_i(o, params[type_i]);
-            if (this->m_mc->getDepletantFugacity(type_i, type_j) != Scalar(0.0))
-                {
-                // add range of depletion interaction
-                Shape tmp_j(o, params[type_j]);
-                max_d = std::max(
-                    max_d,
-                    (Scalar)0.5
-                        * (tmp_i.getCircumsphereDiameter() + tmp_j.getCircumsphereDiameter()));
-                }
+            continue;
             }
+        quat<Scalar> o;
+        Shape tmp_i(o, params[type_i]);
+        max_d = std::max(max_d, static_cast<Scalar>(tmp_i.getCircumsphereDiameter()));
         }
     nominal_width += max_d;
     if (this->m_cl->getNominalWidth() != nominal_width)
@@ -413,11 +401,9 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
                 else
                     obb.lengths.z = 0.5f; // unit length
 
-                Scalar lambda = std::abs(this->m_mc->getDepletantFugacity(i_type, j_type)
+                Scalar lambda = std::abs(this->m_mc->getDepletantFugacity(i_type)
                                          * obb.getVolume(this->m_sysdef->getNDimensions()));
-                h_lambda.data[k_type * this->m_mc->getDepletantIndexer().getNumElements()
-                              + this->m_mc->getDepletantIndexer()(i_type, j_type)]
-                    = lambda;
+                h_lambda.data[k_type * this->m_pdata->getNTypes() + i_type] = lambda;
                 }
             }
         }
@@ -689,306 +675,291 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
     {
     const auto& params = this->m_mc->getParams();
 
-    if (this->m_pdata->getN() > 0)
+    if (this->m_pdata->getN() == 0)
         {
-        // check if we are below a minimum image convention box size
-        // the minimum image convention comes from the global box, not the local one
-        BoxDim global_box = this->m_pdata->getGlobalBox();
-        Scalar3 nearest_plane_distance = global_box.getNearestPlaneDistance();
+        return;
+        }
+    // check if we are below a minimum image convention box size
+    // the minimum image convention comes from the global box, not the local one
+    BoxDim global_box = this->m_pdata->getGlobalBox();
+    Scalar3 nearest_plane_distance = global_box.getNearestPlaneDistance();
 
-        Scalar nominal_width = this->m_cl->getNominalWidth();
+    Scalar nominal_width = this->m_cl->getNominalWidth();
 
-        if ((global_box.getPeriodic().x && nearest_plane_distance.x <= nominal_width * 2)
-            || (global_box.getPeriodic().y && nearest_plane_distance.y <= nominal_width * 2)
-            || (this->m_sysdef->getNDimensions() == 3 && global_box.getPeriodic().z
-                && nearest_plane_distance.z <= nominal_width * 2))
-            {
-            this->m_exec_conf->msg->error()
-                << "Simulation box too small for GPU accelerated HPMC execution - increase it so "
-                   "the minimum image convention works"
-                << std::endl;
-            throw std::runtime_error("Error performing HPMC update");
-            }
+    if ((global_box.getPeriodic().x && nearest_plane_distance.x <= nominal_width * 2)
+        || (global_box.getPeriodic().y && nearest_plane_distance.y <= nominal_width * 2)
+        || (this->m_sysdef->getNDimensions() == 3 && global_box.getPeriodic().z
+            && nearest_plane_distance.z <= nominal_width * 2))
+        {
+        this->m_exec_conf->msg->error()
+            << "Simulation box too small for GPU accelerated HPMC execution - increase it so "
+               "the minimum image convention works"
+            << std::endl;
+        throw std::runtime_error("Error performing HPMC update");
+        }
 
-        // if the cell list is a different size than last time, reinitialize the expanded cell list
-        uint3 cur_dim = this->m_cl->getDim();
-        if (m_last_dim.x != cur_dim.x || m_last_dim.y != cur_dim.y || m_last_dim.z != cur_dim.z
-            || m_last_nmax != this->m_cl->getNmax())
-            {
-            initializeExcellMem();
+    // if the cell list is a different size than last time, reinitialize the expanded cell list
+    uint3 cur_dim = this->m_cl->getDim();
+    if (m_last_dim.x != cur_dim.x || m_last_dim.y != cur_dim.y || m_last_dim.z != cur_dim.z
+        || m_last_nmax != this->m_cl->getNmax())
+        {
+        initializeExcellMem();
 
-            m_last_dim = cur_dim;
-            m_last_nmax = this->m_cl->getNmax();
-            }
+        m_last_dim = cur_dim;
+        m_last_nmax = this->m_cl->getNmax();
+        }
 
-        // access the cell list data
-        ArrayHandle<unsigned int> d_cell_size(this->m_cl->getCellSizeArray(),
-                                              access_location::device,
-                                              access_mode::read);
-        ArrayHandle<unsigned int> d_cell_idx(this->m_cl->getIndexArray(),
-                                             access_location::device,
-                                             access_mode::read);
-        ArrayHandle<unsigned int> d_cell_adj(this->m_cl->getCellAdjArray(),
-                                             access_location::device,
-                                             access_mode::read);
+    // access the cell list data
+    ArrayHandle<unsigned int> d_cell_size(this->m_cl->getCellSizeArray(),
+                                          access_location::device,
+                                          access_mode::read);
+    ArrayHandle<unsigned int> d_cell_idx(this->m_cl->getIndexArray(),
+                                         access_location::device,
+                                         access_mode::read);
+    ArrayHandle<unsigned int> d_cell_adj(this->m_cl->getCellAdjArray(),
+                                         access_location::device,
+                                         access_mode::read);
 
-        // per-device cell list data
-        const ArrayHandle<unsigned int>& d_cell_size_per_device
-            = m_cl->getPerDevice() ? ArrayHandle<unsigned int>(m_cl->getCellSizeArrayPerDevice(),
-                                                               access_location::device,
-                                                               access_mode::read)
-                                   : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
-                                                               access_location::device,
-                                                               access_mode::read);
-        const ArrayHandle<unsigned int>& d_cell_idx_per_device
-            = m_cl->getPerDevice() ? ArrayHandle<unsigned int>(m_cl->getIndexArrayPerDevice(),
-                                                               access_location::device,
-                                                               access_mode::read)
-                                   : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
-                                                               access_location::device,
-                                                               access_mode::read);
+    // per-device cell list data
+    const ArrayHandle<unsigned int>& d_cell_size_per_device
+        = m_cl->getPerDevice() ? ArrayHandle<unsigned int>(m_cl->getCellSizeArrayPerDevice(),
+                                                           access_location::device,
+                                                           access_mode::read)
+                               : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
+                                                           access_location::device,
+                                                           access_mode::read);
+    const ArrayHandle<unsigned int>& d_cell_idx_per_device
+        = m_cl->getPerDevice() ? ArrayHandle<unsigned int>(m_cl->getIndexArrayPerDevice(),
+                                                           access_location::device,
+                                                           access_mode::read)
+                               : ArrayHandle<unsigned int>(GlobalArray<unsigned int>(),
+                                                           access_location::device,
+                                                           access_mode::read);
 
-        // access the parameters and interaction matrix
-        ArrayHandle<unsigned int> d_overlaps(this->m_mc->getInteractionMatrix(),
-                                             access_location::device,
-                                             access_mode::read);
+    // access the parameters and interaction matrix
+    ArrayHandle<unsigned int> d_overlaps(this->m_mc->getInteractionMatrix(),
+                                         access_location::device,
+                                         access_mode::read);
 
-        BoxDim box = this->m_pdata->getBox();
+    BoxDim box = this->m_pdata->getBox();
 
-        Scalar3 ghost_width = this->m_cl->getGhostWidth();
+    Scalar3 ghost_width = this->m_cl->getGhostWidth();
 
-        // expanded cells & neighbor list
-        ArrayHandle<unsigned int> d_excell_idx(m_excell_idx,
+    // expanded cells & neighbor list
+    ArrayHandle<unsigned int> d_excell_idx(m_excell_idx,
+                                           access_location::device,
+                                           access_mode::overwrite);
+    ArrayHandle<unsigned int> d_excell_size(m_excell_size,
+                                            access_location::device,
+                                            access_mode::overwrite);
+
+    // update the expanded cells
+    this->m_tuner_excell_block_size->begin();
+    gpu::hpmc_excell(d_excell_idx.data,
+                     d_excell_size.data,
+                     m_excell_list_indexer,
+                     m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
+                     m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
+                     d_cell_adj.data,
+                     this->m_cl->getCellIndexer(),
+                     this->m_cl->getCellListIndexer(),
+                     this->m_cl->getCellAdjIndexer(),
+                     this->m_exec_conf->getNumActiveGPUs(),
+                     this->m_tuner_excell_block_size->getParam());
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    this->m_tuner_excell_block_size->end();
+
+    bool reallocate = false;
+
+    // allocate memory for number of neighbors
+    size_t old_size = m_nneigh.size();
+    m_nneigh.resize(this->m_pdata->getN());
+    m_nneigh_scan.resize(this->m_pdata->getN());
+
+    if (m_nneigh.size() != old_size)
+        {
+        // update memory hints
+        updateGPUAdvice();
+        }
+
+    do
+        {
+            { // ArrayHandle scope
+            ArrayHandle<unsigned int> d_adjacency(m_adjacency,
+                                                  access_location::device,
+                                                  access_mode::overwrite);
+            ArrayHandle<unsigned int> d_nneigh(m_nneigh,
                                                access_location::device,
                                                access_mode::overwrite);
-        ArrayHandle<unsigned int> d_excell_size(m_excell_size,
-                                                access_location::device,
-                                                access_mode::overwrite);
 
-        // update the expanded cells
-        this->m_tuner_excell_block_size->begin();
-        gpu::hpmc_excell(d_excell_idx.data,
-                         d_excell_size.data,
-                         m_excell_list_indexer,
-                         m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-                         m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
-                         d_cell_adj.data,
-                         this->m_cl->getCellIndexer(),
-                         this->m_cl->getCellListIndexer(),
-                         this->m_cl->getCellAdjIndexer(),
-                         this->m_exec_conf->getNumActiveGPUs(),
-                         this->m_tuner_excell_block_size->getParam());
-        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        this->m_tuner_excell_block_size->end();
-
-        bool reallocate = false;
-
-        // allocate memory for number of neighbors
-        size_t old_size = m_nneigh.size();
-        m_nneigh.resize(this->m_pdata->getN());
-        m_nneigh_scan.resize(this->m_pdata->getN());
-
-        if (m_nneigh.size() != old_size)
-            {
-            // update memory hints
-            updateGPUAdvice();
-            }
-
-        do
-            {
-                { // ArrayHandle scope
-                ArrayHandle<unsigned int> d_adjacency(m_adjacency,
-                                                      access_location::device,
-                                                      access_mode::overwrite);
-                ArrayHandle<unsigned int> d_nneigh(m_nneigh,
-                                                   access_location::device,
-                                                   access_mode::overwrite);
-
-                // access backup particle data
-                ArrayHandle<Scalar4> d_postype_backup(this->m_postype_backup,
+            // access backup particle data
+            ArrayHandle<Scalar4> d_postype_backup(this->m_postype_backup,
+                                                  access_location::device,
+                                                  access_mode::read);
+            ArrayHandle<Scalar4> d_orientation_backup(this->m_orientation_backup,
                                                       access_location::device,
                                                       access_mode::read);
-                ArrayHandle<Scalar4> d_orientation_backup(this->m_orientation_backup,
-                                                          access_location::device,
-                                                          access_mode::read);
 
-                // access the particle data
-                ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(),
+            // access the particle data
+            ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(),
+                                           access_location::device,
+                                           access_mode::read);
+            ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),
                                                access_location::device,
                                                access_mode::read);
-                ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),
-                                                   access_location::device,
-                                                   access_mode::read);
 
-                // depletants
-                auto depletant_idx = this->m_mc->getDepletantIndexer();
-                m_n_depletants.resize(this->m_pdata->getN() * depletant_idx.getNumElements()
-                                      * this->m_pdata->getMaxN());
+            // depletants
+            m_n_depletants.resize(this->m_pdata->getN() * this->m_pdata->getNTypes()
+                                  * this->m_pdata->getMaxN());
 
-                ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_n_depletants(m_n_depletants,
-                                                         access_location::device,
-                                                         access_mode::overwrite);
-
-                // depletant parameters
-                ArrayHandle<Scalar> h_fugacity(this->m_mc->getFugacityArray(),
-                                               access_location::host,
-                                               access_mode::read);
-
-                ArrayHandle<unsigned int> d_overflow(m_overflow,
+            ArrayHandle<Scalar> d_lambda(m_lambda, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_n_depletants(m_n_depletants,
                                                      access_location::device,
-                                                     access_mode::readwrite);
+                                                     access_mode::overwrite);
 
-                // fill the parameter structure for the GPU kernel
-                gpu::cluster_args_t args(d_postype_backup.data,
-                                         d_orientation_backup.data,
-                                         this->m_cl->getCellIndexer(),
-                                         this->m_cl->getDim(),
-                                         ghost_width,
-                                         this->m_pdata->getN(),
-                                         this->m_pdata->getNTypes(),
-                                         this->m_sysdef->getSeed(),
-                                         d_overlaps.data,
-                                         this->m_mc->getOverlapIndexer(),
-                                         timestep,
-                                         box,
-                                         0, // block size
-                                         0, // tpp
-                                         0, // overlap_threads
-                                         d_postype.data,
-                                         d_orientation.data,
-                                         d_excell_idx.data,
-                                         d_excell_size.data,
-                                         m_excell_list_indexer,
-                                         d_adjacency.data,
-                                         d_nneigh.data,
-                                         m_maxn,
-                                         d_overflow.data,
-                                         this->m_sysdef->getNDimensions(),
-                                         line,
-                                         pivot,
-                                         q,
-                                         true,
-                                         this->m_exec_conf->dev_prop,
-                                         m_old_gpu_partition,
-                                         &m_overlaps_streams.front());
+            // depletant parameters
+            ArrayHandle<Scalar> h_fugacity(this->m_mc->getFugacityArray(),
+                                           access_location::host,
+                                           access_mode::read);
 
-                this->m_exec_conf->beginMultiGPU();
+            ArrayHandle<unsigned int> d_overflow(m_overflow,
+                                                 access_location::device,
+                                                 access_mode::readwrite);
 
-                // reset number of neighbors
-                for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-                    {
-                    hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
+            // fill the parameter structure for the GPU kernel
+            gpu::cluster_args_t args(d_postype_backup.data,
+                                     d_orientation_backup.data,
+                                     this->m_cl->getCellIndexer(),
+                                     this->m_cl->getDim(),
+                                     ghost_width,
+                                     this->m_pdata->getN(),
+                                     this->m_pdata->getNTypes(),
+                                     this->m_sysdef->getSeed(),
+                                     d_overlaps.data,
+                                     this->m_mc->getOverlapIndexer(),
+                                     timestep,
+                                     box,
+                                     0, // block size
+                                     0, // tpp
+                                     0, // overlap_threads
+                                     d_postype.data,
+                                     d_orientation.data,
+                                     d_excell_idx.data,
+                                     d_excell_size.data,
+                                     m_excell_list_indexer,
+                                     d_adjacency.data,
+                                     d_nneigh.data,
+                                     m_maxn,
+                                     d_overflow.data,
+                                     this->m_sysdef->getNDimensions(),
+                                     line,
+                                     pivot,
+                                     q,
+                                     true,
+                                     this->m_exec_conf->dev_prop,
+                                     m_old_gpu_partition,
+                                     &m_overlaps_streams.front());
 
-                    auto range = this->m_pdata->getGPUPartition().getRange(idev);
-                    if (range.second - range.first != 0)
-                        hipMemsetAsync(d_nneigh.data + range.first,
-                                       0,
-                                       sizeof(unsigned int) * (range.second - range.first));
-                    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                        CHECK_CUDA_ERROR();
-                    }
+            this->m_exec_conf->beginMultiGPU();
 
-                /*
-                 *  check overlaps, new configuration simultaneously against old configuration
-                 */
+            // reset number of neighbors
+            for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                {
+                hipSetDevice(this->m_exec_conf->getGPUIds()[idev]);
 
-                m_tuner_overlaps->begin();
-                unsigned int param = m_tuner_overlaps->getParam();
-                args.block_size = param / 1000000;
-                args.tpp = (param % 1000000) / 100;
-                args.overlap_threads = param % 100;
-                gpu::hpmc_cluster_overlaps<Shape>(args, params.data());
+                auto range = this->m_pdata->getGPUPartition().getRange(idev);
+                if (range.second - range.first != 0)
+                    hipMemsetAsync(d_nneigh.data + range.first,
+                                   0,
+                                   sizeof(unsigned int) * (range.second - range.first));
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
-                m_tuner_overlaps->end();
+                }
 
-                /*
-                 * Insert depletants
-                 */
+            /*
+             *  check overlaps, new configuration simultaneously against old configuration
+             */
 
-                // allow concurrency between depletant types in multi GPU block
-                for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
-                    {
-                    for (unsigned int jtype = itype; jtype < this->m_pdata->getNTypes(); ++jtype)
-                        {
-                        if (h_fugacity.data[depletant_idx(itype, jtype)] == 0)
-                            continue;
+            m_tuner_overlaps->begin();
+            unsigned int param = m_tuner_overlaps->getParam();
+            args.block_size = param / 1000000;
+            args.tpp = (param % 1000000) / 100;
+            args.overlap_threads = param % 100;
+            gpu::hpmc_cluster_overlaps<Shape>(args, params.data());
+            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            m_tuner_overlaps->end();
 
-                        if (itype != jtype)
-                            throw std::runtime_error(
-                                "Non-additive depletants are not supported by UpdaterClustersGPU.");
+            /*
+             * Insert depletants
+             */
 
-                        if (h_fugacity.data[depletant_idx(itype, jtype)] < 0)
-                            throw std::runtime_error(
-                                "Negative fugacities are not supported by UpdaterClustersGPU.");
+            // allow concurrency between depletant types in multi GPU block
+            for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
+                {
+                if (h_fugacity.data[itype] == 0)
+                    continue;
 
-                        // draw random number of depletant insertions per particle from Poisson
-                        // distribution
-                        m_tuner_num_depletants->begin();
-                        gpu::generate_num_depletants(
-                            this->m_sysdef->getSeed(),
-                            timestep,
-                            0, // is select really always 0 here?
-                            this->m_exec_conf->getRank(),
-                            itype,
-                            jtype,
-                            depletant_idx,
-                            d_lambda.data,
-                            d_postype.data,
-                            d_n_depletants.data
-                                + depletant_idx(itype, jtype) * this->m_pdata->getMaxN(),
-                            m_tuner_num_depletants->getParam(),
-                            &m_depletant_streams[depletant_idx(itype, jtype)].front(),
-                            m_old_gpu_partition);
-                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                            CHECK_CUDA_ERROR();
-                        m_tuner_num_depletants->end();
+                if (h_fugacity.data[itype] < 0)
+                    throw std::runtime_error(
+                        "Negative fugacities are not supported by UpdaterClustersGPU.");
 
-                        // max reduce over result
-                        unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
-                        gpu::get_max_num_depletants(
-                            d_n_depletants.data
-                                + depletant_idx(itype, jtype) * this->m_pdata->getMaxN(),
-                            &max_n_depletants[0],
-                            &m_depletant_streams[depletant_idx(itype, jtype)].front(),
-                            m_old_gpu_partition,
-                            this->m_exec_conf->getCachedAllocatorManaged());
-                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                            CHECK_CUDA_ERROR();
+                // draw random number of depletant insertions per particle from Poisson
+                // distribution
+                m_tuner_num_depletants->begin();
 
-                        // insert depletants on-the-fly
-                        m_tuner_depletants->begin();
-                        unsigned int param = m_tuner_depletants->getParam();
-                        args.block_size = param / 1000000;
-                        unsigned int depletants_per_thread = (param % 1000000) / 10000;
-                        args.tpp = param % 10000;
+                gpu::generate_num_depletants(this->m_sysdef->getSeed(),
+                                             timestep,
+                                             0, // is select really always 0 here?
+                                             this->m_exec_conf->getRank(),
+                                             itype,
+                                             d_lambda.data,
+                                             d_postype.data,
+                                             d_n_depletants.data + itype * this->m_pdata->getMaxN(),
+                                             m_tuner_num_depletants->getParam(),
+                                             &m_depletant_streams[itype].front(),
+                                             m_old_gpu_partition,
+                                             this->m_pdata->getNTypes());
+                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
+                m_tuner_num_depletants->end();
 
-                        gpu::hpmc_implicit_args_t implicit_args(
-                            itype,
-                            jtype,
-                            depletant_idx,
-                            0,     // implicit_counters
-                            0,     // implicit_counters pitch
-                            false, // repulsive
-                            d_n_depletants.data
-                                + depletant_idx(itype, jtype) * this->m_pdata->getMaxN(),
-                            &max_n_depletants[0],
-                            depletants_per_thread,
-                            &m_depletant_streams[depletant_idx(itype, jtype)].front());
-                        gpu::hpmc_clusters_depletants<Shape>(args, implicit_args, params.data());
-                        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-                            CHECK_CUDA_ERROR();
-                        m_tuner_depletants->end();
-                        }
-                    }
+                // max reduce over result
+                unsigned int max_n_depletants[this->m_exec_conf->getNumActiveGPUs()];
+                gpu::get_max_num_depletants(d_n_depletants.data + itype * this->m_pdata->getMaxN(),
+                                            &max_n_depletants[0],
+                                            &m_depletant_streams[itype].front(),
+                                            m_old_gpu_partition,
+                                            this->m_exec_conf->getCachedAllocatorManaged());
+                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
+
+                // insert depletants on-the-fly
+                m_tuner_depletants->begin();
+                unsigned int param = m_tuner_depletants->getParam();
+                args.block_size = param / 1000000;
+                unsigned int depletants_per_thread = (param % 1000000) / 10000;
+                args.tpp = param % 10000;
+
+                gpu::hpmc_implicit_args_t implicit_args(itype,
+                                                        0,     // implicit_counters
+                                                        0,     // implicit_counters pitch
+                                                        false, // repulsive
+                                                        d_n_depletants.data + itype,
+                                                        &max_n_depletants[0],
+                                                        depletants_per_thread,
+                                                        &m_depletant_streams[itype].front());
+                gpu::hpmc_clusters_depletants<Shape>(args, implicit_args, params.data());
+                if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
+                m_tuner_depletants->end();
                 this->m_exec_conf->endMultiGPU();
                 } // end ArrayHandle scope
 
             reallocate = checkReallocate();
-            } while (reallocate);
-        }
+            }
+        } while (reallocate);
     }
 
 template<class Shape> bool UpdaterClustersGPU<Shape>::checkReallocate()

@@ -1195,23 +1195,23 @@ class Mie(Pair):
 
 
 class ExpandedMie(Pair):
-    """Expanded Mie pair force.
+    r"""Expanded Mie pair force.
 
     Args:
         nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
-        default_r_cut (float): Default cutoff radius (in distance units).
-        default_r_on (float): Default turn-on radius (in distance units).
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
     `ExpandedMie` computes the radially shifted Mie pair force on every particle
     in the simulation state:
 
     .. math::
-        U(r) = \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
-          \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
-          \\frac{\\sigma}{r-\\Delta} \\right)^{n} - \\left( \\frac
-          {\\sigma}{r-\\Delta}
-          \\right)^{m} \\right]
+        U(r) = \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
+          \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left(
+          \frac{\sigma}{r-\Delta} \right)^{n} - \left( \frac
+          {\sigma}{r-\Delta}
+          \right)^{m} \right]
 
     Example::
 
@@ -1231,15 +1231,15 @@ class ExpandedMie(Pair):
         The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          :math:`\\epsilon` :math:`[\\mathrm{energy}]`.
+          :math:`\epsilon` :math:`[\mathrm{energy}]`.
         * ``sigma`` (`float`, **required**) -
-          :math:`\\sigma` :math:`[\\mathrm{length}]`.
+          :math:`\sigma` :math:`[\mathrm{length}]`.
         * ``n`` (`float`, **required**) -
-          :math:`n` :math:`[\\mathrm{dimensionless}]`.
+          :math:`n` :math:`[\mathrm{dimensionless}]`.
         * ``m`` (`float`, **required**) -
-          :math:`m` :math:`[\\mathrm{dimensionless}]`.
+          :math:`m` :math:`[\mathrm{dimensionless}]`.
         * ``delta`` (`float`, **required**) -
-          :math:`\\Delta` :math:`[\\mathrm{length}]`.
+          :math:`\Delta` :math:`[\mathrm{length}]`.
 
         Type: `TypeParameter` [ `tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1729,9 +1729,9 @@ class TWF(Pair):
     r"""Pair potential model for globular proteins.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist.NeighborList`): Neighbor list.
-        default_r_cut (float): Default cutoff radius (in distance units).
-        default_r_on (float): Default turn-on radius (in distance units).
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
     `TWF` computes the Ten-wolde Frenkel potential on all particles in the
@@ -1760,11 +1760,11 @@ class TWF(Pair):
         The LJ potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          energy parameter :math:`\varepsilon` :math:`[energy]`
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) -
-          particle size :math:`\sigma` :math:`[length]`
+          particle size :math:`\sigma` :math:`[\mathrm{length}]`
         * ``alpha`` (`float`, **required**) -
-          controls well-width :math:`\alpha` :math:`[dimensionless]`
+          controls well-width :math:`\alpha` :math:`[\mathrm{dimensionless}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1789,4 +1789,56 @@ class TWF(Pair):
                               sigma=float,
                               alpha=float,
                               len_keys=2))
+        self._add_typeparam(params)
+
+
+class LJGauss(Pair):
+    r"""Lennard-Jones-Gauss pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
+    simulation state:
+
+    .. math::
+        U(r) = 1\ [\mathrm{energy}] \cdot \left[
+                 \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
+                 \left ( \frac{2\ [\mathrm{length}]}{r} \right)^{6} \right] -
+            \epsilon
+            \exp \left[- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}} \right]
+
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r0`` (`float`, **required**) -
+          Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
+
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        ljg = pair.LJGauss(nl)
+        ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6)
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+    """
+    _cpp_class_name = "PotentialPairLJGauss"
+
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float, sigma=float, r0=float, len_keys=2))
         self._add_typeparam(params)

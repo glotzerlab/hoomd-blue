@@ -85,6 +85,7 @@ The following people have contributed to the to HOOMD-blue:
 * Peter Schwendeman, University of Michigan
 * Philipp Mertmann, Ruhr University Bochum
 * Philipp Schönhöfer, University of Michigan
+* Praharsh Suryadevara, New York University
 * Rastko Sknepnek, Northwestern
 * Raymond Asare, University of Michigan
 * Richmond Newman, University of Michigan

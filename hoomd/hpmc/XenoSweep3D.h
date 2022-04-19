@@ -225,4 +225,5 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     } // end namespace hpmc
     } // end namespace hoomd
 
+#undef DEVICE
 #endif // __XENOCOLLIDE_3D_H__
