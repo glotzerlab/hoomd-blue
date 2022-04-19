@@ -127,7 +127,8 @@ class Elastic(ShapeMove):
         integrator = self._simulation.operations.integrator
         if isinstance(integrator, integrate.Ellipsoid):
             for shape in integrator.shape.values():
-                if not numpy.allclose((shape["a"], shape["b"], shape["c"]), shape["a"]):
+                if not numpy.allclose(
+                    (shape["a"], shape["b"], shape["c"]), shape["a"]):
                     raise ValueError("This updater only works when a=b=c.")
         super()._attach()
 
