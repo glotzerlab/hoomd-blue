@@ -1,7 +1,7 @@
 ---
 name: Release checklist
 about: '[for maintainer use]'
-title: 'Release v3.0.0-beta.N'
+title: 'Release v3.x.y'
 labels: ''
 assignees: 'joaander'
 
@@ -12,6 +12,9 @@ Release checklist:
 - [ ] Update actions versions.
   - See current actions usage with: `rg --no-filename --hidden uses: | awk '{$1=$1;print}' | sort | uniq`
   - Use global search and replace to update them to the latest tags
+- [ ] Check for new or duplicate contributors since the last release:
+  `comm -13 <(git log LAST_TAG --format="%aN <%aE>" | sort | uniq) <(git log --format="%aN <%aE>" | sort | uniq)`.
+  Add entries to `.mailmap` to remove duplicates.
 - [ ] Run *bumpversion*.
 - [ ] Update change log.
   - ``git log --format=oneline --first-parent `git log -n 1 --pretty=format:%H -- CHANGELOG.rst`...``

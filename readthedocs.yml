@@ -1,8 +1,5 @@
 version: 2
 
-python:
-  version: 3.7
-
 conda:
     environment: sphinx-doc/environment.yml
 
@@ -14,7 +11,9 @@ formats:
   - htmlzip
 
 build:
-  image: stable
+  os: ubuntu-20.04
+  tools:
+    python: mambaforge-4.10
 
 submodules:
   include: all

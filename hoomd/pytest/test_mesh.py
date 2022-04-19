@@ -42,20 +42,20 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
 
     sim = simulation_factory(two_particle_snapshot_factory(d=2.0))
     mesh = Mesh()
-    if sim.device.communicator.rank == 0:
-        assert mesh.size == 0
-        assert mesh.types == ["mesh"]
-        assert len(mesh.triangles) == 0
-        with pytest.raises(DataAccessError):
-            mesh.bonds == 0
 
-        mesh._add(sim)
-        mesh._attach()
+    assert mesh.size == 0
+    assert mesh.types == ["mesh"]
+    assert len(mesh.triangles) == 0
+    with pytest.raises(DataAccessError):
+        mesh.bonds == 0
 
-        assert mesh.size == 0
-        assert mesh.types == ["mesh"]
-        assert len(mesh.triangles) == 0
-        assert len(mesh.bonds) == 0
+    mesh._add(sim)
+    mesh._attach()
+
+    assert mesh.size == 0
+    assert mesh.types == ["mesh"]
+    assert len(mesh.triangles) == 0
+    assert len(mesh.bonds) == 0
 
 
 def test_mesh_setter():
@@ -85,16 +85,15 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
     mesh._add(sim)
     mesh._attach()
 
-    if sim.device.communicator.rank == 0:
-        with pytest.raises(MutabilityError):
-            mesh.types = ["vesicle"]
-        with pytest.raises(MutabilityError):
-            mesh.size = 3
+    with pytest.raises(MutabilityError):
+        mesh.types = ["vesicle"]
+    with pytest.raises(MutabilityError):
+        mesh.size = 3
 
-        mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
+    mesh.triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
 
-        assert mesh.size == 2
-        assert numpy.array_equal(mesh.triangles,
-                                 numpy.array([[0, 1, 2], [1, 2, 3]]))
-        assert numpy.array_equal(
-            mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))
+    assert mesh.size == 2
+    assert numpy.array_equal(mesh.triangles, numpy.array([[0, 1, 2], [1, 2,
+                                                                      3]]))
+    assert numpy.array_equal(
+        mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))

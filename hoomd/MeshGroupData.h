@@ -75,6 +75,15 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
      */
     unsigned int addBondedGroup(Group g);
 
+#ifdef ENABLE_MPI
+    //! Helper function to transfer bonded groups connected to a single particle
+    /*! \param tag Tag of particle that moves between domains
+        \param old_rank Old MPI rank for particle
+        \param new_rank New MPI rank
+     */
+    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+#endif
+
     private:
     virtual void rebuildGPUTable();
 

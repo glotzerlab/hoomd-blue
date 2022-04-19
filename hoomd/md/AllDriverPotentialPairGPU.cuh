@@ -21,6 +21,7 @@
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairLJ0804.h"
 #include "EvaluatorPairLJ1208.h"
+#include "EvaluatorPairLJGauss.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairMoliere.h"
 #include "EvaluatorPairMorse.h"
@@ -153,6 +154,11 @@ gpu_compute_table_forces(const pair_args_t& pair_args,
 //! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
 gpu_compute_twf_forces(const pair_args_t& pair_args, const EvaluatorPairTWF::param_type* d_params);
+
+//! Compute lj gauss potential pair forces on the GPU with EvaluatorLJGauss
+hipError_t __attribute__((visibility("default")))
+gpu_compute_lj_gauss_forces(const pair_args_t& pair_args,
+                            const EvaluatorPairLJGauss::param_type* d_params);
 
     } // end namespace kernel
     } // end namespace md

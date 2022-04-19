@@ -15,9 +15,10 @@ namespace hoomd
 namespace hpmc
     {
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<Trigger> trigger,
                            std::shared_ptr<IntegratorHPMC> mc,
                            std::shared_ptr<Variant> P)
-    : Updater(sysdef), m_mc(mc), m_beta_P(P), m_volume_delta(0.0), m_volume_weight(0.0),
+    : Updater(sysdef, trigger), m_mc(mc), m_beta_P(P), m_volume_delta(0.0), m_volume_weight(0.0),
       m_ln_volume_delta(0.0), m_ln_volume_weight(0.0), m_volume_mode("standard"), m_volume_A1(0.0),
       m_volume_A2(0.0), m_length_delta {0.0, 0.0, 0.0},
       m_length_weight(0.0), m_shear_delta {0.0, 0.0, 0.0}, m_shear_weight(0.0), m_shear_reduce(0.0),
@@ -438,16 +439,27 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
         if (m_length_delta[i] != 0.0)
             nonzero_dim++;
 
-    unsigned int i = hoomd::UniformIntDistribution(nonzero_dim - 1)(rng);
-    for (unsigned int j = 0; j < Ndim; ++j)
-        if (m_length_delta[j] == 0.0 && i == j)
-            ++i;
-
-    if (i == Ndim)
+    if (nonzero_dim == 0)
         {
         // all dimensions have delta==0, just count as accepted and return
         m_count_total.volume_accept_count++;
         return;
+        }
+
+    unsigned int chosen_nonzero_dim = hoomd::UniformIntDistribution(nonzero_dim - 1)(rng);
+    unsigned int nonzero_dim_count = 0;
+    unsigned int i = 0;
+    for (unsigned int j = 0; j < Ndim; ++j)
+        {
+        if (m_length_delta[j] != 0.0)
+            {
+            if (nonzero_dim_count == chosen_nonzero_dim)
+                {
+                i = j;
+                break;
+                }
+            ++nonzero_dim_count;
+            }
         }
 
     Scalar dL_max(m_length_delta[i]);
@@ -808,6 +820,7 @@ void export_UpdaterBoxMC(pybind11::module& m)
     {
     pybind11::class_<UpdaterBoxMC, Updater, std::shared_ptr<UpdaterBoxMC>>(m, "UpdaterBoxMC")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMC>,
                             std::shared_ptr<Variant>>())
         .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)

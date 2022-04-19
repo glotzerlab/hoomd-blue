@@ -64,6 +64,9 @@ from hoomd import util
 from hoomd import write
 from hoomd import wall
 from hoomd import _hoomd
+from hoomd import tune
+from hoomd import logging
+from hoomd import custom
 if version.md_built:
     from hoomd import md
 if version.hpmc_built:
@@ -77,9 +80,6 @@ from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
-from hoomd import tune
-from hoomd import logging
-from hoomd import custom
 
 _default_excepthook = sys.excepthook
 

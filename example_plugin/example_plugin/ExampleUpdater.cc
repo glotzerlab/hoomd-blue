@@ -17,7 +17,11 @@ namespace hoomd
     {
 /*! \param sysdef System to zero the velocities of
  */
-ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef) { }
+ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                               std::shared_ptr<Trigger> trigger)
+    : Updater(sysdef, trigger)
+    {
+    }
 
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
@@ -47,7 +51,7 @@ namespace detail
 void export_ExampleUpdater(pybind11::module& m)
     {
     pybind11::class_<ExampleUpdater, Updater, std::shared_ptr<ExampleUpdater>>(m, "ExampleUpdater")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
     } // end namespace detail
@@ -59,8 +63,9 @@ void export_ExampleUpdater(pybind11::module& m)
 
 /*! \param sysdef System to zero the velocities of
  */
-ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
-    : ExampleUpdater(sysdef)
+ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger)
+    : ExampleUpdater(sysdef, trigger)
     {
     }
 
@@ -93,7 +98,7 @@ void export_ExampleUpdaterGPU(pybind11::module& m)
     pybind11::class_<ExampleUpdaterGPU, ExampleUpdater, std::shared_ptr<ExampleUpdaterGPU>>(
         m,
         "ExampleUpdaterGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
     } // end namespace detail

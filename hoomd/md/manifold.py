@@ -1,7 +1,15 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Manifolds."""
+"""Manifolds.
+
+A `Manifold` defines a lower dimensional manifold embedded in 3D space with an
+implicit function :math:`F(x,y,z) = 0`. Use `Manifold` classes to define
+positional constraints to a given set of particles with:
+
+* `hoomd.md.methods.rattle`
+* `hoomd.md.force.ActiveOnManifold`
+"""
 
 from hoomd.md import _md
 from hoomd import _hoomd
@@ -17,22 +25,13 @@ from collections.abc import Sequence
 class Manifold(_HOOMDBaseObject):
     r"""Base class manifold object.
 
-    Manifold defines a positional constraint to a given set of particles. A
-    manifold can be applied to a RATTLE method and/or the active force class.
-    The degrees of freedom removed from the system by constraints are correctly
-    taken into account, i.e. when computing temperature for thermostatting
-    and/or logging.
-
-    All manifolds are described by implicit functions.
-
     Note:
         Users should not instantiate :py:class:`Manifold` directly, but should
         instead instantiate one of its subclasses defining a specific manifold
         geometry.
 
     Warning:
-        Only one manifold can be applied to the methods/active forces.
-
+        Only one manifold can be applied to a given method or active forces.
     """
 
     def _attach(self):
@@ -69,16 +68,10 @@ class Cylinder(Manifold):
         P (`tuple` [`float`, `float`, `float`]): point defining position of
             the cylinder axis (default origin) :math:`[\mathrm{length}]`.
 
-    :py:class:`Cylinder` specifies that a cylindric manifold is defined as
-    a constraint.
-
-    Note:
-        The cylinder axis is parallel to the z-direction.
-
-    .. rubric:: Implicit function
+    :py:class:`Cylinder` defines a right circular cylinder along the z axis:
 
     .. math::
-        F(x,y,z) = x^{2} + y^{2} - r^{2}
+        F(x,y,z) = (x - P_x)^{2} + (y - P_y)^{2} - r^{2}
 
     Example::
 
@@ -113,33 +106,27 @@ class Diamond(Manifold):
         epsilon (`float`): defines CMC companion of the Diamond surface (default
             0)
 
-    :py:class:`Diamond` specifies a periodic diamond surface as a constraint.
-    The diamond (or Schwarz D) belongs to the family of triply periodic minimal
-    surfaces.
-
-
-    For the diamond surface, see:
-
-    * A. H. Schoen 1970
-      (`paper link <https://ntrs.nasa.gov/citations/19700020472>`__)
-    * P. J. F. Gandy et. al. 1999
-      (`paper link <https://doi.org/10.1016/S0009-2614(99)01000-3>`__)
-    * H. G. von Schnering and R. Nesper 1991
-      (`paper link <https://doi.org/10.1007/BF01313411>`__)
-
-    .. rubric:: Implicit function
+    :py:class:`Diamond` defines a periodic diamond surface . The diamond (or
+    Schwarz D) belongs to the family of triply periodic minimal surfaces:
 
     .. math::
 
-        F(x,y,z) = \cos{\frac{2 \pi}{L_x} x} \cdot \cos{\frac{2 \pi}{L_y} y}
-                   \cdot \cos{\frac{2 \pi}{L_z} z} - \sin{\frac{2 \pi}{L_x} x}
-                   \cdot \sin{\frac{2 \pi}{L_y} y}
-                   \cdot \sin{\frac{2 \pi}{L_z} z} - \epsilon
+        F(x,y,z) = \cos{\frac{2 \pi}{B_x} x} \cdot \cos{\frac{2 \pi}{B_y} y}
+                   \cdot \cos{\frac{2 \pi}{B_z} z} - \sin{\frac{2 \pi}{B_x} x}
+                   \cdot \sin{\frac{2 \pi}{B_y} y}
+                   \cdot \sin{\frac{2 \pi}{B_z} z} - \epsilon
 
     is the nodal approximation of the diamond surface where
-    :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the current box size B and the number
-    of unit cells N.  :math:`L=\frac{B}{N}`
+    :math:`[B_x,B_y,B_z]` is the periodicity length in the x, y and z direction.
+    The periodicity length B is defined by the current box size L and the number
+    of unit cells N :math:`B_i=\frac{L_i}{N_i}`.
+
+    See Also:
+        * `A. H. Schoen 1970 <https://ntrs.nasa.gov/citations/19700020472>`__
+        * `P. J. F. Gandy et. al. 1999
+          <https://doi.org/10.1016/S0009-2614(99)01000-3>`__
+        * `H. G. von Schnering and R. Nesper 1991
+          <https://doi.org/10.1007/BF01313411>`__
 
     Example::
 
@@ -178,15 +165,14 @@ class Ellipsoid(Manifold):
         P (`tuple` [`float`, `float`, `float`]): center of the ellipsoid
             constraint (default origin) :math:`[\mathrm{length}]`.
 
-    :py:class:`Ellipsoid` specifies that a ellipsoidal manifold is defined as a
-    constraint.
+    :py:class:`Ellipsoid` defines an ellipsoid:
 
     .. rubric:: Implicit function
 
     .. math::
-        F(x,y,z) = \frac{x^{2}}{a^{2}}
-                 + \frac{y^{2}}{b^{2}}
-                 + \frac{z^{2}}{c^{2}} - 1
+        F(x,y,z) = \frac{(x-P_x)^{2}}{a^{2}}
+                 + \frac{(y-P_y)^{2}}{b^{2}}
+                 + \frac{(z-P_z)^{2}}{c^{2}} - 1
 
     Example::
 
@@ -224,30 +210,26 @@ class Gyroid(Manifold):
         epsilon (`float`): defines CMC companion of the Gyroid surface (default
             0)
 
-    :py:class:`Gyroid` specifies a periodic gyroid surface as a constraint.
-    The gyroid belongs to the family of triply periodic minimal surfaces.
-
-    For the gyroid surface, see:
-
-    * A. H. Schoen 1970
-      (`paper link <https://ntrs.nasa.gov/citations/19700020472>`__)
-    * P. J.F. Gandy et. al. 2000
-      (`paper link <https://doi.org/10.1016/S0009-2614(00)00373-0>`__)
-    * H. G. von Schnering and R. Nesper 1991
-      (`paper link <https://doi.org/10.1007/BF01313411>`__)
-
-    .. rubric:: Implicit function
+    :py:class:`Gyroid` defines a periodic gyroid surface. The gyroid belongs to
+    the family of triply periodic minimal surfaces:
 
     .. math::
-        F(x,y,z) = \sin{\frac{2 \pi}{L_x} x} \cdot \cos{\frac{2 \pi}{L_y} y}
-                 + \sin{\frac{2 \pi}{L_y} y} \cdot \cos{\frac{2 \pi}{L_z} z}
-                 + \sin{\frac{2 \pi}{L_z} z} \cdot \cos{\frac{2 \pi}{L_x} x}
+        F(x,y,z) = \sin{\frac{2 \pi}{B_x} x} \cdot \cos{\frac{2 \pi}{B_y} y}
+                 + \sin{\frac{2 \pi}{B_y} y} \cdot \cos{\frac{2 \pi}{B_z} z}
+                 + \sin{\frac{2 \pi}{B_z} z} \cdot \cos{\frac{2 \pi}{B_x} x}
                  - \epsilon
 
     is the nodal approximation of the diamond surface where
-    :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the current box size B and the number
-    of unit cells N.  :math:`L=\frac{B}{N}`
+    :math:`[B_x,B_y,B_z]` is the periodicity length in the x, y and z direction.
+    The periodicity length B is defined by the current box size L and the number
+    of unit cells N :math:`B_i=\frac{L_i}{N_i}`.
+
+    See Also:
+        * `A. H. Schoen 1970 <https://ntrs.nasa.gov/citations/19700020472>`__
+        * `P. J.F. Gandy et. al. 2000
+          <https://doi.org/10.1016/S0009-2614(00)00373-0>`__
+        * `H. G. von Schnering and R. Nesper 1991
+          <https://doi.org/10.1007/BF01313411>`__
 
     Example::
 
@@ -281,10 +263,7 @@ class Plane(Manifold):
     Args:
         shift (`float`): z-shift of the xy-plane :math:`[\mathrm{length}]`.
 
-    :py:class:`Plane` specifies that a xy-plane manifold is defined as
-    a constraint.
-
-    .. rubric:: Implicit function
+    :py:class:`Plane` defines an xy-plane at a given value of z:
 
     .. math::
         F(x,y,z) = z - \textrm{shift}
@@ -318,27 +297,23 @@ class Primitive(Manifold):
 
     :py:class:`Primitive` specifies a periodic primitive surface as a
     constraint.  The primitive (or Schwarz P) belongs to the family of triply
-    periodic minimal surfaces.
-
-    For the primitive surface, see:
-
-    * A. H. Schoen 1970
-      (`paper link <https://ntrs.nasa.gov/citations/19700020472>`__)
-    * P. J.F. Gandy et. al. 2000
-      (`paper link <https://doi.org/10.1016/S0009-2614(00)00373-0>`__)
-    * H. G. von Schnering and R. Nesper 1991
-      (`paper link <https://doi.org/10.1007/BF01313411>`__)
-
-    .. rubric:: Implicit function
+    periodic minimal surfaces:
 
     .. math::
-        F(x,y,z) = \cos{\frac{2 \pi}{L_x} x} + \cos{\frac{2 \pi}{L_y} y}
-                 + \cos{\frac{2 \pi}{L_z} z} - \epsilon
+        F(x,y,z) = \cos{\frac{2 \pi}{B_x} x} + \cos{\frac{2 \pi}{B_y} y}
+                 + \cos{\frac{2 \pi}{B_z} z} - \epsilon
 
     is the nodal approximation of the diamond surface where
-    :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the current box size B and the number
-    of unit cells N. :math:`L=\frac{B}{N}`
+    :math:`[B_x,B_y,B_z]` is the periodicity length in the x, y and z direction.
+    The periodicity length B is defined by the current box size L and the number
+    of unit cells N. :math:`B_i=\frac{L_i}{N_i}`
+
+    See Also:
+        * `A. H. Schoen 1970 <https://ntrs.nasa.gov/citations/19700020472>`__)
+        * `P. J.F. Gandy et. al. 2000
+          <https://doi.org/10.1016/S0009-2614(00)00373-0>`__
+        * `H. G. von Schnering and R. Nesper 1991
+          <https://doi.org/10.1007/BF01313411>`__
 
     Example::
 
@@ -373,13 +348,10 @@ class Sphere(Manifold):
         P (`tuple` [`float`, `float`, `float`] ): center of the spherical
             constraint (default origin) :math:`[\\mathrm{length}]`.
 
-    :py:class:`Sphere` specifies that a spherical manifold is defined as
-    a constraint.
-
-    .. rubric:: Implicit function
+    :py:class:`Sphere` defines a sphere:
 
     .. math::
-        F(x,y,z) = x^{2} + y^{2} + z^{2} - r^{2}
+        F(x,y,z) = (x-P_x)^{2} + (y-P_y)^{2} + (z-P_z)^{2} - r^{2}
 
     Example::
 

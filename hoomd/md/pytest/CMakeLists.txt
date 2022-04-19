@@ -3,6 +3,7 @@ set(files __init__.py
     aniso_forces_and_energies.json
     test_active.py
     test_active_rotational_diffusion.py
+    test_alchemostat.py
     test_alj.py
     test_angle.py
     test_aniso_pair.py

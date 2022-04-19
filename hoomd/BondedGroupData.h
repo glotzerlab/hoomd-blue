@@ -252,6 +252,9 @@ class BondedGroupData
         unsigned int size;                     //!< Number of bonds in the snapshot
         };
 
+    //! Constructor for MeshGroupData
+    BondedGroupData(std::shared_ptr<ParticleData> pdata);
+
     //! Constructor for empty BondedGroupData
     BondedGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
 
@@ -628,7 +631,7 @@ class BondedGroupData
         \param old_rank Old MPI rank for particle
         \param new_rank New MPI rank
      */
-    void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
 #endif
 
     protected:

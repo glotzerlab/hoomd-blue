@@ -36,6 +36,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     public:
     /// Constructor
     BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<Trigger> trigger,
                      std::shared_ptr<BoxDim> box1,
                      std::shared_ptr<BoxDim> box2,
                      std::shared_ptr<Variant> variant,

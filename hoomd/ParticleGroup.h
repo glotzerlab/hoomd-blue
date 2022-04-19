@@ -144,9 +144,6 @@ class PYBIND11_EXPORT ParticleGroup
     //! \name Initialization methods
     // @{
 
-    //! Constructs an empty particle group
-    ParticleGroup() : m_num_local_members(0) {};
-
     //! Constructs a particle group of all particles that meet the given selection
     ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
                   std::shared_ptr<ParticleFilter> selector,
@@ -237,7 +234,7 @@ class PYBIND11_EXPORT ParticleGroup
         checkRebuild();
 
         ArrayHandle<unsigned int> h_handle(m_is_member, access_location::host, access_mode::read);
-        return h_handle.data[idx] == 1;
+        return h_handle.data && h_handle.data[idx] == 1;
         }
 
     //! Direct access to the index list

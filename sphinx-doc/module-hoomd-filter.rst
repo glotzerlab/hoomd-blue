@@ -16,6 +16,7 @@ hoomd.filter
     CustomFilter
     Intersection
     Null
+    Rigid
     SetDifference
     Tags
     Type
@@ -34,6 +35,7 @@ hoomd.filter
         :special-members: __call__
     .. autoclass:: Intersection(f, g)
     .. autoclass:: Null()
+    .. autoclass:: Rigid(flags=("center",))
     .. autoclass:: SetDifference(f, g)
     .. autoclass:: Tags(tags)
         :members: tags

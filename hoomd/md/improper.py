@@ -1,13 +1,39 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Improper potentials.
+r"""Improper forces.
 
-Impropers add forces between specified quadruplets of particles and are
-typically used to model rotation about chemical bonds without having bonds to
-connect the atoms. Their most common use is to keep structural elements flat,
-i.e. model the effect of conjugated double bonds, like in benzene rings and its
-derivatives.
+Improper force classes apply a force and virial on every particle in the
+simulation state commensurate with the potential energy:
+
+.. math::
+
+    U_\mathrm{improper} = \sum_{(i,j,k,l) \in \mathrm{impropers}}
+    U_{ijkl}(\chi)
+
+Each improper is defined by an ordered quadruplet of particle tags in the
+`hoomd.State` member ``improper_group``. HOOMD-blue does not construct improper
+groups, users must explicitly define impropers in the initial condition.
+
+.. image:: md-improper.svg
+    :alt: Definition of the improper bond between particles i, j, k, and l.
+
+In an improper group (i,j,k,l), :math:`\chi` is the signed improper angle
+between the planes passing through (:math:`\vec{r}_i, \vec{r}_j, \vec{r}_k`) and
+(:math:`\vec{r}_j, \vec{r}_k, \vec{r}_l`). This is the same definition used in
+dihedrals. Typically, researchers use impropers to force molecules to be planar.
+
+.. rubric Per-particle energies and virials
+
+Improper force classes assign 1/4 of the potential energy to each of the
+particles in the improper group:
+
+.. math::
+
+    U_m = \frac{1}{4} \sum_{(i,j,k,l) \in \mathrm{impropers}}
+    U_{ijkl}(\chi) [m=i \lor m=j \lor m=k \lor m=l]
+
+and similarly for virials.
 """
 
 import hoomd
@@ -15,11 +41,11 @@ from hoomd import md  # required because hoomd.md is not yet available
 
 
 class Improper(md.force.Force):
-    """Improper potential base class.
+    """Base class improper force.
 
     Note:
-        Use one of the subclasses. Users should not instantiate this class
-        directly.
+        :py:class:`Improper` is the base class for all improper forces. Users
+        should not instantiate this class directly.
     """
 
     def __init__(self):
@@ -43,16 +69,14 @@ class Improper(md.force.Force):
 
 
 class Harmonic(Improper):
-    """Harmonic improper potential.
+    """Harmonic improper force.
 
-    :py:class:`Harmonic` computes the harmonic improper potential energy for
-    every defined dihedral quadruplet of particles in the simulation:
+    `Harmonic` computes forces, virials, and energies on all impropers in the
+    simulation state with:
 
     .. math::
 
-        V(r) = \\frac{1}{2}k \\left( \\chi - \\chi_{0}  \\right )^2
-
-    where :math:`\\chi` is angle between two sides of the improper.
+        U(r) = \\frac{1}{2}k \\left( \\chi - \\chi_{0}  \\right )^2
 
     Attributes:
         params(`TypeParameter` [``improper type``, `dict`]):

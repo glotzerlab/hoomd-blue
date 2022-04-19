@@ -40,6 +40,7 @@ class PYBIND11_EXPORT MeshDynamicBondUpdater : public Updater
     public:
     /// Constructor
     MeshDynamicBondUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<Trigger> trigger,
                            std::shared_ptr<Integrator> integrator,
                            std::shared_ptr<MeshDefinition> mesh,
                            Scalar T);
