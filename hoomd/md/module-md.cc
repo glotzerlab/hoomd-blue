@@ -67,6 +67,9 @@ void export_PotentialTersoff(pybind11::module &m);
 void export_PotentialSquareDensity(pybind11::module &m);
 void export_PotentialRevCross(pybind11::module &m);
 
+void export_PotentialExternalPeriodic(pybind11::module &m);
+void export_PotentialExternalElectricField(pybind11::module &m);
+
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
 void export_ZeroMomentumUpdater(pybind11::module& m);
@@ -156,6 +159,9 @@ void export_PotentialTersoffGPU(pybind11::module &m);
 void export_PotentialSquareDensityGPU(pybind11::module &m);
 void export_PotentialRevCrossGPU(pybind11::module &m);
 
+void export_PotentialExternalPeriodicGPU(pybind11::module &m);
+void export_PotentialExternalElectricFieldGPU(pybind11::module &m);
+
 void export_TwoStepNVEGPU(pybind11::module& m);
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
 void export_TwoStepLangevinGPU(pybind11::module& m);
@@ -165,27 +171,27 @@ void export_BerendsenGPU(pybind11::module& m);
 void export_FIREEnergyMinimizerGPU(pybind11::module& m);
 void export_MuellerPlatheFlowGPU(pybind11::module& m);
 
-void export_TwoStepRATTLEBDGPUZCylinder(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUCylinder(pybind11::module& m);
 void export_TwoStepRATTLEBDGPUDiamond(pybind11::module& m);
 void export_TwoStepRATTLEBDGPUEllipsoid(pybind11::module& m);
 void export_TwoStepRATTLEBDGPUGyroid(pybind11::module& m);
-void export_TwoStepRATTLEBDGPUXYPlane(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUPlane(pybind11::module& m);
 void export_TwoStepRATTLEBDGPUPrimitive(pybind11::module& m);
 void export_TwoStepRATTLEBDGPUSphere(pybind11::module& m);
 
-void export_TwoStepRATTLELangevinGPUZCylinder(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUCylinder(pybind11::module& m);
 void export_TwoStepRATTLELangevinGPUDiamond(pybind11::module& m);
 void export_TwoStepRATTLELangevinGPUEllipsoid(pybind11::module& m);
 void export_TwoStepRATTLELangevinGPUGyroid(pybind11::module& m);
-void export_TwoStepRATTLELangevinGPUXYPlane(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUPlane(pybind11::module& m);
 void export_TwoStepRATTLELangevinGPUPrimitive(pybind11::module& m);
 void export_TwoStepRATTLELangevinGPUSphere(pybind11::module& m);
 
-void export_TwoStepRATTLENVEGPUZCylinder(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUCylinder(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUDiamond(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUEllipsoid(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUGyroid(pybind11::module& m);
-void export_TwoStepRATTLENVEGPUXYPlane(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUPlane(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUPrimitive(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUSphere(pybind11::module& m);
 #endif
@@ -194,22 +200,6 @@ void export_TwoStepRATTLENVEGPUSphere(pybind11::module& m);
 using namespace hoomd;
 using namespace hoomd::md;
 using namespace hoomd::md::detail;
-
-//! Export setParamsPython and getParams as a different name
-// Electric field only has one parameter, so we can get its parameter from
-// python with by a name other than getParams and setParams
-template<>
-void hoomd::md::detail::export_PotentialExternal<PotentialExternalElectricField>(
-    pybind11::module& m,
-    const std::string& name)
-    {
-    pybind11::class_<PotentialExternalElectricField,
-                     ForceCompute,
-                     std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setE", &PotentialExternalElectricField::setParamsPython)
-        .def("getE", &PotentialExternalElectricField::getParams);
-    }
 
 // Simplify the exporting of wall potential subclasses
 template<class EvaluatorPairType>
@@ -299,16 +289,16 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
     export_PPPMForceCompute(m);
-    export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
-    export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
+    export_PotentialExternalPeriodic(m);
+    export_PotentialExternalElectricField(m);
     export_wall_data(m);
     export_wall_field(m);
-    export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
-    export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    export_WallPotential<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+    // export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
+    // export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
+    // export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
+    // export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
+    // export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
+    // export_WallPotential<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -399,27 +389,23 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintComputePlaneGPU(m);
     export_ActiveForceConstraintComputePrimitiveGPU(m);
     export_ActiveForceConstraintComputeSphereGPU(m);
-    export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(
-        m,
-        "PotentialExternalPeriodicGPU");
-    export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
-        m,
-        "PotentialExternalElectricFieldGPU");
+    export_PotentialExternalPeriodicGPU(m);
+    export_PotentialExternalElectricFieldGPU(m);
 
-    export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
-    export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
-        m,
-        "WallsPotentialYukawaGPU");
-    export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
-        m,
-        "WallsPotentialForceShiftedLJGPU");
-    export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>(m, "WallsPotentialMieGPU");
-    export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>(
-        m,
-        "WallsPotentialGaussGPU");
-    export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
-        m,
-        "WallsPotentialMorseGPU");
+    // export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
+    // export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
+    //     m,
+    //     "WallsPotentialYukawaGPU");
+    // export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
+    //     m,
+    //     "WallsPotentialForceShiftedLJGPU");
+    // export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>(m, "WallsPotentialMieGPU");
+    // export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>(
+    //     m,
+    //     "WallsPotentialGaussGPU");
+    // export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
+    //     m,
+    //     "WallsPotentialMorseGPU");
 #endif
 
     // updaters
@@ -471,27 +457,27 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizerGPU(m);
     export_MuellerPlatheFlowGPU(m);
 
-    export_TwoStepRATTLEBDGPUZCylinder(m);
+    export_TwoStepRATTLEBDGPUCylinder(m);
     export_TwoStepRATTLEBDGPUDiamond(m);
     export_TwoStepRATTLEBDGPUEllipsoid(m);
     export_TwoStepRATTLEBDGPUGyroid(m);
-    export_TwoStepRATTLEBDGPUXYPlane(m);
+    export_TwoStepRATTLEBDGPUPlane(m);
     export_TwoStepRATTLEBDGPUPrimitive(m);
     export_TwoStepRATTLEBDGPUSphere(m);
 
-    export_TwoStepRATTLELangevinGPUZCylinder(m);
+    export_TwoStepRATTLELangevinGPUCylinder(m);
     export_TwoStepRATTLELangevinGPUDiamond(m);
     export_TwoStepRATTLELangevinGPUEllipsoid(m);
     export_TwoStepRATTLELangevinGPUGyroid(m);
-    export_TwoStepRATTLELangevinGPUXYPlane(m);
+    export_TwoStepRATTLELangevinGPUPlane(m);
     export_TwoStepRATTLELangevinGPUPrimitive(m);
     export_TwoStepRATTLELangevinGPUSphere(m);
 
-    export_TwoStepRATTLENVEGPUZCylinder(m);
+    export_TwoStepRATTLENVEGPUCylinder(m);
     export_TwoStepRATTLENVEGPUDiamond(m);
     export_TwoStepRATTLENVEGPUEllipsoid(m);
     export_TwoStepRATTLENVEGPUGyroid(m);
-    export_TwoStepRATTLENVEGPUXYPlane(m);
+    export_TwoStepRATTLENVEGPUPlane(m);
     export_TwoStepRATTLENVEGPUPrimitive(m);
     export_TwoStepRATTLENVEGPUSphere(m);
 #endif

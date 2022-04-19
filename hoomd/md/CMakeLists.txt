@@ -281,7 +281,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUStencil.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
-                      PotentialExternalGPU.cu
                       PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
@@ -429,6 +428,28 @@ foreach(_evaluator ${_triplets})
         set(_cuda_sources ${_cuda_sources}
             export_PotentialTersoff${_evaluator}GPU.cc
             PotentialTersoff${_evaluator}GPUKernel.cu
+            )
+    endif()
+endforeach()
+
+set(_external_evaluators Periodic ElectricField)
+
+foreach(_evaluator ${_external_evaluators})
+    configure_file(export_PotentialExternal.cc.inc
+                   export_PotentialExternal${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialExternal${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialExternalGPU.cc.inc
+                       export_PotentialExternal${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialExternalGPUKernel.cu.inc
+                       PotentialExternal${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialExternal${_evaluator}GPU.cc
+            PotentialExternal${_evaluator}GPUKernel.cu
             )
     endif()
 endforeach()
