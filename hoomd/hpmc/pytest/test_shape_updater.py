@@ -173,9 +173,9 @@ def test_vertex_shape_move(device, simulation_factory,
     #  - shape should change, some attemps are accepted but
     #  - volume should remain unchanged
     move.move_probability = 1
-    sim.run(3)
+    sim.run(10)
     assert updater.shape_moves[0] != 0
-    assert np.sum(updater.shape_moves) == 6
+    assert np.sum(updater.shape_moves) == 20
     assert not np.allclose(mc.shape["A"]["vertices"], verts)
     assert np.isclose(updater.total_particle_volume, 2)
 
@@ -246,10 +246,10 @@ def test_python_callback_shape_move(device, simulation_factory,
     #  - only some moves are accepted
     #  - volume should remain unchanged
     move.move_probability = 1
-    sim.run(3)
+    sim.run(10)
     assert updater.shape_moves[0] != 0
     assert updater.shape_moves[1] != 0
-    assert np.sum(updater.shape_moves) == 6
+    assert np.sum(updater.shape_moves) == 20
     assert not np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
     assert not np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
     assert not np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
