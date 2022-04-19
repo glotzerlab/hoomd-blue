@@ -12,7 +12,6 @@
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_CUH__
 #define __POTENTIAL_PAIR_DPDTHERMO_CUH__
 
-#include "EvaluatorPairDPDThermo.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/TextureTools.h"
@@ -445,6 +444,7 @@ struct DPDForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nli
     This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */
 template<class evaluator>
+__attribute__((visibility("default")))
 hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                   const typename evaluator::param_type* d_params)
     {
@@ -496,6 +496,11 @@ hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
 
     return hipSuccess;
     }
+#else
+template <class evaluator>
+__attribute__((visibility("default")))
+hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
+                                  const typename evaluator::param_type* d_params);
 #endif
 
     } // end namespace kernel

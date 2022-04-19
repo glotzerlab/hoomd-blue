@@ -96,8 +96,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDLVO.h
-                EvaluatorPairDPDLJThermo.h
-                EvaluatorPairDPDThermo.h
+                EvaluatorPairDPDThermoLJ.h
+                EvaluatorPairDPDThermoDPD.h
                 EvaluatorPairEwald.h
                 EvaluatorPairForceShiftedLJ.h
                 EvaluatorPairGauss.h
@@ -252,8 +252,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
                       DLVODriverPotentialPairGPU.cu
-                      DPDLJThermoDriverPotentialPairGPU.cu
-                      DPDThermoDriverPotentialPairGPU.cu
                       EwaldDriverPotentialPairGPU.cu
                       ForceShiftedLJDriverPotentialPairGPU.cu
                       GaussDriverPotentialPairGPU.cu
@@ -478,6 +476,28 @@ foreach(_evaluator ${_wall_evaluators})
         set(_cuda_sources ${_cuda_sources}
             export_PotentialExternalWall${_evaluator}GPU.cc
             PotentialExternalWall${_evaluator}GPUKernel.cu
+            )
+    endif()
+endforeach()
+
+set(_dpdthermo_evaluators DPD LJ)
+
+foreach(_evaluator ${_dpdthermo_evaluators})
+    configure_file(export_PotentialPairDPDThermo.cc.inc
+                   export_PotentialPairDPDThermo${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialPairDPDThermo${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialPairDPDThermoGPU.cc.inc
+                       export_PotentialPairDPDThermo${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialPairDPDThermoGPUKernel.cu.inc
+                       PotentialPairDPDThermo${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialPairDPDThermo${_evaluator}GPU.cc
+            PotentialPairDPDThermo${_evaluator}GPUKernel.cu
             )
     endif()
 endforeach()

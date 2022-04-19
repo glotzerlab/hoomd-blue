@@ -77,6 +77,9 @@ void export_PotentialExternalWallMie(pybind11::module &m);
 void export_PotentialExternalWallGauss(pybind11::module &m);
 void export_PotentialExternalWallMorse(pybind11::module &m);
 
+void export_PotentialPairDPDThermoDPD(pybind11::module &m);
+void export_PotentialPairDPDThermoLJ(pybind11::module &m);
+
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
 void export_ZeroMomentumUpdater(pybind11::module& m);
@@ -177,6 +180,9 @@ void export_PotentialExternalWallMieGPU(pybind11::module &m);
 void export_PotentialExternalWallGaussGPU(pybind11::module &m);
 void export_PotentialExternalWallMorseGPU(pybind11::module &m);
 
+void export_PotentialPairDPDThermoDPDGPU(pybind11::module &m);
+void export_PotentialPairDPDThermoLJGPU(pybind11::module &m);
+
 void export_TwoStepNVEGPU(pybind11::module& m);
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
 void export_TwoStepLangevinGPU(pybind11::module& m);
@@ -252,7 +258,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairYukawa>(m, "PotentialPairYukawa");
     export_PotentialPair<PotentialPairEwald>(m, "PotentialPairEwald");
     export_PotentialPair<PotentialPairMorse>(m, "PotentialPairMorse");
-    export_PotentialPair<PotentialPairDPD>(m, "PotentialPairDPD");
+    // export_PotentialPair<PotentialPairDPD>(m, "PotentialPairDPD");
     export_PotentialPair<PotentialPairMoliere>(m, "PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
@@ -263,6 +269,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
     export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
+    // export_PotentialPair<PotentialPairDPDLJ>(m, "PotentialPairDPDLJ");
+    export_PotentialPair<PotentialPairTable>(m, "PotentialPairTable");
 
     export_AlchemicalMDParticles(m);
     export_PotentialPairAlchemical<EvaluatorPairLJGauss>(m, "PotentialPairAlchemicalLJGauss");
@@ -276,14 +284,8 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairDipole(m);
     export_AnisoPotentialPairGB(m);
 
-    export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(
-        m,
-        "PotentialPairDPDThermoDPD");
-    export_PotentialPair<PotentialPairDPDLJ>(m, "PotentialPairDPDLJ");
-    export_PotentialPair<PotentialPairTable>(m, "PotentialPairTable");
-    export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>(
-        m,
-        "PotentialPairDPDLJThermoDPD");
+    export_PotentialPairDPDThermoDPD(m);
+    export_PotentialPairDPDThermoLJ(m);
 
     export_PotentialBondHarmonic(m);
     export_PotentialBondFENE(m);
@@ -344,7 +346,7 @@ PYBIND11_MODULE(_md, m)
         "PotentialPairFourierGPU");
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>(m, "PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>(m, "PotentialPairMorseGPU");
-    export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");
+    // export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");
     export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere>(
         m,
         "PotentialPairMoliereGPU");
@@ -364,14 +366,11 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairLJGaussGPU, PotentialPairLJGauss>(
         m,
         "PotentialPairLJGaussGPU");
-    export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD>(
-        m,
-        "PotentialPairDPDThermoDPDGPU");
-    export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
+    // export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairGPU<PotentialPairTableGPU, PotentialPairTable>(m, "PotentialPairTableGPU");
-    export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
-        m,
-        "PotentialPairDPDLJThermoDPDGPU");
+
+    export_PotentialPairDPDThermoDPDGPU(m);
+    export_PotentialPairDPDThermoLJGPU(m);
 
     export_AnisoPotentialPairALJ2DGPU(m);
     export_AnisoPotentialPairALJ3DGPU(m);

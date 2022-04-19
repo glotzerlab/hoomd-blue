@@ -6,8 +6,6 @@
 
 #include "EvaluatorPairBuckingham.h"
 #include "EvaluatorPairDLVO.h"
-#include "EvaluatorPairDPDLJThermo.h"
-#include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
 #include "EvaluatorPairExpandedLJ.h"
 #include "EvaluatorPairExpandedMie.h"
@@ -61,18 +59,10 @@ typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
 typedef PotentialPair<EvaluatorPairEwald> PotentialPairEwald;
 //! Pair potential force compute for morse forces
 typedef PotentialPair<EvaluatorPairMorse> PotentialPairMorse;
-//! Pair potential force compute for dpd conservative forces
-typedef PotentialPair<EvaluatorPairDPDThermo> PotentialPairDPD;
 //! Pair potential force compute for Moliere forces
 typedef PotentialPair<EvaluatorPairMoliere> PotentialPairMoliere;
 //! Pair potential force compute for ZBL forces
 typedef PotentialPair<EvaluatorPairZBL> PotentialPairZBL;
-//! Pair potential force compute for dpd thermostat and conservative forces
-typedef PotentialPairDPDThermo<EvaluatorPairDPDThermo> PotentialPairDPDThermoDPD;
-//! Pair potential force compute for dpdlj conservative forces (not intended to be used)
-typedef PotentialPair<EvaluatorPairDPDLJThermo> PotentialPairDPDLJ;
-//! Pair potential force compute for dpd thermostat and LJ conservative forces
-typedef PotentialPairDPDThermo<EvaluatorPairDPDLJThermo> PotentialPairDPDLJThermoDPD;
 //! Pair potential force compute for force shifted LJ
 typedef PotentialPair<EvaluatorPairForceShiftedLJ> PotentialPairForceShiftedLJ;
 //! Pair potential force compute for Mie potential
@@ -119,24 +109,11 @@ typedef PotentialPairGPU<EvaluatorPairEwald, kernel::gpu_compute_ewald_forces>
 //! Pair potential force compute for morse forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairMorse, kernel::gpu_compute_morse_forces>
     PotentialPairMorseGPU;
-//! Pair potential force compute for dpd conservative forces on the GPU
-typedef PotentialPairGPU<EvaluatorPairDPDThermo, kernel::gpu_compute_dpdthermo_forces>
-    PotentialPairDPDGPU;
 //! Pair potential force compute for Moliere forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairMoliere, kernel::gpu_compute_moliere_forces>
     PotentialPairMoliereGPU;
 //! Pair potential force compute for ZBL forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairZBL, kernel::gpu_compute_zbl_forces> PotentialPairZBLGPU;
-//! Pair potential force compute for dpd thermostat and conservative forces on the GPU
-typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, kernel::gpu_compute_dpdthermodpd_forces>
-    PotentialPairDPDThermoDPDGPU;
-//! Pair potential force compute for dpdlj conservative forces on the GPU (not intended to be used)
-typedef PotentialPairGPU<EvaluatorPairDPDLJThermo, kernel::gpu_compute_dpdljthermo_forces>
-    PotentialPairDPDLJGPU;
-//! Pair potential force compute for dpd thermostat and LJ conservative forces on the GPU
-typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo,
-                                  kernel::gpu_compute_dpdljthermodpd_forces>
-    PotentialPairDPDLJThermoDPDGPU;
 //! Pair potential force compute for force shifted LJ on the GPU
 typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, kernel::gpu_compute_force_shifted_lj_forces>
     PotentialPairForceShiftedLJGPU;
