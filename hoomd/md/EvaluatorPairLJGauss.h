@@ -89,7 +89,7 @@ class EvaluatorPairLJGauss
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance beteen the particles
-        \param _rcutsq Sqauared distance at which the potential goes to 0
+        \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairLJGauss(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
