@@ -64,7 +64,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairDipole.h
                 AnisoPotentialPairGB.h
                 AnisoPotentialPairGBGPUKernel.cuh
-                AllExternalPotentials.h
                 AllPairPotentials.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h

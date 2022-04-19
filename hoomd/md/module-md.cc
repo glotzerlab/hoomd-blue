@@ -1,15 +1,12 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "AllExternalPotentials.h"
 #include "AllPairPotentials.h"
-#include "PotentialExternal.h"
 #include "PotentialPair.h"
 #include "PotentialPairDPDThermo.h"
 
 // include GPU classes
 #ifdef ENABLE_HIP
-#include "PotentialExternalGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairGPU.h"
 #endif
@@ -201,16 +198,16 @@ using namespace hoomd;
 using namespace hoomd::md;
 using namespace hoomd::md::detail;
 
-// Simplify the exporting of wall potential subclasses
-template<class EvaluatorPairType>
-void export_WallPotential(pybind11::module& m, const std::string& name)
-    {
-    export_PotentialExternal<PotentialExternal<EvaluatorWalls<EvaluatorPairType>>>(m, name);
-    }
+// // Simplify the exporting of wall potential subclasses
+// template<class EvaluatorPairType>
+// void export_WallPotential(pybind11::module& m, const std::string& name)
+//     {
+//     export_PotentialExternal<PotentialExternal<EvaluatorWalls<EvaluatorPairType>>>(m, name);
+//     }
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
-    create the hoomd python module and define the exports here.
+    create the md python module and define the exports here.
 */
 PYBIND11_MODULE(_md, m)
     {
