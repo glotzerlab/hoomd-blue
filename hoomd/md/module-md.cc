@@ -1,8 +1,11 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "AlchemostatTwoStep.h"
 #include "AllPairPotentials.h"
 #include "PotentialPair.h"
+#include "PotentialPairAlchemical.h"
+#include "PotentialPairAlchemicalNormalized.h"
 #include "PotentialPairDPDThermo.h"
 
 // include GPU classes
@@ -84,6 +87,7 @@ void export_TwoStepLangevin(pybind11::module& m);
 void export_TwoStepBD(pybind11::module& m);
 void export_TwoStepNPTMTK(pybind11::module& m);
 void export_Berendsen(pybind11::module& m);
+void export_TwoStepNVTAlchemy(pybind11::module& m);
 void export_FIREEnergyMinimizer(pybind11::module& m);
 void export_MuellerPlatheFlow(pybind11::module& m);
 
@@ -257,7 +261,11 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
+    export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
+
+    export_AlchemicalMDParticles(m);
+    export_PotentialPairAlchemical<EvaluatorPairLJGauss>(m, "PotentialPairAlchemicalLJGauss");
 
     export_PotentialTersoff(m);
     export_PotentialSquareDensity(m);
@@ -353,6 +361,9 @@ PYBIND11_MODULE(_md, m)
         "PotentialPairExpandedMieGPU");
     export_PotentialPairGPU<PotentialPairOPPGPU, PotentialPairOPP>(m, "PotentialPairOPPGPU");
     export_PotentialPairGPU<PotentialPairTWFGPU, PotentialPairTWF>(m, "PotentialPairTWFGPU");
+    export_PotentialPairGPU<PotentialPairLJGaussGPU, PotentialPairLJGauss>(
+        m,
+        "PotentialPairLJGaussGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD>(
         m,
         "PotentialPairDPDThermoDPDGPU");
@@ -420,6 +431,8 @@ PYBIND11_MODULE(_md, m)
     export_Berendsen(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
+    export_AlchemostatTwoStep(m);
+    export_TwoStepNVTAlchemy(m);
 
     // RATTLE
     export_TwoStepRATTLEBDCylinder(m);

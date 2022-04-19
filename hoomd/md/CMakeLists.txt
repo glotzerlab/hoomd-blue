@@ -46,6 +46,7 @@ set(_md_sources module-md.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
+                   TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
                    )
@@ -56,6 +57,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintComputeGPU.h
                 ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
+                AlchemyData.h
                 AnisoPotentialPairALJ2GPUKernel.cuh
                 AnisoPotentialPairALJ3GPUKernel.cuh
                 AnisoPotentialPairDipoleGPUKernel.cuh
@@ -159,6 +161,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialExternalGPU.h
                 PotentialExternalGPU.cuh
                 PotentialExternal.h
+                PotentialPairAlchemical.h
+                PotentialPairAlchemicalNormalized.h
                 PotentialPairDPDThermoGPU.h
                 PotentialPairDPDThermoGPU.cuh
                 PotentialPairDPDThermo.h
@@ -197,6 +201,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
+                AlchemostatTwoStep.h
+                TwoStepNVTAlchemy.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
@@ -252,6 +258,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ForceShiftedLJDriverPotentialPairGPU.cu
                       GaussDriverPotentialPairGPU.cu
                       LJDriverPotentialPairGPU.cu
+                      LJGaussDriverPotentialPairGPU.cu
                       MieDriverPotentialPairGPU.cu
 		              ExpandedMieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
@@ -542,6 +549,7 @@ add_subdirectory(long_range)
 
 add_subdirectory(external)
 add_subdirectory(minimize)
+add_subdirectory(alchemy)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

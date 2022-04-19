@@ -127,7 +127,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //! Change the timestep
-    void setDeltaT(Scalar deltaT);
+    virtual void setDeltaT(Scalar deltaT);
 
     //! Access the group
     std::shared_ptr<ParticleGroup> getGroup()

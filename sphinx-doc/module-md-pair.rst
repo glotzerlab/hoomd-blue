@@ -25,6 +25,7 @@ md.pair
     LJ
     LJ1208
     LJ0804
+    LJGauss
     Mie
     Morse
     Moliere
@@ -54,6 +55,7 @@ md.pair
         LJ,
         LJ1208,
         LJ0804,
+        LJGauss,
         Mie,
         Morse,
         Moliere,
