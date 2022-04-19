@@ -294,8 +294,8 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
 
         * ``epsilon`` (`float`, **required**) -
           energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma2`` (`float`, **required**) -
-          Gaussian variance :math:`\sigma^2` :math:`[\mathrm{length}]^2`
+        * ``sigma`` (`float`, **required**) -
+          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
         * ``r0`` (`float`, **required**) -
           Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
 
@@ -326,7 +326,7 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `AlchemicalDOF`])
     """
-    _alchemical_dofs = ['epsilon', 'sigma2', 'r0']
+    _alchemical_dofs = ['epsilon', 'sigma', 'r0']
 
     def __init__(self,
                  nlist,
@@ -355,7 +355,7 @@ class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
         a single particle type with a single pair force.
 
     """
-    _alchemical_dofs = ['epsilon', 'sigma2', 'r0']
+    _alchemical_dofs = ['epsilon', 'sigma', 'r0']
     normalized = True
 
     def __init__(self,
