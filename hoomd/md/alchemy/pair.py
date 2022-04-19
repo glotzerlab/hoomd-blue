@@ -94,8 +94,8 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     """Base class for Alchemical pair potentials.
 
     Expects to use diamond inheritance with a `hoomd.md.pair.Pair` subclass.
-    Automatically creates the `_AlchemicalPairDOFStore` objects in `__init__` and
-    implements a type parameter like interface for accessing them.
+    Automatically creates the `_AlchemicalPairDOFStore` objects in `__init__`
+    and implements a type parameter like interface for accessing them.
 
     Attributes:
         _alchemical_dofs (`list`[ `str`]): A list of all potential degrees of
