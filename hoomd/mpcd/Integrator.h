@@ -39,9 +39,6 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     //! Destructor
     virtual ~Integrator();
 
-    //! Sets the profiler for the integrator to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof);
-
     //! Take one timestep forward
     virtual void update(uint64_t timestep);
 

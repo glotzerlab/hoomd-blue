@@ -42,9 +42,6 @@ void mpcd::Sorter::update(uint64_t timestep)
     if (!shouldSort(timestep))
         return;
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD sort");
-
     // resize the sorted order vector to the current number of particles
     m_order.resize(m_mpcd_pdata->getN());
     m_rorder.resize(m_mpcd_pdata->getN());
@@ -55,9 +52,6 @@ void mpcd::Sorter::update(uint64_t timestep)
 
     // trigger the sort signal for ParticleData callbacks using the current sortings
     m_mpcd_pdata->notifySort(timestep, m_order, m_rorder);
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*!
@@ -69,12 +63,8 @@ void mpcd::Sorter::update(uint64_t timestep)
  */
 void mpcd::Sorter::computeOrder(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     // compute the cell list at current timestep, guarantees owned particles are on rank
     m_cl->compute(timestep);
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD sort");
 
     ArrayHandle<unsigned int> h_cell_list(m_cl->getCellList(),
                                           access_location::host,

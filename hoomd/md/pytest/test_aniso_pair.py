@@ -41,6 +41,11 @@ def _equivalent_data_structures(struct_1, struct_2):
             for value_1, value_2 in zip(struct_1, struct_2))
     if isinstance(struct_1, Number):
         return math.isclose(struct_1, struct_2)
+    return False
+
+
+def assert_equivalent_data_structures(struct_1, struct_2):
+    assert _equivalent_data_structures(struct_1, struct_2)
 
 
 def make_langevin_integrator(force):
@@ -122,16 +127,14 @@ def test_rcut(make_two_particle_simulation, r_cut):
     assert gay_berne.r_cut[('A', 'A')] == new_r_cut
 
     expected_r_cut = {('A', 'A'): new_r_cut}
-    assert _equivalent_data_structures(gay_berne.r_cut.to_base(),
-                                       expected_r_cut)
+    assert_equivalent_data_structures(gay_berne.r_cut.to_base(), expected_r_cut)
 
     gay_berne.params[('A', 'A')] = {'epsilon': 1, 'lpar': 0.5, 'lperp': 1.0}
     sim = make_two_particle_simulation(dimensions=3, d=.5, force=gay_berne)
 
     # Check after attaching
     sim.run(0)
-    assert _equivalent_data_structures(gay_berne.r_cut.to_base(),
-                                       expected_r_cut)
+    assert_equivalent_data_structures(gay_berne.r_cut.to_base(), expected_r_cut)
 
 
 @pytest.mark.parametrize("r_cut", [-1., 'foo', None])
@@ -246,17 +249,91 @@ def _valid_params(particle_types=['A', 'B']):
         make_aniso_spec(
             md.pair.aniso.GayBerne,
             to_type_parameter_dicts(particle_types, gay_berne_arg_dict)))
+
+    alj_arg_dict0 = {
+        'params': ({
+            'epsilon': [0.5, 1.1, 0.147],
+            'sigma_i': [0.4, 0.12, 0.3],
+            'sigma_j': [4., 1.2, 0.3],
+            'alpha': [0, 1, 3],
+            'contact_ratio_i': [0.15, 0.3, 0.145],
+            'contact_ratio_j': [0.15, 0.3, 0.145],
+            'average_simplices': [True, False, True]
+        }, 2),
+        'shape': ({
+            "vertices": [[], []],
+            "rounding_radii": [(0.1, 0.2, 0.15), (0.3, 0.3, 0.3)],
+            "faces": [[], []]
+        }, 1)
+    }
+
+    valid_params_list.append(
+        make_aniso_spec(md.pair.aniso.ALJ,
+                        to_type_parameter_dicts(particle_types, alj_arg_dict0)))
+
+    shape_vertices = [
+        # octahedron
+        [(0.5, 0, 0), (-0.5, 0, 0), (0, 0.5, 0), (0, -0.5, 0), (0, 0, 0.5),
+         (0, 0, -0.5)],
+        # cube
+        [(0.5, -0.5, -0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5),
+         (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, 0.5),
+         (-0.5, -0.5, -0.5)],
+    ]
+    shape_faces = [
+        # octahedron
+        [[5, 3, 1], [0, 3, 5], [1, 3, 4], [4, 3, 0], [5, 2, 0], [1, 2, 5],
+         [0, 2, 4], [4, 2, 1]],
+        # cube
+        [[4, 3, 2, 1], [0, 1, 2, 6], [2, 3, 5, 6], [7, 4, 1, 0], [6, 5, 7, 0],
+         [3, 4, 7, 5]]
+    ]
+
+    alj_arg_dict1 = {
+        'params': ({
+            'epsilon': [0.5, 1.1, 0.147],
+            'sigma_i': [0.4, 0.12, 0.3],
+            'sigma_j': [4., 1.2, 0.3],
+            'alpha': [0, 1, 3],
+            'contact_ratio_i': [0.15, 0.3, 0.145],
+            'contact_ratio_j': [0.15, 0.3, 0.145],
+            'average_simplices': [True, False, True]
+        }, 2),
+        'shape': ({
+            "vertices": shape_vertices,
+            "rounding_radii": [(0.1, 0.01, 0.15), (0.0, 0.0, 0.0)],
+            "faces": shape_faces
+        }, 1)
+    }
+
+    valid_params_list.append(
+        make_aniso_spec(md.pair.aniso.ALJ,
+                        to_type_parameter_dicts(particle_types, alj_arg_dict1)))
+
     return valid_params_list
 
 
-@pytest.mark.parametrize('pair_potential_spec', _valid_params())
+class PotentialId:
+
+    def __init__(self):
+        self.cls_dict = {}
+
+    def __call__(self, obj):
+        self.cls_dict.setdefault(obj.cls, 0)
+        self.cls_dict[obj.cls] += 1
+        return f"{obj.cls.__name__}-{self.cls_dict[obj.cls]}"
+
+
+@pytest.mark.parametrize('pair_potential_spec',
+                         _valid_params(),
+                         ids=PotentialId())
 def test_setting_params_and_shape(make_two_particle_simulation,
                                   pair_potential_spec):
     pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
-        assert _equivalent_data_structures(value, getattr(pair_potential, key))
+        assert_equivalent_data_structures(value, getattr(pair_potential, key))
 
     sim = make_two_particle_simulation(types=['A', 'B'],
                                        dimensions=3,
@@ -264,7 +341,7 @@ def test_setting_params_and_shape(make_two_particle_simulation,
                                        force=pair_potential)
     sim.run(0)
     for key, value in pair_potential_spec.type_parameters.items():
-        assert _equivalent_data_structures(value, getattr(pair_potential, key))
+        assert_equivalent_data_structures(value, getattr(pair_potential, key))
 
 
 def _aniso_forces_and_energies():
@@ -301,7 +378,7 @@ def _aniso_forces_and_energies():
     return fet_list
 
 
-@pytest.fixture(scope="function", params=_valid_params())
+@pytest.fixture(scope="function", params=_valid_params(), ids=PotentialId())
 def pair_potential(request):
     spec = request.param
     pair_potential = spec.cls(nlist=md.nlist.Cell(buffer=0.4),
@@ -314,7 +391,7 @@ def pair_potential(request):
 def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
     snap = lattice_snapshot_factory(particle_types=['A', 'B'],
                                     n=7,
-                                    a=1.7,
+                                    a=2.0,
                                     r=0.01)
     if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
@@ -325,13 +402,16 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
     integrator.forces.append(pair_potential)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(), kT=1))
     sim.operations.integrator = integrator
-    for nsteps in [3, 5, 10]:
-        old_snap = sim.state.get_snapshot()
-        sim.run(nsteps)
-        new_snap = sim.state.get_snapshot()
-        if new_snap.communicator.rank == 0:
-            assert not np.allclose(new_snap.particles.position,
-                                   old_snap.particles.position)
+    old_snap = sim.state.get_snapshot()
+    sim.run(5)
+    new_snap = sim.state.get_snapshot()
+    forces = pair_potential.forces
+    energies = pair_potential.energies
+    if new_snap.communicator.rank == 0:
+        assert not np.allclose(new_snap.particles.position,
+                               old_snap.particles.position)
+        assert np.any(energies != 0)
+        assert np.any(forces != 0)
 
 
 @pytest.mark.parametrize("aniso_forces_and_energies",
@@ -385,13 +465,14 @@ def test_aniso_force_computes(make_two_particle_simulation,
             assert isclose(sim_torques, aniso_forces_and_energies.torques[i])
 
 
-@pytest.mark.parametrize('pair_potential_spec', _valid_params())
+@pytest.mark.parametrize('pair_potential_spec',
+                         _valid_params(),
+                         ids=PotentialId())
 def test_pickling(make_two_particle_simulation, pair_potential_spec):
     pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(buffer=0.4),
                                              default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
-        assert _equivalent_data_structures(value, getattr(pair_potential, key))
 
     sim = make_two_particle_simulation(types=['A', 'B'],
                                        dimensions=3,
@@ -402,10 +483,43 @@ def test_pickling(make_two_particle_simulation, pair_potential_spec):
     pickling_check(pair_potential)
 
 
-def test_logging():
-    logging_check(
-        hoomd.md.pair.aniso.GayBerne, ('md', 'pair', 'aniso'),
-        {'type_shapes': {
+def _base_expected_loggable(include_type_shapes=False):
+    base = {
+        "forces": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "torques": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "virials": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "energies": {
+            "category": hoomd.logging.LoggerCategories["particle"],
+            "default": True
+        },
+        "energy": {
+            "category": hoomd.logging.LoggerCategories["scalar"],
+            "default": True
+        }
+    }
+    if include_type_shapes:
+        base["type_shapes"] = {
             'category': LoggerCategories.object,
             'default': True
-        }})
+        }
+    return base
+
+
+@pytest.mark.parametrize(
+    "cls,log_check_params",
+    ((cls, log_check_params) for cls, log_check_params in zip((
+        md.pair.aniso.GayBerne, md.pair.aniso.Dipole,
+        md.pair.aniso.ALJ), (_base_expected_loggable(True),
+                             _base_expected_loggable(),
+                             _base_expected_loggable(True)))))
+def test_logging(cls, log_check_params):
+    logging_check(cls, ('md', 'pair', 'aniso'), log_check_params)

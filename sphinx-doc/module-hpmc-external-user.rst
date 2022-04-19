@@ -1,8 +1,8 @@
 .. Copyright (c) 2009-2022 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-hpmc.external.user
-------------------
+hoomd.hpmc.external.user
+------------------------
 
 .. rubric:: Overview
 
@@ -18,3 +18,4 @@ hpmc.external.user
 .. automodule:: hoomd.hpmc.external.user
     :synopsis: User defined fields for Monte Carlo.
     :members: CPPExternalPotential
+    :show-inheritance:

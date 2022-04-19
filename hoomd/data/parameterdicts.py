@@ -68,6 +68,112 @@ def _raise_if_required_arg(value, current_context=()):
             _raise_if_required_arg(item, current_context + (index,))
 
 
+class _SmartTypeIndexer:
+
+    def __init__(self, len_key, valid_types=None):
+        self.len_key = len_key
+        self._valid_types = valid_types
+
+    def __call__(self, key):
+        """Returns the generated keys filtered by ``valid_keys`` if set."""
+        if self.valid_types is None:
+            yield from self.raw_yield(key)
+        else:
+            for k in self.raw_yield(key):
+                if not self.are_valid_types(k):
+                    raise KeyError(
+                        f"Key {k} from key {key} is not of valid types.")
+                yield k
+
+    def raw_yield(self, key):
+        """Yield valid keys without filtering by valid keys.
+
+        The keys are internally ordered. The order is necessary so ('A', 'B') is
+        equivalent to ('B', A').
+        """
+        if self.len_key > 1:
+            keys = self.validate_and_split_index(key)
+            for key in keys:
+                yield tuple(sorted(list(key)))
+        else:
+            yield from self.validate_and_split_index(key)
+
+    def validate_and_split_index(self, key):
+        """Validate key given regardless of key length."""
+        if self.len_key == 1:
+            return self.validate_and_split_len_one(key)
+        else:
+            return self.validate_and_split_len(key)
+
+    def validate_and_split_len_one(self, key):
+        """Validate single type keys.
+
+        Accepted input is a string, and arbitrarily nested iterators that
+        culminate in str types.
+        """
+        if isinstance(key, str):
+            return [key]
+        elif _is_iterable(key):
+            keys = []
+            for k in key:
+                keys.extend(self.validate_and_split_len_one(k))
+            return keys
+        else:
+            raise KeyError("The key {} is not valid.".format(key))
+
+    def validate_and_split_len(self, key):
+        """Validate all key lengths greater than one, N.
+
+        Valid input is an arbitrarily deep series of iterables that culminate
+        in N length tuples, this includes an iterable depth of zero.  The N
+        length tuples can contain for each member either a type string or an
+        iterable of type strings.
+        """
+        if isinstance(key, tuple) and len(key) == self.len_key:
+            if any([
+                    not _is_good_iterable(v) and not isinstance(v, str)
+                    for v in key
+            ]):
+                raise KeyError("The key {} is not valid.".format(key))
+            # convert str to single item list for proper enumeration using
+            # product
+            key_types_list = [[v] if isinstance(v, str) else v for v in key]
+            return list(product(*key_types_list))
+        elif _is_iterable(key):
+            keys = []
+            for k in key:
+                keys.extend(self.validate_and_split_len(k))
+            return keys
+        else:
+            raise KeyError("The key {} is not valid.".format(key))
+
+    @property
+    def valid_types(self):
+        return self._valid_types
+
+    @valid_types.setter
+    def valid_types(self, types):
+        self._valid_types = types if types is None else set(types)
+
+    def are_valid_types(self, key):
+        if self._valid_types is None:
+            return True
+        if self.len_key == 1:
+            return key in self._valid_types
+        # Multi-type key
+        return all(type_ in self._valid_types for type_ in key)
+
+    def yield_all_keys(self):
+        if self._valid_types is None:
+            yield from ()
+        elif self.len_key == 1:
+            yield from self._valid_types
+        elif isinstance(self._valid_types, set):
+            yield from (tuple(sorted(key))
+                        for key in combinations_with_replacement(
+                            self._valid_types, self.len_key))
+
+
 class _ValidatedDefaultDict(MutableMapping):
     """Provide support for validating values and multi-type tuple keys.
 
@@ -86,11 +192,11 @@ class _ValidatedDefaultDict(MutableMapping):
     The keyword argument ``_defaults`` is special and is used to specify default
     values at object construction.
 
-    All keys into this mapping are expected to be str instance if _len_keys is
-    one, otherwise a tuple of str instances. For tuples, the tuple is sorted
-    first before accessing or setting any data. This is to prevent needing to
-    store data for both ``("a", "b")`` and ``("b", "a")`` while preventing the
-    user from needing to consider tuple item order.
+    All keys into this mapping are expected to be str instance if the passed
+    len_key is one, otherwise a tuple of str instances. For tuples, the tuple
+    is sorted first before accessing or setting any data. This is to prevent
+    needing to store data for both ``("a", "b")`` and ``("b", "a")`` while
+    preventing the user from needing to consider tuple item order.
 
     Note:
         This class is not directly instantiable due to abstract methods that
@@ -132,7 +238,7 @@ class _ValidatedDefaultDict(MutableMapping):
 
     def __setitem__(self, keys, item):
         """Set parameter by key."""
-        keys = self._validated_keys(keys)
+        keys = self._indexer(keys)
         try:
             validated_value = self._validate_values(item)
         except ValueError as err:
@@ -146,13 +252,13 @@ class _ValidatedDefaultDict(MutableMapping):
 
     def __contains__(self, key):
         try:
-            keys = self._validate_and_split_key(key)
+            keys = list(self._indexer.raw_yield(key))
         except KeyError:
             return False
         if self._attached:
             if len(keys) == 1:
-                return keys[0] in self._type_keys
-            return [key in self._type_keys for key in keys]
+                return self._indexer.are_valid_types(keys[0])
+            return [self._indexer.are_valid_types(k) for k in keys]
         if len(keys) == 1:
             return keys[0] in self._dict
         return [key in self._dict for key in keys]
@@ -179,9 +285,9 @@ class _ValidatedDefaultDict(MutableMapping):
         # get.
         value = {}
         # We shouldn't error here regardless of key (assuming it is well formed,
-        # and get doesn't error on non-existent key. self._yield_keys does
-        # not raise an exception on non-existent keys.
-        for key in self._yield_keys(keys):
+        # and get doesn't error on non-existent key. _SmartTypeIndexer.raw_yield
+        # does not raise an exception on non-existent keys.
+        for key in self._indexer.raw_yield(keys):
             try:
                 value[key] = self._single_getitem(key)
             except KeyError:
@@ -198,9 +304,7 @@ class _ValidatedDefaultDict(MutableMapping):
                 the mapping.  Must be compatible with the typing specification
                 specified on construction.
         """
-        set_keys = [
-            key for key in self._validated_keys(keys) if key not in self
-        ]
+        set_keys = [key for key in self._indexer(keys) if key not in self]
         if len(set_keys) > 0:
             self.__setitem__(set_keys, default)
 
@@ -230,71 +334,6 @@ class _ValidatedDefaultDict(MutableMapping):
         if isinstance(self._default, _SmartDefault):
             return self._default(validated_value)
         return validated_value
-
-    def _validate_and_split_key(self, key):
-        """Validate key given regardless of key length."""
-        if self._len_keys == 1:
-            return self._validate_and_split_len_one(key)
-        else:
-            return self._validate_and_split_len(key)
-
-    def _validate_and_split_len_one(self, key):
-        """Validate single type keys.
-
-        Accepted input is a string, and arbitrarily nested iterators that
-        culminate in str types.
-        """
-        if isinstance(key, str):
-            return [key]
-        elif _is_iterable(key):
-            keys = []
-            for k in key:
-                keys.extend(self._validate_and_split_len_one(k))
-            return keys
-        else:
-            raise KeyError("The key {} is not valid.".format(key))
-
-    def _validate_and_split_len(self, key):
-        """Validate all key lengths greater than one, N.
-
-        Valid input is an arbitrarily deep series of iterables that culminate
-        in N length tuples, this includes an iterable depth of zero.  The N
-        length tuples can contain for each member either a type string or an
-        iterable of type strings.
-        """
-        if isinstance(key, tuple) and len(key) == self._len_keys:
-            if any([
-                    not _is_good_iterable(v) and not isinstance(v, str)
-                    for v in key
-            ]):
-                raise KeyError("The key {} is not valid.".format(key))
-            # convert str to single item list for proper enumeration using
-            # product
-            key_types_list = [[v] if isinstance(v, str) else v for v in key]
-            return list(product(*key_types_list))
-        elif _is_iterable(key):
-            keys = []
-            for k in key:
-                keys.extend(self._validate_and_split_len(k))
-            return keys
-        else:
-            raise KeyError("The key {} is not valid.".format(key))
-
-    def _yield_keys(self, key):
-        """Returns the generated keys in proper sorted order.
-
-        The order is necessary so ('A', 'B') is equivalent to ('B', A').
-        """
-        if self._len_keys > 1:
-            keys = self._validate_and_split_key(key)
-            for key in keys:
-                yield tuple(sorted(list(key)))
-        else:
-            yield from self._validate_and_split_key(key)
-
-    def _validated_keys(self, key):
-        """Use this method to restrict viable keys for the mapping."""
-        yield from self._yield_keys(key)
 
     def __eq__(self, other):
         if not isinstance(other, _ValidatedDefaultDict):
@@ -350,7 +389,6 @@ class TypeParameterDict(_ValidatedDefaultDict):
         `hoomd.operation._BaseHOOMDObject` subclasses.
 
     Attributes:
-        _len_keys (int): The size of each key.
         _dict (dict): The underlying data when unattached.
         _cpp_obj: Either ``None`` when not attached or a pybind11 C++ wrapped
             class to interface setting and getting type parameters with.
@@ -360,10 +398,8 @@ class TypeParameterDict(_ValidatedDefaultDict):
         _setter (str or NoneType): ``None`` when instantiated and set when first
             attached. This records the setter name for the `cpp_obj` associated
             with the last `_attach` call.
-        _type_keys (list[``key_type``] or NoneType): ``None`` when instantiated
-            and set when first attached. This records the available types for
-            the `simulation` associated with the last `_attach` call.
-
+        _indexer (_SmartTypeIndexer): A helper class to allow for complex
+            indexing patterns such as setting multiple keys at once.
     """
 
     def __init__(self, *args, len_keys, **kwargs):
@@ -371,7 +407,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
         # Validate proper key constraint
         if len_keys < 1 or len_keys != int(len_keys):
             raise ValueError("len_keys must be a positive integer.")
-        self._len_keys = len_keys
+        self._indexer = _SmartTypeIndexer(len_keys)
         self._set_validation_and_defaults(*args, **kwargs)
         self._dict = {}
         self._cpp_obj = None
@@ -424,7 +460,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
     def __iter__(self):
         """Get the keys in the mapping."""
         if self._attached:
-            yield from self._type_keys
+            yield from self._indexer.yield_all_keys()
             return
         # keys are already sorted so no need to sort again
         yield from self._dict.keys()
@@ -432,7 +468,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
     def __len__(self):
         """Return mapping length."""
         if self._attached:
-            return len(self._type_keys)
+            return len(list(self._indexer.yield_all_keys()))
         return len(self._dict)
 
     def to_base(self):
@@ -441,42 +477,11 @@ class TypeParameterDict(_ValidatedDefaultDict):
             return {k: _to_base(v) for k, v in self._dict.items()}
         return {key: self[key] for key in self}
 
-    def _validated_keys(self, key):
-        """Includes key check for existing simulation keys.
-
-        Overwritting this means that __getitem__ and __setitem__ plus any
-        methods that rely on them will error properly even if we don't check for
-        the key's existence there.
-        """
-        if self._attached:
-            for key in self._yield_keys(key):
-                if key not in self._type_keys:
-                    raise KeyError(
-                        "Type {} does not exist in the system.".format(key))
-                yield key
-        else:
-            yield from super()._validated_keys(key)
-
     def _validate_values(self, val):
         val = super()._validate_values(val)
         if self._attached:
             _raise_if_required_arg(val)
         return val
-
-    def _compute_type_keys(self, types):
-        """Compute valid type keys from given types.
-
-        We store types as a set since set iteration for ~50 items is marginally
-        slower to iterate over than a list, but multiple times faster to check
-        for contained values.
-        """
-        if self._len_keys == 1:
-            return set(types)
-        else:
-            return {
-                tuple(sorted(key))
-                for key in combinations_with_replacement(types, self._len_keys)
-            }
 
     def _attach(self, cpp_obj, param_name, types):
         """Attach type parameter to a C++ object with per type data.
@@ -494,11 +499,11 @@ class TypeParameterDict(_ValidatedDefaultDict):
         # store info to communicate with c++
         self._setter = "set" + _to_camel_case(param_name)
         self._getter = "get" + _to_camel_case(param_name)
-        self._type_keys = self._compute_type_keys(types)
+        self._indexer.valid_types = types
         # add all types to c++
         parameters = {
             key: _to_base(self._dict.get(key, self.default))
-            for key in self._type_keys
+            for key in self._indexer.yield_all_keys()
         }
         self._cpp_obj = cpp_obj
         for key in self:
@@ -514,7 +519,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
         for key in self:
             self._dict[key] = self._single_getitem(key)
         self._cpp_obj = None
-        self._type_keys = None
+        self._indexer.valid_types = None
 
     def _read(self, obj):
         if not self._attached:
@@ -546,7 +551,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
         else:
             dict_ = self._dict
         return {
-            "_len_keys": self._len_keys,
+            "_indexer": self._indexer,
             "_default": self._default,
             "_type_converter": self._type_converter,
             "_dict": dict_,
@@ -646,6 +651,13 @@ class ParameterDict(MutableMapping):
         """Access parameter by key."""
         if not self._attached:
             return self._dict[key]
+        # The existence of obj._cpp_obj indicates that the object is split
+        # between C++ and Python and the object is responsible for its own
+        # syncing. Also, no synced data structure has such an attribute so we
+        # just return the object.
+        python_value = self._dict[key]
+        if hasattr(python_value, "_cpp_obj"):
+            return python_value
         try:
             # While trigger remains not a member of  the the C++ classes, we
             # have to allow for attributes that are not gettable.
@@ -655,14 +667,13 @@ class ParameterDict(MutableMapping):
             else:
                 new_value = getter(self, key)
         except AttributeError:
-            return self._dict[key]
+            return python_value
 
-        old_value = self._dict[key]
-        if isinstance(old_value, _HOOMDSyncedCollection):
-            if old_value._update(new_value):
-                return old_value
+        if isinstance(python_value, _HOOMDSyncedCollection):
+            if python_value._update(new_value):
+                return python_value
             else:
-                old_value._isolate()
+                python_value._isolate()
         self._dict[key] = self._to_hoomd_data(key, new_value)
         return self._dict[key]
 
@@ -701,12 +712,14 @@ class ParameterDict(MutableMapping):
         # need to check if we are attached here.
         if not self._attached and isinstance(other, ParameterDict):
             self._type_converter.update(other._type_converter)
-            self._dict.update(other._dict)
             self._getters.update(other._getters)
             self._setters.update(other._setters)
+            for key, item in other._dict.items():
+                if isinstance(item, _HOOMDSyncedCollection):
+                    item._change_root(self)
+                self._dict[key] = item
         else:
-            for key, value in other.items():
-                self[key] = value
+            super().update(other)
 
     def _attach(self, cpp_obj):
         self._cpp_obj = cpp_obj

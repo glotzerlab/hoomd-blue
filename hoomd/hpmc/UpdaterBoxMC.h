@@ -41,6 +41,7 @@ class UpdaterBoxMC : public Updater
         Variant parameters are possible, but changing MC parameters violates detailed balance.
     */
     UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
+                 std::shared_ptr<Trigger> trigger,
                  std::shared_ptr<IntegratorHPMC> mc,
                  std::shared_ptr<Variant> P);
 

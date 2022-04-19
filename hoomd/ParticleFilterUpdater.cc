@@ -9,8 +9,9 @@ PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::ParticleGroup>>);
 namespace hoomd
     {
 ParticleFilterUpdater::ParticleFilterUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                                             std::shared_ptr<Trigger> trigger,
                                              std::vector<std::shared_ptr<ParticleGroup>> groups)
-    : Updater(sysdef), m_groups(groups)
+    : Updater(sysdef, trigger), m_groups(groups)
     {
     }
 
@@ -37,7 +38,7 @@ void export_ParticleFilterUpdater(pybind11::module& m)
     pybind11::class_<ParticleFilterUpdater, Updater, std::shared_ptr<ParticleFilterUpdater>>(
         m,
         "ParticleFilterUpdater")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def_property_readonly("groups", &ParticleFilterUpdater::getGroups);
     }
 

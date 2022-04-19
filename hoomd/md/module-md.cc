@@ -4,6 +4,7 @@
 #include "ActiveForceCompute.h"
 #include "ActiveForceConstraintCompute.h"
 #include "ActiveRotationalDiffusionUpdater.h"
+#include "AlchemostatTwoStep.h"
 #include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
@@ -46,9 +47,10 @@
 #include "PotentialBond.h"
 #include "PotentialExternal.h"
 #include "PotentialPair.h"
+#include "PotentialPairAlchemical.h"
+#include "PotentialPairAlchemicalNormalized.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialTersoff.h"
-#include "QuaternionMath.h"
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "TwoStepBD.h"
@@ -57,6 +59,7 @@
 #include "TwoStepLangevinBase.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepNVE.h"
+#include "TwoStepNVTAlchemy.h"
 #include "TwoStepNVTMTK.h"
 #include "TwoStepRATTLEBD.h"
 #include "TwoStepRATTLELangevin.h"
@@ -198,7 +201,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairLJ1208>(m, "PotentialPairLJ1208");
     export_PotentialPair<PotentialPairLJ0804>(m, "PotentialPairLJ0804");
     export_PotentialPair<PotentialPairGauss>(m, "PotentialPairGauss");
-    export_PotentialPair<PotentialPairSLJ>(m, "PotentialPairSLJ");
     export_PotentialPair<PotentialPairExpandedLJ>(m, "PotentialPairExpandedLJ");
     export_PotentialPair<PotentialPairExpandedMie>(m, "PotentialPairExpandedMie");
     export_PotentialPair<PotentialPairYukawa>(m, "PotentialPairYukawa");
@@ -216,6 +218,18 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
+    export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
+
+    export_AlchemicalMDParticles(m);
+    export_PotentialPair<PotentialPair<Normalized<EvaluatorPairLJGauss>>>(
+        m,
+        "PotentialPairNormalizedLJGauss");
+    export_PotentialPairAlchemical<EvaluatorPairLJGauss>(m, "PotentialPairAlchemicalLJGauss");
+    export_PotentialPairAlchemicalNormalized<EvaluatorPairLJGauss>(
+        m,
+        "PotentialPairAlchemicalNormalizedLJGauss");
+    export_AnisoPotentialPair<AnisoPotentialPairALJ2D>(m, "AnisoPotentialPairALJ2D");
+    export_AnisoPotentialPair<AnisoPotentialPairALJ3D>(m, "AnisoPotentialPairALJ3D");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
@@ -252,7 +266,6 @@ PYBIND11_MODULE(_md, m)
     export_wall_field(m);
     export_WallPotential<EvaluatorPairLJ>(m, "WallsPotentialLJ");
     export_WallPotential<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_WallPotential<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
     export_WallPotential<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
     export_WallPotential<EvaluatorPairMie>(m, "WallsPotentialMie");
     export_WallPotential<EvaluatorPairGauss>(m, "WallsPotentialGauss");
@@ -274,7 +287,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairLJ0804GPU, PotentialPairLJ0804>(m,
                                                                          "PotentialPairLJ0804GPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
-    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairExpandedLJGPU, PotentialPairExpandedLJ>(
         m,
         "PotentialPairExpandedLJGPU");
@@ -312,6 +324,9 @@ PYBIND11_MODULE(_md, m)
         "PotentialPairExpandedMieGPU");
     export_PotentialPairGPU<PotentialPairOPPGPU, PotentialPairOPP>(m, "PotentialPairOPPGPU");
     export_PotentialPairGPU<PotentialPairTWFGPU, PotentialPairTWF>(m, "PotentialPairTWFGPU");
+    export_PotentialPairGPU<PotentialPairLJGaussGPU, PotentialPairLJGauss>(
+        m,
+        "PotentialPairLJGaussGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD>(
         m,
         "PotentialPairDPDThermoDPDGPU");
@@ -320,6 +335,12 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
         m,
         "PotentialPairDPDLJThermoDPDGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ2DGPU, AnisoPotentialPairALJ2D>(
+        m,
+        "AnisoPotentialPairALJ2DGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ3DGPU, AnisoPotentialPairALJ3D>(
+        m,
+        "AnisoPotentialPairALJ3DGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(
         m,
         "AnisoPotentialPairGBGPU");
@@ -389,7 +410,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,
         "WallsPotentialYukawaGPU");
-    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>(m, "WallsPotentialSLJGPU");
     export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
         m,
         "WallsPotentialForceShiftedLJGPU");
@@ -415,6 +435,8 @@ PYBIND11_MODULE(_md, m)
     export_Berendsen(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
+    export_AlchemostatTwoStep(m);
+    export_TwoStepNVTAlchemy(m);
 
     // RATTLE
     export_TwoStepRATTLEBD<ManifoldZCylinder>(m, "TwoStepRATTLEBDCylinder");

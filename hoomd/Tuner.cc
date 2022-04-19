@@ -10,10 +10,10 @@
 namespace hoomd
     {
 /*! \param sysdef System this compute will act on. Must not be NULL.
-    \post The Updater is constructed with the given particle data and a NULL profiler.
+    \post The Updater is constructed with the given particle.
 */
 Tuner::Tuner(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger)
-    : Updater(sysdef), m_trigger(trigger)
+    : Updater(sysdef, trigger)
     {
     }
 
@@ -21,9 +21,7 @@ namespace detail
     {
 void export_Tuner(pybind11::module& m)
     {
-    pybind11::class_<Tuner, Updater, std::shared_ptr<Tuner>>(m, "Tuner")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
-        .def_property("trigger", &Tuner::getTrigger, &Tuner::setTrigger);
+    pybind11::class_<Tuner, Updater, std::shared_ptr<Tuner>>(m, "Tuner");
     }
 
     } // end namespace detail

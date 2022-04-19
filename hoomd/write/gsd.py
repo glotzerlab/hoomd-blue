@@ -4,6 +4,7 @@
 """Write GSD files storing simulation trajectories and logging data."""
 
 from collections.abc import Mapping, Collection
+from hoomd.trigger import Periodic
 from hoomd import _hoomd
 from hoomd.util import dict_flatten
 from hoomd.data.typeconverter import OnlyFrom, RequiredArg
@@ -43,13 +44,13 @@ class GSD(Writer):
         log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
             `None`.
 
-    `GSD` writes a simulation snapshot to the specified file each time it
-    triggers. `GSD` can store all particle, bond, angle, dihedral,
-    improper, pair, and constraint data fields in every frame of the trajectory.
-    `GSD` can write trajectories where the number of particles, number of
-    particle types, particle types, diameter, mass, charge, or other quantities
-    change over time. `GSD` can also store operation-specific state information
-    necessary for restarting simulations and user-defined log quantities.
+    `GSD` writes the simulation trajectory to the specified file in the GSD
+    format. `GSD` can store all particle, bond, angle, dihedral, improper,
+    pair, and constraint data fields in every frame of the trajectory.  `GSD`
+    can write trajectories where the number of particles, number of particle
+    types, particle types, diameter, mass, charge, or other quantities change
+    over time. `GSD` can also store scalar, string, and array quantities
+    provided by a `hoomd.logging.Logger` instance.
 
     Valid file open modes:
 
@@ -73,7 +74,6 @@ class GSD(Writer):
     writes non-dynamic quantities only the first frame. When reading a GSD file,
     the data in frame 0 is read when a quantity is missing in frame *i*,
     supplying data that is static over the entire trajectory.  Set the *dynamic*
-    parameter to specify dynamic attributes by category.
 
     Specify the one or more of the following strings in **dynamic** to make the
     corresponding quantities dynamic (**property** is always dynamic):
@@ -120,8 +120,8 @@ class GSD(Writer):
 
     Note:
         When you use ``filter`` to select a subset of the whole system, `GSD`
-        will write out all of the selected particles in ascending tag order and
-        will **not** write out **topology**.
+        writes only the selected particles in ascending tag order and does
+        **not** write out **topology**.
 
     Tip:
         All logged data chunks must be present in the first frame in the gsd
@@ -183,7 +183,7 @@ class GSD(Writer):
             dynamic_quantities = ['property'] + self.dynamic
 
         self._cpp_obj = _hoomd.GSDDumpWriter(
-            self._simulation.state._cpp_sys_def, self.filename,
+            self._simulation.state._cpp_sys_def, self.trigger, self.filename,
             self._simulation.state._get_group(self.filter), self.mode,
             self.truncate)
 
@@ -211,7 +211,7 @@ class GSD(Writer):
         if mode != 'wb' and mode != 'xb':
             raise ValueError(f"Invalid GSD.write file mode: {mode}")
 
-        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
+        writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1), filename,
                                       state._get_group(filter), mode, False)
 
         if log is not None:
@@ -240,10 +240,9 @@ class GSD(Writer):
 def _iterable_is_incomplete(iterable):
     """Checks that any nested attribute has no instances of RequiredArg.
 
-    Given the arbitrary nesting of container types in HOOMD-blue's data
-    model, we need to ensure that no RequiredArg values exist at any depth
-    in a state loggable key. Otherwise, the gsd backend will fail in its
-    conversion to NumPy arrays.
+    Given the arbitrary nesting of container types in the data model, we need to
+    ensure that no RequiredArg values exist at any depth in a state loggable
+    key. Otherwise, the GSD backend will fail in its conversion to NumPy arrays.
     """
     if (not isinstance(iterable, Collection) or isinstance(iterable, str)
             or len(iterable) == 0):

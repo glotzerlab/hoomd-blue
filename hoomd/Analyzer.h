@@ -15,9 +15,9 @@
 #define __ANALYZER_H__
 
 #include "Communicator.h"
-#include "Profiler.h"
 #include "SharedSignal.h"
 #include "SystemDefinition.h"
+#include "Trigger.h"
 
 #include <memory>
 #include <typeinfo>
@@ -59,7 +59,7 @@ class PYBIND11_EXPORT Analyzer
     {
     public:
     //! Constructs the analyzer and associates it with the ParticleData
-    Analyzer(std::shared_ptr<SystemDefinition> sysdef);
+    Analyzer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
     virtual ~Analyzer() {};
 
     //! Abstract method that performs the analysis
@@ -67,9 +67,6 @@ class PYBIND11_EXPORT Analyzer
         \param timestep Current time step of the simulation
         */
     virtual void analyze(uint64_t timestep) { }
-
-    //! Sets the profiler for the analyzer to use
-    void setProfiler(std::shared_ptr<Profiler> prof);
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning
@@ -125,17 +122,30 @@ class PYBIND11_EXPORT Analyzer
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
+    /// Get Trigger
+    std::shared_ptr<Trigger> getTrigger()
+        {
+        return m_trigger;
+        }
+
+    /// Set Trigger
+    void setTrigger(std::shared_ptr<Trigger> trigger)
+        {
+        m_trigger = trigger;
+        }
+
     protected:
     const std::shared_ptr<SystemDefinition>
         m_sysdef; //!< The system definition this analyzer is associated with
     const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this analyzer is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this analyzer is to use
+        m_pdata; //!< The particle data this analyzer is associated with
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
     std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
         m_slots; //!< Stored shared ptr to the system signals
+    /// Trigger that determines if updater runs.
+    std::shared_ptr<Trigger> m_trigger;
     };
 
 namespace detail

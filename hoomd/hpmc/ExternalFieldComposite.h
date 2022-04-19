@@ -37,15 +37,17 @@ template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMon
         return 0.0;
         }
 
-    double calculateDeltaE(const Scalar4* const position_old,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
-                           const BoxDim* const box_old)
+                           const BoxDim& box_old)
         {
         throw(std::runtime_error("ExternalFieldMonoComposite::calculateDeltaE is not implemented"));
         return double(0.0);
         }
 
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
@@ -54,7 +56,8 @@ template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMon
         double Energy = 0.0;
         for (size_t i = 0; i < m_externals.size(); i++)
             {
-            Energy += m_externals[i]->energydiff(index,
+            Energy += m_externals[i]->energydiff(timestep,
+                                                 index,
                                                  position_old,
                                                  shape_old,
                                                  position_new,

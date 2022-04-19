@@ -8,8 +8,16 @@ md.improper
 
 .. py:currentmodule:: hoomd.md.improper
 
-Not yet ported to HOOMD-blue v3.
+.. autosummary::
+    :nosignatures:
+
+    Improper
+    Harmonic
 
 .. rubric:: Details
 
-.. module:: hoomd.md.improper
+.. automodule:: hoomd.md.improper
+    :synopsis: Improper potentials.
+    :show-inheritance:
+    :members: Improper,
+              Harmonic,

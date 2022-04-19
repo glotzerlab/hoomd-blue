@@ -51,9 +51,6 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
     uint3 dim = m_cl->getDim();
     Scalar3 ghost_width = m_cl->getGhostWidth();
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "compute");
-
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
@@ -195,9 +192,6 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
 
         h_n_neigh.data[i] = cur_n_neigh;
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

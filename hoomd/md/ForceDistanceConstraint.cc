@@ -111,9 +111,6 @@ Scalar ForceDistanceConstraint::getNDOFRemoved(std::shared_ptr<ParticleGroup> qu
 */
 void ForceDistanceConstraint::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Dist constraint");
-
     if (m_cdata->getNGlobal() == 0)
         {
         throw std::runtime_error("No constraints in the system.");
@@ -135,9 +132,6 @@ void ForceDistanceConstraint::computeForces(uint64_t timestep)
 
     // compute forces
     computeConstraintForces(timestep);
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void ForceDistanceConstraint::fillMatrixVector(uint64_t timestep)
@@ -349,9 +343,6 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
     if (n_constraint == 0)
         return;
 
-    if (m_prof)
-        m_prof->push("solve");
-
     // reallocate array of constraint forces
     m_lagrange.resize(n_constraint);
 
@@ -364,9 +355,6 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
         // reset flags
         m_condition.resetFlags(0);
-
-        if (m_prof)
-            m_prof->push("LU");
 
         // access matrix
         ArrayHandle<double> h_cmatrix(m_cmatrix, access_location::host, access_mode::read);
@@ -415,13 +403,7 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
         // Compute the ordering permutation vector from the structural pattern of A
         m_sparse_solver.analyzePattern(m_sparse);
-
-        if (m_prof)
-            m_prof->pop();
         }
-
-    if (m_prof)
-        m_prof->push("refactor/solve");
 
     // Compute the numerical factorization
     m_sparse_solver.factorize(m_sparse);
@@ -439,12 +421,6 @@ void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
 
     // Use the factors to solve the linear system
     map_lagrange = m_sparse_solver.solve(map_vec);
-
-    if (m_prof)
-        m_prof->pop();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void ForceDistanceConstraint::computeConstraintForces(uint64_t timestep)

@@ -29,12 +29,14 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Constructs the compute
     //!
     //! \param direction Indicates the normal direction of the slabs.
+    //! \param trigger Trigger to determine when to run updater.
     //! \param N_slabs Number of total slabs in the simulation box.
     //! \param min_slabs Index of slabs, where the min velocity is searched.
     //! \param max_slabs Index of slabs, where the max velocity is searched.
     //! \note N_slabs should be a multiple of the DomainDecomposition boxes in that direction.
     //! If it is not, the number is rescaled and the user is informed.
     MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<Trigger> trigger,
                       std::shared_ptr<ParticleGroup> group,
                       std::shared_ptr<Variant> flow_target,
                       std::string slab_direction_str,

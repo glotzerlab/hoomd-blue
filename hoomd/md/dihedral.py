@@ -1,45 +1,62 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-r"""Dihedral potentials.
+r"""Dihedral forces.
 
-Dihedrals add forces between specified quadruplets of particles and used to
-model rotation about chemical bonds.
+Dihedral force classes apply a force and virial on every particle in the
+simulation state commensurate with the potential energy:
 
-By themselves, dihedrals that have been specified in an input file do nothing.
-Only when you specify an dihedral force (e.g. `dihedral.Harmonic`), are forces
-actually calculated between the listed particles.
+.. math::
 
-Important: There are multiple conventions pertaining to the dihedral angle (phi)
-in the literature. HOOMD utilizes the convention shown in the following figure,
-where vectors are defined from the central particles to the outer particles.
-These vectors correspond to a stretched state (:math:`\phi = 180` degrees) when
-they are anti-parallel and a compact state (:math:`\phi = 0`) when they are
-parallel.
+    U_\mathrm{dihedral} = \sum_{(i,j,k,l) \in \mathrm{dihedrals}}
+    U_{ijkl}(\phi)
 
-.. image:: dihedral-angle-definition.png
-    :width: 400 px
-    :align: center
-    :alt: Dihedral angle definition
+Each dihedral is defined by an ordered quadruplet of particle tags in the
+`hoomd.State` member ``dihedral_group``. HOOMD-blue does not construct dihedral
+groups, users must explicitly define dihedrals in the initial condition.
+
+.. image:: md-dihedral.svg
+    :alt: Definition of the dihedral bond between particles i, j, k, and l.
+
+In the dihedral group (i,j,k,l), :math:`\phi` is the signed dihedral angle
+between the planes passing through (:math:`\vec{r}_i, \vec{r}_j, \vec{r}_k`) and
+(:math:`\vec{r}_j, \vec{r}_k, \vec{r}_l`).
+
+.. rubric Per-particle energies and virials
+
+Dihedral force classes assign 1/4 of the potential energy to each of the
+particles in the dihedral group:
+
+.. math::
+
+    U_m = \frac{1}{4} \sum_{(i,j,k,l) \in \mathrm{dihedrals}}
+    U_{ijkl}(\phi) [m=i \lor m=j \lor m=k \lor m=l]
+
+and similarly for virials.
+
+Important:
+    There are multiple conventions pertaining to the dihedral angle in the
+    literature. HOOMD-blue utilizes the convention where :math:`\phi = \pm \pi`
+    in the anti-parallel stretched state ( /\\/ ) and :math:`\phi = 0` in the
+    parallel compact state ( \|_\| ).
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import force
 from hoomd.md.force import Force
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 import hoomd
 
+import numpy
 import math
 
 
 class Dihedral(Force):
-    """Constructs the dihedral bond potential.
+    """Base class dihedral force.
 
     Note:
-        :py:class:`Dihedral` is the base class for all dihedral potentials.
-        Users should not instantiate this class directly.
+        :py:class:`Dihedral` is the base class for all dihedral forces. Users
+        should not instantiate this class directly.
     """
 
     def __init__(self):
@@ -63,17 +80,15 @@ class Dihedral(Force):
 
 
 class Harmonic(Dihedral):
-    r"""Harmonic dihedral potential.
+    r"""Harmonic dihedral force.
 
-    :py:class:`Harmonic` specifies a harmonic dihedral potential energy between
-    every defined dihedral quadruplet of particles in the simulation:
+    `Harmonic` computes forces, virials, and energies on all dihedrals in the
+    simulation state with:
 
     .. math::
 
-        V(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
+        U(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
                \right)
-
-    where :math:`\phi` is the angle between two sides of the dihedral.
 
     Attributes:
         params (`TypeParameter` [``dihedral type``, `dict`]):
@@ -90,8 +105,8 @@ class Harmonic(Dihedral):
     Examples::
 
         harmonic = dihedral.Harmonic()
-        harmonic.params['polymer'] = dict(k=3.0, d=-1, n=3, phi0=0)
-        harmonic.params['backbone'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
+        harmonic.params['A-A-A-A'] = dict(k=3.0, d=-1, n=3, phi0=0)
+        harmonic.params['A-B-C-D'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
     """
     _cpp_class_name = "HarmonicDihedralForceCompute"
 
@@ -109,231 +124,87 @@ def _table_eval(theta, V, T, width):
     return (V[i], T[i])
 
 
-class table(force._force):  # noqa
-    r"""Tabulated dihedral potential.
+class Table(Dihedral):
+    """Tabulated dihedral force.
 
     Args:
-        width (int): Number of points to use to interpolate V and T (see
-            documentation above)
-        name (str): Name of the force instance
+        width (int): Number of points in the table.
 
-    :py:class:`table` specifies that a tabulated dihedral force should be
-    applied to every define dihedral.
+    `Table` computes computes forces, virials, and energies on all dihedrals
+    in the simulation given the user defined tables :math:`U` and :math:`\\tau`.
 
-    :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)` are
-    evaluated on *width* grid points between :math:`-\pi` and :math:`\pi`.
-    Values are interpolated linearly between grid points. For correctness, you
-    must specify the derivative of the potential with respect to the dihedral
-    angle, defined by: :math:`T = -\frac{\partial V}{\partial \theta}`.
+    The torque :math:`\\tau` is:
 
-    Parameters:
-    - :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}} (\theta)` -
-      evaluated by ``func`` (see example)
-    - coefficients passed to ``func`` - ``coeff`` (see example)
+    .. math::
+        \\tau(\\phi) = \\tau_\\mathrm{table}(\\phi)
 
-    .. rubric:: Set table from a given function
+    and the potential :math:`U(\\phi)` is:
 
-    When you have a functional form for V and T, you can enter that directly
-    into python. :py:class:`table` will evaluate the given function over *width*
-    points between :math:`-\pi` and :math:`\pi` and use the resulting values in
-    the table::
+    .. math::
+        U(\\phi) = U_\\mathrm{table}(\\phi)
 
-        def harmonic(theta, kappa, theta0):
-           V = 0.5 * kappa * (theta-theta0)**2;
-           F = -kappa*(theta-theta0);
-           return (V, F)
+    Provide :math:`\\tau_\\mathrm{table}(\\phi)` and
+    :math:`U_\\mathrm{table}(\\phi)` on evenly spaced grid points points
+    in the range :math:`\\phi \\in [-\\pi,\\pi]`. `Table` linearly
+    interpolates values when :math:`\\phi` lies between grid points. The
+    torque must be specificed commensurate with the potential: :math:`\\tau =
+    -\\frac{\\partial U}{\\partial \\phi}`.
 
-        dtable = dihedral.table(width=1000)
-        dtable.dihedral_coeff.set('dihedral1', func=harmonic,
-                                  coeff=dict(kappa=330, theta_0=0.0))
-        dtable.dihedral_coeff.set('dihedral2', func=harmonic,
-                                  coeff=dict(kappa=30, theta_0=1.0))
+    Attributes:
+        params (`TypeParameter` [``dihedral type``, `dict`]):
+          The potential parameters. The dictionary has the following keys:
 
-    .. rubric:: Set a table from a file
+          * ``U`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated energy values :math:`[\\mathrm{energy}]`. Must have
+            a size equal to `width`.
 
-    When you have no function for for *V* or *T*, or you otherwise have the data
-    listed in a file, dihedral.table can use the given values directly. You must
-    first specify the number of rows in your tables when initializing
-    :py:class:`table`. Then use :py:meth:`set_from_file()` to read the file.
+          * ``tau`` ((*width*,) `numpy.ndarray` of `float`, **required**) -
+            the tabulated torque values :math:`[\\mathrm{force} \\cdot
+            \\mathrm{length}]`. Must have a size equal to `width`.
 
-        dtable = dihedral.table(width=1000)
-        dtable.set_from_file('polymer', 'dihedral.dat')
+        width (int): Number of points in the table.
     """
 
-    def __init__(self, width, name=None):
+    def __init__(self, width):
+        super().__init__()
+        param_dict = hoomd.data.parameterdicts.ParameterDict(width=int)
+        param_dict['width'] = width
+        self._param_dict = param_dict
 
-        # initialize the base class
-        force._force.__init__(self, name)
+        params = TypeParameter(
+            "params", "dihedral_types",
+            TypeParameterDict(
+                U=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                tau=hoomd.data.typeconverter.NDArrayValidator(numpy.float64),
+                len_keys=1))
+        self._add_typeparam(params)
 
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.TableDihedralForceCompute(
-                hoomd.context.current.system_definition, int(width), self.name)
+    def _attach(self):
+        """Create the c++ mirror class."""
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = _md.TableDihedralForceCompute
         else:
-            self.cpp_force = _md.TableDihedralForceComputeGPU(
-                hoomd.context.current.system_definition, int(width), self.name)
+            cpp_cls = _md.TableDihedralForceComputeGPU
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
 
-        # setup the coefficient matrix
-        self.dihedral_coeff = coeff()  # noqa
-
-        # stash the width for later use
-        self.width = width
-
-    def update_dihedral_table(self, atype, func, coeff):  # noqa
-        # allocate arrays to store V and F
-        Vtable = _hoomd.std_vector_scalar()
-        Ttable = _hoomd.std_vector_scalar()
-
-        # calculate dth
-        dth = 2.0 * math.pi / float(self.width - 1)
-
-        # evaluate each point of the function
-        for i in range(0, self.width):
-            theta = -math.pi + dth * i
-            (V, T) = func(theta, **coeff)
-
-            # fill out the tables
-            Vtable.append(V)
-            Ttable.append(T)
-
-        # pass the tables on to the underlying cpp compute
-        self.cpp_force.setTable(atype, Vtable, Ttable)
-
-    def update_coeffs(self):  # noqa
-        # check that the dihedral coefficients are valid
-        if not self.dihedral_coeff.verify(["func", "coeff"]):
-            hoomd.context.current.device.cpp_msg.error(
-                "Not all dihedral coefficients are set for dihedral.table\n")
-            raise RuntimeError("Error updating dihedral coefficients")
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getDihedralData(
-        ).getNTypes()
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(hoomd.context.current.system_definition
-                             .getDihedralData().getNameByType(i))
-
-        # loop through all of the unique type dihedrals and evaluate the table
-        for i in range(0, ntypes):
-            func = self.dihedral_coeff.get(type_list[i], "func")
-            coeff = self.dihedral_coeff.get(type_list[i], "coeff")
-
-            self.update_dihedral_table(i, func, coeff)
-
-    def set_from_file(self, dihedralname, filename):
-        r"""Set a dihedral pair interaction from a file.
-
-        Args:
-            dihedralname (str): Name of dihedral
-            filename (str): Name of the file to read
-
-        The provided file specifies V and F at equally spaced theta values.
-
-        Example::
-
-            #t  V    T
-            -3.141592653589793 2.0 -3.0
-            -1.5707963267948966 3.0 -4.0
-            0.0 2.0 -3.0
-            1.5707963267948966 3.0 -4.0
-            3.141592653589793 2.0 -3.0
-
-        Note:
-            The theta values are not used by the code.  It is assumed that a
-            table that has N rows will start at :math:`-\pi`, end at :math:`\pi`
-            and that :math:`\delta \theta = 2\pi/(N-1)`. The table is read
-            directly into the grid points used to evaluate
-            :math:`T_{\mathrm{user}}(\theta)` and
-            :math:`V_{\mathrm{user}}(\theta)`.
-
-        """
-        # open the file
-        f = open(filename)
-
-        theta_table = []
-        V_table = []
-        T_table = []
-
-        # read in lines from the file
-        for line in f.readlines():
-            line = line.strip()
-
-            # skip comment lines
-            if line[0] == '#':
-                continue
-
-            # split out the columns
-            cols = line.split()
-            values = [float(f) for f in cols]
-
-            # validate the input
-            if len(values) != 3:
-                hoomd.context.current.device.cpp_msg.error(
-                    "dihedral.table: file must have exactly 3 columns\n")
-                raise RuntimeError("Error reading table file")
-
-            # append to the tables
-            theta_table.append(values[0])
-            V_table.append(values[1])
-            T_table.append(values[2])
-
-        # validate input
-        if self.width != len(T_table):
-            hoomd.context.current.device.cpp_msg.error(
-                "dihedral.table: file must have exactly " + str(self.width)
-                + " rows\n")
-            raise RuntimeError("Error reading table file")
-
-        # check for even spacing
-        dth = 2.0 * math.pi / float(self.width - 1)
-        for i in range(0, self.width):
-            theta = -math.pi + dth * i
-            if math.fabs(theta - theta_table[i]) > 1e-3:
-                hoomd.context.current.device.cpp_msg.error(
-                    "dihedral.table: theta must be monotonically increasing and"
-                    "evenly spaced, going from -pi to pi\n")
-                hoomd.context.current.device.cpp_msg.error("row: " + str(i)
-                                                           + " expected: "
-                                                           + str(theta)
-                                                           + " got: "
-                                                           + str(theta_table[i])
-                                                           + "\n")
-
-        self.dihedral_coeff.set(dihedralname,
-                                func=_table_eval,
-                                coeff=dict(V=V_table,
-                                           T=T_table,
-                                           width=self.width))
-
-    def get_metadata(self):  # noqa
-        data = force._force.get_metadata(self)
-
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
-
-        data['dihedral_coeff'] = self.dihedral_coeff
-        return data
+        Force._attach(self)
 
 
 class OPLS(Dihedral):
     r"""OPLS dihedral force.
 
-    :py:class:`OPLS` specifies an OPLS-style dihedral potential energy between
-    every defined dihedral.
+    `OPLS` computes forces, virials, and energies on all dihedrals in the
+    simulation state with:
 
     .. math::
 
-        V(\phi) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
+        U(\phi) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) +
                   \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right) +
                   \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) +
                   \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right)
 
-    where :math:`\phi` is the angle between two sides of the dihedral and
-    :math:`k_n` are the force coefficients in the Fourier series (in energy
-    units).
+    :math:`k_n` are the force coefficients in the Fourier series.
 
     Attributes:
         params (`TypeParameter` [``dihedral type``, `dict`]):
@@ -355,7 +226,7 @@ class OPLS(Dihedral):
     Examples::
 
         opls = dihedral.OPLS()
-        opls.params['backbone'] = dict(k1=1.0, k2=1.0, k3=1.0, k4=1.0)
+        opls.params['A-A-A-A'] = dict(k1=1.0, k2=1.0, k3=1.0, k4=1.0)
     """
     _cpp_class_name = "OPLSDihedralForceCompute"
 

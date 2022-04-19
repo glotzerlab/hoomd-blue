@@ -135,7 +135,7 @@ class MyPeriodicField(md.force.Custom):
         if positions.shape == (0,):
             return np.array([]), np.array([])
 
-        a1, a2, a3 = box.lattice_vectors
+        a1, a2, a3 = box.to_matrix().T
         V = np.dot(a1, np.cross(a2, a3))
         b1 = 2 * np.pi / V * np.cross(a2, a3)
         b2 = 2 * np.pi / V * np.cross(a3, a1)
@@ -378,3 +378,39 @@ def test_torques_update(local_force_names, two_particle_snapshot_factory,
         if sim.device.communicator.rank == 0:
             assert np.count_nonzero(snap.particles.orientation
                                     - initial_orientations)
+
+
+def test_force_zeroing(force_simulation_factory, two_particle_snapshot_factory):
+
+    class TestForceZeroing(hoomd.md.force.Custom):
+
+        def __init__(self):
+            super().__init__(aniso=True)
+
+        def set_forces(self, timestep):
+            with self.cpu_local_force_arrays as force:
+                force.force[:] += timestep
+                force.torque[:] += timestep
+                force.virial[:] += timestep
+
+    snap = two_particle_snapshot_factory()
+    test_force = TestForceZeroing()
+    sim = force_simulation_factory(test_force, snap)
+    if sim.device.communicator.rank == 0:
+        snap.particles.moment_inertia[:] = [[1, 1, 1], [1, 1, 1]]
+    sim.state.set_snapshot(snap)
+
+    _skip_if_gpu_device_and_no_cupy(sim)
+    sim.operations.integrator.integrate_rotational_dof = True
+    sim.always_compute_pressure = True
+
+    for _ in range(3):
+        sim.run(1)
+        forces = test_force.forces
+        torques = test_force.torques
+        virials = test_force.virials
+        timestep = sim.timestep
+        if sim.device.communicator.rank == 0:
+            assert np.allclose(forces, timestep)
+            assert np.allclose(torques, timestep)
+            assert np.allclose(virials, timestep)

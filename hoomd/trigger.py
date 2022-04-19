@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Triggers determine when `hoomd.Operations` activate.
+"""Triggers determine when `hoomd.operation.Operation` instances activate.
 
 A `Trigger` is a boolean valued function of the timestep. The operation will
 perform its action when Trigger returns `True`. A single trigger object
@@ -96,8 +96,7 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
         period (int): timesteps for periodicity
         phase (int): timesteps for phase
 
-    `hoomd.trigger.Periodic` evaluates `True` every `period` steps offset by
-    phase::
+    `Periodic` evaluates `True` every `period` steps offset by phase::
 
         return (t - phase) % period == 0
 
@@ -131,8 +130,7 @@ class Before(_hoomd.BeforeTrigger, Trigger):
     Args:
         timestep (int): The step after the trigger ends.
 
-    `hoomd.trigger.Before` evaluates `True` for all time steps less than the
-    `timestep`::
+    `Before` evaluates `True` for all time steps less than the `timestep`::
 
         return t < timestep
 
@@ -169,7 +167,7 @@ class On(_hoomd.OnTrigger, Trigger):
     Args:
         timestep (int): The timestep to trigger on.
 
-    `hoomd.trigger.On` returns `True` for steps equal to `timestep`::
+    `On` returns `True` for steps equal to `timestep`::
 
         return t == timestep
 
@@ -204,8 +202,7 @@ class After(_hoomd.AfterTrigger, Trigger):
     Args:
         timestep (int): The step before the trigger will start.
 
-    `hoomd.trigger.After` returns `True` for all time steps greater than
-    `timestep`::
+    `After` returns `True` for all time steps greater than `timestep`::
 
         return t > timestep
 
@@ -242,7 +239,7 @@ class Not(_hoomd.NotTrigger, Trigger):
     Args:
         trigger (hoomd.trigger.Trigger): The trigger object to negate.
 
-    `hoomd.trigger.Not` returns the boolean negation of `trigger`::
+    `Not` returns the boolean negation of `trigger`::
 
         return not trigger(t)
 
@@ -280,10 +277,9 @@ class And(_hoomd.AndTrigger, Trigger):
     """Boolean and operation.
 
     Args:
-        triggers (`list` [`hoomd.trigger.Trigger`]): List of triggers.
+        triggers (`list` [`Trigger`]): List of triggers.
 
-    `hoomd.trigger.And` returns `True` when all the input triggers returns
-    `True`::
+    `And` returns `True` when all the input triggers returns `True`::
 
         return all([f(t) for f in triggers])
 
@@ -330,10 +326,9 @@ class Or(_hoomd.OrTrigger, Trigger):
     """Boolean or operation.
 
     Args:
-        triggers (`list` [`hoomd.trigger.Trigger`]): List of triggers.
+        triggers (`list` [`Trigger`]): List of triggers.
 
-    `hoomd.trigger.Or` returns `True` when any of the input triggers returns
-    `True`::
+    `Or` returns `True` when any of the input triggers returns `True`::
 
         return any([f(t) for f in triggers])
 
@@ -350,7 +345,7 @@ class Or(_hoomd.OrTrigger, Trigger):
                                     ])
 
     Attributes:
-        triggers (`list` [`hoomd.trigger.Trigger`]): List of triggers.
+        triggers (`list` [`Trigger`]): List of triggers.
     """
 
     def __init__(self, triggers):

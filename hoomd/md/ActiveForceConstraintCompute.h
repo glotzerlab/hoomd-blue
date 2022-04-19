@@ -189,9 +189,6 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
 template<class Manifold>
 void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "ActiveForceConstraintCompute");
-
     if (m_box_changed)
         {
         if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
@@ -209,9 +206,6 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

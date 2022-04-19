@@ -19,7 +19,7 @@ using namespace hoomd;
 template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(6.0, 8.0, 10.0);
+    snap->global_box = std::make_shared<BoxDim>(6.0, 8.0, 10.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -97,7 +97,7 @@ template<class CL> void celllist_dimension_test(std::shared_ptr<ExecutionConfigu
 template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -281,7 +281,7 @@ template<class CL> void celllist_small_test(std::shared_ptr<ExecutionConfigurati
 template<class CL> void celllist_grid_shift_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(6.0);
+    snap->global_box = std::make_shared<BoxDim>(6.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -376,7 +376,7 @@ template<class CL> void celllist_embed_test(std::shared_ptr<ExecutionConfigurati
     {
     // setup a system where both MD and MPCD particles are in each of the cells
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
         {
         SnapshotParticleData<Scalar>& pdata_snap = snap->particle_data;
         pdata_snap.type_mapping.push_back("A");

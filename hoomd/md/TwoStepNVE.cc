@@ -16,31 +16,12 @@ namespace md
     {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param skip_restart Skip initialization of the restart information
 */
 TwoStepNVE::TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       bool skip_restart)
+                       std::shared_ptr<ParticleGroup> group)
     : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVE" << endl;
-
-    if (!skip_restart)
-        {
-        // set a named, but otherwise blank set of integrator variables
-        IntegratorVariables v = getIntegratorVariables();
-
-        if (!restartInfoTestValid(v, "nve", 0))
-            {
-            v.type = "nve";
-            v.variable.resize(0);
-            setValidRestart(false);
-            }
-        else
-            setValidRestart(true);
-
-        setIntegratorVariables(v);
-        }
     }
 
 TwoStepNVE::~TwoStepNVE()
@@ -98,10 +79,6 @@ void TwoStepNVE::setZeroForce(bool zero_force)
 void TwoStepNVE::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVE step 1");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -282,10 +259,6 @@ void TwoStepNVE::integrateStepOne(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -296,10 +269,6 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVE step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -395,10 +364,6 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
@@ -408,8 +373,7 @@ void export_TwoStepNVE(pybind11::module& m)
     pybind11::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(
         m,
         "TwoStepNVE")
-        .def(pybind11::
-                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def_property("limit", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
         .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
     }

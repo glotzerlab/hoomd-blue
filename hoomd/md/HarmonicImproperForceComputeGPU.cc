@@ -68,10 +68,6 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
 */
 void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Harmonic Improper");
-
     ArrayHandle<ImproperData::members_t> d_gpu_dihedral_list(m_improper_data->getGPUTable(),
                                                              access_location::device,
                                                              access_mode::read);
@@ -109,9 +105,6 @@ void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail

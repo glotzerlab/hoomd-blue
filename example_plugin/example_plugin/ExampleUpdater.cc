@@ -17,7 +17,11 @@ namespace hoomd
     {
 /*! \param sysdef System to zero the velocities of
  */
-ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef) { }
+ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                               std::shared_ptr<Trigger> trigger)
+    : Updater(sysdef, trigger)
+    {
+    }
 
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
@@ -25,9 +29,6 @@ ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updat
 void ExampleUpdater::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    if (m_prof)
-        m_prof->push("ExampleUpdater");
-
     // access the particle data for writing on the CPU
     assert(m_pdata);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
@@ -41,9 +42,6 @@ void ExampleUpdater::update(uint64_t timestep)
         h_vel.data[i].y = Scalar(0.0);
         h_vel.data[i].z = Scalar(0.0);
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
@@ -53,7 +51,7 @@ namespace detail
 void export_ExampleUpdater(pybind11::module& m)
     {
     pybind11::class_<ExampleUpdater, Updater, std::shared_ptr<ExampleUpdater>>(m, "ExampleUpdater")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
     } // end namespace detail
@@ -65,8 +63,9 @@ void export_ExampleUpdater(pybind11::module& m)
 
 /*! \param sysdef System to zero the velocities of
  */
-ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
-    : ExampleUpdater(sysdef)
+ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<Trigger> trigger)
+    : ExampleUpdater(sysdef, trigger)
     {
     }
 
@@ -76,8 +75,6 @@ ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
 void ExampleUpdaterGPU::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    if (m_prof)
-        m_prof->push("ExampleUpdater");
 
     // access the particle data arrays for writing on the GPU
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
@@ -90,9 +87,6 @@ void ExampleUpdaterGPU::update(uint64_t timestep)
     // check for error codes from the GPU if error checking is enabled
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 namespace detail
@@ -104,7 +98,7 @@ void export_ExampleUpdaterGPU(pybind11::module& m)
     pybind11::class_<ExampleUpdaterGPU, ExampleUpdater, std::shared_ptr<ExampleUpdaterGPU>>(
         m,
         "ExampleUpdaterGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
     } // end namespace detail

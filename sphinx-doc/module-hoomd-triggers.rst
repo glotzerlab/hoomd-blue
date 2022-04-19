@@ -6,17 +6,19 @@ hoomd.trigger
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd.trigger
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.trigger.After
-    hoomd.trigger.And
-    hoomd.trigger.Before
-    hoomd.trigger.Not
-    hoomd.trigger.On
-    hoomd.trigger.Or
-    hoomd.trigger.Periodic
-    hoomd.trigger.Trigger
+    After
+    And
+    Before
+    Not
+    On
+    Or
+    Periodic
+    Trigger
 
 .. rubric:: Details
 
@@ -25,10 +27,17 @@ hoomd.trigger
     :no-members:
 
     .. autoclass:: After(timestep)
+        :show-inheritance:
     .. autoclass:: And(triggers)
+        :show-inheritance:
     .. autoclass:: Before(timestep)
+        :show-inheritance:
     .. autoclass:: Not(trigger)
+        :show-inheritance:
     .. autoclass:: On(timestep)
+        :show-inheritance:
     .. autoclass:: Or(triggers)
+        :show-inheritance:
     .. autoclass:: Periodic(period, phase)
+        :show-inheritance:
     .. autoclass:: Trigger()

@@ -41,7 +41,6 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
     TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<ParticleGroup> group,
                         Manifold manifold,
-                        bool skip_restart,
                         Scalar tolerance);
 
     virtual ~TwoStepRATTLENVEGPU() {};
@@ -92,9 +91,8 @@ template<class Manifold>
 TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group,
                                                    Manifold manifold,
-                                                   bool skip_restart,
                                                    Scalar tolerance)
-    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, skip_restart, tolerance)
+    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, tolerance)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -123,10 +121,6 @@ TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinit
 */
 template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "NVE step 1");
-
     // access all the needed data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
@@ -210,10 +204,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
         m_tuner_angular_one->end();
         this->m_exec_conf->endMultiGPU();
         }
-
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -222,10 +212,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
 template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = this->m_pdata->getNetForce();
-
-    // profile this step
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "NVE step 2");
 
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
@@ -301,10 +287,6 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
         m_tuner_angular_two->end();
         this->m_exec_conf->endMultiGPU();
         }
-
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
@@ -366,7 +348,6 @@ void export_TwoStepRATTLENVEGPU(pybind11::module& m, const std::string& name)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             Manifold,
-                            bool,
                             Scalar>());
     }
 

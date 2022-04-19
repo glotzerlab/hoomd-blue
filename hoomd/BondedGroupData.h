@@ -21,7 +21,6 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
@@ -252,6 +251,9 @@ class BondedGroupData
         std::vector<std::string> type_mapping; //!< Names of group types
         unsigned int size;                     //!< Number of bonds in the snapshot
         };
+
+    //! Constructor for MeshGroupData
+    BondedGroupData(std::shared_ptr<ParticleData> pdata);
 
     //! Constructor for empty BondedGroupData
     BondedGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
@@ -595,14 +597,6 @@ class BondedGroupData
      */
     void removeBondedGroup(unsigned int group_tag);
 
-    //! Set the profiler
-    /*! \param prof The profiler
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Connects a function to be called every time the global number of bonded groups changes
     Nano::Signal<void()>& getGroupNumChangeSignal()
         {
@@ -637,7 +631,7 @@ class BondedGroupData
         \param old_rank Old MPI rank for particle
         \param new_rank New MPI rank
      */
-    void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
 #endif
 
     protected:
@@ -677,7 +671,6 @@ class BondedGroupData
     GPUVector<unsigned int>
         m_cached_tag_set;       //!< Cached constant-time lookup table for tags by active index
     bool m_invalid_cached_tags; //!< true if m_cached_tag_set needs to be rebuilt
-    std::shared_ptr<Profiler> m_prof; //!< Profiler
 
     Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
                                                     //!< added or deleted (globally)

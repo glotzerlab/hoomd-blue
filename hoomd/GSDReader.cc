@@ -192,8 +192,8 @@ void GSDReader::readHeader()
 
     float box[6] = {1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
     readChunk(&box, m_frame, "configuration/box", 6 * 4);
-    m_snapshot->global_box = BoxDim(box[0], box[1], box[2]);
-    m_snapshot->global_box.setTiltFactors(box[3], box[4], box[5]);
+    m_snapshot->global_box = std::make_shared<BoxDim>(BoxDim(box[0], box[1], box[2]));
+    m_snapshot->global_box->setTiltFactors(box[3], box[4], box[5]);
 
     unsigned int N = 0;
     readChunk(&N, m_frame, "particles/N", 4);

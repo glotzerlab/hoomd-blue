@@ -5,135 +5,142 @@ import hoomd
 import pytest
 import numpy as np
 
-_harmonic_args = {'k': [30.0, 25.0, 20.0], 'r0': [1.6, 1.7, 1.8]}
-_harmonic_arg_list = [(hoomd.md.bond.Harmonic, dict(zip(_harmonic_args, val)))
-                      for val in zip(*_harmonic_args.values())]
-
-_FENE_args = {
-    'k': [30.0, 25.0, 20.0],
-    'r0': [1.6, 1.7, 1.8],
-    'epsilon': [0.9, 1.0, 1.1],
-    'sigma': [1.1, 1.0, 0.9],
-    'delta': [-0.5, -0.5, -0.5]
-}
-_FENE_arg_list = [(hoomd.md.bond.FENEWCA, dict(zip(_FENE_args, val)))
-                  for val in zip(*_FENE_args.values())]
-
-_Tether_args = {
-    'k_b': [5.0, 6.0, 7.0],
-    'l_min': [0.7, 0.8, 0.9],
-    'l_c1': [0.9, 1.05, 1.1],
-    'l_c0': [1.1, 1.1, 1.3],
-    'l_max': [1.3, 1.3, 1.5]
-}
-_Tether_arg_list = [(hoomd.md.bond.Tether, dict(zip(_Tether_args, val)))
-                    for val in zip(*_Tether_args.values())]
-
-
-def get_bond_and_args():
-    return _harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
-
-
-def get_bond_args_forces_and_energies():
-    harmonic_forces = [-18.9300, -18.2750, -16.6200]
-    harmonic_energies = [5.9724, 6.6795, 6.9056]
-    FENE_forces = [282.296, 146.288, 88.8238]
-    FENE_energies = [70.5638, 49.2476, 35.3135]
-    Tether_forces = [0, -0.0244441, -3.57225]
-    Tether_energies = [0, 0.000154384, 0.0490934]
-
-    harmonic_args_and_vals = []
-    FENE_args_and_vals = []
-    Tether_args_and_vals = []
-    for i in range(3):
-        harmonic_args_and_vals.append(
-            (_harmonic_arg_list[i][0], _harmonic_arg_list[i][1],
-             harmonic_forces[i], harmonic_energies[i]))
-        FENE_args_and_vals.append((_FENE_arg_list[i][0], _FENE_arg_list[i][1],
-                                   FENE_forces[i], FENE_energies[i]))
-        Tether_args_and_vals.append(
-            (_Tether_arg_list[i][0], _Tether_arg_list[i][1], Tether_forces[i],
-             Tether_energies[i]))
-    return harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
-
-
-@pytest.mark.parametrize("bond_cls, potential_kwargs", get_bond_and_args())
-def test_before_attaching(bond_cls, potential_kwargs):
-    bond_potential = bond_cls()
-    bond_potential.params['bond'] = potential_kwargs
-    for key in potential_kwargs:
-        np.testing.assert_allclose(bond_potential.params['bond'][key],
-                                   potential_kwargs[key],
-                                   rtol=1e-6)
-
-
-@pytest.mark.parametrize("bond_cls, potential_kwargs", get_bond_and_args())
-def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
-                         bond_cls, potential_kwargs):
-    snap = two_particle_snapshot_factory(d=0.969, L=5)
-    if snap.communicator.rank == 0:
-        snap.bonds.N = 1
-        snap.bonds.types = ['bond']
-        snap.bonds.typeid[0] = 0
-        snap.bonds.group[0] = (0, 1)
-    sim = simulation_factory(snap)
-
-    bond_potential = bond_cls()
-    bond_potential.params['bond'] = potential_kwargs
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-
-    integrator.forces.append(bond_potential)
-
-    langevin = hoomd.md.methods.Langevin(kT=1,
-                                         filter=hoomd.filter.All(),
-                                         alpha=0.1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-
-    sim.run(0)
-    for key in potential_kwargs:
-        np.testing.assert_allclose(bond_potential.params['bond'][key],
-                                   potential_kwargs[key],
-                                   rtol=1e-6)
+# Test parameters include the class, class keyword arguments, bond params,
+# force, and energy.
+bond_test_parameters = [
+    (
+        hoomd.md.bond.Harmonic,
+        dict(),
+        dict(k=30.0, r0=1.6),
+        -18.9300,
+        5.9724,
+    ),
+    (
+        hoomd.md.bond.Harmonic,
+        dict(),
+        dict(k=25.0, r0=1.7),
+        -18.2750,
+        6.6795,
+    ),
+    (
+        hoomd.md.bond.Harmonic,
+        dict(),
+        dict(k=20.0, r0=1.8),
+        -16.6200,
+        6.9056,
+    ),
+    (
+        hoomd.md.bond.FENEWCA,
+        dict(),
+        dict(k=30.0, r0=1.6, epsilon=0.9, sigma=1.1, delta=-0.5),
+        282.296,
+        70.5638,
+    ),
+    (
+        hoomd.md.bond.FENEWCA,
+        dict(),
+        dict(k=25.0, r0=1.7, epsilon=1.0, sigma=1.0, delta=-0.5),
+        146.288,
+        49.2476,
+    ),
+    (
+        hoomd.md.bond.FENEWCA,
+        dict(),
+        dict(k=20.0, r0=1.8, epsilon=1.1, sigma=0.9, delta=-0.5),
+        88.8238,
+        35.3135,
+    ),
+    (
+        hoomd.md.bond.Tether,
+        dict(),
+        dict(k_b=5.0, l_min=0.7, l_c1=0.9, l_c0=1.1, l_max=1.3),
+        0,
+        0,
+    ),
+    (
+        hoomd.md.bond.Tether,
+        dict(),
+        dict(k_b=6.0, l_min=0.8, l_c1=1.05, l_c0=1.1, l_max=1.3),
+        -0.0244441,
+        0.000154384,
+    ),
+    (
+        hoomd.md.bond.Tether,
+        dict(),
+        dict(k_b=7.0, l_min=0.9, l_c1=1.1, l_c0=1.3, l_max=1.5),
+        -3.57225,
+        0.0490934,
+    ),
+    (
+        hoomd.md.bond.Table,
+        dict(width=2),
+        dict(r_min=0, r_max=1.0, U=[0, 10], F=[0, -20]),
+        19.38,
+        9.69,
+    ),
+]
 
 
-@pytest.mark.parametrize("bond_cls, potential_kwargs, force, energy",
-                         get_bond_args_forces_and_energies())
-def test_forces_and_energies(two_particle_snapshot_factory, simulation_factory,
-                             bond_cls, potential_kwargs, force, energy):
-    snap = two_particle_snapshot_factory(d=0.969, L=5)
-    if snap.communicator.rank == 0:
-        snap.bonds.N = 1
-        snap.bonds.types = ['bond']
-        snap.bonds.typeid[0] = 0
-        snap.bonds.group[0] = (0, 1)
-        snap.particles.diameter[0] = 0.5
-        snap.particles.diameter[1] = 0.5
-    sim = simulation_factory(snap)
+@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
+                         bond_test_parameters)
+def test_before_attaching(bond_cls, bond_args, params, force, energy):
+    potential = bond_cls(**bond_args)
+    potential.params['A-A'] = params
+    for key in params:
+        assert potential.params['A-A'][key] == pytest.approx(params[key])
 
-    bond_potential = bond_cls()
-    bond_potential.params['bond'] = potential_kwargs
 
-    integrator = hoomd.md.Integrator(dt=0.005)
+@pytest.fixture(scope='session')
+def snapshot_factory(two_particle_snapshot_factory):
 
-    integrator.forces.append(bond_potential)
+    def make_snapshot():
+        snapshot = two_particle_snapshot_factory(d=0.969, L=5)
+        if snapshot.communicator.rank == 0:
+            snapshot.bonds.N = 1
+            snapshot.bonds.types = ['A-A']
+            snapshot.bonds.typeid[0] = 0
+            snapshot.bonds.group[0] = (0, 1)
 
-    langevin = hoomd.md.methods.Langevin(kT=1,
-                                         filter=hoomd.filter.All(),
-                                         alpha=0.1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+        return snapshot
 
+    return make_snapshot
+
+
+@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
+                         bond_test_parameters)
+def test_after_attaching(snapshot_factory, simulation_factory, bond_cls,
+                         bond_args, params, force, energy):
+    sim = simulation_factory(snapshot_factory())
+
+    potential = bond_cls(**bond_args)
+    potential.params['A-A'] = params
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
     sim.run(0)
 
-    sim_energies = sim.operations.integrator.forces[0].energies
-    sim_forces = sim.operations.integrator.forces[0].forces
+    for key in params:
+        assert potential.params['A-A'][key] == pytest.approx(params[key])
+
+
+@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
+                         bond_test_parameters)
+def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
+                             bond_args, params, force, energy):
+    sim = simulation_factory(snapshot_factory())
+
+    potential = bond_cls(**bond_args)
+    potential.params['A-A'] = params
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+
+    sim_energies = potential.energies
+    sim_forces = potential.forces
     if sim.device.communicator.rank == 0:
-        np.testing.assert_allclose(sum(sim_energies),
-                                   energy,
-                                   rtol=1e-2,
-                                   atol=1e-5)
+        assert sum(sim_energies) == pytest.approx(energy, rel=1e-2)
         np.testing.assert_allclose(sim_forces[0], [force, 0.0, 0.0],
                                    rtol=1e-2,
                                    atol=1e-5)

@@ -41,6 +41,18 @@ char name_pair_data[] = "pair";
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
+    std::shared_ptr<ParticleData> pdata)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0),
+      m_groups_dirty(true)
+    {
+    }
+
+/*! \param exec_conf Execution configuration
+    \param pdata The particle data to associate with
+    \param n_group_types Number of bonded group types to initialize
+ */
+template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
+BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     std::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
     : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0),
@@ -744,9 +756,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
     else
 #endif
         {
-        if (m_prof)
-            m_prof->push("update " + std::string(name) + " table");
-
         ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
                                          access_location::host,
                                          access_mode::read);
@@ -862,9 +871,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                     }
                 }
             }
-
-        if (m_prof)
-            m_prof->pop();
         }
     }
 
@@ -872,9 +878,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTableGPU()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "update " + std::string(name) + " table");
-
     // resize groups counter
     m_gpu_n_groups.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
@@ -967,9 +970,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         else
             done = true;
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 #endif
 
@@ -1313,6 +1313,7 @@ void export_BondedGroupData(pybind11::module& m,
         Group::export_to_python(m);
 
     pybind11::class_<T, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<ParticleData>>())
         .def(pybind11::init<std::shared_ptr<ParticleData>, unsigned int>())
         .def(pybind11::init<std::shared_ptr<ParticleData>, const typename T::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
@@ -1328,7 +1329,6 @@ void export_BondedGroupData(pybind11::module& m,
         .def("getNameByType", &T::getNameByType)
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)
-        .def("setProfiler", &T::setProfiler)
         .def("getTypes", &T::getTypesPy);
 
     if (T::typemap_val)

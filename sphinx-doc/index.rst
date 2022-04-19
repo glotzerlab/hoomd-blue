@@ -21,7 +21,7 @@ HOOMD-blue
         :target: https://anaconda.org/conda-forge/hoomd
     .. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
         :target: https://anaconda.org/conda-forge/hoomd
-    .. |GitHub Actions| image:: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml/badge.svg
+    .. |GitHub Actions| image:: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml/badge.svg?branch=trunk-patch
         :target: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml
     .. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat
         :target: https://hoomd-blue.readthedocs.io/en/latest/credits.html
@@ -59,6 +59,14 @@ Related tools
   Analyze HOOMD-blue simulation results with the **freud** Python library.
 - `signac <https://signac.io/>`_:
   Manage your workflow with **signac**.
+- `Molecular Simulation Design Framework (MoSDeF)`_ tools:
+
+  - `mbuild`_: Assemble reusable components into complex molecular systems.
+  - `foyer`_: perform atom-typing and define classical molecular modeling force fields.
+
+.. _Molecular Simulation Design Framework (MoSDeF): https://mosdef.org/
+.. _mbuild: https://mbuild.mosdef.org/
+.. _foyer: https://foyer.mosdef.org/
 
 Example scripts
 ===============
@@ -118,6 +126,7 @@ Molecular dynamics:
     :maxdepth: 1
     :caption: Getting started
 
+    features
     installation
     building
     migrating
@@ -133,6 +142,13 @@ Molecular dynamics:
     tutorial/02-Logging/00-index
     tutorial/03-Parallel-Simulations-With-MPI/00-index
     tutorial/04-Custom-Actions-In-Python/00-index
+    tutorial/05-Organizing-and-Executing-Simulations/00-index
+
+.. toctree::
+    :maxdepth: 1
+    :caption: How to guides
+
+    howto/molecular
 
 .. toctree::
    :maxdepth: 3
@@ -155,6 +171,7 @@ Molecular dynamics:
    :maxdepth: 1
    :caption: Reference
 
+   notation
    units
    deprecated
    license

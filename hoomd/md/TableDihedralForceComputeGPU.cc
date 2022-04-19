@@ -48,10 +48,6 @@ Calls gpu_compute_bondtable_forces to do the leg work
 */
 void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Dihedral Table");
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
@@ -98,9 +94,6 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
         }
 
     m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 namespace detail
