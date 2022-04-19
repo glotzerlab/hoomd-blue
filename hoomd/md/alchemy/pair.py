@@ -23,7 +23,7 @@ def _modify_pair_cls_to_alchemical(cls):
     ]
     if getattr(cls, 'normalized', False):
         new_cpp_name.insert(2, 'Normalized')
-        cls._dof_cls = AlchemicalNormalizedDOF
+        cls._dof_cls = _AlchemicalNormalizedDOF
     else:
         cls.normalized = False
         cls._dof_cls = AlchemicalDOF
@@ -32,7 +32,7 @@ def _modify_pair_cls_to_alchemical(cls):
     return cls
 
 
-class AlchemicalPairDOFStore(Mapping):
+class _AlchemicalPairDOFStore(Mapping):
     """A read-only mapping of alchemical degrees of freedom accessed by type.
 
     The class acts as a cache so once an alchemical DOF is queried it is
@@ -40,7 +40,7 @@ class AlchemicalPairDOFStore(Mapping):
     """
 
     def __init__(self, name, pair_instance, dof_cls):
-        """Create an `AlchemicalPairDOFStore` object.
+        """Create an `_AlchemicalPairDOFStore` object.
 
         Warning:
             Should not be instantiated by users.
@@ -94,7 +94,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     """Base class for Alchemical pair potentials.
 
     Expects to use diamond inheritance with a `hoomd.md.pair.Pair` subclass.
-    Automatically creates the `AlchemicalPairDOFStore` objects in `__init__` and
+    Automatically creates the `_AlchemicalPairDOFStore` objects in `__init__` and
     implements a type parameter like interface for accessing them.
 
     Attributes:
@@ -112,7 +112,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     def _set_alchemical_parameters(self):
         self._alchemical_params = {}
         for dof in self._alchemical_dofs:
-            self._alchemical_params[dof] = AlchemicalPairDOFStore(
+            self._alchemical_params[dof] = _AlchemicalPairDOFStore(
                 name=dof, pair_instance=self, dof_cls=self._dof_cls)
 
     def _setattr_hook(self, attr, value):
@@ -232,9 +232,8 @@ class AlchemicalDOF(_HOOMDBaseObject):
         return self._cpp_obj.net_force
 
 
-# hiding this class from the sphinx docs until we figure out how the
-# normalization scheme works
-class AlchemicalNormalizedDOF(AlchemicalDOF):
+# The normalized DOF implementation is not complete.
+class _AlchemicalNormalizedDOF(AlchemicalDOF):
     """Alchemical normalized degree of freedom."""
 
     def __init__(self,
@@ -305,24 +304,23 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
 
     .. py:attribute:: epsilon
 
-        Store/mapping of alchemical particles for alchemical degrees of freedom
-        for the potential parameter :math:`\epsilon`.
+        Alchemical degrees of freedom for the potential parameter
+        :math:`\epsilon`.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `AlchemicalDOF`])
 
     .. py:attribute:: sigma
 
-        Store/mapping of alchemical particles for alchemical degrees of freedom
-        for the potential parameter :math:`\sigma`.
+        Alchemical degrees of freedom for the potential parameter
+        :math:`\sigma`.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `AlchemicalDOF`])
 
     .. py:attribute:: r0
 
-        Store/mapping of alchemical particles for alchemical degrees of freedom
-        for the potential parameter :math:`r_0`.
+        Alchemical degrees of freedom for the potential parameter :math:`r_0`.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `AlchemicalDOF`])
@@ -338,8 +336,7 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
-# hiding this class from the sphinx docs until we figure out how the
-# normalization scheme works
+# The normalized DOF implementation is not complete.
 @_modify_pair_cls_to_alchemical
 class _NLJGauss(BaseLJGauss, _AlchemicalPairForce):
     """Alchemical normalized Lennard Jones Gauss pair force.

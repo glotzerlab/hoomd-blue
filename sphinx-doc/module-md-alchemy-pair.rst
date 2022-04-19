@@ -12,7 +12,6 @@ md.alchemy.pair
     :nosignatures:
 
     AlchemicalDOF
-    AlchemicalPairDOFStore
     LJGauss
 
 .. rubric:: Details
@@ -20,7 +19,7 @@ md.alchemy.pair
 .. automodule:: hoomd.md.alchemy.pair
     :synopsis: Pair potentials for MD alchemy.
     :show-inheritance:
-    :members: AlchemicalPairDOFStore, LJGauss,
+    :members: LJGauss,
 
     .. autoclass:: AlchemicalDOF()
-        :members: alchemical_forces, net_alchemical_force
+        :members: alchemical_forces, net_alchemical_force, value
