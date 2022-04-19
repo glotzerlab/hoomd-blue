@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
 
@@ -110,9 +108,6 @@ pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
  */
 void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push("Harmonic Angle");
-
     computeSigma(); // precompute sigmas
 
     assert(m_pdata);
@@ -437,9 +432,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 void HelfrichMeshForceCompute::computeSigma()
