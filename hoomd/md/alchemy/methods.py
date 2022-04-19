@@ -21,30 +21,30 @@ class Alchemostat(Method):
 
     """
 
-    def __init__(self, alchemical_particles):
-        self._alchemical_particles = syncedlist.SyncedList(
+    def __init__(self, alchemical_dof):
+        self._alchemical_dof = syncedlist.SyncedList(
             AlchemicalDOF, syncedlist._PartialGetAttr("_cpp_obj"))
-        if alchemical_particles is not None:
-            self._alchemical_particles.extend(alchemical_particles)
+        if alchemical_dof is not None:
+            self._alchemical_dof.extend(alchemical_dof)
 
     def _attach(self):
         super()._attach()
-        self._alchemical_particles._sync(self._simulation,
-                                         self._cpp_obj.alchemical_dof)
+        self._alchemical_dof._sync(self._simulation,
+                                   self._cpp_obj.alchemical_dof)
 
     def _detach(self):
-        self._alchemical_particles._unsync()
+        self._alchemical_dof._unsync()
 
     @property
-    def alchemical_particles(self):
+    def alchemical_dof(self):
         """`list` [`hoomd.md.alchemy.pair.AlchemicalDOF` ]: List of \
                 alchemical degrees of freedom."""
-        return self._alchemical_particles
+        return self._alchemical_dof
 
-    @alchemical_particles.setter
-    def alchemical_particles(self, new_particles):
-        self._alchemical_particles.clear()
-        self._alchemical_particles.extend(new_particles)
+    @alchemical_dof.setter
+    def alchemical_dof(self, new_dof):
+        self._alchemical_dof.clear()
+        self._alchemical_dof.extend(new_dof)
 
 
 class NVT(Alchemostat):
@@ -58,10 +58,10 @@ class NVT(Alchemostat):
         alchemical_kT (`hoomd.variant.Variant` or `float`): Temperature set
             point for the alchemostat :math:`[\mathrm{energy}]`.
 
-        alchemical_particles (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List
+        alchemical_dof (`list` [`hoomd.md.alchemy.pair.AlchemicalDOF`]): List
             of alchemical degrees of freedom.
 
-        period (int): Timesteps between applications of the alchemostat.
+        period (`int`): Timesteps between applications of the alchemostat.
 
     Attention:
         `hoomd.md.alchemy.methods.NVT` does not support execution on GPUs.
@@ -80,24 +80,24 @@ class NVT(Alchemostat):
         `Zhou et al. 2019 <https://doi.org/10.1080/00268976.2019.1680886>`_.
 
     Attributes:
-        alchemical_kT (hoomd.variant.Variant): Temperature set point
+        alchemical_kT (`hoomd.variant.Variant`): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
 
-        alchemical_particles (list[hoomd.md.alchemy.pair.AlchemicalDOF]): List
-            of alchemical degrees of freedom.
+        alchemical_dof (`list` [`hoomd.md.alchemy.pair.AlchemicalDOF`]): List of
+            alchemical degrees of freedom.
 
-        period (int): Timesteps between applications of the alchemostat.
+        period (`int`): Timesteps between applications of the alchemostat.
 
     """
 
-    def __init__(self, alchemical_kT, alchemical_particles, period=1):
+    def __init__(self, alchemical_kT, alchemical_dof, period=1):
 
         # store metadata
         param_dict = ParameterDict(alchemical_kT=Variant, period=int)
         param_dict.update(dict(alchemical_kT=alchemical_kT, period=period))
         # set defaults
         self._param_dict.update(param_dict)
-        super().__init__(alchemical_particles)
+        super().__init__(alchemical_dof)
 
     def _attach(self):
         cpp_class = hoomd.md._md.TwoStepNVTAlchemy
