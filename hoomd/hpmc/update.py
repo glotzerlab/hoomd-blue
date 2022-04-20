@@ -515,16 +515,18 @@ class MuVT(Updater):
 class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
 
-        See Also:
-            :py:mod:`hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
+    See Also:
+        :py:mod:`hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
+
     Args:
         trigger (Trigger): Call the updater on triggered time steps.
 
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        step_size (float, optional): Default maximum size of shape trial
-            moves (**default**: 0.2).
+        default_step_size (float, optional): Default maximum size of shape trial
+            moves (**default**: None). By default requires setting step size for
+            all types.
 
         pretend (bool, optional): When True the updater will not
             actually update the shape definitions. Instead, moves will be
@@ -557,11 +559,11 @@ class Shape(Updater):
     Attributes:
         trigger (Trigger): Call the updater on triggered time steps.
 
-        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
-            of shape trial moves.
-
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
+
+        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
+            of shape trial moves.
 
         pretend (bool): When True the updater will not actually update the shape
             definitions, instead moves will be proposed and the acceptance
@@ -577,7 +579,7 @@ class Shape(Updater):
     def __init__(self,
                  trigger,
                  shape_move,
-                 step_size=0.2,
+                 default_step_size=None,
                  pretend=False,
                  type_select=1,
                  nsweeps=1):
@@ -588,13 +590,16 @@ class Shape(Updater):
                                    nsweeps=int(nsweeps))
         param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
-
+        if default_step_size is None:
+            step_size = float
+        else:
+            step_size = float(default_step_size)
         typeparam_step_size = TypeParameter('step_size',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                                float(step_size), len_keys=1))
+                                                step_size, len_keys=1))
 
-        self._extend_typeparam([typeparam_step_size])
+        self._add_typeparam(typeparam_step_size)
 
     def _add(self, simulation):
         super()._add(simulation)
@@ -681,8 +686,7 @@ class Shape(Updater):
 
     @log(category='scalar', requires_run=True)
     def total_particle_volume(self):
-        """float: Total volume occupied by particles.
-        """
+        """float: Total volume occupied by particles."""
         return self._cpp_obj.total_particle_volume
 
     @log(category="scalar", requires_run=True)

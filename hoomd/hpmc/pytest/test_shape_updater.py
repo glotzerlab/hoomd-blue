@@ -136,7 +136,7 @@ def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
 
     updater = hpmc.update.Shape(trigger=1,
                                 shape_move=move,
-                                step_size=0.2,
+                                default_step_size=0.2,
                                 nsweeps=2)
     updater.shape_move = move
 
@@ -204,7 +204,7 @@ def test_python_callback_shape_move(simulation_factory,
 
     updater = hpmc.update.Shape(trigger=1,
                                 shape_move=move,
-                                step_size=0.2,
+                                default_step_size=0.2,
                                 nsweeps=2)
     updater.shape_move = move
 
