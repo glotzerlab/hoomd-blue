@@ -40,7 +40,6 @@ inline void export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
         .def("getTypeShapesPy", &AnisoPotentialPair<EvaluatorPairDipole>::getTypeShapesPy);
     }
 
-
 void export_AnisoPotentialPairDipole(pybind11::module& m)
     {
     export_AnisoPotentialPair<EvaluatorPairDipole>(m, "AnisoPotentialPairDipole");
