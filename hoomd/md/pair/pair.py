@@ -791,7 +791,7 @@ class DPDConservative(Pair):
 
         Type: `str`
     """
-    _cpp_class_name = "PotentialPairDPDConservativeDPD"
+    _cpp_class_name = "PotentialPairConservativeDPD"
     _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None):

@@ -8,7 +8,7 @@ namespace hoomd { namespace md { namespace detail {
 
 void export_PotentialPairDPDThermo@_evaluator@(pybind11::module &m)
     {
-    export_PotentialPair<PotentialPair<EvaluatorPairDPDThermo@_evaluator@>>(m, "PotentialPairDPDConservative@_evaluator@");
+    export_PotentialPair<EvaluatorPairDPDThermo@_evaluator@>(m, "PotentialPairConservative@_evaluator@");
     export_PotentialPairDPDThermo<EvaluatorPairDPDThermo@_evaluator@>(m, "PotentialPairDPDThermo@_evaluator@");
     }
 

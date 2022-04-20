@@ -8,6 +8,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
+                   AlchemyData.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
@@ -67,7 +68,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairDipole.h
                 AnisoPotentialPairGB.h
                 AnisoPotentialPairGBGPUKernel.cuh
-                AllPairPotentials.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
@@ -249,29 +249,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
-                      BuckinghamDriverPotentialPairGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
-                      DLVODriverPotentialPairGPU.cu
-                      EwaldDriverPotentialPairGPU.cu
-                      ForceShiftedLJDriverPotentialPairGPU.cu
-                      GaussDriverPotentialPairGPU.cu
-                      LJDriverPotentialPairGPU.cu
-                      LJGaussDriverPotentialPairGPU.cu
-                      MieDriverPotentialPairGPU.cu
-		              ExpandedMieDriverPotentialPairGPU.cu
-                      MoliereDriverPotentialPairGPU.cu
-                      MorseDriverPotentialPairGPU.cu
-                      OPPDriverPotentialPairGPU.cu
-                      TableDriverPotentialPairGPU.cu
-                      TWFDriverPotentialPairGPU.cu
-                      FourierDriverPotentialPairGPU.cu
-                      PairLJ1208DriverPotentialPairGPU.cu
-                      PairLJ0804DriverPotentialPairGPU.cu
-                      ReactionFieldDriverPotentialPairGPU.cu
-                      ExpandedLJDriverPotentialPairGPU.cu
-                      YukawaDriverPotentialPairGPU.cu
-                      ZBLDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
                       FIREEnergyMinimizerGPU.cu
@@ -501,6 +480,63 @@ foreach(_evaluator ${_dpdthermo_evaluators})
             PotentialPairDPDThermo${_evaluator}GPUKernel.cu
             )
     endif()
+endforeach()
+
+set(_pair_evaluators Buckingham
+                     LJ
+                     LJ1208
+                     LJ0804
+                     Gauss
+                     ExpandedLJ
+                     ExpandedMie
+                     Yukawa
+                     Ewald
+                     Morse
+                     ConservativeDPD
+                     Moliere
+                     ZBL
+                     Mie
+                     ReactionField
+                     DLVO
+                     Fourier
+                     OPP
+                     TWF
+                     LJGauss
+                     ForceShiftedLJ
+                     Table)
+
+foreach(_evaluator ${_pair_evaluators})
+    set(_evaluator_cpp ${_evaluator})
+    if (_evaluator STREQUAL "ConservativeDPD")
+        set(_evaluator_cpp "DPDThermoDPD")
+    endif()
+
+    configure_file(export_PotentialPair.cc.inc
+                   export_PotentialPair${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialPairGPU.cc.inc
+                       export_PotentialPair${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialPairGPUKernel.cu.inc
+                       PotentialPair${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialPair${_evaluator}GPU.cc
+            PotentialPair${_evaluator}GPUKernel.cu
+            )
+    endif()
+endforeach()
+
+set(_alchemical_pair_evaluators LJGauss)
+
+foreach(_evaluator ${_alchemical_pair_evaluators})
+    configure_file(export_PotentialPairAlchemical.cc.inc
+                   export_PotentialPairAlchemical${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialPairAlchemical${_evaluator}.cc)
 endforeach()
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)

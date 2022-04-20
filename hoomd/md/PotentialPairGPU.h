@@ -37,17 +37,13 @@ namespace md
     Due to technical limitations, the instantiation of PotentialPairGPU cannot create a CUDA kernel
    automatically with the \a evaluator. Instead, a .cu file must be written that provides a driver
    function to call gpu_compute_pair_forces() instantiated with the same evaluator. (See
-   PotentialPairLJGPU.cu and PotentialPairLJGPU.cuh for an example). That function is then passed
-   into this class as another template parameter \a gpu_cgpf
+   PotentialPairLJGPU.cu and PotentialPairLJGPU.cuh for an example).
 
     \tparam evaluator EvaluatorPair class used to evaluate V(r) and F(r)/r
-    \tparam gpu_cgpf Driver function that calls gpu_compute_pair_forces<evaluator>()
 
     \sa export_PotentialPairGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
+template<class evaluator>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
@@ -86,10 +82,8 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+template<class evaluator>
+PotentialPairGPU<evaluator>::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                         std::shared_ptr<NeighborList> nlist)
     : PotentialPair<evaluator>(sysdef, nlist), m_param(0)
     {
@@ -123,10 +117,8 @@ PotentialPairGPU<evaluator, gpu_cgpf>::PotentialPairGPU(std::shared_ptr<SystemDe
 #endif
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
+template<class evaluator>
+void PotentialPairGPU<evaluator>::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 
@@ -180,7 +172,7 @@ void PotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_cgpf(kernel::pair_args_t(d_force.data,
+    kernel::gpu_compute_pair_forces<evaluator>(kernel::pair_args_t(d_force.data,
                                  d_virial.data,
                                  this->m_virial.getPitch(),
                                  this->m_pdata->getN(),
@@ -219,16 +211,14 @@ namespace detail
     {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
-    \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as
-   used in \a T.
+    \tparam T Evaluator type to export.
 */
-template<class T, class Base>
+template<class T>
 void export_PotentialPairGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialPairGPU<T>, PotentialPair<T>, std::shared_ptr<PotentialPairGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setTuningParam", &T::setTuningParam);
+        .def("setTuningParam", &PotentialPairGPU<T>::setTuningParam);
     }
 
     } // end namespace detail

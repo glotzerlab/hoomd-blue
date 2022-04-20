@@ -17,16 +17,19 @@
 
 #include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/filter/ParticleFilterTags.h"
-#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/md/TwoStepNVE.h"
+#include "hoomd/md/PotentialPair.h"
+#include "hoomd/md/EvaluatorPairLJ.h"
 
 #include <math.h>
 
 using namespace std;
 using namespace hoomd;
 using namespace hoomd::md;
+
+typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
