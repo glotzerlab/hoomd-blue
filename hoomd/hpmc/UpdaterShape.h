@@ -55,11 +55,11 @@ template<typename Shape> class UpdaterShape : public Updater
                                   access_mode::readwrite);
         for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
             {
-            energy += m_move_function->computeEnergy(timestep,
-                                                     h_ntypes.data[ndx],
-                                                     ndx,
-                                                     m_mc->getParams()[ndx],
-                                                     h_det.data[ndx]);
+            energy += h_ntypes.data[ndx]
+                      * m_move_function->computeEnergy(timestep,
+                                                       ndx,
+                                                       m_mc->getParams()[ndx],
+                                                       h_det.data[ndx]);
             }
         return energy;
         }
