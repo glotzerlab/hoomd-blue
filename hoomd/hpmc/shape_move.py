@@ -17,9 +17,9 @@ class ShapeMove(_HOOMDBaseObject):
 
     Args:
         move_probability (`float`): Probability of performing a shape move.
-        
-    
-    Note:    
+
+
+    Note:
         The document for each subclass details how `move_probability`
         applies to the move.
 
@@ -75,7 +75,7 @@ class Elastic(ShapeMove):
     .. rubric:: Shape support.
 
     The following shapes are supported:
-    
+
     * `hoomd.hpmc.integrate.ConvexPolyhedron`
     * `hoomd.hpmc.integrate.Ellipsoid`
 
@@ -157,7 +157,7 @@ class ShapeSpace(ShapeMove):
     .. rubric:: Shape support.
 
     The following shapes are supported:
-    
+
     * `hoomd.hpmc.integrate.ConvexPolyhedron`
     * `hoomd.hpmc.integrate.ConvexSpheropolyhedron`
     * `hoomd.hpmc.integrate.Ellipsoid`
@@ -236,7 +236,7 @@ class Vertex(ShapeMove):
     .. rubric:: Shape support.
 
     The following shapes are supported:
-    
+
     * `hoomd.hpmc.integrate.ConvexPolyhedron`
 
     Note:

@@ -514,7 +514,7 @@ class MuVT(Updater):
 
 class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
-        
+
         See Also:
             :py:mod:`hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
     Args:
