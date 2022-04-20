@@ -1698,9 +1698,6 @@ template<> inline std::string EvaluatorPairALJ<3>::getShapeSpec() const
 
 #endif
 
-extern template class EvaluatorPairALJ<2>;
-extern template class EvaluatorPairALJ<3>;
-
     } // end namespace md
     } // end namespace hoomd
 

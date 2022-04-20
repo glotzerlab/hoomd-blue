@@ -60,14 +60,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
                 AlchemyData.h
-                AnisoPotentialPairALJ2GPUKernel.cuh
-                AnisoPotentialPairALJ3GPUKernel.cuh
-                AnisoPotentialPairDipoleGPUKernel.cuh
-                AnisoPotentialPairALJ2.h
-                AnisoPotentialPairALJ3.h
-                AnisoPotentialPairDipole.h
-                AnisoPotentialPairGB.h
-                AnisoPotentialPairGBGPUKernel.cuh
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
