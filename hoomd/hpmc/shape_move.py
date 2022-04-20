@@ -18,6 +18,8 @@ class ShapeMove(_HOOMDBaseObject):
     Args:
         move_probability (`float`): Probability of performing a shape move.
 
+    Attributes:
+        move_probability (`float`): Probability of performing a shape move.
 
     Note:
         The document for each subclass details how `move_probability`
@@ -130,8 +132,9 @@ class Elastic(ShapeMove):
         integrator = self._simulation.operations.integrator
         if isinstance(integrator, integrate.Ellipsoid):
             for shape in integrator.shape.values():
-                if not numpy.allclose(
-                    (shape["a"], shape["b"], shape["c"]), shape["a"]):
+                is_sphere = numpy.allclose((shape["a"], shape["b"], shape["c"]),
+                                           shape["a"])
+                if not is_sphere:
                     raise ValueError("This updater only works when a=b=c.")
         super()._attach()
 
