@@ -193,7 +193,6 @@ template<typename Shape> class UpdaterShape : public Updater
     unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
     bool m_pretend;             // whether or not to pretend or actually perform shape move
     bool m_multi_phase;         // whether or not the simulation is multi-phase
-    int m_global_partition;     // number of MPI partitions
     GPUArray<Scalar>
         m_determinant_inertia_tensor; // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes;  // number of particle types in the simulation
@@ -227,13 +226,12 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     initializeDeterminatsInertiaTensor();
     countParticlesPerType();
 
+#ifdef ENABLE_MPI
     if (m_multi_phase)
         {
-#ifdef ENABLE_MPI
-        MPI_Comm_rank(MPI_COMM_WORLD, &m_global_partition);
-        assert(m_global_partition < 2);
-#endif
+        assert(m_exec_conf->getNRanks() < 2);
         }
+#endif
     }
 
 template<class Shape> UpdaterShape<Shape>::~UpdaterShape()
@@ -356,7 +354,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 if (m_multi_phase)
                     {
                     std::vector<Scalar> Zs;
-                    all_gather_v(Z, Zs, MPI_COMM_WORLD);
+                    all_gather_v(Z, Zs, m_exec_conf->getMPICommunicator());
                     Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
                     }
 #endif
@@ -371,7 +369,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                         m_box_accepted[typ_i]++;
                         }
                     std::vector<int> all_a;
-                    all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
+                    all_gather_v((int)accept, all_a, m_exec_conf->getMPICommunicator());
                     accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
 #endif
 
