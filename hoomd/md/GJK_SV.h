@@ -5,7 +5,11 @@
 #define __GJK_SV_H__
 
 #include "hoomd/ManagedArray.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 #include "hoomd/VectorMath.h"
+#pragma GCC diagnostic pop
 
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__

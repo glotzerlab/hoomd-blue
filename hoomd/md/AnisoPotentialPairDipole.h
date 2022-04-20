@@ -28,9 +28,8 @@ namespace detail
 // when the default behavior exposes setting and getting the shape through
 // 'shape'.
 template<>
-inline void
-hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
-                                                                  const std::string& name)
+inline void export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
+                                                           const std::string& name)
     {
     pybind11::class_<AnisoPotentialPair<EvaluatorPairDipole>,
                      ForceCompute,
@@ -53,9 +52,8 @@ hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::modu
         .def("getTypeShapesPy", &AnisoPotentialPair<EvaluatorPairDipole>::getTypeShapesPy);
     }
 
-extern template void
-hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
-                                                                  const std::string& name);
+extern template void export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
+                                                                    const std::string& name);
 
 #ifdef ENABLE_HIP
 extern template void export_AnisoPotentialPairGPU<EvaluatorPairDipole>(pybind11::module& m,
