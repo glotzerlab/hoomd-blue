@@ -45,10 +45,6 @@ void export_sphere(pybind11::module& m)
     export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");
     export_UpdaterClusters<ShapeSphere>(m, "UpdaterClustersSphere");
 
-    export_UpdaterShape<ShapeSphere>(m, "UpdaterShapeSphere");
-    export_ShapeMoveBase<ShapeSphere>(m, "ShapeMoveBaseSphere");
-    export_PythonShapeMove<ShapeSphere>(m, "ShapeSpaceSphere");
-
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");

@@ -43,10 +43,6 @@ void export_simple_polygon(pybind11::module& m)
     export_UpdaterMuVT<ShapeSimplePolygon>(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterClusters<ShapeSimplePolygon>(m, "UpdaterClustersSimplePolygon");
 
-    export_UpdaterShape<ShapeSimplePolygon>(m, "UpdaterShapeSimplePolygon");
-    export_ShapeMoveBase<ShapeSimplePolygon>(m, "ShapeMoveBaseSimplePolygon");
-    export_PythonShapeMove<ShapeSimplePolygon>(m, "ShapeSpaceSimplePolygon");
-
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_HarmonicField<ShapeSimplePolygon>(m, "ExternalFieldHarmonicSimplePolygon");
     export_ExternalFieldComposite<ShapeSimplePolygon>(m, "ExternalFieldCompositeSimplePolygon");
