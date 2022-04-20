@@ -302,6 +302,10 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(twf_invalid_dicts, hoomd.md.pair.TWF, {}))
 
+    ljgauss_valid_dict = {'r0': 1.8, 'epsilon': 2.0, 'sigma': 0.02}
+    ljgauss_invalid_dicts = _make_invalid_param_dict(ljgauss_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(ljgauss_invalid_dicts, hoomd.md.pair.LJGauss, {}))
     table_valid_dict = {
         'V': np.arange(0, 20, 1) / 10,
         'F': np.asarray(20 * [-1.9 / 2.5]),
@@ -614,6 +618,12 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(hoomd.md.pair.TWF, dict(zip(combos, twf_valid_param_dicts)),
                    {}))
+
+    ljgauss_arg_dict = {'r0': [1.8], 'epsilon': [2.0], 'sigma': [0.02]}
+    ljgauss_valid_param_dicts = _make_valid_param_dicts(ljgauss_arg_dict)
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.LJGauss,
+                   dict(zip(combos, ljgauss_valid_param_dicts)), {}))
 
     rs = [
         np.arange(0, 2.6, 0.1),
@@ -934,7 +944,7 @@ def _forces_and_energies():
         for pot in F_and_E.keys():
             if pot[0].isalpha():
                 kT_dict = {'DPD': {'kT': 2}, 'DPDLJ': {'kT': 1}}.get(pot, {})
-                for i in range(3):
+                for i in range(len(F_and_E[pot]["params"])):
                     param_list.append(
                         FEtuple(getattr(md.pair, pot),
                                 F_and_E[pot]["params"][i], kT_dict, [
