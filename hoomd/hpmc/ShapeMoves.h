@@ -261,16 +261,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
         }
 
-    Scalar getVertexMoveProbability()
-        {
-        return this->m_move_probability;
-        }
-
-    void setVertexMoveProbability(Scalar vertex_move_prob)
-        {
-        this->m_move_probability = fmin(vertex_move_prob, 1.0);
-        }
-
     void prepare(uint64_t timestep) { }
 
     void update_shape(uint64_t timestep,
@@ -355,7 +345,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
             generateExtentional(scale, rng, stepsize + 1.0);
             F_curr = rot * scale * rot_inv;
             }
-
         m_F[type_id] = F_curr * m_F[type_id];
         auto transform = F_curr.cast<OverlapReal>();
         Scalar dsq = 0.0;
@@ -376,11 +365,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_mass_props[type_id].updateParam(param);
         // update det(I)
         this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
-#ifdef DEBUG
-        detail::MassProperties<Shape> mp(param);
-        this->m_det_inertia_tensor = mp.getDetInertiaTensor();
-        assert(fabs(this->m_det_inertia_tensor - mp.getDetInertiaTensor()) < 1e-5);
-#endif
         }
 
     Matrix3S getEps(unsigned int type_id)
@@ -398,16 +382,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         {
         // we can swap because m_F_last will be reset on the next prepare
         m_F.swap(m_F_last);
-        }
-
-    Scalar getShearScaleRatio()
-        {
-        return this->m_move_probability;
-        }
-
-    void setShearScaleRatio(Scalar scale_shear_ratio)
-        {
-        this->m_move_probability = fmin(scale_shear_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -569,16 +543,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         {
         m_mass_props.resize(this->m_ntypes);
         m_reference_shapes.resize(this->m_ntypes);
-        }
-
-    Scalar getShearScaleRatio()
-        {
-        return this->m_move_probability;
-        }
-
-    void setShearScaleRatio(Scalar scale_shear_ratio)
-        {
-        this->m_move_probability = fmin(scale_shear_ratio, 1.0);
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
