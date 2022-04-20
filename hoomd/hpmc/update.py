@@ -514,7 +514,9 @@ class MuVT(Updater):
 
 class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
-
+        
+        See Also:
+            :py:mod:`hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
     Args:
         trigger (Trigger): Call the updater on triggered time steps.
 
@@ -662,8 +664,6 @@ class Shape(Updater):
     @log(category='scalar', requires_run=True)
     def total_particle_volume(self):
         """float: Total volume occupied by particles.
-
-        None when not attached
         """
         return self._cpp_obj.total_particle_volume
 
