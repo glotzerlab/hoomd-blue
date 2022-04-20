@@ -557,9 +557,11 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
                                                  access_mode::overwrite);
             ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
                 d_gpu_table(this->m_gpu_table, access_location::device, access_mode::overwrite);
+
             ArrayHandle<unsigned int> d_gpu_pos_table(this->m_gpu_pos_table,
                                                       access_location::device,
                                                       access_mode::overwrite);
+
             ArrayHandle<unsigned int> d_condition(this->m_condition,
                                                   access_location::device,
                                                   access_mode::readwrite);

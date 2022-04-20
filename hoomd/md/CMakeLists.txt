@@ -208,10 +208,10 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
+                TwoStepNVTAlchemy.h
 		VolumeConservationMeshForceCompute.h
 		VolumeConservationMeshForceComputeGPU.h
                 AlchemostatTwoStep.h
-                TwoStepNVTAlchemy.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
