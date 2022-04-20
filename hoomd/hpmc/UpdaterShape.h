@@ -214,7 +214,8 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   std::shared_ptr<Trigger> trigger,
                                   std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                                   std::shared_ptr<ShapeMoveBase<Shape>> move)
-    : Updater(sysdef, trigger), m_mc(mc), m_move_function(move), m_global_partition(0),
+    : Updater(sysdef, trigger), m_mc(mc), m_move_function(move), m_type_select(1), m_nsweeps(1),
+      m_pretend(false), m_multi_phase(false),
       m_determinant_inertia_tensor(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_initialized(false)
     {
