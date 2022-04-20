@@ -20,5 +20,7 @@ v3.x
      - v3.0.0
    * - ``hoomd.md.pair.aniso.ALJ.mode`` parameter
      - ``mode`` has no effect.
+     - v3.1.0
    * - ``hoomd.md.pair.aniso.Dipole.mode`` parameter
      - ``mode`` has no effect.
+     - v3.1.0
