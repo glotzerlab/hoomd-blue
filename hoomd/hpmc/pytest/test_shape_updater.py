@@ -126,8 +126,7 @@ def test_type_parameters(obj, attr, value):
     hoomd.conftest.equality_check(getattr(obj, attr)["A"], value)
 
 
-def test_vertex_shape_move(device, simulation_factory,
-                           two_particle_snapshot_factory):
+def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
 
     verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
                         [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
@@ -180,7 +179,7 @@ def test_vertex_shape_move(device, simulation_factory,
     assert np.isclose(updater.total_particle_volume, 2)
 
 
-def test_python_callback_shape_move(device, simulation_factory,
+def test_python_callback_shape_move(simulation_factory,
                                     two_particle_snapshot_factory):
     """Test ShapeSpace with a toy class that randomly squashes spheres \
            into oblate ellipsoids with constant volume."""
@@ -257,8 +256,7 @@ def test_python_callback_shape_move(device, simulation_factory,
     assert np.allclose(updater.total_particle_volume, 2 * 4 * np.pi / 3)
 
 
-def test_elastic_shape_move(device, simulation_factory,
-                            two_particle_snapshot_factory):
+def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):
     # test pending a solutioon th the typeparam
     # validation for the reference_shape
     pass
