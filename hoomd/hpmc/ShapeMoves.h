@@ -422,12 +422,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     void setReferenceShape(std::string typ, pybind11::dict v)
         {
-        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
-        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
-            {
-            throw std::runtime_error("Invalid particle type.");
-            }
-
+        unsigned int typid = this->getValidateType(typ);
         param_type shape = param_type(v, false);
         auto current_shape = this->m_mc->getParams()[typid];
         if (current_shape.N != shape.N)
@@ -467,8 +462,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     pybind11::dict getReferenceShape(std::string typ)
         {
-        unsigned int id = this->m_sysdef->getParticleData()->getTypeByName(typ);
-        return m_reference_shapes[id].asDict();
+        unsigned int typid = this->getValidateType(typ);
+        return m_reference_shapes[typid].asDict();
         }
 
     Scalar operator()(uint64_t timestep,
@@ -573,6 +568,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         : ShapeMoveBase<ShapeEllipsoid>(sysdef, mc)
         {
         m_mass_props.resize(this->m_ntypes);
+        m_reference_shapes.resize(this->m_ntypes);
         }
 
     Scalar getShearScaleRatio()
@@ -597,15 +593,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
 
     void setReferenceShape(std::string typ, pybind11::dict v)
         {
-        unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
-        if (typid >= this->m_sysdef->getParticleData()->getNTypes())
-            {
-            throw std::runtime_error("Invalid particle type.");
-            }
-
+        unsigned int typid = this->getValidateType(typ);
         m_reference_shapes[typid] = param_type(v, false);
-        ;
-
         // compute and store volume of reference shape
         detail::MassProperties<ShapeEllipsoid> mp(m_reference_shapes[typid]);
         this->m_volume[typid] = mp.getVolume();
@@ -613,8 +602,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
 
     pybind11::dict getReferenceShape(std::string typ)
         {
-        unsigned int id = this->m_sysdef->getParticleData()->getTypeByName(typ);
-        return m_reference_shapes[id].asDict();
+        unsigned int typid = this->getValidateType(typ);
+        return m_reference_shapes[typid].asDict();
         }
 
     void update_shape(uint64_t timestep,
@@ -626,38 +615,40 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         Scalar lnx = log(param.x / param.y);
         Scalar dlnx = hoomd::UniformDistribution<Scalar>(-stepsize, stepsize)(rng);
         Scalar x = fast::exp(lnx + dlnx);
+        param.x = static_cast<OverlapReal>(x) * param.x;
+        param.y = param.y;
+        param.z = param.z;
         detail::MassProperties<ShapeEllipsoid> mp(param);
         Scalar volume = mp.getVolume();
-        Scalar b = fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0);
-        x *= b;
-        param.x = (OverlapReal)x;
-        param.y = (OverlapReal)b;
-        param.z = (OverlapReal)b;
+        OverlapReal scale = static_cast<OverlapReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
+        param.x *= scale;
+        param.y *= scale;
+        param.z *= scale;
         }
 
     void prepare(uint64_t timestep) { }
 
     void retreat(uint64_t timestep) { }
 
-    virtual Scalar operator()(uint64_t timestep,
-                              const unsigned int& N,
-                              const unsigned int type_id,
-                              const param_type& shape_new,
-                              const Scalar& inew,
-                              const param_type& shape_old,
-                              const Scalar& iold)
+    Scalar operator()(uint64_t timestep,
+                      const unsigned int& N,
+                      const unsigned int type_id,
+                      const param_type& shape_new,
+                      const Scalar& inew,
+                      const param_type& shape_old,
+                      const Scalar& iold)
         {
-        Scalar stiff = (*m_k)(timestep);
-        Scalar x_new = shape_new.x / shape_new.y;
-        Scalar x_old = shape_old.x / shape_old.y;
-        return stiff * (log(x_old) * log(x_old) - log(x_new) * log(x_new));
+        Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(inew/iold);
+        Scalar old_energy = computeEnergy(timestep, N, type_id, shape_old, iold);
+        Scalar new_energy = computeEnergy(timestep, N, type_id, shape_new, inew);
+        return old_energy - new_energy + inertia_term;
         }
 
-    virtual Scalar computeEnergy(uint64_t timestep,
-                                 const unsigned int& N,
-                                 const unsigned int type_id,
-                                 const param_type& shape,
-                                 const Scalar& inertia)
+    Scalar computeEnergy(uint64_t timestep,
+                         const unsigned int& N,
+                         const unsigned int type_id,
+                         const param_type& shape,
+                         const Scalar& inertia)
         {
         Scalar stiff = (*m_k)(timestep);
         Scalar logx = log(shape.x / shape.y);
