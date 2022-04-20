@@ -32,7 +32,7 @@ def _modify_pair_cls_to_alchemical(cls):
     return cls
 
 
-class _AlchemicalPairDOFStore(Mapping):
+class AlchemicalDOFStore(Mapping):
     """A read-only mapping of alchemical degrees of freedom accessed by type.
 
     The class acts as a cache so once an alchemical DOF is queried it is
@@ -40,7 +40,7 @@ class _AlchemicalPairDOFStore(Mapping):
     """
 
     def __init__(self, name, pair_instance, dof_cls):
-        """Create an `_AlchemicalPairDOFStore` object.
+        """Create an `AlchemicalDOFStore` object.
 
         Warning:
             Should not be instantiated by users.
@@ -94,8 +94,8 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     """Base class for Alchemical pair potentials.
 
     Expects to use diamond inheritance with a `hoomd.md.pair.Pair` subclass.
-    Automatically creates the `_AlchemicalPairDOFStore` objects in `__init__` and
-    implements a type parameter like interface for accessing them.
+    Automatically creates the `AlchemicalDOFStore` objects in `__init__`
+    and implements a type parameter like interface for accessing them.
 
     Attributes:
         _alchemical_dofs (`list`[ `str`]): A list of all potential degrees of
@@ -112,7 +112,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     def _set_alchemical_parameters(self):
         self._alchemical_params = {}
         for dof in self._alchemical_dofs:
-            self._alchemical_params[dof] = _AlchemicalPairDOFStore(
+            self._alchemical_params[dof] = AlchemicalDOFStore(
                 name=dof, pair_instance=self, dof_cls=self._dof_cls)
 
     def _setattr_hook(self, attr, value):
@@ -307,23 +307,23 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
         Alchemical degrees of freedom for the potential parameter
         :math:`\epsilon`.
 
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `AlchemicalDOF`])
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
 
     .. py:attribute:: sigma
 
         Alchemical degrees of freedom for the potential parameter
         :math:`\sigma`.
 
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `AlchemicalDOF`])
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
 
     .. py:attribute:: r0
 
         Alchemical degrees of freedom for the potential parameter :math:`r_0`.
 
-        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `AlchemicalDOF`])
+        Type: `AlchemicalDOFStore` [`tuple` [``particle_type``,
+        ``particle_type``], `AlchemicalDOF`])
     """
     _alchemical_dofs = ['epsilon', 'sigma', 'r0']
 
