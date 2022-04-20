@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "AlchemostatTwoStep.h"
 #include "AllPairPotentials.h"
 #include "PotentialPair.h"
 #include "PotentialPairAlchemical.h"
@@ -93,6 +92,7 @@ void export_Berendsen(pybind11::module& m);
 void export_TwoStepNVTAlchemy(pybind11::module& m);
 void export_FIREEnergyMinimizer(pybind11::module& m);
 void export_MuellerPlatheFlow(pybind11::module& m);
+void export_AlchemostatTwoStep(pybind11::module& m);
 
 void export_TwoStepRATTLEBDCylinder(pybind11::module &m);
 void export_TwoStepRATTLEBDDiamond(pybind11::module &m);

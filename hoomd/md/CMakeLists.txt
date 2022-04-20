@@ -3,6 +3,7 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
+                   AlchemostatTwoStep.cc
                    AnisoPotentialPairALJ2.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
