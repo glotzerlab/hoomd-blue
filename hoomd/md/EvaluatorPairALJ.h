@@ -9,7 +9,11 @@
 #include <string>
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 #include "GJK_SV.h"
+#pragma GCC diagnostic pop
+
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
 
