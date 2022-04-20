@@ -64,10 +64,6 @@ template<typename Shape> class ShapeMoveBase
         this->m_volume[typid] = volume;
         }
 
-    void scaleParticleVolume(typename Shape::param_type& shape, vec3<Scalar> dr, OverlapReal scale)
-        {
-        }
-
     unsigned int getValidateType(std::string typ)
         {
         unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
