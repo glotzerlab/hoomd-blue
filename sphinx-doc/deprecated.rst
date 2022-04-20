@@ -18,3 +18,7 @@ v3.x
    * - Particle diameters
      - Potentials such as `md.pair.ExpandedLJ`.
      - v3.0.0
+   * - ``hoomd.md.pair.aniso.ALJ.mode`` parameter
+     - ``mode`` has no effect.
+   * - ``hoomd.md.pair.aniso.Dipole.mode`` parameter
+     - ``mode`` has no effect.
