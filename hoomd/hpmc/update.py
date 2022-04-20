@@ -685,9 +685,9 @@ class Shape(Updater):
         return self._cpp_obj.getShapeMovesCount()
 
     @log(category='scalar', requires_run=True)
-    def total_particle_volume(self):
-        """float: Total volume occupied by particles."""
-        return self._cpp_obj.total_particle_volume
+    def particle_volumes(self):
+        """list[float]: Volume of a single particle for each type."""
+        return self._cpp_obj.particle_volumes
 
     @log(category="scalar", requires_run=True)
     def shape_move_energy(self):

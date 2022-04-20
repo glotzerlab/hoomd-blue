@@ -176,7 +176,7 @@ def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
     assert updater.shape_moves[0] != 0
     assert np.sum(updater.shape_moves) == 20
     assert not np.allclose(mc.shape["A"]["vertices"], verts)
-    assert np.isclose(updater.total_particle_volume, 2)
+    assert np.isclose(updater.particle_volumes[0], 1)
 
 
 def test_python_callback_shape_move(simulation_factory,
@@ -253,7 +253,7 @@ def test_python_callback_shape_move(simulation_factory,
     assert not np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
     assert not np.allclose(mc.shape["A"]["c"], ellipsoid["c"])
     assert not np.allclose(move.params["A"], [1])
-    assert np.allclose(updater.total_particle_volume, 2 * 4 * np.pi / 3)
+    assert np.allclose(updater.particle_volumes, 4 * np.pi / 3)
 
 
 def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):

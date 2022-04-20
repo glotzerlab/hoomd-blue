@@ -34,16 +34,15 @@ template<typename Shape> class UpdaterShape : public Updater
 
     void initializeDeterminatsInertiaTensor();
 
-    Scalar getTotalParticleVolume()
+    std::vector<Scalar> getParticleVolumes()
         {
-        Scalar volume = 0.0;
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::read);
-        for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
+        std::vector<Scalar> volumes;
+        for (unsigned int type = 0; type < m_ntypes.getNumElements(); type++)
             {
-            detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
-            volume += mp.getVolume() * Scalar(h_ntypes.data[ndx]);
+            detail::MassProperties<Shape> mp(m_mc->getParams()[type]);
+            volumes.emplace_back(mp.getVolume());
             }
-        return volume;
+        return volumes;
         }
 
     Scalar getShapeMoveEnergy(uint64_t timestep)
@@ -464,8 +463,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             std::shared_ptr<ShapeMoveBase<Shape>>>())
         .def("getShapeMovesCount", &UpdaterShape<Shape>::getShapeMovesCount)
-        .def_property_readonly("total_particle_volume",
-                               &UpdaterShape<Shape>::getTotalParticleVolume)
+        .def_property_readonly("particle_volumes", &UpdaterShape<Shape>::getParticleVolumes)
         .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
         .def_property("shape_move",
                       &UpdaterShape<Shape>::getShapeMove,
