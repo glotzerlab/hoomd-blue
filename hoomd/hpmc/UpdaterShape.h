@@ -158,16 +158,6 @@ template<typename Shape> class UpdaterShape : public Updater
         m_multi_phase = multi_phase;
         }
 
-    unsigned int getNumPhase()
-        {
-        return m_num_phase;
-        }
-
-    void setNumPhase(unsigned int num_phase)
-        {
-        m_num_phase = num_phase;
-        }
-
     /// Set the RNG instance
     void setInstance(unsigned int instance)
         {
@@ -203,7 +193,6 @@ template<typename Shape> class UpdaterShape : public Updater
     unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
     bool m_pretend;             // whether or not to pretend or actually perform shape move
     bool m_multi_phase;         // whether or not the simulation is multi-phase
-    unsigned int m_num_phase;   // number of phases in a multi-phase simulation
     int m_global_partition;     // number of MPI partitions
     GPUArray<Scalar>
         m_determinant_inertia_tensor; // determinant of the shape's moment of inertia tensor
@@ -490,9 +479,6 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def_property("multi_phase",
                       &UpdaterShape<Shape>::getMultiPhase,
                       &UpdaterShape<Shape>::setMultiPhase)
-        .def_property("num_phase",
-                      &UpdaterShape<Shape>::getNumPhase,
-                      &UpdaterShape<Shape>::setNumPhase)
         .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
         .def("setStepSize", &UpdaterShape<Shape>::setStepSize);
     }
