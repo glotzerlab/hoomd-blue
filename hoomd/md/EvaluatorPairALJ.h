@@ -474,7 +474,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
         return false;
         }
 
-   /// Whether the potential implements the energy_shift parameter
+    /// Whether the potential implements the energy_shift parameter
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {
         return false;

@@ -116,10 +116,11 @@ namespace detail
 /*! \param name Name of the class in the exported python module
     \tparam T Evaluator type to export.
 */
-template<class T>
-void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
+template<class T> void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialExternalGPU<T>, PotentialExternal<T>, std::shared_ptr<PotentialExternalGPU<T>>>(m, name.c_str())
+    pybind11::class_<PotentialExternalGPU<T>,
+                     PotentialExternal<T>,
+                     std::shared_ptr<PotentialExternalGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

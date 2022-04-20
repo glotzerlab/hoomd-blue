@@ -3,9 +3,14 @@
 
 #include "AnisoPotentialPairALJ3.h"
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
-void export_AnisoPotentialPairALJ3DGPU(pybind11::module &m)
+void export_AnisoPotentialPairALJ3DGPU(pybind11::module& m)
     {
     export_AnisoPotentialPairGPU<EvaluatorPairALJ<3>>(m, "AnisoPotentialPairALJ3DGPU");
     }

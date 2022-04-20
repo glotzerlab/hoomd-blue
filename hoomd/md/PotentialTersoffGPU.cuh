@@ -980,9 +980,9 @@ struct TersoffComputeKernel<evaluator, compute_virial, 0>
     This is just a driver function for gpu_compute_triplet_forces_kernel(), see it for details.
 */
 template<class evaluator>
-__attribute__((visibility("default")))
-hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
-                                      const typename evaluator::param_type* d_params)
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
+                           const typename evaluator::param_type* d_params)
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);
@@ -1001,9 +1001,9 @@ hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     }
 #else
 template<class evaluator>
-__attribute__((visibility("default")))
-hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
-                                      const typename evaluator::param_type* d_params);
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
+                           const typename evaluator::param_type* d_params);
 #endif
 
     } // end namespace kernel

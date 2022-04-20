@@ -8,8 +8,8 @@
 #include <memory>
 #include <numeric>
 
-#include "PotentialPair.h"
 #include "AlchemyData.h"
+#include "PotentialPair.h"
 
 /*! \file PotentialPairAlchemical.h
     \brief Defines the template class for alchemical pair potentials

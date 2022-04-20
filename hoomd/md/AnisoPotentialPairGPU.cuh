@@ -561,11 +561,13 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 }
             case 1:
                 {
-                AnisoPairForceComputeKernel<evaluator, 1 && evaluator::implementsEnergyShift(), 1, gpu_aniso_pair_force_max_tpp>::launch(
-                    pair_args,
-                    range,
-                    d_params,
-                    d_shape_params);
+                AnisoPairForceComputeKernel<evaluator,
+                                            1 && evaluator::implementsEnergyShift(),
+                                            1,
+                                            gpu_aniso_pair_force_max_tpp>::launch(pair_args,
+                                                                                  range,
+                                                                                  d_params,
+                                                                                  d_shape_params);
                 break;
                 }
             default:
@@ -587,11 +589,13 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 }
             case 1:
                 {
-                AnisoPairForceComputeKernel<evaluator, 1 && evaluator::implementsEnergyShift(), 0, gpu_aniso_pair_force_max_tpp>::launch(
-                    pair_args,
-                    range,
-                    d_params,
-                    d_shape_params);
+                AnisoPairForceComputeKernel<evaluator,
+                                            1 && evaluator::implementsEnergyShift(),
+                                            0,
+                                            gpu_aniso_pair_force_max_tpp>::launch(pair_args,
+                                                                                  range,
+                                                                                  d_params,
+                                                                                  d_shape_params);
                 break;
                 }
             default:

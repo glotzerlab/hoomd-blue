@@ -18,10 +18,10 @@
 #include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/filter/ParticleFilterTags.h"
 #include "hoomd/md/ComputeThermo.h"
-#include "hoomd/md/NeighborListTree.h"
-#include "hoomd/md/TwoStepNVE.h"
-#include "hoomd/md/PotentialPair.h"
 #include "hoomd/md/EvaluatorPairLJ.h"
+#include "hoomd/md/NeighborListTree.h"
+#include "hoomd/md/PotentialPair.h"
+#include "hoomd/md/TwoStepNVE.h"
 
 #include <math.h>
 

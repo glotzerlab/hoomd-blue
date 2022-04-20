@@ -982,7 +982,9 @@ namespace detail
 */
 template<class T> void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialTersoff<T>, ForceCompute, std::shared_ptr<PotentialTersoff<T>>>(m, name.c_str())
+    pybind11::class_<PotentialTersoff<T>, ForceCompute, std::shared_ptr<PotentialTersoff<T>>>(
+        m,
+        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &PotentialTersoff<T>::setParamsPython)
         .def("getParams", &PotentialTersoff<T>::getParams)

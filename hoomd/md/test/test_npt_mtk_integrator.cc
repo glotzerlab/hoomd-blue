@@ -17,9 +17,9 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/AnisoPotentialPair.h"
 #include "hoomd/md/EvaluatorPairGB.h"
-#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
 

@@ -723,7 +723,8 @@ namespace detail
 */
 template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<AnisoPotentialPair<T>, ForceCompute, std::shared_ptr<AnisoPotentialPair<T>>> anisopotentialpair(m, name.c_str());
+    pybind11::class_<AnisoPotentialPair<T>, ForceCompute, std::shared_ptr<AnisoPotentialPair<T>>>
+        anisopotentialpair(m, name.c_str());
     anisopotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &AnisoPotentialPair<T>::setParamsPython)
@@ -732,7 +733,9 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def("getShape", &AnisoPotentialPair<T>::getShapePython)
         .def("setRCut", &AnisoPotentialPair<T>::setRCutPython)
         .def("getRCut", &AnisoPotentialPair<T>::getRCut)
-        .def_property("mode", &AnisoPotentialPair<T>::getShiftMode, &AnisoPotentialPair<T>::setShiftModePython)
+        .def_property("mode",
+                      &AnisoPotentialPair<T>::getShiftMode,
+                      &AnisoPotentialPair<T>::setShiftModePython)
         .def("slotWriteGSDShapeSpec", &AnisoPotentialPair<T>::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &AnisoPotentialPair<T>::connectGSDShapeSpec)
         .def("getTypeShapesPy", &AnisoPotentialPair<T>::getTypeShapesPy);

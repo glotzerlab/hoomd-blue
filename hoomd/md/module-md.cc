@@ -3,7 +3,12 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
 void export_ActiveForceCompute(pybind11::module& m);
 void export_ActiveForceConstraintComputeCylinder(pybind11::module& m);
@@ -250,7 +255,9 @@ void export_TwoStepRATTLENVEGPUPlane(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUPrimitive(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUSphere(pybind11::module& m);
 #endif
-} } }
+    } // namespace detail
+    } // namespace md
+    } // namespace hoomd
 
 using namespace hoomd;
 using namespace hoomd::md;
@@ -410,12 +417,9 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
-    export_ActiveForceConstraintComputeCylinderGPU(
-        m);
-    export_ActiveForceConstraintComputeDiamondGPU(
-        m);
-    export_ActiveForceConstraintComputeEllipsoidGPU(
-        m);
+    export_ActiveForceConstraintComputeCylinderGPU(m);
+    export_ActiveForceConstraintComputeDiamondGPU(m);
+    export_ActiveForceConstraintComputeEllipsoidGPU(m);
     export_ActiveForceConstraintComputeGyroidGPU(m);
     export_ActiveForceConstraintComputePlaneGPU(m);
     export_ActiveForceConstraintComputePrimitiveGPU(m);

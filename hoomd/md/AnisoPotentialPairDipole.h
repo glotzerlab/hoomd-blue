@@ -10,7 +10,10 @@
 #include "AnisoPotentialPairGPU.h"
 #endif
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 extern template class AnisoPotentialPair<EvaluatorPairDipole>;
 
@@ -18,19 +21,21 @@ extern template class AnisoPotentialPair<EvaluatorPairDipole>;
 extern template class AnisoPotentialPairGPU<EvaluatorPairDipole>;
 #endif
 
-namespace detail {
+namespace detail
+    {
 // Template specification for Dipole anisotropic pair potential. A specific
 // template instance is needed since we expose the shape as just mu in Python
 // when the default behavior exposes setting and getting the shape through
 // 'shape'.
 template<>
-inline
-void hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
-                                                                            const std::string& name)
+inline void
+hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
+                                                                  const std::string& name)
     {
-    pybind11::
-        class_<AnisoPotentialPair<EvaluatorPairDipole>, ForceCompute, std::shared_ptr<AnisoPotentialPair<EvaluatorPairDipole>>>
-            anisopotentialpair(m, name.c_str());
+    pybind11::class_<AnisoPotentialPair<EvaluatorPairDipole>,
+                     ForceCompute,
+                     std::shared_ptr<AnisoPotentialPair<EvaluatorPairDipole>>>
+        anisopotentialpair(m, name.c_str());
     anisopotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &AnisoPotentialPair<EvaluatorPairDipole>::setParamsPython)
@@ -42,20 +47,21 @@ void hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11:
         .def_property("mode",
                       &AnisoPotentialPair<EvaluatorPairDipole>::getShiftMode,
                       &AnisoPotentialPair<EvaluatorPairDipole>::setShiftModePython)
-        .def("slotWriteGSDShapeSpec", &AnisoPotentialPair<EvaluatorPairDipole>::slotWriteGSDShapeSpec)
+        .def("slotWriteGSDShapeSpec",
+             &AnisoPotentialPair<EvaluatorPairDipole>::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &AnisoPotentialPair<EvaluatorPairDipole>::connectGSDShapeSpec)
         .def("getTypeShapesPy", &AnisoPotentialPair<EvaluatorPairDipole>::getTypeShapesPy);
     }
 
-extern template
-void hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
-                                                                            const std::string& name);
-
+extern template void
+hoomd::md::detail::export_AnisoPotentialPair<EvaluatorPairDipole>(pybind11::module& m,
+                                                                  const std::string& name);
 
 #ifdef ENABLE_HIP
-extern template void export_AnisoPotentialPairGPU<EvaluatorPairDipole>(pybind11::module& m, const std::string& name);
+extern template void export_AnisoPotentialPairGPU<EvaluatorPairDipole>(pybind11::module& m,
+                                                                       const std::string& name);
 #endif
-    }
+    } // namespace detail
 
     } // end namespace md
     } // end namespace hoomd

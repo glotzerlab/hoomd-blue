@@ -377,7 +377,9 @@ namespace detail
 */
 template<class T> void export_PotentialSpecialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialSpecialPair<T>, ForceCompute, std::shared_ptr<PotentialSpecialPair<T>>>(m, name.c_str())
+    pybind11::class_<PotentialSpecialPair<T>,
+                     ForceCompute,
+                     std::shared_ptr<PotentialSpecialPair<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PotentialSpecialPair<T>::setParamsPython)
         .def("getParams", &PotentialSpecialPair<T>::getParams)

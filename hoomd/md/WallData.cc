@@ -10,7 +10,12 @@
 
 #include "WallData.h"
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 // Export all wall data types into Python. This is needed to allow for syncing Python and C++
 // list/array data structures containing walls for WallPotential objects.
 void export_wall_data(pybind11::module& m)
@@ -19,13 +24,12 @@ void export_wall_data(pybind11::module& m)
         .def(pybind11::init(
                  [](hoomd::Scalar radius, pybind11::tuple origin, bool inside, bool open)
                  {
-                     return SphereWall(
-                         radius,
-                         hoomd::make_scalar3(origin[0].cast<hoomd::Scalar>(),
-                                             origin[1].cast<hoomd::Scalar>(),
-                                             origin[2].cast<hoomd::Scalar>()),
-                         inside,
-                         open);
+                     return SphereWall(radius,
+                                       hoomd::make_scalar3(origin[0].cast<hoomd::Scalar>(),
+                                                           origin[1].cast<hoomd::Scalar>(),
+                                                           origin[2].cast<hoomd::Scalar>()),
+                                       inside,
+                                       open);
                  }),
              pybind11::arg("radius"),
              pybind11::arg("origin"),
@@ -36,8 +40,7 @@ void export_wall_data(pybind11::module& m)
             "origin",
             [](const SphereWall& wall)
             { return pybind11::make_tuple(wall.origin.x, wall.origin.y, wall.origin.z); })
-        .def_property_readonly("inside",
-                               [](const SphereWall& wall) { return wall.inside; })
+        .def_property_readonly("inside", [](const SphereWall& wall) { return wall.inside; })
         .def_property_readonly("open", [](const SphereWall& wall) { return wall.open; });
 
     pybind11::class_<CylinderWall>(m, "CylinderWall")
@@ -73,23 +76,20 @@ void export_wall_data(pybind11::module& m)
             "axis",
             [](const CylinderWall& wall)
             { return pybind11::make_tuple(wall.axis.x, wall.axis.y, wall.axis.z); })
-        .def_property_readonly("inside",
-                               [](const CylinderWall& wall) { return wall.inside; })
-        .def_property_readonly("open",
-                               [](const CylinderWall& wall) { return wall.open; });
+        .def_property_readonly("inside", [](const CylinderWall& wall) { return wall.inside; })
+        .def_property_readonly("open", [](const CylinderWall& wall) { return wall.open; });
 
     pybind11::class_<PlaneWall>(m, "PlaneWall")
         .def(pybind11::init(
                  [](pybind11::tuple origin, pybind11::tuple normal, bool open)
                  {
-                     return PlaneWall(
-                         hoomd::make_scalar3(origin[0].cast<hoomd::Scalar>(),
-                                             origin[1].cast<hoomd::Scalar>(),
-                                             origin[2].cast<hoomd::Scalar>()),
-                         hoomd::make_scalar3(normal[0].cast<hoomd::Scalar>(),
-                                             normal[1].cast<hoomd::Scalar>(),
-                                             normal[2].cast<hoomd::Scalar>()),
-                         open);
+                     return PlaneWall(hoomd::make_scalar3(origin[0].cast<hoomd::Scalar>(),
+                                                          origin[1].cast<hoomd::Scalar>(),
+                                                          origin[2].cast<hoomd::Scalar>()),
+                                      hoomd::make_scalar3(normal[0].cast<hoomd::Scalar>(),
+                                                          normal[1].cast<hoomd::Scalar>(),
+                                                          normal[2].cast<hoomd::Scalar>()),
+                                      open);
                  }),
              pybind11::arg("origin"),
              pybind11::arg("normal"),
@@ -105,6 +105,6 @@ void export_wall_data(pybind11::module& m)
         .def_property_readonly("open", [](const PlaneWall& wall) { return wall.open; });
     }
 
-}
-}
-}
+    } // namespace detail
+    } // namespace md
+    } // namespace hoomd

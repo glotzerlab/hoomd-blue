@@ -17,9 +17,9 @@
 
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/AnisoPotentialPair.h"
 #include "hoomd/md/EvaluatorPairGB.h"
-#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/NeighborListTree.h"
 
@@ -422,7 +422,8 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     nlist_1->setStorageMode(NeighborList::full);
     std::shared_ptr<AnisoPotentialPair<EvaluatorPairGB>> fc_1
-        = std::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPair<EvaluatorPairGB>(sysdef_1, nlist_1));
+        = std::shared_ptr<AnisoPotentialPairGB>(
+            new AnisoPotentialPair<EvaluatorPairGB>(sysdef_1, nlist_1));
 
     fc_1->setRcut(0, 0, r_cut);
 

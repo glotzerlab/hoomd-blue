@@ -5,7 +5,12 @@
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::AlchemicalMDParticle>>);
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
 void export_AlchemicalMDParticles(pybind11::module& m)
     {

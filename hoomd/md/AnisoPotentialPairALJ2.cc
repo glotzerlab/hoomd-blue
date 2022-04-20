@@ -3,14 +3,19 @@
 
 #include "AnisoPotentialPairALJ2.h"
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 template class EvaluatorPairALJ<2>;
 template class AnisoPotentialPair<EvaluatorPairALJ<2>>;
 
-namespace detail {
+namespace detail
+    {
 
-template void export_AnisoPotentialPair<EvaluatorPairALJ<2>>(pybind11::module& m, const std::string& name);
+template void export_AnisoPotentialPair<EvaluatorPairALJ<2>>(pybind11::module& m,
+                                                             const std::string& name);
 
 void export_AnisoPotentialPairALJ2D(pybind11::module& m)
     {

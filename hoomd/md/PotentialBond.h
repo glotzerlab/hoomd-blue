@@ -339,7 +339,9 @@ namespace detail
 */
 template<class T> void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialBond<T>, ForceCompute, std::shared_ptr<PotentialBond<T>>>(m, name.c_str())
+    pybind11::class_<PotentialBond<T>, ForceCompute, std::shared_ptr<PotentialBond<T>>>(
+        m,
+        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PotentialBond<T>::setParamsPython)
         .def("getParams", &PotentialBond<T>::getParams);

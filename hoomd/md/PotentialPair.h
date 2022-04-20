@@ -1040,7 +1040,8 @@ namespace detail
 */
 template<class T> void export_PotentialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialPair<T>, ForceCompute, std::shared_ptr<PotentialPair<T>>> potentialpair(m, name.c_str());
+    pybind11::class_<PotentialPair<T>, ForceCompute, std::shared_ptr<PotentialPair<T>>>
+        potentialpair(m, name.c_str());
     potentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &PotentialPair<T>::setParamsPython)
@@ -1049,8 +1050,12 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def("getRCut", &PotentialPair<T>::getRCut)
         .def("setROn", &PotentialPair<T>::setROnPython)
         .def("getROn", &PotentialPair<T>::getROn)
-        .def_property("mode", &PotentialPair<T>::getShiftMode, &PotentialPair<T>::setShiftModePython)
-        .def_property("tail_correction", &PotentialPair<T>::getTailCorrectionEnabled, &PotentialPair<T>::setTailCorrectionEnabled)
+        .def_property("mode",
+                      &PotentialPair<T>::getShiftMode,
+                      &PotentialPair<T>::setShiftModePython)
+        .def_property("tail_correction",
+                      &PotentialPair<T>::getTailCorrectionEnabled,
+                      &PotentialPair<T>::setTailCorrectionEnabled)
         .def("computeEnergyBetweenSets", &PotentialPair<T>::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &PotentialPair<T>::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &PotentialPair<T>::connectGSDShapeSpec);

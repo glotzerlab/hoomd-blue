@@ -29,8 +29,7 @@ namespace md
 
     \sa export_PotentialBondGPU()
 */
-template<class evaluator>
-class PotentialBondGPU : public PotentialBond<evaluator>
+template<class evaluator> class PotentialBondGPU : public PotentialBond<evaluator>
     {
     public:
     //! Construct the bond potential
@@ -88,8 +87,7 @@ PotentialBondGPU<evaluator>::PotentialBondGPU(std::shared_ptr<SystemDefinition> 
         new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
-template<class evaluator>
-void PotentialBondGPU<evaluator>::computeForces(uint64_t timestep)
+template<class evaluator> void PotentialBondGPU<evaluator>::computeForces(uint64_t timestep)
     {
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -132,22 +130,23 @@ void PotentialBondGPU<evaluator>::computeForces(uint64_t timestep)
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
-        kernel::gpu_compute_bond_forces<evaluator>(kernel::bond_args_t(d_force.data,
-                                     d_virial.data,
-                                     this->m_virial.getPitch(),
-                                     this->m_pdata->getN(),
-                                     this->m_pdata->getMaxN(),
-                                     d_pos.data,
-                                     d_charge.data,
-                                     d_diameter.data,
-                                     box,
-                                     d_gpu_bondlist.data,
-                                     gpu_table_indexer,
-                                     d_gpu_n_bonds.data,
-                                     this->m_bond_data->getNTypes(),
-                                     this->m_tuner->getParam()),
-                 d_params.data,
-                 d_flags.data);
+        kernel::gpu_compute_bond_forces<evaluator>(
+            kernel::bond_args_t(d_force.data,
+                                d_virial.data,
+                                this->m_virial.getPitch(),
+                                this->m_pdata->getN(),
+                                this->m_pdata->getMaxN(),
+                                d_pos.data,
+                                d_charge.data,
+                                d_diameter.data,
+                                box,
+                                d_gpu_bondlist.data,
+                                gpu_table_indexer,
+                                d_gpu_n_bonds.data,
+                                this->m_bond_data->getNTypes(),
+                                this->m_tuner->getParam()),
+            d_params.data,
+            d_flags.data);
         }
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -175,10 +174,11 @@ namespace detail
 /*! \param name Name of the class in the exported python module
     \tparam T Evaluator type to export.
 */
-template<class T>
-void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
+template<class T> void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialBondGPU<T>, PotentialBond<T>, std::shared_ptr<PotentialBondGPU<T>>>(m, name.c_str())
+    pybind11::class_<PotentialBondGPU<T>, PotentialBond<T>, std::shared_ptr<PotentialBondGPU<T>>>(
+        m,
+        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 

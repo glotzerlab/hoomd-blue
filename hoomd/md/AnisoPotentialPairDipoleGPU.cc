@@ -3,13 +3,18 @@
 
 #include "AnisoPotentialPairDipole.h"
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 template class AnisoPotentialPairGPU<EvaluatorPairDipole>;
 
-namespace detail {
-template void export_AnisoPotentialPairGPU<EvaluatorPairDipole>(pybind11::module& m, const std::string& name);
+namespace detail
+    {
+template void export_AnisoPotentialPairGPU<EvaluatorPairDipole>(pybind11::module& m,
+                                                                const std::string& name);
 
-void export_AnisoPotentialPairDipoleGPU(pybind11::module &m)
+void export_AnisoPotentialPairDipoleGPU(pybind11::module& m)
     {
     export_AnisoPotentialPairGPU<EvaluatorPairDipole>(m, "AnisoPotentialPairDipoleGPU");
     }

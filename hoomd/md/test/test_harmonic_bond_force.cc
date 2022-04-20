@@ -9,8 +9,8 @@
 #include <functional>
 
 #include "hoomd/SnapshotSystemData.h"
-#include "hoomd/md/PotentialBond.h"
 #include "hoomd/md/EvaluatorBondHarmonic.h"
+#include "hoomd/md/PotentialBond.h"
 
 #ifdef ENABLE_HIP
 #include "hoomd/md/PotentialBondGPU.h"

@@ -10,7 +10,10 @@
 #include "AnisoPotentialPairGPU.h"
 #endif
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 extern template class AnisoPotentialPair<EvaluatorPairGB>;
 
@@ -18,13 +21,16 @@ extern template class AnisoPotentialPair<EvaluatorPairGB>;
 extern template class AnisoPotentialPairGPU<EvaluatorPairGB>;
 #endif
 
-namespace detail {
-extern template void export_AnisoPotentialPair<EvaluatorPairGB>(pybind11::module& m, const std::string& name);
+namespace detail
+    {
+extern template void export_AnisoPotentialPair<EvaluatorPairGB>(pybind11::module& m,
+                                                                const std::string& name);
 
 #ifdef ENABLE_HIP
-extern template void export_AnisoPotentialPairGPU<EvaluatorPairGB>(pybind11::module& m, const std::string& name);
+extern template void export_AnisoPotentialPairGPU<EvaluatorPairGB>(pybind11::module& m,
+                                                                   const std::string& name);
 #endif
-    }
+    } // namespace detail
 
     } // end namespace md
     } // end namespace hoomd

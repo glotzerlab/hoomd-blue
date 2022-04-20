@@ -208,7 +208,9 @@ namespace detail
 */
 template<class T> void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    auto cls = pybind11::class_<PotentialExternal<T>, ForceCompute, std::shared_ptr<PotentialExternal<T>>>(m, name.c_str())
+    auto cls = pybind11::class_<PotentialExternal<T>,
+                                ForceCompute,
+                                std::shared_ptr<PotentialExternal<T>>>(m, name.c_str())
                    .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
                    .def("setParams", &PotentialExternal<T>::setParamsPython)
                    .def("getParams", &PotentialExternal<T>::getParams);

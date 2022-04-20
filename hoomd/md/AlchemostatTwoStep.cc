@@ -3,7 +3,12 @@
 
 #include "AlchemostatTwoStep.h"
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
 void export_AlchemostatTwoStep(pybind11::module& m)
     {
@@ -16,6 +21,6 @@ void export_AlchemostatTwoStep(pybind11::module& m)
         .def("setNextAlchemicalTimestep", &AlchemostatTwoStep::setNextAlchemicalTimestep);
     }
 
-}
-}
-}
+    } // namespace detail
+    } // namespace md
+    } // namespace hoomd
