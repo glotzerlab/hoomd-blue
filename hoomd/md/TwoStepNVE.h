@@ -59,10 +59,6 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     bool m_zero_force;  //!< True if the integration step should ignore computed forces
     };
 
-namespace detail
-    {
-//! Exports the TwoStepNVE class to python
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 
