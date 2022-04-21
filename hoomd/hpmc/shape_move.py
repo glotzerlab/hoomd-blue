@@ -17,9 +17,13 @@ class ShapeMove(_HOOMDBaseObject):
 
     Args:
         move_probability (`float`): Probability of performing a shape move.
-        See the  documentation of each derived class for a
-            descrition of how this parameter is interpreted in the context of
-            each shape move subclass.
+
+    Attributes:
+        move_probability (`float`): Probability of performing a shape move.
+
+    Note:
+        The document for each subclass details how `move_probability`
+        applies to the move.
 
     Note:
         See the documentation of each derived class for a list of supported
@@ -73,8 +77,9 @@ class Elastic(ShapeMove):
     .. rubric:: Shape support.
 
     The following shapes are supported:
-        * `hoomd.hpmc.integrate.ConvexPolyhedron`
-        * `hoomd.hpmc.integrate.Ellipsoid`
+
+    * `hoomd.hpmc.integrate.ConvexPolyhedron`
+    * `hoomd.hpmc.integrate.Ellipsoid`
 
     Note:
         An instance is only able to be used with the passed HPMC integrator
@@ -127,8 +132,9 @@ class Elastic(ShapeMove):
         integrator = self._simulation.operations.integrator
         if isinstance(integrator, integrate.Ellipsoid):
             for shape in integrator.shape.values():
-                if not numpy.allclose(
-                    (shape["a"], shape["b"], shape["c"]), shape["a"]):
+                is_sphere = numpy.allclose((shape["a"], shape["b"], shape["c"]),
+                                           shape["a"])
+                if not is_sphere:
                     raise ValueError("This updater only works when a=b=c.")
         super()._attach()
 
@@ -154,9 +160,10 @@ class ShapeSpace(ShapeMove):
     .. rubric:: Shape support.
 
     The following shapes are supported:
-        * `hoomd.hpmc.integrate.ConvexPolyhedron`
-        * `hoomd.hpmc.integrate.ConvexSpheropolyhedron`
-        * `hoomd.hpmc.integrate.Ellipsoid`
+
+    * `hoomd.hpmc.integrate.ConvexPolyhedron`
+    * `hoomd.hpmc.integrate.ConvexSpheropolyhedron`
+    * `hoomd.hpmc.integrate.Ellipsoid`
 
     Attention:
         The acceptance criteria of shape moves requires computing the particle's
@@ -232,7 +239,8 @@ class Vertex(ShapeMove):
     .. rubric:: Shape support.
 
     The following shapes are supported:
-        * `hoomd.hpmc.integrate.ConvexPolyhedron`
+
+    * `hoomd.hpmc.integrate.ConvexPolyhedron`
 
     Note:
         Vertices are rescaled during each shape move to ensure that the shape
@@ -240,8 +248,8 @@ class Vertex(ShapeMove):
         step size is rescaled by volume**(1/3) every time a move is accepted.
 
     Note:
-        The shape definition used corresponds to the convex hull of the
-        vertices.
+        `hoomd.hpmc.integrate.ConvexPolyhedron` models shapes that are the the
+        convex hull of the given vertices.
 
     Example::
 

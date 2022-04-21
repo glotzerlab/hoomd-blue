@@ -34,16 +34,15 @@ template<typename Shape> class UpdaterShape : public Updater
 
     void initializeDeterminatsInertiaTensor();
 
-    Scalar getTotalParticleVolume()
+    std::vector<Scalar> getParticleVolumes()
         {
-        Scalar volume = 0.0;
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::read);
-        for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
+        std::vector<Scalar> volumes;
+        for (unsigned int type = 0; type < m_ntypes.getNumElements(); type++)
             {
-            detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
-            volume += mp.getVolume() * Scalar(h_ntypes.data[ndx]);
+            detail::MassProperties<Shape> mp(m_mc->getParams()[type]);
+            volumes.emplace_back(mp.getVolume());
             }
-        return volume;
+        return volumes;
         }
 
     Scalar getShapeMoveEnergy(uint64_t timestep)
@@ -55,11 +54,11 @@ template<typename Shape> class UpdaterShape : public Updater
                                   access_mode::readwrite);
         for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
             {
-            energy += m_move_function->computeEnergy(timestep,
-                                                     h_ntypes.data[ndx],
-                                                     ndx,
-                                                     m_mc->getParams()[ndx],
-                                                     h_det.data[ndx]);
+            energy += h_ntypes.data[ndx]
+                      * m_move_function->computeEnergy(timestep,
+                                                       ndx,
+                                                       m_mc->getParams()[ndx],
+                                                       h_det.data[ndx]);
             }
         return energy;
         }
@@ -158,16 +157,6 @@ template<typename Shape> class UpdaterShape : public Updater
         m_multi_phase = multi_phase;
         }
 
-    unsigned int getNumPhase()
-        {
-        return m_num_phase;
-        }
-
-    void setNumPhase(unsigned int num_phase)
-        {
-        m_num_phase = num_phase;
-        }
-
     /// Set the RNG instance
     void setInstance(unsigned int instance)
         {
@@ -203,8 +192,6 @@ template<typename Shape> class UpdaterShape : public Updater
     unsigned int m_nsweeps;     // number of sweeps to run the updater each time it is called
     bool m_pretend;             // whether or not to pretend or actually perform shape move
     bool m_multi_phase;         // whether or not the simulation is multi-phase
-    unsigned int m_num_phase;   // number of phases in a multi-phase simulation
-    int m_global_partition;     // number of MPI partitions
     GPUArray<Scalar>
         m_determinant_inertia_tensor; // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes;  // number of particle types in the simulation
@@ -225,7 +212,8 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   std::shared_ptr<Trigger> trigger,
                                   std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                                   std::shared_ptr<ShapeMoveBase<Shape>> move)
-    : Updater(sysdef, trigger), m_mc(mc), m_move_function(move), m_global_partition(0),
+    : Updater(sysdef, trigger), m_mc(mc), m_move_function(move), m_type_select(1), m_nsweeps(1),
+      m_pretend(false), m_multi_phase(false),
       m_determinant_inertia_tensor(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_initialized(false)
     {
@@ -237,13 +225,12 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     initializeDeterminatsInertiaTensor();
     countParticlesPerType();
 
+#ifdef ENABLE_MPI
     if (m_multi_phase)
         {
-#ifdef ENABLE_MPI
-        MPI_Comm_rank(MPI_COMM_WORLD, &m_global_partition);
-        assert(m_global_partition < 2);
-#endif
+        assert(m_exec_conf->getNRanks() < 2);
         }
+#endif
     }
 
 template<class Shape> UpdaterShape<Shape>::~UpdaterShape()
@@ -366,7 +353,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 if (m_multi_phase)
                     {
                     std::vector<Scalar> Zs;
-                    all_gather_v(Z, Zs, MPI_COMM_WORLD);
+                    all_gather_v(Z, Zs, m_exec_conf->getHOOMDWorldMPICommunicator());
                     Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
                     }
 #endif
@@ -381,7 +368,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                         m_box_accepted[typ_i]++;
                         }
                     std::vector<int> all_a;
-                    all_gather_v((int)accept, all_a, MPI_COMM_WORLD);
+                    all_gather_v((int)accept, all_a, m_exec_conf->getHOOMDWorldMPICommunicator());
                     accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
 #endif
 
@@ -476,8 +463,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             std::shared_ptr<ShapeMoveBase<Shape>>>())
         .def("getShapeMovesCount", &UpdaterShape<Shape>::getShapeMovesCount)
-        .def_property_readonly("total_particle_volume",
-                               &UpdaterShape<Shape>::getTotalParticleVolume)
+        .def_property_readonly("particle_volumes", &UpdaterShape<Shape>::getParticleVolumes)
         .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
         .def_property("shape_move",
                       &UpdaterShape<Shape>::getShapeMove,
@@ -490,9 +476,6 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def_property("multi_phase",
                       &UpdaterShape<Shape>::getMultiPhase,
                       &UpdaterShape<Shape>::setMultiPhase)
-        .def_property("num_phase",
-                      &UpdaterShape<Shape>::getNumPhase,
-                      &UpdaterShape<Shape>::setNumPhase)
         .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
         .def("setStepSize", &UpdaterShape<Shape>::setStepSize);
     }

@@ -515,14 +515,18 @@ class MuVT(Updater):
 class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
 
+    See Also:
+        :py:mod:`hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
+
     Args:
         trigger (Trigger): Call the updater on triggered time steps.
 
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        step_size (float, optional): Default maximum size of shape trial
-            moves (**default**: 0.2).
+        default_step_size (float, optional): Default maximum size of shape trial
+            moves (**default**: None). By default requires setting step size for
+            all types.
 
         pretend (bool, optional): When True the updater will not
             actually update the shape definitions. Instead, moves will be
@@ -555,11 +559,11 @@ class Shape(Updater):
     Attributes:
         trigger (Trigger): Call the updater on triggered time steps.
 
-        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
-            of shape trial moves.
-
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
+
+        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
+            of shape trial moves.
 
         pretend (bool): When True the updater will not actually update the shape
             definitions, instead moves will be proposed and the acceptance
@@ -575,7 +579,7 @@ class Shape(Updater):
     def __init__(self,
                  trigger,
                  shape_move,
-                 step_size=0.2,
+                 default_step_size=None,
                  pretend=False,
                  type_select=1,
                  nsweeps=1):
@@ -586,19 +590,46 @@ class Shape(Updater):
                                    nsweeps=int(nsweeps))
         param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
-
+        if default_step_size is None:
+            step_size = float
+        else:
+            step_size = float(default_step_size)
         typeparam_step_size = TypeParameter('step_size',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict(
-                                                float(step_size), len_keys=1))
+                                                step_size, len_keys=1))
 
-        self._extend_typeparam([typeparam_step_size])
+        self._add_typeparam(typeparam_step_size)
 
     def _add(self, simulation):
         super()._add(simulation)
-        self.shape_move._add(simulation)
+        self._add_shape_move(self.shape_move)
+
+    def _add_shape_move(self, shape_move):
+        if not isinstance(self._simulation, hoomd.Simulation):
+            if shape_move._added:
+                raise RuntimeError(
+                    f"Shape move {shape_move} cannot be added to two lists at "
+                    f"once.")
+            return
+        # We need to check if the force is added since if it is not then this is
+        # being called by a SyncedList object and a disagreement between the
+        # simulation and shape_move._simulation is an error. If the updater is
+        # added then the shape_move is compatible. We cannot just check the
+        # shape_move's _added property because _add is also called when the
+        # SyncedList is synced.
+        if shape_move._added and shape_move._simulation != self._simulation:
+            raise RuntimeError(
+                f"Shape move {shape_move} cannot be added to two lists at once."
+            )
+        self.shape_move._add(self._simulation)
 
     def _attach_shape_move(self):
+        # This should never happen, but leaving it in case the logic for adding
+        # missed some edge case.
+        if self._simulation != self.shape_move._simulation:
+            raise RuntimeError(
+                f"{type(self)}.shape_move is used in a different simulation.")
         if not self.shape_move._attached:
             self.shape_move._attach()
 
@@ -610,16 +641,10 @@ class Shape(Updater):
 
     def _set_shape_move(self, new_move):
         """Handles the adding and detaching of shape_move objects."""
-        # this generally only happens when attaching and we can ignore it since
-        # we attach the shape move in _attach.
         if new_move is self.shape_move:
             return
 
         old_move = self.shape_move
-
-        if new_move is not None and new_move._added:
-            raise ValueError(
-                "Cannot add ShapeMove object to multiple integrators.")
 
         if old_move is not None:
             if self._attached:
@@ -632,7 +657,7 @@ class Shape(Updater):
             return
 
         if self._added:
-            new_move._add(self._simulation)
+            self._add_shape_move(new_move)
         if self._attached:
             new_move._attach()
         self._param_dict["shape_move"] = new_move
@@ -660,12 +685,9 @@ class Shape(Updater):
         return self._cpp_obj.getShapeMovesCount()
 
     @log(category='scalar', requires_run=True)
-    def total_particle_volume(self):
-        """float: Total volume occupied by particles.
-
-        None when not attached
-        """
-        return self._cpp_obj.total_particle_volume
+    def particle_volumes(self):
+        """list[float]: Volume of a single particle for each type."""
+        return self._cpp_obj.particle_volumes
 
     @log(category="scalar", requires_run=True)
     def shape_move_energy(self):

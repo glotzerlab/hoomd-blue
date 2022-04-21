@@ -64,10 +64,6 @@ template<typename Shape> class ShapeMoveBase
         this->m_volume[typid] = volume;
         }
 
-    void scaleParticleVolume(typename Shape::param_type& shape, vec3<Scalar> dr, OverlapReal scale)
-        {
-        }
-
     unsigned int getValidateType(std::string typ)
         {
         unsigned int typid = this->m_sysdef->getParticleData()->getTypeByName(typ);
@@ -101,7 +97,6 @@ template<typename Shape> class ShapeMoveBase
         }
 
     virtual Scalar computeEnergy(uint64_t timestep,
-                                 const unsigned int& N,
                                  const unsigned int type_id,
                                  const typename Shape::param_type& shape,
                                  const Scalar& inertia)
@@ -459,7 +454,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     Scalar computeEnergy(uint64_t timestep,
-                         const unsigned int& N,
                          const unsigned int type_id,
                          const param_type& shape,
                          const Scalar& inertia)
@@ -467,7 +461,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Scalar e_ddot_e = (eps * eps.transpose()).trace();
-        return N * stiff * e_ddot_e * this->m_volume[type_id];
+        return stiff * e_ddot_e * this->m_volume[type_id];
         }
 
     protected:
@@ -616,7 +610,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         {
         Scalar stiff = (*m_k)(timestep);
         Scalar logx = log(shape.x / shape.y);
-        return N * stiff * logx * logx;
+        return stiff * logx * logx;
         }
 
     private:
