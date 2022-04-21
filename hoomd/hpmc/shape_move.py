@@ -18,9 +18,6 @@ class ShapeMove(_HOOMDBaseObject):
     Args:
         move_probability (`float`): Probability of performing a shape move.
 
-    Attributes:
-        move_probability (`float`): Probability of performing a shape move.
-
     Note:
         The document for each subclass details how `move_probability`
         applies to the move.
@@ -32,6 +29,9 @@ class ShapeMove(_HOOMDBaseObject):
     Note:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
+
+    Attributes:
+        move_probability (`float`): Probability of performing a shape move.
     """
 
     _suported_shapes = None
