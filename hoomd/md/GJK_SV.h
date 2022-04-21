@@ -458,10 +458,7 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int& W_used, Sc
         {
         s2d<ndim>(W, W_used, lambdas);
         }
-    // TODO: This branch will never happen in 3D, but without using C++17 features (if constexpr)
-    // I'm not sure how to avoid compiling this for the 2D template, so I get a lot of warnings on
-    // compilation.
-    else
+    else if (ndim == 3)
         {
         // This case only happens in 3D, so no dimensionality is specified.
         s3d(W, W_used, lambdas);

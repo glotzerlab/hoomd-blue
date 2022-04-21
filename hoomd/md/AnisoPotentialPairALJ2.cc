@@ -1,11 +1,8 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
 #include "AnisoPotentialPair.h"
 #include "EvaluatorPairALJ.h"
-#pragma GCC diagnostic pop
 
 namespace hoomd
     {
