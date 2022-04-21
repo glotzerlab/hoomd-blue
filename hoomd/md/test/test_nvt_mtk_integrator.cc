@@ -194,9 +194,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
 
     nlist_1->setStorageMode(NeighborList::full);
-    std::shared_ptr<AnisoPotentialPair<EvaluatorPairGB>> fc_1
-        = std::shared_ptr<AnisoPotentialPair<EvaluatorPairGB>>(
-            new AnisoPotentialPair<EvaluatorPairGB>(sysdef_1, nlist_1));
+    auto fc_1 = std::make_shared<AnisoPotentialPair<EvaluatorPairGB>>(sysdef_1, nlist_1));
 
     fc_1->setRcut(0, 0, r_cut);
 
