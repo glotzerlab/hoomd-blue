@@ -104,8 +104,10 @@ void IntegratorTwoStep::update(uint64_t timestep)
         }
 
     // perform the second step of the integration on all groups
-    for (auto& method : m_methods)
+    // reversed for integrators so that the half steps will be performed symmetrically
+    for (auto method_ptr = m_methods.rbegin(); method_ptr != m_methods.rend(); method_ptr++)
         {
+        auto method = *method_ptr;
         method->integrateStepTwo(timestep);
         method->includeRATTLEForce(timestep + 1);
         }
@@ -135,33 +137,6 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
     if (m_rigid_bodies)
         {
         m_rigid_bodies->setDeltaT(deltaT);
-        }
-    }
-
-/*! \returns true If all added integration methods have valid restart information
- */
-bool IntegratorTwoStep::isValidRestart()
-    {
-    bool res = true;
-
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // and them all together
-        res = res && method->isValidRestart();
-        }
-    return res;
-    }
-
-/*! \returns true If all added integration methods have valid restart information
- */
-void IntegratorTwoStep::initializeIntegrationMethods()
-    {
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // initialize each of them
-        method->initializeIntegratorVariables();
         }
     }
 

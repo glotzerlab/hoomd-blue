@@ -38,7 +38,7 @@ repos:
     - --remove
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
-  rev: 686eea86f3a812bf1227a9d074c8328a459c5a66
+  rev: 43eb3ff2d02cba5e572f86af5c15337823fb2c66
   hooks:
   - id: fix-license-header
     name: Fix license headers (Python)
@@ -84,14 +84,12 @@ repos:
     # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
-        ^hoomd/hpmc/external/wall.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|
-        ^hoomd/dem/|
         ^hoomd/metal/
       )
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v13.0.0
+  rev: v13.0.1
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]

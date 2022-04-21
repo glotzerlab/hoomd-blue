@@ -14,7 +14,6 @@
 
 #include "BondedGroupData.h"
 #include "BoxDim.h"
-#include "IntegratorData.h"
 #include "ParticleData.h"
 
 #ifndef __HIPCC__

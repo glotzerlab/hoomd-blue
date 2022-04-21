@@ -32,8 +32,10 @@ class DummyAnalyzer : public Analyzer
     {
     public:
     //! Constructs a named analyzer
-    DummyAnalyzer(std::shared_ptr<SystemDefinition> sysdef, const string& name)
-        : Analyzer(sysdef), m_name(name)
+    DummyAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<Trigger> trigger,
+                  const string& name)
+        : Analyzer(sysdef, trigger), m_name(name)
         {
         }
 
@@ -49,13 +51,37 @@ class DummyAnalyzer : public Analyzer
     };
 
 //! Dummy updater for unit testing System
-class DummyUpdater : public Integrator
+class DummyUpdater : public Updater
     {
     // this derives from Integrator so the unit tests can use them in setIntegrator
     public:
     //! Constructs a named analyzer
-    DummyUpdater(std::shared_ptr<SystemDefinition> sysdef, const string& name)
-        : Integrator(sysdef, 0.0), m_name(name)
+    DummyUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                 std::shared_ptr<Trigger> trigger,
+                 const string& name)
+        : Updater(sysdef, trigger), m_name(name)
+        {
+        }
+
+    //! Just prints our name and the current time step
+    void update(uint64_t timestep)
+        {
+        cout << m_name << ": " << timestep << endl;
+        Sleep(8);
+        }
+
+    private:
+    string m_name; //!< Name of the dummy
+    };
+
+//! Dummy integrator for unit testing System
+class DummyIntegrator : public Integrator
+    {
+    // this derives from Integrator so the unit tests can use them in setIntegrator
+    public:
+    //! Constructs a named analyzer
+    DummyIntegrator(std::shared_ptr<SystemDefinition> sysdef, const string& name)
+        : Integrator(sysdef, 0), m_name(name)
         {
         }
 
@@ -97,68 +123,75 @@ UP_TEST(getter_setter_tests)
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, BoxDim(10)));
 
     // create two analyzers to test adding
-    std::shared_ptr<Analyzer> analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
-    std::shared_ptr<Analyzer> analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
+    auto analyzer1 = std::make_shared<DummyAnalyzer>(sysdef,
+                                                     std::make_shared<PeriodicTrigger>(10),
+                                                     "analyzer1");
+    auto analyzer2 = std::make_shared<DummyAnalyzer>(sysdef,
+                                                     std::make_shared<PeriodicTrigger>(105),
+                                                     "analyzer2");
 
     // add them both to a System
     System sys(sysdef, 0);
-    sys.getAnalyzers().push_back(std::make_pair(analyzer1, std::make_shared<PeriodicTrigger>(10)));
-    sys.getAnalyzers().push_back(std::make_pair(analyzer2, std::make_shared<PeriodicTrigger>(105)));
+    sys.getAnalyzers().push_back(analyzer1);
+    sys.getAnalyzers().push_back(analyzer2);
 
     // check the get method
-    MY_ASSERT_EQUAL(sys.getAnalyzers()[0].first, analyzer1);
-    MY_ASSERT_EQUAL(sys.getAnalyzers()[1].first, analyzer2);
+    MY_ASSERT_EQUAL(sys.getAnalyzers()[0], analyzer1);
+    MY_ASSERT_EQUAL(sys.getAnalyzers()[1], analyzer2);
 
     // test the get and set period functions
-    UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1].second)->getPeriod(),
-        (uint64_t)105);
-    UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0].second)->getPeriod(),
-        (uint64_t)10);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1]->getTrigger())
+                        ->getPeriod(),
+                    (uint64_t)105);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0]->getTrigger())
+                        ->getPeriod(),
+                    (uint64_t)10);
 
-    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0].second)->setPeriod(15);
-    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1].second)->setPeriod(8);
-    UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1].second)->getPeriod(),
-        (uint64_t)8);
-    UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0].second)->getPeriod(),
-        (uint64_t)15);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0]->getTrigger())->setPeriod(15);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1]->getTrigger())->setPeriod(8);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[1]->getTrigger())
+                        ->getPeriod(),
+                    (uint64_t)8);
+    UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getAnalyzers()[0]->getTrigger())
+                        ->getPeriod(),
+                    (uint64_t)15);
 
     // ************ Updaters
     // create two updaters to test adding
-    std::shared_ptr<Updater> updater1(new DummyUpdater(sysdef, "updater1"));
-    std::shared_ptr<Updater> updater2(new DummyUpdater(sysdef, "updater2"));
+    auto updater1
+        = std::make_shared<DummyUpdater>(sysdef, std::make_shared<PeriodicTrigger>(10), "updater1");
+    auto updater2 = std::make_shared<DummyUpdater>(sysdef,
+                                                   std::make_shared<PeriodicTrigger>(105),
+                                                   "updater2");
 
     // add them both to a System
-    sys.getUpdaters().push_back(std::make_pair(updater1, std::make_shared<PeriodicTrigger>(10)));
-    sys.getUpdaters().push_back(std::make_pair(updater2, std::make_shared<PeriodicTrigger>(105)));
+    sys.getUpdaters().push_back(updater1);
+    sys.getUpdaters().push_back(updater2);
 
     // check the get method
-    MY_ASSERT_EQUAL(sys.getUpdaters()[0].first, updater1);
-    MY_ASSERT_EQUAL(sys.getUpdaters()[1].first, updater2);
+    MY_ASSERT_EQUAL(sys.getUpdaters()[0], updater1);
+    MY_ASSERT_EQUAL(sys.getUpdaters()[1], updater2);
 
     // test the get and set period functions
     UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->getPeriod(),
+        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1]->getTrigger())->getPeriod(),
         (uint64_t)105);
     UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0].second)->getPeriod(),
+        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0]->getTrigger())->getPeriod(),
         (uint64_t)10);
 
-    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0].second)->setPeriod(15);
-    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->setPeriod(8);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0]->getTrigger())->setPeriod(15);
+    std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1]->getTrigger())->setPeriod(8);
     UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->getPeriod(),
+        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1]->getTrigger())->getPeriod(),
         (uint64_t)8);
     UP_ASSERT_EQUAL(
-        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0].second)->getPeriod(),
+        std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0]->getTrigger())->getPeriod(),
         (uint64_t)15);
 
     // ************ Integrator
-    std::shared_ptr<Integrator> integrator1(new DummyUpdater(sysdef, "integrator1"));
-    std::shared_ptr<Integrator> integrator2(new DummyUpdater(sysdef, "integrator2"));
+    auto integrator1 = std::make_shared<DummyIntegrator>(sysdef, "integrator1");
+    auto integrator2 = std::make_shared<DummyIntegrator>(sysdef, "integrator2");
 
     sys.setIntegrator(integrator1);
     MY_ASSERT_EQUAL(sys.getIntegrator(), integrator1);

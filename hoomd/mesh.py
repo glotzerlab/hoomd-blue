@@ -59,6 +59,8 @@ class Mesh(_HOOMDBaseObject):
                 # create the c++ Communicator
                 self._simulation._system_communicator.addMeshDefinition(
                     self._cpp_obj)
+                self._cpp_obj.setCommunicator(
+                    self._simulation._system_communicator)
 
         super()._attach()
 
@@ -87,6 +89,7 @@ class Mesh(_HOOMDBaseObject):
     def triangles(self, triag):
         if self._attached:
             self._cpp_obj.setTypes(list(self._param_dict['types']))
+
             self._cpp_obj.setTriangleData(triag)
         else:
             self.size = len(triag)

@@ -68,9 +68,6 @@ class NVE(MethodRATTLE):
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint.
 
-        limit (None or `float`): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
-
         tolerance (`float`): Defines the tolerated error particles are
             allowed to deviate from the manifold in terms of the implicit
             function.
@@ -98,9 +95,6 @@ class NVE(MethodRATTLE):
             which is used by and as a trigger for the RATTLE algorithm of this
             method.
 
-        limit (None or float): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
-
         tolerance (float): Defines the tolerated error particles are allowed to
             deviate from the manifold in terms of the implicit function.
             The units of tolerance match that of the selected manifold's
@@ -108,19 +102,14 @@ class NVE(MethodRATTLE):
 
     """
 
-    def __init__(self,
-                 filter,
-                 manifold_constraint,
-                 limit=None,
-                 tolerance=0.000001):
+    def __init__(self, filter, manifold_constraint, tolerance=0.000001):
 
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
-            limit=OnlyTypes(float, allow_none=True),
             zero_force=OnlyTypes(bool, allow_none=False),
         )
-        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
+        param_dict.update(dict(filter=filter, zero_force=False))
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -143,7 +132,7 @@ class NVE(MethodRATTLE):
 
         self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),
-                                 self.manifold_constraint._cpp_obj, False,
+                                 self.manifold_constraint._cpp_obj,
                                  self.tolerance)
 
         # Attach param_dict and typeparam_dict

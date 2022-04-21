@@ -108,7 +108,7 @@ void BondTablePotential::setParamsPython(std::string type, pybind11::dict params
     Scalar r_min = params["r_min"].cast<Scalar>();
     Scalar r_max = params["r_max"].cast<Scalar>();
 
-    const auto V_py = params["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+    const auto V_py = params["U"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
     const auto F_py = params["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
 
     std::vector<Scalar> V(V_py.size());
@@ -142,7 +142,7 @@ pybind11::dict BondTablePotential::getParams(std::string type)
         F_unchecked(i) = h_tables.data[m_table_value(i, type_id)].y;
         }
 
-    params["V"] = V;
+    params["U"] = V;
     params["F"] = F;
 
     return params;

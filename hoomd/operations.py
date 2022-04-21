@@ -19,14 +19,6 @@ from hoomd.operation import Writer, Updater, Tuner, Compute, Integrator
 from hoomd.tune import ParticleSorter
 
 
-def _triggered_op_conversion(value):
-    """Convert _TriggeredOperation to a operation, trigger pair.
-
-    Necessary since in C++ operations do not own their trigger.
-    """
-    return (value._cpp_obj, value.trigger)
-
-
 class Operations(Collection):
     """A mutable collection of operations which act on a `Simulation`.
 
@@ -64,13 +56,11 @@ class Operations(Collection):
     def __init__(self):
         self._scheduled = False
         self._simulation = None
-        self._updaters = syncedlist.SyncedList(Updater,
-                                               _triggered_op_conversion)
-        self._writers = syncedlist.SyncedList(Writer, _triggered_op_conversion)
-        self._tuners = syncedlist.SyncedList(
-            Tuner, syncedlist._PartialGetAttr('_cpp_obj'))
-        self._computes = syncedlist.SyncedList(
-            Compute, syncedlist._PartialGetAttr('_cpp_obj'))
+        sync_func = syncedlist._PartialGetAttr('_cpp_obj')
+        self._updaters = syncedlist.SyncedList(Updater, sync_func)
+        self._writers = syncedlist.SyncedList(Writer, sync_func)
+        self._tuners = syncedlist.SyncedList(Tuner, sync_func)
+        self._computes = syncedlist.SyncedList(Compute, sync_func)
         self._integrator = None
         self._tuners.append(ParticleSorter())
 

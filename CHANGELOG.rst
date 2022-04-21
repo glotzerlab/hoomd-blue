@@ -7,6 +7,110 @@ Change Log
 v3.x
 ----
 
+v3.1.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support LLVM 13 when ``ENABLE_LLVM=on``.
+
+*Changed*
+
+* Change HPMC fugacity to a per-type quantity.
+
+*Fixed*
+
+* ALJ unit test passes in Debug builds.
+* Add quotes to conda-forge gpu package installation example.
+* ``hoomd.md.CustomForce`` zeroes forces, torques, and virials before calling ``set_forces``.
+
+v3.0.1 (2022-04-08)
+^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Display status of ``trunk-patch`` branch in the GitHub actions badge.
+* Add ``EvaluatorPairTable.h`` to installation directory.
+* Add ``hoomd.filter.Rigid`` to the documentation.
+* Prevent ``TypeError: 'bool' object is not iterable`` errors when comparing ``Tag`` filters with
+  different lengths arrays.
+* ``Simulation.tps`` and ``Simulation.walltime`` update every step of the run.
+
+v3.0.0 (2022-03-22)
+^^^^^^^^^^^^^^^^^^^
+
+*Overview*
+
+HOOMD-blue v3.0.0 is the first production release with the new API that has been developed and
+implemented over more than 2 years. Those still using v2.x will need to make changes to their
+scripts to use v3. See the `migrating` page for an overview and individual class and method
+documentation for more information. To summarize, the new API is object oriented, allows HOOMD-blue
+to work effectively as a Python package, and provides more hooks for Python code to directly
+interface with the simulation.
+
+*New features in v3 since v2.9.7:*
+
+* Zero-copy data access through numpy and cupy.
+* Triggers determine what timesteps operations execute on.
+* User-defined operations, triggers, particle filters, variants, and forces.
+* Logging subsystem supports array quantities.
+* Implicit depletants for 2D shapes in HPMC.
+* Harmonically mapped averaging for MD thermodynamic quantities of crystals.
+* TWF and OPP pair potentials.
+* Tether bond potential.
+* Manifold constraints for MD integration methods (using RATTLE) and active forces.
+* Document code architecture in ``ARCHITECTURE.md``.
+* Overdamped viscous MD integration method.
+* User-defined pair potentials work with HPMC on the GPU.
+* Long range tail correction for Lennard-Jones potential.
+* Anisotropic Lennard-Jones-like pair potential for polyhedra and ellipsoids.
+* Newtownian event chain Monte Carlo for spheres and convex polyhedra.
+
+See the full change log below for all v3 beta releases.
+
+Changes from v3.0.0-beta.14:
+
+*Added*
+
+* ``hoomd.hpmc.tune.BoxMCMoveSize`` - Tune ``BoxMC`` move sizes to meet target acceptance ratios.
+* ``hoomd.hpmc.nec.integrate.Sphere`` - Newtonian event chain Monte Carlo for hard spheres.
+* ``hoomd.hpmc.nec.integrate.ConvexPolyhedron`` - Newtonian event chain Monte Carlo for hard convex
+  polyhedra.
+* ``hoomd.hpmc.nec.tune.ChainTime`` - Tune chain times in newtonian event chain Monte Carlo method.
+
+*Changed*
+
+* Improve documentation.
+* [breaking] Renamed the ``hoomd.md.bond.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed the ``hoomd.md.pair.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed the ``hoomd.md.angle.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed the ``hoomd.md.dihedral.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed ``hoomd.md.nlist.Nlist`` to ``hoomd.md.nlist.NeighborList``.
+* [developer] ``Updater`` and ``Analyzer`` in C++ have a ``m_trigger`` member now.
+* [developer] ``_TriggeredOperation`` has been moved to ``TriggeredOperation`` and custom trigger
+  setting and getting logic removed.
+
+*Fixed*
+
+* ``FIRE.converged`` may be queried before calling ``Simulation.run``.
+* Bug where using ``__iadd__`` to certain attributes would fail with an exception.
+* Bug where ``hoomd.md.pair.LJ.additional_energy`` is ``NaN`` when ``tail_correction`` is enabled
+  and some pairs have ``r_cut=0``.
+* Compile error with CUDA 11.7.
+* Compile errors on native ubuntu 20.04 systems.
+* Compile errors with ``ENABLE_GPU=on`` and ``clang`` as a host compiler.
+
+*Removed*
+
+* [developers] Removed ``IntegratorData`` class. It is replaced by structs that are defined in the
+  integrator classes.
+* ``get_ordered_vertices`` from ``hoomd.md.pair.aniso.ALJ``.
+* Removed optional coxeter dependency.
+* The ``limit`` parameter from ``hoomd.md.methods.NVE``.
+* The ``limit`` parameter from ``hoomd.md.methods.rattle.NVE``.
+* The ``diameter_shift`` parameter from ``hoomd.md.nlist.NeighborList``.
+* The ``max_diameter`` parameter from ``hoomd.md.nlist.NeighborList``.
+
 v3.0.0-beta.14 (2022-02-18)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

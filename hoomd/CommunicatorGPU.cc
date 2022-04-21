@@ -53,8 +53,7 @@ CommunicatorGPU::~CommunicatorGPU()
 
 void CommunicatorGPU::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     {
-    m_meshdef = meshdef;
-
+    Communicator::addMeshDefinition(meshdef);
     m_meshbond_comm.addGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.addGroupData(m_meshdef->getMeshTriangleData());
     }
@@ -1849,7 +1848,7 @@ void CommunicatorGPU::migrateParticles()
         m_constraints_changed = false;
 
         // MeshBonds
-        if (m_meshdef != NULL)
+        if (m_meshdef)
             {
             m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
             m_meshbonds_changed = false;
@@ -2209,7 +2208,7 @@ void CommunicatorGPU::exchangeGhosts()
         // constraints
         m_constraint_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
 
-        if (m_meshdef != NULL)
+        if (m_meshdef)
             {
             m_meshbond_comm.markGhostParticles(m_ghost_plan, m_comm_mask[stage]);
 
@@ -3843,6 +3842,7 @@ void export_CommunicatorGPU(pybind11::module& m)
         "CommunicatorGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<DomainDecomposition>>())
+        .def("addMeshDefinition", &CommunicatorGPU::addMeshDefinition)
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
     } // end namespace detail

@@ -707,3 +707,14 @@ def test_logging():
 
     for integrator in integrators:
         logging_check(integrator, ('hpmc', 'integrate'), type_shapes_check)
+
+
+def test_fugacity(simulation_factory, two_particle_snapshot_factory,
+                  test_moves_args):
+    integrator = test_moves_args[0]
+    args = test_moves_args[1]
+    mc = integrator()
+    mc.shape['A'] = args
+    mc.depletant_fugacity["A"] = 0.1
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.run(2)

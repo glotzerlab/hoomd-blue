@@ -329,7 +329,7 @@ class Simulation(metaclass=Loggable):
             `walltime` resets to 0 at the beginning of each call to `run`.
         """
         if self._state is None:
-            return 0
+            return 0.0
         else:
             return self._cpp_sys.walltime
 

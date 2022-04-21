@@ -32,6 +32,7 @@ template<class Shape> class UpdaterMuVT : public Updater
     public:
     //! Constructor
     UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+                std::shared_ptr<Trigger> trigger,
                 std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                 unsigned int npartition);
     virtual ~UpdaterMuVT();
@@ -329,10 +330,11 @@ template<class Shape> class UpdaterMuVT : public Updater
  */
 template<class Shape>
 UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+                                std::shared_ptr<Trigger> trigger,
                                 std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                                 unsigned int npartition)
-    : Updater(sysdef), m_mc(mc), m_npartition(npartition), m_gibbs(false), m_max_vol_rescale(0.1),
-      m_volume_move_probability(0.5), m_gibbs_other(0), m_n_trial(1)
+    : Updater(sysdef, trigger), m_mc(mc), m_npartition(npartition), m_gibbs(false),
+      m_max_vol_rescale(0.1), m_volume_move_probability(0.5), m_gibbs_other(0), m_n_trial(1)
     {
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
@@ -494,7 +496,7 @@ unsigned int
 UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep, Scalar V, bool local, unsigned int type_d)
     {
     // parameter for Poisson distribution
-    Scalar lambda = this->m_mc->getDepletantFugacity(type_d, type_d) * V;
+    Scalar lambda = this->m_mc->getDepletantFugacity(type_d) * V;
 
     unsigned int n = 0;
     if (lambda > Scalar(0.0))
@@ -615,17 +617,10 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
         // loop over depletant types
         for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
             {
-            if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+            if (m_mc->getDepletantFugacity(type_d) == 0.0)
                 continue;
 
-            for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-                {
-                if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                    throw std::runtime_error(
-                        "Non-additive depletants not supported in update.muvt()\n");
-                }
-
-            if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+            if (m_mc->getDepletantFugacity(type_d) < 0.0)
                 throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
             // draw number from Poisson distribution (using old box)
@@ -1809,17 +1804,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
 
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-            {
-            if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                throw std::runtime_error(
-                    "Non-additive depletants not supported in update.muvt()\n");
-            }
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+        if (m_mc->getDepletantFugacity(type_d) == 0.0)
             continue;
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d) < 0.0)
             throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
 #ifdef ENABLE_MPI
@@ -2155,17 +2142,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     // loop over depletant types
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-            {
-            if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                throw std::runtime_error(
-                    "Non-additive depletants not supported in update.muvt()\n");
-            }
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+        if (m_mc->getDepletantFugacity(type_d) == 0.0)
             continue;
 
-        if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d) < 0.0)
             throw std::runtime_error("Negative fugacities not supported in update.muvt()\n");
 
         // Depletant and colloid diameter
@@ -3102,6 +3082,7 @@ template<class Shape> void export_UpdaterMuVT(pybind11::module& m, const std::st
     pybind11::class_<UpdaterMuVT<Shape>, Updater, std::shared_ptr<UpdaterMuVT<Shape>>>(m,
                                                                                        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             unsigned int>())
         .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)

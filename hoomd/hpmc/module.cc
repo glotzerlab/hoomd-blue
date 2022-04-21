@@ -4,6 +4,7 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
+#include "IntegratorHPMCMonoNEC.h"
 
 #include "ComputeSDF.h"
 #include "ExternalFieldWall.h"
@@ -110,6 +111,8 @@ PYBIND11_MODULE(_hpmc, m)
 
     export_hpmc_muvt_counters(m);
     export_hpmc_clusters_counters(m);
+
+    export_hpmc_nec_counters(m);
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators

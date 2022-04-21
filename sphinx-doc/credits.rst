@@ -71,6 +71,7 @@ The following people have contributed to the to HOOMD-blue:
 * Ludwig Schneider, Georg-August Univeristy Goettingen
 * Luis Y. Rivera-Rivera, University of Michigan
 * Malcolm Ramsay
+* Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
 * Matthew Spellings, University of Michgan
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
@@ -84,6 +85,7 @@ The following people have contributed to the to HOOMD-blue:
 * Peter Schwendeman, University of Michigan
 * Philipp Mertmann, Ruhr University Bochum
 * Philipp Schönhöfer, University of Michigan
+* Praharsh Suryadevara, New York University
 * Rastko Sknepnek, Northwestern
 * Raymond Asare, University of Michigan
 * Richmond Newman, University of Michigan

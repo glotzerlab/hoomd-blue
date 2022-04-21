@@ -56,8 +56,8 @@ year = datetime.date.today().year
 copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.14'
-release = '3.0.0-beta.14'
+version = '3.0.1'
+release = '3.0.1'
 
 language = None
 
@@ -79,6 +79,7 @@ IGNORE_CLASSES = [
     '_InternalCustomWriter',
     '_WriterProperty',
     '_HOOMDBaseObject',
+    '_AlchemicalPairForce',
 ]
 
 

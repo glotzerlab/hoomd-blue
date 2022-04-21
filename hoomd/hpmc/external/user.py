@@ -67,16 +67,16 @@ class CPPExternalPotential(ExternalField):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.14/hoomd/VectorMath.h
+            v3.0.1/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.0-beta.14/hoomd/BoxDim.h
+            v3.0.1/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
 
-            grav_code = "return r_i.z + box.getL().z/2;"
+            gravity_code = "return r_i.z + box.getL().z/2;"
             gravity = hoomd.hpmc.external.user.CPPExternalPotential(
-                code=grav_code)
+                code=gravity_code)
             mc.external_potential = gravity
 
     Note:
