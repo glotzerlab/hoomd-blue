@@ -1829,6 +1829,8 @@ class LJGauss(Pair):
         ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6)
         ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
         ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+
+    .. versionadded:: 3.1.0
     """
     _cpp_class_name = "PotentialPairLJGauss"
 
