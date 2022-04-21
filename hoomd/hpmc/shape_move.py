@@ -248,8 +248,8 @@ class Vertex(ShapeMove):
         step size is rescaled by volume**(1/3) every time a move is accepted.
 
     Note:
-        `ConvexPolyhedron` models shapes that are the the convex hull of the given
-        vertices.
+        `hoomd.hpmc.integrate.ConvexPolyhedron` models shapes that are the the
+        convex hull of the given vertices.
 
     Example::
 
