@@ -23,6 +23,7 @@ v3.1.0 (not yet released)
 * ALJ unit test passes in Debug builds.
 * Add quotes to conda-forge gpu package installation example.
 * ``hoomd.md.CustomForce`` zeroes forces, torques, and virials before calling ``set_forces``.
+* Point tarball download link to https://github.com/glotzerlab/hoomd-blue/releases.
 
 v3.0.1 (2022-04-08)
 ^^^^^^^^^^^^^^^^^^^
