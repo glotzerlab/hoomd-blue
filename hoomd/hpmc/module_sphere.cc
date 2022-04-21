@@ -20,9 +20,6 @@
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
 
-#include "ShapeMoves.h"
-#include "UpdaterShape.h"
-
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
