@@ -353,7 +353,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                 if (m_multi_phase)
                     {
                     std::vector<Scalar> Zs;
-                    all_gather_v(Z, Zs, m_exec_conf->getMPICommunicator());
+                    all_gather_v(Z, Zs, m_exec_conf->getHOOMDWorldMPICommunicator());
                     Z = std::accumulate(Zs.begin(), Zs.end(), 1, std::multiplies<Scalar>());
                     }
 #endif
@@ -368,7 +368,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                         m_box_accepted[typ_i]++;
                         }
                     std::vector<int> all_a;
-                    all_gather_v((int)accept, all_a, m_exec_conf->getMPICommunicator());
+                    all_gather_v((int)accept, all_a, m_exec_conf->getHOOMDWorldMPICommunicator());
                     accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
 #endif
 
