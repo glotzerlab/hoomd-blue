@@ -118,7 +118,7 @@ __device__ inline double myAtomicAdd(double* address, double val)
 
 // workaround for HIP bug
 #ifdef __HIP_PLATFORM_HCC__
-inline __device__ inline float myAtomicAdd(float* address, float val)
+__device__ inline float myAtomicAdd(float* address, float val)
     {
     unsigned int* address_as_uint = (unsigned int*)address;
     unsigned int old = *address_as_uint, assumed;
