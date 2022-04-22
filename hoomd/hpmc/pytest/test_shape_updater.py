@@ -16,6 +16,12 @@ def _test_callback(typeid, param_list):
     pass
 
 
+# vertices of a regular cube: used for testing vertex and elastic shape moves
+verts = np.asarray([[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5],
+                    [0.5, -0.5, -0.5],  [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5],
+                    [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]])
+
+
 shape_move_constructor_args = [
     (Vertex, dict(move_probability=0.7)),
     (ShapeSpace, dict(callback=_test_callback, move_probability=1)),
@@ -248,6 +254,50 @@ def test_python_callback_shape_move(simulation_factory,
 
 
 def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):
-    # test pending a solutioon th the typeparam
-    # validation for the reference_shape
-    pass
+
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron()
+    mc.d["A"] = 0
+    mc.a["A"] = 0
+    mc.shape["A"] = dict(vertices = verts)
+
+    move = Elastic(stiffness=1, mc=mc)
+    move.reference_shape["A"] = dict(vertices = verts)
+
+    updater = hpmc.update.Shape(trigger=1,
+                                shape_move=move,
+                                default_step_size=0.1,
+                                nsweeps=2)
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory(d=10))
+    sim.operations.integrator = mc
+    sim.operations += updater
+
+    # test attachmet before first run
+    assert not move._attached
+    assert not updater._attached
+
+    sim.run(0)
+
+    # test attachmet after first run
+    assert move._attached
+    assert updater._attached
+
+    # always attempt a shape move:
+    #  - shape should change
+    #  - volume should remain unchanged
+    sim.run(10)
+    assert np.sum(updater.shape_moves) == 20
+    assert not np.allclose(mc.shape["A"]["vertices"], verts)
+    assert np.allclose(updater.particle_volumes, 1)
+
+    # compute mean vertex displacement at this k
+    dr_k1 = np.linalg.norm(mc.shape["A"]["vertices"]-verts, axis=1).mean()
+    # reset shape, ramp up stiffness and run again
+    mc.shape["A"] = dict(vertices = verts)
+    move.stiffness = 500
+    sim.run(10)
+
+    # mean vertex displacement should be smaller for stiffer particles
+    dr_k100 = np.linalg.norm(mc.shape["A"]["vertices"]-verts, axis=1).mean()
+    assert dr_k100 < dr_k1
