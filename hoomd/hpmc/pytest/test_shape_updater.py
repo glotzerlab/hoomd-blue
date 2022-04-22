@@ -133,9 +133,6 @@ def test_type_parameters(obj, attr, value):
 
 def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
 
-    verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
-                        [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]]) / 2
-
     move = Vertex()
     move.volume["A"] = 1
 
