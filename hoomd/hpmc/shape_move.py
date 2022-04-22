@@ -146,7 +146,7 @@ class ShapeSpace(ShapeMove):
         callback (``callable`` [`str`, `list`], `dict` ]): The python function
             that will be called to map the given shape parameters to a shape
             definition. The function takes the particle type and a list of
-            parameters as arguments and return a dictionary with the shape
+            parameters as arguments and returns a dictionary with the shape
             definition whose keys **must** match the shape definition of the
             integrator:
 
