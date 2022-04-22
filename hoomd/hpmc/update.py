@@ -516,7 +516,7 @@ class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
 
     See Also:
-        :py:mod:`hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
+        `hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
 
     Args:
         trigger (Trigger): Call the updater on triggered time steps.
@@ -524,24 +524,24 @@ class Shape(Updater):
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        default_step_size (float, optional): Default maximum size of shape trial
-            moves (**default**: None). By default requires setting step size for
-            all types.
+        default_step_size (`float`, optional): Default maximum size of shape
+            trial moves (**default**: None). By default requires setting step
+            size for all types.
 
-        pretend (bool, optional): When True the updater will not
+        pretend (`bool`, optional): When True the updater will not
             actually update the shape definitions. Instead, moves will be
             proposed and the acceptance statistics will be updated correctly
             (**default**: `False`).
 
-        type_select (int, optional): Number of types to change every time
+        type_select (`int`, optional): Number of types to change every time
             the updater is called (**default**: 1).
 
-        nsweeps (int, optional): Number of times to update shape
+        nsweeps (`int`, optional): Number of times to update shape
             definitions during each triggered timesteps (**default**: 1).
 
     .. rubric:: Shape support.
 
-    See :py:mod:`hoomd.hpmc.shape_move` for supported shapes.
+    See `hoomd.hpmc.shape_move` for supported shapes.
 
     Example::
 
