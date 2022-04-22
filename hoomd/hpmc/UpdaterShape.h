@@ -267,7 +267,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             {
             // make a trial move for i
             unsigned int typ_i = m_update_order[cur_type];
-            // Skip move if step size is smaller than allowed tolerance
+            // Skip move if step size is zero
             if (m_step_size[typ_i] == 0)
                 {
                 m_exec_conf->msg->notice(5) << " Skipping moves for particle typeid=" << typ_i
