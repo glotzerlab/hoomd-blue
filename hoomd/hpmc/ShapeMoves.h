@@ -264,7 +264,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                       param_type& shape,
                       hoomd::RandomGenerator& rng)
         {
-        // mix the shape.
+        // perturb the shape.
         for (unsigned int i = 0; i < shape.N; i++)
             {
             if (hoomd::detail::generate_canonical<double>(rng) < this->m_move_probability)
