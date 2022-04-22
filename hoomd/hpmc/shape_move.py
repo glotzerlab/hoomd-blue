@@ -230,7 +230,10 @@ class ShapeSpace(ShapeMove):
 
 
 class Vertex(ShapeMove):
-    """Apply shape moves where particle vertices are translated.
+    """Apply shape moves where particle vertices are translated. Vertices are
+       rescaled during each shape move to ensure that the shape maintains a
+       constant volume. To preserve detail balance, the maximum step size is
+       rescaled by volume**(1/3) every time a move is accepted.
 
     Args:
         move_probability (`float`, optional): Average fraction of
@@ -241,11 +244,6 @@ class Vertex(ShapeMove):
     The following shapes are supported:
 
     * `hoomd.hpmc.integrate.ConvexPolyhedron`
-
-    Note:
-        Vertices are rescaled during each shape move to ensure that the shape
-        maintains a constant volume. To preserve detail balance, the maximum
-        step size is rescaled by volume**(1/3) every time a move is accepted.
 
     Note:
         `hoomd.hpmc.integrate.ConvexPolyhedron` models shapes that are the the
@@ -265,7 +263,8 @@ class Vertex(ShapeMove):
             during each shape move.
 
         volume (`TypeParameter` [``particle type``, `float`]): Volume of the
-            particles to hold constant.
+            particles to hold constant. The particles size is always rescaled to
+            maintain this volume.
     """
 
     _suported_shapes = {'ConvexPolyhedron'}
