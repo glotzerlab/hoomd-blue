@@ -377,7 +377,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                         {
                         m_exec_conf->msg->notice(5)
                             << "UpdaterShape move accepted -- pretend mode" << std::endl;
-                        m_move_function->retreat(timestep);
+                        m_move_function->retreat(timestep, typ_i);
                         h_det.data[typ_i] = h_det_old.data[typ_i];
                         m_mc->setParam(typ_i, shape_param_old);
                         m_count_accepted[typ_i]++;
@@ -394,6 +394,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                     // revert shape parameter changes
                     h_det.data[typ_i] = h_det_old.data[typ_i];
                     m_mc->setParam(typ_i, shape_param_old);
+                    m_move_function->retreat(timestep, typ_i);
                     }
                 }
 

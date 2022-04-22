@@ -45,7 +45,7 @@ template<typename Shape> class ShapeMoveBase
         }
 
     //! retreat whenever the proposed move is rejected.
-    virtual void retreat(uint64_t timestep) { }
+    virtual void retreat(uint64_t timestep, unsigned int type) { }
 
     Scalar getDetInertiaTensor() const
         {
@@ -154,10 +154,10 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         }
 
-    void retreat(uint64_t timestep)
+    void retreat(uint64_t timestep, unsigned int type)
         {
         // move has been rejected.
-        std::swap(m_params, m_params_backup);
+        m_params[type] = m_params_backup[type];
         }
 
     pybind11::list getParams(std::string typ)
@@ -285,7 +285,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         stepsize *= scale;
         }
 
-    void retreat(uint64_t timestep)
+    void retreat(uint64_t timestep, unsigned int type)
         {
         // move has been rejected.
         }
@@ -373,10 +373,10 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     //! retreat whenever the proposed move is rejected.
-    void retreat(uint64_t timestep)
+    void retreat(uint64_t timestep, unsigned int type)
         {
         // we can swap because m_F_last will be reset on the next prepare
-        m_F.swap(m_F_last);
+        m_F[type] = m_F_last[type];
         }
 
     void setStiffness(std::shared_ptr<Variant> stiff)
@@ -586,7 +586,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
 
     void prepare(uint64_t timestep) { }
 
-    void retreat(uint64_t timestep) { }
+    void retreat(uint64_t timestep, unsigned int type) { }
 
     Scalar operator()(uint64_t timestep,
                       const unsigned int& N,
