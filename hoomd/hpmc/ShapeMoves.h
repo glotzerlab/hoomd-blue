@@ -198,7 +198,9 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
     std::vector<std::vector<Scalar>>
         m_params_backup;                       // tunable shape parameters to perform trial moves on
     std::vector<std::vector<Scalar>> m_params; // tunable shape parameters to perform trial moves on
-    pybind11::object m_python_callback; // callback that takes m_params as an argiment and returns
+    // callback that takes m_params as an argiment and returns a Python dictionary with the shape
+    // params.
+    pybind11::object m_python_callback;
     };
 
 class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedron>
@@ -293,16 +295,55 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     private:
     }; // end class ConvexPolyhedronVertexShapeMove
 
-template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
+template<class Shape> class ElasticShapeMoveBase : public ShapeMoveBase<Shape>
     {
     public:
+    ElasticShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
+        : ShapeMoveBase<Shape>(sysdef, mc)
+        {
+        }
+
     typedef typename Shape::param_type param_type;
+
+    void setStiffness(std::shared_ptr<Variant> stiff)
+        {
+        m_k = stiff;
+        }
+
+    std::shared_ptr<Variant> getStiffness() const
+        {
+        return m_k;
+        }
+
+    pybind11::dict getReferenceShape(std::string typ)
+        {
+        unsigned int typid = this->getValidateType(typ);
+        return m_reference_shapes[typid].asDict();
+        }
+
+    virtual void setReferenceShape(std::string typ, pybind11::dict v) = 0;
+
+    protected:
+    std::shared_ptr<Variant> m_k; // shape move stiffness
+    // shape to reference shape move against
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>> m_reference_shapes;
+    };
+
+template<class Shape> class ElasticShapeMove : public ElasticShapeMoveBase<Shape>
+    {
+    };
+
+template<>
+class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<ShapeConvexPolyhedron>
+    {
+    public:
     typedef typename Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> MatrixSD;
     typedef typename Eigen::Matrix<Scalar, 3, 3> Matrix3S;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
-                     std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
-        : ShapeMoveBase<Shape>(sysdef, mc)
+                     std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>> mc)
+        : ElasticShapeMoveBase<ShapeConvexPolyhedron>(sysdef, mc)
         {
         m_mass_props.resize(this->m_ntypes);
         m_reference_shapes.resize(this->m_ntypes);
@@ -379,16 +420,6 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_F[type] = m_F_last[type];
         }
 
-    void setStiffness(std::shared_ptr<Variant> stiff)
-        {
-        m_k = stiff;
-        }
-
-    std::shared_ptr<Variant> getStiffness() const
-        {
-        return m_k;
-        }
-
     void setReferenceShape(std::string typ, pybind11::dict v)
         {
         unsigned int typid = this->getValidateType(typ);
@@ -425,22 +456,16 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         m_F[typid] = ret.transpose();
 
         // compute and store volume of reference shape
-        detail::MassProperties<Shape> mp(m_reference_shapes[typid]);
+        detail::MassProperties<ShapeConvexPolyhedron> mp(m_reference_shapes[typid]);
         this->m_volume[typid] = mp.getVolume();
-        }
-
-    pybind11::dict getReferenceShape(std::string typ)
-        {
-        unsigned int typid = this->getValidateType(typ);
-        return m_reference_shapes[typid].asDict();
         }
 
     Scalar operator()(uint64_t timestep,
                       const unsigned int& N,
                       const unsigned int type_id,
-                      const typename Shape::param_type& shape_new,
+                      const typename ShapeConvexPolyhedron::param_type& shape_new,
                       const Scalar& inew,
-                      const typename Shape::param_type& shape_old,
+                      const typename ShapeConvexPolyhedron::param_type& shape_old,
                       const Scalar& iold)
         {
         Scalar newdivold = inew / iold;
@@ -465,12 +490,10 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
 
     protected:
-    std::vector<detail::MassProperties<Shape>> m_mass_props; // mass properties of the shape
+    std::vector<detail::MassProperties<ShapeConvexPolyhedron>>
+        m_mass_props;               // mass properties of the shape
     std::vector<Matrix3S> m_F_last; // matrix representing shape deformation at the last step
     std::vector<Matrix3S> m_F;      // matrix representing shape deformation at the current step
-    std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_reference_shapes;       // shape to reference shape move against
-    std::shared_ptr<Variant> m_k; // shape move stiffness
 
     private:
     // These are ElasticShapeMove specific helper functions to randomly
@@ -526,14 +549,14 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         }
     };
 
-template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
+template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<ShapeEllipsoid>
     {
     public:
     typedef typename ShapeEllipsoid::param_type param_type;
 
     ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> mc)
-        : ShapeMoveBase<ShapeEllipsoid>(sysdef, mc)
+        : ElasticShapeMoveBase<ShapeEllipsoid>(sysdef, mc)
         {
         m_mass_props.resize(this->m_ntypes);
         m_reference_shapes.resize(this->m_ntypes);
@@ -615,11 +638,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         }
 
     private:
-    std::vector<detail::MassProperties<ShapeEllipsoid>>
-        m_mass_props; // mass properties of the shape
-    std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_reference_shapes;       // shape to reference shape move against
-    std::shared_ptr<Variant> m_k; // shape move stiffness
+    // mass properties of the shape
+    std::vector<detail::MassProperties<ShapeEllipsoid>> m_mass_props;
     };
 
 namespace detail
