@@ -37,11 +37,6 @@ class ShapeMove(_HOOMDBaseObject):
 
     _suported_shapes = None
 
-    def __init__(self, move_probability):
-        # Set base parameter dict for all shape_moves
-        param_dict = ParameterDict(move_probability=float(move_probability))
-        self._param_dict.update(param_dict)
-
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
@@ -110,8 +105,8 @@ class Elastic(ShapeMove):
 
     def __init__(self, stiffness, mc, move_probability=0.5):
 
-        super().__init__(move_probability)
-        param_dict = ParameterDict(stiffness=hoomd.variant.Variant)
+        param_dict = ParameterDict(move_probability=float(move_probability),
+                                   stiffness=hoomd.variant.Variant)
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
         self._add_typeparam(self._get_shape_param(mc))
@@ -210,8 +205,8 @@ class ShapeSpace(ShapeMove):
 
     def __init__(self, callback, move_probability=1):
 
-        super().__init__(move_probability)
-        param_dict = ParameterDict(callback=object)
+        param_dict = ParameterDict(move_probability=float(move_probability),
+                                   callback=object)
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
@@ -270,9 +265,8 @@ class Vertex(ShapeMove):
     _suported_shapes = {'ConvexPolyhedron'}
 
     def __init__(self, move_probability=1):
-
-        super().__init__(move_probability)
-
+        param_dict = ParameterDict(move_probability=float(move_probability))
+        self._param_dict.update(param_dict)
         typeparam_volume = TypeParameter('volume',
                                          type_kind='particle_types',
                                          param_dict=TypeParameterDict(
