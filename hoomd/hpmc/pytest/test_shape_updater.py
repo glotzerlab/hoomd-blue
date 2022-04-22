@@ -18,9 +18,8 @@ def _test_callback(typeid, param_list):
 
 # vertices of a regular cube: used for testing vertex and elastic shape moves
 verts = np.asarray([[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5],
-                    [0.5, -0.5, -0.5],  [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5],
+                    [0.5, -0.5, -0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5],
                     [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]])
-
 
 shape_move_constructor_args = [
     (Vertex, dict(move_probability=0.7)),
@@ -258,10 +257,10 @@ def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):
     mc = hoomd.hpmc.integrate.ConvexPolyhedron()
     mc.d["A"] = 0
     mc.a["A"] = 0
-    mc.shape["A"] = dict(vertices = verts)
+    mc.shape["A"] = dict(vertices=verts)
 
     move = Elastic(stiffness=1, mc=mc)
-    move.reference_shape["A"] = dict(vertices = verts)
+    move.reference_shape["A"] = dict(vertices=verts)
 
     updater = hpmc.update.Shape(trigger=1,
                                 shape_move=move,
@@ -292,12 +291,12 @@ def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):
     assert np.allclose(updater.particle_volumes, 1)
 
     # compute mean vertex displacement at this k
-    dr_k1 = np.linalg.norm(mc.shape["A"]["vertices"]-verts, axis=1).mean()
+    dr_k1 = np.linalg.norm(mc.shape["A"]["vertices"] - verts, axis=1).mean()
     # reset shape, ramp up stiffness and run again
-    mc.shape["A"] = dict(vertices = verts)
+    mc.shape["A"] = dict(vertices=verts)
     move.stiffness = 500
     sim.run(10)
 
     # mean vertex displacement should be smaller for stiffer particles
-    dr_k100 = np.linalg.norm(mc.shape["A"]["vertices"]-verts, axis=1).mean()
+    dr_k100 = np.linalg.norm(mc.shape["A"]["vertices"] - verts, axis=1).mean()
     assert dr_k100 < dr_k1
