@@ -8,8 +8,6 @@ namespace hoomd
     {
 namespace md
     {
-template class AnisoPotentialPair<EvaluatorPairGB>;
-
 namespace detail
     {
 template void export_AnisoPotentialPair<EvaluatorPairGB>(pybind11::module& m,
