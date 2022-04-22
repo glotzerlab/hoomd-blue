@@ -1,14 +1,27 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// See md/CMakeLists.txt for the source of these variables to be processed by CMake's
+// configure_file().
+
+// clang-format off
 #include "hoomd/md/PotentialBondGPU.h"
 #include "hoomd/md/EvaluatorBond@_bond@.h"
 
-namespace hoomd { namespace md { namespace detail {
+#define EVALUATOR_CLASS EvaluatorBond@_bond@
+#define EXPORT_FUNCTION export_PotentialBond@_bond@GPU
+// clang-format on
 
-void export_PotentialBond@_bond@GPU(pybind11::module &m)
+namespace hoomd { namespace md {
+
+// Use CPU class from another compilation unit to reduce compile time and compiler memory usage.
+extern template class PotentialBond<EVALUATOR_CLASS>;
+
+namespace detail {
+
+void EXPORT_FUNCTION(pybind11::module &m)
     {
-    export_PotentialBondGPU<EvaluatorBond@_bond@>(m, "PotentialBond@_bond@GPU");
+    export_PotentialBondGPU<EVALUATOR_CLASS>(m, "PotentialBond@_bond@GPU");
     }
 
     } // end namespace detail

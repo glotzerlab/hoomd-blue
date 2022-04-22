@@ -1,14 +1,27 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// See md/CMakeLists.txt for the source of these variables to be processed by CMake's
+// configure_file().
+
+// clang-format off
 #include "hoomd/md/PotentialSpecialPairGPU.h"
 #include "hoomd/md/EvaluatorSpecialPair@_pair@.h"
 
-namespace hoomd { namespace md { namespace detail {
+#define EVALUATOR_CLASS EvaluatorSpecialPair@_pair@
+#define EXPORT_FUNCTION export_PotentialSpecialPair@_pair@GPU
+// clang-format on
 
-void export_PotentialSpecialPair@_pair@GPU(pybind11::module &m)
+namespace hoomd { namespace md {
+
+// Use CPU class from another compilation unit to reduce compile time and compiler memory usage.
+extern template class PotentialSpecialPair<EVALUATOR_CLASS>;
+
+namespace detail {
+
+void EXPORT_FUNCTION(pybind11::module &m)
     {
-    export_PotentialSpecialPairGPU<EvaluatorSpecialPair@_pair@>(m, "PotentialSpecialPair@_pair@GPU");
+    export_PotentialSpecialPairGPU<EVALUATOR_CLASS>(m, "PotentialSpecialPair@_pair@GPU");
     }
 
     } // end namespace detail

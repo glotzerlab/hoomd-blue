@@ -1,14 +1,25 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// See md/CMakeLists.txt for the source of these variables to be processed by CMake's
+// configure_file().
+
+// clang-format off
 #include "hoomd/md/TwoStepRATTLE@_method@.h"
 #include "hoomd/md/Manifold@_manifold_cpp@.h"
 
-namespace hoomd { namespace md { namespace detail {
+#define MANIFOLD_CLASS Manifold@_manifold_cpp@
+#define PYBIND_EXPORT export_TwoStepRATTLE@_method@
+#define EXPORT_FUNCTION export_TwoStepRATTLE@_method@@_manifold@
+// clang-format on
 
-void export_TwoStepRATTLE@_method@@_manifold@(pybind11::module &m)
+namespace hoomd { namespace md {
+
+namespace detail {
+
+void EXPORT_FUNCTION(pybind11::module &m)
     {
-    export_TwoStepRATTLE@_method@<Manifold@_manifold_cpp@>(m,
+    PYBIND_EXPORT<MANIFOLD_CLASS>(m,
                                                            "TwoStepRATTLE@_method@@_manifold@");
     }
 
