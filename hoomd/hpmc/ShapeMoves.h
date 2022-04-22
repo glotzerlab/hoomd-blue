@@ -448,8 +448,8 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Matrix3S eps_last = this->getEpsLast(type_id);
-        Scalar e_ddot_e = (eps * eps.transpose()).trace();
-        Scalar e_ddot_e_last = (eps_last * eps_last.transpose()).trace();
+        Scalar e_ddot_e = (eps * eps).trace();
+        Scalar e_ddot_e_last = (eps_last * eps_last).trace();
         return N * stiff * (e_ddot_e_last - e_ddot_e) * this->m_volume[type_id] + inertia_term;
         }
 
@@ -460,7 +460,7 @@ template<class Shape> class ElasticShapeMove : public ShapeMoveBase<Shape>
         {
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
-        Scalar e_ddot_e = (eps * eps.transpose()).trace();
+        Scalar e_ddot_e = (eps * eps).trace();
         return stiff * e_ddot_e * this->m_volume[type_id];
         }
 
