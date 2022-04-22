@@ -9,7 +9,7 @@ namespace hoomd { namespace md { namespace kernel {
 template
 __attribute__((visibility("default")))
 hipError_t
-gpu_cpef<EvaluatorWalls<EvaluatorPair@_evaluator@>>(const external_potential_args_t& external_potential_args,
+gpu_compute_potential_external_forces<EvaluatorWalls<EvaluatorPair@_evaluator@>>(const external_potential_args_t& external_potential_args,
                                     const typename EvaluatorWalls<EvaluatorPair@_evaluator@>::param_type* d_params,
                                     const typename EvaluatorWalls<EvaluatorPair@_evaluator@>::field_type* d_field);
     } // end namespace kernel

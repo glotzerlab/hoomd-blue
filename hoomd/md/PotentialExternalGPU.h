@@ -92,17 +92,18 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                          access_mode::read);
 
     this->m_tuner->begin();
-    kernel::gpu_cpef<evaluator>(kernel::external_potential_args_t(d_force.data,
-                                                                  d_virial.data,
-                                                                  this->m_virial.getPitch(),
-                                                                  this->m_pdata->getN(),
-                                                                  d_pos.data,
-                                                                  d_diameter.data,
-                                                                  d_charge.data,
-                                                                  box,
-                                                                  this->m_tuner->getParam()),
-                                d_params.data,
-                                this->m_field.get());
+    kernel::gpu_compute_potential_external_forces<evaluator>(
+        kernel::external_potential_args_t(d_force.data,
+                                          d_virial.data,
+                                          this->m_virial.getPitch(),
+                                          this->m_pdata->getN(),
+                                          d_pos.data,
+                                          d_diameter.data,
+                                          d_charge.data,
+                                          box,
+                                          this->m_tuner->getParam()),
+        d_params.data,
+        this->m_field.get());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
