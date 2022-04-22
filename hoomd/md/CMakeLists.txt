@@ -334,14 +334,6 @@ foreach(_manifold ${_manifolds})
 endforeach()
 
 # generate pybind11 export cc files
-set(_manifolds Cylinder
-               Diamond
-               Ellipsoid
-               Gyroid
-               Plane
-               Primitive
-               Sphere)
-
 set(_bonds Harmonic FENE Tether)
 
 foreach(_bond ${_bonds})
