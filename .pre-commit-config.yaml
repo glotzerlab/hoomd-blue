@@ -98,6 +98,5 @@ repos:
         ^CMake/|
         ^hoomd/extern/|
         ^hoomd/hpmc/UpdaterClusters\.h|
-        ^hoomd/hpmc/IntegratorHPMCMono\.h|
-        ^hoomd/md/.*\.inc
+        ^hoomd/hpmc/IntegratorHPMCMono\.h
       )

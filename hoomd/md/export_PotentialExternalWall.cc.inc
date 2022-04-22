@@ -13,9 +13,14 @@
 #define EXPORT_FUNCTION export_PotentialExternalWall@_evaluator@
 // clang-format on
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
-void EXPORT_FUNCTION(pybind11::module &m)
+void EXPORT_FUNCTION(pybind11::module& m)
     {
     export_PotentialExternal<EVALUATOR_CLASS>(m, "WallsPotential@_evaluator@");
     }

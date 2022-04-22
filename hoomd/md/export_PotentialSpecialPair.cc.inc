@@ -12,9 +12,14 @@
 #define EXPORT_FUNCTION export_PotentialSpecialPair@_pair@
 // clang-format on
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
-void EXPORT_FUNCTION(pybind11::module &m)
+void EXPORT_FUNCTION(pybind11::module& m)
     {
     export_PotentialSpecialPair<EVALUATOR_CLASS>(m, "PotentialSpecialPair@_pair@");
     }

@@ -12,18 +12,22 @@
 #define EXPORT_FUNCTION export_ActiveForceConstraintCompute@_manifold@
 // clang-format on
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 // This should not be needed as the export_ method below instantiates the template, but runtime
 // errors result without this line.
 template class ActiveForceConstraintCompute<MANIFOLD_CLASS>;
 
-namespace detail {
+namespace detail
+    {
 
-void EXPORT_FUNCTION(pybind11::module &m)
+void EXPORT_FUNCTION(pybind11::module& m)
     {
     export_ActiveForceConstraintCompute<MANIFOLD_CLASS>(m,
-                                                           "ActiveForceConstraintCompute@_manifold@");
+                                                        "ActiveForceConstraintCompute@_manifold@");
     }
 
     } // end namespace detail

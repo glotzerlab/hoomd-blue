@@ -12,14 +12,17 @@
 #define EVALUATOR_CLASS EvaluatorWalls<EvaluatorPair@_evaluator@>
 // clang-format on
 
-
-namespace hoomd { namespace md { namespace kernel {
-template
-__attribute__((visibility("default")))
-hipError_t
-gpu_compute_potential_external_forces<EVALUATOR_CLASS>(const external_potential_args_t& external_potential_args,
-                                    const typename EVALUATOR_CLASS::param_type* d_params,
-                                    const typename EVALUATOR_CLASS::field_type* d_field);
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
+template __attribute__((visibility("default"))) hipError_t
+gpu_compute_potential_external_forces<EVALUATOR_CLASS>(
+    const external_potential_args_t& external_potential_args,
+    const typename EVALUATOR_CLASS::param_type* d_params,
+    const typename EVALUATOR_CLASS::field_type* d_field);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

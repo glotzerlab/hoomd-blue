@@ -19,12 +19,12 @@ namespace kernel
     {
 template hipError_t
 gpu_compute_active_force_set_constraints<MANIFOLD_CLASS>(const unsigned int group_size,
-                                                            unsigned int* d_index_array,
-                                                            const Scalar4* d_pos,
-                                                            Scalar4* d_orientation,
-                                                            const Scalar4* d_f_act,
-                                                            MANIFOLD_CLASS manifold,
-                                                            unsigned int block_size);
+                                                         unsigned int* d_index_array,
+                                                         const Scalar4* d_pos,
+                                                         Scalar4* d_orientation,
+                                                         const Scalar4* d_f_act,
+                                                         MANIFOLD_CLASS manifold,
+                                                         unsigned int block_size);
 
 template hipError_t gpu_compute_active_force_constraint_rotational_diffusion<MANIFOLD_CLASS>(
     const unsigned int group_size,

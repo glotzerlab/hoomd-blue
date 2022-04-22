@@ -11,12 +11,15 @@
 #define EVALUATOR_CLASS EvaluatorPair@_evaluator_cpp@
 // clang-format on
 
-namespace hoomd { namespace md { namespace kernel {
-template
-__attribute__((visibility("default")))
-hipError_t
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
+template __attribute__((visibility("default"))) hipError_t
 gpu_compute_pair_forces<EVALUATOR_CLASS>(const pair_args_t& pair_args,
-                                   const EVALUATOR_CLASS::param_type* d_params);
+                                         const EVALUATOR_CLASS::param_type* d_params);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

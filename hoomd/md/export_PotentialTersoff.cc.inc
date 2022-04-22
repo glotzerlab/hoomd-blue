@@ -12,9 +12,14 @@
 #define EXPORT_FUNCTION export_Potential@_evaluator@
 // clang-format on
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
-void EXPORT_FUNCTION(pybind11::module &m)
+void EXPORT_FUNCTION(pybind11::module& m)
     {
     export_PotentialTersoff<EVALUATOR_CLASS>(m, "Potential@_evaluator@");
     }

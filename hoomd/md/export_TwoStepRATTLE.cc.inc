@@ -13,14 +13,17 @@
 #define EXPORT_FUNCTION export_TwoStepRATTLE@_method@@_manifold@
 // clang-format on
 
-namespace hoomd { namespace md {
-
-namespace detail {
-
-void EXPORT_FUNCTION(pybind11::module &m)
+namespace hoomd
     {
-    PYBIND_EXPORT<MANIFOLD_CLASS>(m,
-                                                           "TwoStepRATTLE@_method@@_manifold@");
+namespace md
+    {
+
+namespace detail
+    {
+
+void EXPORT_FUNCTION(pybind11::module& m)
+    {
+    PYBIND_EXPORT<MANIFOLD_CLASS>(m, "TwoStepRATTLE@_method@@_manifold@");
     }
 
     } // end namespace detail

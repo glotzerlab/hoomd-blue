@@ -12,16 +12,20 @@
 #define EXPORT_FUNCTION export_PotentialPairDPDThermo@_evaluator@
 // clang-format on
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 // This should not be needed as the export_ method below instantiates the template, but runtime
 // errors result without these lines.
 template class PotentialPair<EVALUATOR_CLASS>;
 template class PotentialPairDPDThermo<EVALUATOR_CLASS>;
 
-namespace detail {
+namespace detail
+    {
 
-void EXPORT_FUNCTION(pybind11::module &m)
+void EXPORT_FUNCTION(pybind11::module& m)
     {
     export_PotentialPair<EVALUATOR_CLASS>(m, "PotentialPairConservative@_evaluator@");
     export_PotentialPairDPDThermo<EVALUATOR_CLASS>(m, "PotentialPairDPDThermo@_evaluator@");

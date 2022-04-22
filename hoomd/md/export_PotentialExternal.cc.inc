@@ -13,25 +13,31 @@
 #define EXPORT_FUNCTION export_PotentialExternal@_evaluator@
 // clang-format on
 
-namespace hoomd { namespace md { namespace detail {
+namespace hoomd
+    {
+namespace md
+    {
+namespace detail
+    {
 
 // Export setParamsPython and getParams as a different name
 // Electric field only has one parameter, so we can get its parameter from
 // python with by a name other than getParams and setParams
-template<> inline
-void export_PotentialExternal<EvaluatorExternalElectricField>(
-    pybind11::module& m,
-    const std::string& name)
+template<>
+inline void export_PotentialExternal<EvaluatorExternalElectricField>(pybind11::module& m,
+                                                                     const std::string& name)
     {
     pybind11::class_<PotentialExternal<EvaluatorExternalElectricField>,
                      ForceCompute,
-                     std::shared_ptr<PotentialExternal<EvaluatorExternalElectricField>>>(m, name.c_str())
+                     std::shared_ptr<PotentialExternal<EvaluatorExternalElectricField>>>(
+        m,
+        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setE", &PotentialExternal<EvaluatorExternalElectricField>::setParamsPython)
         .def("getE", &PotentialExternal<EvaluatorExternalElectricField>::getParams);
     }
 
-void EXPORT_FUNCTION(pybind11::module &m)
+void EXPORT_FUNCTION(pybind11::module& m)
     {
     export_PotentialExternal<EVALUATOR_CLASS>(m, "PotentialExternal@_evaluator@");
     }

@@ -12,14 +12,18 @@
 #define EXPORT_FUNCTION export_PotentialPair@_evaluator@GPU
 // clang-format on
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 // Use CPU class from another compilation unit to reduce compile time and compiler memory usage.
 extern template class PotentialPair<EVALUATOR_CLASS>;
 
-namespace detail {
+namespace detail
+    {
 
-void EXPORT_FUNCTION(pybind11::module &m)
+void EXPORT_FUNCTION(pybind11::module& m)
     {
     export_PotentialPairGPU<EVALUATOR_CLASS>(m, "PotentialPair@_evaluator@GPU");
     }

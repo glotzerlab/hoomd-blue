@@ -14,17 +14,20 @@
 #define EXPORT_FUNCTION export_TwoStepRATTLE@_method@GPU@_manifold@
 // clang-format on
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 // Use CPU class from another compilation unit to reduce compile time and compiler memory usage.
 extern template class BASE<MANIFOLD_CLASS>;
 
-namespace detail {
-
-void EXPORT_FUNCTION(pybind11::module &m)
+namespace detail
     {
-    PYBIND_EXPORT<MANIFOLD_CLASS>(m,
-                                                           "TwoStepRATTLE@_method@@_manifold@GPU");
+
+void EXPORT_FUNCTION(pybind11::module& m)
+    {
+    PYBIND_EXPORT<MANIFOLD_CLASS>(m, "TwoStepRATTLE@_method@@_manifold@GPU");
     }
 
     } // end namespace detail

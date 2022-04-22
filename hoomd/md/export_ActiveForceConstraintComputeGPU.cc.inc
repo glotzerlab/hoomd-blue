@@ -12,17 +12,22 @@
 #define EXPORT_FUNCTION export_ActiveForceConstraintCompute@_manifold@GPU
 // clang-format on
 
-namespace hoomd { namespace md {
+namespace hoomd
+    {
+namespace md
+    {
 
 // Use CPU class from another compilation unit to reduce compile time and compiler memory usage.
 extern template class ActiveForceConstraintCompute<MANIFOLD_CLASS>;
 
-namespace detail {
-
-void EXPORT_FUNCTION(pybind11::module &m)
+namespace detail
     {
-    export_ActiveForceConstraintComputeGPU<MANIFOLD_CLASS>(m,
-                                                           "ActiveForceConstraintCompute@_manifold@GPU");
+
+void EXPORT_FUNCTION(pybind11::module& m)
+    {
+    export_ActiveForceConstraintComputeGPU<MANIFOLD_CLASS>(
+        m,
+        "ActiveForceConstraintCompute@_manifold@GPU");
     }
 
     } // end namespace detail
