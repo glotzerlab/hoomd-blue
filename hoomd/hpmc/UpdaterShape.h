@@ -372,7 +372,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                     accept = std::accumulate(all_a.begin(), all_a.end(), 1, std::multiplies<int>());
 #endif
 
-                    // if pretend mode, rever shape changes but keep acceptance count
+                    // if pretend mode, revert shape changes but keep acceptance count
                     if (m_pretend)
                         {
                         m_exec_conf->msg->notice(5)
