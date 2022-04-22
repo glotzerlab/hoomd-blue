@@ -573,7 +573,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         Scalar lnx = log(param.x / param.y);
         Scalar dlnx = hoomd::UniformDistribution<Scalar>(-stepsize, stepsize)(rng);
         Scalar x = fast::exp(lnx + dlnx);
-        param.x = static_cast<OverlapReal>(x) * param.x;
+        param.x = static_cast<OverlapReal>(x) * param.y;
         param.y = param.y;
         param.z = param.z;
         detail::MassProperties<ShapeEllipsoid> mp(param);
