@@ -12,11 +12,12 @@ namespace hpmc
 template<class Shape> void export_MassPropertiesBase(pybind11::module& m, std::string name)
     {
     // export the base class.
-    pybind11::class_<detail::MassPropertiesBase<Shape>,
-                     std::shared_ptr<detail::MassPropertiesBase<Shape>>>(m, name.c_str())
+    pybind11::class_<detail::MassPropertiesBase, std::shared_ptr<detail::MassPropertiesBase>>(
+        m,
+        name.c_str())
         .def(pybind11::init<>())
-        .def("getVolume", &detail::MassPropertiesBase<Shape>::getVolume)
-        .def("getDetInertiaTensor", &detail::MassPropertiesBase<Shape>::getDetInertiaTensor);
+        .def("getVolume", &detail::MassPropertiesBase::getVolume)
+        .def("getDetInertiaTensor", &detail::MassPropertiesBase::getDetInertiaTensor);
     }
 
 template<class Shape> void export_MassProperties(pybind11::module& m, std::string name)
@@ -25,7 +26,7 @@ template<class Shape> void export_MassProperties(pybind11::module& m, std::strin
     // export the base class.
     pybind11::class_<detail::MassProperties<Shape>,
                      std::shared_ptr<detail::MassProperties<Shape>>,
-                     detail::MassPropertiesBase<Shape>>(m, name.c_str())
+                     detail::MassPropertiesBase>(m, name.c_str())
         .def(pybind11::init<const typename Shape::param_type&>());
     }
 

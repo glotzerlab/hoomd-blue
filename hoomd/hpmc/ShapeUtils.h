@@ -29,7 +29,7 @@ namespace hpmc
 namespace detail
     {
 
-template<class Shape> class MassPropertiesBase
+class MassPropertiesBase
     {
     public:
     MassPropertiesBase() : m_volume(0.0), m_surface_area(0.0), m_center_of_mass(0.0, 0.0, 0.0)
@@ -63,8 +63,6 @@ template<class Shape> class MassPropertiesBase
         return std::abs(dot(a, cross(b, c)));
         }
 
-    virtual void updateParam(const typename Shape::param_type& param) { }
-
     virtual void compute() { }
 
     protected:
@@ -74,19 +72,18 @@ template<class Shape> class MassPropertiesBase
     std::vector<Scalar> m_inertia; // xx, yy, zz, xy, yz, xz
     };                             // end class MassPropertiesBase
 
-template<class Shape> class MassProperties : public MassPropertiesBase<Shape>
+template<class Shape> class MassProperties : public MassPropertiesBase
     {
     public:
-    MassProperties() : MassPropertiesBase<Shape>() { }
+    MassProperties() : MassPropertiesBase() { }
 
-    MassProperties(const typename Shape::param_type& shape) : MassPropertiesBase<Shape>()
+    MassProperties(const typename Shape::param_type& shape) : MassPropertiesBase()
         {
         this->compute();
         }
     };
 
-template<>
-class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeConvexPolyhedron>
+template<> class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase
     {
     public:
     MassProperties() : MassPropertiesBase() {};
@@ -244,7 +241,7 @@ class MassProperties<ShapeConvexPolyhedron> : public MassPropertiesBase<ShapeCon
     std::vector<std::vector<unsigned int>> faces;
     }; // end class MassProperties < ShapeConvexPolyhedron >
 
-template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
+template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase
     {
     public:
     MassProperties() : MassPropertiesBase() {};
@@ -279,8 +276,7 @@ template<> class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<Shap
     typename ShapeEllipsoid::param_type m_param;
     };
 
-template<>
-class MassProperties<ShapeSpheropolyhedron> : public MassPropertiesBase<ShapeSpheropolyhedron>
+template<> class MassProperties<ShapeSpheropolyhedron> : public MassPropertiesBase
     {
     public:
     MassProperties(const typename ShapeSpheropolyhedron::param_type& param) : MassPropertiesBase()
