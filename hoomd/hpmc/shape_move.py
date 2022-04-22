@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Shape moves for a for alchemical simulations in extended ensembles."""
+"""Shape moves for simulations of alchemical ensembles."""
 
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
