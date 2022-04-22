@@ -1,7 +1,15 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Shape moves for simulations of alchemical ensembles."""
+"""Shape moves for a for alchemical simulations in extended ensembles.
+
+`ShapeMove` subclasses extend the Hamiltonian of the system by adding degrees of
+freedom to the shape of the hard particle.
+
+See Also:
+    * `G. van Anders <https://doi.org/10.1021/acsnano.5b04181>`_
+    * `J. Dshemuchadse <https://doi.org/10.1126/sciadv.aaw0514>`_
+"""
 
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
@@ -15,18 +23,11 @@ import numpy
 class ShapeMove(_HOOMDBaseObject):
     """Base class for all shape moves.
 
-    Args:
-        move_probability (`float`): Probability of performing a shape move.
-
-    Note:
-        The document for each subclass details how `move_probability`
-        applies to the move.
-
     Note:
         See the documentation of each derived class for a list of supported
         shapes.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
 
@@ -64,15 +65,16 @@ class Elastic(ShapeMove):
     """Apply scale and shear shape moves to particles with an energy penalty.
 
     Args:
-        stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
+        stiffness (`hoomd.variant.Variant`): Shape stiffness against
             deformations.
 
         mc (`type` or `hoomd.hpmc.integrate.HPMCIntegrator`): The class of
             the MC shape integrator or an instance (see `hoomd.hpmc.integrate`)
-            to use with this elastic shape. Must be a compatible class.
+            to use with this elastic shape. Must be a compatible class. We use
+            this argument to create validation for `reference_shape`.
 
-        move_probability (`float`, optional): Fraction of scale to shear
-            moves (**default**: 0.5).
+        move_probability (`float`, optional): Fraction of scale to shear moves
+            (**default**: 0.5).
 
     .. rubric:: Shape support.
 
@@ -101,7 +103,7 @@ class Elastic(ShapeMove):
         reference_shape (`TypeParameter` [``particle type``, `dict`]): Reference
             shape against to which compute the deformation energy.
 
-        move_probability (`float`): Fraction of scale to shear moves.
+        move_probability (float): Fraction of scale to shear moves.
     """
 
     _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
@@ -143,16 +145,13 @@ class ShapeSpace(ShapeMove):
     """Apply shape moves in a :math:`N` dimensional shape space.
 
     Args:
-        callback (``callable`` [`str`, `list`], `dict` ]): The python function
+        callback (``callable`` [`str`, `list`], `dict` ]): The python callable
             that will be called to map the given shape parameters to a shape
-            definition. The function takes the particle type and a list of
-            parameters as arguments and returns a dictionary with the shape
+            definition. The callable takes the particle type and a list of
+            parameters as arguments and return a dictionary with the shape
             definition whose keys **must** match the shape definition of the
-            integrator:
-
-                ``callable[[str, list], dict]``
-
-            Note that there is no type validation of the callback.
+            integrator: ``callable[[str, list], dict]``. There is no
+            type validation of the callback.
 
         move_probability (`float`, optional): Average fraction of shape
             parameters to change each timestep (**default**: 1).
@@ -166,18 +165,14 @@ class ShapeSpace(ShapeMove):
     * `hoomd.hpmc.integrate.Ellipsoid`
 
     Attention:
-        The acceptance criteria of shape moves requires computing the particle's
-        moment of inertia before and after the trial moves. Currently, computing
-        the moments of inertia for spheropolyhedra is not fully implemented.
-        However, the use of this shape move with spheropolyhedra is currently
-        enabled to allow the use of spherical depletants with shape moves.
+        `ShapeSpace` only works with spheropolyhedra that have zero rounding or
+        are spheres.
 
     Note:
         Parameters must be given for every particle type and must be between 0
-        and 1. This class is limited to performing MC moves on the predefined
-        shape parameters, it does not performs any consistency checks
-        internally. Therefore, any shape constraint (e.g. constant volume, etc)
-        must be performed within the callback.
+        and 1. The class does not performs any consistency checks internally.
+        Therefore, any shape constraint (e.g. constant volume, etc) must be
+        performed within the callback.
 
     Example::
 
@@ -199,9 +194,7 @@ class ShapeSpace(ShapeMove):
             definition. The function takes the particle type and a list of
             parameters as arguments and return a dictionary with the shape
             definition whose keys **must** match the shape definition of the
-            integrator:
-
-                ``callable[[str, list], dict]``
+            integrator: ``callable[[str, list], dict]``.
 
         params (`TypeParameter` [``particle type``, `list`]): List of tunable
             parameters to be updated. The length of the list defines the
@@ -238,6 +231,13 @@ class Vertex(ShapeMove):
     Args:
         move_probability (`float`, optional): Average fraction of
             vertices to change during each shape move (**default**: 1).
+
+    `Vertex` moves apply a uniform move on each vertex with probability
+    `move_probability` in a shape up to a maximum displacement of
+    `hoomd.hpmc.update.Shape.step_size` for the composing instance. The shape
+    volume is rescaled at the end of all the displacements to the specified
+    volume. To preserve detail balance, the maximum step size is rescaled by
+    :math:`V^{1 / 3}` every time a move is accepted.
 
     .. rubric:: Shape support.
 
