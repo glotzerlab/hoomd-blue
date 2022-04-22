@@ -578,7 +578,8 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
         param.z = param.z;
         detail::MassProperties<ShapeEllipsoid> mp(param);
         Scalar volume = mp.getVolume();
-        OverlapReal scale = static_cast<OverlapReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
+        OverlapReal scale
+            = static_cast<OverlapReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
         param.x *= scale;
         param.y *= scale;
         param.z *= scale;
@@ -596,7 +597,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEl
                       const param_type& shape_old,
                       const Scalar& iold)
         {
-        Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(inew/iold);
+        Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(inew / iold);
         Scalar old_energy = computeEnergy(timestep, N, type_id, shape_old, iold);
         Scalar new_energy = computeEnergy(timestep, N, type_id, shape_new, inew);
         return old_energy - new_energy + inertia_term;
