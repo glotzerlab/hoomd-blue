@@ -18,8 +18,8 @@ class MeshPotential(Force):
     """Constructs the bond potential applied to a mesh.
 
     Note:
-        :py:class:`MeshBond` is the base class for all bond potentials applied
-        to meshes. Users should not instantiate this class directly.
+        :py:class:`MeshPotential` is the base class for all bond potentials
+        applied to meshes. Users should not instantiate this class directly.
     """
 
     def __init__(self, mesh):

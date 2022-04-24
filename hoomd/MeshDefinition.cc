@@ -63,7 +63,6 @@ TriangleData::Snapshot MeshDefinition::getTriangleData()
 void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
     {
     TriangleData::Snapshot triangle_data = getTriangleData();
-    // TriangleData::Snapshot triangle_data;
     pybind11::buffer_info buf = triangles.request();
     int* ptr = static_cast<int*>(buf.ptr);
     size_t len_triang = len(triangles);

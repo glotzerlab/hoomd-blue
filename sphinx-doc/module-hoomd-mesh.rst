@@ -2,7 +2,7 @@
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 hoomd.mesh
-------------------
+----------
 
 .. rubric:: Overview
 
@@ -16,5 +16,5 @@ hoomd.mesh
 .. rubric:: Details
 
 .. automodule:: hoomd.mesh
-    :synopsis: HOOMD mesh data structure
+    :synopsis: Triangulated mesh data structure made of particles.
     :members: Mesh

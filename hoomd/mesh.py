@@ -16,8 +16,9 @@ import numpy as np
 class Mesh(_HOOMDBaseObject):
     """Data structure combining multiple particles into a mesh.
 
-    The mesh is defined by an array of triangles tht make up a
-    triangulated surface.
+    The mesh is defined by an array of triangles that make up a
+    triangulated surface of particles. Each triangle consists of
+    three particle tags.
 
     Args:
         name ([`str`]): name of the mesh that also acts as a
@@ -78,7 +79,7 @@ class Mesh(_HOOMDBaseObject):
     def triangles(self):
         """((*N*, 3) `numpy.ndarray` of ``uint32``): Mesh triangulation.
 
-        A list of triplets of particle ids which encodes the
+        A list of triplets of particle tags which encodes the
         triangulation of the mesh structure.
         """
         if self._attached:

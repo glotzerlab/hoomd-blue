@@ -10,7 +10,6 @@
 #endif
 
 #include "BondedGroupData.h"
-//#include "IntegratorData.h"
 #include "MeshGroupData.h"
 #include "SystemDefinition.h"
 

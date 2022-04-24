@@ -8,12 +8,10 @@
 #include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondTether.h"
 #include "PotentialBond.h"
-//#include "PotentialMeshBond.h"
 
 #ifdef ENABLE_HIP
 #include "AllDriverPotentialBondGPU.cuh"
 #include "PotentialBondGPU.h"
-//#include "PotentialMeshBondGPU.h"
 #endif
 
 /*! \file AllBondPotentials.h
