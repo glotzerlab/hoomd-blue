@@ -18,7 +18,7 @@ _FENE_args = {
     'sigma': [1.1, 1.0, 0.9],
     'delta': [0, 0, 0]
 }
-_FENE_arg_list = [(hoomd.md.mesh.bond.FENE, dict(zip(_FENE_args, val)))
+_FENE_arg_list = [(hoomd.md.mesh.bond.FENEWCA, dict(zip(_FENE_args, val)))
                   for val in zip(*_FENE_args.values())]
 
 _Tether_args = {

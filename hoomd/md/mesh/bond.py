@@ -45,12 +45,12 @@ class Harmonic(MeshPotential):
         super().__init__(mesh)
 
 
-class FENE(MeshPotential):
-    r"""FENE bond potential.
+class FENEWCA(MeshPotential):
+    r"""FENE and WCA bond potential.
 
-    :py:class:`FENE` specifies a FENE potential energy between all
+    :py:class:`FENEWCA` specifies a FENE potential energy between all
     particles that share an edge within the mesh. For more details see
-    :py:class:`hoomd.md.bond.FENE`.
+    :py:class:`hoomd.md.bond.FENEWCA`.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
