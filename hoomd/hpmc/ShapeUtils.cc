@@ -13,7 +13,8 @@ void export_MassPropertiesBase(pybind11::module& m)
     {
     // export the base class.
     pybind11::class_<detail::MassPropertiesBase, std::shared_ptr<detail::MassPropertiesBase>>(
-        m, "MassPropertiesBase")
+        m,
+        "MassPropertiesBase")
         .def(pybind11::init<>())
         .def("getVolume", &detail::MassPropertiesBase::getVolume)
         .def("getDetInertiaTensor", &detail::MassPropertiesBase::getDetInertiaTensor);
