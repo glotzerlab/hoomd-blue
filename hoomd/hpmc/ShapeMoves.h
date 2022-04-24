@@ -97,6 +97,7 @@ template<typename Shape> class ShapeMoveBase
         }
 
     virtual Scalar computeEnergy(uint64_t timestep,
+                                 const unsigned int& N,
                                  const unsigned int type_id,
                                  const typename Shape::param_type& shape,
                                  const Scalar& inertia)
@@ -479,6 +480,7 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
         }
 
     Scalar computeEnergy(uint64_t timestep,
+                         const unsigned int& N,
                          const unsigned int type_id,
                          const param_type& shape,
                          const Scalar& inertia)
@@ -486,7 +488,7 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Scalar e_ddot_e = (eps * eps).trace();
-        return stiff * e_ddot_e * this->m_volume[type_id];
+        return static_cast<Scalar>(N) * stiff * e_ddot_e * this->m_volume[type_id];
         }
 
     protected:
@@ -634,7 +636,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
         {
         Scalar stiff = (*m_k)(timestep);
         Scalar logx = log(shape.x / shape.y);
-        return stiff * logx * logx;
+        return static_cast<Scalar>(N) * stiff * logx * logx;
         }
 
     private:
