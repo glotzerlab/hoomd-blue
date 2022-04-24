@@ -19,11 +19,11 @@
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
+#include "ShapeUtils.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
-#include "ShapeUtils.h"
 
 #include "GPUTree.h"
 
