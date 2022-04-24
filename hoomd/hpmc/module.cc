@@ -23,6 +23,7 @@
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
+#include "ShapeUtils.h"
 
 #include "GPUTree.h"
 
@@ -48,6 +49,7 @@ PYBIND11_MODULE(_hpmc, m)
     export_UpdaterQuickCompress(m);
     export_wall_classes(m);
     export_wall_list(m);
+    export_MassPropertiesBase(m);
 
     export_sphere(m);
     export_convex_polygon(m);

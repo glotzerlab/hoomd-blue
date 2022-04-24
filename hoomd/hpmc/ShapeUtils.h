@@ -322,7 +322,7 @@ template<> class MassProperties<ShapeSpheropolyhedron> : public MassPropertiesBa
     };
     } // end namespace detail
 
-template<class Shape> void export_MassPropertiesBase(pybind11::module& m, std::string name);
+void export_MassPropertiesBase(pybind11::module& m);
 
 template<class Shape> void export_MassProperties(pybind11::module& m, std::string name);
 
