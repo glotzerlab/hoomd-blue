@@ -277,6 +277,10 @@ class Custom(Force):
 
     Note:
         Access to the force buffers is constant (O(1)) time.
+
+    .. versionchanged:: 3.1.0
+        `Custom` zeros the force, torque, energy, and virial arrays before
+        calling the user-provided `set_forces`.
     """
 
     def __init__(self, aniso=False):

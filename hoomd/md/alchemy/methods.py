@@ -19,6 +19,7 @@ class Alchemostat(Method):
         methods. Users should use the subclasses and not instantiate
         `Alchemostat` directly.
 
+    .. versionadded:: 3.1.0
     """
 
     def __init__(self, alchemical_dof):
@@ -79,6 +80,8 @@ class NVT(Alchemostat):
     See Also:
         `Zhou et al. 2019 <https://doi.org/10.1080/00268976.2019.1680886>`_.
 
+    .. versionadded:: 3.1.0
+
     Attributes:
         alchemical_kT (`hoomd.variant.Variant`): Temperature set point
             for the alchemostat :math:`[\mathrm{energy}]`.
@@ -87,7 +90,6 @@ class NVT(Alchemostat):
             alchemical degrees of freedom.
 
         period (`int`): Timesteps between applications of the alchemostat.
-
     """
 
     def __init__(self, alchemical_kT, alchemical_dof, period=1):
