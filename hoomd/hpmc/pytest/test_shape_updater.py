@@ -78,12 +78,15 @@ updater_constructor_args = [
 
 type_parameters = [
     (ShapeSpace(callback=_test_callback), "params", [0.1, 0.3, 0.4]),
+    (ShapeSpace(callback=_test_callback), "step_size", 0.4),
     (Vertex(), "volume", 1.2),
+    (Vertex(), "step_size", 0.1),
     (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "reference_shape", {
         "a": 1,
         "b": 2,
         "c": 3
-    }), (Shape(trigger=1, shape_move=Vertex()), "step_size", 0.4)
+    }),
+    (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "step_size", 0.2)
 ]
 
 
@@ -133,12 +136,11 @@ def test_type_parameters(obj, attr, value):
 
 def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
 
-    move = Vertex()
+    move = Vertex(default_step_size=0.2)
     move.volume["A"] = 1
 
     updater = hpmc.update.Shape(trigger=1,
                                 shape_move=move,
-                                default_step_size=0.2,
                                 nsweeps=2)
     updater.shape_move = move
 
@@ -197,12 +199,12 @@ def test_python_callback_shape_move(simulation_factory,
 
     ellipsoid = dict(a=1, b=1, c=1)
 
-    move = ShapeSpace(callback=ScaleEllipsoid(**ellipsoid))
+    move = ShapeSpace(callback=ScaleEllipsoid(**ellipsoid),
+                      default_step_size=0.2)
     move.params["A"] = [1]
 
     updater = hpmc.update.Shape(trigger=1,
                                 shape_move=move,
-                                default_step_size=0.2,
                                 nsweeps=2)
     updater.shape_move = move
 
@@ -256,12 +258,11 @@ def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):
     mc.a["A"] = 0
     mc.shape["A"] = dict(vertices=verts)
 
-    move = Elastic(stiffness=1, mc=mc)
+    move = Elastic(stiffness=1, mc=mc, default_step_size=0.1)
     move.reference_shape["A"] = dict(vertices=verts)
 
     updater = hpmc.update.Shape(trigger=1,
                                 shape_move=move,
-                                default_step_size=0.1,
                                 nsweeps=2)
 
     # create simulation & attach objects

@@ -169,19 +169,6 @@ template<typename Shape> class UpdaterShape : public Updater
         return m_instance;
         }
 
-    //! Get maximum displacement (by type name)
-    inline Scalar getStepSize(std::string name)
-        {
-        unsigned int id = this->m_pdata->getTypeByName(name);
-        return m_step_size[id];
-        }
-
-    inline void setStepSize(std::string name, Scalar d)
-        {
-        unsigned int id = this->m_pdata->getTypeByName(name);
-        m_step_size[id] = d;
-        }
-
     void countParticlesPerType();
 
     private:
@@ -196,7 +183,6 @@ template<typename Shape> class UpdaterShape : public Updater
         m_determinant_inertia_tensor; // determinant of the shape's moment of inertia tensor
     GPUArray<unsigned int> m_ntypes;  // number of particle types in the simulation
     bool m_initialized;               // whether or not the updater has been initialized
-    std::vector<Scalar> m_step_size;  // shape move stepsize
     std::vector<unsigned int> m_count_accepted; // number of accepted updater moves
     std::vector<unsigned int> m_count_total;    // number of attempted updater moves
     std::vector<unsigned int>
@@ -217,7 +203,6 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
       m_determinant_inertia_tensor(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_initialized(false)
     {
-    m_step_size.resize(m_pdata->getNTypes(), 0);
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
@@ -268,7 +253,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
             // make a trial move for i
             unsigned int typ_i = m_update_order[cur_type];
             // Skip move if step size is zero
-            if (m_step_size[typ_i] == 0)
+            if (m_move_function->getStepSize(m_pdata->getNameByType(typ_i)) == 0)
                 {
                 m_exec_conf->msg->notice(5) << " Skipping moves for particle typeid=" << typ_i
                                             << ", " << cur_type << std::endl;
@@ -304,7 +289,6 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
 
             // perform an in-place shape update on shape_param_new
             m_move_function->update_shape(timestep,
-                                          m_step_size[typ_i],
                                           typ_i,
                                           shape_param_new,
                                           rng_i);
@@ -476,9 +460,7 @@ template<typename Shape> void export_UpdaterShape(pybind11::module& m, const std
         .def_property("nsweeps", &UpdaterShape<Shape>::getNsweeps, &UpdaterShape<Shape>::setNsweeps)
         .def_property("multi_phase",
                       &UpdaterShape<Shape>::getMultiPhase,
-                      &UpdaterShape<Shape>::setMultiPhase)
-        .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
-        .def("setStepSize", &UpdaterShape<Shape>::setStepSize);
+                      &UpdaterShape<Shape>::setMultiPhase);
     }
 
     } // namespace hpmc

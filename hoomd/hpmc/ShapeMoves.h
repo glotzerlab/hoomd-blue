@@ -28,6 +28,7 @@ template<typename Shape> class ShapeMoveBase
         {
         m_ntypes = this->m_sysdef->getParticleData()->getNTypes();
         m_volume.resize(m_ntypes, 0);
+        m_step_size.resize(m_ntypes, 0);
         }
 
     virtual ~ShapeMoveBase() {};
@@ -37,7 +38,6 @@ template<typename Shape> class ShapeMoveBase
 
     //! construct is called for each particle type that will be changed in update()
     virtual void update_shape(uint64_t,
-                              Scalar& stepsize,
                               const unsigned int&,
                               typename Shape::param_type&,
                               hoomd::RandomGenerator&)
@@ -50,6 +50,18 @@ template<typename Shape> class ShapeMoveBase
     Scalar getDetInertiaTensor() const
         {
         return m_det_inertia_tensor;
+        }
+
+    Scalar getStepSize(std::string typ)
+        {
+        unsigned int typid = getValidateType(typ);
+        return this->m_step_size[typid];
+        }
+
+    void setStepSize(std::string typ, Scalar volume)
+        {
+        unsigned int typid = getValidateType(typ);
+        this->m_step_size[typid] = volume;
         }
 
     Scalar getVolume(std::string typ)
@@ -111,6 +123,7 @@ template<typename Shape> class ShapeMoveBase
     std::shared_ptr<SystemDefinition> m_sysdef;
     unsigned m_ntypes;
     std::vector<Scalar> m_volume;
+    std::vector<Scalar> m_step_size;
     Scalar m_move_probability;
     std::vector<vec3<Scalar>> m_centroids;
 
@@ -134,13 +147,13 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         }
 
     void update_shape(uint64_t timestep,
-                      Scalar& stepsize,
                       const unsigned int& type_id,
                       typename Shape::param_type& shape,
                       hoomd::RandomGenerator& rng)
         {
         for (unsigned int i = 0; i < m_params[type_id].size(); i++)
             {
+            Scalar stepsize = this->m_step_size[type_id];
             Scalar a = fmax(-stepsize, -(m_params[type_id][i]));
             Scalar b = fmin(stepsize, (1.0 - m_params[type_id][i]));
             hoomd::UniformDistribution<Scalar> uniform(a, b);
@@ -259,10 +272,12 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         shape.diameter = OverlapReal(2.0 * fast::sqrt(rsq));
         }
 
-    void prepare(uint64_t timestep) { }
+    void prepare(uint64_t timestep)
+        {
+        m_step_size_backup = this->m_step_size;
+        }
 
     void update_shape(uint64_t timestep,
-                      Scalar& stepsize,
                       const unsigned int& type_id,
                       param_type& shape,
                       hoomd::RandomGenerator& rng)
@@ -273,7 +288,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             if (hoomd::detail::generate_canonical<double>(rng) < this->m_move_probability)
                 {
                 vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
-                move_translate(vert, rng, stepsize, 3);
+                move_translate(vert, rng, this->m_step_size[type_id], 3);
                 shape.x[i] = static_cast<OverlapReal>(vert.x);
                 shape.y[i] = static_cast<OverlapReal>(vert.y);
                 shape.z[i] = static_cast<OverlapReal>(vert.z);
@@ -285,15 +300,16 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
         OverlapReal scale
             = static_cast<OverlapReal>(fast::pow(this->m_volume[type_id] / volume, 1.0 / 3.0));
         scaleParticleVolume(shape, dr, scale);
-        stepsize *= scale;
+        this->m_step_size[type_id] *= scale;
         }
 
     void retreat(uint64_t timestep, unsigned int type)
         {
-        // move has been rejected.
+        this->m_step_size[type] = m_step_size_backup[type];
         }
 
     private:
+        std::vector<Scalar> m_step_size_backup;
     }; // end class ConvexPolyhedronVertexShapeMove
 
 template<class Shape> class ElasticShapeMoveBase : public ShapeMoveBase<Shape>
@@ -360,7 +376,6 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
 
     //! construct is called at the beginning of every update()
     void update_shape(uint64_t timestep,
-                      Scalar& stepsize,
                       const unsigned int& type_id,
                       param_type& param,
                       hoomd::RandomGenerator& rng)
@@ -369,7 +384,7 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
         // perform a scaling move
         if (hoomd::detail::generate_canonical<double>(rng) < this->m_move_probability)
             {
-            generateExtentional(F_curr, rng, stepsize + 1.0);
+            generateExtentional(F_curr, rng, this->m_step_size[type_id] + 1.0);
             }
         else // perform a rotation-scale-rotation move
             {
@@ -379,7 +394,7 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
             Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
             rot = eq.toRotationMatrix();
             rot_inv = rot.transpose();
-            generateExtentional(scale, rng, stepsize + 1.0);
+            generateExtentional(scale, rng, this->m_step_size[type_id] + 1.0);
             F_curr = rot * scale * rot_inv;
             }
         m_F[type_id] = F_curr * m_F[type_id];
@@ -590,12 +605,12 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
         }
 
     void update_shape(uint64_t timestep,
-                      Scalar& stepsize,
                       const unsigned int& type_id,
                       param_type& param,
                       hoomd::RandomGenerator& rng)
         {
         Scalar lnx = log(param.x / param.y);
+        Scalar stepsize = this->m_step_size[type_id];
         Scalar dlnx = hoomd::UniformDistribution<Scalar>(-stepsize, stepsize)(rng);
         Scalar x = fast::exp(lnx + dlnx);
         param.x = static_cast<OverlapReal>(x) * param.y;
@@ -651,7 +666,9 @@ template<class Shape> void export_ShapeMoveBase(pybind11::module& m, const std::
     {
     pybind11::class_<ShapeMoveBase<Shape>, std::shared_ptr<ShapeMoveBase<Shape>>>(m, name.c_str())
         .def("getVolume", &ShapeMoveBase<Shape>::getVolume)
-        .def("setVolume", &ShapeMoveBase<Shape>::setVolume);
+        .def("setVolume", &ShapeMoveBase<Shape>::setVolume)
+        .def("getStepSize", &ShapeMoveBase<Shape>::getStepSize)
+        .def("setStepSize", &ShapeMoveBase<Shape>::setStepSize);
     }
 
 template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std::string& name)

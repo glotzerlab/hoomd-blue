@@ -23,6 +23,11 @@ import numpy
 class ShapeMove(_HOOMDBaseObject):
     """Base class for all shape moves.
 
+    Args:
+        default_step_size (`float`, optional): Default maximum size of shape
+            trial moves (**default**: None). By default requires setting step
+            size for all types.
+
     Note:
         See the documentation of each derived class for a list of supported
         shapes.
@@ -30,9 +35,24 @@ class ShapeMove(_HOOMDBaseObject):
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
+
+    Attributes:
+        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
+            of shape trial moves.
     """
 
     _suported_shapes = None
+
+    def __init__(self, default_step_size=None):
+        if default_step_size is None:
+            step_size = float
+        else:
+            step_size = float(default_step_size)
+        typeparam_step_size = TypeParameter('step_size',
+                                            type_kind='particle_types',
+                                            param_dict=TypeParameterDict(
+                                                step_size, len_keys=1))
+        self._add_typeparam(typeparam_step_size)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -65,6 +85,10 @@ class Elastic(ShapeMove):
             to use with this elastic shape. Must be a compatible class. We use
             this argument to create validation for `reference_shape`.
 
+        default_step_size (`float`, optional): Default maximum size of shape
+            trial moves (**default**: None). By default requires setting step
+            size for all types.
+
         normal_shear_ratio (`float`, optional): Fraction of normal to shear
             deformation trial moves (**default**: 0.5).
 
@@ -92,6 +116,9 @@ class Elastic(ShapeMove):
         stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
             deformations.
 
+        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
+            of shape trial moves.
+
         reference_shape (`TypeParameter` [``particle type``, `dict`]): Reference
             shape against to which compute the deformation energy.
 
@@ -101,8 +128,8 @@ class Elastic(ShapeMove):
 
     _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
 
-    def __init__(self, stiffness, mc, normal_shear_ratio=0.5):
-
+    def __init__(self, stiffness, mc, default_step_size=None, normal_shear_ratio=0.5):
+        super().__init__(default_step_size)
         param_dict = ParameterDict(normal_shear_ratio=float(normal_shear_ratio),
                                    stiffness=hoomd.variant.Variant)
         param_dict["stiffness"] = stiffness
@@ -145,6 +172,10 @@ class ShapeSpace(ShapeMove):
             definition whose keys **must** match the shape definition of the
             integrator: ``callable[[str, list], dict]``. There is no
             type validation of the callback.
+
+        default_step_size (`float`, optional): Default maximum size of shape
+            trial moves (**default**: None). By default requires setting step
+            size for all types.
 
         param_move_probability (`float`, optional): Average fraction of shape
             parameters to change each timestep (**default**: 1).
@@ -189,6 +220,9 @@ class ShapeSpace(ShapeMove):
             definition whose keys **must** match the shape definition of the
             integrator: ``callable[[str, list], dict]``.
 
+        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
+            of shape trial moves.
+
         params (`TypeParameter` [``particle type``, `list`]): List of tunable
             parameters to be updated. The length of the list defines the
             dimension of the shape space for each particle type.
@@ -201,8 +235,8 @@ class ShapeSpace(ShapeMove):
         'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
     }
 
-    def __init__(self, callback, param_move_probability=1):
-
+    def __init__(self, callback, default_step_size=None, param_move_probability=1):
+        super().__init__(default_step_size)
         param_dict = ParameterDict(param_move_probability=float(param_move_probability),
                                    callback=object)
         param_dict["callback"] = callback
@@ -222,6 +256,10 @@ class Vertex(ShapeMove):
        rescaled by volume**(1/3) every time a move is accepted.
 
     Args:
+        default_step_size (`float`, optional): Default maximum size of shape
+            trial moves (**default**: None). By default requires setting step
+            size for all types.
+
         vertex_move_probability (`float`, optional): Average fraction of
             vertices to change during each shape move (**default**: 1).
 
@@ -252,6 +290,9 @@ class Vertex(ShapeMove):
         vertex_move.volume["A"] = 1
 
     Attributes:
+        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
+            of shape trial moves.
+
         vertex_move_probability (`float`): Average fraction of vertices to
             change during each shape move.
 
@@ -262,7 +303,8 @@ class Vertex(ShapeMove):
 
     _suported_shapes = {'ConvexPolyhedron'}
 
-    def __init__(self, vertex_move_probability=1):
+    def __init__(self, default_step_size=None, vertex_move_probability=1):
+        super().__init__(default_step_size)
         param_dict = ParameterDict(vertex_move_probability=float(vertex_move_probability))
         self._param_dict.update(param_dict)
         typeparam_volume = TypeParameter('volume',

@@ -524,10 +524,6 @@ class Shape(Updater):
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        default_step_size (`float`, optional): Default maximum size of shape
-            trial moves (**default**: None). By default requires setting step
-            size for all types.
-
         pretend (`bool`, optional): When True the updater will not
             actually update the shape definitions. Instead, moves will be
             proposed and the acceptance statistics will be updated correctly
@@ -562,9 +558,6 @@ class Shape(Updater):
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
 
-        step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
-            of shape trial moves.
-
         pretend (bool): When True the updater will not actually update the shape
             definitions, instead moves will be proposed and the acceptance
             statistics will be updated correctly.
@@ -579,7 +572,6 @@ class Shape(Updater):
     def __init__(self,
                  trigger,
                  shape_move,
-                 default_step_size=None,
                  pretend=False,
                  type_select=1,
                  nsweeps=1):
@@ -590,16 +582,6 @@ class Shape(Updater):
                                    nsweeps=int(nsweeps))
         param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
-        if default_step_size is None:
-            step_size = float
-        else:
-            step_size = float(default_step_size)
-        typeparam_step_size = TypeParameter('step_size',
-                                            type_kind='particle_types',
-                                            param_dict=TypeParameterDict(
-                                                step_size, len_keys=1))
-
-        self._add_typeparam(typeparam_step_size)
 
     def _add(self, simulation):
         super()._add(simulation)
