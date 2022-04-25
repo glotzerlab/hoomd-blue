@@ -29,7 +29,8 @@ namespace md
 
     \sa export_PotentialBondGPU()
 */
-template<class evaluator, class Bonds> class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
+template<class evaluator, class Bonds>
+class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
     {
     public:
     //! Construct the bond potential
@@ -91,9 +92,8 @@ PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(std::shared_ptr<SystemDefin
     }
 
 template<class evaluator, class Bonds>
-PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(
-    std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<MeshDefinition> meshdef)
+PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                     std::shared_ptr<MeshDefinition> meshdef)
     : PotentialBond<evaluator, Bonds>(sysdef, meshdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -123,7 +123,8 @@ PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(
         new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
-template<class evaluator, class Bonds> void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
+template<class evaluator, class Bonds>
+void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
     {
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -167,19 +168,19 @@ template<class evaluator, class Bonds> void PotentialBondGPU<evaluator, Bonds>::
         this->m_tuner->begin();
         kernel::gpu_compute_bond_forces<evaluator, Bonds::size>(
             kernel::bond_args_t<Bonds::size>(d_force.data,
-                                d_virial.data,
-                                this->m_virial.getPitch(),
-                                this->m_pdata->getN(),
-                                this->m_pdata->getMaxN(),
-                                d_pos.data,
-                                d_charge.data,
-                                d_diameter.data,
-                                box,
-                                d_gpu_bondlist.data,
-                                gpu_table_indexer,
-                                d_gpu_n_bonds.data,
-                                this->m_bond_data->getNTypes(),
-                                this->m_tuner->getParam()),
+                                             d_virial.data,
+                                             this->m_virial.getPitch(),
+                                             this->m_pdata->getN(),
+                                             this->m_pdata->getMaxN(),
+                                             d_pos.data,
+                                             d_charge.data,
+                                             d_diameter.data,
+                                             box,
+                                             d_gpu_bondlist.data,
+                                             gpu_table_indexer,
+                                             d_gpu_n_bonds.data,
+                                             this->m_bond_data->getNTypes(),
+                                             this->m_tuner->getParam()),
             d_params.data,
             d_flags.data);
         }
@@ -211,16 +212,17 @@ namespace detail
 */
 template<class T> void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialBondGPU<T, BondData>, PotentialBond<T, BondData>, std::shared_ptr<PotentialBondGPU<T, BondData>>>(
-        m,
-        name.c_str())
+    pybind11::class_<PotentialBondGPU<T, BondData>,
+                     PotentialBond<T, BondData>,
+                     std::shared_ptr<PotentialBondGPU<T, BondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
-template<class T>
-void export_PotentialMeshBondGPU(pybind11::module& m, const std::string& name)
+template<class T> void export_PotentialMeshBondGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialBondGPU<T, MeshBondData>, PotentialBond<T, MeshBondData>, std::shared_ptr<PotentialBondGPU<T, MeshBondData>>>(m, name.c_str())
+    pybind11::class_<PotentialBondGPU<T, MeshBondData>,
+                     PotentialBond<T, MeshBondData>,
+                     std::shared_ptr<PotentialBondGPU<T, MeshBondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>());
     }
 

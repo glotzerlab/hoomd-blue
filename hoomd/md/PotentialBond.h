@@ -359,9 +359,9 @@ namespace detail
 */
 template<class T> void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialBond<T, BondData>, ForceCompute, std::shared_ptr<PotentialBond<T, BondData>>>(
-        m,
-        name.c_str())
+    pybind11::class_<PotentialBond<T, BondData>,
+                     ForceCompute,
+                     std::shared_ptr<PotentialBond<T, BondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &PotentialBond<T, BondData>::setParamsPython)
         .def("getParams", &PotentialBond<T, BondData>::getParams);
@@ -373,7 +373,9 @@ template<class T> void export_PotentialBond(pybind11::module& m, const std::stri
 */
 template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialBond<T, MeshBondData>, ForceCompute, std::shared_ptr<PotentialBond<T, MeshBondData>>>(m, name.c_str())
+    pybind11::class_<PotentialBond<T, MeshBondData>,
+                     ForceCompute,
+                     std::shared_ptr<PotentialBond<T, MeshBondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &PotentialBond<T, MeshBondData>::setParamsPython)
         .def("getParams", &PotentialBond<T, MeshBondData>::getParams);

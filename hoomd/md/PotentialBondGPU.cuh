@@ -30,19 +30,19 @@ template<int group_size> struct bond_args_t
     {
     //! Construct a bond_args_t
     bond_args_t(Scalar4* _d_force,
-                 Scalar* _d_virial,
-                 const size_t _virial_pitch,
-                 const unsigned int _N,
-                 const unsigned int _n_max,
-                 const Scalar4* _d_pos,
-                 const Scalar* _d_charge,
-                 const Scalar* _d_diameter,
-                 const BoxDim& _box,
-                 const group_storage<group_size>* _d_gpu_bondlist,
-                 const Index2D& _gpu_table_indexer,
-                 const unsigned int* _d_gpu_n_bonds,
-                 const unsigned int _n_bond_types,
-                 const unsigned int _block_size)
+                Scalar* _d_virial,
+                const size_t _virial_pitch,
+                const unsigned int _N,
+                const unsigned int _n_max,
+                const Scalar4* _d_pos,
+                const Scalar* _d_charge,
+                const Scalar* _d_diameter,
+                const BoxDim& _box,
+                const group_storage<group_size>* _d_gpu_bondlist,
+                const Index2D& _gpu_table_indexer,
+                const unsigned int* _d_gpu_n_bonds,
+                const unsigned int _n_bond_types,
+                const unsigned int _block_size)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
           d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer),
@@ -243,10 +243,10 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template<class evaluator, int group_size>
-__attribute__((visibility("default")))
-hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
-                                   const typename evaluator::param_type* d_params,
-                                   unsigned int* d_flags)
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
+                        const typename evaluator::param_type* d_params,
+                        unsigned int* d_flags)
     {
     assert(d_params);
     assert(bond_args.n_bond_types > 0);
