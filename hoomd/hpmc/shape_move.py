@@ -273,10 +273,10 @@ class Vertex(ShapeMove):
 
     `Vertex` moves apply a uniform move on each vertex with probability
     `vertex_move_probability` in a shape up to a maximum displacement of
-    `hoomd.hpmc.update.Shape.step_size` for the composing instance. The shape
-    volume is rescaled at the end of all the displacements to the specified
-    volume. To preserve detail balance, the maximum step size is rescaled by
-    :math:`V^{1 / 3}` every time a move is accepted.
+    `step_size` for the composing instance. The shape volume is rescaled at the
+    end of all the displacements to the specified volume. To preserve detail
+    balance, the maximum step size is rescaled by :math:`V^{1 / 3}` every time
+    a move is accepted.
 
     .. rubric:: Shape support.
 
