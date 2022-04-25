@@ -98,7 +98,7 @@ class Dipole(AnisotropicPair):
     Example::
 
         nl = nlist.Cell()
-        dipole = md.pair.Dipole(nl, default_r_cut=3.0)
+        dipole = md.pair.ansio.Dipole(nl, default_r_cut=3.0)
         dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
         dipole.mu['A'] = (4.0, 1.0, 0.0)
 
@@ -190,7 +190,7 @@ class GayBerne(AnisotropicPair):
     Example::
 
         nl = nlist.Cell()
-        gay_berne = md.pair.GayBerne(nlist=nl, default_r_cut=2.5)
+        gay_berne = md.pair.aniso.GayBerne(nlist=nl, default_r_cut=2.5)
         gay_berne.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
         gay_berne.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
 
