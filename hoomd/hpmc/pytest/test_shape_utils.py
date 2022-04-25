@@ -8,6 +8,10 @@ from hoomd.hpmc._hpmc import (MassPropertiesConvexPolyhedron,
                               MassPropertiesConvexSpheropolyhedron,
                               MassPropertiesEllipsoid)
 
+# list of tuples with shape definitions and precomputed volume and
+# determinant of the moment of inertia tensor (det_moi)
+#   - tuples are organized as: (shape type, shape dict, volume, det_moi)
+#   - volume and det_moi precomputed externally with the coxeter package
 shape_list = [
     # cube
     ("ConvexPolyhedron", {
@@ -15,7 +19,7 @@ shape_list = [
                      [1, -1, -1], [1, -1, 1], [1, 1, 1], [1, 1, -1]],
         "sweep_radius": 0,
         "ignore_statistics": True
-    }),
+    }, 8.0, 151.70370370370372),
     # deformed cubed
     ("ConvexPolyhedron", {
         "vertices": [[-1.00010558, -1.05498028, -1.02785711],
@@ -28,7 +32,7 @@ shape_list = [
                      [1.1994583, 0.97454523, -1.29517718]],
         "sweep_radius": 0,
         "ignore_statistics": True
-    }),
+    }, 9.906613237811571, 433.6939933469258),
     # truncated tetrahedron with truncation  = 0.4
     ("ConvexPolyhedron", {
         "vertices": [[-1., -0.6, 0.6], [-1., 0.6, -0.6], [-0.6, -1., 0.6],
@@ -37,7 +41,7 @@ shape_list = [
                      [0.6, 1., 0.6], [1., -0.6, -0.6], [1., 0.6, 0.6]],
         "sweep_radius": 0,
         "ignore_statistics": True
-    }),
+    }, 2.5813333333333337, 0.873927553653835),
     # deformed truncated tetrahedron
     ("ConvexPolyhedron", {
         "vertices": [[-1.38818127, -0.43327022, 0.48655642],
@@ -54,43 +58,43 @@ shape_list = [
                      [0.78783469, 0.39728311, 0.51595356]],
         "sweep_radius": 0,
         "ignore_statistics": True
-    }),
+    }, 3.406051603090999, 2.754115599932528),
     ("Ellipsoid", {
         "a": 1,
         "b": 1,
         "c": 1,
         "ignore_statistics": True
-    }),
+    }, 4.1887902047863905, 4.70376701046326),
     ("Ellipsoid", {
         "a": 1,
         "b": 1,
         "c": 2,
         "ignore_statistics": True
-    }),
+    }, 8.377580409572781, 235.18835052316288),
     ("Ellipsoid", {
         "a": 1.5,
         "b": 1,
         "c": 1,
         "ignore_statistics": True
-    }),
+    }, 6.283185307179586, 41.920486071765346),
     ("Ellipsoid", {
         "a": 1,
         "b": 0.8,
         "c": 1,
         "ignore_statistics": True
-    }),
+    }, 3.3510321638291125, 1.6193602241717742),
     ("Ellipsoid", {
         "a": 1.3,
         "b": 2.7,
         "c": 0.7,
         "ignore_statistics": True
-    }),
+    }, 10.291857533160162, 1328.2618881466828),
     # sphere as convex spheropolyhedron
     ("ConvexSpheropolyhedron", {
         "vertices": [[0, 0, 0]],
         "sweep_radius": 1,
         "ignore_statistics": True
-    }),
+    }, 4.1887902047863905, 4.70376701046326),
     # truncated tetrahedra (trunc = 0.1) as convex spheropolyhedron
     ("ConvexSpheropolyhedron", {
         "vertices": [[-1., -0.9, 0.9], [-1., 0.9, -0.9], [-0.9, -1., 0.9],
@@ -99,20 +103,7 @@ shape_list = [
                      [0.9, 1., 0.9], [1., -0.9, -0.9], [1., 0.9, 0.9]],
         "sweep_radius": 0,
         "ignore_statistics": True
-    }),
-]
-
-volume_list = [
-    8.0, 9.906613237811571, 2.5813333333333337, 3.406051603090999,
-    4.1887902047863905, 8.377580409572781, 6.283185307179586,
-    3.3510321638291125, 10.291857533160162, 4.1887902047863905,
-    2.6653333333333333
-]
-
-det_moi_list = [
-    151.70370370370372, 433.6939933469258, 0.873927553653835, 2.754115599932528,
-    4.70376701046326, 235.18835052316288, 41.920486071765346,
-    1.6193602241717742, 1328.2618881466828, 4.70376701046326, 1.2054288640850612
+    }, 2.6653333333333333, 1.2054288640850612),
 ]
 
 
@@ -125,15 +116,9 @@ def _get_cpp_cls(shape_type):
         return (EllipsoidParams, MassPropertiesEllipsoid)
 
 
-@pytest.mark.parametrize("shape,volume", zip(shape_list, volume_list))
-def test_volume(shape, volume):
-    param_cpp_cls, mass_props_cpp_cls = _get_cpp_cls(shape[0])
-    mass_props_obj = mass_props_cpp_cls(param_cpp_cls(shape[1]))
+@pytest.mark.parametrize("shape_type,shape_dict,volume,det_moi", shape_list)
+def test_volume_det_moi(shape_type,shape_dict,volume,det_moi):
+    param_cpp_cls, mass_props_cpp_cls = _get_cpp_cls(shape_type)
+    mass_props_obj = mass_props_cpp_cls(param_cpp_cls(shape_dict))
     assert np.allclose(mass_props_obj.getVolume(), volume)
-
-
-@pytest.mark.parametrize("shape,det_moi", zip(shape_list, det_moi_list))
-def test_det_moi(shape, det_moi):
-    param_cpp_cls, mass_props_cpp_cls = _get_cpp_cls(shape[0])
-    mass_props_obj = mass_props_cpp_cls(param_cpp_cls(shape[1]))
     assert np.allclose(mass_props_obj.getDetInertiaTensor(), det_moi)
