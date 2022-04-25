@@ -28,6 +28,7 @@ set(files __init__.py
           test_state.py
           test_simulation.py
           test_table.py
+          test_tune_solve.py
           test_variant.py
           test_sorter.py
           test_operations.py

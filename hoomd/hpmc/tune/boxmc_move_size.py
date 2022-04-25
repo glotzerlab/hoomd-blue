@@ -9,7 +9,7 @@ from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
                                       to_type_converter)
 
 from hoomd.tune import _InternalCustomTuner
-from hoomd.tune.attr_tuner import ScaleSolver, SecantSolver
+from hoomd.tune import ScaleSolver, SecantSolver
 
 from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.hpmc.tune import mc_move_tune
@@ -181,7 +181,7 @@ class BoxMCMoveSize(_InternalCustomTuner):
     The tuner will continue tuning despite being ``tuned``. Thus, if simulation
     conditions change the move sizes will continue to change and the tuner will
     no longer be ``tuned``. The changes to the move size are completely
-    controlled by the given `hoomd.tune.SolverStep` instance. See the
+    controlled by the given `hoomd.tune.RootSolver` instance. See the
     doumentation at `hoomd.tune` for more information.
 
     Warning:
@@ -199,8 +199,8 @@ class BoxMCMoveSize(_InternalCustomTuner):
             dimension is tuned independently.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (hoomd.tune.SolverStep): A solver that tunes move sizes to reach
-            the specified target.
+        solver (`hoomd.tune.RootSolver`): A solver that tunes move sizes
+            to reach the specified target.
         max_move_size (`dict` [`str`, `float` ], optional): The maximum volume
             move size to attempt for each move time. See the available moves in
             the `moves` attribute documentation. Defaults to no maximum ``None``
@@ -217,7 +217,7 @@ class BoxMCMoveSize(_InternalCustomTuner):
             dimension is tuned independently.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (hoomd.tune.SolverStep): A solver that tunes move sizes to
+        solver (hoomd.tune.RootSolver): A solver that tunes move sizes to
             reach the specified target.
         max_move_size (float): The maximum volume move size
             to attempt for each move time. See the available moves in the
@@ -298,9 +298,9 @@ class BoxMCMoveSize(_InternalCustomTuner):
             max_move_size (float): The maximum value of a volume
                 move size to attempt, defaults to ``None`` which represents no
                 maximum move size.
-            gamma (float): The value of gamma to pass through
-                to `hoomd.tune.SecantSolver`. Controls the size of corrections
-                to the move size (smaller values increase stability). Should be
+            gamma (float): The value of gamma to pass through to
+                `hoomd.tune.SecantSolver`. Controls the size of corrections to
+                the move size (smaller values increase stability). Should be
                 between 0 and 1, defaults to 0.8.
             tol (float): The absolute tolerance to allow between the current
                 acceptance rate and the target before the move sizes are
