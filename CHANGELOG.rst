@@ -17,6 +17,10 @@ v3.1.0 (not yet released)
 * ``hoomd.md.CustomForce`` zeroes forces, torques, and virials before calling ``set_forces``.
 * Point tarball download link to https://github.com/glotzerlab/hoomd-blue/releases.
 
+*Changed*
+
+* Improved documentation.
+
 v3.0.1 (2022-04-08)
 ^^^^^^^^^^^^^^^^^^^
 
