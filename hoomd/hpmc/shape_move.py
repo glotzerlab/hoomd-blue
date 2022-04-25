@@ -82,10 +82,11 @@ class Elastic(ShapeMove):
 
        .. math::
 
-           U \\approx \\mu \\text{Trace}[\\boldsymbol{\\varepsilon}^2]V`
+           U \\approx \\mu \\text{Tr}[\\boldsymbol{\\varepsilon}^2]V
 
-    where :math:`\\mu` is the stiffness constant, :math:`V` is the particle
-    volume and :math:`\\boldsymbol{\\varepsilon}` is the strain tensor.
+    where :math:`\\mu` is the stiffness constant, :math:`\\text{Tr}` is the
+    trace operator, :math:`\\boldsymbol{\\varepsilon}` is the strain tensor
+    and :math:`V` is the particle volume.
 
     Args:
         stiffness (`hoomd.variant.Variant`): Shape stiffness against
