@@ -96,7 +96,7 @@ template<typename Shape> class ShapeMoveBase
         this->m_move_probability = fmin(move_probability, 1.0);
         }
 
-    virtual Scalar operator()(uint64_t timestep,
+    virtual Scalar computeLogBoltmann(uint64_t timestep,
                               const unsigned int& N,
                               const unsigned int type_id,
                               const typename Shape::param_type& shape_new,
@@ -104,8 +104,7 @@ template<typename Shape> class ShapeMoveBase
                               const typename Shape::param_type& shape_old,
                               const Scalar& iold)
         {
-        Scalar newdivold = inew / iold;
-        return (Scalar(N) / Scalar(2.0)) * log(newdivold);
+        return (Scalar(N) / Scalar(2.0)) * log(inew / iold);
         }
 
     virtual Scalar computeEnergy(uint64_t timestep,
@@ -476,7 +475,7 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
         this->m_volume[typid] = mp.getVolume();
         }
 
-    Scalar operator()(uint64_t timestep,
+    Scalar computeLogBoltmann(uint64_t timestep,
                       const unsigned int& N,
                       const unsigned int type_id,
                       const typename ShapeConvexPolyhedron::param_type& shape_new,
@@ -484,8 +483,10 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
                       const typename ShapeConvexPolyhedron::param_type& shape_old,
                       const Scalar& iold)
         {
-        Scalar newdivold = inew / iold;
-        Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(newdivold);
+        Scalar inertia_term =
+            ShapeMoveBase<ShapeConvexPolyhedron>::computeLogBoltmann(
+                      timestep, N, type_id, shape_new, inew, shape_old, iold
+                    );
         Scalar stiff = (*m_k)(timestep);
         Matrix3S eps = this->getEps(type_id);
         Matrix3S eps_last = this->getEpsLast(type_id);
@@ -579,16 +580,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
         m_reference_shapes.resize(this->m_ntypes);
         }
 
-    void setStiffness(std::shared_ptr<Variant> stiff)
-        {
-        m_k = stiff;
-        }
-
-    std::shared_ptr<Variant> getStiffness() const
-        {
-        return m_k;
-        }
-
     void setReferenceShape(std::string typ, pybind11::dict v)
         {
         unsigned int typid = this->getValidateType(typ);
@@ -596,12 +587,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
         // compute and store volume of reference shape
         detail::MassProperties<ShapeEllipsoid> mp(m_reference_shapes[typid]);
         this->m_volume[typid] = mp.getVolume();
-        }
-
-    pybind11::dict getReferenceShape(std::string typ)
-        {
-        unsigned int typid = this->getValidateType(typ);
-        return m_reference_shapes[typid].asDict();
         }
 
     void update_shape(uint64_t timestep,
@@ -629,7 +614,7 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
 
     void retreat(uint64_t timestep, unsigned int type) { }
 
-    Scalar operator()(uint64_t timestep,
+    Scalar computeLogBoltmann(uint64_t timestep,
                       const unsigned int& N,
                       const unsigned int type_id,
                       const param_type& shape_new,
@@ -637,7 +622,10 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
                       const param_type& shape_old,
                       const Scalar& iold)
         {
-        Scalar inertia_term = (Scalar(N) / Scalar(2.0)) * log(inew / iold);
+        Scalar inertia_term =
+            ShapeMoveBase<ShapeEllipsoid>::computeLogBoltmann(
+                      timestep, N, type_id, shape_new, inew, shape_old, iold
+                    );
         Scalar old_energy = computeEnergy(timestep, N, type_id, shape_old, iold);
         Scalar new_energy = computeEnergy(timestep, N, type_id, shape_new, inew);
         return old_energy - new_energy + inertia_term;
