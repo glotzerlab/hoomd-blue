@@ -258,10 +258,11 @@ class ShapeSpace(ShapeMove):
 
 
 class Vertex(ShapeMove):
-    """Apply shape moves where particle vertices are translated. Vertices are
-       rescaled during each shape move to ensure that the shape maintains a
-       constant volume. To preserve detail balance, the maximum step size is
-       rescaled by volume**(1/3) every time a move is accepted.
+    """Apply shape moves where particle vertices are translated.
+
+       Vertices are rescaled during each shape move to ensure that the shape
+       maintains a constant volume. To preserve detail balance, the maximum
+       step size is rescaled by volume**(1/3) every time a move is accepted.
 
     Args:
         default_step_size (`float`, optional): Default maximum size of shape
