@@ -72,6 +72,10 @@ void export_PotentialBondHarmonic(pybind11::module& m);
 void export_PotentialBondFENE(pybind11::module& m);
 void export_PotentialBondTether(pybind11::module& m);
 
+void export_PotentialMeshBondHarmonic(pybind11::module& m);
+void export_PotentialMeshBondFENE(pybind11::module& m);
+void export_PotentialMeshBondTether(pybind11::module& m);
+
 void export_PotentialSpecialPairLJ(pybind11::module& m);
 void export_PotentialSpecialPairCoulomb(pybind11::module& m);
 
@@ -202,6 +206,10 @@ void export_PotentialBondHarmonicGPU(pybind11::module& m);
 void export_PotentialBondFENEGPU(pybind11::module& m);
 void export_PotentialBondTetherGPU(pybind11::module& m);
 
+void export_PotentialMeshBondHarmonicGPU(pybind11::module& m);
+void export_PotentialMeshBondFENEGPU(pybind11::module& m);
+void export_PotentialMeshBondTetherGPU(pybind11::module& m);
+
 void export_PotentialSpecialPairLJGPU(pybind11::module& m);
 void export_PotentialSpecialPairCoulombGPU(pybind11::module& m);
 
@@ -330,9 +338,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBondFENE(m);
     export_PotentialBondTether(m);
 
-    // export_PotentialMeshBond<PotentialMeshBondHarmonic>(m, "PotentialMeshBondHarmonic");
-    // export_PotentialMeshBond<PotentialMeshBondFENE>(m, "PotentialMeshBondFENE");
-    // export_PotentialMeshBond<PotentialMeshBondTether>(m, "PotentialMeshBondTether");
+    export_PotentialMeshBondHarmonic(m);
+    export_PotentialMeshBondFENE(m);
+    export_PotentialMeshBondTether(m);
 
     export_PotentialSpecialPairLJ(m);
     export_PotentialSpecialPairCoulomb(m);
@@ -406,15 +414,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialBondFENEGPU(m);
     export_PotentialBondTetherGPU(m);
 
-    // export_PotentialMeshBondGPU<PotentialMeshBondHarmonicGPU, PotentialMeshBondHarmonic>(
-    //     m,
-    //     "PotentialMeshBondHarmonicGPU");
-    // export_PotentialMeshBondGPU<PotentialMeshBondFENEGPU, PotentialMeshBondFENE>(
-    //     m,
-    //     "PotentialMeshBondFENEGPU");
-    // export_PotentialMeshBondGPU<PotentialMeshBondTetherGPU, PotentialMeshBondTether>(
-    //     m,
-    //     "PotentialMeshBondTetherGPU");
+    export_PotentialMeshBondHarmonicGPU(m);
+    export_PotentialMeshBondFENEGPU(m);
+    export_PotentialMeshBondTetherGPU(m);
 
     export_PotentialSpecialPairLJGPU(m);
     export_PotentialSpecialPairCoulombGPU(m);

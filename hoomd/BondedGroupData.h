@@ -135,10 +135,7 @@ class BondedGroupData
     {
     public:
     //! Group size
-    enum
-        {
-        size = group_size
-        } Enum;
+    static const unsigned int size = group_size;
 
     //! Group data element type
     typedef union group_storage<group_size> members_t;

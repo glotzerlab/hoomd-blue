@@ -51,6 +51,8 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     {
     public:
+    static const unsigned int size = group_size;
+
     //! Constructor for empty MeshGroupData
     MeshGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
 

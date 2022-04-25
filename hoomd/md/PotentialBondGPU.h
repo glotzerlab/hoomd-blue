@@ -220,7 +220,7 @@ template<class T> void export_PotentialBondGPU(pybind11::module& m, const std::s
 template<class T>
 void export_PotentialMeshBondGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<PotentialBondGPU<T, MeshBondData>, PotentialBond<T, BondData>, std::shared_ptr<PotentialBondGPU<T, BondData>>>(m, name.c_str())
+    pybind11::class_<PotentialBondGPU<T, MeshBondData>, PotentialBond<T, MeshBondData>, std::shared_ptr<PotentialBondGPU<T, MeshBondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>());
     }
 
