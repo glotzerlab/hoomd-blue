@@ -8,7 +8,7 @@ freedom to the shape of the hard particle.
 
 See Also:
     * `G. van Anders <https://doi.org/10.1021/acsnano.5b04181>`_
-    * `J. Dshemuchadse <https://doi.org/10.1126/sciadv.aaw0514>`_
+    * `Y. Geng <https://doi.org/10.1126/sciadv.aaw0514>`_
 """
 
 import hoomd
