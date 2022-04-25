@@ -32,15 +32,9 @@ namespace md
    te \a evaluator calculates \f$V(\vec r,\vec e_i, \vec e_j)\f$ in a generic way.
 
     \tparam evaluator EvaluatorPair class used to evaluate potential, force and torque.
-    \tparam gpu_cgpf Driver function that calls gpu_compute_pair_forces<evaluator>()
-
     \sa export_AnisoPotentialPairGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params,
-                             const typename evaluator::shape_type* d_shape_params)>
-class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
+template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
     {
     public:
     //! Construct the pair potential
@@ -83,13 +77,9 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params,
-                             const typename evaluator::shape_type* d_shape_params)>
-AnisoPotentialPairGPU<evaluator, gpu_cgpf>::AnisoPotentialPairGPU(
-    std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<NeighborList> nlist)
+template<class evaluator>
+AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                        std::shared_ptr<NeighborList> nlist)
     : AnisoPotentialPair<evaluator>(sysdef, nlist), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -127,11 +117,7 @@ AnisoPotentialPairGPU<evaluator, gpu_cgpf>::AnisoPotentialPairGPU(
 #endif
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params,
-                             const typename evaluator::shape_type* d_shape_params)>
-void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
+template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 
@@ -197,32 +183,33 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
     // could track this between calls to avoid extra copying.
     bool first = true;
 
-    gpu_cgpf(kernel::a_pair_args_t(d_force.data,
-                                   d_torque.data,
-                                   d_virial.data,
-                                   this->m_virial.getPitch(),
-                                   this->m_pdata->getN(),
-                                   this->m_pdata->getMaxN(),
-                                   d_pos.data,
-                                   d_diameter.data,
-                                   d_charge.data,
-                                   d_orientation.data,
-                                   d_tag.data,
-                                   box,
-                                   d_n_neigh.data,
-                                   d_nlist.data,
-                                   d_head_list.data,
-                                   d_rcutsq.data,
-                                   this->m_pdata->getNTypes(),
-                                   block_size,
-                                   this->m_shift_mode,
-                                   flags[pdata_flag::pressure_tensor],
-                                   threads_per_particle,
-                                   this->m_pdata->getGPUPartition(),
-                                   this->m_exec_conf->dev_prop,
-                                   first),
-             this->m_params.data(),
-             this->m_shape_params.data());
+    kernel::gpu_compute_pair_aniso_forces<evaluator>(
+        kernel::a_pair_args_t(d_force.data,
+                              d_torque.data,
+                              d_virial.data,
+                              this->m_virial.getPitch(),
+                              this->m_pdata->getN(),
+                              this->m_pdata->getMaxN(),
+                              d_pos.data,
+                              d_diameter.data,
+                              d_charge.data,
+                              d_orientation.data,
+                              d_tag.data,
+                              box,
+                              d_n_neigh.data,
+                              d_nlist.data,
+                              d_head_list.data,
+                              d_rcutsq.data,
+                              this->m_pdata->getNTypes(),
+                              block_size,
+                              this->m_shift_mode,
+                              flags[pdata_flag::pressure_tensor],
+                              threads_per_particle,
+                              this->m_pdata->getGPUPartition(),
+                              this->m_exec_conf->dev_prop,
+                              first),
+        this->m_params.data(),
+        this->m_shape_params.data());
 
     if (!m_param)
         this->m_tuner->end();
@@ -233,27 +220,19 @@ void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep
     this->m_exec_conf->endMultiGPU();
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params,
-                             const typename evaluator::shape_type* d_shape_params)>
-void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::setParams(
-    unsigned int typ1,
-    unsigned int typ2,
-    const typename evaluator::param_type& param)
+template<class evaluator>
+void AnisoPotentialPairGPU<evaluator>::setParams(unsigned int typ1,
+                                                 unsigned int typ2,
+                                                 const typename evaluator::param_type& param)
     {
     AnisoPotentialPair<evaluator>::setParams(typ1, typ2, param);
     this->m_params[this->m_typpair_idx(typ1, typ2)].set_memory_hint();
     this->m_params[this->m_typpair_idx(typ2, typ1)].set_memory_hint();
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const kernel::a_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params,
-                             const typename evaluator::shape_type* d_shape_params)>
-void AnisoPotentialPairGPU<evaluator, gpu_cgpf>::setShape(
-    unsigned int typ,
-    const typename evaluator::shape_type& shape_param)
+template<class evaluator>
+void AnisoPotentialPairGPU<evaluator>::setShape(unsigned int typ,
+                                                const typename evaluator::shape_type& shape_param)
     {
     AnisoPotentialPair<evaluator>::setShape(typ, shape_param);
     this->m_shape_params[typ].set_memory_hint();
@@ -267,12 +246,13 @@ namespace detail
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as
    used in \a T.
 */
-template<class T, class Base>
-void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
+template<class T> void export_AnisoPotentialPairGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<AnisoPotentialPairGPU<T>,
+                     AnisoPotentialPair<T>,
+                     std::shared_ptr<AnisoPotentialPairGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setTuningParam", &T::setTuningParam);
+        .def("setTuningParam", &AnisoPotentialPairGPU<T>::setTuningParam);
     }
 
     } // end namespace detail

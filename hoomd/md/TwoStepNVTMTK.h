@@ -142,12 +142,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };
 
-namespace detail
-    {
-//! Exports the TwoStepNVTMTK class to python
-void export_TwoStepNVTMTK(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

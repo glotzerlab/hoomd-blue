@@ -358,7 +358,6 @@ class Yukawa(WallPotential):
             "epsilon": 1.0, "kappa": 1.0, "r_cut": 3.0}
         yukawa_wall.params[['A','B']] = {
             "epsilon": 0.5, "kappa": 3.0, "r_cut": 3.2}
-        walls=wall.group()
 
     Attributes:
         walls (`list` [`hoomd.wall.WallGeometry` ]): A list of wall definitions

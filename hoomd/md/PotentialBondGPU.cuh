@@ -25,11 +25,11 @@ namespace md
     {
 namespace kernel
     {
-//! Wraps arguments to gpu_cgbf
-template<int group_size> struct bonds_args_t
+//! Wraps arguments to kernel driver
+template<int group_size> struct bond_args_t
     {
     //! Construct a bond_args_t
-    bonds_args_t(Scalar4* _d_force,
+    bond_args_t(Scalar4* _d_force,
                  Scalar* _d_virial,
                  const size_t _virial_pitch,
                  const unsigned int _N,
@@ -63,10 +63,6 @@ template<int group_size> struct bonds_args_t
     const unsigned int n_bond_types;                 //!< Number of bond types in the simulation
     const unsigned int block_size;                   //!< Block size to execute
     };
-
-typedef bonds_args_t<2> bond_args_t;
-
-typedef bonds_args_t<4> meshbond_args_t;
 
 #ifdef __HIPCC__
 
@@ -247,7 +243,8 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template<class evaluator, int group_size>
-hipError_t gpu_compute_bond_forces(const kernel::bonds_args_t<group_size>& bond_args,
+__attribute__((visibility("default")))
+hipError_t gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                                    const typename evaluator::param_type* d_params,
                                    unsigned int* d_flags)
     {
@@ -295,6 +292,12 @@ hipError_t gpu_compute_bond_forces(const kernel::bonds_args_t<group_size>& bond_
 
     return hipSuccess;
     }
+#else
+template<class evaluator, int group_size>
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
+                        const typename evaluator::param_type* d_params,
+                        unsigned int* d_flags);
 #endif
 
     } // end namespace kernel

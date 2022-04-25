@@ -84,14 +84,6 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
     void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };
 
-namespace detail
-    {
-
-//! Exports the TwoStepNVTAlchemy class to python
-void export_TwoStepNVTAlchemy(pybind11::module& m);
-
-    } // end namespace detail
-
     } // end namespace md
 
     } // end namespace hoomd

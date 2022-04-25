@@ -10,7 +10,11 @@
 #include <functional>
 #include <memory>
 
-#include "hoomd/md/AllExternalPotentials.h"
+#include "hoomd/md/PotentialExternal.h"
+#ifdef ENABLE_HIP
+#include "hoomd/md/PotentialExternalGPU.h"
+#endif
+#include "hoomd/md/EvaluatorExternalPeriodic.h"
 
 #include "hoomd/Initializers.h"
 
@@ -20,6 +24,11 @@ using namespace std;
 using namespace std::placeholders;
 using namespace hoomd;
 using namespace hoomd::md;
+
+typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
+#ifdef ENABLE_HIP
+typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
+#endif
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for PotentialPairLJ and PotentialPairLJGPU and descendants

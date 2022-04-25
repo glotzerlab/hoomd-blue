@@ -119,12 +119,6 @@ class ManifoldSphere
     Scalar R_sq;
     };
 
-namespace detail
-    {
-//! Exports the Sphere manifold class to python
-void export_ManifoldSphere(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

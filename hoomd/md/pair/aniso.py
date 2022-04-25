@@ -62,7 +62,9 @@ class Dipole(AnisotropicPair):
     Args:
         nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        mode (str): energy shifting/smoothing mode
+        mode (str): energy shifting/smoothing mode (ignored).
+
+            .. deprecated:: v3.1.0
 
     `Dipole` computes the (screened) interaction between pairs of
     particles with dipoles and electrostatic charges:
@@ -89,10 +91,14 @@ class Dipole(AnisotropicPair):
        All units are documented electronic dipole moments. However, `Dipole`
        can also be used to represent magnetic dipoles.
 
+    Note:
+        `Dipole` accepts the ``mode`` parameter, but computes the same energy
+        regardless of the value of ``mode`` (starting with v3.0.0).
+
     Example::
 
         nl = nlist.Cell()
-        dipole = md.pair.Dipole(nl, default_r_cut=3.0)
+        dipole = md.pair.ansio.Dipole(nl, default_r_cut=3.0)
         dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
         dipole.mu['A'] = (4.0, 1.0, 0.0)
 
@@ -184,7 +190,7 @@ class GayBerne(AnisotropicPair):
     Example::
 
         nl = nlist.Cell()
-        gay_berne = md.pair.GayBerne(nlist=nl, default_r_cut=2.5)
+        gay_berne = md.pair.aniso.GayBerne(nlist=nl, default_r_cut=2.5)
         gay_berne.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
         gay_berne.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
 
@@ -236,7 +242,10 @@ class ALJ(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
-        mode (`str`, optional) : the energy shifting mode, defaults to "none".
+        mode (`str`, optional) : the energy shifting mode, defaults to "none"
+          (ignored).
+
+          .. deprecated:: v3.1.0
 
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
     described in `Ramasubramani, V.  et. al. 2020`_. Specifically we implement
@@ -289,6 +298,10 @@ class ALJ(AnisotropicPair):
     Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
     to empty list to create the ellipsoid).
+
+    Note:
+        `ALJ` accepts the ``mode`` parameter, but computes the same energy
+        regardless of the value of ``mode`` (starting with v3.0.0).
 
     Example::
 
