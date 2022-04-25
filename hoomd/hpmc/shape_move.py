@@ -74,7 +74,18 @@ class ShapeMove(_HOOMDBaseObject):
 
 
 class Elastic(ShapeMove):
-    """Apply scale and shear shape moves to particles with an energy penalty.
+    """Apply volume preserving normal and shear shape moves to particles with \
+       a deformation energy penalty.
+
+       The for volume preserving deformations, the strain energy penalty is
+       approximated as:
+
+       .. math::
+
+           U \\approx \\mu \\text{Trace} \\[\\boldsymbol{\\varepsilon}^2\\]V`
+
+    where :math:`\\mu` is the stiffness constant, :math:`V` is the particle
+    volume and :math:`\\boldsymbol{\\varepsilon}` is the strain tensor. 
 
     Args:
         stiffness (`hoomd.variant.Variant`): Shape stiffness against

@@ -404,12 +404,12 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
 
     Matrix3S getEps(unsigned int type_id)
         {
-        return 0.5 * ((m_F[type_id].transpose() * m_F[type_id]) - Matrix3S::Identity());
+        return 0.5 * (m_F[type_id].transpose() + m_F[type_id]) - Matrix3S::Identity();
         }
 
     Matrix3S getEpsLast(unsigned int type_id)
         {
-        return 0.5 * ((m_F_last[type_id].transpose() * m_F_last[type_id]) - Matrix3S::Identity());
+        return 0.5 * (m_F_last[type_id].transpose() + m_F_last[type_id]) - Matrix3S::Identity();
         }
 
     //! retreat whenever the proposed move is rejected.
