@@ -24,7 +24,7 @@ template<typename Shape> class ShapeMoveBase
     public:
     ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef,
                   std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
-        : m_mc(mc), m_det_inertia_tensor(0), m_sysdef(sysdef)
+        : m_mc(mc), m_sysdef(sysdef)
         {
         m_ntypes = this->m_sysdef->getParticleData()->getNTypes();
         m_volume.resize(m_ntypes, 0);
@@ -46,11 +46,6 @@ template<typename Shape> class ShapeMoveBase
 
     //! retreat whenever the proposed move is rejected.
     virtual void retreat(uint64_t timestep, unsigned int type) { }
-
-    Scalar getDetInertiaTensor() const
-        {
-        return m_det_inertia_tensor;
-        }
 
     Scalar getStepSize(std::string typ)
         {
@@ -118,7 +113,6 @@ template<typename Shape> class ShapeMoveBase
 
     protected:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
-    Scalar m_det_inertia_tensor; // determinant of the moment of inertia tensor of the shape
     std::shared_ptr<SystemDefinition> m_sysdef;
     unsigned m_ntypes;
     std::vector<Scalar> m_volume;
@@ -137,7 +131,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         {
         m_params.resize(this->m_ntypes);
         m_params_backup.resize(this->m_ntypes);
-        this->m_det_inertia_tensor = 1.0;
         }
 
     void prepare(uint64_t timestep)
@@ -163,8 +156,6 @@ template<typename Shape> class PythonShapeMove : public ShapeMoveBase<Shape>
         pybind11::object d = m_python_callback(type_id, m_params[type_id]);
         pybind11::dict shape_dict = pybind11::cast<pybind11::dict>(d);
         shape = typename Shape::param_type(shape_dict);
-        detail::MassProperties<Shape> mp(shape);
-        this->m_det_inertia_tensor = mp.getDetInertiaTensor();
         }
 
     void retreat(uint64_t timestep, unsigned int type)
@@ -225,7 +216,6 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
                                     std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>> mc)
         : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, mc)
         {
-        this->m_det_inertia_tensor = 1.0;
         this->m_centroids.resize(this->m_ntypes, vec3<Scalar>(0, 0, 0));
         initializeMassProperties();
         }
@@ -361,11 +351,9 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
                      std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>> mc)
         : ElasticShapeMoveBase<ShapeConvexPolyhedron>(sysdef, mc)
         {
-        m_mass_props.resize(this->m_ntypes);
         m_reference_shapes.resize(this->m_ntypes);
         m_F.resize(this->m_ntypes, Matrix3S::Identity());
         m_F_last.resize(this->m_ntypes, Matrix3S::Identity());
-        this->m_det_inertia_tensor = 1.0;
         }
 
     void prepare(uint64_t timestep)
@@ -412,10 +400,6 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
             dsq = fmax(dsq, dot(vert, vert));
             }
         param.diameter = OverlapReal(2.0 * fast::sqrt(dsq));
-        // update allows caching since for some shapes a full compute is not necessary.
-        m_mass_props[type_id].updateParam(param);
-        // update det(I)
-        this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
         }
 
     Matrix3S getEps(unsigned int type_id)
@@ -508,8 +492,6 @@ class ElasticShapeMove<ShapeConvexPolyhedron> : public ElasticShapeMoveBase<Shap
         }
 
     protected:
-    std::vector<detail::MassProperties<ShapeConvexPolyhedron>>
-        m_mass_props;               // mass properties of the shape
     std::vector<Matrix3S> m_F_last; // matrix representing shape deformation at the last step
     std::vector<Matrix3S> m_F;      // matrix representing shape deformation at the current step
 
@@ -576,7 +558,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
                      std::shared_ptr<IntegratorHPMCMono<ShapeEllipsoid>> mc)
         : ElasticShapeMoveBase<ShapeEllipsoid>(sysdef, mc)
         {
-        m_mass_props.resize(this->m_ntypes);
         m_reference_shapes.resize(this->m_ntypes);
         }
 
@@ -643,8 +624,6 @@ template<> class ElasticShapeMove<ShapeEllipsoid> : public ElasticShapeMoveBase<
         }
 
     private:
-    // mass properties of the shape
-    std::vector<detail::MassProperties<ShapeEllipsoid>> m_mass_props;
     };
 
 namespace detail
