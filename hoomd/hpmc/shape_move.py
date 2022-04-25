@@ -203,8 +203,9 @@ class ShapeSpace(ShapeMove):
 
     def __init__(self, callback, param_move_probability=1):
 
-        param_dict = ParameterDict(param_move_probability=float(param_move_probability),
-                                   callback=object)
+        param_dict = ParameterDict(
+            param_move_probability=float(param_move_probability),
+            callback=object)
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
@@ -263,7 +264,8 @@ class Vertex(ShapeMove):
     _suported_shapes = {'ConvexPolyhedron'}
 
     def __init__(self, vertex_move_probability=1):
-        param_dict = ParameterDict(vertex_move_probability=float(vertex_move_probability))
+        param_dict = ParameterDict(
+            vertex_move_probability=float(vertex_move_probability))
         self._param_dict.update(param_dict)
         typeparam_volume = TypeParameter('volume',
                                          type_kind='particle_types',

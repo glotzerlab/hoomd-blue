@@ -58,8 +58,7 @@ shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
                                       mc=hpmc.integrate.ConvexPolyhedron))]
 
 updater_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10),
-         shape_move=ShapeMove()),
+    dict(trigger=hoomd.trigger.Periodic(10), shape_move=ShapeMove()),
     dict(trigger=hoomd.trigger.After(100),
          shape_move=Vertex(),
          type_select=4,
@@ -118,8 +117,7 @@ def test_valid_setattr_shape_move(shape_move_obj, attr, value):
 @pytest.mark.parametrize("attr,value", shape_updater_valid_attrs)
 def test_valid_setattr_shape_updater(attr, value):
     """Test that the Shape updater can get and set attributes."""
-    updater = hpmc.update.Shape(trigger=1,
-                                shape_move=ShapeMove())
+    updater = hpmc.update.Shape(trigger=1, shape_move=ShapeMove())
 
     setattr(updater, attr, value)
     assert getattr(updater, attr) == value
