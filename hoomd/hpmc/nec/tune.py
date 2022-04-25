@@ -7,8 +7,8 @@ from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.tune import _InternalCustomTuner
-from hoomd.tune.attr_tuner import (_TuneDefinition, SolverStep, ScaleSolver,
-                                   SecantSolver)
+from hoomd.tune.attr_tuner import _TuneDefinition
+from hoomd.tune import RootSolver, ScaleSolver, SecantSolver
 from hoomd.hpmc.nec.integrate import HPMCNECIntegrator
 
 
@@ -40,7 +40,7 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         #
         # None in the hoomd solver infrastructure means that the value
         # either cannot be computed or would be inaccurate at the current
-        # time. It informs the `SolverStep` object to skip tuning this
+        # time. It informs the `RootSolver` object to skip tuning this
         # attribute for now.
         if self.previous_start is None or chain_start == 0:
             self.previous_hit = chain_hit
@@ -110,7 +110,7 @@ class _InternalChainTime(_InternalAction):
         param_dict = ParameterDict(
             target=OnlyTypes(float,
                              postprocess=self._process_chain_time_target),
-            solver=SolverStep,
+            solver=RootSolver,
             max_chain_time=OnlyTypes(
                 float,
                 allow_none=True,
@@ -194,8 +194,8 @@ class ChainTime(_InternalCustomTuner):
             the tuner.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (hoomd.tune.SolverStep): A solver that tunes chain times to reach
-            the specified target.
+        solver (`hoomd.tune.RootSolver`): A solver that tunes chain times to
+            reach the specified target.
         max_chain_time (float): The maximum value of chain time to attempt.
 
     Attributes:
@@ -203,8 +203,8 @@ class ChainTime(_InternalCustomTuner):
             the tuner.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (hoomd.tune.SolverStep): A solver that tunes move sizes to
-            reach the specified target.
+        solver (hoomd.tune.RootSolver): A solver that tunes move sizes to reach
+            the specified target.
         max_chain_time (float): The maximum value of chain time to attempt.
     """
     _internal_class = _InternalChainTime
