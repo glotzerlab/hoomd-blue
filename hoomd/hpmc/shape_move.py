@@ -74,15 +74,15 @@ class ShapeMove(_HOOMDBaseObject):
 
 
 class Elastic(ShapeMove):
-    """Apply volume preserving normal and shear shape moves to particles with \
-       a deformation energy penalty.
+    """Elastic shape move.
 
-       The for volume preserving deformations, the strain energy penalty is
-       approximated as:
+    Apply volume preserving normal and shear shape moves to particles with a
+    deformation energy penalty. When volume preserving deformations, the strain
+    energy penalty is approximated as:
 
-       .. math::
+    .. math::
 
-           U \\approx \\mu \\text{Tr}[\\boldsymbol{\\varepsilon}^2]V
+        U \\approx \\mu \\text{Tr}[\\boldsymbol{\\varepsilon}^2]V
 
     where :math:`\\mu` is the stiffness constant, :math:`\\text{Tr}` is the
     trace operator, :math:`\\boldsymbol{\\varepsilon}` is the strain tensor
@@ -271,9 +271,9 @@ class ShapeSpace(ShapeMove):
 class Vertex(ShapeMove):
     """Apply shape moves where particle vertices are translated.
 
-       Vertices are rescaled during each shape move to ensure that the shape
-       maintains a constant volume. To preserve detail balance, the maximum
-       step size is rescaled by volume**(1/3) every time a move is accepted.
+    Vertices are rescaled during each shape move to ensure that the shape
+    maintains a constant volume. To preserve detail balance, the maximum step
+    size is rescaled by volume**(1/3) every time a move is accepted.
 
     Args:
         default_step_size (`float`, optional): Default maximum size of shape
