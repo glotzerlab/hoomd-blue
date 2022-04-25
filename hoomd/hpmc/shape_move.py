@@ -82,7 +82,7 @@ class Elastic(ShapeMove):
 
        .. math::
 
-           U \\approx \\mu \\text{Trace} \\[\\boldsymbol{\\varepsilon}^2\\]V`
+           U \\approx \\mu \\text{Trace}[\\boldsymbol{\\varepsilon}^2]V`
 
     where :math:`\\mu` is the stiffness constant, :math:`V` is the particle
     volume and :math:`\\boldsymbol{\\varepsilon}` is the strain tensor.

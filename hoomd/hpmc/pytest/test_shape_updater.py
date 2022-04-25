@@ -78,11 +78,9 @@ type_parameters = [
     (ShapeSpace(callback=_test_callback), "params", [0.1, 0.3, 0.4]),
     (ShapeSpace(callback=_test_callback), "step_size", 0.4),
     (Vertex(), "volume", 1.2), (Vertex(), "step_size", 0.1),
-    (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "reference_shape", {
-        "a": 1,
-        "b": 2,
-        "c": 3
-    }), (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "step_size", 0.2)
+    (Elastic(stiffness=10.0, mc=hpmc.integrate.ConvexPolyhedron), "reference_shape", {
+        "vertices": verts
+    }), (Elastic(stiffness=10.0, mc=hpmc.integrate.ConvexPolyhedron), "step_size", 0.2)
 ]
 
 
