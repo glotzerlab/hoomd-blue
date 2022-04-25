@@ -97,7 +97,6 @@ class Elastic(ShapeMove):
     The following shapes are supported:
 
     * `hoomd.hpmc.integrate.ConvexPolyhedron`
-    * `hoomd.hpmc.integrate.Ellipsoid`
 
     Note:
         An instance is only able to be used with the passed HPMC integrator
@@ -126,7 +125,7 @@ class Elastic(ShapeMove):
             deformation trial moves (**default**: 0.5).
     """
 
-    _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
+    _suported_shapes = {'ConvexPolyhedron'}
 
     def __init__(self,
                  stiffness,
