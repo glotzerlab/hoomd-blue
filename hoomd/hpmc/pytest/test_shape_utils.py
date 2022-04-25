@@ -117,7 +117,7 @@ def _get_cpp_cls(shape_type):
 
 
 @pytest.mark.parametrize("shape_type,shape_dict,volume,det_moi", shape_list)
-def test_volume_det_moi(shape_type,shape_dict,volume,det_moi):
+def test_volume_det_moi(shape_type, shape_dict, volume, det_moi):
     param_cpp_cls, mass_props_cpp_cls = _get_cpp_cls(shape_type)
     mass_props_obj = mass_props_cpp_cls(param_cpp_cls(shape_dict))
     assert np.allclose(mass_props_obj.getVolume(), volume)

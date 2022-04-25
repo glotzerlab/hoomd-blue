@@ -78,14 +78,12 @@ updater_constructor_args = [
 type_parameters = [
     (ShapeSpace(callback=_test_callback), "params", [0.1, 0.3, 0.4]),
     (ShapeSpace(callback=_test_callback), "step_size", 0.4),
-    (Vertex(), "volume", 1.2),
-    (Vertex(), "step_size", 0.1),
+    (Vertex(), "volume", 1.2), (Vertex(), "step_size", 0.1),
     (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "reference_shape", {
         "a": 1,
         "b": 2,
         "c": 3
-    }),
-    (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "step_size", 0.2)
+    }), (Elastic(stiffness=10.0, mc=hpmc.integrate.Ellipsoid), "step_size", 0.2)
 ]
 
 
@@ -137,9 +135,7 @@ def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
     move = Vertex(default_step_size=0.2)
     move.volume["A"] = 1
 
-    updater = hpmc.update.Shape(trigger=1,
-                                shape_move=move,
-                                nsweeps=2)
+    updater = hpmc.update.Shape(trigger=1, shape_move=move, nsweeps=2)
     updater.shape_move = move
 
     mc = hoomd.hpmc.integrate.ConvexPolyhedron()
@@ -201,9 +197,7 @@ def test_python_callback_shape_move(simulation_factory,
                       default_step_size=0.2)
     move.params["A"] = [1]
 
-    updater = hpmc.update.Shape(trigger=1,
-                                shape_move=move,
-                                nsweeps=2)
+    updater = hpmc.update.Shape(trigger=1, shape_move=move, nsweeps=2)
     updater.shape_move = move
 
     mc = hoomd.hpmc.integrate.Ellipsoid()
@@ -259,9 +253,7 @@ def test_elastic_shape_move(simulation_factory, two_particle_snapshot_factory):
     move = Elastic(stiffness=1, mc=mc, default_step_size=0.1)
     move.reference_shape["A"] = dict(vertices=verts)
 
-    updater = hpmc.update.Shape(trigger=1,
-                                shape_move=move,
-                                nsweeps=2)
+    updater = hpmc.update.Shape(trigger=1, shape_move=move, nsweeps=2)
 
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory(d=10))

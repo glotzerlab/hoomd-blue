@@ -128,7 +128,11 @@ class Elastic(ShapeMove):
 
     _suported_shapes = {'ConvexPolyhedron', 'Ellipsoid'}
 
-    def __init__(self, stiffness, mc, default_step_size=None, normal_shear_ratio=0.5):
+    def __init__(self,
+                 stiffness,
+                 mc,
+                 default_step_size=None,
+                 normal_shear_ratio=0.5):
         super().__init__(default_step_size)
         param_dict = ParameterDict(normal_shear_ratio=float(normal_shear_ratio),
                                    stiffness=hoomd.variant.Variant)
@@ -235,10 +239,14 @@ class ShapeSpace(ShapeMove):
         'ConvexPolyhedron', 'ConvexSpheropolyhedron', 'Ellipsoid'
     }
 
-    def __init__(self, callback, default_step_size=None, param_move_probability=1):
+    def __init__(self,
+                 callback,
+                 default_step_size=None,
+                 param_move_probability=1):
         super().__init__(default_step_size)
-        param_dict = ParameterDict(param_move_probability=float(param_move_probability),
-                                   callback=object)
+        param_dict = ParameterDict(
+            param_move_probability=float(param_move_probability),
+            callback=object)
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
 
@@ -305,7 +313,8 @@ class Vertex(ShapeMove):
 
     def __init__(self, default_step_size=None, vertex_move_probability=1):
         super().__init__(default_step_size)
-        param_dict = ParameterDict(vertex_move_probability=float(vertex_move_probability))
+        param_dict = ParameterDict(
+            vertex_move_probability=float(vertex_move_probability))
         self._param_dict.update(param_dict)
         typeparam_volume = TypeParameter('volume',
                                          type_kind='particle_types',

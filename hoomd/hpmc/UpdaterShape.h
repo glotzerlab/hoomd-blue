@@ -288,10 +288,7 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
                                          hoomd::Counter(typ_i, 0, i_sweep));
 
             // perform an in-place shape update on shape_param_new
-            m_move_function->update_shape(timestep,
-                                          typ_i,
-                                          shape_param_new,
-                                          rng_i);
+            m_move_function->update_shape(timestep, typ_i, shape_param_new, rng_i);
 
             // update det(I)
             detail::MassProperties<Shape> mp(shape_param_new);
@@ -305,14 +302,14 @@ template<class Shape> void UpdaterShape<Shape>::update(uint64_t timestep)
 
             // compute log_boltz factor
             log_boltz = m_move_function->computeLogBoltmann(
-                                     timestep,             // current timestep
-                                     h_ntypes.data[typ_i], // number of particles of type typ_i,
-                                     typ_i,                // the type id
-                                     shape_param_new,      // new shape parameter
-                                     h_det.data[typ_i],    // new determinant_inertia_tensor
-                                     shape_param_old,      // old shape parameter
-                                     h_det_old.data[typ_i] // old determinant_inertia_tensor
-                );
+                timestep,             // current timestep
+                h_ntypes.data[typ_i], // number of particles of type typ_i,
+                typ_i,                // the type id
+                shape_param_new,      // new shape parameter
+                h_det.data[typ_i],    // new determinant_inertia_tensor
+                shape_param_old,      // old shape parameter
+                h_det_old.data[typ_i] // old determinant_inertia_tensor
+            );
 
             // actually update the shape parameter in the integrator
             m_mc->setParam(typ_i, shape_param_new);
