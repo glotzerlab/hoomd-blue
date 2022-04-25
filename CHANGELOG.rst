@@ -21,6 +21,9 @@ v3.1.0 (not yet released)
 *Changed*
 
 * Change HPMC fugacity to a per-type quantity.
+* Improved documentation.
+* [developers] Reduced the time needed for incremental builds.
+* [developers] Reduced memory needed to compile HOOMD.
 
 *Fixed*
 
@@ -29,10 +32,6 @@ v3.1.0 (not yet released)
 * ``hoomd.md.force.Custom`` zeroes forces, torques, energies, and virials before calling
   ``set_forces``.
 * Point tarball download link to https://github.com/glotzerlab/hoomd-blue/releases.
-
-*Changed*
-
-* Improved documentation.
 
 v3.0.1 (2022-04-08)
 ^^^^^^^^^^^^^^^^^^^
