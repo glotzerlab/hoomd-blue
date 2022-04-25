@@ -72,12 +72,6 @@ class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Exports the ImproperForceCompute class to python
-void export_HarmonicImproperForceCompute(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

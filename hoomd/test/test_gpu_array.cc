@@ -16,6 +16,9 @@
 using namespace hoomd::test;
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpessimizing-move"
+
 using namespace std;
 using namespace hoomd;
 
@@ -453,3 +456,5 @@ UP_TEST(GPUVector_basic_tests)
     UP_ASSERT_EQUAL((unsigned int)v2[3], (unsigned int)3);
     }
 #endif
+
+#pragma GCC diagnostic pop

@@ -24,7 +24,7 @@ namespace md
     {
 namespace kernel
     {
-//! Wraps arguments to gpu_cgbf
+//! Wraps arguments to kernel driver
 struct bond_args_t
     {
     //! Construct a bond_args_t
@@ -242,9 +242,10 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     This is just a driver function for gpu_compute_bond_forces_kernel(), see it for details.
 */
 template<class evaluator>
-hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
-                                   const typename evaluator::param_type* d_params,
-                                   unsigned int* d_flags)
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
+                        const typename evaluator::param_type* d_params,
+                        unsigned int* d_flags)
     {
     assert(d_params);
     assert(bond_args.n_bond_types > 0);
@@ -289,6 +290,12 @@ hipError_t gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
 
     return hipSuccess;
     }
+#else
+template<class evaluator>
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_bond_forces(const kernel::bond_args_t& bond_args,
+                        const typename evaluator::param_type* d_params,
+                        unsigned int* d_flags);
 #endif
 
     } // end namespace kernel

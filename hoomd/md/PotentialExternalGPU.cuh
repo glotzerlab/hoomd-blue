@@ -23,7 +23,7 @@ namespace md
     {
 namespace kernel
     {
-//! Wraps arguments to gpu_cpef
+//! Wraps arguments to gpu_compute_potential_external_forces
 struct external_potential_args_t
     {
     //! Construct a external_potential_args_t
@@ -58,10 +58,10 @@ struct external_potential_args_t
  * \tparam Evaluator functor
  */
 template<class evaluator>
-hipError_t __attribute__((visibility("default")))
-gpu_cpef(const kernel::external_potential_args_t& external_potential_args,
-         const typename evaluator::param_type* d_params,
-         const typename evaluator::field_type* d_field);
+hipError_t __attribute__((visibility("default"))) gpu_compute_potential_external_forces(
+    const kernel::external_potential_args_t& external_potential_args,
+    const typename evaluator::param_type* d_params,
+    const typename evaluator::field_type* d_field);
 
 #ifdef __HIPCC__
 //! Kernel for calculating external forces
@@ -164,9 +164,10 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
  * instantiated per potential in a cu file.
  */
 template<class evaluator>
-hipError_t gpu_cpef(const kernel::external_potential_args_t& external_potential_args,
-                    const typename evaluator::param_type* d_params,
-                    const typename evaluator::field_type* d_field)
+hipError_t gpu_compute_potential_external_forces(
+    const kernel::external_potential_args_t& external_potential_args,
+    const typename evaluator::param_type* d_params,
+    const typename evaluator::field_type* d_field)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;

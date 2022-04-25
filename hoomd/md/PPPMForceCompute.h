@@ -248,11 +248,6 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     Scalar gf_denom(Scalar x, Scalar y, Scalar z);
     };
 
-namespace detail
-    {
-void export_PPPMForceCompute(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

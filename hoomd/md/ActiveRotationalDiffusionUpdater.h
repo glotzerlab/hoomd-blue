@@ -67,11 +67,5 @@ class PYBIND11_EXPORT ActiveRotationalDiffusionUpdater : public Updater
         m_active_force; //!< Active force to call rotationalDiffusion on
     };
 
-namespace detail
-    {
-/// Export the ActiveRotationalDiffusionUpdater to python
-void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

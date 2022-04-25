@@ -101,12 +101,6 @@ class PYBIND11_EXPORT TableAngleForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Exports the TableAngleForceCompute class to python
-void export_TableAngleForceCompute(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 
