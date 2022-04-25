@@ -650,9 +650,6 @@ namespace detail
 template<class Shape> void export_ShapeMoveBase(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<ShapeMoveBase<Shape>, std::shared_ptr<ShapeMoveBase<Shape>>>(m, name.c_str())
-        .def_property("move_probability",
-                      &ShapeMoveBase<Shape>::getMoveProbability,
-                      &ShapeMoveBase<Shape>::setMoveProbability)
         .def("getVolume", &ShapeMoveBase<Shape>::getVolume)
         .def("setVolume", &ShapeMoveBase<Shape>::setVolume);
     }
@@ -664,6 +661,9 @@ template<class Shape> void export_PythonShapeMove(pybind11::module& m, const std
                      std::shared_ptr<PythonShapeMove<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
+        .def_property("param_move_probability",
+                       &PythonShapeMove<Shape>::getMoveProbability,
+                       &PythonShapeMove<Shape>::setMoveProbability)
         .def("getParams", &PythonShapeMove<Shape>::getParams)
         .def("setParams", &PythonShapeMove<Shape>::setParams)
         .def_property("callback",
@@ -678,6 +678,9 @@ inline void export_ConvexPolyhedronVertexShapeMove(pybind11::module& m, const st
                      std::shared_ptr<ConvexPolyhedronVertexShapeMove>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<ShapeConvexPolyhedron>>>())
+        .def_property("vertex_move_probability",
+                       &ConvexPolyhedronVertexShapeMove::getMoveProbability,
+                       &ConvexPolyhedronVertexShapeMove::setMoveProbability)
         .def("getVolume", &ConvexPolyhedronVertexShapeMove::getVolume)
         .def("setVolume", &ConvexPolyhedronVertexShapeMove::setVolume);
     }
@@ -688,6 +691,9 @@ inline void export_ElasticShapeMove(pybind11::module& m, const std::string& name
     pybind11::class_<ElasticShapeMove<Shape>,
                      ShapeMoveBase<Shape>,
                      std::shared_ptr<ElasticShapeMove<Shape>>>(m, name.c_str())
+        .def_property("normal_shear_ratio",
+                       &ElasticShapeMove<Shape>::getMoveProbability,
+                       &ElasticShapeMove<Shape>::setMoveProbability)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>>())
         .def_property("stiffness",

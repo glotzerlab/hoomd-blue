@@ -22,20 +22,20 @@ verts = np.asarray([[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5],
                     [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]])
 
 shape_move_constructor_args = [
-    (Vertex, dict(move_probability=0.7)),
-    (ShapeSpace, dict(callback=_test_callback, move_probability=1)),
+    (Vertex, dict(vertex_move_probability=0.7)),
+    (ShapeSpace, dict(callback=_test_callback, param_move_probability=1)),
     (Elastic,
      dict(stiffness=hoomd.variant.Constant(10),
           mc=hpmc.integrate.ConvexPolyhedron,
-          move_probability=0.5)),
+          normal_shear_ratio=0.5)),
 ]
 
 shape_move_valid_attrs = [
-    (Vertex(), "move_probability", 0.1),
-    (ShapeSpace(callback=_test_callback), "move_probability", 0.1),
+    (Vertex(), "vertex_move_probability", 0.1),
+    (ShapeSpace(callback=_test_callback), "param_move_probability", 0.1),
     (ShapeSpace(callback=_test_callback), "callback",
      lambda type, param_list: {}),
-    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "move_probability", 0.5),
+    (Elastic(1, hpmc.integrate.ConvexPolyhedron), "normal_shear_ratio", 0.5),
     (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
      hoomd.variant.Constant(10)),
     (Elastic(1, hpmc.integrate.ConvexPolyhedron), "stiffness",
@@ -59,7 +59,7 @@ shape_updater_valid_attrs = [("trigger", hoomd.trigger.Periodic(10)),
 
 updater_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
-         shape_move=ShapeMove(move_probability=1)),
+         shape_move=ShapeMove()),
     dict(trigger=hoomd.trigger.After(100),
          shape_move=Vertex(),
          type_select=4,
@@ -119,7 +119,7 @@ def test_valid_setattr_shape_move(shape_move_obj, attr, value):
 def test_valid_setattr_shape_updater(attr, value):
     """Test that the Shape updater can get and set attributes."""
     updater = hpmc.update.Shape(trigger=1,
-                                shape_move=ShapeMove(move_probability=1))
+                                shape_move=ShapeMove())
 
     setattr(updater, attr, value)
     assert getattr(updater, attr) == value
@@ -163,14 +163,14 @@ def test_vertex_shape_move(simulation_factory, two_particle_snapshot_factory):
 
     # run with 0 probability of performing a move:
     #  - shape should remain unchanged
-    move.move_probability = 0
+    move.vertex_move_probability = 0
     sim.run(10)
     assert np.allclose(mc.shape["A"]["vertices"], verts)
 
     # always attempt a shape move:
     #  - shape should change
     #  - volume should remain unchanged
-    move.move_probability = 1
+    move.vertex_move_probability = 1
     sim.run(10)
     assert np.sum(updater.shape_moves) == 20
     assert not np.allclose(mc.shape["A"]["vertices"], verts)
@@ -229,7 +229,7 @@ def test_python_callback_shape_move(simulation_factory,
     # run with 0 probability of performing a move:
     #  - shape and params should remain unchanged
     #  - all moves accepted
-    move.move_probability = 0
+    move.param_move_probability = 0
     sim.run(10)
     assert np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
     assert np.allclose(mc.shape["A"]["b"], ellipsoid["b"])
@@ -239,7 +239,7 @@ def test_python_callback_shape_move(simulation_factory,
     # always attempt a shape move:
     #  - shape and params should change
     #  - volume should remain unchanged
-    move.move_probability = 1
+    move.param_move_probability = 1
     sim.run(10)
     assert np.sum(updater.shape_moves) == 20
     assert not np.allclose(mc.shape["A"]["a"], ellipsoid["a"])
