@@ -16,13 +16,12 @@ class Harmonic(MeshPotential):
     :py:class:`hoomd.md.bond.Harmonic`.
 
     Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
-        parameter (TypeParameter[dict]):
+        params (TypeParameter[``mesh name``,dict]):
             The parameter of the harmonic bonds for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+            The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
@@ -32,7 +31,7 @@ class Harmonic(MeshPotential):
 
     Examples::
 
-        harmonic = mesh.bond.Harmonic(mesh)
+        harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
         harmonic.params["mesh"] = dict(k=10.0, r0=1.0)
     """
     _cpp_class_name = "PotentialMeshBondHarmonic"
@@ -53,13 +52,12 @@ class FENEWCA(MeshPotential):
     :py:class:`hoomd.md.bond.FENEWCA`.
 
     Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
-        parameter (TypeParameter[dict]):
-            The parameter of the FENE bonds for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+        params (TypeParameter[``mesh name``,dict]):
+            The parameter of the FENE potential bonds.
+            The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
@@ -75,7 +73,7 @@ class FENEWCA(MeshPotential):
 
     Examples::
 
-        bond_potential = mesh.bond.FENE(mesh)
+        bond_potential = hoomd.md.mesh.bond.FENE(mesh)
         bond_potential.params["mesh"] = dict(k=10.0, r0=1.0,
                                             epsilon=0.8, sigma=1.2, delta=0.0)
 
@@ -104,13 +102,12 @@ class Tether(MeshPotential):
     :py:class:`hoomd.md.bond.Tethering`.
 
     Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
-        parameter (TypeParameter[dict]):
-            The parameter of the Tethering bonds for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+        params (TypeParameter[``mesh name``,dict]):
+            The parameter of the Tether bonds for the defined mesh.
+            The dictionary has the following keys:
 
             * ``k_b`` (`float`, **required**) - bond stiffness
               :math:`[\mathrm{energy}]`
@@ -129,7 +126,7 @@ class Tether(MeshPotential):
 
     Examples::
 
-        bond_potential = mesh.bond.Tether(mesh)
+        bond_potential = hoomd.md.mesh.bond.Tether(mesh)
         bond_potential.params["mesh"] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
                                          l_c0=1.8, l_max=2.1)
     """

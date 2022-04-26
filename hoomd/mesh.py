@@ -112,11 +112,6 @@ class Mesh(_HOOMDBaseObject):
         """
         return self._cpp_obj.getBondData().group
 
-    @log(requires_run=True)
-    def energy(self):
-        """(float): Surface energy of the mesh."""
-        return self._cpp_obj.getEnergy()
-
     def _preprocess_type(self, typename):
         if isinstance(typename, Sequence):
             if len(typename) != 1:

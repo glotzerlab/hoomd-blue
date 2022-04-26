@@ -105,7 +105,7 @@ class NeighborList(_HOOMDBaseObject):
         self._mesh = validate_mesh(mesh)
 
     def _attach(self):
-        if self._mesh:
+        if self._mesh is not None:
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
         super()._attach()

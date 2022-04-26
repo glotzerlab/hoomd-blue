@@ -111,17 +111,11 @@ class PYBIND11_EXPORT MeshDefinition
 
     void setTriangleData(pybind11::array_t<int> triangles);
 
-    Scalar getEnergy()
-        {
-        return m_mesh_energy;
-        }
-
     private:
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-    Scalar m_mesh_energy; //!< storing energy for dynamic bonding later
 
 #ifdef ENABLE_MPI
     /// The system communicator

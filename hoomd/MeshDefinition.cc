@@ -25,8 +25,7 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_meshbond_data(std::shared_ptr<MeshBondData>(
                             new MeshBondData(m_sysdef->getParticleData(), 1))),
       m_meshtriangle_data(
-          std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1))),
-      m_mesh_energy(0)
+          std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1)))
 
     {
     }
@@ -96,7 +95,6 @@ void export_MeshDefinition(pybind11::module& m)
         .def("getTriangleData", &MeshDefinition::getTriangleData)
         .def("setTriangleData", &MeshDefinition::setTriangleData)
         .def("setTypes", &MeshDefinition::setTypes)
-        .def("getEnergy", &MeshDefinition::getEnergy)
         .def_property_readonly("types", &MeshDefinition::getTypes)
         .def_property_readonly("size", &MeshDefinition::getSize)
 #ifdef ENABLE_MPI
