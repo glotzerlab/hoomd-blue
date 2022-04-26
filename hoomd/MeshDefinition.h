@@ -46,7 +46,7 @@ class Communicator;
 
     As any data structure class in MeshDefinition can potentially reference any
    other, other classes can simply use the mesh data by giving the shared pointer to the referenced
-   class to the constructor of the onem that needs to refer to it. Note that using this setup, there
+   class to the constructor of the one that needs to refer to it. Note that using this setup, there
    can be no circular references. This is a \b good \b thing ^TM, as it promotes good separation
    and isolation of the various classes responsibilities.
 
