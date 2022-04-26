@@ -68,7 +68,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Checkout
-      uses: actions/checkout@v3.0.0
+      uses: actions/checkout@v3.0.2
       with:
         path: code
         submodules: true
@@ -274,7 +274,7 @@ jobs:
       run: rm -rf ./*
 
     - name: Checkout
-      uses: actions/checkout@v3.0.0
+      uses: actions/checkout@v3.0.2
       with:
         path: code
         submodules: true
@@ -464,10 +464,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3.0.0
+      - uses: actions/checkout@v3.0.2
         with:
           path: code
-      - uses: actions/cache@v3.0.0
+      - uses: actions/cache@v3.0.2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-openstacksdk==0.61.0
