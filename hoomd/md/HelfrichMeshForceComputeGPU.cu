@@ -305,7 +305,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         int cur_bond_idx = cur_bond.idx[0];
         int cur_tr1_idx = cur_bond.idx[1];
         int cur_tr2_idx = cur_bond.idx[2];
-        int cur_bond_type = cur_bond.idx[3];
+        int cur_bond_type = 0;
 
         if (cur_tr1_idx == cur_tr2_idx)
             continue;
