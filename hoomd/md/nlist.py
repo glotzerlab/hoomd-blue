@@ -58,7 +58,7 @@ of exclusions. The valid exclusion types are:
   (j,k), and (k,m).
 """
 
-import hoomd
+import hoomd.device
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.logging import log
