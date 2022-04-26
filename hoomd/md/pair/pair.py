@@ -173,6 +173,8 @@ class Pair(force.Force):
         super()._setattr_param(attr, value)
 
     def _nlist_setter(self, new_nlist):
+        if new_nlist is self.nlist:
+            return
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
         old_nlist = self.nlist

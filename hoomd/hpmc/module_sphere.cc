@@ -19,6 +19,7 @@
 
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"

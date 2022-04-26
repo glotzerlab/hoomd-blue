@@ -37,6 +37,7 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     ExternalFieldWall.cc
+                    ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
@@ -78,6 +79,7 @@ set(_hpmc_headers
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
+    ShapeMoves.h
     ShapePolyhedron.h
     ShapeSimplePolygon.h
     ShapeSphere.h
@@ -91,6 +93,7 @@ set(_hpmc_headers
     UpdaterClustersGPUDepletants.cuh
     UpdaterMuVT.h
     UpdaterQuickCompress.h
+    UpdaterShape.h
     XenoCollide2D.h
     XenoCollide3D.h
     )
@@ -170,6 +173,7 @@ set(files   compute.py
             __init__.py
             integrate.py
             update.py
+            shape_move.py
     )
 
 install(FILES ${files}
