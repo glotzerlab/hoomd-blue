@@ -129,7 +129,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
     snap = triplet_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
-    mesh = hoomd.mesh.Mesh(name=["triags"])
+    mesh = hoomd.mesh.Mesh(name="triags")
     mesh.size = 1
     mesh.triangles = [[0, 1, 2]]
 

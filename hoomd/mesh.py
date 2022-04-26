@@ -21,8 +21,8 @@ class Mesh(_HOOMDBaseObject):
     three particle tags.
 
     Args:
-        name ([`str`]): name of the mesh that also acts as a
-        type name. Only one type per mesh can be defined!
+        name (`str`): name of the mesh that also acts as a
+        type name.
 
     Examples::
 
@@ -31,16 +31,14 @@ class Mesh(_HOOMDBaseObject):
 
     """
 
-    def __init__(self, name=["mesh"]):
+    def __init__(self, name="mesh"):
 
         param_dict = ParameterDict(size=int,
                                    types=OnlyIf(
-                                       to_type_converter([
-                                           str,
-                                       ] * 1),
+                                       to_type_converter([str]),
                                        preprocess=self._preprocess_type))
 
-        param_dict["types"] = name
+        param_dict["types"] = [name]
         param_dict["size"] = 0
         self._triangles = np.empty([0, 3], dtype=int)
 
@@ -75,6 +73,15 @@ class Mesh(_HOOMDBaseObject):
             if self._added:
                 self._remove()
 
+    @property
+    def name(self):
+        """(`str`): Mesh name."""
+        return self.types[0]
+
+    @name.setter
+    def name(self, name):
+        self.types = [name]
+
     @log(category='sequence')
     def triangles(self):
         """((*N*, 3) `numpy.ndarray` of ``uint32``): Mesh triangulation.
@@ -103,8 +110,7 @@ class Mesh(_HOOMDBaseObject):
         A list of tuples of particle ids which encodes the
         bonds within the mesh structure.
         """
-        if self._attached:
-            return self._cpp_obj.getBondData().group
+        return self._cpp_obj.getBondData().group
 
     @log(requires_run=True)
     def energy(self):
