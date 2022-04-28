@@ -1,7 +1,37 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Implement Mesh."""
+"""Triangulated mesh data structure.
+
+The mesh data structure combines particles into a connected triangulated
+network. The particles act as vertices of the triangulation and are
+linked with their neighbors in both pairs via mesh bonds and triplets via
+mesh triangles.
+
+.. rubric:: Mesh triangles and mesh bonds
+
+``Mesh.triangles`` is a list of triangle data that constitutes the
+triangulation. Each triangle is defined by a triplet of particle tags.
+For a given triangulation HOOMD-blue also constructs a list of mesh bonds
+automatically. Each mesh bond is defined by a pair of particle tags. The
+corresponding vertex particles share a common edge in the triangulation.
+
+
+.. rubric:: Mesh potentials
+
+In MD simulations different bond potentials can be attached which connect
+the vertex particles with a bond potential. The mesh data structure is
+designed so that other potentials (like bending potentials or global
+conservation potentials) can be implemented later.
+
+See Also:
+  See the documentation in `hoomd.md.mesh` for more information on how
+  to apply potentials to the mesh object and in `hoomd.md.nlist` on
+  adding mesh bond exceptions to the neighbor list.
+
+
+
+"""
 
 import hoomd
 from hoomd import _hoomd
@@ -22,7 +52,7 @@ class Mesh(_HOOMDBaseObject):
 
     Args:
         name (`str`): name of the mesh that also acts as a
-        type name.
+        type name. Defaults to "mesh".
 
     Examples::
 
