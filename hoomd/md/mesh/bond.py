@@ -1,7 +1,40 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Mesh Bond potentials."""
+r"""Mesh Bond forces.
+
+Mesh bond force classes apply a force and virial between every mesh particle
+vertex and their neighbors based on the given mesh triangulation.
+
+.. math::
+
+    U_\mathrm{mesh bond} = \sum_{j \in \mathrm{mesh}} \sum_{k \in
+    \mathrm{Neigh}(j)}U_{jk}(r)
+
+The conectivity and, thus the neighbor set Neigh of each vertex partice
+:math:`j` is defined by a mesh triangulation. HOOMD-blue automatically
+constructs the mesh bond pairs based on ``triangulation`` in the
+'hoomd.mesh.Mesh' object.
+
+See Also:
+  See the documentation in `hoomd.mesh.Mesh` for more information on the
+  initialization of the mesh object.
+
+In the mesh bond (j,k), :math:`r` is the length of the edge between the
+mesh particle vertices :math:`r= |\mathrm{minimum\_image}(\vec{r}_k
+- \vec{r}_j)|`.
+
+.. rubric Per-particle energies and virials
+
+Mesh bond force classes assign 1/2 of the potential energy to each of the
+particles in the bond group:
+
+.. math::
+
+    U_i = \frac{1}{2} \sum_{k \in \mathrm{Neigh}(i)}U_{jk}(r)
+
+and similarly for virials.
+"""
 
 from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
@@ -11,9 +44,9 @@ from hoomd.data.parameterdicts import TypeParameterDict
 class Harmonic(MeshPotential):
     r"""Harmonic bond potential.
 
-    :py:class:`Harmonic` specifies a harmonic potential energy between all
+    `Harmonic` specifies a harmonic potential energy between all
     particles that share an edge within the mesh. For more details see
-    :py:class:`hoomd.md.bond.Harmonic`.
+    `hoomd.md.bond.Harmonic`.
 
     Args:
         mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
