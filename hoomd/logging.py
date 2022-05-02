@@ -273,6 +273,12 @@ class _LoggerQuantity:
         self.namespace = self._generate_namespace(cls)
         return self
 
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        attrs = ("namespace", "name", "category", "default")
+        return all(getattr(self, a) == getattr(other, a) for a in attrs)
+
     @classmethod
     def _generate_namespace(cls, loggable_cls):
         """Generate the namespace of a class given its module hierarchy."""
