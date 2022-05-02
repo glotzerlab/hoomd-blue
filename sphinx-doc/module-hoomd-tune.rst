@@ -2,7 +2,7 @@
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 hoomd.tune
--------------
+----------
 
 .. rubric:: Overview
 
@@ -12,9 +12,12 @@ hoomd.tune
     :nosignatures:
 
     CustomTuner
+    GradientDescent
     LoadBalancer
     ManualTuneDefinition
+    Optimizer
     ParticleSorter
+    RootSolver
     ScaleSolver
     SecantSolver
     SolverStep
@@ -24,8 +27,11 @@ hoomd.tune
 .. automodule:: hoomd.tune
     :synopsis: Tuner simulation hyperparameters.
     :members: CustomTuner,
+              GradientDescent,
               LoadBalancer,
+              Optimizer,
               ParticleSorter,
+              RootSolver,
               ScaleSolver,
               SecantSolver,
               SolverStep
