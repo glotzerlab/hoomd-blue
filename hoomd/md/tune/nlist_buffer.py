@@ -3,6 +3,8 @@
 
 """Provide a tuner for `hoomd.md.nlist.NeighborList.buffer`."""
 
+import copy
+
 import numpy as np
 
 import hoomd.custom
@@ -58,13 +60,23 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
 
     def _make_tunable(self, nlist):
         return hoomd.tune.ManualTuneDefinition(
-            get_y=lambda: None
-            if self._simulation.tps == 0 else self._simulation.tps / 1e3,
+            get_y=self._get_tps,
             target=0.0,
-            get_x=lambda: nlist.buffer,
-            set_x=lambda buff: setattr(nlist, "buffer", buff),
-            domain=(1e-5, self._maximum_buffer),
+            get_x=self._get_buffer,
+            set_x=self._set_buffer,
+            domain=(1e-5, self.maximum_buffer),
         )
+
+    def _get_tps(self):
+        if self._simulation.tps == 0:
+            return None
+        return self._simulation.tps
+
+    def _get_buffer(self):
+        return self.nlist.buffer
+
+    def _set_buffer(self, new_buffer):
+        self.nlist.buffer = new_buffer
 
     def detach(self):
         self._simulation = None
@@ -81,6 +93,12 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
     @hoomd.logging.log
     def best_buffer_size(self):
         return self._best_buffer_size
+
+    def __getstate__(self):
+        state = copy.copy(self.__dict__)
+        for attr in self._skip_for_equality:
+            state.pop(attr, None)
+        return state
 
 
 class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
