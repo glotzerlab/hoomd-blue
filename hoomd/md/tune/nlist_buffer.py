@@ -105,6 +105,11 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         solver (`hoomd.tune.solve.Optimizer`): A solver that tunes the
         neighbor list buffer to maximize TPS.
         maximum_buffer (float): The largest buffer value to allow.
+
+    Warning:
+        When using with a `hoomd.device.GPU` device, autotuning can mess with
+        convergence. Running the simulation before adding the tuner to allow the
+        autotuning to converge first results in better TPS optimization.
     """
 
     _internal_class = _NeighborListBufferInternal
@@ -147,6 +152,11 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
 
         Note:
             Given the stocasticity of TPS, a non none ``kappa`` is recommended.
+
+        Tip:
+            When using the `hoomd.tune.solve.GradientDescent`, optimization is
+            improved by starting at lower buffer values, as this has the
+            steepest gradient.
         """
         if kappa is not None:
             kappa = np.array(kappa)
