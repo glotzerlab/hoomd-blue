@@ -1,6 +1,7 @@
 ci:
   autoupdate_schedule: quarterly
   autoupdate_branch: 'trunk-patch'
+  autofix_prs: false
 
 exclude: (?x)(
         ^hoomd/extern/|
