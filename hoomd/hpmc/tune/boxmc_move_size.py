@@ -217,8 +217,8 @@ class BoxMCMoveSize(_InternalCustomTuner):
             dimension is tuned independently.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (hoomd.tune.RootSolver): A solver that tunes move sizes to
-            reach the specified target.
+        solver (hoomd.tune.RootSolver): A solver that tunes move sizes to reach
+            the specified target.
         max_move_size (float): The maximum volume move size
             to attempt for each move time. See the available moves in the
             `moves` attribute documentation.

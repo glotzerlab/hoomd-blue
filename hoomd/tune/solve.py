@@ -9,6 +9,7 @@ but offers basic facilities for tuning problems faced by various HOOMD objects.
 
 from abc import ABCMeta, abstractmethod
 from math import isclose
+import typing
 
 import numpy as np
 
@@ -18,7 +19,8 @@ class SolverStep(metaclass=ABCMeta):
 
     Requires a single method `solve_one` that steps forward one iteration in
     solving the given variable relationship. Users can use subclasses of this
-    with `ManualTuneDefinition` to tune attributes with a functional relation.
+    with `hoomd.tune.ManualTuneDefinition` to tune attributes with a functional
+    relation.
 
     Note:
         A `SolverStep` object requires manual iteration to converge. This is to
@@ -296,7 +298,7 @@ class Optimizer(SolverStep):
 
 
 class GradientDescent(Optimizer, _GradientHelper):
-    r"""Solves equations of math:`min_x f(x)` using gradient descent.
+    r"""Solves equations of :math:`min_x f(x)` using gradient descent.
 
     Derivatives are computed using the forward difference.
 
@@ -304,7 +306,7 @@ class GradientDescent(Optimizer, _GradientHelper):
 
     .. math::
 
-        x_n = x_{n-1} - \alpha {\left (1 - \kappa) \grad f
+        x_n = x_{n-1} - \alpha {\left (1 - \kappa) \nabla f
                                 + \kappa \Delta_{n-1} \right)}
 
     where :math:`\Delta` is the last step size. This gives the optimizer a sense
@@ -336,10 +338,10 @@ class GradientDescent(Optimizer, _GradientHelper):
 
     def __init__(self,
                  alpha: float = 0.1,
-                 kappa: "np.ndarray | None" = None,
+                 kappa: typing.Optional[np.ndarray] = None,
                  tol: float = 1e-5,
                  maximize: bool = False,
-                 max_delta: "float | None" = None):
+                 max_delta: typing.Optional[float] = None):
         self.alpha = alpha
         self.kappa = None if kappa is None else kappa
         if self.kappa is not None:
