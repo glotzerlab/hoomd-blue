@@ -143,7 +143,7 @@ class Mesh(_HOOMDBaseObject):
         return self._cpp_obj.getBondData().group
 
     def _preprocess_type(self, typename):
-        if isinstance(typename, Sequence):
+        if not isinstance(typename, str) and isinstance(typename, Sequence):
             if len(typename) != 1:
                 raise ValueError("Only one meshtype is allowed.")
-            return typename
+        return typename

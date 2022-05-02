@@ -86,9 +86,9 @@ class Harmonic(MeshPotential):
 class FENEWCA(MeshPotential):
     r"""FENE and WCA bond potential.
 
-    :py:class:`FENEWCA` specifies a FENE potential energy between all
+    `FENEWCA` specifies a FENE potential energy between all
     particles that share an edge within the mesh. For more details see
-    :py:class:`hoomd.md.bond.FENEWCA`.
+    `hoomd.md.bond.FENEWCA`.
 
     Args:
         mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
@@ -136,9 +136,9 @@ class FENEWCA(MeshPotential):
 class Tether(MeshPotential):
     r"""Tethering bond potential.
 
-    :py:class:`Tether` specifies a Tethering potential energy between all
+    `Tether` specifies a Tethering potential energy between all
     particles that share an edge within the mesh. For more details see
-    :py:class:`hoomd.md.bond.Tether`.
+    `hoomd.md.bond.Tether`.
 
     Args:
         mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
