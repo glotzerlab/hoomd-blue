@@ -16,6 +16,32 @@ import hoomd.trigger
 from hoomd.md.nlist import NeighborList
 
 
+class _IntervalTPS:
+
+    def __init__(self, simulation):
+        self._simulation = simulation
+        self._last_timestep = simulation.timestep
+        self._last_walltime = simulation.walltime
+        self._last_tps = None
+
+    def __call__(self):
+        if self._simulation.timestep == self._last_timestep:
+            return self._last_tps
+        walltime = self._simulation.walltime
+        timestep = self._simulation.timestep
+        if self._last_walltime is not None and self._last_timestep is not None:
+            delta_w = walltime - self._last_walltime
+            delta_t = timestep - self._last_timestep
+            # We divide by 1_000 to reduce the gradient size for optimization.
+            tps = delta_t / (1e3 * delta_w)
+        else:
+            tps = None
+        self._last_tps = tps
+        self._last_walltime = walltime
+        self._last_timestep = timestep
+        return tps
+
+
 class _NeighborListBufferInternal(hoomd.custom._InternalAction):
     _skip_for_equality = {"_simulation", "_tunable"}
 
@@ -46,7 +72,7 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
             tps = self._tunable.y
             if tps is not None and tps > self._max_tps:
                 self._best_buffer_size = self._tunable.x
-                self._max_tps = self._tunable.y
+                self._max_tps = tps
             self._tuned = self.solver.solve([self._tunable])
 
     def _maximum_buffer_post(self, value: float):
@@ -60,7 +86,7 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
 
     def _make_tunable(self, nlist):
         return hoomd.tune.ManualTuneDefinition(
-            get_y=self._get_tps,
+            get_y=_IntervalTPS(self._simulation),
             target=0.0,
             get_x=self._get_buffer,
             set_x=self._set_buffer,
