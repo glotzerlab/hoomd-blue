@@ -19,6 +19,7 @@
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
+#include "ShapeUtils.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
@@ -48,19 +49,31 @@ PYBIND11_MODULE(_hpmc, m)
     export_UpdaterQuickCompress(m);
     export_wall_classes(m);
     export_wall_list(m);
+    export_MassPropertiesBase(m);
 
     export_sphere(m);
     export_convex_polygon(m);
+
     export_simple_polygon(m);
+
     export_spheropolygon(m);
+
     export_polyhedron(m);
+
     export_ellipsoid(m);
+
     export_faceted_ellipsoid(m);
+
     export_sphinx(m);
+
     export_union_convex_polyhedron(m);
+
     export_union_faceted_ellipsoid(m);
+
     export_union_sphere(m);
+
     export_convex_polyhedron(m);
+
     export_convex_spheropolyhedron(m);
 
     pybind11::class_<SphereParams, std::shared_ptr<SphereParams>>(m, "SphereParams")

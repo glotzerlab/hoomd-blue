@@ -138,7 +138,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.0.1.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.1.0.tar.gz`_.
 
 .. seealso::
 
@@ -151,7 +151,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-v3.0.1.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.0.1/hoomd-v3.0.1.tar.gz
+.. _Download hoomd-v3.1.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.1.0/hoomd-v3.1.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/

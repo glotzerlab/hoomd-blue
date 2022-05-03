@@ -47,6 +47,15 @@ Alchemical MD simulations:
     design. Molecular Physics, 117:23-24, 3968-3980 2019.
     `10.1080/00268976.2019.1680886 <https://doi.org/10.1080/00268976.2019.1680886>`_
 
+Alchemical HPMC simulations:
+    G. van Anders, D. Klotsa, A. S. Karas, P. M. Dodd, S. C. Glotzer. Digital Alchemy for Materials
+    Design: Colloids and Beyond. ACS Nano 2015, 9, 10, 9542-9553
+    `10.1021/acsnano.5b04181 <https://doi.org/10.1021/acsnano.5b04181>`_
+
+    Y. Geng, G. van Anders, P. M. Dodd, J. Dshemuchadse, S. C. Glotzer. Engineering entropy for the
+    inverse design of colloidal crystals from hard shapes. Science Advances 2019, 5, 7, eaaw051
+    `10.1126/sciadv.aaw0514 <https://doi.org/10.1126/sciadv.aaw0514>`_
+
 When including historical development of HOOMD-blue, or noting that HOOMD-blue was first implemented on GPUs, please also cite:
     J. A. Anderson, C. D. Lorenz, and A. Travesset. General purpose molecular
     dynamics simulations fully implemented on graphics processing units. Journal
