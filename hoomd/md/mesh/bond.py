@@ -50,9 +50,8 @@ from hoomd.data.parameterdicts import TypeParameterDict
 class Harmonic(MeshPotential):
     r"""Harmonic bond potential.
 
-    `Harmonic` specifies a harmonic potential energy between all
-    particles that share an edge within the mesh. For more details see
-    `hoomd.md.bond.Harmonic`.
+    `Harmonic` computes forces, virials, and energies on all mesh bonds
+    in ``mesh`` with the harmonic potential (see `hoomd.md.bond.Harmonic`).
 
     Args:
         mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
@@ -86,33 +85,35 @@ class Harmonic(MeshPotential):
 class FENEWCA(MeshPotential):
     r"""FENE and WCA bond potential.
 
-    `FENEWCA` specifies a FENE potential energy between all
-    particles that share an edge within the mesh. For more details see
-    `hoomd.md.bond.FENEWCA`.
+    `FENEWCA` computes forces, virials, and energies on all mesh bonds
+    in ``mesh`` with the harmonic potential (see `hoomd.md.bond.FENEWCA`).
 
     Args:
         mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
-        params (TypeParameter[``mesh name``,dict]):
-            The parameter of the FENE potential bonds.
+        params (TypeParameter[``bond type``, dict]):
+            The parameter of the FENEWCA potential bonds.
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
-              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
+              :math:`k` :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
 
             * ``r0`` (`float`, **required**) - size parameter
-              :math:`[\mathrm{length}]`
+              :math:`r_0` :math:`[\mathrm{length}]`.
 
             * ``epsilon`` (`float`, **required**) - repulsive force strength
-              :math:`[\mathrm{energy}]`
+              :math:`\varepsilon` :math:`[\mathrm{energy}]`.
 
             * ``sigma`` (`float`, **required**) - repulsive force interaction
-              :math:`[\mathrm{length}]`
+              width :math:`\sigma` :math:`[\mathrm{length}]`.
+
+            * ``delta`` (`float`, **required**) - radial shift :math:`\Delta`
+              :math:`[\mathrm{length}]`.
 
     Examples::
 
-        bond_potential = hoomd.md.mesh.bond.FENE(mesh)
+        bond_potential = hoomd.md.mesh.bond.FENEWCA(mesh)
         bond_potential.params["mesh"] = dict(k=10.0, r0=1.0,
                                             epsilon=0.8, sigma=1.2, delta=0.0)
 
@@ -136,9 +137,8 @@ class FENEWCA(MeshPotential):
 class Tether(MeshPotential):
     r"""Tethering bond potential.
 
-    `Tether` specifies a Tethering potential energy between all
-    particles that share an edge within the mesh. For more details see
-    `hoomd.md.bond.Tether`.
+    `Tether` computes forces, virials, and energies on all mesh bonds
+    in ``mesh`` with the harmonic potential (see `hoomd.md.bond.Tether`).
 
     Args:
         mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.

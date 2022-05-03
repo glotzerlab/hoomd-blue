@@ -129,7 +129,7 @@ class FENEWCA(Bond):
 
     Attributes:
         params (TypeParameter[``bond type``, dict]):
-            The parameter of the FENE potential bonds.
+            The parameter of the FENEWCA potential bonds.
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength

@@ -52,7 +52,7 @@ class Mesh(_HOOMDBaseObject):
 
     Args:
         name (`str`): name of the mesh that also acts as a
-        type name. Defaults to "mesh".
+          type name. Defaults to "mesh".
 
     Examples::
 
