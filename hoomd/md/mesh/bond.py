@@ -59,7 +59,8 @@ class Harmonic(MeshPotential):
     Attributes:
         params (TypeParameter[``mesh name``,dict]):
             The parameter of the harmonic bonds for the defined mesh.
-            The dictionary has the following keys:
+            The mesh type name defaults to "mesh". The dictionary has
+            the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
@@ -94,7 +95,8 @@ class FENEWCA(MeshPotential):
     Attributes:
         params (TypeParameter[``bond type``, dict]):
             The parameter of the FENEWCA potential bonds.
-            The dictionary has the following keys:
+            The mesh type name defaults to "mesh". The dictionary has
+            the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
               :math:`k` :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
@@ -146,7 +148,8 @@ class Tether(MeshPotential):
     Attributes:
         params (TypeParameter[``mesh name``,dict]):
             The parameter of the Tether bonds for the defined mesh.
-            The dictionary has the following keys:
+            The mesh type name defaults to "mesh". The dictionary has
+            the following keys:
 
             * ``k_b`` (`float`, **required**) - bond stiffness
               :math:`[\mathrm{energy}]`

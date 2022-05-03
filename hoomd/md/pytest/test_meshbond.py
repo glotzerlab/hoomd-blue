@@ -129,12 +129,12 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
     snap = triplet_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
-    mesh = hoomd.mesh.Mesh(name="triags")
+    mesh = hoomd.mesh.Mesh()
     mesh.size = 1
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params["triags"] = potential_kwargs
+    mesh_bond_potential.params["mesh"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -148,7 +148,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
     for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params["triags"][key],
+        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
 

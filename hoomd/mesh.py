@@ -48,11 +48,8 @@ class Mesh(_HOOMDBaseObject):
 
     The mesh is defined by an array of triangles that make up a
     triangulated surface of particles. Each triangle consists of
-    three particle tags.
-
-    Args:
-        name (`str`): name of the mesh that also acts as a
-          type name. Defaults to "mesh".
+    three particle tags. The mesh object consists of only one
+    mesh triangle type with the default type name "mesh".
 
     Examples::
 
@@ -61,14 +58,14 @@ class Mesh(_HOOMDBaseObject):
 
     """
 
-    def __init__(self, name="mesh"):
+    def __init__(self):
 
         param_dict = ParameterDict(size=int,
                                    types=OnlyIf(
                                        to_type_converter([str]),
                                        preprocess=self._preprocess_type))
 
-        param_dict["types"] = [name]
+        param_dict["types"] = ["mesh"]
         param_dict["size"] = 0
         self._triangles = np.empty([0, 3], dtype=int)
 
@@ -102,15 +99,6 @@ class Mesh(_HOOMDBaseObject):
                 return
             if self._added:
                 self._remove()
-
-    @property
-    def name(self):
-        """(`str`): Mesh name."""
-        return self.types[0]
-
-    @name.setter
-    def name(self, name):
-        self.types = [name]
 
     @log(category='sequence')
     def triangles(self):

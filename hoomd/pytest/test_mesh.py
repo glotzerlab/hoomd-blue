@@ -44,7 +44,7 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     mesh = Mesh()
 
     assert mesh.size == 0
-    assert mesh.name == "mesh"
+    assert mesh.types[0] == "mesh"
     assert len(mesh.triangles) == 0
     with pytest.raises(DataAccessError):
         mesh.bonds
@@ -53,19 +53,19 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     mesh._attach()
 
     assert mesh.size == 0
-    assert mesh.name == "mesh"
+    assert mesh.types[0] == "mesh"
     assert len(mesh.triangles) == 0
     assert len(mesh.bonds) == 0
 
 
 def test_mesh_setter():
-    mesh = Mesh(name="vesicle")
+    mesh = Mesh()
 
     mesh.size = 1
     assert mesh.size == 1
 
-    mesh.name = "mesh"
-    assert mesh.name == "mesh"
+    mesh.types[0] = "vesicle"
+    assert mesh.types[0] == "vesicle"
 
     mesh_triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
 
@@ -83,7 +83,7 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
     mesh._attach()
 
     with pytest.raises(MutabilityError):
-        mesh.name = "vesicle"
+        mesh.types = ["vesicle"]
     with pytest.raises(MutabilityError):
         mesh.size = 3
 
