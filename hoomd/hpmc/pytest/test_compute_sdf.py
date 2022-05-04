@@ -14,7 +14,7 @@ from hoomd.conftest import logging_check
 def test_before_attaching():
     xmax = 0.02
     dx = 1e-4
-    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
+    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx, num_random_samples=0, beta=1)
     assert np.isclose(sdf.xmax, xmax)
     assert np.isclose(sdf.dx, dx)
 
@@ -53,7 +53,7 @@ def test_after_attaching(valid_args, simulation_factory,
 
     xmax = 0.02
     dx = 1e-4
-    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
+    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx, num_random_samples=0, beta=1)
 
     sim.operations.add(sdf)
     assert len(sim.operations.computes) == 1
@@ -181,7 +181,10 @@ def test_values(simulation_factory, lattice_snapshot_factory):
     }
     sim.operations.add(mc)
 
-    sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
+    sdf = hoomd.hpmc.compute.SDF(xmax=0.02,
+                                 dx=1e-4,
+                                 num_random_samples=0,
+                                 beta=1)
     sim.operations.add(sdf)
 
     sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')

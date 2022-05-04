@@ -446,6 +446,8 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_patch;
         }
 
+    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
+
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
@@ -464,8 +466,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be
                                     //! used in a more general setting.
-
-    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
     bool m_past_first_run; //!< Flag to test if the first run() has started
     //! Update the nominal width of the cells

@@ -246,9 +246,18 @@ class SDF(Compute):
         dx (float): Bin width :math:`[\mathrm{length}]`.
     """
 
-    def __init__(self, xmax, dx):
+    def __init__(self, xmax, dx, num_random_samples, beta, mode='binary'):
         # store metadata
-        param_dict = ParameterDict(xmax=float(xmax), dx=float(dx))
+        valid_modes = ['binary', 'random']
+        if mode not in valid_modes:
+            raise ValueError(f'Mode must be one of {[x for x in valid_modes]}.')
+        param_dict = ParameterDict(
+            xmax=float(xmax),
+            dx=float(dx),
+            mode=str(mode),
+            num_random_samples=int(num_random_samples),
+            beta=float(beta),
+        )
         self._param_dict.update(param_dict)
 
     def _attach(self):
@@ -261,8 +270,19 @@ class SDF(Compute):
 
         cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
 
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj, self.xmax, self.dx)
+        if self.mode == 'binary':
+            mode = 0
+        elif self.mode == 'random':
+            mode = 1
+        self._cpp_obj = cpp_cls(
+            self._simulation.state._cpp_sys_def,
+            integrator._cpp_obj,
+            self.xmax,
+            self.dx,
+            mode,
+            self.num_random_samples,
+            self.beta,
+        )
 
         super()._attach()
 

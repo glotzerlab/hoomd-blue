@@ -8,6 +8,7 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Compute.h"
 
+#include "HPMCCounters.h"
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -113,7 +114,10 @@ template<class Shape> class ComputeSDF : public Compute
     ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
                std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                double xmax,
-               double dx);
+               double dx,
+               int mode,
+               unsigned int num_random_samples,
+               double beta);
     //! Destructor
     virtual ~ComputeSDF() {};
 
@@ -153,11 +157,15 @@ template<class Shape> class ComputeSDF : public Compute
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
+    int m_mode;                        //!< Sampling mode; 0 = binary search, 1 = random sampling
+    unsigned int m_num_random_samples; //!< Number of random samples to take if m_mode == 1
+    double m_beta;                     //!< Inverse temperature
 
-    std::vector<unsigned int> m_hist; //!< Raw histogram data
-    std::vector<double> m_sdf;        //!< Computed SDF
+    std::vector<double> m_hist; //!< Raw histogram data
+    std::vector<double> m_sdf;  //!< Computed SDF
 
     Scalar m_last_max_diam; //!< Last recorded maximum diameter
+    unsigned int m_instance = 0;
 
     //! Zero the histogram counts
     void zeroHistogram();
@@ -174,14 +182,18 @@ template<class Shape> class ComputeSDF : public Compute
 
     //! Return the sdf
     virtual void computeSDF(uint64_t timestep);
-    };
+    }; // end class ComputeSDF
 
 template<class Shape>
 ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
                               std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                               double xmax,
-                              double dx)
-    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx)
+                              double dx,
+                              int mode,
+                              unsigned int num_random_samples,
+                              double beta)
+    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx), m_mode(mode),
+      m_num_random_samples(num_random_samples), m_beta(beta)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
 
@@ -222,7 +234,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
     countHistogram(timestep);
 
-    std::vector<unsigned int> hist_total(m_hist);
+    std::vector<double> hist_total(m_hist);
 
 // in MPI, total up all of the histogram bins from all nodes to the root node
 #ifdef ENABLE_MPI
@@ -231,7 +243,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
         MPI_Reduce(m_hist.data(),
                    hist_total.data(),
                    (unsigned int)m_hist.size(),
-                   MPI_UNSIGNED,
+                   MPI_DOUBLE,
                    MPI_SUM,
                    0,
                    m_exec_conf->getMPICommunicator());
@@ -264,7 +276,7 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
     // Zero the histogram
     for (size_t i = 0; i < m_hist.size(); i++)
         {
-        m_hist[i] = 0;
+        m_hist[i] = 0.0;
         }
     }
 
@@ -293,9 +305,17 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                        access_location::host,
                                        access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
         = m_mc->getParams();
+
+    const uint16_t seed = m_sysdef->getSeed();
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCComputeSDF, timestep, seed),
+                               hoomd::Counter(m_instance));
 
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -305,8 +325,11 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
+        int typ_i = __scalar_as_int(postype_i.w);
         Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+        // TODO: account for patch r_cut
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
@@ -315,6 +338,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                              + extra_width);
 
         size_t n_images = image_list.size();
+        double hist_weight = 1.0;
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
@@ -342,18 +366,97 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
                             Scalar4 postype_j = h_postype.data[j];
                             Scalar4 orientation_j = h_orientation.data[j];
+                            int typ_j = __scalar_as_int(postype_j.w);
 
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-                            size_t bin = computeBin(r_ij,
-                                                    quat<Scalar>(orientation_i),
-                                                    quat<Scalar>(orientation_j),
-                                                    params[__scalar_as_int(postype_i.w)],
-                                                    params[__scalar_as_int(postype_j.w)]);
+                            if (m_mode == 0)
+                                {
+                                size_t bin = computeBin(r_ij,
+                                                        quat<Scalar>(orientation_i),
+                                                        quat<Scalar>(orientation_j),
+                                                        params[__scalar_as_int(postype_i.w)],
+                                                        params[__scalar_as_int(postype_j.w)]);
 
-                            if (bin >= 0)
-                                min_bin = std::min(min_bin, bin);
+                                if (bin >= 0)
+                                    {
+                                    min_bin = std::min(min_bin, bin);
+                                    hist_weight = 1.0;
+                                    }
+                                } // end binary search path
+
+                            else if (m_mode == 1) // do the random sampling
+                                {
+                                // first evaluate the patch energy to calculate u_ij_0
+                                // for m_num_random_samples, pick a random bin to sample from 0 to
+                                // N_bins - 1 do the scaling, then check overlap if there is an
+                                // overlap, set min_bin to the sample bin and continue if there is
+                                // no overlap, compute the patch energy at the scaled value if no
+                                // overlap or u_ij_new - u_ij_0 == 0, then do nothing go on if there
+                                // is an overlap or change in energy, then set min_bin to the bin
+                                // that was just evaluated, and continue in the loop, but this time
+                                // drawing random bins from 0 to min_bin - 1
+                                min_bin = m_hist.size() - 1;
+                                double u_ij_0 = 0.0;
+                                if (m_mc->m_patch)
+                                    {
+                                    u_ij_0 = m_mc->m_patch->energy(r_ij,
+                                                                   typ_i,
+                                                                   quat<float>(shape_i.orientation),
+                                                                   float(h_diameter.data[i]),
+                                                                   float(h_charge.data[i]),
+                                                                   typ_j,
+                                                                   quat<float>(orientation_j),
+                                                                   float(h_diameter.data[j]),
+                                                                   float(h_charge.data[j]));
+                                    }
+                                for (size_t i = 0; i < m_num_random_samples; i++)
+                                    {
+                                    uint32_t bin_to_sample
+                                        = hoomd::UniformIntDistribution((uint32_t)min_bin)(rng);
+                                    if (detail::test_scaled_overlap<Shape>(
+                                            r_ij,
+                                            quat<Scalar>(orientation_i),
+                                            quat<Scalar>(orientation_j),
+                                            params[__scalar_as_int(postype_i.w)],
+                                            params[__scalar_as_int(postype_j.w)],
+                                            Scalar(bin_to_sample) * m_dx))
+                                        {
+                                        min_bin = std::min((size_t)bin_to_sample, min_bin);
+                                        if (min_bin == bin_to_sample)
+                                            {
+                                            hist_weight = 1.0;
+                                            }
+                                        continue;
+                                        }
+                                    vec3<Scalar> r_ij_scaled
+                                        = r_ij * (Scalar(1.0) - double(bin_to_sample) * m_dx);
+                                    if (m_mc->m_patch)
+                                        {
+                                        double u_ij_new = m_mc->m_patch->energy(
+                                            r_ij_scaled,
+                                            typ_i,
+                                            quat<float>(shape_i.orientation),
+                                            float(h_diameter.data[i]),
+                                            float(h_charge.data[i]),
+                                            typ_j,
+                                            quat<float>(orientation_j),
+                                            float(h_diameter.data[j]),
+                                            float(h_charge.data[j]));
+                                        if (u_ij_new != u_ij_0)
+                                            {
+                                            min_bin = std::min((size_t)bin_to_sample, min_bin);
+                                            if (min_bin == bin_to_sample)
+                                                {
+                                                hist_weight
+                                                    = 1.0
+                                                      - fast::exp(-m_beta * (u_ij_new - u_ij_0));
+                                                }
+                                            }
+                                        }
+                                    } // end loop over m_num_random_samples
+                                }     // end random sampling path
                             }
                         }
                     }
@@ -367,7 +470,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
         // record the minimum bin
         if ((unsigned int)min_bin < m_hist.size())
-            m_hist[min_bin]++;
+            m_hist[min_bin] += 1.0 * hist_weight;
 
         } // end loop over all particles
     }
@@ -383,7 +486,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     In the first general version, computeBin uses a binary search tree to determine
     the bin. In this way, only a test_overlap method is needed, no extra math. The
     binary search works by first ensuring that the particle does not overlap at the
-    left boundary and does overlap a the right. Then it picks a new point halfway between
+    left boundary and does overlap at the right. Then it picks a new point halfway between
     the left and right, ensuring that the same assumption holds. Once right=left+1, the
     correct bin has been found.
 */
@@ -447,6 +550,9 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             double,
+                            double,
+                            int,
+                            unsigned int,
                             double>())
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
