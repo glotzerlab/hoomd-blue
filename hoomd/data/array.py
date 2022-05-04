@@ -755,16 +755,15 @@ Note:
     and provide a few basic properties.
 
 `HOOMDGPUArray` always supports getting (but not setting) the ``shape``,
-``strides``, and ``ndim`` properties.
+``strides``, and ``ndim`` properties. `HOOMDGPUArray` never supports standard
+binary operators like (``+``, ``-``, ``*``). This is a current limitation on
+external classes hooking into CuPy.
 
 When CuPy is imported, compound assignment operators (e.g. ``+=``, ``-=``,
 ``*=``) are available. In addition, most methods besides ``view``, ``resize``,
 ``flat``, ``flatiter`` are available. The same is true for properties except the
 ``data`` and ``base`` properties. See CuPy's documentation for a list of
-methods. An important note is that due to a lack of hooks into CuPy there is no
-way to perform standard operators like (``+``, ``-``, ``*``). Therefore,
-`HOOMDGPUArray` does not support direct addition, subtraction, and
-multiplication.
+methods.
 
 Tip:
     Use, ``cupy.add``, ``cupy.multiply``, etc. for binary operations on the GPU.
