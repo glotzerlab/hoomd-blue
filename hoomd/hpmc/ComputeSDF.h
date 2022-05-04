@@ -330,7 +330,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
         Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-        // TODO: account for patch r_cut
+        // TODO: account for patch r_cut?
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
@@ -397,8 +397,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                 // is an overlap or change in energy, then set min_bin to the bin
                                 // that was just evaluated, and continue in the loop, but this time
                                 // drawing random bins from 0 to min_bin - 1
-                                min_bin = m_hist.size() - 1;
-                                double u_ij_0 = 0.0;
+                                double u_ij_0
+                                    = 0.0; // energy of pair interaction in unperturbed state
                                 if (m_mc->m_patch)
                                     {
                                     u_ij_0 = m_mc->m_patch->energy(r_ij,
@@ -415,27 +415,34 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                     {
                                     uint32_t bin_to_sample
                                         = hoomd::UniformIntDistribution((uint32_t)min_bin)(rng);
+                                    double scale_factor = m_dx * double(bin_to_sample + 1);
+                                    // first check for any "hard" overlaps
+                                    // if there is one for a given scale value, there is no need to
+                                    // check for any "soft" overlaps from m_mc.m_patch
                                     if (detail::test_scaled_overlap<Shape>(
                                             r_ij,
                                             quat<Scalar>(orientation_i),
                                             quat<Scalar>(orientation_j),
                                             params[__scalar_as_int(postype_i.w)],
                                             params[__scalar_as_int(postype_j.w)],
-                                            Scalar(bin_to_sample) * m_dx))
+                                            scale_factor))
                                         {
                                         min_bin = std::min((size_t)bin_to_sample, min_bin);
                                         if (min_bin == bin_to_sample)
                                             {
-                                            m_exec_conf->msg->notice(2)
-                                                << "new min_bin " << bin_to_sample << std::endl;
-                                            hist_weight = 1.0;
+                                            hist_weight
+                                                = 1.0; // hist_weight = 1 - epx(-beta*du) = 1 - 0
                                             }
                                         continue;
-                                        }
+                                        } // end if overlap
                                     if (m_mc->m_patch)
+                                        // if no hard overlap, check for a soft overla
+                                        //
+                                        // the energy at this scale factor and seeing if it has
+                                        // changed compared to the current value at the scaling
+                                        // corresponding to min_bin
                                         {
-                                        vec3<Scalar> r_ij_scaled
-                                            = r_ij * (Scalar(1.0) - double(bin_to_sample) * m_dx);
+                                        vec3<Scalar> r_ij_scaled = r_ij * scale_factor;
                                         double u_ij_new = m_mc->m_patch->energy(
                                             r_ij_scaled,
                                             typ_i,
@@ -456,9 +463,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                                       - fast::exp(-m_beta * (u_ij_new - u_ij_0));
                                                 }
                                             }
-                                        }
-                                    } // end loop over m_num_random_samples
-                                }     // end random sampling path
+                                        } // end if (m_mc->m_patch)
+                                    }     // end loop over m_num_random_samples
+                                }         // end random sampling path
                             }
                         }
                     }
