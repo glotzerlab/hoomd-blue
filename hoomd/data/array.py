@@ -759,11 +759,12 @@ Note:
 binary operators like (``+``, ``-``, ``*``). This is a current limitation on
 external classes hooking into CuPy.
 
-When CuPy is imported, compound assignment operators (e.g. ``+=``, ``-=``,
-``*=``) are available. In addition, most methods besides ``view``, ``resize``,
-``flat``, ``flatiter`` are available. The same is true for properties except the
-``data`` and ``base`` properties. See CuPy's documentation for a list of
-methods.
+When CuPy is imported, slice/element assignment (e.g.
+``array[0] = 1; array[:2] = 4``) and compound assignment operators (e.g. ``+=``,
+``-=``, ``*=``) are available. In addition, most methods besides ``view``,
+``resize``, ``flat``, ``flatiter`` are available. The same is true for
+properties except the ``data`` and ``base`` properties. See CuPy's documentation
+for a list of methods.
 
 Tip:
     Use, ``cupy.add``, ``cupy.multiply``, etc. for binary operations on the GPU.
