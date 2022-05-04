@@ -321,6 +321,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         size_t min_bin = m_hist.size();
+        double hist_weight = 0.0;
 
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -338,7 +339,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                              + extra_width);
 
         size_t n_images = image_list.size();
-        double hist_weight = 1.0;
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
@@ -426,14 +426,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                         min_bin = std::min((size_t)bin_to_sample, min_bin);
                                         if (min_bin == bin_to_sample)
                                             {
+                                            m_exec_conf->msg->notice(2)
+                                                << "new min_bin " << bin_to_sample << std::endl;
                                             hist_weight = 1.0;
                                             }
                                         continue;
                                         }
-                                    vec3<Scalar> r_ij_scaled
-                                        = r_ij * (Scalar(1.0) - double(bin_to_sample) * m_dx);
                                     if (m_mc->m_patch)
                                         {
+                                        vec3<Scalar> r_ij_scaled
+                                            = r_ij * (Scalar(1.0) - double(bin_to_sample) * m_dx);
                                         double u_ij_new = m_mc->m_patch->energy(
                                             r_ij_scaled,
                                             typ_i,
@@ -470,7 +472,11 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
         // record the minimum bin
         if ((unsigned int)min_bin < m_hist.size())
+            {
+            m_exec_conf->msg->notice(2)
+                << "adding " << 1.0 * hist_weight << " to bin " << min_bin << std::endl;
             m_hist[min_bin] += 1.0 * hist_weight;
+            }
 
         } // end loop over all particles
     }
