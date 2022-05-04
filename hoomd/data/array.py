@@ -730,11 +730,9 @@ Exposes an internal HOOMD-blue GPU buffer.
 The HOOMDGPUArray object exposes a GPU data buffer using the
 `__cuda_array_interface__
 <https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_.
-This class tries to prevent invalid memory access through only allowing the
-buffer to be exposed within a context manager
-(`hoomd.State.gpu_local_snapshot`). However, to prevent copying the data, we
-cannot guarentee the data will not leak. This means that it is possible to
-*escape* this class. An example of an error of this kind is shown below.
+This class provides buffer access through a context manager to prevent invalid
+memory accesses (`hoomd.State.gpu_local_snapshot`). To avoid errors, do not use
+references to the data outside the context manager. For example:
 
 .. code-block:: python
 
@@ -763,7 +761,7 @@ When CuPy is imported, compound assignment operators (e.g. ``+=``, ``-=``,
 ``*=``) are available. In addition, most methods besides ``view``, ``resize``,
 ``flat``, ``flatiter`` are available. The same is true for properties except the
 ``data`` and ``base`` properties. See CuPy's documentation for a list of
-methods. An important note is that due to a lack of hooks into CuPy there i no
+methods. An important note is that due to a lack of hooks into CuPy there is no
 way to perform standard operators like (``+``, ``-``, ``*``). Therefore,
 `HOOMDGPUArray` does not support direct addition, subtraction, and
 multiplication.
