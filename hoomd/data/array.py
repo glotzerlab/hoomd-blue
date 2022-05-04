@@ -730,11 +730,11 @@ Exposes an internal HOOMD-blue GPU buffer.
 The HOOMDGPUArray object exposes a GPU data buffer using the
 `__cuda_array_interface__
 <https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_.
-This class tries to prevent invalid memory access through only allow the buffer
-to be exposed within a context manager (`hoomd.State.gpu_local_snapshot`).
-However, to prevent copying the data, we cannot guarentee the data will not
-leak. This means that it is possible to *escape* this class. An example of an
-error of this kind is shown below.
+This class tries to prevent invalid memory access through only allowing the
+buffer to be exposed within a context manager
+(`hoomd.State.gpu_local_snapshot`). However, to prevent copying the data, we
+cannot guarentee the data will not leak. This means that it is possible to
+*escape* this class. An example of an error of this kind is shown below.
 
 .. code-block:: python
 
@@ -746,27 +746,30 @@ error of this kind is shown below.
     # invalid data access can cause SEGFAULTs and other issues
     pos[:, 2] -= 1
 
-In general, it is safer to not store any non `HOOMDGPUArray` references to a
-data buffer. This can be done when necessary, but care must be taken not to use
+In general, it is safer to not store any `HOOMDGPUArray` references to a data
+buffer. This can be done when necessary, but care must be taken not to use
 references to the data outside the context manager.
 
-The full functionality of this class depends on whether, HOOMD-blue can import
-CuPy.  If CuPy can be imported then, we wrap much of the ``cupy.ndarray``
-class's functionality. Otherwise, we just expose the buffer and provide a few
-basic properties.
+Note:
+    The full functionality of this class depends on whether, HOOMD-blue can
+    import CuPy.  If CuPy can be imported then, we wrap much of the
+    ``cupy.ndarray`` class's functionality. Otherwise, we just expose the buffer
+    and provide a few basic properties.
 
-In either case `HOOMDGPUArray` supports getting (but not setting) the ``shape``,
+`HOOMDGPUArray` always supports getting (but not setting) the ``shape``,
 ``strides``, and ``ndim`` properties.
 
 When CuPy is imported, compound assignment operators (e.g. ``+=``, ``-=``,
 ``*=``) are available. In addition, most methods besides ``view``, ``resize``,
 ``flat``, ``flatiter`` are available. The same is true for properties except the
 ``data`` and ``base`` properties. See CuPy's documentation for a list of
-methods. An important note is that due their being no way to hook into standard
-operators like (``+``, ``-``, ``*``) direct addition, subtraction, and
-multiplication cannot be performed between `HOOMDGPUArray` and ``cupy.ndarray``
-objects.  However, ``cupy.add`` can be directly used and is recommended for
-memory safety.
+methods. An important note is that due to a lack of hooks into CuPy there i no
+way to perform standard operators like (``+``, ``-``, ``*``). Therefore,
+`HOOMDGPUArray` does not support direct addition, subtraction, and
+multiplication.
+
+Tip:
+    Use, ``cupy.add``, ``cupy.multiply``, etc. for binary operations on the GPU.
 
 Note:
     Packages like Numba and PyTorch can use `HOOMDGPUArray` without CuPy
