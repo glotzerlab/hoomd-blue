@@ -388,15 +388,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
                             else if (m_mode == 1) // do the random sampling
                                 {
-                                // first evaluate the patch energy to calculate u_ij_0
-                                // for m_num_random_samples, pick a random bin to sample from 0 to
-                                // N_bins - 1 do the scaling, then check overlap if there is an
-                                // overlap, set min_bin to the sample bin and continue if there is
-                                // no overlap, compute the patch energy at the scaled value if no
-                                // overlap or u_ij_new - u_ij_0 == 0, then do nothing go on if there
-                                // is an overlap or change in energy, then set min_bin to the bin
-                                // that was just evaluated, and continue in the loop, but this time
-                                // drawing random bins from 0 to min_bin - 1
                                 double u_ij_0
                                     = 0.0; // energy of pair interaction in unperturbed state
                                 if (m_mc->m_patch)
@@ -413,36 +404,49 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                     }
                                 for (size_t i = 0; i < m_num_random_samples; i++)
                                     {
-                                    uint32_t bin_to_sample
-                                        = hoomd::UniformIntDistribution((uint32_t)min_bin)(rng);
+                                    // pick a random bin from 0 to min_bin, excluding min_bin
+                                    size_t bin_to_sample;
+                                    if (min_bin == 0)
+                                        {
+                                        bin_to_sample = 0;
+                                        // TODO: only sample 0th bin once if this is the case
+                                        }
+                                    else
+                                        {
+                                        bin_to_sample
+                                            = static_cast<size_t>(hoomd::UniformIntDistribution(
+                                                (uint32_t)min_bin - 1)(rng));
+                                        }
                                     double scale_factor = m_dx * double(bin_to_sample + 1);
+
                                     // first check for any "hard" overlaps
                                     // if there is one for a given scale value, there is no need to
                                     // check for any "soft" overlaps from m_mc.m_patch
-                                    if (detail::test_scaled_overlap<Shape>(
-                                            r_ij,
-                                            quat<Scalar>(orientation_i),
-                                            quat<Scalar>(orientation_j),
-                                            params[__scalar_as_int(postype_i.w)],
-                                            params[__scalar_as_int(postype_j.w)],
-                                            scale_factor))
+                                    bool hard_overlap = detail::test_scaled_overlap<Shape>(
+                                        r_ij,
+                                        quat<Scalar>(orientation_i),
+                                        quat<Scalar>(orientation_j),
+                                        params[__scalar_as_int(postype_i.w)],
+                                        params[__scalar_as_int(postype_j.w)],
+                                        scale_factor);
+                                    if (hard_overlap)
                                         {
-                                        min_bin = std::min((size_t)bin_to_sample, min_bin);
-                                        if (min_bin == bin_to_sample)
-                                            {
-                                            hist_weight
-                                                = 1.0; // hist_weight = 1 - epx(-beta*du) = 1 - 0
-                                            }
-                                        continue;
-                                        } // end if overlap
+                                        // set min_bin to bin_to_sample, don't need min(min_bin,
+                                        // bin_to_sample) since we're only already choosing bins in
+                                        // [0, min_bin-1]
+                                        min_bin = bin_to_sample;
+                                        hist_weight = 1.0; // = 1 - exp(-beta*infinity) = 1
+                                        continue;          // do not check for soft overlaps
+                                        }                  // end if overlap
+
+                                    // if no hard overlap, check for a soft overlap if we have
+                                    // patches
                                     if (m_mc->m_patch)
-                                        // if no hard overlap, check for a soft overla
-                                        //
-                                        // the energy at this scale factor and seeing if it has
-                                        // changed compared to the current value at the scaling
-                                        // corresponding to min_bin
                                         {
-                                        vec3<Scalar> r_ij_scaled = r_ij * scale_factor;
+                                        // compute the energy at this size of the perturbation and
+                                        // compare to the energy in the unperturbed state
+                                        vec3<Scalar> r_ij_scaled
+                                            = r_ij * (Scalar(1.0) - scale_factor);
                                         double u_ij_new = m_mc->m_patch->energy(
                                             r_ij_scaled,
                                             typ_i,
@@ -455,13 +459,14 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                             float(h_charge.data[j]));
                                         if (u_ij_new != u_ij_0)
                                             {
-                                            min_bin = std::min((size_t)bin_to_sample, min_bin);
-                                            if (min_bin == bin_to_sample)
-                                                {
-                                                hist_weight
-                                                    = 1.0
-                                                      - fast::exp(-m_beta * (u_ij_new - u_ij_0));
-                                                }
+                                            // energy is different than unperturbed state, adjust
+                                            // hist_weight accordingly and set min_bin to
+                                            // bin_to_sample, don't need min(min_bin, bin_to_sample)
+                                            // since we're only already choosing bins in [0,
+                                            // min_bin-1]
+                                            min_bin = bin_to_sample;
+                                            hist_weight
+                                                = 1.0 - fast::exp(-m_beta * (u_ij_new - u_ij_0));
                                             }
                                         } // end if (m_mc->m_patch)
                                     }     // end loop over m_num_random_samples
@@ -480,8 +485,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
         // record the minimum bin
         if ((unsigned int)min_bin < m_hist.size())
             {
-            m_exec_conf->msg->notice(2)
-                << "adding " << 1.0 * hist_weight << " to bin " << min_bin << std::endl;
             m_hist[min_bin] += 1.0 * hist_weight;
             }
 
