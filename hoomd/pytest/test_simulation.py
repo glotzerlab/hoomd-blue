@@ -265,8 +265,7 @@ def test_state_from_gsd_box_dims(device, simulation_factory,
     checks = range(3)
     if device.communicator.rank == 0:
         for step in checks:
-            if device.communicator.rank == 0:
-                f.append(modify_gsd_snap(make_gsd_snapshot(snap)))
+            f.append(modify_gsd_snap(make_gsd_snapshot(snap)))
         f.close()
 
     for step in checks:
