@@ -162,12 +162,15 @@ env:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 <% endset %>
 <% set post_cleanup_steps %>
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 <% endset %>
 <% block jobs %>
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use CPU runners for

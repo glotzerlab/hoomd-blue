@@ -66,6 +66,7 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 
     - name: Checkout
       uses: actions/checkout@v3.0.2
@@ -123,8 +124,10 @@ jobs:
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 
 
   pytest:
@@ -148,6 +151,7 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 
     - name: Download install
       uses: actions/download-artifact@v3.0.0
@@ -174,8 +178,10 @@ jobs:
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 
 
   ctest:
@@ -199,6 +205,7 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 
     - name: Download build
       uses: actions/download-artifact@v3.0.0
@@ -218,8 +225,10 @@ jobs:
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 
 
   validate:
@@ -241,6 +250,7 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 
     - name: Download install
       uses: actions/download-artifact@v3.0.0
@@ -258,8 +268,10 @@ jobs:
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 
 
   build_release:
@@ -292,6 +304,7 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 
     - name: Checkout
       uses: actions/checkout@v3.0.2
@@ -349,8 +362,10 @@ jobs:
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 
 
   pytest_release:
@@ -385,6 +400,7 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 
     - name: Download install
       uses: actions/download-artifact@v3.0.0
@@ -411,8 +427,10 @@ jobs:
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 
 
   ctest_release:
@@ -447,6 +465,7 @@ jobs:
     steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
 
     - name: Download build
       uses: actions/download-artifact@v3.0.0
@@ -466,8 +485,10 @@ jobs:
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 
 
   # This job is used to provide a single requirement for branch merge conditions. GitHub considers
