@@ -65,7 +65,7 @@ jobs:
       CXXFLAGS: '-Werror'
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
 
     - name: Checkout
       uses: actions/checkout@v3.0.2
@@ -122,9 +122,9 @@ jobs:
         retention-days: 7
 
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      run: rm -rf $HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
 
 
   pytest:
@@ -147,7 +147,7 @@ jobs:
 
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
 
     - name: Download install
       uses: actions/download-artifact@v3.0.0
@@ -173,9 +173,9 @@ jobs:
         _HOOMD_DISALLOW_CUPY_: 1
 
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      run: rm -rf $HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
 
 
   ctest:
@@ -198,7 +198,7 @@ jobs:
 
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
 
     - name: Download build
       uses: actions/download-artifact@v3.0.0
@@ -217,9 +217,9 @@ jobs:
       working-directory: build
 
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      run: rm -rf $HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
 
 
   validate:
@@ -240,7 +240,7 @@ jobs:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
 
     - name: Download install
       uses: actions/download-artifact@v3.0.0
@@ -257,9 +257,9 @@ jobs:
       run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      run: rm -rf $HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
 
 
   build_release:
@@ -291,7 +291,7 @@ jobs:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
 
     - name: Checkout
       uses: actions/checkout@v3.0.2
@@ -348,9 +348,9 @@ jobs:
         retention-days: 7
 
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      run: rm -rf $HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
 
 
   pytest_release:
@@ -384,7 +384,7 @@ jobs:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
 
     - name: Download install
       uses: actions/download-artifact@v3.0.0
@@ -410,9 +410,9 @@ jobs:
         _HOOMD_DISALLOW_CUPY_: 1
 
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      run: rm -rf $HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
 
 
   ctest_release:
@@ -446,7 +446,7 @@ jobs:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
 
     - name: Download build
       uses: actions/download-artifact@v3.0.0
@@ -465,9 +465,9 @@ jobs:
       working-directory: build
 
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
     - name: Clean HOME
-      run: rm -rf $HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
 
 
   # This job is used to provide a single requirement for branch merge conditions. GitHub considers
