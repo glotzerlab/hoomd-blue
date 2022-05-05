@@ -161,7 +161,16 @@ env:
 <% set prepare_steps %>
     steps:
     - name: Clean workspace
-      run: rm -rf ./*
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
+<% endset %>
+<% set post_cleanup_steps %>
+    - name: Clean workspace
+      run: ( shopt -s dotglob nullglob; rm -rf ./* )
+      shell: bash
+    - name: Clean HOME
+      run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
+      shell: bash
 <% endset %>
 <% block jobs %>
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use CPU runners for
@@ -180,18 +189,21 @@ jobs:
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
+<< post_cleanup_steps >>
 
   pytest:
 << job(name='Run pytest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
+<< post_cleanup_steps >>
 
   ctest:
 << job(name='Run ctest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
 << prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
+<< post_cleanup_steps >>
 
   validate:
 << job(name='Validate', run_tests=True, configurations=validate_configurations, needs='build') >>
@@ -199,6 +211,7 @@ jobs:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_validate_steps >>
+<< post_cleanup_steps >>
 
   build_release:
 << job(name='Build', run_tests=False, configurations=release_test_configurations) >>
@@ -206,6 +219,7 @@ jobs:
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
+<< post_cleanup_steps >>
 
   pytest_release:
 << job(name='Run pytest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
@@ -213,6 +227,7 @@ jobs:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
+<< post_cleanup_steps >>
 
   ctest_release:
 << job(name='Run ctest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
@@ -220,6 +235,7 @@ jobs:
 << prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
+<< post_cleanup_steps >>
 
   # This job is used to provide a single requirement for branch merge conditions. GitHub considers
   # the check passing even if it is skipped, so this job raises errors when required jobs were not
