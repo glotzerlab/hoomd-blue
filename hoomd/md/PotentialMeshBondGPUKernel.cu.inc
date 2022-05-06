@@ -6,9 +6,9 @@
 
 // clang-format off
 #include "hoomd/md/PotentialBondGPU.cuh"
-#include "hoomd/md/EvaluatorSpecialPair@_pair@.h"
+#include "hoomd/md/EvaluatorBond@_bond@.h"
 
-#define EVALUATOR_CLASS EvaluatorSpecialPair@_pair@
+#define EVALUATOR_CLASS EvaluatorBond@_bond@
 // clang-format on
 
 namespace hoomd
@@ -18,7 +18,7 @@ namespace md
 namespace kernel
     {
 template __attribute__((visibility("default"))) hipError_t
-gpu_compute_bond_forces<EVALUATOR_CLASS, 2>(const kernel::bond_args_t<2>& bond_args,
+gpu_compute_bond_forces<EVALUATOR_CLASS, 4>(const kernel::bond_args_t<4>& bond_args,
                                             const typename EVALUATOR_CLASS::param_type* d_params,
                                             unsigned int* d_flags);
     } // end namespace kernel

@@ -23,14 +23,29 @@ namespace hoomd
 //! Names of bonded groups
 char name_bond_data[] = "bond";
 char name_angle_data[] = "angle";
+char name_triangle_data[] = "triangle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
+char name_meshbond_data[] = "meshbond";
+char name_meshtriangle_data[] = "meshtriangle";
 char name_constraint_data[] = "constraint";
 char name_pair_data[] = "pair";
 
 /*
  * Implementation of BondedGroupData methods
  */
+
+/*! \param exec_conf Execution configuration
+    \param pdata The particle data to associate with
+    \param n_group_types Number of bonded group types to initialize
+ */
+template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
+BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
+    std::shared_ptr<ParticleData> pdata)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0),
+      m_groups_dirty(true)
+    {
+    }
 
 /*! \param exec_conf Execution configuration
     \param pdata The particle data to associate with
@@ -551,6 +566,18 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getMembersByIndex(
     return m_groups[group_idx];
     }
 
+/*! \param idx Tag of bonded group
+ *  \param member new member value
+ */
+template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::setMemberByIndex(
+    unsigned int group_idx,
+    typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t member)
+    {
+    assert(group_idx < getN() + getNGhosts());
+    m_groups[group_idx] = member;
+    }
+
 /*! \param tag Tag of bonded group to remove
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
@@ -775,9 +802,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 }
 
             // find the maximum number of groups
-            for (unsigned int i = 0; i < N; i++)
-                if (h_n_groups.data[i] > num_groups_max)
-                    num_groups_max = h_n_groups.data[i];
+            num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data + N);
             }
 
         // resize lookup table
@@ -1288,6 +1313,7 @@ void export_BondedGroupData(pybind11::module& m,
         Group::export_to_python(m);
 
     pybind11::class_<T, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<ParticleData>>())
         .def(pybind11::init<std::shared_ptr<ParticleData>, unsigned int>())
         .def(pybind11::init<std::shared_ptr<ParticleData>, const typename T::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
@@ -1446,8 +1472,11 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTy
     }
 
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_bond_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
 template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
+template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_triangle_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
+template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
@@ -1463,6 +1492,11 @@ template void export_BondedGroupData<AngleData, Angle>(pybind11::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
+
+template void export_BondedGroupData<TriangleData, Angle>(pybind11::module& m,
+                                                          std::string name,
+                                                          std::string snapshot_name,
+                                                          bool export_struct);
 
 template void export_BondedGroupData<DihedralData, Dihedral>(pybind11::module& m,
                                                              std::string name,

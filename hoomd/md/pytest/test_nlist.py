@@ -54,7 +54,7 @@ def test_common_params(nlist_params):
         "exclusions":
             random.sample([
                 'bond', '1-4', 'angle', 'dihedral', 'special_pair', 'body',
-                '1-3', 'constraint'
+                '1-3', 'constraint', 'meshbond'
             ], np.random.randint(9)),
         "rebuild_check_delay":
             np.random.randint(8),

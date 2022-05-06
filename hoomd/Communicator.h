@@ -15,6 +15,8 @@
 #include "GPUVector.h"
 #include "GlobalArray.h"
 #include "HOOMDMath.h"
+#include "MeshDefinition.h"
+#include "MeshGroupData.h"
 #include "ParticleData.h"
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
@@ -375,18 +377,25 @@ class PYBIND11_EXPORT Communicator
 
         Derived classes should override this to set the parameters of their autotuners.
     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
+    virtual void setAutotunerParams(bool enable, unsigned int period) {};
+
+    //! Helper function to initialize adjacency arrays
+    void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
 
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
-    template<class group_data> class GroupCommunicator
+    template<class group_data, bool inMesh = false> class GroupCommunicator
         {
         public:
         typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
         typedef typename group_data::packed_t group_element_t;
 
         //! Constructor
+        GroupCommunicator(Communicator& comm);
+
         GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata);
+
+        void setGroupData(std::shared_ptr<group_data> gdata);
 
         //! Migrate groups
         /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -454,6 +463,7 @@ class PYBIND11_EXPORT Communicator
 
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
     std::shared_ptr<ParticleData> m_pdata;                     //!< Particle data
+    std::shared_ptr<MeshDefinition> m_meshdef;                 //!< Mesh definition
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
@@ -620,6 +630,18 @@ class PYBIND11_EXPORT Communicator
         m_pairs_changed = true;
         }
 
+    bool m_meshbonds_changed; //!< True if mesh bond information needs to be refreshed
+    void setMeshbondsChanged()
+        {
+        m_meshbonds_changed = true;
+        }
+
+    bool m_meshtriangles_changed; //!< True if mesh triangle information needs to be refreshed
+    void setMeshtrianglesChanged()
+        {
+        m_meshtriangles_changed = true;
+        }
+
     //! Remove tags of ghost particles
     virtual void removeGhostParticleTags();
 
@@ -678,6 +700,15 @@ class PYBIND11_EXPORT Communicator
     /* Communication of bonded groups */
     GroupCommunicator<PairData> m_pair_comm; //!< Communication helper for special pairs
     friend class GroupCommunicator<PairData>;
+
+    /* Communication of mesh bonded groups */
+    GroupCommunicator<MeshBondData, true> m_meshbond_comm; //!< Communication helper for mesh bonds
+    friend class GroupCommunicator<MeshBondData, true>;
+
+    /* Communication of mesh triangle groups */
+    GroupCommunicator<MeshTriangleData, true>
+        m_meshtriangle_comm; //!< Communication helper for mesh triangles
+    friend class GroupCommunicator<MeshTriangleData, true>;
 
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();

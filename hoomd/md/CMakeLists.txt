@@ -356,6 +356,27 @@ foreach(_bond ${_bonds})
     endif()
 endforeach()
 
+foreach(_bond ${_bonds})
+    configure_file(export_PotentialMeshBond.cc.inc
+                   export_PotentialMeshBond${_bond}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialMeshBond${_bond}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialMeshBondGPU.cc.inc
+                       export_PotentialMeshBond${_bond}GPU.cc
+                       @ONLY)
+        configure_file(PotentialMeshBondGPUKernel.cu.inc
+                       PotentialMeshBond${_bond}GPUKernel.cu
+                       @ONLY)
+        set(_cuda_sources ${_cuda_sources}
+            export_PotentialMeshBond${_bond}GPU.cc
+            PotentialMeshBond${_bond}GPUKernel.cu
+            )
+    endif()
+endforeach()
+
+
 set(_pairs LJ Coulomb)
 
 foreach(_pair ${_pairs})
@@ -585,6 +606,8 @@ add_subdirectory(data)
 add_subdirectory(pair)
 
 add_subdirectory(methods)
+
+add_subdirectory(mesh)
 
 add_subdirectory(long_range)
 

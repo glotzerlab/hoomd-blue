@@ -20,21 +20,44 @@ using namespace std;
 
 namespace hoomd
     {
-template<class group_data>
-Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm,
-                                                               std::shared_ptr<group_data> gdata)
+template<class group_data, bool inMesh>
+Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(
+    Communicator& comm,
+    std::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
     {
     // the size of the bit field must be larger or equal the group size
     assert(sizeof(unsigned int) * 8 >= group_data::size);
     }
 
-template<class group_data>
-void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
-                                                                bool local_multiple)
+template<class group_data, bool inMesh>
+Communicator::GroupCommunicator<group_data, inMesh>::GroupCommunicator(Communicator& comm)
+    : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(NULL)
+    {
+    }
+
+template<class group_data, bool inMesh>
+void Communicator::GroupCommunicator<group_data, inMesh>::setGroupData(
+    std::shared_ptr<group_data> gdata)
+    {
+    m_gdata = gdata;
+
+    // the size of the bit field must be larger or equal the group size
+    assert(sizeof(unsigned int) * 8 >= group_data::size);
+    }
+
+template<class group_data, bool inMesh>
+void Communicator::GroupCommunicator<group_data, inMesh>::migrateGroups(bool incomplete,
+                                                                        bool local_multiple)
     {
     if (m_gdata->getNGlobal())
         {
+        unsigned int group_size = group_data::size;
+        if (inMesh)
+            {
+            group_size /= 2;
+            }
+
             {
             // wipe out reverse-lookup tag -> idx for old ghost groups
             ArrayHandle<unsigned int> h_group_tag(m_gdata->getTags(),
@@ -100,7 +123,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 bool update = false;
 
                 // iterate over group members
-                for (unsigned int i = 0; i < group_data::size; i++)
+                for (unsigned int i = 0; i < group_size; i++)
                     {
                     unsigned int tag = g.tag[i];
                     unsigned int pidx = h_rtag.data[tag];
@@ -193,7 +216,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                             send_map.insert(std::make_pair(h_unique_neighbors.data[ineigh], el));
                     else
                         // send to other ranks owning the bonded group
-                        for (unsigned int j = 0; j < group_data::size; ++j)
+                        for (unsigned int j = 0; j < group_size; ++j)
                             {
                             unsigned int rank = r.idx[j];
                             bool rank_updated = mask & (1 << j);
@@ -368,7 +391,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                     typename group_data::ranks_t new_ranks = el.ranks;
                     unsigned int mask = el.mask;
 
-                    for (unsigned int i = 0; i < group_data::size; ++i)
+                    for (unsigned int i = 0; i < group_size; ++i)
                         {
                         bool update = mask & (1 << i);
 
@@ -415,7 +438,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 typename group_data::members_t members = h_groups.data[group_idx];
 
                 bool send = false;
-                for (unsigned int i = 0; i < group_data::size; ++i)
+                for (unsigned int i = 0; i < group_size; ++i)
                     {
                     unsigned int tag = members.tag[i];
                     unsigned int pidx = h_rtag.data[tag];
@@ -436,7 +459,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                     el.group_tag = h_group_tag.data[group_idx];
                     el.ranks = h_group_ranks.data[group_idx];
 
-                    for (unsigned int i = 0; i < group_data::size; ++i)
+                    for (unsigned int i = 0; i < group_size; ++i)
                         // are we sending to this rank?
                         if (mask & (1 << i))
                             group_send_map.insert(std::make_pair(el.ranks.idx[i], el));
@@ -444,7 +467,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                     // does this group still have local members
                     bool is_local = false;
 
-                    for (unsigned int i = 0; i < group_data::size; ++i)
+                    for (unsigned int i = 0; i < group_size; ++i)
                         {
                         unsigned int tag = members.tag[i];
                         unsigned int pidx = h_rtag.data[tag];
@@ -735,7 +758,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 if (!local_multiple)
                     {
                     // only add if we own the first particle
-                    assert(group_data::size);
+                    assert(group_size);
                     if (el.ranks.idx[0] != myrank)
                         {
                         remove = true;
@@ -773,13 +796,19 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
     }
 
 //! Mark ghost particles
-template<class group_data>
-void Communicator::GroupCommunicator<group_data>::markGhostParticles(
+template<class group_data, bool inMesh>
+void Communicator::GroupCommunicator<group_data, inMesh>::markGhostParticles(
     const GlobalVector<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
         {
+        unsigned int group_size = group_data::size;
+        if (inMesh)
+            {
+            group_size /= 2;
+            }
+
         ArrayHandle<typename group_data::members_t> h_groups(m_gdata->getMembersArray(),
                                                              access_location::host,
                                                              access_mode::read);
@@ -812,7 +841,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
             typename group_data::ranks_t r = h_group_ranks.data[group_idx];
 
             // iterate over group members
-            for (unsigned int i = 0; i < group_data::size; ++i)
+            for (unsigned int i = 0; i < group_size; ++i)
                 {
                 unsigned int rank = r.idx[i];
 
@@ -847,7 +876,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
                     flags &= mask;
 
                     // Send all local members of the group to this neighbor
-                    for (unsigned int j = 0; j < group_data::size; ++j)
+                    for (unsigned int j = 0; j < group_size; ++j)
                         {
                         unsigned int tag_j = g.tag[j];
                         unsigned int rtag_j = h_rtag.data[tag_j];
@@ -891,13 +920,19 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
         }
     }
 
-template<class group_data>
-void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
+template<class group_data, bool inMesh>
+void Communicator::GroupCommunicator<group_data, inMesh>::exchangeGhostGroups(
     const GlobalArray<unsigned int>& plans,
     unsigned int mask)
     {
     if (m_gdata->getNGlobal())
         {
+        unsigned int group_size = group_data::size;
+        if (inMesh)
+            {
+            group_size /= 2;
+            }
+
         // send plan for groups
         std::vector<unsigned int> group_plan(m_gdata->getN(), 0);
 
@@ -919,9 +954,9 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                 {
                 typename group_data::members_t members = h_groups.data[group_idx];
 
-                assert(group_data::size);
+                assert(group_size);
                 unsigned int plan = 0;
-                for (unsigned int i = 0; i < group_data::size; ++i)
+                for (unsigned int i = 0; i < group_size; ++i)
                     {
                     unsigned int tag = members.tag[i];
                     unsigned int pidx = h_rtag.data[tag];
@@ -1118,7 +1153,7 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                         continue;
 
                     bool has_nonlocal_members = false;
-                    for (unsigned int j = 0; j < group_data::size; ++j)
+                    for (unsigned int j = 0; j < group_size; ++j)
                         {
                         unsigned int tag = el.tags.tag[j];
                         assert(tag <= m_comm.m_pdata->getMaximumTag());
@@ -1157,23 +1192,25 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 //! Constructor
 Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<DomainDecomposition> decomposition)
-    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_mpi_comm(m_exec_conf->getMPICommunicator()), m_decomposition(decomposition),
-      m_is_communicating(false), m_force_migrate(false), m_nneigh(0), m_n_unique_neigh(0),
-      m_pos_copybuf(m_exec_conf), m_charge_copybuf(m_exec_conf), m_diameter_copybuf(m_exec_conf),
-      m_body_copybuf(m_exec_conf), m_image_copybuf(m_exec_conf), m_velocity_copybuf(m_exec_conf),
-      m_orientation_copybuf(m_exec_conf), m_plan_copybuf(m_exec_conf), m_tag_copybuf(m_exec_conf),
-      m_netforce_copybuf(m_exec_conf), m_nettorque_copybuf(m_exec_conf),
-      m_netvirial_copybuf(m_exec_conf), m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf),
-      m_plan_reverse(m_exec_conf), m_tag_reverse(m_exec_conf),
-      m_netforce_reverse_copybuf(m_exec_conf), m_netforce_reverse_recvbuf(m_exec_conf),
-      m_r_ghost_max(Scalar(0.0)), m_r_extra_ghost_max(Scalar(0.0)), m_ghosts_added(0),
-      m_has_ghost_particles(false), m_last_flags(0), m_comm_pending(false),
-      m_bond_comm(*this, m_sysdef->getBondData()), m_angle_comm(*this, m_sysdef->getAngleData()),
+    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_meshdef(NULL),
+      m_exec_conf(m_pdata->getExecConf()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
+      m_decomposition(decomposition), m_is_communicating(false), m_force_migrate(false),
+      m_nneigh(0), m_n_unique_neigh(0), m_pos_copybuf(m_exec_conf), m_charge_copybuf(m_exec_conf),
+      m_diameter_copybuf(m_exec_conf), m_body_copybuf(m_exec_conf), m_image_copybuf(m_exec_conf),
+      m_velocity_copybuf(m_exec_conf), m_orientation_copybuf(m_exec_conf),
+      m_plan_copybuf(m_exec_conf), m_tag_copybuf(m_exec_conf), m_netforce_copybuf(m_exec_conf),
+      m_nettorque_copybuf(m_exec_conf), m_netvirial_copybuf(m_exec_conf),
+      m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf), m_plan_reverse(m_exec_conf),
+      m_tag_reverse(m_exec_conf), m_netforce_reverse_copybuf(m_exec_conf),
+      m_netforce_reverse_recvbuf(m_exec_conf), m_r_ghost_max(Scalar(0.0)),
+      m_r_extra_ghost_max(Scalar(0.0)), m_ghosts_added(0), m_has_ghost_particles(false),
+      m_last_flags(0), m_comm_pending(false), m_bond_comm(*this, m_sysdef->getBondData()),
+      m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
-      m_pair_comm(*this, m_sysdef->getPairData())
+      m_pair_comm(*this, m_sysdef->getPairData()), m_meshbond_comm(*this),
+      m_meshtriangle_comm(*this)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -1346,7 +1383,36 @@ Communicator::~Communicator()
         ->getGroupNumChangeSignal()
         .disconnect<Communicator, &Communicator::setPairsChanged>(this);
 
+    if (m_meshdef)
+        {
+        m_meshdef->getMeshBondData()
+            ->getGroupNumChangeSignal()
+            .disconnect<Communicator, &Communicator::setMeshbondsChanged>(this);
+
+        m_meshdef->getMeshTriangleData()
+            ->getGroupNumChangeSignal()
+            .disconnect<Communicator, &Communicator::setMeshtrianglesChanged>(this);
+        }
+
     MPI_Type_free(&m_mpi_pdata_element);
+    }
+
+void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
+    {
+    m_meshdef = meshdef;
+
+    m_meshbond_comm.setGroupData(m_meshdef->getMeshBondData());
+    m_meshtriangle_comm.setGroupData(m_meshdef->getMeshTriangleData());
+
+    m_meshbonds_changed = true;
+    m_meshdef->getMeshBondData()
+        ->getGroupNumChangeSignal()
+        .connect<Communicator, &Communicator::setMeshbondsChanged>(this);
+
+    m_meshtriangles_changed = true;
+    m_meshdef->getMeshTriangleData()
+        ->getGroupNumChangeSignal()
+        .connect<Communicator, &Communicator::setMeshtrianglesChanged>(this);
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1602,6 +1668,17 @@ void Communicator::migrateParticles()
         m_constraint_comm.migrateGroups(m_constraints_changed, true);
         m_constraints_changed = false;
 
+        if (m_meshdef)
+            {
+            // Meshbonds
+            m_meshbond_comm.migrateGroups(m_meshbonds_changed, true);
+            m_meshbonds_changed = false;
+
+            // Meshtriangles
+            m_meshtriangle_comm.migrateGroups(m_meshtriangles_changed, true);
+            m_meshtriangles_changed = false;
+            }
+
         // fill send buffer
         std::vector<unsigned int> comm_flag_out; // not currently used
         m_pdata->removeParticles(m_sendbuf, comm_flag_out);
@@ -1846,6 +1923,14 @@ void Communicator::exchangeGhosts()
     // constraints
     m_constraint_comm.markGhostParticles(m_plan, mask);
 
+    if (m_meshdef)
+        {
+        // meshbonds
+        m_meshbond_comm.markGhostParticles(m_plan, mask);
+
+        // meshtriangles
+        m_meshtriangle_comm.markGhostParticles(m_plan, mask);
+        }
     /*
      * Fill send buffers, exchange particles according to plans
      */
@@ -3345,6 +3430,7 @@ void export_Communicator(pybind11::module& m)
     pybind11::class_<Communicator, std::shared_ptr<Communicator>>(m, "Communicator")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<DomainDecomposition>>())
+        .def("addMeshDefinition", &Communicator::addMeshDefinition)
         .def_property_readonly("domain_decomposition", &Communicator::getDomainDecomposition);
     }
     } // end namespace detail

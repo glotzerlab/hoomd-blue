@@ -74,6 +74,8 @@ set(_hoomd_sources Analyzer.cc
                    Initializers.cc
                    Integrator.cc
                    LoadBalancer.cc
+                   MeshGroupData.cc
+                   MeshDefinition.cc
                    Messenger.cc
                    MemoryTraceback.cc
                    MPIConfiguration.cc
@@ -159,6 +161,9 @@ set(_hoomd_headers
     managed_allocator.h
     ManagedArray.h
     MemoryTraceback.h
+    MeshGroupData.cuh
+    MeshGroupData.h
+    MeshDefinition.h
     Messenger.h
     MPIConfiguration.h
     ParticleData.cuh
@@ -200,6 +205,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       CommunicatorGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
+                      MeshGroupData.cu
                       ParticleData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)
@@ -351,6 +357,7 @@ set(files box.py
           trigger.py
           snapshot.py
           logging.py
+          mesh.py
           version.py
           wall.py
     )

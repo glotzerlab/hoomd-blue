@@ -5,27 +5,23 @@
 // configure_file().
 
 // clang-format off
-#include "hoomd/md/PotentialBondGPU.h"
+#include "hoomd/md/PotentialBond.h"
 #include "hoomd/md/EvaluatorBond@_bond@.h"
 
 #define EVALUATOR_CLASS EvaluatorBond@_bond@
-#define EXPORT_FUNCTION export_PotentialBond@_bond@GPU
+#define EXPORT_FUNCTION export_PotentialMeshBond@_bond@
 // clang-format on
 
 namespace hoomd
     {
 namespace md
     {
-
-// Use CPU class from another compilation unit to reduce compile time and compiler memory usage.
-extern template class PotentialBond<EVALUATOR_CLASS, BondData>;
-
 namespace detail
     {
 
 void EXPORT_FUNCTION(pybind11::module& m)
     {
-    export_PotentialBondGPU<EVALUATOR_CLASS>(m, "PotentialBond@_bond@GPU");
+    export_PotentialMeshBond<EVALUATOR_CLASS>(m, "PotentialMeshBond@_bond@");
     }
 
     } // end namespace detail

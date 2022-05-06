@@ -252,7 +252,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam._attach(cpp_obj, simulation)
+                typeparam._attach(cpp_obj, simulation.state)
             except ValueError as err:
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} "
