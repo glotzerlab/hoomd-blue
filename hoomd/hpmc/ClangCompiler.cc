@@ -126,7 +126,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     std::cout << "##  ###  ###     ###     ##     ##        ##  ##" << std::endl;
     std::cout << "################################################" << std::endl;
     std::cout << "resource_path = " << resource_path << std::endl;
-    std::cout << "clang_args = " << clang_args_c_strings << std::endl;
+    std::cout << "clang_args = " << clang_arg_c_strings << std::endl;
     clang::driver::Driver driver(resource_path + "/bin/clang",
                                  llvm::sys::getDefaultTargetTriple(),
                                  diagnostics_engine);
