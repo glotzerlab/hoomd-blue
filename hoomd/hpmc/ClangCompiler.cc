@@ -125,7 +125,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     std::cout << "##  ###  ###  ######  #####  #####  ####  ######" << std::endl;
     std::cout << "##  ###  ###     ###     ##     ##        ##  ##" << std::endl;
     std::cout << "################################################" << std::endl;
-    std::cout << "HOOMD_LLVM_INSTALL_PREFIX " << HOOMD_LLVM_INSTALL_PREFIX << std::endl;
+    std::cout << "HOOMD_LLVM_INSTALL_PREFIX =" << HOOMD_LLVM_INSTALL_PREFIX << std::endl;
     std::cout << "resource_path = " << resource_path << std::endl;
     std::cout << "clang_args = " << std::endl;
     for (int i = 0; i < clang_args.size(); i++)
