@@ -92,8 +92,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
                                                 false);
 
     // determine the clang resource path
-    // std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
-    std::string resource_path = "$PREFIX";
+    std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
 
     // build up the argument list
     std::vector<std::string> clang_args;
@@ -133,6 +132,13 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
         {
         std::cout << clang_args[i] << std::endl;
         }
+    std::string clang_exec_with_path = resource_path + "/bin/clang";
+    ifstream f(clang_exec_with_path.c_str());
+    if (!f.good())
+        {
+        throw std::runtime_error("cannot find $PREFIX/bin/clang");
+        }
+
     clang::driver::Driver driver(resource_path + "/bin/clang",
                                  llvm::sys::getDefaultTargetTriple(),
                                  diagnostics_engine);
