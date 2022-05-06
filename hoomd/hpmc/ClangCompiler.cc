@@ -189,27 +189,6 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
         return nullptr;
         }
 
-    // TODO: Run optimization passes
-    // see the posts following this one:
-    // https://wiki.nervtech.org/doku.php?id=blog:2020:0410_dynamic_cpp_compilation
-
-    //     llvm::PassBuilder passBuilder;
-    //     llvm::LoopAnalysisManager loopAnalysisManager(codeGenOptions.DebugPassManager);
-    //     llvm::FunctionAnalysisManager functionAnalysisManager(codeGenOptions.DebugPassManager);
-    //     llvm::CGSCCAnalysisManager cGSCCAnalysisManager(codeGenOptions.DebugPassManager);
-    //     llvm::ModuleAnalysisManager moduleAnalysisManager(codeGenOptions.DebugPassManager);
-
-    //     passBuilder.registerModuleAnalyses(moduleAnalysisManager);
-    //     passBuilder.registerCGSCCAnalyses(cGSCCAnalysisManager);
-    //     passBuilder.registerFunctionAnalyses(functionAnalysisManager);
-    //     passBuilder.registerLoopAnalyses(loopAnalysisManager);
-    //     passBuilder.crossRegisterProxies(loopAnalysisManager, functionAnalysisManager,
-    //     cGSCCAnalysisManager, moduleAnalysisManager);
-
-    //     llvm::ModulePassManager modulePassManager =
-    //     passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O3);
-    //     modulePassManager.run(*module, moduleAnalysisManager);
-
     return module;
     }
 
