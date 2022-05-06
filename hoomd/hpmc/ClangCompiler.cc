@@ -133,7 +133,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
         std::cout << clang_args[i] << std::endl;
         }
     std::string clang_exec_with_path = resource_path + "/bin/clang";
-    ifstream f(clang_exec_with_path.c_str());
+    std::ifstream f(clang_exec_with_path.c_str());
     if (!f.good())
         {
         throw std::runtime_error("cannot find $PREFIX/bin/clang");
