@@ -134,11 +134,17 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
         std::cout << clang_args[i] << std::endl;
         }
     std::string clang_exec_with_path = resource_path + "/bin/clang";
-    std::ifstream f(clang_exec_with_path.c_str());
-    if (!f.good())
+    std::ifstream clang_file;
+    clang_file.open(clang_exec_with_path.c_str());
+    if (!clang_file)
         {
         throw std::runtime_error("cannot find $PREFIX/bin/clang");
         }
+    else
+        {
+        std::cout << "found clang in " << clang_exec_with_path.c_str() << std::endl;
+        }
+    clang_file.close();
 
     clang::driver::Driver driver(resource_path + "/bin/clang",
                                  llvm::sys::getDefaultTargetTriple(),
