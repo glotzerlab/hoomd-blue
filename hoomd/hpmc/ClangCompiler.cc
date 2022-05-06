@@ -92,7 +92,8 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
                                                 false);
 
     // determine the clang resource path
-    std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
+    // std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
+    std::string resource_path = "$PREFIX";
 
     // build up the argument list
     std::vector<std::string> clang_args;
