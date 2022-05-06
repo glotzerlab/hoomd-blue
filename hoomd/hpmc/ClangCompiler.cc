@@ -118,6 +118,15 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // https://cpp.hotexamples.com/site/file?hash=0xd4e048edbee7a77d7b2181909e61ab1a1213629fe8aa79248fea8ae17f8dc7fc&fullName=safecode-mirror-master/tools/clang/examples/main.cpp&project=lygstate/safecode-mirror
     // see also:
     // https://cpp.hotexamples.com/examples/-/CompilerInstance/-/cpp-compilerinstance-class-examples.html
+    std::cout << "################################################" << std::endl;
+    std::cout << "##  ###  ###     ###  #####  #####        ##  ##" << std::endl;
+    std::cout << "##  ###  ###  ######  #####  #####  ####  ##  ##" << std::endl;
+    std::cout << "##       ###     ###  #####  #####  ####  ##  ##" << std::endl;
+    std::cout << "##  ###  ###  ######  #####  #####  ####  ######" << std::endl;
+    std::cout << "##  ###  ###     ###     ##     ##        ##  ##" << std::endl;
+    std::cout << "################################################" << std::endl;
+    std::cout << "resource_path = " << resource_path << std::endl;
+    std::cout << "clang_args = " << clang_args_c_strings << std::endl;
     clang::driver::Driver driver(resource_path + "/bin/clang",
                                  llvm::sys::getDefaultTargetTriple(),
                                  diagnostics_engine);
