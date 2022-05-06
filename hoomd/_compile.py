@@ -21,8 +21,11 @@ def _get_hoomd_include_path():
     return hoomd_include_path.resolve()
 
 
-def get_cpu_include_options():
-    """Get the source code include path for HOOMD's include files."""
+def get_cpu_compiler_arguments():
+    """Get the arguments to pass to the compiler.
+
+    These arguments must include the include patch for HOOMD's include files.
+    """
     return ['-I', str(_get_hoomd_include_path()), '-O3']
 
 
