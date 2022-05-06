@@ -272,7 +272,7 @@ class CPPPotential(CPPPotentialBase):
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
         cpu_code = self._wrap_cpu_code(self.code)
-        cpu_include_options = _compile.get_cpu_include_options()
+        cpu_include_options = _compile.get_cpu_compiler_arguments()
 
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
