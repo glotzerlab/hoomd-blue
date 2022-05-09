@@ -10,6 +10,11 @@ v3.x
 v3.x.y (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+*Added*
+
+* ``hoomd.mesh.Mesh`` - Triangular mesh data structure.
+* ``hoomd.md.mesh.bond`` - Bond potentials on mesh edges.
+
 *Fixed*
 
 * Clarify documentation.
@@ -45,6 +50,11 @@ v3.1.0 (2022-04-27)
 * ``hoomd.md.force.Custom`` zeroes forces, torques, energies, and virials before calling
   ``set_forces``.
 * Point tarball download link to https://github.com/glotzerlab/hoomd-blue/releases.
+
+*Deprecated*
+
+* ``hoomd.md.pair.aniso.ALJ.mode`` - parameter has no effect.
+* ``hoomd.md.pair.aniso.Dipole.mode`` - parameter has no effect.
 
 v3.0.1 (2022-04-08)
 ^^^^^^^^^^^^^^^^^^^
