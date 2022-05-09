@@ -44,7 +44,7 @@ import numpy
 class Angle(Force):
     """Base class angle force.
 
-    :py:class:`Angle` is the base class for all angle forces.
+    `Angle` is the base class for all angle forces.
 
     Warning:
         This class should not be instantiated by users. The class can be used
@@ -73,8 +73,8 @@ class Angle(Force):
 class Harmonic(Angle):
     r"""Harmonic angle force.
 
-    :py:class:`Harmonic` computes forces, virials, and energies on all angles
-    in the simulation state with:
+    `Harmonic` computes forces, virials, and energies on all angles in the
+    simulation state with:
 
     .. math::
 
@@ -111,8 +111,8 @@ class Harmonic(Angle):
 class CosineSquared(Angle):
     r"""Cosine squared angle force.
 
-    :py:class:`CosineSquared` computes forces, virials, and energies on all
-    angles in the simulation state with:
+    `CosineSquared` computes forces, virials, and energies on all angles in the
+    simulation state with:
 
     .. math::
 

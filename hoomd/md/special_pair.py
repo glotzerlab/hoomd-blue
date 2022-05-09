@@ -48,7 +48,7 @@ import hoomd
 class SpecialPair(Force):
     """Base class special pair forces.
 
-    :py:class:`SpecialPair` is the base class for all special pair forces.
+    `SpecialPair` is the base class for all special pair forces.
 
     Warning:
         This class should not be instantiated by users. The class can be used

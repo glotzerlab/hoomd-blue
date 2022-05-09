@@ -62,7 +62,7 @@ class Dipole(AnisotropicPair):
     r"""Screened dipole-dipole pair forces.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode (ignored).
 
@@ -144,7 +144,7 @@ class GayBerne(AnisotropicPair):
     r"""Gay-Berne anisotropic pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 

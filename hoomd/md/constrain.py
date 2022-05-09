@@ -30,7 +30,7 @@ from hoomd.operation import _HOOMDBaseObject
 class Constraint(_HOOMDBaseObject):
     """Constraint force base class.
 
-    :py:class:`Constraint` is the base class for all constraint forces.
+    `Constraint` is the base class for all constraint forces.
 
     Warning:
         This class should not be instantiated by users. The class can be used

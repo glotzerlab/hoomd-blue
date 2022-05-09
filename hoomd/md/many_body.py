@@ -51,7 +51,7 @@ from hoomd.md.force import Force
 class Triplet(Force):
     """Base class triplet force.
 
-    :py:class:`Triplet` is the base class for many-body triplet forces.
+    `Triplet` is the base class for many-body triplet forces.
 
     Warning:
         This class should not be instantiated by users. The class can be used
@@ -155,7 +155,7 @@ class Tersoff(Triplet):
     r"""Tersoff force.
 
     Args:
-        nlist (:py:class:`hoomd.md.nlist.NeighborList`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     The Tersoff potential is a bond-order potential based on the Morse potential
@@ -287,7 +287,7 @@ class RevCross(Triplet):
     r"""Reversible crosslinker three-body force.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     `RevCross` computes the revcross three-body force on every particle in the
@@ -411,7 +411,7 @@ class SquareDensity(Triplet):
     r"""Soft force for simulating a van der Waals liquid.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     `SquareDensity` that the square density three-body force should on every

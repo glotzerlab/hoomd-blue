@@ -54,7 +54,7 @@ class Harmonic(MeshPotential):
     in ``mesh`` with the harmonic potential (see `hoomd.md.bond.Harmonic`).
 
     Args:
-        mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (hoomd.mesh.Mesh): Mesh data structure constraint.
 
     Attributes:
         params (TypeParameter[``mesh name``,dict]):
@@ -90,7 +90,7 @@ class FENEWCA(MeshPotential):
     in ``mesh`` with the harmonic potential (see `hoomd.md.bond.FENEWCA`).
 
     Args:
-        mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (hoomd.mesh.Mesh): Mesh data structure constraint.
 
     Attributes:
         params (TypeParameter[``bond type``, dict]):
@@ -143,7 +143,7 @@ class Tether(MeshPotential):
     in ``mesh`` with the harmonic potential (see `hoomd.md.bond.Tether`).
 
     Args:
-        mesh (`hoomd.mesh.Mesh`): Mesh data structure constraint.
+        mesh (hoomd.mesh.Mesh): Mesh data structure constraint.
 
     Attributes:
         params (TypeParameter[``mesh name``,dict]):

@@ -45,7 +45,7 @@ import numpy
 class Bond(Force):
     """Base class bond force.
 
-    :py:class:`Bond` is the base class for all bond forces.
+    `Bond` is the base class for all bond forces.
 
     Warning:
         This class should not be instantiated by users. The class can be used
@@ -70,8 +70,8 @@ class Bond(Force):
 class Harmonic(Bond):
     r"""Harmonic bond force.
 
-    :py:class:`Harmonic` computes forces, virials, and energies on all bonds
-    in the simulation state with:
+    `Harmonic` computes forces, virials, and energies on all bonds in the
+    simulation state with:
 
     .. math::
 
@@ -106,8 +106,8 @@ class Harmonic(Bond):
 class FENEWCA(Bond):
     r"""FENE and WCA bond force.
 
-    :py:class:`FENEWCA` computes forces, virials, and energies on all bonds
-    in the simulation state with:
+    `FENEWCA` computes forces, virials, and energies on all bonds in the
+    simulation state with:
 
     .. math::
 
@@ -283,8 +283,8 @@ class Tether(Bond):
     `Noguchi, H. & Gompper, G., Phys. Rev. E 72 011901 (2005)
     <https://link.aps.org/doi/10.1103/PhysRevE.72.011901>`__.
 
-    :py:class:`Tether` computes forces, virials, and energies on all bonds in
-    the simulation state with:
+    `Tether` computes forces, virials, and energies on all bonds in the
+    simulation state with:
 
     .. math::
 

@@ -54,7 +54,7 @@ import math
 class Dihedral(Force):
     """Base class dihedral force.
 
-    :py:class:`Dihedral` is the base class for all dihedral forces.
+    `Dihedral` is the base class for all dihedral forces.
 
     Warning:
         This class should not be instantiated by users. The class can be used

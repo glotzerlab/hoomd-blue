@@ -17,7 +17,7 @@ class RemoveDrift(Updater):
     Args:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
             the reference positions :math:`[\mathrm{length}]`.
-        trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to remove drift.
 
     `RemoveDrift` computes the mean drift :math:`\vec{D}` from the
     given `reference_positions` (:math:`\vec{r}_{ref, i}`):
@@ -42,7 +42,7 @@ class RemoveDrift(Updater):
     Attributes:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
             the reference positions :math:`[\mathrm{length}]`.
-        trigger (`hoomd.trigger.Trigger`): The timesteps to remove drift.
+        trigger (hoomd.trigger.Trigger): The timesteps to remove drift.
     """
 
     def __init__(self, reference_positions, trigger=1):
