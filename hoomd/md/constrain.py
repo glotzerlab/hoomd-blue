@@ -75,6 +75,10 @@ class Distance(Constraint):
     ``constraint_group`` and :math:`d_{ij}` is the constraint distance.
     Define any number of constraint groups in the system state.
 
+    Note:
+        Define ``constraint_group`` members and :math:`d_{ij}` in the
+        constraints property of `hoomd.State`.
+
     The method sets the second derivative of the Lagrange multipliers with
     respect to time to zero, such that both the distance constraints and their
     time derivatives are conserved within the accuracy of the Velocity Verlet
