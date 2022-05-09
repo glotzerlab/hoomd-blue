@@ -31,6 +31,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <filesystem>
 
 namespace hoomd
     {
@@ -92,8 +93,17 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
                                                 &diagnostic_printer,
                                                 false);
 
-    // determine the clang resource path
-    std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
+    // Store the LLVM installation prefix in a volatile char array so that "/bin/clang" can be added
+    // at runtime instead of compile time. When it is added at compile time, conda rewrites an
+    // embedded string "$BUILD_PREFIX/bin/clang" with "$INSTALL_PREFIX", truncating the string.
+    volatile const char *llvm_install_prefix = HOOMD_LLVM_INSTALL_PREFIX;
+
+    // standard string methods do not accept volatile char arrays, extract the string manually
+    std::string clang_exec_with_path;
+    for (volatile const char* c = llvm_install_prefix ; *c != 0; ++c) {
+        clang_exec_with_path.push_back(*c);
+    }
+    clang_exec_with_path += "/bin/clang";
 
     // build up the argument list
     std::vector<std::string> clang_args;
@@ -127,26 +137,23 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     std::cout << "##  ###  ###     ###     ##     ##        ##  ##" << std::endl;
     std::cout << "################################################" << std::endl;
     std::cout << "HOOMD_LLVM_INSTALL_PREFIX =" << HOOMD_LLVM_INSTALL_PREFIX << std::endl;
-    std::cout << "resource_path = " << resource_path << std::endl;
+    std::cout << "clang_exec_with_path = " << clang_exec_with_path << std::endl;
     std::cout << "clang_args = " << std::endl;
-    for (int i = 0; i < clang_args.size(); i++)
+    for (unsigned int i = 0; i < clang_args.size(); i++)
         {
         std::cout << clang_args[i] << std::endl;
         }
-    std::string clang_exec_with_path = resource_path + "/bin/clang";
-    std::ifstream clang_file;
-    clang_file.open(clang_exec_with_path.c_str());
-    if (!clang_file)
+
+    if (!std::filesystem::exists(clang_exec_with_path))
         {
         throw std::runtime_error("cannot find $PREFIX/bin/clang");
         }
     else
         {
-        std::cout << "found clang in " << clang_exec_with_path.c_str() << std::endl;
+        std::cout << "found clang in " << clang_exec_with_path << std::endl;
         }
-    clang_file.close();
 
-    clang::driver::Driver driver(resource_path + "/bin/clang",
+    clang::driver::Driver driver(clang_exec_with_path,
                                  llvm::sys::getDefaultTargetTriple(),
                                  diagnostics_engine);
     driver.setCheckInputsExist(false);
