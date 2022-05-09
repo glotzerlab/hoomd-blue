@@ -95,13 +95,14 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // Store the LLVM installation prefix in a volatile char array so that "/bin/clang" can be added
     // at runtime instead of compile time. When it is added at compile time, conda rewrites an
     // embedded string "$BUILD_PREFIX/bin/clang" with "$INSTALL_PREFIX", truncating the string.
-    volatile const char *llvm_install_prefix = HOOMD_LLVM_INSTALL_PREFIX;
+    volatile const char* llvm_install_prefix = HOOMD_LLVM_INSTALL_PREFIX;
 
     // standard string methods do not accept volatile char arrays, extract the string manually
     std::string clang_exec_with_path;
-    for (volatile const char* c = llvm_install_prefix ; *c != 0; ++c) {
+    for (volatile const char* c = llvm_install_prefix; *c != 0; ++c)
+        {
         clang_exec_with_path.push_back(*c);
-    }
+        }
     clang_exec_with_path += "/bin/clang";
 
     // build up the argument list
@@ -129,7 +130,7 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // see also:
     // https://cpp.hotexamples.com/examples/-/CompilerInstance/-/cpp-compilerinstance-class-examples.html
     struct stat buffer;
-    if (stat (clang_exec_with_path.c_str(), &buffer) != 0)
+    if (stat(clang_exec_with_path.c_str(), &buffer) != 0)
         {
         out << "Error: cannot find " << clang_exec_with_path << std::endl;
         return nullptr;
