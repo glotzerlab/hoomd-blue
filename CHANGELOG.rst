@@ -7,6 +7,15 @@ Change Log
 v3.x
 ----
 
+v3.x.y (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Clarify documentation.
+* ``Box.dimension`` reports the correct  value when reading in 2D boxes generated in HOOMD v2.
+* Improve performance of run time compiled HPMC potentials on the CPU.
+
 v3.1.0 (2022-04-27)
 ^^^^^^^^^^^^^^^^^^^
 
