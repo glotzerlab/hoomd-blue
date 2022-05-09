@@ -28,7 +28,6 @@
 
 #pragma GCC diagnostic pop
 
-#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <filesystem>
@@ -129,28 +128,10 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // https://cpp.hotexamples.com/site/file?hash=0xd4e048edbee7a77d7b2181909e61ab1a1213629fe8aa79248fea8ae17f8dc7fc&fullName=safecode-mirror-master/tools/clang/examples/main.cpp&project=lygstate/safecode-mirror
     // see also:
     // https://cpp.hotexamples.com/examples/-/CompilerInstance/-/cpp-compilerinstance-class-examples.html
-    std::cout << "################################################" << std::endl;
-    std::cout << "##  ###  ###     ###  #####  #####        ##  ##" << std::endl;
-    std::cout << "##  ###  ###  ######  #####  #####  ####  ##  ##" << std::endl;
-    std::cout << "##       ###     ###  #####  #####  ####  ##  ##" << std::endl;
-    std::cout << "##  ###  ###  ######  #####  #####  ####  ######" << std::endl;
-    std::cout << "##  ###  ###     ###     ##     ##        ##  ##" << std::endl;
-    std::cout << "################################################" << std::endl;
-    std::cout << "HOOMD_LLVM_INSTALL_PREFIX =" << HOOMD_LLVM_INSTALL_PREFIX << std::endl;
-    std::cout << "clang_exec_with_path = " << clang_exec_with_path << std::endl;
-    std::cout << "clang_args = " << std::endl;
-    for (unsigned int i = 0; i < clang_args.size(); i++)
-        {
-        std::cout << clang_args[i] << std::endl;
-        }
-
     if (!std::filesystem::exists(clang_exec_with_path))
         {
-        throw std::runtime_error("cannot find $PREFIX/bin/clang");
-        }
-    else
-        {
-        std::cout << "found clang in " << clang_exec_with_path << std::endl;
+        out << "Error: cannot find " << clang_exec_with_path << std::endl;
+        return nullptr;
         }
 
     clang::driver::Driver driver(clang_exec_with_path,
