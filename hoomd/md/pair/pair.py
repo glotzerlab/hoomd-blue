@@ -18,9 +18,11 @@ from hoomd.data.typeconverter import OnlyFrom, nonnegative_real
 class Pair(force.Force):
     r"""Base class pair force.
 
-    Note:
-        :py:class:`Pair` is the base class for all pair forces. Users should
-        not instantiate this class directly.
+    :py:class:`Pair` is the base class for all pair forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     .. py:attribute:: r_cut
 

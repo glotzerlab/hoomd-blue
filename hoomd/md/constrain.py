@@ -30,9 +30,11 @@ from hoomd.operation import _HOOMDBaseObject
 class Constraint(_HOOMDBaseObject):
     """Constraint force base class.
 
-    Note:
-        :py:class:`Constraint` is the base class for all constraint forces.
-        Users should not instantiate this class directly.
+    :py:class:`Constraint` is the base class for all constraint forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def _attach(self):

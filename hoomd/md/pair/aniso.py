@@ -33,9 +33,11 @@ from hoomd.data.typeconverter import OnlyIf, to_type_converter
 class AnisotropicPair(Pair):
     r"""Base class anisotropic pair force.
 
-    Note:
-        `AnisotropicPair` is the base class for all anisotropic pair forces.
-        Users not not instantiate this class directly.
+    `AnisotropicPair` is the base class for all anisotropic pair forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     Args:
         nlist (hoomd.md.nlist.NeighborList) : The neighbor list.

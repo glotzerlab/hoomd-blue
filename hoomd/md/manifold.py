@@ -25,7 +25,7 @@ from collections.abc import Sequence
 class Manifold(_HOOMDBaseObject):
     r"""Base class manifold object.
 
-    Note:
+    Warning:
         Users should not instantiate :py:class:`Manifold` directly, but should
         instead instantiate one of its subclasses defining a specific manifold
         geometry.

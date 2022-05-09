@@ -17,9 +17,12 @@ validate_mesh = OnlyTypes(Mesh)
 class MeshPotential(Force):
     """Constructs the bond potential applied to a mesh.
 
-    Note:
-        :py:class:`MeshPotential` is the base class for all bond potentials
-        applied to meshes. Users should not instantiate this class directly.
+    :py:class:`MeshPotential` is the base class for all bond potentials applied
+    to meshes.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def __init__(self, mesh):

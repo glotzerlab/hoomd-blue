@@ -51,9 +51,11 @@ from hoomd.md.force import Force
 class Triplet(Force):
     """Base class triplet force.
 
-    Note:
-        :py:class:`Triplet` is the base class for many-body triplet forces.
-        Users should not instantiate this class directly.
+    :py:class:`Triplet` is the base class for many-body triplet forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     .. py:attribute:: r_cut
 

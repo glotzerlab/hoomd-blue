@@ -266,13 +266,16 @@ import json
 class HPMCIntegrator(Integrator):
     """Base class hard particle Monte Carlo integrator.
 
-    :py:class:`HPMCIntegrator` is the base class for all HPMC integrators. Users
-    should not instantiate this class directly. The attributes documented here
-    are available to all HPMC integrators.
+    :py:class:`HPMCIntegrator` is the base class for all HPMC integrators. The
+    attributes documented here are available to all HPMC integrators.
 
     See Also:
         The module level documentation `hoomd.hpmc.integrate` describes the
         hard particle Monte Carlo algorithm.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     .. rubric:: Ignoring overlap checks
 

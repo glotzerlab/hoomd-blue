@@ -20,6 +20,9 @@ import numpy
 class Force(_HOOMDBaseObject):
     r"""Defines a force for molecular dynamics simulations.
 
+    :py:class:`Force` is the base class for all molecular dynamics forces and
+    provides common methods.
+
     A `Force` class computes the force and torque on each particle in the
     simulation state :math:`\vec{F}_i` and :math:`\vec{\tau}_i`. With a few
     exceptions (noted in the documentation of the specific force classes),
@@ -56,10 +59,9 @@ class Force(_HOOMDBaseObject):
         W^{kl}_i = \sum_j F^k_{ij} \cdot
         \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
 
-    Note:
-        :py:class:`Force` is the base class for all molecular dynamics forces
-        and provides common methods. Users should not instantiate this class
-        directly.
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def __init__(self):
