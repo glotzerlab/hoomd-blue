@@ -30,7 +30,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <filesystem>
+#include <sys/stat.h>
 
 namespace hoomd
     {
@@ -128,7 +128,8 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // https://cpp.hotexamples.com/site/file?hash=0xd4e048edbee7a77d7b2181909e61ab1a1213629fe8aa79248fea8ae17f8dc7fc&fullName=safecode-mirror-master/tools/clang/examples/main.cpp&project=lygstate/safecode-mirror
     // see also:
     // https://cpp.hotexamples.com/examples/-/CompilerInstance/-/cpp-compilerinstance-class-examples.html
-    if (!std::filesystem::exists(clang_exec_with_path))
+    struct stat buffer;
+    if (stat (clang_exec_with_path.c_str(), &buffer) != 0)
         {
         out << "Error: cannot find " << clang_exec_with_path << std::endl;
         return nullptr;
