@@ -115,9 +115,18 @@ class NeighborList(_HOOMDBaseObject):
         """int: The shortest period between neighbor list rebuilds.
 
         `shortest_rebuild` is the smallest number of time steps between neighbor
-        list rebuilds during the previous `Simulation.run`.
+        list rebuilds since the last call to `Simulation.run`.
         """
         return self._cpp_obj.getSmallestRebuild()
+
+    @log(requires_run=True)
+    def num_builds(self):
+        """int: The number of neighbor list builds.
+
+        `num_builds` is the number of neighbor list rebuilds performed since the
+        last call to `Simulation.run`.
+        """
+        return self._cpp_obj.num_builds
 
     def _remove_dependent(self, obj):
         super()._remove_dependent(obj)
