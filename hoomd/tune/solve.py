@@ -122,7 +122,7 @@ class ScaleSolver(RootSolver):
     def __init__(self,
                  max_scale=2.0,
                  gamma=2.0,
-                 correlation='positive',
+                 correlation="positive",
                  tol=1e-5):
         self.max_scale = max_scale
         self.gamma = gamma
@@ -136,18 +136,18 @@ class ScaleSolver(RootSolver):
             return True
 
         if y > 0:
-            if self.correlation == 'positive':
+            if self.correlation == "positive":
                 scale = (self.gamma + target) / (y + self.gamma)
             else:
                 scale = (y + self.gamma) / (self.gamma + target)
         else:
             # y was zero. Try a value an order of magnitude smaller
-            if self.correlation == 'positive':
+            if self.correlation == "positive":
                 scale = 0.1
             else:
                 scale = 1.1
 
-        if (scale > self.max_scale):
+        if scale > self.max_scale:
             scale = self.max_scale
         # Ensures we stay within the tunable's domain (i.e. we don't take on
         # values to high or low).
@@ -162,7 +162,7 @@ class ScaleSolver(RootSolver):
             return False
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ('max_scale', 'gamma', 'correlation', 'tol'))
+            for attr in ("max_scale", "gamma", "correlation", "tol"))
 
 
 class _GradientHelper:
@@ -289,7 +289,7 @@ class SecantSolver(RootSolver, _GradientHelper):
             return False
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ('gamma', 'tol', '_counters', '_previous_pair'))
+            for attr in ("gamma", "tol", "_counters", "_previous_pair"))
 
 
 class Optimizer(SolverStep):
