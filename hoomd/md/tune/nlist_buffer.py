@@ -78,7 +78,7 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
 
         # Setup default log values
         self._last_tps = 0.0
-        self._best_buffer_size = 0.0
+        self._best_buffer_size = nlist.buffer
         self._max_tps = 0.0
 
     def act(self, timestep: int):
