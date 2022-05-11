@@ -23,8 +23,8 @@ class _IntervalTPS:
     def __init__(self, simulation):
         self._simulation = simulation
         self._initial_timestep = simulation.initial_timestep
-        self._last_timestep = simulation.timestep
-        self._last_walltime = simulation.walltime
+        self._last_timestep = None
+        self._last_walltime = None
         self._last_tps = None
 
     def __call__(self):
@@ -92,7 +92,7 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
 
     def _maximum_buffer_post(self, value: float):
         if self._simulation is not None:
-            self._tunable.domain = (1e-5, value)
+            self._tunable.domain = (0, value)
         return value
 
     def attach(self, simulation):
@@ -105,13 +105,9 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
             target=0.0,
             get_x=self._get_buffer,
             set_x=self._set_buffer,
-            domain=(1e-5, self.maximum_buffer),
+            domain=(0, self.maximum_buffer),
         )
 
-    def _get_tps(self):
-        if self._simulation.tps == 0:
-            return None
-        return self._simulation.tps
 
     def _get_buffer(self):
         return self.nlist.buffer
