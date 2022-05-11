@@ -345,6 +345,18 @@ class Simulation(metaclass=Loggable):
         else:
             return self._cpp_sys.final_timestep
 
+    @log
+    def initial_timestep(self):
+        """float: `run` will end at this timestep.
+
+        `initial_timestep` is the timestep on which the currently executing
+        `run` started.
+        """
+        if self._state is None:
+            return self.timestep
+        else:
+            return self._cpp_sys.initial_timestep
+
     @property
     def always_compute_pressure(self):
         """bool: Always compute the virial and pressure (defaults to ``False``).
