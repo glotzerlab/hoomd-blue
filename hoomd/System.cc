@@ -169,7 +169,14 @@ void System::run(uint64_t nsteps, bool write_at_start)
             }
 
         updateTPS();
-
+#ifdef ENABLE_MPI
+        // make sure all ranks return the same TPS after the run completes
+        if (m_sysdef->isDomainDecomposed())
+            {
+            bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+            bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
         // propagate Python exceptions related to signals
         if (PyErr_CheckSignals() != 0)
             {
@@ -177,14 +184,6 @@ void System::run(uint64_t nsteps, bool write_at_start)
             }
         }
 
-#ifdef ENABLE_MPI
-    // make sure all ranks return the same TPS after the run completes
-    if (m_sysdef->isDomainDecomposed())
-        {
-        bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
-        bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
-        }
-#endif
     }
 
 void System::updateTPS()
