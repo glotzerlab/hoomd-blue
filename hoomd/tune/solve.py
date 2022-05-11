@@ -8,6 +8,7 @@ but offers basic facilities for tuning problems faced by various HOOMD objects.
 """
 
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from math import isclose
 import typing
 
@@ -419,6 +420,98 @@ class GradientDescent(Optimizer, _GradientHelper):
             return False
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ('alpha', 'tol', '_counters',
-                         '_previous_pair')) and np.array_equal(
+            for attr in ("alpha", "tol", "_counters",
+                         "_previous_pair")) and np.array_equal(
                              self.kappa, other.kappa)
+
+
+class _Repeater:
+
+    def __init__(self, value):
+        self._a = value
+
+    def __call__(self):
+        return self._a
+
+
+class GridOptimizer(Optimizer):
+    """Optimize by consistently narrowing the range where the extrema is.
+
+    The algorithm is as follows. Given a domain :math:`d = [a, b]`, :math:`d` is
+    broken up into ``n_bins`` subsequent bins. For the next ``n_bins`` calls,
+    the optimizer tests the function value at each bin center. The next call
+    does one of two things. If the number of rounds has reached ``n_rounds`` the
+    optimization is done, and the center of the best bin is the solution.
+    Otherwise, another round is performed where the bin's extent is the new
+    domain.
+
+    Warning:
+        Changing a tunables domain during usage of a `GridOptimizer` results
+        in incorrect behavior.
+
+    Args:
+        n_bins (`int`, optional): The number of bins in the range to test
+            (defaults to 5).
+        n_rounds (`int`, optional): The number of rounds to perform the
+            optimization over (defaults to 1).
+        maximize (`bool`, optional): Whether to maximize or minimize the
+            function (defaults to ``True``).
+    """
+
+    def __init__(self,
+                 n_bins: int = 5,
+                 n_rounds: int = 1,
+                 maximize: bool = True):
+        self._n_bins = n_bins
+        self._n_rounds = n_rounds
+        self._opt = max if maximize else min
+
+        self._bins = {}
+        self._round = defaultdict(_Repeater(1))
+        self._bin_y = defaultdict(list)
+        self._solved = defaultdict(_Repeater(False))
+
+    def solve_one(self, tunable):
+        """Perform one step of optimization protocol."""
+        if self._solved:
+            return True
+
+        # Initialize data for tunable and start on round 1 first bin
+        if tunable not in self._bins:
+            self._initial_binning(tunable)
+            tunable.x = self._get_bin_center(tunable, 0)
+            return False
+
+        bin_y = self._bin_y[tunable]
+        bin_y.append(tunable.y)
+        # Need to increment round or finish optimizing
+        if len(bin_y) == self._n_bins:
+            index = bin_y.index(self._opt(bin_y))
+            boundaries = self._bins[tunable][index:index + 2]
+            if self._round[tunable] == self._n_rounds:
+                center = sum(boundaries) / 2
+                tunable.x = center
+                self._solved[tunable] = True
+                return True
+            self._bins[tunable] = np.linspace(*boundaries, self._n_bins + 1)
+            bin_y.clear()
+            tunable.x = self._get_bin_center(tunable, 0)
+            self._round[tunable] += 1
+            return False
+
+        # Standard intra-round optimizing.
+        tunable.x = self._get_bin_center(tunable, len(bin_y))
+        return False
+
+    def _initial_binning(self, tunable):
+        """Get the initial bin boundaries for a tunable."""
+        min_, max_ = tunable.domain
+        if max_ is None or min_ is None:
+            raise ValueError(
+                "GridOptimizer requires max and min x value to tune.")
+        self._bins[tunable] = np.linspace(min_, max_, self._n_bins + 1)
+
+    def _get_bin_center(self, tunable, index):
+        """Get the bin center for a given tunable and bin index."""
+        min_, max_ = tunable.domain
+        return sum(self._bins[tunable][index:index + 2]) / 2
