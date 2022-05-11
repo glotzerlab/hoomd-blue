@@ -23,7 +23,7 @@ class _IntervalTPS:
 
     def __init__(self, simulation):
         self._simulation = simulation
-        self._initial_timestep = simulation.initial_timestep
+        self._initial_timestep = None
         self._last_timestep = None
         self._last_walltime = None
         self._last_tps = None
@@ -31,26 +31,33 @@ class _IntervalTPS:
     def __call__(self):
         if self._simulation.timestep == self._last_timestep:
             return self._last_tps
+
         start = self._simulation.initial_timestep
-        if start is not None and start > self._initial_timestep:
+        if self._initial_timestep is None or start > self._initial_timestep:
             self._initial_timestep = start
             # if condition is False then last call was the end of the last run
             # and we can tune.
             if self._last_timestep != start:
+                self.update()
                 return None
-        walltime = self._simulation.walltime
-        timestep = self._simulation.timestep
-        if self._last_walltime is not None and self._last_timestep is not None:
-            delta_w = walltime - self._last_walltime
-            delta_t = timestep - self._last_timestep
-            # We divide by 1_000 to reduce the gradient size for optimization.
-            tps = delta_t / (_SCALE_TPS * delta_w)
-        else:
-            tps = None
+            self._last_walltime = 0
+
+        tps = self.get_tps()
         self._last_tps = tps
-        self._last_walltime = walltime
-        self._last_timestep = timestep
+        self.update()
         return tps
+
+    def update(self):
+        self._last_walltime = self._simulation.walltime
+        self._last_timestep = self._simulation.timestep
+
+    def get_tps(self):
+        if self._last_walltime is None or self._last_timestep is None:
+            return None
+        delta_w = self._simulation.walltime - self._last_walltime
+        delta_t = self._simulation.timestep - self._last_timestep
+        # We divide by 1_000 to reduce the gradient size for optimization.
+        return delta_t / (_SCALE_TPS * delta_w)
 
 
 class _NeighborListBufferInternal(hoomd.custom._InternalAction):
