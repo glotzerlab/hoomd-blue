@@ -20,6 +20,7 @@ class _IntervalTPS:
 
     def __init__(self, simulation):
         self._simulation = simulation
+        self._initial_timestep = simulation.initial_timestep
         self._last_timestep = simulation.timestep
         self._last_walltime = simulation.walltime
         self._last_tps = None
@@ -27,6 +28,13 @@ class _IntervalTPS:
     def __call__(self):
         if self._simulation.timestep == self._last_timestep:
             return self._last_tps
+        start = self._simulation.initial_timestep
+        if start is not None and start > self._initial_timestep:
+            self._initial_timestep = start
+            # if condition is False then last call was the end of the last run
+            # and we can tune.
+            if self._last_timestep != start:
+                return None
         walltime = self._simulation.walltime
         timestep = self._simulation.timestep
         if self._last_walltime is not None and self._last_timestep is not None:
