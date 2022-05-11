@@ -340,7 +340,7 @@ class GradientDescent(Optimizer, _GradientHelper):
                  alpha: float = 0.1,
                  kappa: typing.Optional[np.ndarray] = None,
                  tol: float = 1e-5,
-                 maximize: bool = False,
+                 maximize: bool = True,
                  max_delta: typing.Optional[float] = None):
         self.alpha = alpha
         self.kappa = None if kappa is None else kappa
