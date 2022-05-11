@@ -13,6 +13,7 @@ hoomd.tune
 
     CustomTuner
     GradientDescent
+    GridOptimizer
     LoadBalancer
     ManualTuneDefinition
     Optimizer
@@ -28,6 +29,7 @@ hoomd.tune
     :synopsis: Tuner simulation hyperparameters.
     :members: CustomTuner,
               GradientDescent,
+              GridOptimizer,
               LoadBalancer,
               Optimizer,
               ParticleSorter,
