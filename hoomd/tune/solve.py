@@ -331,7 +331,11 @@ class GradientDescent(Optimizer, _GradientHelper):
             balances equally between the previous move and the current gradient.
 
         tol (`float`, optional): The absolute tolerance for convergence of
-            y, defaults to 1e-5.
+            y, (defaults to ``1e-5``).
+        maximize (`bool`, optional): Whether or not to maximize function
+            (defaults to ``True``).
+        max_delta (`float`, optional): The maximum step size to allow (defaults
+            to ``None`` which allows a step size of any length).
     """
 
     _max_allowable_counter = 3
