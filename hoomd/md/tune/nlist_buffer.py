@@ -15,6 +15,8 @@ import hoomd.tune
 import hoomd.trigger
 from hoomd.md.nlist import NeighborList
 
+_SCALE_TPS = 1e3
+
 
 class _IntervalTPS:
 
@@ -41,7 +43,7 @@ class _IntervalTPS:
             delta_w = walltime - self._last_walltime
             delta_t = timestep - self._last_timestep
             # We divide by 1_000 to reduce the gradient size for optimization.
-            tps = delta_t / (1e3 * delta_w)
+            tps = delta_t / (_SCALE_TPS * delta_w)
         else:
             tps = None
         self._last_tps = tps
@@ -61,8 +63,6 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
     ):
         self._simulation = None
         self._tuned = False
-        self._max_tps = 0
-        self._best_buffer_size = None
         param_dict = hoomd.data.parameterdicts.ParameterDict(
             nlist=SetOnce(NeighborList),
             solver=SetOnce(hoomd.tune.solve.Optimizer),
@@ -75,12 +75,19 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         })
         self._param_dict.update(param_dict)
 
+        # Setup default log values
+        self._last_tps = 0.0
+        self._best_buffer_size = 0.0
+        self._max_tps = 0.0
+
     def act(self, timestep: int):
+        tps = self._tunable.y
+        if tps is not None:
+            self._last_tps = tps * _SCALE_TPS
         if not self.tuned:
-            tps = self._tunable.y
             if tps is not None and tps > self._max_tps:
                 self._best_buffer_size = self._tunable.x
-                self._max_tps = tps
+                self._max_tps = self._last_tps
             self._tuned = self.solver.solve([self._tunable])
 
     def _maximum_buffer_post(self, value: float):
@@ -127,6 +134,11 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
     @hoomd.logging.log
     def best_buffer_size(self):
         return self._best_buffer_size
+
+    @hoomd.logging.log
+    def last_tps(self):
+        """int: The last TPS computed for the tuner."""
+        return self._last_tps
 
     def __getstate__(self):
         state = copy.copy(self.__dict__)
