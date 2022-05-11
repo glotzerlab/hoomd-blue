@@ -119,7 +119,7 @@ class NeighborList(_HOOMDBaseObject):
         """
         return self._cpp_obj.getSmallestRebuild()
 
-    @log(requires_run=True)
+    @log(requires_run=True, default=False)
     def num_builds(self):
         """int: The number of neighbor list builds.
 
@@ -210,6 +210,28 @@ class Cell(NeighborList):
                                   self.buffer)
 
         super()._attach()
+
+    @log(requires_run=True, default=False, category='sequence')
+    def dimensions(self):
+        """tuple[int, int, int]: Cell list dimensions.
+
+        `dimensions` is the number of cells in the x, y, and z directions.
+
+        See Also:
+            `allocated_particles_per_cell`
+        """
+        print(dir(self._cpp_obj))
+        dimensions = self._cpp_obj.getDim()
+        return (dimensions.x, dimensions.y, dimensions.z)
+
+    @log(requires_run=True, default=False)
+    def allocated_particles_per_cell(self):
+        """int: Number of particle slots allocated per cell.
+
+        The total memory usage of `Cell` is proportional to the product of the
+        three cell list `dimensions` and the `allocated_particles_per_cell`.
+        """
+        return self._cpp_obj.getNmax()
 
 
 class Stencil(NeighborList):

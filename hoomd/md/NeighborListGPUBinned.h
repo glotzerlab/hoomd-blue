@@ -75,6 +75,18 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         return m_cl->getSortCellList();
         }
 
+    /// Get the dimensions of the cell list
+    const uint3& getDim() const
+        {
+        return m_cl->getDim();
+        }
+
+    /// Get number of memory slots allocated for each cell
+    const unsigned int getNmax() const
+        {
+        return m_cl->getNmax();
+        }
+
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
     unsigned int m_block_size;      //!< Block size to execute on the GPU
