@@ -116,6 +116,12 @@ class PYBIND11_EXPORT System
         return m_end_tstep;
         }
 
+    /// Get the end time step
+    uint64_t getStartStep()
+        {
+        return m_start_tstep;
+        }
+
     // -------------- Misc methods
 
     //! Get the system definition
