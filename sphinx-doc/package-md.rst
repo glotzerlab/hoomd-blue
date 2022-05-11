@@ -34,4 +34,5 @@ hoomd.md
     module-md-nlist
     module-md-pair
     module-md-special_pair
+    module-md-tune
     module-md-update

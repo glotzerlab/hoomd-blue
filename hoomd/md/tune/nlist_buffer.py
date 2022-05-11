@@ -4,6 +4,7 @@
 """Provide a tuner for `hoomd.md.nlist.NeighborList.buffer`."""
 
 import copy
+import typing
 
 import numpy as np
 
@@ -108,7 +109,6 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
             domain=(0, self.maximum_buffer),
         )
 
-
     def _get_buffer(self):
         return self.nlist.buffer
 
@@ -121,14 +121,22 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
 
     @property
     def tuned(self):
+        """bool: Whether the neighbor list buffer is considered tuned.
+
+        Like other tuners, the tuner is considered tune when the specified
+        solver returns ``True`` when solving. See `hoomd.tune` for more
+        information on tuning criteria.
+        """
         return self._tuned
 
     @hoomd.logging.log
     def max_tps(self):
+        """int: The maximum recorded TPS during tuning."""
         return self._max_tps
 
     @hoomd.logging.log
     def best_buffer_size(self):
+        """float: The buffer size corresponding to ``max_tps`` during tuning."""
         return self._best_buffer_size
 
     @hoomd.logging.log
@@ -146,7 +154,7 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
 class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
     """Optimize neighbor list buffer size for maximum TPS.
 
-    Direct instantiation of this class requires a `hoomd.tune.solve.RootStep`
+    Direct instantiation of this class requires a `hoomd.tune.Optimizer`
     that determines how move sizes are updated. This class also provides class
     methods to create a `NeighborListBuffer` tuner with built-in solvers; see
     `NeighborListBuffer.with_grid` and
@@ -155,16 +163,16 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
-        nlist (hoomd.md.nlist.NeighborLis): Neighbor list instance to tune.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list instance to tune.
         solver (`hoomd.tune.solve.Optimizer`): A solver that tunes the
-        neighbor list buffer to maximize TPS.
+            neighbor list buffer to maximize TPS.
         maximum_buffer (float): The largest buffer value to allow.
 
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
             the tuner.
         solver (`hoomd.tune.solve.Optimizer`): A solver that tunes the
-        neighbor list buffer to maximize TPS.
+            neighbor list buffer to maximize TPS.
         maximum_buffer (float): The largest buffer value to allow.
 
     Warning:
@@ -174,6 +182,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
     """
 
     _internal_class = _NeighborListBufferInternal
+    _wrap_methods = ("tuned",)
 
     @classmethod
     def with_gradient_descent(
@@ -182,7 +191,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         nlist: NeighborList,
         maximum_buffer: float,
         alpha: "hoomd.variant.Variant | float" = 0.01,
-        kappa: "np.ndarray | None" = (0.33, 0.165),
+        kappa: typing.Optional[np.ndarray] = (0.33, 0.165),
         tol: float = 1e-5,
         max_delta: float = 0.05,
     ):
@@ -202,10 +211,11 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
                 scales the corrections to x each iteration.  Larger values of
                 ``alpha`` lead to larger changes while a ``alpha`` of 0 leads to
                 no change in x at all.
-            kappa (`numpy.ndarray` of float, optional): A NumPy array of floats
-                which are weight applied to the last :math:`N` of the gradients
-                to add to the current gradient as well, where :math:`N` is the
-                size of the array (defaults to `(0.33, 0.165)`).
+            kappa (`numpy.ndarray` of `float`, optional): A NumPy array of
+                floats which are weight applied to the last :math:`N` of the
+                gradients to add to the current gradient as well, where
+                :math:`N` is the size of the array (defaults to
+                ``(0.33, 0.165)``).
             tol (`float`, optional): The absolute tolerance for convergence of
                 y (defaults to 1e-5).
             max_delta (`float`, optional): The maximum iteration step allowed
