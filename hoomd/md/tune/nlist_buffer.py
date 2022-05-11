@@ -193,7 +193,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         alpha: "hoomd.variant.Variant | float" = 0.01,
         kappa: typing.Optional[np.ndarray] = (0.33, 0.165),
         tol: float = 1e-5,
-        max_delta: float = 0.05,
+        max_delta: "float | None" = None,
     ):
         """Create a `NeighborListBuffer` with a gradient descent solver.
 
@@ -219,7 +219,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
             tol (`float`, optional): The absolute tolerance for convergence of
                 y (defaults to 1e-5).
             max_delta (`float`, optional): The maximum iteration step allowed
-                (defaults to 0.05).
+                (defaults to ``None`` which does not limit step size).
 
         Note:
             Given the stocasticity of TPS, a non none ``kappa`` is recommended.
