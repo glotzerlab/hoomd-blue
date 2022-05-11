@@ -132,8 +132,9 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
 
     Direct instantiation of this class requires a `hoomd.tune.solve.RootStep`
     that determines how move sizes are updated. This class also provides class
-    methods to create a `MoveSize` tuner with built-in solvers; see
-    `NeighborListBuffer.with_grad_desc`.
+    methods to create a `NeighborListBuffer` tuner with built-in solvers; see
+    `NeighborListBuffer.with_grid` and
+    `NeighborListBuffer.with_gradient_descent`.
 
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -209,5 +210,34 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
             nlist,
             hoomd.tune.solve.GradientDescent(alpha, kappa, tol, True,
                                              max_delta),
+            maximum_buffer=maximum_buffer,
+        )
+
+    @classmethod
+    def with_grid(
+        cls,
+        trigger: hoomd.trigger.Trigger,
+        nlist: NeighborList,
+        maximum_buffer: float,
+        n_bins: int = 5,
+        n_rounds: int = 1,
+    ):
+        """Create a `NeighborListBuffer` with a `hoomd.tune.GridOptimizer`.
+
+        Args:
+            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
+                run the tuner.
+            nlist (hoomd.md.nlist.NeighborList): Neighbor list buffer to
+                maximize TPS.
+            maximum_buffer (float): The largest buffer value to allow.
+            n_bins (`int`, optional): The number of bins in the range to test
+                (defaults to 2).
+            n_rounds (`int`, optional): The number of rounds to perform the
+                optimization over (defaults to 1).
+        """
+        return cls(
+            trigger,
+            nlist,
+            hoomd.tune.GridOptimizer(n_bins, n_rounds, True),
             maximum_buffer=maximum_buffer,
         )
