@@ -163,7 +163,6 @@ def test_cell_properties(simulation_factory, lattice_snapshot_factory):
 
     assert nlist.num_builds == 10
     assert nlist.shortest_rebuild == 1
-    dim = nlist._cpp_obj.getDim()
     dim = nlist.dimensions
     assert len(dim) == 3
     assert dim >= (1, 1, 1)
