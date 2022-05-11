@@ -84,6 +84,8 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
     // initialize the last status time
     m_initial_time = m_clk.getTime();
+    m_last_walltime = 0.0;
+    m_last_TPS = 0.0;
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
     // info they need but set the flags before prepRun, as prepRun may remove some flags that it
