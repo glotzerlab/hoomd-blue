@@ -77,7 +77,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++17 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12, 13)
+- C++17 capable compiler (tested with ``gcc`` 7 - 12 and ``clang`` 6 - 14)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
