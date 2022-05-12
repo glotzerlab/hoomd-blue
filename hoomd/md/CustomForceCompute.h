@@ -54,12 +54,6 @@ class PYBIND11_EXPORT CustomForceCompute : public ForceCompute
     bool m_aniso;
     };
 
-namespace detail
-    {
-//! Exports the CustomForceComputeClass to python
-void export_CustomForceCompute(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

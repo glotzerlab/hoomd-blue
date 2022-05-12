@@ -43,9 +43,11 @@ from hoomd import md  # required because hoomd.md is not yet available
 class Improper(md.force.Force):
     """Base class improper force.
 
-    Note:
-        :py:class:`Improper` is the base class for all improper forces. Users
-        should not instantiate this class directly.
+    `Improper` is the base class for all improper forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def __init__(self):

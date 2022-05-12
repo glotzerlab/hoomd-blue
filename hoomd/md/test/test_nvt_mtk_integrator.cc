@@ -14,8 +14,9 @@
 
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
-#include "hoomd/md/AllAnisoPairPotentials.h"
 #include "hoomd/md/AllPairPotentials.h"
+#include "hoomd/md/AnisoPotentialPair.h"
+#include "hoomd/md/EvaluatorPairGB.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/NeighborListTree.h"
 
@@ -193,8 +194,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
 
     nlist_1->setStorageMode(NeighborList::full);
-    std::shared_ptr<AnisoPotentialPairGB> fc_1
-        = std::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef_1, nlist_1));
+    auto fc_1 = std::make_shared<AnisoPotentialPair<EvaluatorPairGB>>(sysdef_1, nlist_1));
 
     fc_1->setRcut(0, 0, r_cut);
 

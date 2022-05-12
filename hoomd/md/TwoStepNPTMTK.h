@@ -284,12 +284,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     couplingMode getRelevantCouplings();
     };
 
-namespace detail
-    {
-//! Exports the TwoStepNPTMTK class to python
-void export_TwoStepNPTMTK(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

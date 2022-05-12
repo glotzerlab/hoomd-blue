@@ -8,7 +8,8 @@
 #include <memory>
 #include <numeric>
 
-#include "hoomd/md/PotentialPair.h"
+#include "AlchemyData.h"
+#include "PotentialPair.h"
 
 /*! \file PotentialPairAlchemical.h
     \brief Defines the template class for alchemical pair potentials
@@ -516,7 +517,7 @@ namespace detail
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
+    \tparam T Evaluator type to export.
 */
 template<class evaluator,
          typename extra_pkg = AlchemyPackage<evaluator>,

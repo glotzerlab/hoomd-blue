@@ -43,12 +43,6 @@ class PYBIND11_EXPORT ComputeThermoHMAGPU : public ComputeThermoHMA
     virtual void computeProperties();
     };
 
-namespace detail
-    {
-//! Exports the ComputeThermoHMAGPU class to python
-void export_ComputeThermoHMAGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

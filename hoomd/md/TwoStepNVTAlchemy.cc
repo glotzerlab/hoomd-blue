@@ -127,7 +127,6 @@ namespace detail
 
 void export_TwoStepNVTAlchemy(py::module& m)
     {
-    // export_AlchemostatTwoStep<TwoStepNVTAlchemy>(m,"AlchemostatTwoStepBase")
     py::class_<TwoStepNVTAlchemy, AlchemostatTwoStep, std::shared_ptr<TwoStepNVTAlchemy>>(
         m,
         "TwoStepNVTAlchemy")

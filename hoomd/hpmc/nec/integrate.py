@@ -15,8 +15,12 @@ class HPMCNECIntegrator(HPMCIntegrator):
     """HPMC Chain Integrator base class.
 
     `HPMCNECIntegrator` is the base class for all HPMC Newtonian event chain
-    integrators. Users should not instantiate this class directly. The
-    attributes documented here are available to all HPMC integrators.
+    integrators. The attributes documented here are available to all HPMC
+    integrators.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
     _cpp_cls = None
 

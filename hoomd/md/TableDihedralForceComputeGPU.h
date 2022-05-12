@@ -56,12 +56,6 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Exports the TableDihedralForceComputeGPU class to python
-void export_TableDihedralForceComputeGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

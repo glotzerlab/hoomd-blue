@@ -4,6 +4,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/GlobalArray.h"
+#include "hoomd/managed_allocator.h"
 #include <memory>
 #include <stdexcept>
 
@@ -203,19 +204,21 @@ namespace detail
     {
 //! Export this external potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialExternal class template.
+    \tparam T Evaluator type to export.
 */
 template<class T> void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    auto cls = pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+    auto cls = pybind11::class_<PotentialExternal<T>,
+                                ForceCompute,
+                                std::shared_ptr<PotentialExternal<T>>>(m, name.c_str())
                    .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-                   .def("setParams", &T::setParamsPython)
-                   .def("getParams", &T::getParams);
+                   .def("setParams", &PotentialExternal<T>::setParamsPython)
+                   .def("getParams", &PotentialExternal<T>::getParams);
 
     // void* serves as a sentinel type indicating that no field_type actually exists.
     if constexpr (!std::is_same<typename T::field_type, void*>::value)
         {
-        cls.def_property("field", &T::getField, &T::setField);
+        cls.def_property("field", &PotentialExternal<T>::getField, &PotentialExternal<T>::setField);
         }
     }
     } // end namespace detail

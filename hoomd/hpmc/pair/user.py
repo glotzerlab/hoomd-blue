@@ -33,8 +33,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
     type and orientation of the particles and the vector pointing from the *i*
     particle to the *j* particle center.
 
-    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compile it
-    at runtime, and execute the code natively in the MC loop.
+    Classes derived from `CPPPotentialBase` take C++ code, compile it at
+    runtime, and execute the code natively in the MC loop.
 
     Warning:
         `CPPPotentialBase` is **experimental** and subject to change in future
@@ -42,10 +42,9 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     .. rubric:: C++ code
 
-    Classes derived from :py:class:`CPPPotentialBase` will compile the code
-    provided by the user and call it to evaluate the energy
-    :math:`U_{\\mathrm{pair},ij}`. The text provided is the body of a function
-    with the following signature:
+    Classes derived from `CPPPotentialBase` will compile the code provided by
+    the user and call it to evaluate the energy :math:`U_{\\mathrm{pair},ij}`.
+    The text provided is the body of a function with the following signature:
 
     .. code::
 
@@ -76,7 +75,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.0.1/hoomd/VectorMath.h
+            v3.1.0/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
@@ -272,7 +271,7 @@ class CPPPotential(CPPPotentialBase):
         cpp_sys_def = self._simulation.state._cpp_sys_def
 
         cpu_code = self._wrap_cpu_code(self.code)
-        cpu_include_options = _compile.get_cpu_include_options()
+        cpu_include_options = _compile.get_cpu_compiler_arguments()
 
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = _compile.get_gpu_compilation_settings(device)
@@ -550,7 +549,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             cpu_code_isotropic = self._wrap_cpu_code(self.code_isotropic)
         else:
             cpu_code_isotropic = self._wrap_cpu_code('return 0;')
-        cpu_include_options = _compile.get_cpu_include_options()
+        cpu_include_options = _compile.get_cpu_compiler_arguments()
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):

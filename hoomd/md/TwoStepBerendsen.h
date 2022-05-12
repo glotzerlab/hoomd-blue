@@ -75,12 +75,6 @@ class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
     bool m_warned_aniso; //!< true if we've already warned that we don't support aniso
     };
 
-namespace detail
-    {
-//! Export the Berendsen class to python
-void export_Berendsen(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

@@ -13,7 +13,7 @@ def make_pppm_coulomb_forces(nlist, resolution, order, r_cut, alpha=0):
     """Long range Coulomb interactions evaluated using the PPPM method.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         resolution (tuple[int, int, int]): Number of grid points in the x, y,
           and z directions :math:`\\mathrm{[dimensionless]}`.
         order (int): Number of grid points in each direction to assign charges

@@ -512,6 +512,171 @@ class MuVT(Updater):
         return N_dict
 
 
+class Shape(Updater):
+    """Apply shape updates to the shape definitions defined in the integrator.
+
+    See Also:
+        `hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
+
+    Args:
+        trigger (Trigger): Call the updater on triggered time steps.
+
+        shape_move (ShapeMove): Type of shape move to apply when updating shape
+            definitions
+
+        pretend (`bool`, optional): When True the updater will not
+            actually update the shape definitions. Instead, moves will be
+            proposed and the acceptance statistics will be updated correctly
+            (**default**: `False`).
+
+        type_select (`int`, optional): Number of types to change every time
+            the updater is called (**default**: 1).
+
+        nsweeps (`int`, optional): Number of times to update shape
+            definitions during each triggered timesteps (**default**: 1).
+
+    .. rubric:: Shape support.
+
+    See `hoomd.hpmc.shape_move` for supported shapes.
+
+    Example::
+
+        mc = hoomd.hpmc.integrate.ConvexPolyhedron()
+        mc.shape["A"] = dict(vertices=numpy.asarray([(1, 1, 1), (-1, -1, 1),
+                                                    (1, -1, -1), (-1, 1, -1)]))
+        vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
+                                                   param_ratio=0.2,
+                                                   volume=1.0)
+        updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
+                                          trigger=hoomd.trigger.Periodic(1),
+                                          type_select=1,
+                                          nsweeps=1)
+
+    Attributes:
+        trigger (Trigger): Call the updater on triggered time steps.
+
+        shape_move (ShapeMove): Type of shape move to apply when updating shape
+            definitions
+
+        pretend (bool): When True the updater will not actually update the shape
+            definitions, instead moves will be proposed and the acceptance
+            statistics will be updated correctly.
+
+        type_select (int): Number of types to change every time the updater is
+            called.
+
+        nsweeps (int): Number of times to update shape definitions during each
+            triggered timesteps.
+    """
+
+    def __init__(self,
+                 trigger,
+                 shape_move,
+                 pretend=False,
+                 type_select=1,
+                 nsweeps=1):
+        super().__init__(trigger)
+        param_dict = ParameterDict(shape_move=hoomd.hpmc.shape_move.ShapeMove,
+                                   pretend=bool(pretend),
+                                   type_select=int(type_select),
+                                   nsweeps=int(nsweeps))
+        param_dict["shape_move"] = shape_move
+        self._param_dict.update(param_dict)
+
+    def _add(self, simulation):
+        super()._add(simulation)
+        self._add_shape_move(self.shape_move)
+
+    def _add_shape_move(self, shape_move):
+        if not isinstance(self._simulation, hoomd.Simulation):
+            if shape_move._added:
+                raise RuntimeError(
+                    f"Shape move {shape_move} cannot be added to two lists at "
+                    f"once.")
+            return
+        # We need to check if the force is added since if it is not then this is
+        # being called by a SyncedList object and a disagreement between the
+        # simulation and shape_move._simulation is an error. If the updater is
+        # added then the shape_move is compatible. We cannot just check the
+        # shape_move's _added property because _add is also called when the
+        # SyncedList is synced.
+        if shape_move._added and shape_move._simulation != self._simulation:
+            raise RuntimeError(
+                f"Shape move {shape_move} cannot be added to two lists at once."
+            )
+        self.shape_move._add(self._simulation)
+
+    def _attach_shape_move(self):
+        # This should never happen, but leaving it in case the logic for adding
+        # missed some edge case.
+        if self._simulation != self.shape_move._simulation:
+            raise RuntimeError(
+                f"{type(self)}.shape_move is used in a different simulation.")
+        if not self.shape_move._attached:
+            self.shape_move._attach()
+
+    def _setattr_param(self, attr, value):
+        if attr == "shape_move":
+            self._set_shape_move(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _set_shape_move(self, new_move):
+        """Handles the adding and detaching of shape_move objects."""
+        if new_move is self.shape_move:
+            return
+
+        old_move = self.shape_move
+
+        if old_move is not None:
+            if self._attached:
+                old_move._detach()
+            if self._added:
+                old_move._remove()
+
+        if new_move is None:
+            self._param_dict["shape_move"] = None
+            return
+
+        if self._added:
+            self._add_shape_move(new_move)
+        if self._attached:
+            new_move._attach()
+        self._param_dict["shape_move"] = new_move
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        # check for supported shapes is done in the shape move classes
+        integrator_name = integrator.__class__.__name__
+        updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
+
+        self._attach_shape_move()
+        self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
+                                    self.trigger, integrator._cpp_obj,
+                                    self.shape_move._cpp_obj)
+        super()._attach()
+
+    @log(category='sequence', requires_run=True)
+    def shape_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected shape moves."""
+        return self._cpp_obj.getShapeMovesCount()
+
+    @log(category='scalar', requires_run=True)
+    def particle_volumes(self):
+        """list[float]: Volume of a single particle for each type."""
+        return self._cpp_obj.particle_volumes
+
+    @log(category="scalar", requires_run=True)
+    def shape_move_energy(self):
+        """float: Energy penalty due to shape changes."""
+        return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
+
+
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 

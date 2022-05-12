@@ -19,6 +19,9 @@
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
 
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_HIP
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
@@ -39,6 +42,13 @@ void export_ellipsoid(pybind11::module& m)
     export_ComputeSDF<ShapeEllipsoid>(m, "ComputeSDFEllipsoid");
     export_UpdaterMuVT<ShapeEllipsoid>(m, "UpdaterMuVTEllipsoid");
     export_UpdaterClusters<ShapeEllipsoid>(m, "UpdaterClustersEllipsoid");
+
+    export_MassProperties<ShapeEllipsoid>(m, "MassPropertiesEllipsoid");
+
+    export_UpdaterShape<ShapeEllipsoid>(m, "UpdaterShapeEllipsoid");
+    export_ShapeMoveBase<ShapeEllipsoid>(m, "ShapeMoveBaseShapeEllipsoid");
+    export_PythonShapeMove<ShapeEllipsoid>(m, "ShapeSpaceEllipsoid");
+    export_ElasticShapeMove<ShapeEllipsoid>(m, "ElasticEllipsoid");
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
     export_HarmonicField<ShapeEllipsoid>(m, "ExternalFieldHarmonicEllipsoid");
