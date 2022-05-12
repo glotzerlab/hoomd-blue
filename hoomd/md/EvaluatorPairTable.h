@@ -13,8 +13,10 @@
 #define HOSTDEVICE
 #endif
 
+#ifndef __HIPCC__
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#endif
 
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__

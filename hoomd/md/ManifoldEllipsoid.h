@@ -6,7 +6,10 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#endif
 
 /*! \file ManifoldEllipsoid.h
     \brief Defines the manifold class for the Ellipsoid surface
@@ -119,10 +122,12 @@ class ManifoldEllipsoid
         return c;
         };
 
+    #ifndef __HIPCC__
     pybind11::tuple getP()
         {
         return pybind11::make_tuple(Px, Py, Pz);
         }
+    #endif
 
     static unsigned int dimension()
         {

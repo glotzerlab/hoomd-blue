@@ -6,7 +6,10 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#endif
 
 /*! \file ManifoldDiamond.h
     \brief Defines the manifold class for the Diamond minimal surface
@@ -102,10 +105,12 @@ class ManifoldDiamond
                      // accepted
         }
 
+    #ifndef __HIPCC__
     pybind11::tuple getN()
         {
         return pybind11::make_tuple(Nx, Ny, Nz);
         }
+    #endif
 
     Scalar getEpsilon()
         {
