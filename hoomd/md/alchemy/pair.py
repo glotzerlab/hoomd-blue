@@ -37,6 +37,8 @@ class AlchemicalDOFStore(Mapping):
 
     The class acts as a cache so once an alchemical DOF is queried it is
     returned and not recreated when queried again.
+
+    .. versionadded:: 3.1.0
     """
 
     def __init__(self, name, pair_instance, dof_cls):
@@ -100,7 +102,7 @@ class _AlchemicalPairForce(_HOOMDBaseObject):
     Attributes:
         _alchemical_dofs (`list`[ `str`]): A list of all potential degrees of
             freedom. This must match that of the ``params`` type parameter.
-        _dof_cls (`AlchemicalDOF`): The correct DOF class. Automatically set via
+        _dof_cls (AlchemicalDOF): The correct DOF class. Automatically set via
             `_modify_pair_cls_to_alchemical`.
     """
     _alchemical_dofs = []
@@ -138,14 +140,15 @@ class AlchemicalDOF(_HOOMDBaseObject):
         To access an alchemical degree of freedom for a particular type pair,
         query the corresponding attribute in the alchemical pair force instance.
 
+    .. versionadded:: 3.1.0
+
     Attributes:
-        mass (`float`): The mass of the alchemical degree of freedom.
-        mu (`float`): The value of the alchemical potential.
-        alpha (`float`): The value of the dimensionless alchemical degree of
+        mass (float): The mass of the alchemical degree of freedom.
+        mu (float): The value of the alchemical potential.
+        alpha (float): The value of the dimensionless alchemical degree of
             freedom :math:`\\alpha_i`.
 
-        alchemical_momentum (`float`): The momentum of the alchemical parameter.
-
+        alchemical_momentum (float): The momentum of the alchemical parameter.
     """
 
     def __init__(self,
@@ -158,14 +161,14 @@ class AlchemicalDOF(_HOOMDBaseObject):
         """Cache existing instances of AlchemicalDOF.
 
         Args:
-            force (`_AlchemicalPairForce`): Pair force containing the
+            force (_AlchemicalPairForce): Pair force containing the
                 alchemical degree of freedom.
             name (str): The name of the pair force.
             typepair (tuple[str]): The particle types upon which the pair force
                 acts.
-            alpha (`float`): The value of the alchemical parameter.
-            mass (`float`): The mass of the alchemical degree of freedom.
-            mu (`float`): The alchemical potential.
+            alpha (float): The value of the alchemical parameter.
+            mass (float): The mass of the alchemical degree of freedom.
+            mu (float): The alchemical potential.
 
         """
         self._force = force
@@ -258,12 +261,12 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
     r"""Alchemical Lennard Jones Gauss pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
-        default_r_cut (`float`): Default cutoff radius
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius
             :math:`[\mathrm{length}]`.
-        default_r_on (`float`): Default turn-on radius
+        default_r_on (float): Default turn-on radius
             :math:`[\mathrm{length}]`.
-        mode (`str`): Energy shifting/smoothing mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
     simulation state, with additional alchemical degrees of freedom:
@@ -287,6 +290,8 @@ class LJGauss(BaseLJGauss, _AlchemicalPairForce):
     Attention:
         `hoomd.md.alchemy.pair.LJGauss` does not support MPI parallel
         simulations.
+
+    .. versionadded:: 3.1.0
 
     .. py:attribute:: params
 

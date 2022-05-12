@@ -90,12 +90,6 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
     virtual void buildNlist(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Exports NeighborListGPUBinned to python
-void export_NeighborListGPUBinned(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

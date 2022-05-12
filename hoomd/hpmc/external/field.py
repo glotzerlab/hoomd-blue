@@ -45,8 +45,8 @@ class Harmonic(ExternalField):
             minimum, the identity quaternion (``[1, 0, 0, 0]``) must be included
             here :math:`[\mathrm{dimensionless}]`.
 
-    :py:class:`Harmonic` computes harmonic spring energies between the
-    particle positions/orientations and given reference positions/orientations:
+    `Harmonic` computes harmonic spring energies between the particle
+    positions/orientations and given reference positions/orientations:
 
     .. math::
 
@@ -71,10 +71,10 @@ class Harmonic(ExternalField):
         `Harmonic` does not support execution on GPUs.
 
     Attributes:
-        k_translational (`hoomd.variant.Variant`): The translational spring
+        k_translational (hoomd.variant.Variant): The translational spring
             constant :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
-        k_rotational (`hoomd.variant.Variant`): The rotational spring
-            constant :math:`[\mathrm{energy}]`.
+        k_rotational (hoomd.variant.Variant): The rotational spring constant
+            :math:`[\mathrm{energy}]`.
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
             The reference positions to which particles are restrained
             :math:`[\mathrm{length}]`.

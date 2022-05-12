@@ -474,6 +474,12 @@ template<unsigned int ndim> class EvaluatorPairALJ
         return false;
         }
 
+    /// Whether the potential implements the energy_shift parameter
+    HOSTDEVICE static bool constexpr implementsEnergyShift()
+        {
+        return false;
+        }
+
     //! Accept the optional diameter values
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
@@ -1619,7 +1625,7 @@ EvaluatorPairALJ<3>::computeSimplexInteractions(const vec3<Scalar>& a,
 // Note: This method assumes that shape_i == shape_j. This should be valid for
 // all cases, and this logic will be moved up to the AnisoPotentialPair in
 // HOOMD 3.0.
-template<> std::string EvaluatorPairALJ<2>::getShapeSpec() const
+template<> inline std::string EvaluatorPairALJ<2>::getShapeSpec() const
     {
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts); //! Shape vertices.
@@ -1656,7 +1662,7 @@ template<> std::string EvaluatorPairALJ<2>::getShapeSpec() const
 // Note: This method assumes that shape_i == shape_j. This should be valid for
 // all cases, and this logic will be moved up to the AnisoPotentialPair in
 // HOOMD 3.0.
-template<> std::string EvaluatorPairALJ<3>::getShapeSpec() const
+template<> inline std::string EvaluatorPairALJ<3>::getShapeSpec() const
     {
     std::ostringstream shapedef;
     const ManagedArray<vec3<Scalar>>& verts(shape_i->verts);
@@ -1689,6 +1695,7 @@ template<> std::string EvaluatorPairALJ<3>::getShapeSpec() const
 
     return shapedef.str();
     }
+
 #endif
 
     } // end namespace md

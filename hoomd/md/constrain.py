@@ -30,9 +30,11 @@ from hoomd.operation import _HOOMDBaseObject
 class Constraint(_HOOMDBaseObject):
     """Constraint force base class.
 
-    Note:
-        :py:class:`Constraint` is the base class for all constraint forces.
-        Users should not instantiate this class directly.
+    `Constraint` is the base class for all constraint forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def _attach(self):
@@ -72,8 +74,8 @@ class Distance(Constraint):
             - d_{ij}^2 = 0
 
     Where :math:`i` and :math:`j` are the the particle tags in the
-    ``constraint_group`` and :math:`d_{ij}` is the constraint distance.
-    Define any number of constraint groups in the system state.
+    ``constraint_group`` and :math:`d_{ij}` is the constraint distance as given
+    by the `system state <hoomd.State>`_.
 
     The method sets the second derivative of the Lagrange multipliers with
     respect to time to zero, such that both the distance constraints and their

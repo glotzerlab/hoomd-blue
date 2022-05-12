@@ -89,12 +89,6 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     friend class ActiveRotationalDiffusionUpdater;
     };
 
-namespace detail
-    {
-//! Exports the ActiveForceComputeClass to python
-void export_ActiveForceCompute(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 #endif

@@ -170,9 +170,8 @@ class GPU(Device):
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
-        communicator (`hoomd.communicator.Communicator`): MPI communicator
-            object.  When `None`, create a default communicator that uses all
-            MPI ranks.
+        communicator (hoomd.communicator.Communicator): MPI communicator object.
+            When `None`, create a default communicator that uses all MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
@@ -327,9 +326,8 @@ class CPU(Device):
         num_cpu_threads (int): Number of TBB threads. Set to `None` to
             auto-select.
 
-        communicator (`hoomd.communicator.Communicator`): MPI communicator
-            object.  When `None`, create a default communicator that uses all
-            MPI ranks.
+        communicator (hoomd.communicator.Communicator): MPI communicator object.
+            When `None`, create a default communicator that uses all MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
@@ -363,9 +361,8 @@ def auto_select(communicator=None, msg_file=None, notice_level=2):
 
     Args:
 
-        communicator (`hoomd.communicator.Communicator`): MPI communicator
-            object.  When `None`, create a default communicator that uses all
-            MPI ranks.
+        communicator (hoomd.communicator.Communicator): MPI communicator object.
+            When `None`, create a default communicator that uses all MPI ranks.
 
         msg_file (str): Filename to write messages to. When `None` use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI

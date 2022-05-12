@@ -1,5 +1,7 @@
 ci:
   autoupdate_schedule: quarterly
+  autoupdate_branch: 'trunk-patch'
+  autofix_prs: false
 
 exclude: (?x)(
         ^hoomd/extern/|
@@ -98,6 +100,5 @@ repos:
         ^CMake/|
         ^hoomd/extern/|
         ^hoomd/hpmc/UpdaterClusters\.h|
-        ^hoomd/hpmc/IntegratorHPMCMono\.h|
-        ^doc/dev/
+        ^hoomd/hpmc/IntegratorHPMCMono\.h
       )

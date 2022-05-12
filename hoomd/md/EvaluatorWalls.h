@@ -400,9 +400,6 @@ template<class evaluator> class EvaluatorWalls
     Scalar qi;
     };
 
-#ifndef __HIPCC__
-void export_wall_field(pybind11::module& m);
-#endif
     } // end namespace md
     } // end namespace hoomd
 

@@ -86,12 +86,6 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     void updateRStencil();
     };
 
-namespace detail
-    {
-//! Exports NeighborListStencil to python
-void export_NeighborListStencil(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

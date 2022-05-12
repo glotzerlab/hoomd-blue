@@ -140,11 +140,11 @@ class Cycle(_hoomd.VariantCycle, Variant):
         t_B (int): The hold time at the second value.
         t_BA (int): The time spent ramping from B to A.
 
-    :py:class:`Cycle` holds the value *A* until time *t_start*. It continues
-    holding that value until *t_start + t_A*. Then it ramps linearly from *A* to
-    *B* over *t_AB* steps and holds the value *B* for *t_B* steps. After this,
-    it ramps back from *B* to *A* over *t_BA* steps and repeats the cycle
-    starting with *t_A*. :py:class:`Cycle` repeats this cycle indefinitely.
+    `Cycle` holds the value *A* until time *t_start*. It continues holding that
+    value until *t_start + t_A*. Then it ramps linearly from *A* to *B* over
+    *t_AB* steps and holds the value *B* for *t_B* steps. After this, it ramps
+    back from *B* to *A* over *t_BA* steps and repeats the cycle starting with
+    *t_A*. `Cycle` repeats this cycle indefinitely.
 
     .. image:: variant-cycle.svg
        :alt: Example plot of a cycle variant.
@@ -177,9 +177,9 @@ class Power(_hoomd.VariantPower, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
 
-    :py:class:`Power` holds the value *A* until time *t_start*. Then it
-    progresses at :math:`t^{\\mathrm{power}}` from *A* to *B* over *t_ramp*
-    steps and holds the value *B* after that.
+    `Power` holds the value *A* until time *t_start*. Then it progresses at
+    :math:`t^{\\mathrm{power}}` from *A* to *B* over *t_ramp* steps and holds
+    the value *B* after that.
 
     .. code-block:: python
 

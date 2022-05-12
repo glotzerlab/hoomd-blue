@@ -290,16 +290,15 @@ namespace detail
     {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermo class
-   template. \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same
-   evaluator as used in \a T.
+    \tparam T Evaluator type to export.
 */
-template<class T, class Base>
-void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
+template<class T> void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialPairDPDThermo<T>,
+                     PotentialPair<T>,
+                     std::shared_ptr<PotentialPairDPDThermo<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def_property("kT", &T::getT, &T::setT);
+        .def_property("kT", &PotentialPairDPDThermo<T>::getT, &PotentialPairDPDThermo<T>::setT);
     }
 
     } // end namespace detail

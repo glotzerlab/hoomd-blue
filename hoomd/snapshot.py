@@ -327,7 +327,7 @@ class Snapshot:
         """Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
 
         Args:
-            gsd_snap (`gsd.hoomd.Snapshot`): The gsd snapshot to convert to a
+            gsd_snap (gsd.hoomd.Snapshot): The gsd snapshot to convert to a
                 `hoomd.Snapshot`.
             communicator (hoomd.communicator.Communicator): The MPI communicator
                 to use for the snapshot. This prevents the snapshot from being

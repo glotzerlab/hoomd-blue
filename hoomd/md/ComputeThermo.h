@@ -347,14 +347,6 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 #endif
     };
 
-namespace detail
-    {
-//! Exports the ComputeThermo class to python
-#ifndef __HIPCC__
-void export_ComputeThermo(pybind11::module& m);
-#endif
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 
