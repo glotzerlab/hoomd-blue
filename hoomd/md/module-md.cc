@@ -438,6 +438,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialMeshBondTetherGPU(m);
 
     export_HelfrichMeshForceComputeGPU(m);
+    export_TriangleAreaConservationMeshForceComputeGPU(m);
+    export_AreaConservationMeshForceComputeGPU(m);
 
     export_PotentialSpecialPairLJGPU(m);
     export_PotentialSpecialPairCoulombGPU(m);
@@ -464,8 +466,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
 
-    export_TriangleAreaConservationMeshForceComputeGPU(m);
-    export_AreaConservationMeshForceComputeGPU(m);
     export_PotentialExternalWallLJGPU(m);
     export_PotentialExternalWallYukawaGPU(m);
     export_PotentialExternalWallForceShiftedLJGPU(m);

@@ -400,7 +400,6 @@ foreach(_bond ${_bonds})
     endif()
 endforeach()
 
-
 set(_pairs LJ Coulomb)
 
 foreach(_pair ${_pairs})
