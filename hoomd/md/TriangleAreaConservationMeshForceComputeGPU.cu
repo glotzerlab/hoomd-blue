@@ -369,16 +369,6 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
                 }
             }
 
-        printf("%d %d %d %d | %f %f %f | %f\n",
-               idx,
-               cur_mem2_idx,
-               cur_mem3_idx,
-               cur_triangle_abc,
-               Fa.x,
-               Fa.y,
-               Fa.z,
-               -K / (2 * At) * numerator_base);
-
         Fa = -K / (2 * At) * numerator_base * Fa;
 
         force.x += Fa.x;
