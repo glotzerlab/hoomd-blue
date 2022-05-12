@@ -62,12 +62,6 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Export the DihedralForceComputeGPU class to python
-void export_HarmonicDihedralForceComputeGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

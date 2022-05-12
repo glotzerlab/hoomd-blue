@@ -6,7 +6,10 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#endif
 
 /*! \file ManifoldZCylinder.h
     \brief Defines the manifold class for the Cylinder surface
@@ -99,10 +102,12 @@ class ManifoldZCylinder
         return sqrt(R_sq);
         };
 
+    #ifndef __HIPCC__
     pybind11::tuple getP()
         {
         return pybind11::make_tuple(Px, Py, Pz);
         }
+    #endif
 
     static unsigned int dimension()
         {
@@ -116,12 +121,6 @@ class ManifoldZCylinder
     Scalar R_sq;
     };
 
-namespace detail
-    {
-//! Exports the Cylinder manifold class to python
-void export_ManifoldZCylinder(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

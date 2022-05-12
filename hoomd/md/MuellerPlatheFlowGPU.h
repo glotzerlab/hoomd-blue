@@ -75,12 +75,6 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     virtual void updateMinMaxVelocity(void);
     };
 
-namespace detail
-    {
-//! Exports the MuellerPlatheFlow class to python
-void export_MuellerPlatheFlowGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

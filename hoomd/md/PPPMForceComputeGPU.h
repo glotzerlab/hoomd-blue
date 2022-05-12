@@ -152,11 +152,6 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     unsigned int m_block_size;                //!< Block size for fourier mesh reduction
     };
 
-namespace detail
-    {
-void export_PPPMForceComputeGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

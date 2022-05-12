@@ -114,10 +114,9 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
     // check that all fields in the snapshot have correct length
     if (this->m_exec_conf->getRank() == 0 && !snapshot.validate())
         {
-        this->m_exec_conf->msg->error()
-            << "init.*: invalid " << name << " data snapshot." << std::endl
-            << std::endl;
-        throw std::runtime_error(std::string("Error initializing ") + name + std::string(" data."));
+        std::ostringstream s;
+        s << "Error initializing from " << name << " data snapshot.";
+        throw std::runtime_error(s.str());
         }
 
     // re-initialize data structures
@@ -237,16 +236,16 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
                         break;
                         }
                     }
-
-		if(update)
-		   {
-                   triag.tag[3 + j] = triag_number;
-                   all_helper[bond0].push_back(bond1);
-                   all_helper[bond0].push_back(triag_number);
-		   triag_number++;
-		   }
-                }
-            all_groups[group_idx] = triag;
+  
+               if(update)
+                  {
+                    triag.tag[3 + j] = triag_number;
+                    all_helper[bond0].push_back(bond1);
+                    all_helper[bond0].push_back(triag_number);
+                    triag_number++;
+                  }
+	       }
+	       all_groups[group_idx] = triag;
             }
         }
 
@@ -291,7 +290,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
 
         typeval_t t;
         t.type = 0;
-        // t.type = snapshot.type_id[0];
         for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
             {
             addBondedGroup(Group(t, all_groups[group_idx]));
@@ -736,11 +734,9 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
                 rank_rtag_it = rank_rtag_map.find(group_tag);
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
-                    this->m_exec_conf->msg->error() << endl
-                                                    << "Could not find " << name << " " << group_tag
-                                                    << " on any processor. " << endl
-                                                    << endl;
-                    throw std::runtime_error("Error gathering " + std::string(name) + "s");
+                    std::ostringstream s;
+                    s << "Could not find " << name << " " << group_tag << " on any processor. ";
+                    throw runtime_error(std::string("Error gathering ") + name);
                     }
 
                 // store tag in index

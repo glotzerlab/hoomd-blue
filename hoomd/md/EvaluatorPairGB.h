@@ -170,6 +170,12 @@ class EvaluatorPairGB
         return false;
         }
 
+    /// Whether the potential implements the energy_shift parameter
+    HOSTDEVICE static bool constexpr implementsEnergyShift()
+        {
+        return true;
+        }
+
     //! Accept the optional diameter values
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j

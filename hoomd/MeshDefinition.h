@@ -10,7 +10,6 @@
 #endif
 
 #include "BondedGroupData.h"
-//#include "IntegratorData.h"
 #include "MeshGroupData.h"
 #include "SystemDefinition.h"
 
@@ -47,7 +46,7 @@ class Communicator;
 
     As any data structure class in MeshDefinition can potentially reference any
    other, other classes can simply use the mesh data by giving the shared pointer to the referenced
-   class to the constructor of the onem that needs to refer to it. Note that using this setup, there
+   class to the constructor of the one that needs to refer to it. Note that using this setup, there
    can be no circular references. This is a \b good \b thing ^TM, as it promotes good separation
    and isolation of the various classes responsibilities.
 
@@ -112,18 +111,11 @@ class PYBIND11_EXPORT MeshDefinition
 
     void setTriangleData(pybind11::array_t<int> triangles);
 
-    Scalar getEnergy()
-        {
-        return m_mesh_energy;
-        }
-
     private:
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
     std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-    GlobalVector<Scalar3> m_triangle_normals;              //! normal vectors of the triangles
-    Scalar m_mesh_energy; //!< storing energy for dynamic bonding later
 
 #ifdef ENABLE_MPI
     /// The system communicator

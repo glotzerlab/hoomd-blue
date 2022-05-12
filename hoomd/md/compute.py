@@ -22,10 +22,10 @@ class ThermodynamicQuantities(Compute):
         filter (`hoomd.filter`): Particle filter to compute thermodynamic
             properties for.
 
-    :py:class:`ThermodynamicQuantities` acts on a subset of particles in the
-    system and calculates thermodynamic properties of those particles. Add a
-    :py:class:`ThermodynamicQuantities` instance to a logger to save these
-    quantities to a file, see :py:class:`hoomd.logging.Logger` for more details.
+    `ThermodynamicQuantities` acts on a subset of particles in the system and
+    calculates thermodynamic properties of those particles. Add a
+    `ThermodynamicQuantities` instance to a logger to save these quantities to a
+    file, see `hoomd.logging.Logger` for more details.
 
     Note:
         For compatibility with `hoomd.md.constrain.Rigid`,
@@ -292,7 +292,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     """Compute harmonic averaged thermodynamic properties of particles.
 
     Args:
-        filter (``hoomd.filter``): Particle filter to compute thermodynamic
+        filter (`hoomd.filter`): Particle filter to compute thermodynamic
             properties for.
         kT (float): Temperature of the system :math:`[\\mathrm{energy}]`.
         harmonic_pressure (float): Harmonic contribution to the pressure
@@ -300,14 +300,14 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
             still be computed, but will be similar in precision to
             the conventional pressure.
 
-    :py:class:`HarmonicAveragedThermodynamicQuantities` acts on a given subset
-    of particles and calculates harmonically mapped average (HMA) properties
-    of those particles when requested. HMA computes properties more precisely
-    (with less variance) for atomic crystals in NVT simulations.  The presence
-    of diffusion (vacancy hopping, etc.) will prevent HMA from providing
-    improvement.  HMA tracks displacements from the lattice positions, which
-    are saved either during first call to `Simulation.run` or when the compute
-    is first added to the simulation, whichever occurs last.
+    `HarmonicAveragedThermodynamicQuantities` acts on a given subset of
+    particles and calculates harmonically mapped average (HMA) properties of
+    those particles when requested. HMA computes properties more precisely (with
+    less variance) for atomic crystals in NVT simulations.  The presence of
+    diffusion (vacancy hopping, etc.) will prevent HMA from providing
+    improvement.  HMA tracks displacements from the lattice positions, which are
+    saved either during first call to `Simulation.run` or when the compute is
+    first added to the simulation, whichever occurs last.
 
     Note:
         `HarmonicAveragedThermodynamicQuantities` is an implementation of the

@@ -62,17 +62,16 @@ class NVE(MethodRATTLE):
     r"""NVE Integration via Velocity-Verlet with RATTLE constraint.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
          apply this method.
 
-        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
 
-        tolerance (`float`): Defines the tolerated error particles are
-            allowed to deviate from the manifold in terms of the implicit
-            function.
-            The units of tolerance match that of the selected manifold's
-            implicit function. Defaults to 1e-6
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function. The
+            units of tolerance match that of the selected manifold's implicit
+            function. Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations as described
     in `hoomd.md.methods.NVE`. In addition the particles are constrained to a
@@ -96,9 +95,9 @@ class NVE(MethodRATTLE):
             method.
 
         tolerance (float): Defines the tolerated error particles are allowed to
-            deviate from the manifold in terms of the implicit function.
-            The units of tolerance match that of the selected manifold's
-            implicit function. Defaults to 1e-6
+            deviate from the manifold in terms of the implicit function. The
+            units of tolerance match that of the selected manifold's implicit
+            function. Defaults to 1e-6
 
     """
 
@@ -143,28 +142,28 @@ class Langevin(MethodRATTLE):
     r"""Langevin dynamics with RATTLE constraint.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
 
-        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
 
-        alpha (`float`): When set, use :math:`\alpha d_i` for the drag
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot
             \mathrm{length}^{-1} \cdot \mathrm{time}^{-1}]`.
             Defaults to None.
 
-        tally_reservoir_energy (`bool`): If true, the energy exchange
+        tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
             Defaults to False :math:`[\mathrm{energy}]`.
 
-        tolerance (`float`): Defines the tolerated error particles are allowed
+        tolerance (float): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
             The units of tolerance match that of the selected manifold's
             implicit function. Defaults to 1e-6
@@ -298,22 +297,22 @@ class Brownian(MethodRATTLE):
     r"""Brownian dynamics with RATTLE constraint.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
 
-        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
 
-        alpha (`float`): When set, use :math:`\alpha d_i` for the
+        alpha (float): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter.
             Defaults to None
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
 
-        tolerance (`float`): Defines the tolerated error particles are allowed
+        tolerance (float): Defines the tolerated error particles are allowed
             to deviate from the manifold in terms of the implicit function.
             The units of tolerance match that of the selected manifold's
             implicit function. Defaults to 1e-6
@@ -437,29 +436,27 @@ class OverdampedViscous(MethodRATTLE):
     r"""Overdamped viscous dynamics with RATTLE constraint.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
-            apply this method to.
+        filter (hoomd.filter.ParticleFilter): Subset of particles to apply this
+            method to.
 
-        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
-            constraint.
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
 
-        alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None
+        alpha (float): When set, use :math:`\alpha d_i` for the drag coefficient
+            where :math:`d_i` is particle diameter. Defaults to None
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
 
-        tolerance (`float`): Defines the tolerated error particles are allowed
-            to deviate from the manifold in terms of the implicit function.
-            The units of tolerance match that of the selected manifold's
-            implicit function. Defaults to 1e-6
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function. The
+            units of tolerance match that of the selected manifold's implicit
+            function. Defaults to 1e-6
 
     `OverdampedViscous` uses the same integrator as
     `hoomd.md.methods.OverdampedViscous`, with the additional force term
-    :math:`- \lambda \vec{F}_\mathrm{M}`. The force
-    :math:`\vec{F}_\mathrm{M}` keeps the particles on the manifold constraint,
-    where the Lagrange multiplier :math:`\lambda` is calculated via the RATTLE
-    algorithm. For more details about overdamped viscous dynamics see
+    :math:`- \lambda \vec{F}_\mathrm{M}`. The force :math:`\vec{F}_\mathrm{M}`
+    keeps the particles on the manifold constraint, where the Lagrange
+    multiplier :math:`\lambda` is calculated via the RATTLE algorithm. For more
+    details about overdamped viscous dynamics see
     `hoomd.md.methods.OverdampedViscous`.
 
     Examples of using ``manifold_constraint``::
@@ -473,22 +470,22 @@ class OverdampedViscous(MethodRATTLE):
 
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to
-            apply this method to.
+        filter (hoomd.filter.ParticleFilter): Subset of particles to apply this
+            method to.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
             which is used by and as a trigger for the RATTLE algorithm of this
             method.
 
-        alpha (float): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter
+        alpha (float): When set, use :math:`\alpha d_i` for the drag coefficient
+            where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`. Defaults to None.
 
         tolerance (float): Defines the tolerated error particles are allowed to
-            deviate from the manifold in terms of the implicit function.
-            The units of tolerance match that of the selected manifold's
-            implicit function. Defaults to 1e-6
+            deviate from the manifold in terms of the implicit function. The
+            units of tolerance match that of the selected manifold's implicit
+            function. Defaults to 1e-6
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle

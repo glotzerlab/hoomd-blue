@@ -32,3 +32,4 @@ from hoomd.hpmc import tune
 from hoomd.hpmc import pair
 from hoomd.hpmc import external
 from hoomd.hpmc import nec
+from hoomd.hpmc import shape_move

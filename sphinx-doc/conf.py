@@ -56,8 +56,8 @@ year = datetime.date.today().year
 copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.1'
-release = '3.0.1'
+version = '3.1.0'
+release = '3.1.0'
 
 language = None
 

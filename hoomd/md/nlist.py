@@ -47,6 +47,7 @@ of exclusions. The valid exclusion types are:
 * ``'angle'``: Exclude the first and third particles in each angle.
 * ``'body'``: Exclude particles that belong to the same rigid body.
 * ``'bond'``: Exclude particles that are directly bonded together.
+* ``'meshbond'``: Exclude particles that are bonded together via a mesh.
 * ``'constraint'``: Exclude particles that have a distance constraint applied
   between them.
 * ``'dihedral'``: Exclude the first and fourth particles in each dihedral.
@@ -90,7 +91,7 @@ class NeighborList(_HOOMDBaseObject):
 
         validate_exclusions = OnlyFrom([
             'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
-            '1-3', '1-4'
+            '1-3', '1-4', 'meshbond'
         ])
 
         validate_mesh = OnlyTypes(Mesh, allow_none=True)
@@ -127,9 +128,13 @@ class NeighborList(_HOOMDBaseObject):
         super()._add(simulation)
 
     def _attach(self):
+<<<<<<< HEAD
         if self._mesh:
             if not self._mesh._attached:
                 self._mesh._attach()
+=======
+        if self._mesh is not None:
+>>>>>>> mesh_helfrich_energy
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
         super()._attach()

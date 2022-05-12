@@ -21,6 +21,8 @@ Example::
     )
     integrator.methods.insert(0, alchemostat)
     sim.run(n_steps)
+
+.. versionadded:: 3.1.0
 """
 
 from . import methods

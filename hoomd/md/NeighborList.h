@@ -694,12 +694,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
 #endif
     };
 
-namespace detail
-    {
-//! Exports NeighborList to python
-void export_NeighborList(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

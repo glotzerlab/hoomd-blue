@@ -101,12 +101,6 @@ class PYBIND11_EXPORT TableDihedralForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Exports the TablePotential class to python
-void export_TableDihedralForceCompute(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 
