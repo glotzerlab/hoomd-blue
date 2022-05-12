@@ -360,6 +360,7 @@ PYBIND11_MODULE(_md, m)
     export_MeshDynamicBondUpdater(m);
     export_TriangleAreaConservationMeshForceCompute(m);
     export_AreaConservationMeshForceCompute(m);
+    export_VolumeConservationMeshForceCompute(m);
 
     export_PotentialSpecialPairLJ(m);
     export_PotentialSpecialPairCoulomb(m);
@@ -440,6 +441,7 @@ PYBIND11_MODULE(_md, m)
     export_HelfrichMeshForceComputeGPU(m);
     export_TriangleAreaConservationMeshForceComputeGPU(m);
     export_AreaConservationMeshForceComputeGPU(m);
+    export_VolumeConservationMeshForceComputeGPU(m);
 
     export_PotentialSpecialPairLJGPU(m);
     export_PotentialSpecialPairCoulombGPU(m);
@@ -515,9 +517,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEPrimitive(m);
     export_TwoStepRATTLENVESphere(m);
 
-    // mesh
-    export_VolumeConservationMeshForceCompute(m);
-
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
@@ -544,8 +543,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLELangevinGPUPrimitive(m);
     export_TwoStepRATTLELangevinGPUSphere(m);
 
-
-    export_VolumeConservationMeshForceComputeGPU(m);
     export_TwoStepRATTLENVEGPUCylinder(m);
     export_TwoStepRATTLENVEGPUDiamond(m);
     export_TwoStepRATTLENVEGPUEllipsoid(m);

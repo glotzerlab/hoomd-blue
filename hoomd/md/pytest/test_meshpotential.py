@@ -257,6 +257,10 @@ def test_area(simulation_factory, tetrahedron_snapshot_factory):
     sim.operations.integrator = integrator
 
     sim.run(0)
+    for key in potential_kwargs:
+        np.testing.assert_allclose(mesh_potential.params["mesh"][key],
+                                   potential_kwargs[key],
+                                   rtol=1e-6)
 
     assert math.isclose(mesh_potential.area,
                         1.62633,
