@@ -120,11 +120,5 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     bool m_integrate_rotational_dof = false;
     };
 
-namespace detail
-    {
-/// Exports the IntegratorTwoStep class to python
-void export_IntegratorTwoStep(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd

@@ -96,17 +96,6 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     unsigned int m_iteratorDOF = 0;
     };
 
-inline void export_AlchemostatTwoStep(pybind11::module& m)
-    {
-    pybind11::class_<AlchemostatTwoStep,
-                     IntegrationMethodTwoStep,
-                     std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>())
-        .def_property_readonly("period", &AlchemostatTwoStep::getAlchemTimeFactor)
-        .def_property_readonly("alchemical_dof", &AlchemostatTwoStep::getAlchemicalParticleList)
-        .def("setNextAlchemicalTimestep", &AlchemostatTwoStep::setNextAlchemicalTimestep);
-    }
-
     } // end namespace md
 
     } // end namespace hoomd

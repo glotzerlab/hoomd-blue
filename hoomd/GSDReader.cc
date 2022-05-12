@@ -192,6 +192,13 @@ void GSDReader::readHeader()
 
     float box[6] = {1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
     readChunk(&box, m_frame, "configuration/box", 6 * 4);
+    // Set Lz, xz, and yz to 0 for 2D boxes. Needed for working with hoomd v 2 GSD files.
+    if (dim == 2)
+        {
+        box[2] = 0;
+        box[4] = 0;
+        box[5] = 0;
+        }
     m_snapshot->global_box = std::make_shared<BoxDim>(BoxDim(box[0], box[1], box[2]));
     m_snapshot->global_box->setTiltFactors(box[3], box[4], box[5]);
 

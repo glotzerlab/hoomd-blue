@@ -1036,24 +1036,29 @@ namespace detail
     {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
+    \tparam T Evaluator type to export.
 */
 template<class T> void export_PotentialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>> potentialpair(m, name.c_str());
+    pybind11::class_<PotentialPair<T>, ForceCompute, std::shared_ptr<PotentialPair<T>>>
+        potentialpair(m, name.c_str());
     potentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams)
-        .def("setRCut", &T::setRCutPython)
-        .def("getRCut", &T::getRCut)
-        .def("setROn", &T::setROnPython)
-        .def("getROn", &T::getROn)
-        .def_property("mode", &T::getShiftMode, &T::setShiftModePython)
-        .def_property("tail_correction", &T::getTailCorrectionEnabled, &T::setTailCorrectionEnabled)
-        .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
-        .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &T::connectGSDShapeSpec);
+        .def("setParams", &PotentialPair<T>::setParamsPython)
+        .def("getParams", &PotentialPair<T>::getParams)
+        .def("setRCut", &PotentialPair<T>::setRCutPython)
+        .def("getRCut", &PotentialPair<T>::getRCut)
+        .def("setROn", &PotentialPair<T>::setROnPython)
+        .def("getROn", &PotentialPair<T>::getROn)
+        .def_property("mode",
+                      &PotentialPair<T>::getShiftMode,
+                      &PotentialPair<T>::setShiftModePython)
+        .def_property("tail_correction",
+                      &PotentialPair<T>::getTailCorrectionEnabled,
+                      &PotentialPair<T>::setTailCorrectionEnabled)
+        .def("computeEnergyBetweenSets", &PotentialPair<T>::computeEnergyBetweenSetsPythonList)
+        .def("slotWriteGSDShapeSpec", &PotentialPair<T>::slotWriteGSDShapeSpec)
+        .def("connectGSDShapeSpec", &PotentialPair<T>::connectGSDShapeSpec);
     }
 
     } // end namespace detail

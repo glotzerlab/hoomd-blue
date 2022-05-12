@@ -7,22 +7,54 @@ Change Log
 v3.x
 ----
 
-v3.1.0 (not yet released)
+v3.x.y (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
+* ``hoomd.mesh.Mesh`` - Triangular mesh data structure.
+* ``hoomd.md.mesh.bond`` - Bond potentials on mesh edges.
+
+*Fixed*
+
+* Clarify documentation.
+* ``Box.dimension`` reports the correct  value when reading in 2D boxes generated in HOOMD v2.
+* Improve performance of run time compiled HPMC potentials on the CPU.
+
+v3.1.0 (2022-04-27)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
 * Support LLVM 13 when ``ENABLE_LLVM=on``.
+* ``hoomd.md.pair.LJGauss`` - Lennard-Jones-Gaussian pair potential.
+* ``hoomd.md.alchemy.methods.NVT`` - Alchemical molecular dynamics integration method.
+* ``hoomd.md.alchemy.pair.LJGauss`` - Lennard-Jones-Gaussian pair potential with alchemical degrees
+  of freedom.
+* ``hoomd.hpmc.update.Shape`` - Alchemical hard particle Monte Carlo through shape change moves.
+* ``hoomd.hpmc.shape_move.Elastic`` - Shape move with elastic potential energy penalty.
+* ``hoomd.hpmc.shape_move.ShapeSpace`` - Moves in a user defined shape space.
+* ``hoomd.hpmc.shape_move.Vertex`` - Translate shape vertices.
 
 *Changed*
 
-* Change HPMC fugacity to a per-type quantity.
+* HPMC fugacity is now a per-type quantity.
+* Improved documentation.
+* [developers] Reduced the time needed for incremental builds.
+* [developers] Reduced memory needed to compile HOOMD.
 
 *Fixed*
 
 * ALJ unit test passes in Debug builds.
 * Add quotes to conda-forge gpu package installation example.
-* ``hoomd.md.CustomForce`` zeroes forces, torques, and virials before calling ``set_forces``.
+* ``hoomd.md.force.Custom`` zeroes forces, torques, energies, and virials before calling
+  ``set_forces``.
+* Point tarball download link to https://github.com/glotzerlab/hoomd-blue/releases.
+
+*Deprecated*
+
+* ``hoomd.md.pair.aniso.ALJ.mode`` - parameter has no effect.
+* ``hoomd.md.pair.aniso.Dipole.mode`` - parameter has no effect.
 
 v3.0.1 (2022-04-08)
 ^^^^^^^^^^^^^^^^^^^

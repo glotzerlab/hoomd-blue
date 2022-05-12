@@ -53,7 +53,7 @@ class Sphere(WallGeometry):
     r"""A sphere.
 
     Args:
-        radius (`float`):
+        radius (float):
             The radius of the sphere :math:`[\mathrm{length}]`.
         origin (`tuple` [`float`, `float`, `float`], optional):
             The origin of the sphere, defaults to ``(0, 0, 0)``
@@ -134,7 +134,7 @@ class Cylinder(WallGeometry):
     r"""A right circular cylinder.
 
     Args:
-        radius (`float`):
+        radius (float):
             The radius of the circle faces of the cylinder
             :math:`[\mathrm{length}]`.
         axis (`tuple` [`float`, `float`, `float`]):

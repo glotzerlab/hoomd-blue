@@ -719,23 +719,26 @@ namespace detail
     {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPair class template.
+    \tparam T Evaluator type to export.
 */
 template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>> anisopotentialpair(m, name.c_str());
+    pybind11::class_<AnisoPotentialPair<T>, ForceCompute, std::shared_ptr<AnisoPotentialPair<T>>>
+        anisopotentialpair(m, name.c_str());
     anisopotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParamsPython)
-        .def("setShape", &T::setShapePython)
-        .def("getShape", &T::getShapePython)
-        .def("setRCut", &T::setRCutPython)
-        .def("getRCut", &T::getRCut)
-        .def_property("mode", &T::getShiftMode, &T::setShiftModePython)
-        .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
-        .def("getTypeShapesPy", &T::getTypeShapesPy);
+        .def("setParams", &AnisoPotentialPair<T>::setParamsPython)
+        .def("getParams", &AnisoPotentialPair<T>::getParamsPython)
+        .def("setShape", &AnisoPotentialPair<T>::setShapePython)
+        .def("getShape", &AnisoPotentialPair<T>::getShapePython)
+        .def("setRCut", &AnisoPotentialPair<T>::setRCutPython)
+        .def("getRCut", &AnisoPotentialPair<T>::getRCut)
+        .def_property("mode",
+                      &AnisoPotentialPair<T>::getShiftMode,
+                      &AnisoPotentialPair<T>::setShiftModePython)
+        .def("slotWriteGSDShapeSpec", &AnisoPotentialPair<T>::slotWriteGSDShapeSpec)
+        .def("connectGSDShapeSpec", &AnisoPotentialPair<T>::connectGSDShapeSpec)
+        .def("getTypeShapesPy", &AnisoPotentialPair<T>::getTypeShapesPy);
     }
 
     } // end namespace detail

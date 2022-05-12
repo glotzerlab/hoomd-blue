@@ -978,16 +978,18 @@ namespace detail
     {
 //! Export this triplet potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
+    \tparam T Evaluator type to export.
 */
 template<class T> void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialTersoff<T>, ForceCompute, std::shared_ptr<PotentialTersoff<T>>>(
+        m,
+        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams)
-        .def("setRCut", &T::setRCutPython)
-        .def("getRCut", &T::getRCut);
+        .def("setParams", &PotentialTersoff<T>::setParamsPython)
+        .def("getParams", &PotentialTersoff<T>::getParams)
+        .def("setRCut", &PotentialTersoff<T>::setRCutPython)
+        .def("getRCut", &PotentialTersoff<T>::getRCut);
     }
 
     } // end namespace detail

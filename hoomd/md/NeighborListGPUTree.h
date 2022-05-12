@@ -168,12 +168,6 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     // @}
     };
 
-namespace detail
-    {
-//! Exports NeighborListGPUTree to python
-void export_NeighborListGPUTree(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

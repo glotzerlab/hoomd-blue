@@ -65,6 +65,9 @@ struct RNGIdentifier
     static const uint8_t HPMCMonoPatch = 39;
     static const uint8_t UpdaterClusters2 = 40;
     static const uint8_t HPMCMonoChainMove = 41;
+    static const uint8_t UpdaterShapeUpdate = 42;
+    static const uint8_t UpdaterShapeConstruct = 43;
+    static const uint8_t HPMCShapeMoveUpdateOrder = 44;
     };
 
     } // namespace hoomd

@@ -90,12 +90,6 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     GlobalVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
     };
 
-namespace detail
-    {
-//! Exports the ForceCompositeGPU to python
-void export_ForceCompositeGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

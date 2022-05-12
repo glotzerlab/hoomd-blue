@@ -9,6 +9,8 @@ assignees: 'joaander'
 
 Release checklist:
 
+- [ ] Run [hoomd-benchmarks](https://github.com/glotzerlab/hoomd-benchmarks), check for performance
+  regressions with the previous release, and post the tables in the release pull request.
 - [ ] Update actions versions.
   - See current actions usage with: `rg --no-filename --hidden uses: | awk '{$1=$1;print}' | sort | uniq`
   - Use global search and replace to update them to the latest tags

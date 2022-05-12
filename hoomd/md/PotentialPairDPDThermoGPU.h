@@ -40,10 +40,7 @@ namespace md
 
     \sa export_PotentialPairDPDThermoGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cpdf(const kernel::dpd_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
+template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
     public:
     //! Construct the pair potential
@@ -82,10 +79,8 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cpdf(const kernel::dpd_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::PotentialPairDPDThermoGPU(
+template<class evaluator>
+PotentialPairDPDThermoGPU<evaluator>::PotentialPairDPDThermoGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<NeighborList> nlist)
     : PotentialPairDPDThermo<evaluator>(sysdef, nlist), m_param(0)
@@ -120,10 +115,8 @@ PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::PotentialPairDPDThermoGPU(
 #endif
     }
 
-template<class evaluator,
-         hipError_t gpu_cpdf(const kernel::dpd_pair_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t timestep)
+template<class evaluator>
+void PotentialPairDPDThermoGPU<evaluator>::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 
@@ -175,30 +168,31 @@ void PotentialPairDPDThermoGPU<evaluator, gpu_cpdf>::computeForces(uint64_t time
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
-    gpu_cpdf(kernel::dpd_pair_args_t(d_force.data,
-                                     d_virial.data,
-                                     this->m_virial.getPitch(),
-                                     this->m_pdata->getN(),
-                                     this->m_pdata->getMaxN(),
-                                     d_pos.data,
-                                     d_vel.data,
-                                     d_tag.data,
-                                     box,
-                                     d_n_neigh.data,
-                                     d_nlist.data,
-                                     d_head_list.data,
-                                     d_rcutsq.data,
-                                     this->m_nlist->getNListArray().getPitch(),
-                                     this->m_pdata->getNTypes(),
-                                     block_size,
-                                     this->m_sysdef->getSeed(),
-                                     timestep,
-                                     this->m_deltaT,
-                                     (*this->m_T)(timestep),
-                                     this->m_shift_mode,
-                                     flags[pdata_flag::pressure_tensor],
-                                     threads_per_particle),
-             this->m_params.data());
+    kernel::gpu_compute_dpd_forces<evaluator>(
+        kernel::dpd_pair_args_t(d_force.data,
+                                d_virial.data,
+                                this->m_virial.getPitch(),
+                                this->m_pdata->getN(),
+                                this->m_pdata->getMaxN(),
+                                d_pos.data,
+                                d_vel.data,
+                                d_tag.data,
+                                box,
+                                d_n_neigh.data,
+                                d_nlist.data,
+                                d_head_list.data,
+                                d_rcutsq.data,
+                                this->m_nlist->getNListArray().getPitch(),
+                                this->m_pdata->getNTypes(),
+                                block_size,
+                                this->m_sysdef->getSeed(),
+                                timestep,
+                                this->m_deltaT,
+                                (*this->m_T)(timestep),
+                                this->m_shift_mode,
+                                flags[pdata_flag::pressure_tensor],
+                                threads_per_particle),
+        this->m_params.data());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -210,16 +204,17 @@ namespace detail
     {
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermoGPU class
-   template. \tparam Base Base class of \a T. \b Must be PotentialPairDPDThermo<evaluator> with the
-   same evaluator as used in \a T.
+    \tparam T Evaluator type to export.
+
 */
-template<class T, class Base>
+template<class T>
 void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialPairDPDThermoGPU<T>,
+                     PotentialPairDPDThermo<T>,
+                     std::shared_ptr<PotentialPairDPDThermoGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setTuningParam", &T::setTuningParam);
+        .def("setTuningParam", &PotentialPairDPDThermoGPU<T>::setTuningParam);
     }
 
     } // end namespace detail

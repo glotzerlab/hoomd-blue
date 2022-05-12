@@ -84,11 +84,6 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
     std::unique_ptr<Autotuner> m_tuner_angular_two; //!< Autotuner for angular step two
     };
 
-namespace detail
-    {
-//! Exports the TwoStepNPTMTKGPU class to python
-void export_TwoStepNPTMTKGPU(pybind11::module& m);
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 
