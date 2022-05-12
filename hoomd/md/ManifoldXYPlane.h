@@ -6,7 +6,6 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
-#include <pybind11/pybind11.h>
 
 /*! \file ManifoldXYPlane.h
     \brief Defines the manifold class for the XYPlane surface

@@ -74,8 +74,8 @@ class Distance(Constraint):
             - d_{ij}^2 = 0
 
     Where :math:`i` and :math:`j` are the the particle tags in the
-    ``constraint_group`` and :math:`d_{ij}` is the constraint distance.
-    Define any number of constraint groups in the system state.
+    ``constraint_group`` and :math:`d_{ij}` is the constraint distance as given
+    by the `system state <hoomd.State>`_.
 
     The method sets the second derivative of the Lagrange multipliers with
     respect to time to zero, such that both the distance constraints and their
