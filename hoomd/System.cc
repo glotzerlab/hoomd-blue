@@ -169,12 +169,12 @@ void System::run(uint64_t nsteps, bool write_at_start)
             }
 
         updateTPS();
-        }
 
-    // propagate Python exceptions related to signals
-    if (PyErr_CheckSignals() != 0)
-        {
-        throw pybind11::error_already_set();
+        // propagate Python exceptions related to signals
+        if (PyErr_CheckSignals() != 0)
+            {
+            throw pybind11::error_already_set();
+            }
         }
 
 #ifdef ENABLE_MPI
