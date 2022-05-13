@@ -170,28 +170,15 @@ def test_cell_properties(simulation_factory, lattice_snapshot_factory):
 
 
 def test_logging():
+    base_loggables =  {
+        'shortest_rebuild': {'category': LoggerCategories.scalar,  'default': True},
+        'num_builds': {'category': LoggerCategories.scalar, 'default': False}
+    }
     logging_check(
-        hoomd.md.nlist.NeighborList, ('md', 'nlist'), {
-            'shortest_rebuild': {
-                'category': LoggerCategories.scalar,
-                'default': True
-            },
-            'num_builds': {
-                'category': LoggerCategories.scalar,
-                'default': False
-            },
-        })
+        hoomd.md.nlist.NeighborList, ('md', 'nlist'), base_loggables)
 
     logging_check(
-        hoomd.md.nlist.Cell, ('md', 'nlist'), {
-            'shortest_rebuild': {
-                'category': LoggerCategories.scalar,
-                'default': True
-            },
-            'num_builds': {
-                'category': LoggerCategories.scalar,
-                'default': False
-            },
+        hoomd.md.nlist.Cell, ('md', 'nlist'), {**base_loggables,
             'dimensions': {
                 'category': LoggerCategories.sequence,
                 'default': False
