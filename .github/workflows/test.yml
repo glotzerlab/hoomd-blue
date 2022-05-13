@@ -269,7 +269,7 @@ jobs:
         - {config: [gcc8_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [gcc7_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang6_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc7_py36], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py36, mpi], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -360,7 +360,7 @@ jobs:
         - {config: [gcc8_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [gcc7_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang6_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc7_py36], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py36, mpi], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -420,7 +420,7 @@ jobs:
         - {config: [gcc8_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [gcc7_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [clang6_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
-        - {config: [gcc7_py36], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
+        - {config: [gcc7_py36, mpi], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -472,7 +472,7 @@ jobs:
     name: Start action runners
     runs-on: ubuntu-latest
     steps:
-      - uses: glotzerlab/jetstream2-admin/start@df2d76d7b5e05bb5a0400719a29c202ccaeea39d
+      - uses: glotzerlab/jetstream2-admin/start@23e4494fca84ff2da6119e8348d96908f486ff07
         with:
           OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
           OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
