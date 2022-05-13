@@ -42,4 +42,4 @@ release_test_configurations:
 - config: "[gcc8_py37]"
 - config: "[gcc7_py37]"
 - config: "[clang6_py37]"
-- config: "[gcc7_py36, mpi]"
+- config: "[gcc7_py36]"
