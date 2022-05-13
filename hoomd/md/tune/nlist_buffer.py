@@ -186,6 +186,11 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         When using with a `hoomd.device.GPU` device, autotuning can mess with
         convergence. Running the simulation before adding the tuner to allow the
         autotuning to converge first results in better TPS optimization.
+
+    Note:
+        `NeighborListBuffer.with_binary` generally performs better than
+        `NeighborListBuffer.with_gradient_descent` due to the stocastic nature
+        of TPS.
     """
 
     _internal_class = _NeighborListBufferInternal
