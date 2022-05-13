@@ -117,6 +117,21 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
 
 
 class _AbstractLoggableWithPassthrough(_AbstractLoggable):
+    """Enhances wrapping of an internal action class for custom operations.
+
+    Attributes:
+        _internal_cls (type): The action class to wrap.
+        _wrap_methods (list[str]): A list of ``_internal_cls`` methods to
+            actively wrap. Note all loggables are automatically wrapped.
+
+    Extra Features:
+    * Wrap loggable properties/methods to allow for sphinx documentation.
+    * Pass through non-wrapped internal class attributes and methods to custom
+      wrapping class.
+
+    Note:
+        Sphinx can only document wrapped methods/properties.
+    """
 
     def __init__(cls, name, base, dct):  # noqa: N805
         """Wrap extant internal class loggables for documentation."""
@@ -155,6 +170,7 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
         return func
 
     def __getattr__(self, attr):
+        """Treat class attributes/methods of inner class as from this class."""
         try:
             # This will not work with classmethods that are constructors. We
             # need a trigger for operations, and the action does not contain a
