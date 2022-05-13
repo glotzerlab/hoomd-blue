@@ -246,6 +246,7 @@ jobs:
       - run: echo "Done!"
 
   start_action_runners:
-    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yml@e8060568bb3c72daf103c50e3cd55e18b443a821
+    name: Start action runners
+    uses: glotzerlab/jetstream2-admin/.github/workflows/start.yml@af9da9b4a0a58beaf1f4771fd8b8e91139a3d1f4
     secrets: inherit
 <% endblock %>
