@@ -220,7 +220,6 @@ class Cell(NeighborList):
         See Also:
             `allocated_particles_per_cell`
         """
-        print(dir(self._cpp_obj))
         dimensions = self._cpp_obj.getDim()
         return (dimensions.x, dimensions.y, dimensions.z)
 
