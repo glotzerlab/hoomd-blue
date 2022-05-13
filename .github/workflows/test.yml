@@ -472,7 +472,7 @@ jobs:
     name: Start action runners
     runs-on: ubuntu-latest
     steps:
-      - uses: glotzerlab/jetstream2-admin/.github/actions/start@b163410df217aa08d003f8f7a7275c5a396a4baf
+      - uses: glotzerlab/jetstream2-admin/start@df2d76d7b5e05bb5a0400719a29c202ccaeea39d
         with:
           OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
           OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
