@@ -330,7 +330,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
         Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-        // TODO: account for patch r_cut?
+        // TODO:do we need to account for patch r_cut in here somewhere?
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
