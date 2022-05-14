@@ -28,18 +28,18 @@ class CPPExternalPotential(ExternalField):
     Args:
         code (str): C++ function body to compile.
 
-    Potentials added using :py:class:`CPPExternalPotential` are added to the
-    total energy calculation in `hoomd.hpmc.integrate.HPMCIntegrator`.
-    :py:class:`CPPExternalPotential` takes C++ code, compiles it at runtime, and
-    executes the code natively in the MC loop with full performance. It enables
-    researchers to quickly and easily implement custom energetic field
-    intractions without the need to modify and recompile HOOMD.
+    Potentials added using `CPPExternalPotential` are added to the total energy
+    calculation in `hoomd.hpmc.integrate.HPMCIntegrator`. `CPPExternalPotential`
+    takes C++ code, compiles it at runtime, and executes the code natively in
+    the MC loop with full performance. It enables researchers to quickly and
+    easily implement custom energetic field intractions without the need to
+    modify and recompile HOOMD.
 
     .. rubric:: C++ code
 
-    Supply C++ code to the *code* argument and :py:class:`CPPExternalPotential`
-    will compile the code and call it to evaluate the energy. The text provided
-    in *code* is the body of a function with the following signature:
+    Supply C++ code to the *code* argument and `CPPExternalPotential` will
+    compile the code and call it to evaluate the energy. The text provided in
+    *code* is the body of a function with the following signature:
 
     .. code::
 
@@ -107,7 +107,7 @@ class CPPExternalPotential(ExternalField):
             with the expected signature.
 
         Args:
-            code (`str`): Body of the C++ function
+            code (str): Body of the C++ function
         """
         cpp_function = """
                         #include "hoomd/HOOMDMath.h"
@@ -173,7 +173,7 @@ class CPPExternalPotential(ExternalField):
             raise RuntimeError("Unsupported integrator.\n")
 
         cpu_code = self._wrap_cpu_code(self.code)
-        cpu_include_options = _compile.get_cpu_include_options()
+        cpu_include_options = _compile.get_cpu_compiler_arguments()
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._simulation.device._cpp_exec_conf,

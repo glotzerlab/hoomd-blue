@@ -47,6 +47,7 @@ of exclusions. The valid exclusion types are:
 * ``'angle'``: Exclude the first and third particles in each angle.
 * ``'body'``: Exclude particles that belong to the same rigid body.
 * ``'bond'``: Exclude particles that are directly bonded together.
+* ``'meshbond'``: Exclude particles that are bonded together via a mesh.
 * ``'constraint'``: Exclude particles that have a distance constraint applied
   between them.
 * ``'dihedral'``: Exclude the first and fourth particles in each dihedral.
@@ -59,8 +60,9 @@ of exclusions. The valid exclusion types are:
 
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.logging import log
+from hoomd.mesh import Mesh
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
 
@@ -79,14 +81,19 @@ class NeighborList(_HOOMDBaseObject):
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         check_dist (bool): Flag to enable / disable distance checking.
+        mesh (Mesh): mesh data structure (optional)
     """
 
-    def __init__(self, buffer, exclusions, rebuild_check_delay, check_dist):
+    def __init__(self, buffer, exclusions, rebuild_check_delay, check_dist,
+                 mesh):
 
         validate_exclusions = OnlyFrom([
             'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
-            '1-3', '1-4'
+            '1-3', '1-4', 'meshbond'
         ])
+
+        validate_mesh = OnlyTypes(Mesh, allow_none=True)
+
         # default exclusions
         params = ParameterDict(exclusions=[validate_exclusions],
                                buffer=float(buffer),
@@ -94,6 +101,14 @@ class NeighborList(_HOOMDBaseObject):
                                check_dist=bool(check_dist))
         params["exclusions"] = exclusions
         self._param_dict.update(params)
+
+        self._mesh = validate_mesh(mesh)
+
+    def _attach(self):
+        if self._mesh is not None:
+            self._cpp_obj.addMesh(self._mesh._cpp_obj)
+
+        super()._attach()
 
     @log(requires_run=True)
     def shortest_rebuild(self):
@@ -127,6 +142,9 @@ class Cell(NeighborList):
         check_dist (bool): Flag to enable / disable distance checking.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Cell` finds neighboring particles using a fixed width cell list, allowing
     for *O(kN)* construction of the neighbor list where *k* is the number of
@@ -165,9 +183,11 @@ class Cell(NeighborList):
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  check_dist=True,
-                 deterministic=False):
+                 deterministic=False,
+                 mesh=None):
 
-        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist)
+        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
+                         mesh)
 
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
@@ -179,6 +199,7 @@ class Cell(NeighborList):
             nlist_cls = _md.NeighborListGPUBinned
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
                                   self.buffer)
+
         super()._attach()
 
 
@@ -196,6 +217,9 @@ class Stencil(NeighborList):
         check_dist (bool): Flag to enable / disable distance checking.
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Stencil` finds neighboring particles using a fixed width cell list, for
     *O(kN)* construction of the neighbor list where *k* is the number of
@@ -246,9 +270,11 @@ class Stencil(NeighborList):
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  check_dist=True,
-                 deterministic=False):
+                 deterministic=False,
+                 mesh=None):
 
-        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist)
+        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
+                         mesh)
 
         params = ParameterDict(deterministic=bool(deterministic),
                                cell_width=float(cell_width))
@@ -275,6 +301,9 @@ class Tree(NeighborList):
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         check_dist (bool): Flag to enable / disable distance checking.
+        mesh (Mesh): When a mesh object is passed, the neighbor list uses the
+            mesh to determine the bond exclusions in addition to all other
+            set exclusions.
 
     `Tree` creates a neighbor list using a bounding volume hierarchy (BVH) tree
     traversal in :math:`O(N \\log N)` time. A BVH tree of axis-aligned bounding
@@ -313,9 +342,11 @@ class Tree(NeighborList):
                  buffer,
                  exclusions=('bond',),
                  rebuild_check_delay=1,
-                 check_dist=True):
+                 check_dist=True,
+                 mesh=None):
 
-        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist)
+        super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
+                         mesh)
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):

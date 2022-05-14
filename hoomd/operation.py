@@ -252,7 +252,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam._attach(cpp_obj, simulation)
+                typeparam._attach(cpp_obj, simulation.state)
             except ValueError as err:
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} "
@@ -297,6 +297,10 @@ class Operation(_HOOMDBaseObject):
     inherit from one of these five base classes. To find the purpose of each
     class see its documentation.
 
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+
     Note:
         Developers or those contributing to HOOMD-blue, see our architecture
         `file`_ for information on HOOMD-blue's architecture decisions regarding
@@ -310,7 +314,7 @@ class Operation(_HOOMDBaseObject):
 class TriggeredOperation(Operation):
     """Operations that include a trigger to determine when to run.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
@@ -326,7 +330,7 @@ class Updater(TriggeredOperation):
 
     An updater is an operation which modifies a simulation's state.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
@@ -338,7 +342,7 @@ class Writer(TriggeredOperation):
 
     A writer is an operation which writes out a simulation's state.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
@@ -351,7 +355,7 @@ class Compute(Operation):
     A compute is an operation which computes some property for another operation
     or use by a user.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
@@ -366,7 +370,7 @@ class Tuner(TriggeredOperation):
     of the simulation. That is a tuner does not change quantities like
     temperature, particle position, or the number of bonds in a simulation.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
@@ -381,7 +385,7 @@ class Integrator(Operation):
     `hoomd.md`, the `hoomd.md.Integrator` class organizes the forces, equations
     of motion, and other factors of the given simulation.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """

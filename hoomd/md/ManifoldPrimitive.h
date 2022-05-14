@@ -6,7 +6,10 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#endif
 
 /*! \file ManifoldPrimitive.h
     \brief Defines the manifold class for the Primitive minimal surface
@@ -93,10 +96,12 @@ class ManifoldPrimitive
                      // accepted
         }
 
+    #ifndef __HIPCC__
     pybind11::tuple getN()
         {
         return pybind11::make_tuple(Nx, Ny, Nz);
         }
+    #endif
 
     Scalar getEpsilon()
         {

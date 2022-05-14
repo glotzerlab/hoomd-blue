@@ -31,6 +31,9 @@ is:
 
 where the cutoff radius :math:`r_{\mathrm{cut}}` is given by `Pair.r_cut`.
 
+Tip:
+    Set `Pair.r_cut` to 0 to skip computations for non-interacting pairs.
+
 `Pair` splits half the energy from each pair interaction onto particles
 :math:`i` and :math:`j`:
 

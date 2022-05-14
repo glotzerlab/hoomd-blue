@@ -18,6 +18,8 @@
 #include "Initializers.h"
 #include "Integrator.h"
 #include "LoadBalancer.h"
+#include "MeshDefinition.h"
+#include "MeshGroupData.h"
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"
@@ -224,10 +226,16 @@ PYBIND11_MODULE(_hoomd, m)
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);
+    export_MeshDefinition(m);
     export_SnapshotSystemData(m);
     export_BondedGroupData<BondData, Bond>(m, "BondData", "BondDataSnapshot");
     export_BondedGroupData<AngleData, Angle>(m, "AngleData", "AngleDataSnapshot");
+    export_BondedGroupData<TriangleData, Angle>(m, "TriangleData", "TriangleDataSnapshot", false);
     export_BondedGroupData<DihedralData, Dihedral>(m, "DihedralData", "DihedralDataSnapshot");
+    export_MeshGroupData<MeshBondData, MeshBond>(m, "MeshBondData", "MeshBondDataSnapshot");
+    export_MeshGroupData<MeshTriangleData, MeshTriangle>(m,
+                                                         "MeshTriangleData",
+                                                         "MeshTriangleDataSnapshot");
     export_BondedGroupData<ImproperData, Dihedral>(m,
                                                    "ImproperData",
                                                    "ImproperDataSnapshot",
@@ -239,14 +247,20 @@ PYBIND11_MODULE(_hoomd, m)
 
     export_LocalGroupData<HOOMDHostBuffer, BondData>(m, "LocalBondDataHost");
     export_LocalGroupData<HOOMDHostBuffer, AngleData>(m, "LocalAngleDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, TriangleData>(m, "LocalTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, DihedralData>(m, "LocalDihedralDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, MeshBondData>(m, "LocalMeshBondDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ImproperData>(m, "LocalImproperDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(m, "LocalConstraintDataHost");
     export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
 #if ENABLE_HIP
     export_LocalGroupData<HOOMDDeviceBuffer, BondData>(m, "LocalBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, TriangleData>(m, "LocalTriangleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(m, "LocalAngleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(m, "LocalDihedralDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, MeshBondData>(m, "LocalMeshBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(m, "LocalImproperDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(m, "LocalConstraintDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");

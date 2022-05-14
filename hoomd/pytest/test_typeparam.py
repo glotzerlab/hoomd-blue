@@ -25,7 +25,7 @@ def typeparam(typedict):
 
 
 def test_attach(typeparam):
-    return typeparam._attach(DummyCppObj(), DummySimulation())
+    return typeparam._attach(DummyCppObj(), DummySimulation().state)
 
 
 @fixture(scope='function')

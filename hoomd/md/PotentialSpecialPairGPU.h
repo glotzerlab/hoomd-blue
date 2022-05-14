@@ -137,21 +137,21 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         this->m_tuner->begin();
-        kernel::gpu_compute_bond_forces<evaluator>(
-            kernel::bond_args_t(d_force.data,
-                                d_virial.data,
-                                this->m_virial.getPitch(),
-                                this->m_pdata->getN(),
-                                this->m_pdata->getMaxN(),
-                                d_pos.data,
-                                d_charge.data,
-                                d_diameter.data,
-                                box,
-                                d_gpu_bondlist.data,
-                                gpu_table_indexer,
-                                d_gpu_n_bonds.data,
-                                this->m_pair_data->getNTypes(),
-                                this->m_tuner->getParam()),
+        kernel::gpu_compute_bond_forces<evaluator, 2>(
+            kernel::bond_args_t<2>(d_force.data,
+                                   d_virial.data,
+                                   this->m_virial.getPitch(),
+                                   this->m_pdata->getN(),
+                                   this->m_pdata->getMaxN(),
+                                   d_pos.data,
+                                   d_charge.data,
+                                   d_diameter.data,
+                                   box,
+                                   d_gpu_bondlist.data,
+                                   gpu_table_indexer,
+                                   d_gpu_n_bonds.data,
+                                   this->m_pair_data->getNTypes(),
+                                   this->m_tuner->getParam()),
             d_params.data,
             d_flags.data);
         }

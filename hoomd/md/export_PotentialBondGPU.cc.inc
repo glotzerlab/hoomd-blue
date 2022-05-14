@@ -18,7 +18,7 @@ namespace md
     {
 
 // Use CPU class from another compilation unit to reduce compile time and compiler memory usage.
-extern template class PotentialBond<EVALUATOR_CLASS>;
+extern template class PotentialBond<EVALUATOR_CLASS, BondData>;
 
 namespace detail
     {

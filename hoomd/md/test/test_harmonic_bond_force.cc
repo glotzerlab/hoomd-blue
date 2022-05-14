@@ -29,10 +29,10 @@ using namespace hoomd::md;
     \ingroup unit_tests
 */
 
-typedef class PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
+typedef class PotentialBond<EvaluatorBondHarmonic, BondData> PotentialBondHarmonic;
 
 #ifdef ENABLE_HIP
-typedef class PotentialBondGPU<EvaluatorBondHarmonic> PotentialBondHarmonicGPU;
+typedef class PotentialBondGPU<EvaluatorBondHarmonic, BondData> PotentialBondHarmonicGPU;
 #endif
 
 #include "hoomd/test/upp11_config.h"

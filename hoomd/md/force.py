@@ -20,6 +20,9 @@ import numpy
 class Force(_HOOMDBaseObject):
     r"""Defines a force for molecular dynamics simulations.
 
+    `Force` is the base class for all molecular dynamics forces and provides
+    common methods.
+
     A `Force` class computes the force and torque on each particle in the
     simulation state :math:`\vec{F}_i` and :math:`\vec{\tau}_i`. With a few
     exceptions (noted in the documentation of the specific force classes),
@@ -56,10 +59,9 @@ class Force(_HOOMDBaseObject):
         W^{kl}_i = \sum_j F^k_{ij} \cdot
         \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
 
-    Note:
-        :py:class:`Force` is the base class for all molecular dynamics forces
-        and provides common methods. Users should not instantiate this class
-        directly.
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def __init__(self):
@@ -309,11 +311,11 @@ class Active(Force):
     r"""Active force.
 
     Args:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
-            active forces.
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply active forces.
 
-    :py:class:`Active` computes an active force and torque on all
-    particles selected by the filter:
+    `Active` computes an active force and torque on all particles selected by
+    the filter:
 
     .. math::
 
@@ -350,8 +352,8 @@ class Active(Force):
         The energy and virial associated with the active force are 0.
 
     Attributes:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
-            active forces.
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply active forces.
 
     .. py:attribute:: active_force
 
@@ -440,14 +442,14 @@ class ActiveOnManifold(Active):
     r"""Active force on a manifold.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter`): Subset of particles on which to
             apply active forces.
-        manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
 
-    :py:class:`ActiveOnManifold` computes a constrained active force and torque
-    on all particles selected by the filter similar to :py:class:`Active`.
-    `ActiveOnManifold` restricts the forces to the local tangent plane of the
-    manifold constraint. For more information see :py:class:`Active`.
+    `ActiveOnManifold` computes a constrained active force and torque on all
+    particles selected by the filter similar to `Active`. `ActiveOnManifold`
+    restricts the forces to the local tangent plane of the manifold constraint.
+    For more information see `Active`.
 
     Hint:
         Use `ActiveOnManifold` with a `md.methods.rattle` integration method
@@ -474,9 +476,9 @@ class ActiveOnManifold(Active):
         active.active_torque['A','B'] = (0,0,0)
 
     Attributes:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter`): Subset of particles on which to
             apply active forces.
-        manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
 
     .. py:attribute:: active_force
 

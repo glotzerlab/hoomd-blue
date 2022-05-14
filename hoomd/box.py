@@ -152,8 +152,8 @@ class Box:
     ``Lz``, ``xy``, ``xz``, and ``yz``. `Box` provides a way to specify all six
     parameters for a given box and perform some common operations with them. A
     `Box` can be stored in a GSD file, passed to an initialization method or to
-    assigned to a saved :py:class:`State` variable (``state.box = new_box``) to
-    set the simulation box.
+    assigned to a saved `State` variable (``state.box = new_box``) to set the
+    simulation box.
 
     Access attributes directly::
 

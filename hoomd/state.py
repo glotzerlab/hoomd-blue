@@ -173,15 +173,16 @@ class State:
     dihedrals, `N_impropers` impropers, and `N_special_pairs` special pairs.
     Each of these data structures is similar, differing in the number of
     particles in the group and what operations use them. Bonds, angles,
-    dihedrals, and impropers contain 2, 3, 4, and 4 particles per group
-    respectively. Bonds define the connectivity used when computing energies and
-    forces in `md.bond`, angles define the same for `md.angle`, dihedrals for
-    `md.dihedral` and impropers for `md.improper`. These collectively implement
-    bonding potentials used in molecular dynamics force fields. Like bonds,
-    special pairs define connections between two particles, but special pairs
-    are intended to adjust the 1-4 pairwise interactions in some molecular
-    dynamics force fields: see `md.special_pair`. Each bonded group is defined
-    by a type id, the group members, and a tag.
+    dihedrals, and impropers contain 2, 3, 4, and 4 particles
+    per group respectively. Bonds specify the toplogy used when computing
+    energies and forces in `md.bond`, angles define the same for `md.angle`,
+    dihedrals for `md.dihedral` and impropers for `md.improper`. These
+    collectively implement bonding potentials used in molecular dynamics
+    force fields. Like bonds, special pairs define connections between two
+    particles, but special pairs are intended to adjust the 1-4 pairwise
+    interactions in some molecular dynamics force fields: see
+    `md.special_pair`. Each bonded group is defined by a type id, the
+    group members, and a tag.
 
     - ``bond_typeid``: type id :math:`[\\mathrm{dimensionless}]` -
       An integer in the interval ``[0,len(bond_types))`` that identifies the
@@ -475,9 +476,10 @@ class State:
         `replicate` makes the system state ``nx * ny * nz`` times larger. In
         each of the new periodic box images, it places a copy of the initial
         state with the particle positions offset to locate them in the image and
-        the bond, angle, dihedral, improper, and pair group tags offset to apply
-        to the copied particles. All other particle properties (mass, typeid,
-        velocity, charge, ...) are copied to the new particles without change.
+        the bond, angle, dihedral, improper, and pair group tags
+        offset to apply to the copied particles. All other particle properties
+        (mass, typeid, velocity, charge, ...) are copied to the new particles
+        without change.
 
         After placing the particles, `replicate` expands the simulation box by a
         factor of ``nx``, ``ny``, and ``nz`` in the direction of the first,
@@ -558,8 +560,8 @@ class State:
 
         Note:
             The state's box and the number of particles, bonds, angles,
-            dihedrals, impropers, constaints, and pairs cannot change within the
-            context manager.
+            dihedrals, impropers, constaints, and pairs cannot
+            change within the context manager.
 
         Note:
             Getting a local snapshot object is order :math:`O(1)` and setting a
@@ -603,8 +605,8 @@ class State:
 
         Note:
             The state's box and the number of particles, bonds, angles,
-            dihedrals, impropers, constaints, and pairs cannot change within the
-            context manager.
+            dihedrals, impropers, constaints, and pairs cannot
+            change within the context manager.
 
         Note:
             Getting a local snapshot object is order :math:`O(1)` and setting a

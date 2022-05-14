@@ -245,9 +245,11 @@ def test_state_from_gsd_box_dims(device, simulation_factory,
 
     def modify_gsd_snap(gsd_snap):
         """Add nonzero z values to gsd box for testing."""
-        gsd_snap.configuration.box[2] = 1e2 * np.random.random(20)
-        gsd_snap.configuration.box[4] = 1e2 * np.random.random(20)
-        gsd_snap.configuration.box[5] = 1e2 * np.random.random(20)
+        new_box = list(gsd_snap.configuration.box)
+        new_box[2] = 1e2 * (np.random.random() - 0.5)
+        new_box[4] = 1e2 * (np.random.random() - 0.5)
+        new_box[5] = 1e2 * (np.random.random() - 0.5)
+        gsd_snap.configuration.box = new_box
         return gsd_snap
 
     d = tmp_path / "sub"
@@ -257,24 +259,19 @@ def test_state_from_gsd_box_dims(device, simulation_factory,
         f = gsd.hoomd.open(name=filename, mode='wb+')
 
     sim = simulation_factory(
-        lattice_snapshot_factory(n=10, particle_types=("A", "B"), dimensions=2))
+        lattice_snapshot_factory(n=10, particle_types=["A", "B"], dimensions=2))
     snap = sim.state.get_snapshot()
 
-    if device.communicator.rank == 0:
-        f.append(modify_gsd_snap(make_gsd_snapshot(snap)))
-
     checks = range(3)
-    for step in checks:
-        if device.communicator.rank == 0:
-            f.append(modify_gsd_snap(make_gsd_snapshot(snap)))
-
     if device.communicator.rank == 0:
+        for step in checks:
+            f.append(modify_gsd_snap(make_gsd_snapshot(snap)))
         f.close()
 
     for step in checks:
         sim = simulation_factory()
         sim.create_state_from_gsd(filename, frame=step)
-        assert sim.state.box.dimension == 2
+        assert sim.state.box.dimensions == 2
         assert sim.state.box.Lz == 0.0
         assert sim.state.box.xz == 0.0
         assert sim.state.box.yz == 0.0

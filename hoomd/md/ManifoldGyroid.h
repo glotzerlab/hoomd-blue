@@ -6,7 +6,10 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#endif
 
 /*! \file ManifoldGyroid.h
     \brief Defines the manifold class for the Gyroid minimal surface
@@ -109,10 +112,12 @@ class ManifoldGyroid
         return 2;
         }
 
+    #ifndef __HIPCC__
     pybind11::tuple getN()
         {
         return pybind11::make_tuple(Nx, Ny, Nz);
         }
+    #endif
 
     Scalar getEpsilon()
         {

@@ -251,7 +251,7 @@ class DihedralLocalAccessBase(_GroupLocalAccess):
     Attributes:
         typeid ((N_dihedrals) `hoomd.data.array` object of ``int``): The integer
             type of a dihedral.
-        members ((N_dihedrals, 3) `hoomd.data.array` object of ``int``): the
+        members ((N_dihedrals, 4) `hoomd.data.array` object of ``int``): the
             tags of particles in a dihedral.
         tag ((N_dihedrals) `hoomd.data.array` object of ``int``):
             The dihedral tags. MPI domain migration reorder dihedrals in

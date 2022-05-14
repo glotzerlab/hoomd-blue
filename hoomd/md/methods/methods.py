@@ -36,13 +36,13 @@ class NVT(Method):
     r"""Constant volume, constant temperature dynamics.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which
             to apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
             for the Nosé-Hoover thermostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Coupling constant for the Nosé-Hoover thermostat
+        tau (float): Coupling constant for the Nosé-Hoover thermostat
             :math:`[\mathrm{time}]`.
 
     `NVT` integrates particles forward in time in the canonical ensemble
@@ -163,13 +163,13 @@ class NPT(Method):
     r"""Constant pressure, constant temperature dynamics.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point for the
             thermostat :math:`[\mathrm{energy}]`.
 
-        tau (`float`): Coupling constant for the thermostat
+        tau (float): Coupling constant for the thermostat
             :math:`[\mathrm{time}]`.
 
         S: Stress components set point for the barostat.
@@ -180,10 +180,10 @@ class NPT(Method):
            Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
            `hoomd.variant.Variant` or `float`.
 
-        tauS (`float`): Coupling constant for the barostat
+        tauS (float): Coupling constant for the barostat
            :math:`[\mathrm{time}]`.
 
-        couple (`str`): Couplings of diagonal elements of the stress tensor,
+        couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "xyz".
 
         box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
@@ -192,10 +192,10 @@ class NPT(Method):
             rescale corresponding lengths or tilt factors and components of
             particle coordinates and velocities.
 
-        rescale_all (`bool`): if True, rescale all particles, not only those
+        rescale_all (bool): if True, rescale all particles, not only those
             in the group, Default to False.
 
-        gamma (`float`): Dimensionless damping factor for the box degrees of
+        gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
     `NPT` integrates particles forward in time in the Isothermal-isobaric
@@ -654,7 +654,7 @@ class NVE(Method):
     r"""Constant volume, constant energy dynamics.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
     `NVE` integrates particles forward in time in the microcanonical ensemble.
@@ -708,19 +708,19 @@ class Langevin(Method):
     r"""Langevin dynamics.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
 
-        alpha (`float`): When set, use :math:`\alpha d_i` for the drag
+        alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot
             \mathrm{length}^{-1} \cdot \mathrm{time}^{-1}]`.
             Defaults to None.
 
-        tally_reservoir_energy (`bool`): If true, the energy exchange
+        tally_reservoir_energy (bool): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
@@ -883,13 +883,13 @@ class Brownian(Method):
     r"""Brownian dynamics.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
 
-        alpha (`float`): When set, use :math:`\alpha d_i` for the
+        alpha (float): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
@@ -1068,17 +1068,17 @@ class Berendsen(Method):
     r"""Applies the Berendsen thermostat.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation. :math:`[energy]`
 
-        tau (`float`): Time constant of thermostat. :math:`[time]`
+        tau (float): Time constant of thermostat. :math:`[time]`
 
-    :py:class:`Berendsen` rescales the velocities of all particles on each time
-    step. The rescaling is performed so that the difference in the current
-    temperature from the set point decays exponentially:
+    `Berendsen` rescales the velocities of all particles on each time step. The
+    rescaling is performed so that the difference in the current temperature
+    from the set point decays exponentially:
     `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
 
     .. math::
@@ -1086,10 +1086,10 @@ class Berendsen(Method):
         \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
 
     .. attention::
-        :py:class:`Berendsen` does not function with MPI parallel simulations.
+        `Berendsen` does not function with MPI parallel simulations.
 
     .. attention::
-        :py:class:`Berendsen` does not integrate rotational degrees of freedom.
+        `Berendsen` does not integrate rotational degrees of freedom.
 
         Examples::
 
@@ -1145,10 +1145,10 @@ class OverdampedViscous(Method):
     r"""Overdamped viscous dynamics.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
             apply this method to.
 
-        alpha (`float`): When set, use :math:`\alpha d_i` for the
+        alpha (float): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
