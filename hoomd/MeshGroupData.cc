@@ -430,11 +430,13 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
     {
+    std::cout << "Start" << std::endl;
 //#ifdef ENABLE_HIP
-//    if (this->m_exec_conf->isCUDAEnabled())
-//        rebuildGPUTableGPU();
+//    if (this->m_exec_conf->isCUDAEnabled()){
+//       rebuildGPUTableGPU();
+//    }
 //    else
-//#endif
+//#endif 
         {
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(),
                                          access_location::host,
@@ -547,6 +549,10 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                 }
             }
         }
+    std::cout << "Rebuild" << std::endl;
+    //ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
+    //            h_gpu_table(this->m_gpu_table, access_location::host, access_mode::read);
+    //std::cout << h_gpu_table.data[0].idx[0] << " " <<  h_gpu_table.data[0].idx[1] << " "<< h_gpu_table.data[0].idx[2] << " " << h_gpu_table.data[0].idx[3] << " " << std::endl;
     }
 
 #ifdef ENABLE_HIP
