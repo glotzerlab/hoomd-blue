@@ -10,6 +10,11 @@ v3.x
 v3.x.y (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+*Added*
+
+- Support gcc 12.
+- Support clang 14.
+
 *Fixed*
 
 * Clarify documentation.
