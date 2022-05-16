@@ -69,6 +69,13 @@ struct ShapeParams
         return ret;
         }
 
+// GCC 12 misidentifies this as a mismatched new/delete, it doesn't realize this is the
+// *implementation* of delete.
+#if defined(__GNUC__) && __GNUC__ >= 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmismatched-new-delete"
+#endif
+
     /// Custom delete operator
     static void operator delete(void* ptr)
         {
@@ -80,6 +87,10 @@ struct ShapeParams
         {
         free(ptr);
         }
+
+#if defined(__GNUC__) && __GNUC__ >= 12
+#pragma GCC diagnostic pop
+#endif
 
     /** Load dynamic data members into shared memory and increase pointer
 
