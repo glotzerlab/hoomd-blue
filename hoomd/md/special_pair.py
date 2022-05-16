@@ -48,9 +48,11 @@ import hoomd
 class SpecialPair(Force):
     """Base class special pair forces.
 
-    Note:
-        :py:class:`SpecialPair` is the base class for all special pair
-        forces. Users should not instantiate this class directly.
+    `SpecialPair` is the base class for all special pair forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def __init__(self):

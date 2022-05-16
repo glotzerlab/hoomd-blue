@@ -9,6 +9,7 @@
 #include "hoomd/md/Manifold@_manifold_cpp@.h"
 
 #define MANIFOLD_CLASS Manifold@_manifold_cpp@
+#define BASE TwoStepRATTLE@_method@
 #define PYBIND_EXPORT export_TwoStepRATTLE@_method@
 #define EXPORT_FUNCTION export_TwoStepRATTLE@_method@@_manifold@
 // clang-format on
@@ -17,6 +18,7 @@ namespace hoomd
     {
 namespace md
     {
+template class BASE<MANIFOLD_CLASS>;
 
 namespace detail
     {

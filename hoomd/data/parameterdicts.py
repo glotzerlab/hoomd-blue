@@ -382,7 +382,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
     that follow the camel case style version of ``param_name`` as passed to
     `_attach`.
 
-    Note:
+    Warning:
         This class should not be directly instantiated even by developers, but
         the `hoomd.data.type_param.TypeParameter` class should be used to
         automatically handle this in conjunction with

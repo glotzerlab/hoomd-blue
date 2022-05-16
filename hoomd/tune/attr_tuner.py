@@ -249,7 +249,7 @@ class SolverStep(metaclass=ABCMeta):
         """Takes in a tunable object and attempts to solve x for a specified y.
 
         Args:
-            tunable (`hoomd.tune.ManualTuneDefinition`): A tunable object that
+            tunable (hoomd.tune.ManualTuneDefinition): A tunable object that
                 represents a relationship of f(x) = y.
 
         Returns:

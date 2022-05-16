@@ -83,7 +83,7 @@ class Operations(Collection):
         `Operations` instance.
 
         Args:
-            operation (`hoomd.operation.Operation`): A HOOMD-blue tuner,
+            operation (hoomd.operation.Operation): A HOOMD-blue tuner,
                 updater, integrator, writer, or compute to add to the
                 collection.
 
@@ -118,7 +118,7 @@ class Operations(Collection):
         """Works the same as `Operations.add`.
 
         Args:
-            operation (`hoomd.operation.Operation`): A HOOMD-blue tuner,
+            operation (hoomd.operation.Operation): A HOOMD-blue tuner,
                 updater, integrator, writer, or compute to add to the object.
         """
         self.add(operation)
@@ -131,7 +131,7 @@ class Operations(Collection):
         as ``operation``.
 
         Args:
-            operation (`hoomd.operation.Operation`): A HOOMD-blue integrator,
+            operation (hoomd.operation.Operation): A HOOMD-blue integrator,
                 tuner, updater, integrator, or compute to remove from the
                 container.
 
@@ -153,7 +153,7 @@ class Operations(Collection):
         """Works the same as `Operations.remove`.
 
         Args:
-            operation (`hoomd.operation.Operation`): A HOOMD-blue integrator,
+            operation (hoomd.operation.Operation): A HOOMD-blue integrator,
                 tuner, updater, integrator, analyzer, or compute to remove from
                 the collection.
         """

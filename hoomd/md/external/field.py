@@ -16,9 +16,9 @@ class Field(force.Force):
     External potentials represent forces which are applied to all particles in
     the simulation by an external agent.
 
-    Note:
-        :py:class:`Field` is the base class for all external field forces. Users
-        should not instantiate this class directly.
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def _attach(self):

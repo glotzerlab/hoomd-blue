@@ -197,8 +197,8 @@ class MoveSize(_InternalCustomTuner):
             are ``'a'`` and ``'d'``.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (`hoomd.tune.SolverStep`): A solver that tunes move sizes to
-            reach the specified target.
+        solver (hoomd.tune.SolverStep): A solver that tunes move sizes to reach
+            the specified target.
         types (list[str]): A list of string particle types to tune the move
             size for, defaults to None which upon attaching will tune all types
             in the system currently.

@@ -33,8 +33,8 @@ class CPPPotentialBase(_HOOMDBaseObject):
     type and orientation of the particles and the vector pointing from the *i*
     particle to the *j* particle center.
 
-    Classes derived from :py:class:`CPPPotentialBase` take C++ code, compile it
-    at runtime, and execute the code natively in the MC loop.
+    Classes derived from `CPPPotentialBase` take C++ code, compile it at
+    runtime, and execute the code natively in the MC loop.
 
     Warning:
         `CPPPotentialBase` is **experimental** and subject to change in future
@@ -42,10 +42,9 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
     .. rubric:: C++ code
 
-    Classes derived from :py:class:`CPPPotentialBase` will compile the code
-    provided by the user and call it to evaluate the energy
-    :math:`U_{\\mathrm{pair},ij}`. The text provided is the body of a function
-    with the following signature:
+    Classes derived from `CPPPotentialBase` will compile the code provided by
+    the user and call it to evaluate the energy :math:`U_{\\mathrm{pair},ij}`.
+    The text provided is the body of a function with the following signature:
 
     .. code::
 

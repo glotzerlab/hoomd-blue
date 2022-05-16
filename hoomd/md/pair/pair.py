@@ -18,9 +18,11 @@ from hoomd.data.typeconverter import OnlyFrom, nonnegative_real
 class Pair(force.Force):
     r"""Base class pair force.
 
-    Note:
-        :py:class:`Pair` is the base class for all pair forces. Users should
-        not instantiate this class directly.
+    `Pair` is the base class for all pair forces.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     .. py:attribute:: r_cut
 
@@ -188,7 +190,7 @@ class LJ(Pair):
     r"""Lennard-Jones pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -255,7 +257,7 @@ class Gauss(Pair):
     r"""Gaussian pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -307,7 +309,7 @@ class ExpandedLJ(Pair):
     r"""Expanded Lennard-Jones pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting mode.
@@ -374,7 +376,7 @@ class Yukawa(Pair):
     r"""Yukawa pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -427,7 +429,7 @@ class Ewald(Pair):
     r"""Ewald pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     `Ewald` computes the Ewald pair force on every particle in the simulation
@@ -490,7 +492,7 @@ class Table(Pair):
     """Tabulated pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
 
     `Table` computes the tabulated pair force on every particle in the
@@ -591,7 +593,7 @@ class Morse(Pair):
     r"""Morse pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -646,7 +648,7 @@ class DPD(Pair):
     r"""Dissipative Particle Dynamics.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         kT (`hoomd.variant` or `float`): Temperature of
             thermostat :math:`[\mathrm{energy}]`.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
@@ -756,7 +758,7 @@ class DPDConservative(Pair):
     r"""DPD Conservative pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     `DPDConservative` computes the conservative part of the `DPD` pair force on
@@ -811,7 +813,7 @@ class DPDLJ(Pair):
     r"""Dissipative Particle Dynamics with the LJ conservative force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         kT (`hoomd.variant` or `float`): Temperature of
             thermostat :math:`[\mathrm{energy}]`.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
@@ -916,7 +918,7 @@ class ForceShiftedLJ(Pair):
     r"""Force-shifted Lennard-Jones pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
@@ -982,7 +984,7 @@ class Moliere(Pair):
     r"""Moliere pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1059,7 +1061,7 @@ class ZBL(Pair):
     r"""ZBL pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
 
@@ -1136,7 +1138,7 @@ class Mie(Pair):
     r"""Mie pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1200,7 +1202,7 @@ class ExpandedMie(Pair):
     r"""Expanded Mie pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1273,7 +1275,7 @@ class ReactionField(Pair):
     r"""Onsager reaction field pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1353,7 +1355,7 @@ class DLVO(Pair):
     r"""DLVO colloidal interaction.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         name (str): Name of the force instance.
@@ -1437,7 +1439,7 @@ class Buckingham(Pair):
     r"""Buckingham pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1489,7 +1491,7 @@ class LJ1208(Pair):
     r"""Lennard-Jones 12-8 pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1540,7 +1542,7 @@ class LJ0804(Pair):
     r"""Lennard-Jones 8-4 pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1592,7 +1594,7 @@ class Fourier(Pair):
     r"""Fourier pair force.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1655,7 +1657,7 @@ class OPP(Pair):
     r"""Oscillating pair force.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1731,7 +1733,7 @@ class TWF(Pair):
     r"""Pair potential model for globular proteins.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
@@ -1798,7 +1800,7 @@ class LJGauss(Pair):
     r"""Lennard-Jones-Gauss pair potential.
 
     Args:
-        nlist (`hoomd.md.nlist.NeighborList`): Neighbor list.
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
