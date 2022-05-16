@@ -2,8 +2,13 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+from hoomd import md
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check, pickling_check
 import pytest
 import numpy as np
+
+import itertools
 
 # Test parameters include the class, class keyword arguments, bond params,
 # force, and energy.
@@ -147,3 +152,43 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
         np.testing.assert_allclose(sim_forces[1], [-1 * force, 0.0, 0.0],
                                    rtol=1e-2,
                                    atol=1e-5)
+
+
+# Test logging
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet),
+        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body')),
+        itertools.repeat({
+            'energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'energies': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'forces': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'torques': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'virials': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'additional_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'additional_virial': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })))
+def test_logging(cls, expected_namespace, expected_loggables):
+    #cmment
+    logging_check(cls, expected_namespace, expected_loggables)
