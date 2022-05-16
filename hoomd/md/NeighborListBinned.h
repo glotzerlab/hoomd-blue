@@ -54,6 +54,18 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
         return m_cl->getSortCellList();
         }
 
+    /// Get the dimensions of the cell list
+    const uint3& getDim() const
+        {
+        return m_cl->getDim();
+        }
+
+    /// Get number of memory slots allocated for each cell
+    const unsigned int getNmax() const
+        {
+        return m_cl->getNmax();
+        }
+
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
 

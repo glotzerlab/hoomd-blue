@@ -135,6 +135,20 @@ class PYBIND11_EXPORT Integrator : public Updater
     void computeCallback(uint64_t timestep);
 #endif
 
+    /// Reset stats counters for children objects
+    virtual void resetStats()
+        {
+        for (auto& force : m_forces)
+            {
+            force->resetStats();
+            }
+
+        for (auto& constraint_force : m_constraint_forces)
+            {
+            constraint_force->resetStats();
+            }
+        }
+
     protected:
     /// The step size
     Scalar m_deltaT;
