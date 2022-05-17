@@ -202,8 +202,6 @@ void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
             }
         }
     this->m_tuner->end();
-
-    //exit(0);
     }
 
 namespace detail

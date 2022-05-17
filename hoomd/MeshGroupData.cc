@@ -430,13 +430,12 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
 template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
 void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
     {
-    std::cout << "Start" << std::endl;
-//#ifdef ENABLE_HIP
-//    if (this->m_exec_conf->isCUDAEnabled()){
-//       rebuildGPUTableGPU();
-//    }
-//    else
-//#endif 
+#ifdef ENABLE_HIP
+    if (this->m_exec_conf->isCUDAEnabled()){
+       rebuildGPUTableGPU();
+    }
+    else
+#endif 
         {
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(),
                                          access_location::host,
@@ -549,10 +548,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
                 }
             }
         }
-    std::cout << "Rebuild" << std::endl;
-    //ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
-    //            h_gpu_table(this->m_gpu_table, access_location::host, access_mode::read);
-    //std::cout << h_gpu_table.data[0].idx[0] << " " <<  h_gpu_table.data[0].idx[1] << " "<< h_gpu_table.data[0].idx[2] << " " << h_gpu_table.data[0].idx[3] << " " << std::endl;
     }
 
 #ifdef ENABLE_HIP
@@ -644,6 +639,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
             this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(),
                                                 this->m_gpu_table_indexer.getH() + 1);
             this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
+            this->m_gpu_pos_table.resize(this->m_gpu_table_indexer.getNumElements());
             this->m_next_flag++;
             }
         else

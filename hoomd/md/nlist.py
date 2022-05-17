@@ -128,13 +128,9 @@ class NeighborList(_HOOMDBaseObject):
         super()._add(simulation)
 
     def _attach(self):
-<<<<<<< HEAD
-        if self._mesh:
-            if not self._mesh._attached:
-                self._mesh._attach()
-=======
         if self._mesh is not None:
->>>>>>> mesh_helfrich_energy
+            if not self._mesh._attached:
+                self._mesh._attach() 
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
         super()._attach()
