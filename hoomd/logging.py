@@ -624,16 +624,12 @@ class Logger(_SafeNamespaceDict):
         quantities."""
         return self._only_default
 
-    def _filter_quantities(self, quantities, force_quantities=False):
+    def _filter_quantities(self, quantities):
         for quantity in quantities:
-            if quantity.category not in self._categories:
-                continue
-            # Must be before default check to overwrite _only_default
-            if force_quantities:
-                yield quantity
             if self._only_default and not quantity.default:
                 continue
-            yield quantity
+            elif quantity.category in self._categories:
+                yield quantity
 
     def _get_loggables_by_name(self, obj, quantities):
         if quantities is None:
@@ -647,7 +643,7 @@ class Logger(_SafeNamespaceDict):
                     "object {} has not loggable quantities {}.".format(
                         obj, bad_keys))
             yield from self._filter_quantities(
-                map(lambda q: obj._export_dict[q], quantities), True)
+                map(lambda q: obj._export_dict[q], quantities))
 
     def add(self, obj, quantities=None, user_name=None):
         """Add loggables from obj to logger.

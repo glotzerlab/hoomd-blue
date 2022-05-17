@@ -56,10 +56,6 @@ class DummyLoggable(metaclass=Loggable):
     def proplist(self):
         return [1, 2, 3]
 
-    @log(category="string", default=False)
-    def prop_nondefault(self):
-        return "foo"
-
     def __eq__(self, other):
         return isinstance(other, type(self))
 
@@ -246,7 +242,7 @@ class TestLogger:
         ])
 
         # Check when quantities is given
-        accepted_quantities = ['proplist', "prop_nondefault"]
+        accepted_quantities = ['prop', 'proplist']
         log_quanities = blank_logger._get_loggables_by_name(
             logged_obj, accepted_quantities)
         assert all([
@@ -279,9 +275,10 @@ class TestLogger:
 
         # Test multiple quantities
         blank_logger._dict = dict()
-        loggables = ['prop', 'proplist', "prop_nondefault"]
-        blank_logger.add(logged_obj, loggables)
-        expected_namespaces = [base_namespace + (name,) for name in loggables]
+        blank_logger.add(logged_obj, ['prop', 'proplist'])
+        expected_namespaces = [
+            base_namespace + ('prop',), base_namespace + ('proplist',)
+        ]
         assert all([ns in blank_logger for ns in expected_namespaces])
         assert len(blank_logger) == 2
 
