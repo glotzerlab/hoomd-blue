@@ -154,41 +154,51 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
                                    atol=1e-5)
 
 
-# Test logging
+#Test Logging
 @pytest.mark.parametrize(
     'cls, expected_namespace, expected_loggables',
-    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet),
-        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body')),
-        itertools.repeat({
-            'energy': {
-                'category': LoggerCategories.scalar,
-                'default': True
-            },
-            'energies': {
-                'category': LoggerCategories.particle,
-                'default': True
-            },
-            'forces': {
-                'category': LoggerCategories.particle,
-                'default': True
-            },
-            'torques': {
-                'category': LoggerCategories.particle,
-                'default': True
-            },
-            'virials': {
-                'category': LoggerCategories.particle,
-                'default': True
-            },
-            'additional_energy': {
-                'category': LoggerCategories.scalar,
-                'default': True
-            },
-            'additional_virial': {
-                'category': LoggerCategories.sequence,
-                'default': True
-            }
-        })))
+    zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA, 
+         md.bond.Table, md.bond.Tether),
+    itertools.repeat(('md', 'bond')),
+    itertools.repeat({
+        'energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        },
+        'energies': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'forces': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'torques': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'virials': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'additional_energy': {
+        'category': LoggerCategories.scalar,
+            'default': True
+        },
+        'additional_virial': {
+            'category': LoggerCategories.sequence,
+            'default': True
+        }
+    })))
 def test_logging(cls, expected_namespace, expected_loggables):
-    #cmment
     logging_check(cls, expected_namespace, expected_loggables)
+
+
+# Pickle Testing
+'''def test_pickling(simulation_factory, two_particle_snapshot_factory,
+                  valid_params):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    #Not sure what goes here
+
+
+    pickling_check(valid_params)#Figure out what goes here as well '''

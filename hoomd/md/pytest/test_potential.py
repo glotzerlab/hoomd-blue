@@ -1081,8 +1081,10 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
 # Test logging
 @pytest.mark.parametrize(
     'cls, expected_namespace, expected_loggables',
-    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet),
-        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body')),
+    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet,
+        md.many_body.Tersoff, md.many_body.RevCross, md.many_body.SquareDensity),
+        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body'), 
+        ('md', 'many_body'), ('md', 'many_body'), ('md', 'many_body')),
         itertools.repeat({
             'energy': {
                 'category': LoggerCategories.scalar,
