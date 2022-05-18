@@ -233,6 +233,7 @@ class BoxMCMoveSize(_InternalCustomTuner):
         target acceptance rates is limited by the other dimensions.
     """
     _internal_class = _InternalBoxMCMoveSize
+    _wrap_methods = ("tuned",)
 
     @classmethod
     def scale_solver(cls,

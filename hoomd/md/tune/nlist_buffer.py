@@ -130,9 +130,9 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
     def tuned(self):
         """bool: Whether the neighbor list buffer is considered tuned.
 
-        Like other tuners, the tuner is considered tune when the specified
-        solver returns ``True`` when solving. See `hoomd.tune` for more
-        information on tuning criteria.
+        The tuner is considered tune when the specified solver returns ``True``
+        when solving twice consecutively. See `hoomd.tune` for more information
+        on tuning criteria.
         """
         return self._tuned
 
