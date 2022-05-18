@@ -70,7 +70,7 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         maximum_buffer: float,
     ):
         self._simulation = None
-        self._tuned = False
+        self._tuned = 0
         param_dict = hoomd.data.parameterdicts.ParameterDict(
             nlist=SetOnce(NeighborList),
             solver=SetOnce(hoomd.tune.solve.Optimizer),
@@ -92,11 +92,14 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         tps = self._tunable.y
         if tps is not None:
             self._last_tps = tps * _SCALE_TPS
-        if not self.tuned:
-            if tps is not None and tps > self._max_tps:
+            if tps > self._max_tps:
                 self._best_buffer_size = self._tunable.x
                 self._max_tps = self._last_tps
-            self._tuned = self.solver.solve([self._tunable])
+        if not self.tuned:
+            if self.solver.solve([self._tunable]):
+                self._tuned += 1
+            else:
+                self._tuned = 0
 
     def _maximum_buffer_post(self, value: float):
         if self._simulation is not None:
@@ -134,7 +137,7 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         when solving twice consecutively. See `hoomd.tune` for more information
         on tuning criteria.
         """
-        return self._tuned
+        return self._tuned > 1
 
     @hoomd.logging.log
     def max_tps(self):
