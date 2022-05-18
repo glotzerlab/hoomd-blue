@@ -75,7 +75,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.1.0/hoomd/VectorMath.h
+            v3.2.0/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
