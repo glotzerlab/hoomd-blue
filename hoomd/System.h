@@ -93,7 +93,7 @@ class PYBIND11_EXPORT System
     void run(uint64_t nsteps, bool write_at_start = false);
 
     //! Get the average TPS from the last run
-    Scalar getLastTPS() const
+    Scalar getLastTPS()
         {
 #ifdef ENABLE_MPI
         // make sure all ranks return the same TPS
