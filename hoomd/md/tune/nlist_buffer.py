@@ -202,7 +202,8 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         trigger: hoomd.trigger.Trigger,
         nlist: NeighborList,
         maximum_buffer: float,
-        alpha: "hoomd.variant.Variant | float" = 0.01,
+        alpha: "hoomd.variant.Variant | float" = hoomd.variant.Ramp(
+            1e-5, 1e-6, 0, 30),
         kappa: typing.Optional[np.ndarray] = (0.33, 0.165),
         tol: float = 1e-5,
         max_delta: "float | None" = None,
@@ -218,11 +219,12 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
             nlist (hoomd.md.nlist.NeighborList): Neighbor list buffer to
                 maximize TPS.
             maximum_buffer (float): The largest buffer value to allow.
-            alpha (`float`, optional): Real number between 0 and 1 used to
-                dampen the rate of change in x (defaults to 0.1). ``alpha``
-                scales the corrections to x each iteration.  Larger values of
-                ``alpha`` lead to larger changes while a ``alpha`` of 0 leads to
-                no change in x at all.
+            alpha (`float` or `hoomd.variant.Variant`, optional): Number
+                between 0 and 1 or variant used to dampen the rate of change in
+                x (defaults to ``hoomd.variant.Ramp(1e-5, 1e-6, 0, 30)``).
+                ``alpha`` scales the corrections to x each iteration.  Larger
+                values of ``alpha`` lead to larger changes while a ``alpha`` of
+                0 leads to no change in x at all.
             kappa (`numpy.ndarray` of `float`, optional): A NumPy array of
                 floats which are weight applied to the last :math:`N` of the
                 gradients to add to the current gradient as well, where
@@ -235,6 +237,11 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
 
         Note:
             Given the stocasticity of TPS, a non none ``kappa`` is recommended.
+
+        Tip:
+            For better convergence choose an alpha in the range of 0.01 divided
+            by the expected order of magnitude of the TPS. The default value
+            assumes a TPS in the thousands.
 
         Tip:
             When using the `hoomd.tune.solve.GradientDescent`, optimization is
