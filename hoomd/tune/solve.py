@@ -325,12 +325,12 @@ class GradientDescent(Optimizer, _GradientHelper):
             the corrections to x each iteration.  Larger values of ``alpha``
             lead to larger changes while a ``alpha`` of 0 leads to no change in
             x at all.
-
-        kappa (`float`, optional): Real number between 0 and 0.5 that determines
-            how much of the previous step direction to use (defaults to 0). A
-            value of zero is momemtumless gradient descent while a value of 0.5
-            balances equally between the previous move and the current gradient.
-
+        kappa (`numpy.ndarray`, optional): Real number array that determines how
+            much of the previous steps' directions to use (defaults to ``None``
+            which does no averaging over past step directions). The array values
+            correspond to weight that the :math:`N` last steps are weighted when
+            combined with the current step. The current step is weighted by
+            :math:`1 - \sum_{i=1}^{N} \kappa_i`.
         tol (`float`, optional): The absolute tolerance for convergence of
             y, (defaults to ``1e-5``).
         maximize (`bool`, optional): Whether or not to maximize function
