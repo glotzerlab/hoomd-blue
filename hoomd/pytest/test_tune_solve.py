@@ -6,6 +6,7 @@ import pytest
 from hoomd.tune import ManualTuneDefinition
 from hoomd.tune import (ScaleSolver, SecantSolver, GradientDescent,
                         GridOptimizer)
+import hoomd.variant
 
 
 class SolverTestBase:
@@ -78,3 +79,18 @@ class TestOptimizers(SolverTestBase):
             get_y=lambda: equation['y'](),
             domain=(0, 4),
             target=4)
+
+
+def test_gradient_descent_alpha():
+    solver = GradientDescent()
+    assert solver._alpha == hoomd.variant.Constant(0.1)
+    assert solver.alpha == 0.1
+    solver.alpha = hoomd.variant.Ramp(0.01, 0.001, 0, 20)
+    current_alpha = solver.alpha
+    assert current_alpha == 0.01
+    for _ in range(20):
+        solver.solve([])
+        new_alpha = solver.alpha
+        assert new_alpha < current_alpha
+        current_alpha = new_alpha
+    assert current_alpha == 0.001

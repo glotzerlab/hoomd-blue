@@ -14,6 +14,8 @@ import typing
 
 import numpy as np
 
+import hoomd.variant
+
 
 class SolverStep(metaclass=ABCMeta):
     """Abstract base class various solver types.
@@ -320,11 +322,13 @@ class GradientDescent(Optimizer, _GradientHelper):
     is smaller than ``tol``).
 
     Args:
-        alpha (`float`, optional): Real number between 0 and 1 used to
-            dampen the rate of change in x (defaults to 0.1). ``alpha`` scales
-            the corrections to x each iteration.  Larger values of ``alpha``
-            lead to larger changes while a ``alpha`` of 0 leads to no change in
-            x at all.
+        alpha (`float` or `hoomd.variant.Variant`, optional): Either a number
+            between 0 and 1 used to dampen the rate of change in x or a variant
+            that varies not by timestep but by the number of times `solve` has
+            been called (i.e. the number of steps taken) (defaults to
+            0.1). ``alpha`` scales the corrections to x each iteration.  Larger
+            values of ``alpha`` lead to larger changes while a ``alpha`` of 0
+            leads to no change in x at all.
         kappa (`numpy.ndarray`, optional): Real number array that determines how
             much of the previous steps' directions to use (defaults to ``None``
             which does no averaging over past step directions). The array values
@@ -339,10 +343,6 @@ class GradientDescent(Optimizer, _GradientHelper):
             to ``None`` which allows a step size of any length).
 
     Attributes:
-        alpha (float): Real number between 0 and 1 used to dampen the rate of
-            change in x. ``alpha`` scales the corrections to x each iteration.
-            Larger values of ``alpha`` lead to larger changes while a ``alpha``
-            of 0 leads to no change in x at all.
         kappa (numpy.ndarray): Real number array that determines how much of the
             previous steps' directions to use. The array values correspond to
             weight that the :math:`N` last steps are weighted when combined with
@@ -372,6 +372,48 @@ class GradientDescent(Optimizer, _GradientHelper):
         self._previous_pair = {}
         self._tuned = set()
         self._counters = {}
+        self._cnt = 0
+
+    def solve(self, tunables):
+        """Iterates towards a solution for a list of tunables.
+
+        If a y for one of the ``tunables`` is ``None`` then we skip that
+        ``tunable``. Skipping implies that the quantity is not tuned and `solve`
+        will return `False`.
+
+        Args:
+            tunables (list[`hoomd.tune.ManualTuneDefinition`]): A list of
+                tunable objects that represent a relationship f(x) = y.
+
+        Returns:
+            bool:
+                Returns whether or not all tunables were considered tuned by
+                the object.
+        """
+        self._cnt += 1
+        return super().solve(tunables)
+
+    @property
+    def alpha(self):
+        """float: Number between 0 and 1 that dampens of change in x.
+
+        Larger values of ``alpha`` lead to larger changes while a ``alpha``
+        of 0 leads to no change in x at all. The property returns the current
+        ``alpha`` given the current number of steps.
+
+        The property can be set as in the constructor.
+        """
+        return self._alpha(self._cnt)
+
+    @alpha.setter
+    def alpha(self, new_alpha: typing.Union[float, hoomd.variant.Variant]):
+        if isinstance(new_alpha, float):
+            self._alpha = hoomd.variant.Constant(new_alpha)
+        elif isinstance(new_alpha, hoomd.variant.Variant):
+            self._alpha = new_alpha
+        else:
+            raise TypeError(
+                "Expected either a float or hoomd.variant.Variant object.")
 
     def solve_one(self, tunable):
         """Solve one step."""
