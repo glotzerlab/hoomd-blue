@@ -110,8 +110,8 @@ class _TuneMCMove(_InternalAction):
     def tuned(self):
         """bool: Whether or not the move sizes are considered tuned.
 
-        A `MoveSize` object is considered tuned if it the solver tolerance has
-        been met by all tunables for 2 iterations.
+        An instance is considered tuned if it the solver tolerance has been met
+        by all tunables for 2 iterations.
         """
         return self._tuned >= 2
 

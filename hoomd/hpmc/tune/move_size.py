@@ -247,6 +247,7 @@ class MoveSize(_InternalCustomTuner):
 
     """
     _internal_class = _InternalMoveSize
+    _wrap_methods = ("tuned",)
 
     @classmethod
     def scale_solver(cls,
