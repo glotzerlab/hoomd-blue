@@ -28,11 +28,14 @@ def simulation(simulation_factory, lattice_snapshot_factory, nlist):
     return sim
 
 
-@pytest.fixture
-def nlist_tuner(nlist):
-    return md.tune.NeighborListBuffer.with_gradient_descent(trigger=5,
-                                                            nlist=nlist,
-                                                            maximum_buffer=1.5)
+@pytest.fixture(params=("GradientDescent", "GridOptimizer"))
+def nlist_tuner(nlist, request):
+    if request.param == "GradientDescent":
+        return md.tune.NeighborListBuffer.with_gradient_descent(
+            trigger=5, nlist=nlist, maximum_buffer=1.5)
+    return md.tune.NeighborListBuffer.with_grid(trigger=5,
+                                                nlist=nlist,
+                                                maximum_buffer=1.5)
 
 
 class TestMoveSize:
