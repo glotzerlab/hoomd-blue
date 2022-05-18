@@ -95,6 +95,13 @@ class PYBIND11_EXPORT System
     //! Get the average TPS from the last run
     Scalar getLastTPS() const
         {
+#ifdef ENABLE_MPI
+        // make sure all ranks return the same TPS
+        if (m_sysdef->isDomainDecomposed())
+            {
+            bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
         return m_last_TPS;
         }
 
@@ -107,6 +114,13 @@ class PYBIND11_EXPORT System
     /// Get the current wall time
     double getCurrentWalltime()
         {
+#ifdef ENABLE_MPI
+        // make sure all ranks return the same walltime
+        if (m_sysdef->isDomainDecomposed())
+            {
+            bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
         return m_last_walltime;
         }
 
