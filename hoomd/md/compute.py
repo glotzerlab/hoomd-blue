@@ -156,12 +156,18 @@ class ThermodynamicQuantities(Compute):
 
         .. math::
 
-            K_\\mathrm{rotational} = \\frac{1}{2}
+            K_\\mathrm{rotational,d} =
+            \\frac{1}{2}
             \\sum_{i \\in \\mathrm{filter}}
-            \\frac{L_{x,i}^2}{I_{x,i}} + \\frac{L_{y,i}^2}{I_{y,i}} +
-            \\frac{L_{z,i}^2}{I_{z,i}},
+            \\begin{cases}
+            \\frac{L_{x,i}^2}{I_{d,i}} & I_{d,i} > 0 \\\\
+            0 & I_{d,i} = 0
+            \\end{cases}
 
-        where :math:`I` is the moment of inertia and :math:`L` is the angular
+            K_\\mathrm{rotational} = K_\\mathrm{rotational,x} +
+            K_\\mathrm{rotational,y} + K_\\mathrm{rotational,z}
+
+        :math:`I` is the moment of inertia and :math:`L` is the angular
         momentum in the (diagonal) reference frame of the particle.
         """
         self._cpp_obj.compute(self._simulation.timestep)
