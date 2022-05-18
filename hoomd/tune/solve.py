@@ -337,6 +337,20 @@ class GradientDescent(Optimizer, _GradientHelper):
             (defaults to ``True``).
         max_delta (`float`, optional): The maximum step size to allow (defaults
             to ``None`` which allows a step size of any length).
+
+    Attributes:
+        alpha (float): Real number between 0 and 1 used to dampen the rate of
+            change in x. ``alpha`` scales the corrections to x each iteration.
+            Larger values of ``alpha`` lead to larger changes while a ``alpha``
+            of 0 leads to no change in x at all.
+        kappa (numpy.ndarray): Real number array that determines how much of the
+            previous steps' directions to use. The array values correspond to
+            weight that the :math:`N` last steps are weighted when combined with
+            the current step. The current step is weighted by
+            :math:`1 - \sum_{i=1}^{N} \kappa_i`.
+        tol (float): The absolute tolerance for convergence of y.
+        maximize (bool): Whether or not to maximize function.
+        max_delta (float): The maximum step size to allow.
     """
 
     _max_allowable_counter = 3
