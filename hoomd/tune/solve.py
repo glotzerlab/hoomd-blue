@@ -515,3 +515,16 @@ class GridOptimizer(Optimizer):
         """Get the bin center for a given tunable and bin index."""
         min_, max_ = tunable.domain
         return sum(self._bins[tunable][index:index + 2]) / 2
+
+    def __eq__(self, other):
+        """Test for equality."""
+        if not isinstance(other, SolverStep):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return (all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in ("_n_bins", "_n_rounds", "_round", "_solved", "_bin_y"))
+                and self._bins.keys() == other._bins.keys() and all(
+                    np.array_equal(a, other._bins[key])
+                    for a, key in self._bins.items()))
