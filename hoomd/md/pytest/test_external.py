@@ -7,6 +7,11 @@ import numpy.testing as npt
 import pytest
 
 import hoomd
+from hoomd import md
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check, pickling_check
+
+import itertools
 
 
 def _evaluate_periodic(snapshot, params):
@@ -133,3 +138,45 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
             # and energies.
             np.testing.assert_allclose(expected_forces, forces, atol=1e-5)
             np.testing.assert_allclose(expected_energies, energies, atol=1e-5)
+
+
+#Test Logging
+'''
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((md.external.field.Field, md.external.field.Periodic,
+         md.external.field.Electric),
+    itertools.repeat(('md', 'field')),
+    itertools.repeat({
+        'energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        },
+        'energies': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'forces': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'torques': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'virials': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'additional_energy': {
+        'category': LoggerCategories.scalar,
+            'default': True
+        },
+        'additional_virial': {
+            'category': LoggerCategories.sequence,
+            'default': True
+        }
+    })))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
+'''

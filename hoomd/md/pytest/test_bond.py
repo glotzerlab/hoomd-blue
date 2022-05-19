@@ -195,10 +195,16 @@ def test_logging(cls, expected_namespace, expected_loggables):
 
 
 # Pickle Testing
-'''def test_pickling(simulation_factory, two_particle_snapshot_factory,
-                  valid_params):
+@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
+                         bond_test_parameters)
+def test_pickling(simulation_factory, two_particle_snapshot_factory,
+                  bond_cls, bond_args, params, force, energy):
     sim = simulation_factory(two_particle_snapshot_factory())
-    #Not sure what goes here
+    potential = bond_cls(**bond_args)
+    potential.params['A-A'] = params
 
-
-    pickling_check(valid_params)#Figure out what goes here as well '''
+    pickling_check(potential)
+    integrator = hoomd.md.Integrator(0.05, forces=[potential])
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(potential)
