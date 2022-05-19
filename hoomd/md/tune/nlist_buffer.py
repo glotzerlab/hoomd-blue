@@ -66,8 +66,6 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         solver: hoomd.tune.solve.Optimizer,
         maximum_buffer: float,
     ):
-        self._simulation = None
-        self._tuned = 0
         param_dict = hoomd.data.parameterdicts.ParameterDict(
             nlist=SetOnce(NeighborList),
             solver=SetOnce(hoomd.tune.solve.Optimizer),
@@ -79,6 +77,10 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
             "maximum_buffer": maximum_buffer
         })
         self._param_dict.update(param_dict)
+
+        self._simulation = None
+        self._tuned = 0
+        self._tunable = None
 
         # Setup default log values
         self._last_tps = 0.0
@@ -151,6 +153,19 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         """int: The last TPS computed for the tuner."""
         return self._last_tps
 
+    @property
+    def final_bin(self):
+        """tuple[float, float]: Boundaries of grid search optimization.
+
+        Property is only available when a `hoomd.tune.GridOptimizer` is used,
+        and tuning is finished. Otherwise, the property is ``None``.
+        """
+        if not isinstance(self.solver, hoomd.tune.GridOptimizer):
+            return None
+        if self._tunable is None:
+            return None
+        return self.solver._final_bins.get(self._tunable, None)
+
     def __getstate__(self):
         state = copy.copy(self.__dict__)
         for attr in self._skip_for_equality:
@@ -194,7 +209,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
     """
 
     _internal_class = _NeighborListBufferInternal
-    _wrap_methods = ("tuned",)
+    _wrap_methods = ("tuned", "final_bin")
 
     @classmethod
     def with_gradient_descent(
@@ -279,6 +294,10 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
                 (defaults to 2).
             n_rounds (`int`, optional): The number of rounds to perform the
                 optimization over (defaults to 1).
+
+        Note:
+            Using this method adds another attribue ``final_bin`` which gives
+            the final bin boundaries after tuning for ``n_rounds``.
         """
         return cls(
             trigger,
