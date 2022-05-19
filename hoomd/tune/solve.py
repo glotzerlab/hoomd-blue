@@ -525,6 +525,7 @@ class GridOptimizer(Optimizer):
         self._bins = {}
         self._round = defaultdict(_Repeater(1))
         self._bin_y = defaultdict(list)
+        self._final_bins = {}
         self._solved = defaultdict(_Repeater(False))
 
     def solve_one(self, tunable):
@@ -547,6 +548,7 @@ class GridOptimizer(Optimizer):
             if self._round[tunable] == self._n_rounds:
                 center = sum(boundaries) / 2
                 tunable.x = center
+                self._final_bins[tunable] = tuple(boundaries)
                 self._solved[tunable] = True
                 return True
             self._bins[tunable] = np.linspace(*boundaries, self._n_bins + 1)
