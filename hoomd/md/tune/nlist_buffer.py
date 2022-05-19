@@ -212,7 +212,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         autotuning to converge first results in better TPS optimization.
 
     Note:
-        `NeighborListBuffer.with_binary` generally performs better than
+        `NeighborListBuffer.with_grid` generally performs better than
         `NeighborListBuffer.with_gradient_descent` due to the stocastic nature
         of TPS.
     """
