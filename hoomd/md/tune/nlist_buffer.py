@@ -65,22 +65,25 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         nlist: NeighborList,
         solver: hoomd.tune.solve.Optimizer,
         maximum_buffer: float,
+        minimum_buffer: float = 0.0,
     ):
         param_dict = hoomd.data.parameterdicts.ParameterDict(
             nlist=SetOnce(NeighborList),
             solver=SetOnce(hoomd.tune.solve.Optimizer),
-            maximum_buffer=OnlyTypes(float,
-                                     postprocess=self._maximum_buffer_post))
+            maximum_buffer=OnlyTypes(float, postprocess=self._buffer_post),
+            minimum_buffer=OnlyTypes(float, postprocess=self._buffer_post))
         param_dict.update({
             "nlist": nlist,
             "solver": solver,
-            "maximum_buffer": maximum_buffer
+            "maximum_buffer": maximum_buffer,
+            "minimum_buffer": minimum_buffer
         })
         self._param_dict.update(param_dict)
 
         self._simulation = None
         self._tuned = 0
         self._tunable = None
+        self._update_buffer_domain = False
 
         # Setup default log values
         self._last_tps = 0.0
@@ -88,6 +91,10 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
         self._max_tps = 0.0
 
     def act(self, timestep: int):
+        if self._update_buffer_domain:
+            self._tunable.domain = (self.minimum_buffer, self.maximum_buffer)
+            self._update_buffer_domain = False
+
         tps = self._tunable.y
         if tps is not None:
             self._last_tps = tps
@@ -100,9 +107,8 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
             else:
                 self._tuned = 0
 
-    def _maximum_buffer_post(self, value: float):
-        if self._simulation is not None:
-            self._tunable.domain = (0, value)
+    def _buffer_post(self, value: float):
+        self._update_buffer_domain = True
         return value
 
     def attach(self, simulation):
@@ -189,6 +195,8 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         solver (`hoomd.tune.solve.Optimizer`): A solver that tunes the
             neighbor list buffer to maximize TPS.
         maximum_buffer (float): The largest buffer value to allow.
+        minimum_buffer (`float`, optional): The smallest buffer value to allow
+            (defaults to 0).
 
     Attributes:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
@@ -196,6 +204,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         solver (`hoomd.tune.solve.Optimizer`): A solver that tunes the
             neighbor list buffer to maximize TPS.
         maximum_buffer (float): The largest buffer value to allow.
+        minimum_buffer (float): The smallest buffer value to allow.
 
     Warning:
         When using with a `hoomd.device.GPU` device, autotuning can mess with
@@ -217,6 +226,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         trigger: hoomd.trigger.Trigger,
         nlist: NeighborList,
         maximum_buffer: float,
+        minimum_buffer: float = 0.0,
         alpha: "hoomd.variant.Variant | float" = hoomd.variant.Ramp(
             1e-5, 1e-6, 0, 30),
         kappa: typing.Optional[np.ndarray] = (0.33, 0.165),
@@ -234,6 +244,8 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
             nlist (hoomd.md.nlist.NeighborList): Neighbor list buffer to
                 maximize TPS.
             maximum_buffer (float): The largest buffer value to allow.
+            minimum_buffer (`float`, optional): The smallest buffer value to
+                allow (defaults to 0).
             alpha (`float` or `hoomd.variant.Variant`, optional): Number
                 between 0 and 1 or variant used to dampen the rate of change in
                 x (defaults to ``hoomd.variant.Ramp(1e-5, 1e-6, 0, 30)``).
@@ -279,6 +291,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         trigger: hoomd.trigger.Trigger,
         nlist: NeighborList,
         maximum_buffer: float,
+        minimum_buffer: float = 0.0,
         n_bins: int = 5,
         n_rounds: int = 1,
     ):
@@ -290,6 +303,8 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
             nlist (hoomd.md.nlist.NeighborList): Neighbor list buffer to
                 maximize TPS.
             maximum_buffer (float): The largest buffer value to allow.
+            minimum_buffer (`float`, optional): The smallest buffer value to
+                allow (defaults to 0).
             n_bins (`int`, optional): The number of bins in the range to test
                 (defaults to 2).
             n_rounds (`int`, optional): The number of rounds to perform the
