@@ -211,3 +211,20 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
     })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
+
+#Test Pickling
+@pytest.mark.parametrize('angle_cls, angle_args, params, force, energy',
+                         angle_test_parameters)
+def test_pickling(simulation_factory, triplet_snapshot_factory,
+                  angle_cls, angle_args, params, force, energy):
+    theta_deg = 60
+    snapshot = triplet_snapshot_factory(theta_deg=theta_deg)
+    sim = simulation_factory(snapshot)
+    potential = angle_cls(**angle_args)
+    potential.params['A-A-A'] = params
+
+    pickling_check(potential)
+    integrator = hoomd.md.Integrator(0.05, forces=[potential])
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(potential)

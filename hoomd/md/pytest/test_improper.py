@@ -152,3 +152,27 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, improper_cls,
     })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
+
+
+#Test pickling
+@pytest.mark.parametrize("improper_cls, params, force, energy",
+                         improper_test_parameters)
+def test_pickling(simulation_factory, snapshot_factory,
+                  improper_cls, params, force, energy):
+    snapshot = snapshot_factory()
+    sim = simulation_factory(snapshot)
+
+    potential = improper_cls()
+    potential.params['A-A-A-A'] = params
+
+    pickling_check(potential)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All())
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    pickling_check(potential)

@@ -214,3 +214,21 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
     })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
+
+
+#Test Pickling
+@pytest.mark.parametrize('dihedral_cls, dihedral_args, params, force, energy',
+                         dihedral_test_parameters)
+def test_pickling(simulation_factory, dihedral_snapshot_factory,
+                  dihedral_cls, dihedral_args, params, force, energy):
+    phi_deg = 45
+    snapshot = dihedral_snapshot_factory(phi_deg=phi_deg)
+    sim = simulation_factory(snapshot)
+    potential = dihedral_cls(**dihedral_args)
+    potential.params['A-A-A-A'] = params
+
+    pickling_check(potential)
+    integrator = hoomd.md.Integrator(0.05, forces=[potential])
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(potential)

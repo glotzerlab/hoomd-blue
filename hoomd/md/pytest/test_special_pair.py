@@ -147,3 +147,25 @@ def test_forces_and_energies(snapshot_factory, simulation_factory,
     })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
+
+
+#Test Pickling
+@pytest.mark.parametrize("special_pair_cls, params, r_cut, force, energy",
+                         special_pair_test_parameters)
+def test_pickling(simulation_factory, snapshot_factory,
+                  special_pair_cls, params, r_cut, force, energy):
+    snapshot = snapshot_factory()
+    sim = simulation_factory(snapshot)
+
+    potential = special_pair_cls()
+    potential.params['A-A'] = params
+    potential.r_cut['A-A'] = r_cut
+
+
+    pickling_check(potential)
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+    pickling_check(potential)
