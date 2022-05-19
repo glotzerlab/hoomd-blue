@@ -115,18 +115,12 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         }
 
 #ifdef ENABLE_HIP
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuners()
         {
         if (m_exec_conf->isCUDAEnabled())
             {
-            m_tuner_fill->setPeriod(period);
-            m_tuner_fill->setEnabled(enable);
+            m_tuner_fill->start();
             }
         }
 #endif

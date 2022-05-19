@@ -150,56 +150,26 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     //! Destructor
     virtual ~IntegratorHPMCMonoGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        // number of times the overlap kernels are executed per nselect
-        // The *actual* number of launches per iteration depends
-        // on the longest event chain in the system. We don't know what the
-        // average will be, so put in a constant number
-        unsigned int chain_length = 4;
-
-        m_tuner_update_pdata->setPeriod(period * this->m_nselect);
-        m_tuner_update_pdata->setEnabled(enable);
-
-        m_tuner_moves->setPeriod(period * this->m_nselect);
-        m_tuner_moves->setEnabled(enable);
-
-        m_tuner_narrow->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_narrow->setEnabled(enable);
-
+        m_tuner_update_pdata->start();
+        m_tuner_moves->start();
+        m_tuner_narrow->start();
         if (this->m_patch)
             {
-            this->m_patch->setAutotunerParams(enable, chain_length * period * this->m_nselect);
+            this->m_patch->startAutotuning();
             }
 
-        m_tuner_depletants->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_depletants->setEnabled(enable);
-
-        m_tuner_excell_block_size->setPeriod(period);
-        m_tuner_excell_block_size->setEnabled(enable);
-
-        m_tuner_convergence->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_convergence->setEnabled(enable);
-
-        m_tuner_num_depletants->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_num_depletants->setEnabled(enable);
-
-        m_tuner_num_depletants_ntrial->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_num_depletants_ntrial->setEnabled(enable);
-
-        m_tuner_depletants_phase1->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_depletants_phase1->setEnabled(enable);
-
-        m_tuner_depletants_phase2->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_depletants_phase2->setEnabled(enable);
-
-        m_tuner_depletants_accept->setPeriod(chain_length * period * this->m_nselect);
-        m_tuner_depletants_accept->setEnabled(enable);
-        }
+        m_tuner_depletants->start();
+        m_tuner_excell_block_size->start();
+        m_tuner_convergence->start();
+        m_tuner_num_depletants->start();
+        m_tuner_num_depletants_ntrial->start();
+        m_tuner_depletants_phase1->start();
+        m_tuner_depletants_phase2->start();
+        m_tuner_depletants_accept->start();
+       }
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep);

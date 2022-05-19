@@ -51,18 +51,11 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
     //! Implementation of the streaming rule
     virtual void stream(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        ConfinedStreamingMethod<Geometry>::setAutotunerParams(enable, period);
-        m_tuner->setEnabled(enable);
-        m_tuner->setPeriod(period);
+        ConfinedStreamingMethod<Geometry>::startAutotuning();
+        m_tuner->start();
         }
 
     protected:

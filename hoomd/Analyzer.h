@@ -68,14 +68,6 @@ class PYBIND11_EXPORT Analyzer
         */
     virtual void analyze(uint64_t timestep) { }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
-
     //! Reset stat counters
     /*! If derived classes provide statistics for the last run, they should resetStats() to
         clear any counters. System will reset the stats before any run() so that stats printed

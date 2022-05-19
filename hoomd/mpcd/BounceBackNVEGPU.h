@@ -44,20 +44,11 @@ template<class Geometry> class PYBIND11_EXPORT BounceBackNVEGPU : public BounceB
     //! Performs the second step of the integration
     virtual void integrateStepTwo(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    virtual void startAutotuning()
         {
-        BounceBackNVE<Geometry>::setAutotunerParams(enable, period);
-        m_tuner_1->setEnabled(enable);
-        m_tuner_1->setPeriod(period);
-        m_tuner_2->setEnabled(enable);
-        m_tuner_2->setPeriod(period);
+        BounceBackNVE<Geometry>::startAutotuning();
+        m_tuner_1->start();
+        m_tuner_2->start();
         }
 
     private:

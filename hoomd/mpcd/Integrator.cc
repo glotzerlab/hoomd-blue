@@ -153,19 +153,17 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
 #endif // ENABLE_MPI
     }
 
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
+/// Start autotuning kernel launch parameters
+void mpcd::Integrator::startAutotuning()
     {
-    IntegratorTwoStep::setAutotunerParams(enable, period);
-    m_mpcd_sys->setAutotunerParams(enable, period);
+    IntegratorTwoStep::startAutotuning();
+    m_mpcd_sys->startAutotuning();
     if (m_collide)
-        m_collide->setAutotunerParams(enable, period);
+        m_collide->startAutotuning();
     if (m_stream)
-        m_stream->setAutotunerParams(enable, period);
+        m_stream->startAutotuning();
     if (m_sorter)
-        m_sorter->setAutotunerParams(enable, period);
+        m_sorter->startAutotuning();
     }
 
 /*!

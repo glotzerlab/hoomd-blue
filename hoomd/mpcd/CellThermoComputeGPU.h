@@ -35,26 +35,15 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     //! Destructor
     virtual ~CellThermoComputeGPU();
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        mpcd::CellThermoCompute::setAutotunerParams(enable, period);
+        mpcd::CellThermoCompute::startAutotuning();
 
-        m_begin_tuner->setEnabled(enable);
-        m_begin_tuner->setPeriod(period);
-
-        m_end_tuner->setEnabled(enable);
-        m_end_tuner->setPeriod(period);
-
-        m_inner_tuner->setEnabled(enable);
-        m_inner_tuner->setPeriod(period);
-
-        m_stage_tuner->setEnabled(enable);
-        m_stage_tuner->setPeriod(period);
+        m_begin_tuner->start();
+        m_end_tuner->start();
+        m_inner_tuner->start();
+        m_stage_tuner->start();
         }
 
     protected:

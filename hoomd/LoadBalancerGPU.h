@@ -33,18 +33,6 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     //! Destructor
     virtual ~LoadBalancerGPU();
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        LoadBalancer::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     //! Resize the per particle data when there is a max number of particle change
     void slotMaxNumChanged()
         {

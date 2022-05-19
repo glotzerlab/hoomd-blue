@@ -49,14 +49,8 @@ class PYBIND11_EXPORT Sorter
     //! Update the particle data order
     virtual void update(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning() { }
 
     bool peekSort(uint64_t timestep) const;
 

@@ -36,15 +36,11 @@ class EAMForceComputeGPU : public EAMForceCompute
     //! Destructor
     virtual ~EAMForceComputeGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-     \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        EAMForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
+        // EAMForceCompute::startAutotuning();
+        m_tuner->start();
         }
 
     protected:

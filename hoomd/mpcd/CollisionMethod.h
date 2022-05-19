@@ -43,14 +43,8 @@ class PYBIND11_EXPORT CollisionMethod
     //! Peek if a collision will occur on this timestep
     virtual bool peekCollide(uint64_t timestep) const;
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning() { }
 
     //! Toggle the grid shifting on or off
     /*!

@@ -38,15 +38,11 @@ template<class evaluator> class PotentialSpecialPairGPU : public PotentialSpecia
     //! Destructor
     virtual ~PotentialSpecialPairGPU() { }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        PotentialSpecialPair<evaluator>::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
+        // PotentialSpecialPair<evaluator>::startAutotuning();
+        m_tuner->start();
         }
 
     protected:

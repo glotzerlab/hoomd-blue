@@ -33,17 +33,12 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
                               uint16_t seed,
                               std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        mpcd::SlitPoreGeometryFiller::setAutotunerParams(enable, period);
+        mpcd::SlitPoreGeometryFiller::startAutotuning();
 
-        m_tuner->setEnabled(enable);
-        m_tuner->setPeriod(period);
+        m_tuner->start();
         }
 
     protected:

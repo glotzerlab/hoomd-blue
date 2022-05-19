@@ -32,15 +32,11 @@ class PYBIND11_EXPORT CellListGPU : public CellList
 
     virtual ~CellListGPU() {};
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        CellList::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period / 10);
-        m_tuner->setEnabled(enable);
+        // CellList::startAutotuning();
+        m_tuner->start();
         }
 
     //! Request a multi-GPU cell list

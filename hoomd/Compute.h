@@ -79,14 +79,6 @@ class PYBIND11_EXPORT Compute
     */
     virtual void resetStats() { }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
-
     //! Force recalculation of compute
     /*! If this function is called, recalculation of the compute will be forced (even if had
      *  been calculated earlier in this timestep)

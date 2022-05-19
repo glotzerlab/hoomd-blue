@@ -58,17 +58,11 @@ template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPair
         m_param = param;
         }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        PotentialPair<evaluator>::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
+        // PotentialPair<evaluator>::startAutotuning();
+        m_tuner->start();
         }
 
     protected:

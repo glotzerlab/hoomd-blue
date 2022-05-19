@@ -33,21 +33,14 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
               unsigned int cur_timestep,
               unsigned int period);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void starAutotuning()
         {
-        mpcd::Sorter::setAutotunerParams(enable, period);
+        mpcd::Sorter::startAutotuning();
 
-        m_sentinel_tuner->setEnabled(enable);
-        m_sentinel_tuner->setPeriod(period);
-        m_reverse_tuner->setEnabled(enable);
-        m_reverse_tuner->setPeriod(period);
-        m_apply_tuner->setEnabled(enable);
-        m_apply_tuner->setPeriod(period);
+        m_sentinel_tuner->start();
+        m_reverse_tuner->start();
+        m_apply_tuner->start();
         }
 
     protected:

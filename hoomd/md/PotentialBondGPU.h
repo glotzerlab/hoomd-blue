@@ -41,15 +41,11 @@ class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
     //! Destructor
     virtual ~PotentialBondGPU() { }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        PotentialBond<evaluator, Bonds>::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
+        // PotentialBond<evaluator, Bonds>::startAutotuning();
+        m_tuner->start();
         }
 
     protected:

@@ -51,17 +51,12 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
     //! Includes the RATTLE forces to the virial/net force
     virtual void includeRATTLEForce(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        TwoStepRATTLELangevin<Manifold>::setAutotunerParams(enable, period);
-        m_tuner_one->setPeriod(period);
-        m_tuner_one->setEnabled(enable);
-        m_tuner_angular_one->setPeriod(period);
-        m_tuner_angular_one->setEnabled(enable);
+        TwoStepRATTLELangevin<Manifold>::startAutotuning();
+        m_tuner_one->start();
+        m_tuner_angular_one->start();
         }
 
     protected:

@@ -208,28 +208,21 @@ class PYBIND11_EXPORT ParticleData
     //! Get the tag of the particle on the local rank
     unsigned int getTag(unsigned int idx) const;
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    void startAutotuning()
         {
 #if defined(ENABLE_MPI) && defined(ENABLE_HIP)
         if (m_mark_tuner)
             {
-            m_mark_tuner->setEnabled(enable);
-            m_mark_tuner->setPeriod(period);
+            m_mark_tuner->start();
             }
         if (m_remove_tuner)
             {
-            m_remove_tuner->setEnabled(enable);
-            m_remove_tuner->setPeriod(period);
+            m_remove_tuner->start();
             }
         if (m_add_tuner)
             {
-            m_add_tuner->setEnabled(enable);
-            m_add_tuner->setPeriod(period);
+            m_add_tuner->start();
             }
 #endif // ENABLE_MPI && ENABLE_HIP
         }

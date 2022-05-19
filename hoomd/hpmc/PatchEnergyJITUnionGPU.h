@@ -176,14 +176,10 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         */
     virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        m_tuner_narrow_patch->setPeriod(period);
-        m_tuner_narrow_patch->setEnabled(enable);
+        m_tuner_narrow_patch->start();
         }
 
     protected:

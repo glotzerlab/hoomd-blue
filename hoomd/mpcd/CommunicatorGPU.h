@@ -69,14 +69,10 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
         initializeCommunicationStages();
         }
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        Communicator::setAutotunerParams(enable, period);
+        Communicator::startAutotuning();
         }
 
     protected:

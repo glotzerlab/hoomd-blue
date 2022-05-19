@@ -32,15 +32,11 @@ template<class evaluator> class PotentialExternalGPU : public PotentialExternal<
     //! Constructs the compute
     PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        PotentialExternal<evaluator>::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
+        // PotentialExternal<evaluator>::startAutotuning();
+        m_tuner->start();
         }
 
     protected:

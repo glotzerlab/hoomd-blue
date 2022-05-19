@@ -30,22 +30,15 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
 
     virtual ~CellListGPU();
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        mpcd::CellList::setAutotunerParams(enable, period);
+        // mpcd::CellList::startAutotuning();
 
-        m_tuner_cell->setPeriod(period);
-        m_tuner_cell->setEnabled(enable);
-        m_tuner_sort->setPeriod(period);
-        m_tuner_sort->setEnabled(enable);
+        m_tuner_cell->start();
+        m_tuner_sort->start();
 #ifdef ENABLE_MPI
-        m_tuner_embed_migrate->setPeriod(period);
-        m_tuner_embed_migrate->setEnabled(enable);
+        m_tuner_embed_migrate->start();
 #endif // ENABLE_MPI
         }
 

@@ -87,23 +87,17 @@ class PYBIND11_EXPORT CellCommunicator
         return m_cells;
         }
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    void startAutotuning()
         {
 #ifdef ENABLE_HIP
         if (m_tuner_pack)
             {
-            m_tuner_pack->setEnabled(enable);
-            m_tuner_pack->setPeriod(period);
+            m_tuner_pack->start();
             }
         if (m_tuner_unpack)
             {
-            m_tuner_unpack->setEnabled(enable);
-            m_tuner_unpack->setPeriod(period);
+            m_tuner_unpack->start();
             }
 #endif // ENABLE_HIP
         }

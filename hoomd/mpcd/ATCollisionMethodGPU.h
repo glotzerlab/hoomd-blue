@@ -32,19 +32,13 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
                          std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                          std::shared_ptr<Variant> T);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        mpcd::ATCollisionMethod::setAutotunerParams(enable, period);
+        mpcd::ATCollisionMethod::startAutotuning();
 
-        m_tuner_draw->setPeriod(period);
-        m_tuner_draw->setEnabled(enable);
-        m_tuner_apply->setPeriod(period);
-        m_tuner_apply->setEnabled(enable);
+        m_tuner_draw->start();
+        m_tuner_apply->start();
         }
 
     protected:

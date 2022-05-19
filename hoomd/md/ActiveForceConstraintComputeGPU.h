@@ -38,19 +38,13 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
                                     std::shared_ptr<ParticleGroup> group,
                                     Manifold manifold);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        ActiveForceConstraintCompute<Manifold>::setAutotunerParams(enable, period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_diffusion->setPeriod(period);
-        m_tuner_diffusion->setEnabled(enable);
-        m_tuner_constraint->setPeriod(period);
-        m_tuner_constraint->setEnabled(enable);
+        // ActiveForceConstraintCompute<Manifold>::startAutotuning();
+        m_tuner_force->start();
+        m_tuner_diffusion->start();
+        m_tuner_constraint->start();
         }
 
     protected:

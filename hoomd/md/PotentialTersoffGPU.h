@@ -45,15 +45,11 @@ template<class evaluator> class PotentialTersoffGPU : public PotentialTersoff<ev
     //! Destructor
     virtual ~PotentialTersoffGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        PotentialTersoff<evaluator>::setAutotunerParams(enable, period);
-        this->m_tuner->setPeriod(period);
-        this->m_tuner->setEnabled(enable);
+        // PotentialTersoff<evaluator>::startAutotuning();
+        this->m_tuner->start();
         }
 
     protected:

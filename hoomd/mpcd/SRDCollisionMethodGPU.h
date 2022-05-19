@@ -31,19 +31,13 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
                           uint16_t seed,
                           std::shared_ptr<mpcd::CellThermoCompute> thermo);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        mpcd::SRDCollisionMethod::setAutotunerParams(enable, period);
+        mpcd::SRDCollisionMethod::startAutotuning();
 
-        m_tuner_rotvec->setPeriod(period);
-        m_tuner_rotvec->setEnabled(enable);
-        m_tuner_rotate->setPeriod(period);
-        m_tuner_rotate->setEnabled(enable);
+        m_tuner_rotvec->start();
+        m_tuner_rotate->start();
         }
 
     protected:

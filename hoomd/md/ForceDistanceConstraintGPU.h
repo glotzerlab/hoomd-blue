@@ -50,19 +50,13 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~ForceDistanceConstraintGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        ForceDistanceConstraint::setAutotunerParams(enable, period);
+        // ForceDistanceConstraint::startAutotuning();
 
-        m_tuner_fill->setPeriod(period);
-        m_tuner_force->setPeriod(period);
-
-        m_tuner_fill->setEnabled(enable);
-        m_tuner_force->setEnabled(enable);
+        m_tuner_fill->start();
+        m_tuner_force->start();
         }
 
     protected:

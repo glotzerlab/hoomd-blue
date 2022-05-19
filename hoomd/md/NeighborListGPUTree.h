@@ -47,38 +47,27 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     //! Destructor
     virtual ~NeighborListGPUTree();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        NeighborListGPU::setAutotunerParams(enable, period);
+        NeighborListGPU::startAutotuning();
 
-        m_mark_tuner->setPeriod(period / 10);
-        m_mark_tuner->setEnabled(enable);
-
-        m_count_tuner->setPeriod(period / 10);
-        m_count_tuner->setEnabled(enable);
-
-        m_copy_tuner->setPeriod(period / 10);
-        m_copy_tuner->setEnabled(enable);
+        m_mark_tuner->start();
+        m_count_tuner->start();
+        m_copy_tuner->start();
 
         /* These may be null pointers if the first compute has not occurred, since construction of
            these tuners is deferred until the first neighbor list build (in order to get the tuner
-           parameters from the LBVHWrapper and LBVHTraverserWrapper). When initialized, the period
-           and enabled must be borrowed from one of the tuners above to keep everything synced.
-         */
+           parameters from the LBVHWrapper and LBVHTraverserWrapper).
+        */
         if (m_build_tuner)
             {
-            m_build_tuner->setPeriod(period / 10);
-            m_build_tuner->setEnabled(enable);
+            m_build_tuner->start();
             }
 
         if (m_traverse_tuner)
             {
-            m_traverse_tuner->setPeriod(period / 10);
-            m_traverse_tuner->setEnabled(enable);
+            m_traverse_tuner->start();
             }
         }
 

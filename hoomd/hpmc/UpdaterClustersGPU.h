@@ -41,32 +41,16 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
     //! Destructor
     virtual ~UpdaterClustersGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        m_tuner_excell_block_size->setPeriod(period);
-        m_tuner_excell_block_size->setEnabled(enable);
-
-        m_tuner_overlaps->setPeriod(period);
-        m_tuner_overlaps->setEnabled(enable);
-
-        m_tuner_depletants->setPeriod(period);
-        m_tuner_depletants->setEnabled(enable);
-
-        m_tuner_num_depletants->setPeriod(period);
-        m_tuner_num_depletants->setEnabled(enable);
-
-        m_tuner_concatenate->setPeriod(period);
-        m_tuner_concatenate->setEnabled(enable);
-
-        m_tuner_transform->setPeriod(period);
-        m_tuner_transform->setEnabled(enable);
-
-        m_tuner_flip->setPeriod(period);
-        m_tuner_flip->setEnabled(enable);
+        m_tuner_excell_block_size->start();
+        m_tuner_overlaps->start();
+        m_tuner_depletants->start();
+        m_tuner_num_depletants->start();
+        m_tuner_concatenate->start();
+        m_tuner_transform->start();
+        m_tuner_flip->start();
         }
 
     //! Take one timestep forward

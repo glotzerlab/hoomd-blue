@@ -50,21 +50,14 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
     //! Performs the second step of the integration
     virtual void integrateStepTwo(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        TwoStepNVTMTK::setAutotunerParams(enable, period);
-        m_tuner_one->setPeriod(period);
-        m_tuner_one->setEnabled(enable);
-        m_tuner_two->setPeriod(period);
-        m_tuner_two->setEnabled(enable);
-        m_tuner_angular_one->setPeriod(period);
-        m_tuner_angular_one->setEnabled(enable);
-        m_tuner_angular_two->setPeriod(period);
-        m_tuner_angular_two->setEnabled(enable);
+        TwoStepNVTMTK::startAutotuning();
+        m_tuner_one->start();
+        m_tuner_two->start();
+        m_tuner_angular_one->start();
+        m_tuner_angular_two->start();
         }
 
     protected:

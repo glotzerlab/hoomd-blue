@@ -57,15 +57,11 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     //! Destructor
     virtual ~MuellerPlatheFlowGPU(void);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        MuellerPlatheFlow::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
+        // MuellerPlatheFlow::startAutotuning();
+        m_tuner->start();
         }
 
     protected:

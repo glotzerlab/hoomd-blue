@@ -38,24 +38,12 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
      */
     virtual void updateCompositeParticles(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        ForceComposite::setAutotunerParams(enable, period);
-
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-
-        m_tuner_virial->setPeriod(period);
-        m_tuner_virial->setEnabled(enable);
-
-        m_tuner_update->setPeriod(period);
-        m_tuner_update->setEnabled(enable);
+        m_tuner_force->start();
+        m_tuner_virial->start();
+        m_tuner_update->start();
         }
 
     protected:

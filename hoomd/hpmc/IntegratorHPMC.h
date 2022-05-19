@@ -170,13 +170,9 @@ class PatchEnergy
         }
 
 #ifdef ENABLE_HIP
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        throw std::runtime_error("PatchEnergy (base class) does not support setAutotunerParams");
         }
 
     //! Asynchronously launch the JIT kernel

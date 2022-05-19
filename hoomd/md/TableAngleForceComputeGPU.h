@@ -35,15 +35,11 @@ class PYBIND11_EXPORT TableAngleForceComputeGPU : public TableAngleForceCompute
     //! Destructor
     virtual ~TableAngleForceComputeGPU() { }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        TableAngleForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
+        // TableAngleForceCompute::startAutotuning();
+        m_tuner->start();
         }
 
     private:

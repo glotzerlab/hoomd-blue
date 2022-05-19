@@ -113,18 +113,14 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         return h_net_properties.data[mpcd::detail::thermo_index::temperature];
         }
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
 #ifdef ENABLE_MPI
         if (m_vel_comm)
-            m_vel_comm->setAutotunerParams(enable, period);
+            m_vel_comm->startAutotuning();
         if (m_energy_comm)
-            m_energy_comm->setAutotunerParams(enable, period);
+            m_energy_comm->startAutotuning();
 #endif // ENABLE_MPI
         }
 

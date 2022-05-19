@@ -292,15 +292,15 @@ void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
         }
     }
 
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
+void IntegratorTwoStep::startAutotuning()
     {
-    Integrator::setAutotunerParams(enable, period);
+    // Integrator::startAutotuning();
+
     // set params in all methods
     for (auto& method : m_methods)
-        method->setAutotunerParams(enable, period);
+        method->startAutotuning();
+
+    // TODO: start autotuning in all forces
     }
 
 /// helper function to compute net force/virial

@@ -195,31 +195,31 @@ void System::updateTPS()
     m_last_TPS = double(m_cur_tstep - m_start_tstep) / m_last_walltime;
     }
 
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void System::setAutotunerParams(bool enabled, unsigned int period)
+void System::startAutotuning()
     {
-    // set the autotuner parameters on everything
-    if (m_integrator)
-        m_integrator->setAutotunerParams(enabled, period);
+//     // set the autotuner parameters on everything
+//     if (m_integrator)
+//         m_integrator->startAutotuning();
 
-    // analyzers
-    for (auto& analyzer : m_analyzers)
-        analyzer->setAutotunerParams(enabled, period);
+//     //TODO: Integrator needs to call startAutotuning on all child classes, as do classes like
+//     // PotentialPair
 
-    // updaters
-    for (auto& updater : m_updaters)
-        updater->setAutotunerParams(enabled, period);
+//     // analyzers
+//     for (auto& analyzer : m_analyzers)
+//         analyzer->startAutotuning();
 
-    // computes
-    for (auto compute : m_computes)
-        compute->setAutotunerParams(enabled, period);
+//     // updaters
+//     for (auto& updater : m_updaters)
+//         updater->startAutotuning();
 
-#ifdef ENABLE_MPI
-    if (m_sysdef->isDomainDecomposed())
-        m_comm->setAutotunerParams(enabled, period);
-#endif
+//     // computes
+//     for (auto compute : m_computes)
+//         compute->startAutotuning();
+
+// #ifdef ENABLE_MPI
+//     if (m_sysdef->isDomainDecomposed())
+//         m_comm->startAutotuning();
+// #endif
     }
 
 // --------- Steps in the simulation run implemented in helper functions
@@ -307,7 +307,7 @@ void export_System(pybind11::module& m)
         .def("setIntegrator", &System::setIntegrator)
         .def("getIntegrator", &System::getIntegrator)
 
-        .def("setAutotunerParams", &System::setAutotunerParams)
+        .def("startAutotuning", &System::startAutotuning)
         .def("run", &System::run)
 
         .def("getLastTPS", &System::getLastTPS)

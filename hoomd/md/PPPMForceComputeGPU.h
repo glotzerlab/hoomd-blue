@@ -52,23 +52,15 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
                         std::shared_ptr<ParticleGroup> group);
     virtual ~PPPMForceComputeGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        m_tuner_assign->setPeriod(period);
-        m_tuner_reduce_mesh->setPeriod(period);
-        m_tuner_update->setPeriod(period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_influence->setPeriod(period);
-
-        m_tuner_assign->setEnabled(enable);
-        m_tuner_reduce_mesh->setEnabled(enable);
-        m_tuner_update->setEnabled(enable);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_influence->setEnabled(enable);
+        // PPPMForceCompute::startAutotuning();
+        m_tuner_assign->start();
+        m_tuner_reduce_mesh->start();
+        m_tuner_update->start();
+        m_tuner_force->start();
+        m_tuner_influence->start();
         }
 
     protected:

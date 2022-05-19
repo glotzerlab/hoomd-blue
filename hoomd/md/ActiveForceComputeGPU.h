@@ -31,17 +31,12 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotining()
         {
-        ActiveForceCompute::setAutotunerParams(enable, period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_diffusion->setPeriod(period);
-        m_tuner_diffusion->setEnabled(enable);
+        // ActiveForceCompute::startAutotuning();
+        m_tuner_force->start();
+        m_tuner_diffusion->start();
         }
 
     protected:

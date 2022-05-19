@@ -45,18 +45,12 @@ template<class Shape> class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shap
     //! Destructor
     virtual ~ComputeFreeVolumeGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        // call base class method first
-        m_tuner_free_volume->setPeriod(period);
-        m_tuner_free_volume->setEnabled(enable);
-
-        m_tuner_excell_block_size->setPeriod(period);
-        m_tuner_excell_block_size->setEnabled(enable);
+        // ComputeFreeVolume<Shape>::startAutotuning();
+        m_tuner_free_volume->start();
+        m_tuner_excell_block_size->start();
         }
 
     //! Return an estimate of the overlap volume

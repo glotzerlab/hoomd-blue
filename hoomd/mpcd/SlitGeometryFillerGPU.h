@@ -32,17 +32,12 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
                           std::shared_ptr<Variant> T,
                           std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        mpcd::SlitGeometryFiller::setAutotunerParams(enable, period);
+        mpcd::SlitGeometryFiller::startAutotuning();
 
-        m_tuner->setEnabled(enable);
-        m_tuner->setPeriod(period);
+        m_tuner->start();
         }
 
     protected:

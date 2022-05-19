@@ -84,6 +84,9 @@ class PYBIND11_EXPORT Autotuner
     //! Call after kernel launch
     void end();
 
+    /// Call to start the autotuning sequence
+    void start() {}
+
     //! Get the parameter to set for the kernel launch
     /*! \returns the current parameter that should be set for the kernel launch
 

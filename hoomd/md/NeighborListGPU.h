@@ -103,18 +103,12 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     //! Destructor
     virtual ~NeighborListGPU() { }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
         {
-        NeighborList::setAutotunerParams(enable, period);
-        m_tuner_filter->setPeriod(period / 10);
-        m_tuner_filter->setEnabled(enable);
-
-        m_tuner_head_list->setPeriod(period / 10);
-        m_tuner_head_list->setEnabled(enable);
+        // NeighborList::startAutotuning();
+        m_tuner_filter->start();
+        m_tuner_head_list->start();
         }
 
     //! Benchmark the filter kernel
