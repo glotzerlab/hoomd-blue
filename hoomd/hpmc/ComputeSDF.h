@@ -263,7 +263,9 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     m_sdf.resize(m_hist.size());
     for (size_t i = 0; i < m_hist.size(); i++)
         {
-        m_sdf[i] = hist_total[i] / (static_cast<double>(m_total_num_histogram_samples) * m_dx);
+        unsigned int num_pairs = m_pdata->getNGlobal() * (m_pdata->getNGlobal() - 1) / 2;
+
+        m_sdf[i] = hist_total[i] / (static_cast<double>(num_pairs) * m_dx);
         }
     }
 
@@ -394,7 +396,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                     }
                                 } // end binary search path
 
-                            else if (m_mode == 1) // do the random sampling
+                            else if (m_mode == 1) // account for patches
                                 {
                                 double u_ij_0
                                     = 0.0; // energy of pair interaction in unperturbed state
@@ -410,14 +412,14 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                                                    float(h_diameter.data[j]),
                                                                    float(h_charge.data[j]));
                                     }
-                                for (size_t i = 0; i < m_num_random_samples; i++)
+                                // loop over bins; go up to m_hist.size()-2 instead of -1 because
+                                // evaluate scale_factor as m_dx * (bin_to_sample + 1) to evaluate
+                                // at the right edge of the bin
+                                for (size_t bin_to_sample = 0; bin_to_sample < m_hist.size() - 2;
+                                     bin_to_sample++)
                                     {
-                                    // pick a random bin from 0 to n_bins
-                                    size_t bin_to_sample;
-                                    bin_to_sample
-                                        = static_cast<size_t>(hoomd::UniformIntDistribution(
-                                            (uint32_t)m_hist.size() - 1)(rng));
-                                    double scale_factor = m_dx * double(bin_to_sample + 1);
+                                    double scale_factor
+                                        = m_dx * static_cast<double>(bin_to_sample + 1);
 
                                     // first check for any "hard" overlaps
                                     // if there is one for a given scale value, there is no need to
@@ -431,13 +433,12 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                         scale_factor);
                                     if (hard_overlap)
                                         {
-                                        // set min_bin to bin_to_sample, don't need min(min_bin,
-                                        // bin_to_sample) since we're only already choosing bins in
-                                        // [0, min_bin-1]
-                                        m_hist[bin_to_sample] += 1.0;
+                                        // add appropriate weight to appropriate bin and exit the
+                                        // loop over bins
+                                        m_hist[bin_to_sample] += 1.0; // = 1-e^(-\infty)
                                         m_num_histogram_samples++;
-                                        continue; // do not check for soft overlaps
-                                        }         // end if overlap
+                                        break;
+                                        } // end if overlap
 
                                     // if no hard overlap, check for a soft overlap if we have
                                     // patches
@@ -457,16 +458,19 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                             quat<float>(orientation_j),
                                             float(h_diameter.data[j]),
                                             float(h_charge.data[j]));
+                                        // if enery has changed, there is a new soft overlap
+                                        // add the appropriate weight to the appropriate bin of the
+                                        // histogram and break out of the loop over bins
                                         if (u_ij_new != u_ij_0)
                                             {
-                                            min_bin = bin_to_sample;
                                             m_hist[bin_to_sample]
                                                 += 1.0 - fast::exp(-m_beta * (u_ij_new - u_ij_0));
                                             m_num_histogram_samples++;
+                                            break;
                                             }
                                         } // end if (m_mc->m_patch)
-                                    }     // end loop over m_num_random_samples
-                                }         // end random sampling path
+                                    }     // end loop over histogram bins
+                                }         // end enthalpic sdf path
                             }
                         }
                     }

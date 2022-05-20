@@ -332,6 +332,7 @@ class SDF(Compute):
             box = self._simulation.state.box
             N = self._simulation.state.N_particles
             rho = N / box.volume
-            return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
+            s0 = numpy.polyval(p, 0.0)
+            return rho * (1 + (N - 1) / 2 * s0 / (2 * box.dimensions))
         else:
             return None
