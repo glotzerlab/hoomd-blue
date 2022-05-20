@@ -109,58 +109,56 @@ def test_forces_and_energies(snapshot_factory, simulation_factory,
                                       atol=1e-5)
 
 
-#Test Logging
-@pytest.mark.parametrize(
-    'cls, expected_namespace, expected_loggables',
-    zip((md.special_pair.SpecialPair, md.special_pair.LJ, 
-         md.special_pair.Coulomb),
-    itertools.repeat(('md', 'special_pair')),
-    itertools.repeat({
-        'energy': {
-            'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'energies': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'forces': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'torques': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'virials': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'additional_energy': {
-        'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'additional_virial': {
-            'category': LoggerCategories.sequence,
-            'default': True
-        }
-    })))
+# Test Logging
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip((md.special_pair.SpecialPair, md.special_pair.LJ,
+                              md.special_pair.Coulomb),
+                             itertools.repeat(('md', 'special_pair')),
+                             itertools.repeat({
+                                 'energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'energies': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'forces': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'torques': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'virials': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'additional_energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'additional_virial': {
+                                     'category': LoggerCategories.sequence,
+                                     'default': True
+                                 }
+                             })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
 
-#Test Pickling
+# Test Pickling
 @pytest.mark.parametrize("special_pair_cls, params, r_cut, force, energy",
                          special_pair_test_parameters)
-def test_pickling(simulation_factory, snapshot_factory,
-                  special_pair_cls, params, r_cut, force, energy):
+def test_pickling(simulation_factory, snapshot_factory, special_pair_cls,
+                  params, r_cut, force, energy):
     snapshot = snapshot_factory()
     sim = simulation_factory(snapshot)
 
     potential = special_pair_cls()
     potential.params['A-A'] = params
     potential.r_cut['A-A'] = r_cut
-
 
     pickling_check(potential)
 
