@@ -7,7 +7,7 @@ import numpy.testing as npt
 import pytest
 
 import hoomd
-from hoomd import md
+import hoomd.md as md
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check, pickling_check
 
@@ -141,12 +141,16 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
 
 
 #Test Logging
-'''
+_potential_cls = (
+    md.external.field.Field, 
+    md.external.field.Periodic,
+    md.external.field.Electric
+)
+
 @pytest.mark.parametrize(
     'cls, expected_namespace, expected_loggables',
-    zip((md.external.field.Field, md.external.field.Periodic,
-         md.external.field.Electric),
-    itertools.repeat(('md', 'field')),
+    zip(_potential_cls,
+    itertools.repeat(('md', 'external', 'field')),
     itertools.repeat({
         'energy': {
             'category': LoggerCategories.scalar,
@@ -179,4 +183,38 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
     })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
-'''
+
+
+# Pickle Testing
+def test_pickling(simulation_factory, two_particle_snapshot_factory,
+                 external_params):
+    """Test pickling while attached and while not attached."""
+    # unpack parameters
+    cls_obj, param_attr, list_params, evaluator = external_params
+
+    # create class instance, get/set params when not attached
+    obj_instance = cls_obj()
+    getattr(obj_instance, param_attr)['A'] = list_params[0]
+    _assert_correct_params(obj_instance, param_attr, list_params[0])
+    getattr(obj_instance, param_attr)['A'] = list_params[1]
+    _assert_correct_params(obj_instance, param_attr, list_params[1])
+
+    pickling_check(obj_instance)
+    # set up simulation
+    snap = two_particle_snapshot_factory(d=3.7)
+    sim = simulation_factory(snap)
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    sim.operations.integrator.forces.append(obj_instance)
+    sim.run(0)
+    pickling_check(obj_instance)
+
+    # get/set params while attached
+    getattr(obj_instance, param_attr)['A'] = list_params[0]
+    _assert_correct_params(obj_instance, param_attr, list_params[0])
+    getattr(obj_instance, param_attr)['A'] = list_params[1]
+    _assert_correct_params(obj_instance, param_attr, list_params[1])
+
+    pickling_check(obj_instance)
+    sim.run(0)
+    pickling_check(obj_instance)
+    

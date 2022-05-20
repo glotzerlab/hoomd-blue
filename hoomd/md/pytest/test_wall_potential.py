@@ -6,7 +6,10 @@ import pytest
 
 import hoomd
 import hoomd.md as md
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check, pickling_check
 
+import itertools
 
 @pytest.fixture
 def simulation(simulation_factory, two_particle_snapshot_factory):
@@ -253,3 +256,55 @@ def test_r_extrap(simulation, cls, params):
     if simulation.device.communicator.rank == 0:
         assert np.all(energies != 0)
         assert np.all(np.any(forces != 0, axis=1))
+
+
+#Test Logging
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip(_potential_cls,
+    itertools.repeat(('md', 'external', 'wall')),
+    itertools.repeat({
+        'energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        },
+        'energies': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'forces': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'torques': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'virials': {
+            'category': LoggerCategories.particle,
+            'default': True
+        },
+        'additional_energy': {
+        'category': LoggerCategories.scalar,
+            'default': True
+        },
+        'additional_virial': {
+            'category': LoggerCategories.sequence,
+            'default': True
+        }
+    })))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
+
+
+# Pickle Testing
+@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
+def test_pickling(simulation, cls, params):
+    """Test pickling on a small simulation"""
+    wall_pot = cls(WallGenerator.generate_n(2))
+    simulation.operations.integrator.forces.append(wall_pot)
+    wall_pot.params["A"] = params
+    
+    pickling_check(wall_pot)
+    simulation.run(0)
+    pickling_check(wall_pot)
