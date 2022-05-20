@@ -207,7 +207,11 @@ void export_NeighborListGPUBinned(pybind11::module& m)
         .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
         .def_property("deterministic",
                       &NeighborListGPUBinned::getDeterministic,
-                      &NeighborListGPUBinned::setDeterministic);
+                      &NeighborListGPUBinned::setDeterministic)
+        .def("getDim",
+             &NeighborListGPUBinned::getDim,
+             pybind11::return_value_policy::reference_internal)
+        .def("getNmax", &NeighborListGPUBinned::getNmax);
     }
 
     } // end namespace detail

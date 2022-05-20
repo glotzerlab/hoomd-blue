@@ -1806,7 +1806,8 @@ void export_NeighborList(pybind11::module& m)
         .def("estimateNNeigh", &NeighborList::estimateNNeigh)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
-        .def("getNumExclusions", &NeighborList::getNumExclusions);
+        .def("getNumExclusions", &NeighborList::getNumExclusions)
+        .def_property_readonly("num_builds", &NeighborList::getNumUpdates);
 
     pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)

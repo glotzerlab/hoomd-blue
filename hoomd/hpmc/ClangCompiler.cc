@@ -30,6 +30,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <sys/stat.h>
 
 namespace hoomd
     {
@@ -91,8 +92,18 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
                                                 &diagnostic_printer,
                                                 false);
 
-    // determine the clang resource path
-    std::string resource_path(HOOMD_LLVM_INSTALL_PREFIX);
+    // Store the LLVM installation prefix in a volatile char array so that "/bin/clang" can be added
+    // at runtime instead of compile time. When it is added at compile time, conda rewrites an
+    // embedded string "$BUILD_PREFIX/bin/clang" with "$INSTALL_PREFIX", truncating the string.
+    volatile const char* llvm_install_prefix = HOOMD_LLVM_INSTALL_PREFIX;
+
+    // standard string methods do not accept volatile char arrays, extract the string manually
+    std::string clang_exec_with_path;
+    for (volatile const char* c = llvm_install_prefix; *c != 0; ++c)
+        {
+        clang_exec_with_path.push_back(*c);
+        }
+    clang_exec_with_path += "/bin/clang";
 
     // build up the argument list
     std::vector<std::string> clang_args;
@@ -118,7 +129,14 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     // https://cpp.hotexamples.com/site/file?hash=0xd4e048edbee7a77d7b2181909e61ab1a1213629fe8aa79248fea8ae17f8dc7fc&fullName=safecode-mirror-master/tools/clang/examples/main.cpp&project=lygstate/safecode-mirror
     // see also:
     // https://cpp.hotexamples.com/examples/-/CompilerInstance/-/cpp-compilerinstance-class-examples.html
-    clang::driver::Driver driver(resource_path + "/bin/clang",
+    struct stat buffer;
+    if (stat(clang_exec_with_path.c_str(), &buffer) != 0)
+        {
+        out << "Error: cannot find " << clang_exec_with_path << std::endl;
+        return nullptr;
+        }
+
+    clang::driver::Driver driver(clang_exec_with_path,
                                  llvm::sys::getDefaultTargetTriple(),
                                  diagnostics_engine);
     driver.setCheckInputsExist(false);
