@@ -246,17 +246,17 @@ class SDF(Compute):
         dx (float): Bin width :math:`[\mathrm{length}]`.
     """
 
-    def __init__(self, xmax, dx, num_random_samples, beta, mode='binary'):
+    def __init__(self, xmax, dx, mode='binary'):
         # store metadata
-        valid_modes = ['binary', 'random']
+        self.patchy_modes = ['brute force', 'brute', 1, 'patchy']
+        self.athermal_modes = ['binary', 0]
+        valid_modes = self.patchy_modes + self.athermal_modes
         if mode not in valid_modes:
             raise ValueError(f'Mode must be one of {[x for x in valid_modes]}.')
         param_dict = ParameterDict(
             xmax=float(xmax),
             dx=float(dx),
             mode=str(mode),
-            num_random_samples=int(num_random_samples),
-            beta=float(beta),
         )
         self._param_dict.update(param_dict)
 
@@ -270,9 +270,9 @@ class SDF(Compute):
 
         cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
 
-        if self.mode == 'binary':
+        if self.mode in self.athermal_modes:
             mode = 0
-        elif self.mode == 'random':
+        elif self.mode in self.patchy_modes:
             mode = 1
         self._cpp_obj = cpp_cls(
             self._simulation.state._cpp_sys_def,
@@ -280,8 +280,6 @@ class SDF(Compute):
             self.xmax,
             self.dx,
             mode,
-            self.num_random_samples,
-            self.beta,
         )
 
         super()._attach()
@@ -332,7 +330,6 @@ class SDF(Compute):
             box = self._simulation.state.box
             N = self._simulation.state.N_particles
             rho = N / box.volume
-            s0 = numpy.polyval(p, 0.0)
-            return rho * (1 + (N - 1) / 2 * s0 / (2 * box.dimensions))
+            return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
         else:
             return None

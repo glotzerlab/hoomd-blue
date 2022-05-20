@@ -115,9 +115,7 @@ template<class Shape> class ComputeSDF : public Compute
                std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                double xmax,
                double dx,
-               int mode,
-               unsigned int num_random_samples,
-               double beta);
+               int mode);
     //! Destructor
     virtual ~ComputeSDF() {};
 
@@ -157,11 +155,7 @@ template<class Shape> class ComputeSDF : public Compute
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
-    int m_mode;                        //!< Sampling mode; 0 = binary search, 1 = random sampling
-    unsigned int m_num_random_samples; //!< Number of random samples to take if m_mode == 1
-    double m_beta;                     //!< Inverse temperature
-    uint64_t m_num_histogram_samples;  //!< Number of samples in histogram on MPI rank
-    uint64_t m_total_num_histogram_samples; //!< Number of samples in histogram
+    int m_mode; //!< Sampling mode; 0 = binary search, 1 = random sampling
 
     std::vector<double> m_hist; //!< Raw histogram data
     std::vector<double> m_sdf;  //!< Computed SDF
@@ -191,11 +185,8 @@ ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
                               std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                               double xmax,
                               double dx,
-                              int mode,
-                              unsigned int num_random_samples,
-                              double beta)
-    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx), m_mode(mode),
-      m_num_random_samples(num_random_samples), m_beta(beta)
+                              int mode)
+    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx), m_mode(mode)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
 
@@ -249,13 +240,6 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
                    MPI_SUM,
                    0,
                    m_exec_conf->getMPICommunicator());
-        MPI_Reduce(&m_num_histogram_samples,
-                   &m_total_num_histogram_samples,
-                   1,
-                   MPI_UINT64_T,
-                   MPI_SUM,
-                   0,
-                   m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -263,9 +247,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     m_sdf.resize(m_hist.size());
     for (size_t i = 0; i < m_hist.size(); i++)
         {
-        unsigned int num_pairs = m_pdata->getNGlobal() * (m_pdata->getNGlobal() - 1) / 2;
-
-        m_sdf[i] = hist_total[i] / (static_cast<double>(num_pairs) * m_dx);
+        m_sdf[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
         }
     }
 
@@ -284,7 +266,6 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
     {
     // resize the histogram
     m_hist.resize((size_t)(m_xmax / m_dx));
-    m_num_histogram_samples = 0;
     // Zero the histogram
     for (size_t i = 0; i < m_hist.size(); i++)
         {
@@ -330,9 +311,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                hoomd::Counter(m_instance));
 
     // loop through N particles
+    // At the top of this loop, we initialize min_bin_ptl_i to the size of the sdf histogram
+    // For each of particle i's neighbors, we find the scaling that produces the first overlap.
+    // For each neighbor, we do a brute force search from the scaling corresponding to bin 0
+    // up to the minimum bin that we've already found for particle i.
+    // Then we add to m_hist[min_bin_ptl_i] the negative Mayer-function corresponding to the type
+    // of overlap corresponding to particle i's first overlap.
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        size_t min_bin = m_hist.size();
+        size_t min_bin_ptl_i = m_hist.size();
+        double hist_weight_ptl_i = 2.0;
 
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -341,7 +329,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
         Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-        // TODO:do we need to account for patch r_cut in here somewhere?
+        // TODO: do we need to account for patch r_cut in here somewhere?
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
@@ -392,7 +380,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
                                 if (bin >= 0)
                                     {
-                                    min_bin = std::min(min_bin, bin);
+                                    min_bin_ptl_i = std::min(min_bin_ptl_i, bin);
+                                    // bisection search path does not account for patches
+                                    hist_weight_ptl_i = 1.0;
                                     }
                                 } // end binary search path
 
@@ -412,15 +402,18 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                                                    float(h_diameter.data[j]),
                                                                    float(h_charge.data[j]));
                                     }
-                                // loop over bins; go up to m_hist.size()-2 instead of -1 because
-                                // evaluate scale_factor as m_dx * (bin_to_sample + 1) to evaluate
-                                // at the right edge of the bin
-                                for (size_t bin_to_sample = 0; bin_to_sample < m_hist.size() - 2;
+                                // loop over bins; only going up to min_bin_ptl_i-1 since we only
+                                // want the _first_ overlap of particle i with its neighbors
+                                for (size_t bin_to_sample = 0; bin_to_sample < min_bin_ptl_i;
                                      bin_to_sample++)
                                     {
                                     double scale_factor
                                         = m_dx * static_cast<double>(bin_to_sample + 1);
 
+                                    // TODO: think about order of overlap checks: there may be a
+                                    // micro-optimization here if one check is significantly more
+                                    // expensive than the other
+                                    //
                                     // first check for any "hard" overlaps
                                     // if there is one for a given scale value, there is no need to
                                     // check for any "soft" overlaps from m_mc.m_patch
@@ -435,8 +428,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                         {
                                         // add appropriate weight to appropriate bin and exit the
                                         // loop over bins
-                                        m_hist[bin_to_sample] += 1.0; // = 1-e^(-\infty)
-                                        m_num_histogram_samples++;
+                                        hist_weight_ptl_i = 1.0; // = 1-e^(-\infty)
+                                        min_bin_ptl_i = bin_to_sample;
                                         break;
                                         } // end if overlap
 
@@ -463,9 +456,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                         // histogram and break out of the loop over bins
                                         if (u_ij_new != u_ij_0)
                                             {
-                                            m_hist[bin_to_sample]
-                                                += 1.0 - fast::exp(-m_beta * (u_ij_new - u_ij_0));
-                                            m_num_histogram_samples++;
+                                            min_bin_ptl_i = bin_to_sample;
+                                            hist_weight_ptl_i
+                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
                                             break;
                                             }
                                         } // end if (m_mc->m_patch)
@@ -481,7 +474,11 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                     }
                 } // end loop over AABB nodes
             }     // end loop over images
-        }         // end loop over all particles
+        if (min_bin_ptl_i < m_hist.size() && hist_weight_ptl_i <= 1.0)
+            {
+            m_hist[min_bin_ptl_i] += hist_weight_ptl_i;
+            }
+        } // end loop over all particles
     }
 
 /*! \param r_ij Vector pointing from particle i to j (already wrapped into the box)
@@ -560,9 +557,7 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             double,
                             double,
-                            int,
-                            unsigned int,
-                            double>())
+                            int>())
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
