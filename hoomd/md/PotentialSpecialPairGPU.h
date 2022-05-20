@@ -42,7 +42,7 @@ template<class evaluator> class PotentialSpecialPairGPU : public PotentialSpecia
     virtual void startAutotuning()
         {
         // PotentialSpecialPair<evaluator>::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

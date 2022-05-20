@@ -40,10 +40,10 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
         {
         mpcd::CellThermoCompute::startAutotuning();
 
-        m_begin_tuner->start();
-        m_end_tuner->start();
-        m_inner_tuner->start();
-        m_stage_tuner->start();
+        m_begin_tuner->startScan();
+        m_end_tuner->startScan();
+        m_inner_tuner->startScan();
+        m_stage_tuner->startScan();
         }
 
     protected:

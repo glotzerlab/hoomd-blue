@@ -37,7 +37,7 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
         {
         mpcd::SlitGeometryFiller::startAutotuning();
 
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

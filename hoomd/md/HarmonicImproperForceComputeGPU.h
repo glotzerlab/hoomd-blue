@@ -47,7 +47,7 @@ class PYBIND11_EXPORT HarmonicImproperForceComputeGPU : public HarmonicImproperF
     virtual void startAutotuning()
         {
         // HarmonicImproperForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     //! Set the parameters

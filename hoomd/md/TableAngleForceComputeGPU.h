@@ -39,7 +39,7 @@ class PYBIND11_EXPORT TableAngleForceComputeGPU : public TableAngleForceCompute
     virtual void startAutotuning()
         {
         // TableAngleForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     private:

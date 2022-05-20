@@ -55,7 +55,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
     virtual void startAutotuning()
         {
         ConfinedStreamingMethod<Geometry>::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

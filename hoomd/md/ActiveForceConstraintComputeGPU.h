@@ -42,9 +42,9 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
     virtual void startAutotuning()
         {
         // ActiveForceConstraintCompute<Manifold>::startAutotuning();
-        m_tuner_force->start();
-        m_tuner_diffusion->start();
-        m_tuner_constraint->start();
+        m_tuner_force->startScan();
+        m_tuner_diffusion->startScan();
+        m_tuner_constraint->startScan();
         }
 
     protected:

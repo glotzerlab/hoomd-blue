@@ -76,7 +76,7 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
     /// Start autotuning kernel launch parameters
     virtual void startAutotuning()
         {
-        m_tuner_narrow_patch->start();
+        m_tuner_narrow_patch->startScan();
         }
 
     protected:

@@ -40,7 +40,7 @@ class EAMForceComputeGPU : public EAMForceCompute
     virtual void startAutotuning()
         {
         // EAMForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

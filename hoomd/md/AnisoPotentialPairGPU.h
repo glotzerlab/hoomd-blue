@@ -55,7 +55,7 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
     virtual void startAutotuning()
         {
         // AnisoPotentialPair<evaluator>::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     virtual void

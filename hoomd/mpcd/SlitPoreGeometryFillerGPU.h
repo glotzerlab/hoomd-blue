@@ -38,7 +38,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
         {
         mpcd::SlitPoreGeometryFiller::startAutotuning();
 
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

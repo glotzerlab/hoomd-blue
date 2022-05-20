@@ -38,9 +38,9 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
         {
         mpcd::Sorter::startAutotuning();
 
-        m_sentinel_tuner->start();
-        m_reverse_tuner->start();
-        m_apply_tuner->start();
+        m_sentinel_tuner->startScan();
+        m_reverse_tuner->startScan();
+        m_apply_tuner->startScan();
         }
 
     protected:

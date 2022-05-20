@@ -54,10 +54,10 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
     virtual void startAutotuning()
         {
         TwoStepNVTMTK::startAutotuning();
-        m_tuner_one->start();
-        m_tuner_two->start();
-        m_tuner_angular_one->start();
-        m_tuner_angular_two->start();
+        m_tuner_one->startScan();
+        m_tuner_two->startScan();
+        m_tuner_angular_one->startScan();
+        m_tuner_angular_two->startScan();
         }
 
     protected:

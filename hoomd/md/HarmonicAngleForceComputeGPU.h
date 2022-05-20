@@ -47,7 +47,7 @@ class PYBIND11_EXPORT HarmonicAngleForceComputeGPU : public HarmonicAngleForceCo
     virtual void startAutotuning()
         {
         // HarmonicAngleForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     //! Set the parameters

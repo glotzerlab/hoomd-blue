@@ -93,11 +93,11 @@ class PYBIND11_EXPORT CellCommunicator
 #ifdef ENABLE_HIP
         if (m_tuner_pack)
             {
-            m_tuner_pack->start();
+            m_tuner_pack->startScan();
             }
         if (m_tuner_unpack)
             {
-            m_tuner_unpack->start();
+            m_tuner_unpack->startScan();
             }
 #endif // ENABLE_HIP
         }

@@ -60,7 +60,7 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     virtual void startAutotuning()
         {
         NeighborListGPU::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

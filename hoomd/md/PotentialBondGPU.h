@@ -45,7 +45,7 @@ class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
     virtual void startAutotuning()
         {
         // PotentialBond<evaluator, Bonds>::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

@@ -56,11 +56,11 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     virtual void startAutotuning()
         {
         // PPPMForceCompute::startAutotuning();
-        m_tuner_assign->start();
-        m_tuner_reduce_mesh->start();
-        m_tuner_update->start();
-        m_tuner_force->start();
-        m_tuner_influence->start();
+        m_tuner_assign->startScan();
+        m_tuner_reduce_mesh->startScan();
+        m_tuner_update->startScan();
+        m_tuner_force->startScan();
+        m_tuner_influence->startScan();
         }
 
     protected:

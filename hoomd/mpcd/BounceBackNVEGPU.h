@@ -47,8 +47,8 @@ template<class Geometry> class PYBIND11_EXPORT BounceBackNVEGPU : public BounceB
     virtual void startAutotuning()
         {
         BounceBackNVE<Geometry>::startAutotuning();
-        m_tuner_1->start();
-        m_tuner_2->start();
+        m_tuner_1->startScan();
+        m_tuner_2->startScan();
         }
 
     private:

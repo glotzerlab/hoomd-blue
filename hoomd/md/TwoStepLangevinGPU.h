@@ -40,8 +40,8 @@ class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
     virtual void startAutotuning()
         {
         TwoStepLangevin::startAutotuning();
-        m_tuner_one->start();
-        m_tuner_angular_one->start();
+        m_tuner_one->startScan();
+        m_tuner_angular_one->startScan();
         }
 
     protected:

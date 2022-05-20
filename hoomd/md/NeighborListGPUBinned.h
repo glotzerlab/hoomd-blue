@@ -56,7 +56,7 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
     virtual void startAutotuning()
         {
         NeighborListGPU::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     /// Make the neighborlist deterministic

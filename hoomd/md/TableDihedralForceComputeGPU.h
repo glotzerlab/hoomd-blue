@@ -42,7 +42,7 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
     virtual void startAutotuning()
         {
         // TableDihedralForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     private:

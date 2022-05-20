@@ -64,7 +64,7 @@ template<class evaluator> class PotentialPairGPU : public PotentialPair<evaluato
     virtual void startAutotuning()
         {
         // PotentialPair<evaluator>::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         // TODO: start autotuning the nlist as well
         }
 

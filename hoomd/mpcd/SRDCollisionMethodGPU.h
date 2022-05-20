@@ -36,8 +36,8 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
         {
         mpcd::SRDCollisionMethod::startAutotuning();
 
-        m_tuner_rotvec->start();
-        m_tuner_rotate->start();
+        m_tuner_rotvec->startScan();
+        m_tuner_rotate->startScan();
         }
 
     protected:

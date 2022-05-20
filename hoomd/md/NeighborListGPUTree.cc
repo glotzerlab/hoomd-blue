@@ -167,9 +167,6 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
                                           100000,
                                           "nlist_tree_build",
                                           m_exec_conf));
-        // pilfer enabled & period from the mark tuner
-        m_build_tuner->setEnabled(m_mark_tuner->getEnabled());
-        m_build_tuner->setPeriod(m_mark_tuner->getPeriod());
         }
 
     // ensure traverser tuner is set
@@ -180,9 +177,6 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
                                              100000,
                                              "nlist_tree_traverse",
                                              m_exec_conf));
-        // pilfer enabled & period from the mark tuner
-        m_traverse_tuner->setEnabled(m_mark_tuner->getEnabled());
-        m_traverse_tuner->setPeriod(m_mark_tuner->getPeriod());
         }
 
     // build the tree

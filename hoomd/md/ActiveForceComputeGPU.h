@@ -35,8 +35,8 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     virtual void startAutotining()
         {
         // ActiveForceCompute::startAutotuning();
-        m_tuner_force->start();
-        m_tuner_diffusion->start();
+        m_tuner_force->startScan();
+        m_tuner_diffusion->startScan();
         }
 
     protected:

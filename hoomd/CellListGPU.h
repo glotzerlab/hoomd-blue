@@ -36,7 +36,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
     virtual void startAutotuning()
         {
         // CellList::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     //! Request a multi-GPU cell list

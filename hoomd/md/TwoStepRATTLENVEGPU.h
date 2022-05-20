@@ -58,10 +58,10 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
     virtual void startAutotuning()
         {
         TwoStepRATTLENVE<Manifold>::startAutotuning();
-        m_tuner_one->start();
-        m_tuner_two->start();
-        m_tuner_angular_one->start();
-        m_tuner_angular_two->start();
+        m_tuner_one->startScan();
+        m_tuner_two->startScan();
+        m_tuner_angular_one->startScan();
+        m_tuner_angular_two->startScan();
         }
 
     private:

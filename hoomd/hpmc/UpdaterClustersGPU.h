@@ -44,13 +44,13 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
     /// Start autotuning kernel launch parameters
     virtual void startAutotuning()
         {
-        m_tuner_excell_block_size->start();
-        m_tuner_overlaps->start();
-        m_tuner_depletants->start();
-        m_tuner_num_depletants->start();
-        m_tuner_concatenate->start();
-        m_tuner_transform->start();
-        m_tuner_flip->start();
+        m_tuner_excell_block_size->startScan();
+        m_tuner_overlaps->startScan();
+        m_tuner_depletants->startScan();
+        m_tuner_num_depletants->startScan();
+        m_tuner_concatenate->startScan();
+        m_tuner_transform->startScan();
+        m_tuner_flip->startScan();
         }
 
     //! Take one timestep forward

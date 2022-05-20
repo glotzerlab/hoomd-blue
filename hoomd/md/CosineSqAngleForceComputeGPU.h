@@ -47,7 +47,7 @@ class PYBIND11_EXPORT CosineSqAngleForceComputeGPU : public CosineSqAngleForceCo
     virtual void startAutotuning()
         {
         // CosineSqAngleForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     //! Set the parameters

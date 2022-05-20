@@ -61,7 +61,7 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     virtual void startAutotuning()
         {
         // MuellerPlatheFlow::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

@@ -49,8 +49,8 @@ template<class Shape> class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shap
     virtual void startAutotuning()
         {
         // ComputeFreeVolume<Shape>::startAutotuning();
-        m_tuner_free_volume->start();
-        m_tuner_excell_block_size->start();
+        m_tuner_free_volume->startScan();
+        m_tuner_excell_block_size->startScan();
         }
 
     //! Return an estimate of the overlap volume

@@ -55,8 +55,8 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
     virtual void startAutotuning()
         {
         TwoStepRATTLELangevin<Manifold>::startAutotuning();
-        m_tuner_one->start();
-        m_tuner_angular_one->start();
+        m_tuner_one->startScan();
+        m_tuner_angular_one->startScan();
         }
 
     protected:

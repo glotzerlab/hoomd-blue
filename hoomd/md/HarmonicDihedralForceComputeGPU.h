@@ -43,7 +43,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
     virtual void startAutotuning()
         {
         // HarmonicDihedralForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     //! Set the parameters

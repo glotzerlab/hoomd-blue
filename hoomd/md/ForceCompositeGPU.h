@@ -41,9 +41,9 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     /// Start autotuning kernel launch parameters
     virtual void startAutotuning()
         {
-        m_tuner_force->start();
-        m_tuner_virial->start();
-        m_tuner_update->start();
+        m_tuner_force->startScan();
+        m_tuner_virial->startScan();
+        m_tuner_update->startScan();
         }
 
     protected:

@@ -52,9 +52,9 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         {
         NeighborListGPU::startAutotuning();
 
-        m_mark_tuner->start();
-        m_count_tuner->start();
-        m_copy_tuner->start();
+        m_mark_tuner->startScan();
+        m_count_tuner->startScan();
+        m_copy_tuner->startScan();
 
         /* These may be null pointers if the first compute has not occurred, since construction of
            these tuners is deferred until the first neighbor list build (in order to get the tuner
@@ -62,12 +62,12 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         */
         if (m_build_tuner)
             {
-            m_build_tuner->start();
+            m_build_tuner->startScan();
             }
 
         if (m_traverse_tuner)
             {
-            m_traverse_tuner->start();
+            m_traverse_tuner->startScan();
             }
         }
 

@@ -55,8 +55,8 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         {
         // ForceDistanceConstraint::startAutotuning();
 
-        m_tuner_fill->start();
-        m_tuner_force->start();
+        m_tuner_fill->startScan();
+        m_tuner_force->startScan();
         }
 
     protected:

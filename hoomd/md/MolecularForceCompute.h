@@ -120,7 +120,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         {
         if (m_exec_conf->isCUDAEnabled())
             {
-            m_tuner_fill->start();
+            m_tuner_fill->startScan();
             }
         }
 #endif

@@ -37,8 +37,8 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
         {
         mpcd::ATCollisionMethod::startAutotuning();
 
-        m_tuner_draw->start();
-        m_tuner_apply->start();
+        m_tuner_draw->startScan();
+        m_tuner_apply->startScan();
         }
 
     protected:

@@ -41,7 +41,7 @@ class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
     virtual void startAutotuning()
         {
         // BondTablePotential::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     private:

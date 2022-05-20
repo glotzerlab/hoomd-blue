@@ -35,10 +35,10 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
         {
         // mpcd::CellList::startAutotuning();
 
-        m_tuner_cell->start();
-        m_tuner_sort->start();
+        m_tuner_cell->startScan();
+        m_tuner_sort->startScan();
 #ifdef ENABLE_MPI
-        m_tuner_embed_migrate->start();
+        m_tuner_embed_migrate->startScan();
 #endif // ENABLE_MPI
         }
 

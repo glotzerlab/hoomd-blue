@@ -36,7 +36,7 @@ template<class evaluator> class PotentialExternalGPU : public PotentialExternal<
     virtual void startAutotuning()
         {
         // PotentialExternal<evaluator>::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:

@@ -49,7 +49,7 @@ template<class evaluator> class PotentialTersoffGPU : public PotentialTersoff<ev
     virtual void startAutotuning()
         {
         // PotentialTersoff<evaluator>::startAutotuning();
-        this->m_tuner->start();
+        this->m_tuner->startScan();
         }
 
     protected:

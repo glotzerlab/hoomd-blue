@@ -41,7 +41,7 @@ class PYBIND11_EXPORT OPLSDihedralForceComputeGPU : public OPLSDihedralForceComp
     virtual void startAutotuning()
         {
         // OPLSDihedralForceCompute::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     private:

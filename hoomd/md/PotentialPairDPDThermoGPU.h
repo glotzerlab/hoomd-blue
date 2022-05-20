@@ -62,7 +62,7 @@ template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPair
     virtual void startAutotuning()
         {
         // PotentialPair<evaluator>::startAutotuning();
-        m_tuner->start();
+        m_tuner->startScan();
         }
 
     protected:
