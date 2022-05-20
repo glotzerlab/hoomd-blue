@@ -5,6 +5,6 @@
         "ms-vscode.cmake-tools",
         "streetsidesoftware.code-spell-checker",
         "ms-python.python",
-        "stkb.rewrap",
+        "stkb.rewrap"
     ]
 }
