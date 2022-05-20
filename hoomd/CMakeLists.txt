@@ -53,7 +53,6 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
 ## Source setup
 
 set(_hoomd_sources Analyzer.cc
-                   Autotuner.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
                    CellList.cc

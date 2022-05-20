@@ -11,8 +11,18 @@
 
 #include "ExecutionConfiguration.h"
 
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 #include <string>
 #include <vector>
+#include <array>
+#include <algorithm>
+#include <cfloat>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -51,22 +61,59 @@ class PYBIND11_EXPORT AutotunerInterface
     /// Set autother parameters from a Python tuple.
     void setParameterPython(pybind11::tuple parameter) {};
 #endif
+
+#ifdef ENABLE_HIP
+    /// Build a block size range that steps on the warp size.
+    static std::vector<unsigned int> makeBlockSizeRange(const std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        {
+        std::vector<unsigned int> range;
+        unsigned int start = exec_conf->dev_prop.warpSize;
+        unsigned int step = start;
+        unsigned int end = exec_conf->dev_prop.maxThreadsPerBlock;
+
+        range.resize((end - start) / step + 1);
+
+        unsigned int cur_param = start;
+        for (unsigned int i = 0; i < range.size(); i++)
+            {
+            range[i] = cur_param;
+            cur_param += step;
+            }
+        return range;
+        }
+
+    /// Build a list of thread per particle targets.
+    static std::vector<unsigned int> getTppListPow2(const std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        {
+        std::vector<unsigned int> v;
+        unsigned int warp_size = exec_conf->dev_prop.warpSize;
+
+        for (unsigned int s = 4; s <= warp_size; s *= 2)
+            {
+            v.push_back(s);
+            }
+        v.push_back(1);
+        v.push_back(2);
+        return v;
+        }
+
+#endif
     };
 
 //! Autotuner for low level GPU kernel parameters
-/*! Autotuner is autotunes GPU kernel parameters (such as block size) for
-    performance. It runs an internal state machine and makes sweeps over all valid parameter
-    values. Performance is measured just for the single kernel in question with cudaEvent timers.
-    A number of sweeps are combined with a median to determine the fastest parameter.
-    The sampling mode can also be changed to average or maximum. The latter is helpful when the
-    distribution of kernel runtimes is bimodal, e.g. because it depends on input of variable
-    size.
+/*! Autotuner is autotunes GPU kernel parameters (such as block size) for performance. It runs an
+    internal state machine and makes sweeps over all valid parameter values. Each parameter value is
+    a std::array<unsigned int, n_parameters>. Performance is measured just for the single kernel in
+    question with cudaEvent timers. A number of sweeps are combined with a median to determine the
+    fastest parameter. The sampling mode can also be changed to average or maximum. The latter is
+    helpful when the distribution of kernel runtimes is bimodal, e.g. because it depends on input of
+    variable size.
 
-    The begin() and end() methods must be called before and after the kernel launch to be tuned.
-    The value of the tuned parameter should be set to the return value of getParam(). begin() and
-    end() drive the state machine to choose parameters and insert the cuda timing events (when
-    needed). Once tuning is complete isComplete() will return true and getParam() returns the best
-    performing paremeter.
+    The begin() and end() methods must be called before and after the kernel launch to be tuned. The
+    value of the tuned parameter should be set to the return value of getParam(). begin() and end()
+    drive the state machine to choose parameters and insert the cuda timing events (when needed).
+    Once tuning is complete isComplete() will return true and getParam() returns the best performing
+    paremeter.
 
     Each Autotuner instance has a string name to help identify it's output on the notice stream.
 
@@ -74,39 +121,37 @@ class PYBIND11_EXPORT AutotunerInterface
     ENABLE_HIP=on. Behavior of Autotuner is undefined when ENABLE_HIP=off.
 
     ** Implementation ** <br>
-    Internally, m_nsamples is the number of samples to take (odd for median computation).
-    m_current_sample is the current sample being taken in a circular fashion, and
-    m_current_element is the index of the current parameter being sampled. m_samples stores the
-    time of each sampled kernel launch, and m_sample_median stores the current median of each set
-    of samples. When idle, the number of calls is counted in m_calls. m_state lists the current
-    state in the state machine.
+    Internally, m_n_samples is the number of samples to take (odd for median computation).
+    m_current_sample is the current sample being taken in a circular fashion, and m_current_element
+    is the index of the current parameter being sampled. m_samples stores the time of each sampled
+    kernel launch, and m_sample_median stores the current median of each set of samples. When idle,
+    the number of calls is counted in m_calls. m_state lists the current state in the state machine.
 */
+template <size_t n_dimensions>
 class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     {
     public:
     /// Constructor.
-    Autotuner(const std::vector<unsigned int>& parameters,
-              unsigned int nsamples,
-              unsigned int period,
+    Autotuner(const std::vector<std::vector<unsigned int>>& dimension_ranges,
+              std::shared_ptr<const ExecutionConfiguration> exec_conf,
               const std::string& name,
-              std::shared_ptr<const ExecutionConfiguration> exec_conf);
-
-    /// Constructor with implicit range.
-    Autotuner(unsigned int start,
-              unsigned int end,
-              unsigned int step,
-              unsigned int nsamples,
-              unsigned int period,
-              const std::string& name,
-              std::shared_ptr<const ExecutionConfiguration> exec_conf);
+              unsigned int n_samples=5);
 
     /// Destructor.
-    ~Autotuner();
+    ~Autotuner()
+        {
+        m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << std::endl;
+#ifdef ENABLE_HIP
+        hipEventDestroy(m_start);
+        hipEventDestroy(m_stop);
+        CHECK_CUDA_ERROR();
+#endif
+        }
 
     /// Start a parameter scan.
     virtual void startScan()
         {
-        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " starting scan." << endl;
+        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " starting scan." << std::endl;
         m_state = SCANNING;
         m_current_element = 0;
         m_current_sample = 0;
@@ -114,7 +159,18 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
         }
 
     /// Call before kernel launch.
-    void begin();
+    void begin()
+    {
+#ifdef ENABLE_HIP
+    // if we are scanning, record a cuda event - otherwise do nothing
+    if (m_state == SCANNING)
+        {
+        hipEventRecord(m_start, 0);
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+#endif
+    }
 
     /// Call after kernel launch.
     void end();
@@ -125,8 +181,17 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     While sampling, the value returned by this function will sweep though all valid parameters.
     Otherwise, it will return the fastest performing parameter.
     */
-    unsigned int getParam()
+    std::array<unsigned int, n_dimensions> getParam()
         {
+        std::ostringstream s;
+        s << "(";
+        for (auto v : m_current_param)
+            {
+            s << v << ",";
+            }
+        s << ")\n";
+        m_exec_conf->msg->notice(4) << "Getting parameter " << s.str();
+
         return m_current_param;
         }
 
@@ -165,22 +230,8 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
         m_mode = mode;
         }
 
-    /// Build a list of thread per particle targets.
-    static std::vector<unsigned int> getTppListPow2(unsigned int warpSize)
-        {
-        std::vector<unsigned int> v;
-
-        for (unsigned int s = 4; s <= warpSize; s *= 2)
-            {
-            v.push_back(s);
-            }
-        v.push_back(1);
-        v.push_back(2);
-        return v;
-        }
-
     protected:
-    unsigned int computeOptimalParameter();
+    size_t computeOptimalParameterIndex();
 
     /// State names
     enum State
@@ -190,13 +241,13 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
         };
 
     /// Number of samples to take for each parameter.
-    unsigned int m_nsamples;
+    unsigned int m_n_samples;
 
     /// Descriptive name.
     std::string m_name;
 
     /// Valid parameters.
-    std::vector<unsigned int> m_parameters;
+    std::vector<std::array<unsigned int, n_dimensions>> m_parameters;
 
     /// Current state.
     State m_state;
@@ -208,7 +259,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     unsigned int m_current_element;
 
     /// The current parameter value being sampled (when SCANNING) or optimal (when IDLE).
-    unsigned int m_current_param;
+    std::array<unsigned int, n_dimensions> m_current_param;
 
     /// Time taken for each parameter at each sample.
     std::vector<std::vector<float>> m_samples;
@@ -229,7 +280,262 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
 
     /// Sampling mode.
     mode_Enum m_mode;
+
+    /// Helper method to initialize multi-dimensional arrays recursively.
+    void initializeParameters(const std::vector<std::vector<unsigned int>>& dimension_ranges,
+                              std::array<unsigned int, n_dimensions> parameter,
+                              size_t current_dimension)
+        {
+        for (auto value : dimension_ranges[current_dimension])
+            {
+            parameter[current_dimension] = value;
+
+            if (current_dimension == dimension_ranges.size()-1)
+                {
+                m_parameters.push_back(parameter);
+                std::ostringstream s;
+                s << "(";
+                for (auto v : parameter)
+                    {
+                    s << v << ",";
+                    }
+                s << ")\n";
+                m_exec_conf->msg->notice(4) << "Adding parameter " << s.str();
+                }
+            else
+                {
+                initializeParameters(dimension_ranges, parameter, current_dimension+1);
+                }
+            }
+        }
     };
+
+/*! \param dimension_ranges Valid values for the parameters in each dimension.
+    \param exec_conf Execution configuration.
+    \param name Descriptive name (used in messenger output).
+    \param n_samples Number of time samples to take at each parameter.
+*/
+template <size_t n_dimensions>
+Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>& dimension_ranges,
+              std::shared_ptr<const ExecutionConfiguration> exec_conf,
+              const std::string& name,
+              unsigned int n_samples)
+    : m_n_samples(n_samples), m_name(name),
+      m_exec_conf(exec_conf), m_sync(false), m_mode(mode_median)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing Autotuner " << name << " with " << n_samples
+                                << " samples." << std::endl;
+
+    if (dimension_ranges.size() != n_dimensions)
+        {
+        std::ostringstream s;
+        s << "Autotuner " << m_name << " given invalid number of dimensions.";
+        throw std::invalid_argument(s.str());
+        }
+
+    size_t n_parameters = 1;
+    for (auto dimension : dimension_ranges)
+        {
+        if (dimension.size() == 0)
+            {
+            std::ostringstream s;
+            s << "Autotuner " << m_name << " given a dimension with no values.";
+            throw std::invalid_argument(s.str());
+            }
+        n_parameters *= dimension.size();
+        }
+
+    // Populate the array of samples.
+    m_parameters.reserve(n_parameters);
+    std::array<unsigned int, n_dimensions> placeholder;
+    placeholder.fill(0);
+    initializeParameters(dimension_ranges, placeholder, 0);
+
+    // Ensure that m_n_samples is non-zero and odd to simplify the median computation.
+    if ((m_n_samples & 1) == 0)
+        m_n_samples += 1;
+
+    // Initialize memory.
+    m_samples.resize(m_parameters.size());
+    m_sample_median.resize(m_parameters.size());
+
+    for (unsigned int i = 0; i < m_parameters.size(); i++)
+        {
+        m_samples[i].resize(m_n_samples);
+        }
+
+// create CUDA events
+#ifdef ENABLE_HIP
+    hipEventCreate(&m_start);
+    hipEventCreate(&m_stop);
+    CHECK_CUDA_ERROR();
+#endif
+
+    startScan();
+    }
+
+template <size_t n_dimensions>
+void Autotuner<n_dimensions>::end()
+    {
+#ifdef ENABLE_HIP
+    // handle timing updates if scanning
+    if (m_state == SCANNING)
+        {
+        hipEventRecord(m_stop, 0);
+        hipEventSynchronize(m_stop);
+        hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+        // TODO
+        m_exec_conf->msg->notice(9)
+            << "Autotuner " << m_name << ": t(" << /*m_current_param <<*/ "," << m_current_sample
+            << ") = " << m_samples[m_current_element][m_current_sample] << std::endl;
+
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+#endif
+
+    // Handle state data updates and transitions.
+    if (m_state == SCANNING)
+        {
+        // move on to the next element
+        m_current_element++;
+
+        // If we hit the end of the elements
+        if (m_current_element >= m_parameters.size())
+            {
+            // Move on to the next sample.
+            m_current_sample++;
+            m_current_element = 0;
+
+            // If this is the last sample, go to the idle state and compute the optimal parameter.
+            if (m_current_sample >= m_n_samples)
+                {
+                m_state = IDLE;
+                m_current_sample = 0;
+                m_current_param = m_parameters[computeOptimalParameterIndex()];
+                }
+            else
+                {
+                m_current_param = m_parameters[m_current_element];
+                }
+            }
+        else
+            {
+            m_current_param = m_parameters[m_current_element];
+            }
+        }
+    }
+
+/*! \returns The index of the optimal parameter given the current data in m_samples.
+
+    computeOptimalParameter computes the median, average, or maximum time among all samples for all
+    elements. It then chooses the fastest time (with the lowest index breaking a tie) and returns
+    the index of the parameter that resulted in that time.
+*/
+template <size_t n_dimensions>
+size_t Autotuner<n_dimensions>::computeOptimalParameterIndex()
+    {
+    bool is_root = true;
+
+#ifdef ENABLE_MPI
+    unsigned int nranks = 0;
+    if (m_sync)
+        {
+        nranks = m_exec_conf->getNRanks();
+        is_root = !m_exec_conf->getRank();
+        }
+#endif
+
+    // Start by computing the summary for each element.
+    std::vector<float> v;
+    for (unsigned int i = 0; i < m_parameters.size(); i++)
+        {
+        v = m_samples[i];
+#ifdef ENABLE_MPI
+        if (m_sync && nranks)
+            {
+            // Combine samples from all ranks on rank zero.
+            std::vector<std::vector<float>> all_v;
+            MPI_Barrier(m_exec_conf->getMPICommunicator());
+            gather_v(v, all_v, 0, m_exec_conf->getMPICommunicator());
+            if (is_root)
+                {
+                v.clear();
+                assert(all_v.size() == nranks);
+                for (unsigned int j = 0; j < nranks; ++j)
+                    v.insert(v.end(), all_v[j].begin(), all_v[j].end());
+                }
+            }
+#endif
+        if (is_root)
+            {
+            if (m_mode == mode_avg)
+                {
+                // Compute average.
+                float sum = 0.0f;
+                for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
+                    sum += *it;
+                m_sample_median[i] = sum / float(v.size());
+                }
+            else if (m_mode == mode_max)
+                {
+                // Compute maximum.
+                m_sample_median[i] = -FLT_MIN;
+                for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
+                    {
+                    if (*it > m_sample_median[i])
+                        {
+                        m_sample_median[i] = *it;
+                        }
+                    }
+                }
+            else
+                {
+                // Compute median.
+                size_t n = v.size() / 2;
+                nth_element(v.begin(), v.begin() + n, v.end());
+                m_sample_median[i] = v[n];
+                }
+            }
+        }
+
+    size_t min_idx = 0;
+
+    if (is_root)
+        {
+        // Now find the minimum and maximum times in the medians.
+        float min_value = m_sample_median[0];
+        float max_value = m_sample_median[0];
+
+        for (size_t i = 1; i < m_parameters.size(); i++)
+            {
+            if (m_sample_median[i] < min_value)
+                {
+                min_value = m_sample_median[i];
+                min_idx = i;
+                }
+            if (m_sample_median[i] > max_value)
+                {
+                max_value = m_sample_median[i];
+                }
+            }
+
+        // Get the optimal parameter.
+        unsigned int percent = int(max_value/min_value * 100.0f)-100;
+
+        // Notify user ot optimal parameter selection. (TODO)
+        m_exec_conf->msg->notice(4)
+            << "Autotuner " << m_name << " found optimal parameter " /* << opt */
+            << " with a performance spread of " << percent << "%." << std::endl;
+        }
+
+#ifdef ENABLE_MPI
+    if (m_sync && nranks)
+        bcast(min_idx, 0, m_exec_conf->getMPICommunicator());
+#endif
+    return min_idx;
+    }
+
 
     } // end namespace hoomd
 
