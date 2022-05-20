@@ -195,9 +195,6 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     # create class instance, get/set params when not attached
     obj_instance = cls_obj()
     getattr(obj_instance, param_attr)['A'] = list_params[0]
-    _assert_correct_params(obj_instance, param_attr, list_params[0])
-    getattr(obj_instance, param_attr)['A'] = list_params[1]
-    _assert_correct_params(obj_instance, param_attr, list_params[1])
 
     pickling_check(obj_instance)
     # set up simulation
@@ -205,16 +202,6 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     sim = simulation_factory(snap)
     sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
     sim.operations.integrator.forces.append(obj_instance)
-    sim.run(0)
-    pickling_check(obj_instance)
-
-    # get/set params while attached
-    getattr(obj_instance, param_attr)['A'] = list_params[0]
-    _assert_correct_params(obj_instance, param_attr, list_params[0])
-    getattr(obj_instance, param_attr)['A'] = list_params[1]
-    _assert_correct_params(obj_instance, param_attr, list_params[1])
-
-    pickling_check(obj_instance)
     sim.run(0)
     pickling_check(obj_instance)
     
