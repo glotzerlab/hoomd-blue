@@ -160,6 +160,8 @@ template<class Shape> class ComputeSDF : public Compute
     int m_mode;                        //!< Sampling mode; 0 = binary search, 1 = random sampling
     unsigned int m_num_random_samples; //!< Number of random samples to take if m_mode == 1
     double m_beta;                     //!< Inverse temperature
+    uint64_t m_num_histogram_samples;  //!< Number of samples in histogram on MPI rank
+    uint64_t m_total_num_histogram_samples; //!< Number of samples in histogram
 
     std::vector<double> m_hist; //!< Raw histogram data
     std::vector<double> m_sdf;  //!< Computed SDF
@@ -247,6 +249,13 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
                    MPI_SUM,
                    0,
                    m_exec_conf->getMPICommunicator());
+        MPI_Reduce(&m_num_histogram_samples,
+                   &m_total_num_histogram_samples,
+                   1,
+                   MPI_UINT64_T,
+                   MPI_SUM,
+                   0,
+                   m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -254,7 +263,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     m_sdf.resize(m_hist.size());
     for (size_t i = 0; i < m_hist.size(); i++)
         {
-        m_sdf[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
+        m_sdf[i] = hist_total[i] / (m_total_num_histogram_samples * m_dx);
         }
     }
 
@@ -273,6 +282,7 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
     {
     // resize the histogram
     m_hist.resize((size_t)(m_xmax / m_dx));
+    m_num_histogram_samples = 0;
     // Zero the histogram
     for (size_t i = 0; i < m_hist.size(); i++)
         {
@@ -404,19 +414,11 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                     }
                                 for (size_t i = 0; i < m_num_random_samples; i++)
                                     {
-                                    // pick a random bin from 0 to min_bin, excluding min_bin
+                                    // pick a random bin from 0 to n_bins
                                     size_t bin_to_sample;
-                                    if (min_bin == 0)
-                                        {
-                                        bin_to_sample = 0;
-                                        // TODO: only sample 0th bin once if this is the case
-                                        }
-                                    else
-                                        {
-                                        bin_to_sample
-                                            = static_cast<size_t>(hoomd::UniformIntDistribution(
-                                                (uint32_t)min_bin - 1)(rng));
-                                        }
+                                    bin_to_sample
+                                        = static_cast<size_t>(hoomd::UniformIntDistribution(
+                                            (uint32_t)m_hist.size() - 1)(rng));
                                     double scale_factor = m_dx * double(bin_to_sample + 1);
 
                                     // first check for any "hard" overlaps
@@ -434,10 +436,10 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                         // set min_bin to bin_to_sample, don't need min(min_bin,
                                         // bin_to_sample) since we're only already choosing bins in
                                         // [0, min_bin-1]
-                                        min_bin = bin_to_sample;
-                                        hist_weight = 1.0; // = 1 - exp(-beta*infinity) = 1
-                                        continue;          // do not check for soft overlaps
-                                        }                  // end if overlap
+                                        m_hist[bin_to_sample] += 1.0;
+                                        m_num_histogram_samples++;
+                                        continue; // do not check for soft overlaps
+                                        }         // end if overlap
 
                                     // if no hard overlap, check for a soft overlap if we have
                                     // patches
@@ -459,14 +461,10 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                             float(h_charge.data[j]));
                                         if (u_ij_new != u_ij_0)
                                             {
-                                            // energy is different than unperturbed state, adjust
-                                            // hist_weight accordingly and set min_bin to
-                                            // bin_to_sample, don't need min(min_bin, bin_to_sample)
-                                            // since we're only already choosing bins in [0,
-                                            // min_bin-1]
                                             min_bin = bin_to_sample;
-                                            hist_weight
-                                                = 1.0 - fast::exp(-m_beta * (u_ij_new - u_ij_0));
+                                            m_hist[bin_to_sample]
+                                                += 1.0 - fast::exp(-m_beta * (u_ij_new - u_ij_0));
+                                            m_num_histogram_samples++;
                                             }
                                         } // end if (m_mc->m_patch)
                                     }     // end loop over m_num_random_samples
@@ -481,14 +479,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                     }
                 } // end loop over AABB nodes
             }     // end loop over images
-
-        // record the minimum bin
-        if ((unsigned int)min_bin < m_hist.size())
-            {
-            m_hist[min_bin] += 1.0 * hist_weight;
-            }
-
-        } // end loop over all particles
+        }         // end loop over all particles
     }
 
 /*! \param r_ij Vector pointing from particle i to j (already wrapped into the box)
