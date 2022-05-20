@@ -140,54 +140,52 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
             np.testing.assert_allclose(expected_energies, energies, atol=1e-5)
 
 
-#Test Logging
-_potential_cls = (
-    md.external.field.Field, 
-    md.external.field.Periodic,
-    md.external.field.Electric
-)
+# Test Logging
+_potential_cls = (md.external.field.Field, md.external.field.Periodic,
+                  md.external.field.Electric)
 
-@pytest.mark.parametrize(
-    'cls, expected_namespace, expected_loggables',
-    zip(_potential_cls,
-    itertools.repeat(('md', 'external', 'field')),
-    itertools.repeat({
-        'energy': {
-            'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'energies': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'forces': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'torques': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'virials': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'additional_energy': {
-        'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'additional_virial': {
-            'category': LoggerCategories.sequence,
-            'default': True
-        }
-    })))
+
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip(
+                             _potential_cls,
+                             itertools.repeat(('md', 'external', 'field')),
+                             itertools.repeat({
+                                 'energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'energies': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'forces': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'torques': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'virials': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'additional_energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'additional_virial': {
+                                     'category': LoggerCategories.sequence,
+                                     'default': True
+                                 }
+                             })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
 
 # Pickle Testing
 def test_pickling(simulation_factory, two_particle_snapshot_factory,
-                 external_params):
+                  external_params):
     """Test pickling while attached and while not attached."""
     # unpack parameters
     cls_obj, param_attr, list_params, evaluator = external_params
@@ -204,4 +202,3 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory,
     sim.operations.integrator.forces.append(obj_instance)
     sim.run(0)
     pickling_check(obj_instance)
-    

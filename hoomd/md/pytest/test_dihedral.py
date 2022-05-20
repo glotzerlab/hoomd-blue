@@ -176,51 +176,50 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
                                       atol=1e-5)
 
 
-#Test Logging
-@pytest.mark.parametrize(
-    'cls, expected_namespace, expected_loggables',
-    zip((md.dihedral.Dihedral, md.dihedral.Harmonic, md.dihedral.Table,
-         md.dihedral.OPLS),
-    itertools.repeat(('md', 'dihedral')),
-    itertools.repeat({
-        'energy': {
-            'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'energies': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'forces': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'torques': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'virials': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'additional_energy': {
-        'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'additional_virial': {
-            'category': LoggerCategories.sequence,
-            'default': True
-        }
-    })))
+# Test Logging
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip((md.dihedral.Dihedral, md.dihedral.Harmonic,
+                              md.dihedral.Table, md.dihedral.OPLS),
+                             itertools.repeat(('md', 'dihedral')),
+                             itertools.repeat({
+                                 'energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'energies': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'forces': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'torques': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'virials': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'additional_energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'additional_virial': {
+                                     'category': LoggerCategories.sequence,
+                                     'default': True
+                                 }
+                             })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
 
-#Test Pickling
+# Test Pickling
 @pytest.mark.parametrize('dihedral_cls, dihedral_args, params, force, energy',
                          dihedral_test_parameters)
-def test_pickling(simulation_factory, dihedral_snapshot_factory,
-                  dihedral_cls, dihedral_args, params, force, energy):
+def test_pickling(simulation_factory, dihedral_snapshot_factory, dihedral_cls,
+                  dihedral_args, params, force, energy):
     phi_deg = 45
     snapshot = dihedral_snapshot_factory(phi_deg=phi_deg)
     sim = simulation_factory(snapshot)

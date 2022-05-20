@@ -154,42 +154,41 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
                                    atol=1e-5)
 
 
-#Test Logging
-@pytest.mark.parametrize(
-    'cls, expected_namespace, expected_loggables',
-    zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA, 
-         md.bond.Table, md.bond.Tether),
-    itertools.repeat(('md', 'bond')),
-    itertools.repeat({
-        'energy': {
-            'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'energies': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'forces': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'torques': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'virials': {
-            'category': LoggerCategories.particle,
-            'default': True
-        },
-        'additional_energy': {
-        'category': LoggerCategories.scalar,
-            'default': True
-        },
-        'additional_virial': {
-            'category': LoggerCategories.sequence,
-            'default': True
-        }
-    })))
+# Test Logging
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA,
+                              md.bond.Table, md.bond.Tether),
+                             itertools.repeat(('md', 'bond')),
+                             itertools.repeat({
+                                 'energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'energies': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'forces': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'torques': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'virials': {
+                                     'category': LoggerCategories.particle,
+                                     'default': True
+                                 },
+                                 'additional_energy': {
+                                     'category': LoggerCategories.scalar,
+                                     'default': True
+                                 },
+                                 'additional_virial': {
+                                     'category': LoggerCategories.sequence,
+                                     'default': True
+                                 }
+                             })))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
@@ -197,8 +196,8 @@ def test_logging(cls, expected_namespace, expected_loggables):
 # Pickle Testing
 @pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
                          bond_test_parameters)
-def test_pickling(simulation_factory, two_particle_snapshot_factory,
-                  bond_cls, bond_args, params, force, energy):
+def test_pickling(simulation_factory, two_particle_snapshot_factory, bond_cls,
+                  bond_args, params, force, energy):
     sim = simulation_factory(two_particle_snapshot_factory())
     potential = bond_cls(**bond_args)
     potential.params['A-A'] = params
