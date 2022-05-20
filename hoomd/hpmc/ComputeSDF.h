@@ -263,7 +263,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     m_sdf.resize(m_hist.size());
     for (size_t i = 0; i < m_hist.size(); i++)
         {
-        m_sdf[i] = hist_total[i] / (m_total_num_histogram_samples * m_dx);
+        m_sdf[i] = hist_total[i] / (static_cast<double>(m_total_num_histogram_samples) * m_dx);
         }
     }
 
@@ -331,7 +331,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         size_t min_bin = m_hist.size();
-        double hist_weight = 0.0;
 
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -392,7 +391,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                 if (bin >= 0)
                                     {
                                     min_bin = std::min(min_bin, bin);
-                                    hist_weight = 1.0;
                                     }
                                 } // end binary search path
 
