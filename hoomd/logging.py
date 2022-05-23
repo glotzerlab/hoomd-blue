@@ -728,10 +728,12 @@ class Logger(_SafeNamespaceDict):
                 name and category. If using a method it should not take
                 arguments or have defaults for all arguments.
         """
-        if isinstance(value, _LoggerEntry):
-            super().__setitem__(namespace, value)
-        else:
-            super().__setitem__(namespace, _LoggerEntry.from_tuple(value))
+        if not isinstance(value, _LoggerEntry):
+            value = _LoggerEntry.from_tuple(value)
+        if value.category not in self.categories:
+            raise ValueError(
+                "User specified loggable is not of an accepted category.")
+        super().__setitem__(namespace, value)
 
     def __iadd__(self, obj):
         """Add quantities from object or list of objects to logger.
