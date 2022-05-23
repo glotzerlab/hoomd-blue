@@ -214,15 +214,14 @@ def base_namespace():
 class TestLogger:
 
     def test_setitem(self, blank_logger):
-        logger = blank_logger
-        logger['a'] = (5, '__eq__', 'scalar')
-        logger[('b', 'c')] = (5, '__eq__', 'scalar')
-        logger['c'] = (lambda: [1, 2, 3], 'sequence')
+        blank_logger['a'] = (5, '__eq__', 'scalar')
+        blank_logger[('b', 'c')] = (5, '__eq__', 'scalar')
+        blank_logger['c'] = (lambda: [1, 2, 3], 'sequence')
         for value in [dict(), list(), None, 5, (5, 2), (5, 2, 1)]:
             with raises(ValueError):
-                logger[('c', 'd')] = value
+                blank_logger[('c', 'd')] = value
         with raises(KeyError):
-            logger['a'] = (lambda: [1, 2, 3], 'sequence')
+            blank_logger['a'] = (lambda: [1, 2, 3], 'sequence')
 
     def test_add_single_quantity(self, blank_logger, log_quantity):
         blank_logger._add_single_quantity(None, log_quantity, None)
