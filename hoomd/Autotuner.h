@@ -120,12 +120,11 @@ class PYBIND11_EXPORT AutotunerInterface
     Autotuner is not useful in non-GPU builds. Timing is performed with CUDA events and requires
     ENABLE_HIP=on. Behavior of Autotuner is undefined when ENABLE_HIP=off.
 
-    ** Implementation ** <br>
     Internally, m_n_samples is the number of samples to take (odd for median computation).
-    m_current_sample is the current sample being taken in a circular fashion, and m_current_element
-    is the index of the current parameter being sampled. m_samples stores the time of each sampled
-    kernel launch, and m_sample_median stores the current median of each set of samples. When idle,
-    the number of calls is counted in m_calls. m_state lists the current state in the state machine.
+    m_current_sample is the current sample being taken, and m_current_element is the index of the
+    current parameter being sampled. m_samples stores the time of each sampled kernel launch, and
+    m_sample_median stores the current median of each set of samples. When idle, the number of calls
+    is counted in m_calls. m_state lists the current state in the state machine.
 */
 template <size_t n_dimensions>
 class PYBIND11_EXPORT Autotuner : public AutotunerInterface
@@ -183,16 +182,19 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     */
     std::array<unsigned int, n_dimensions> getParam()
         {
+        return m_current_param;
+        }
+
+    static std::string formatParam(const std::array<unsigned int, n_dimensions>& p)
+        {
         std::ostringstream s;
         s << "(";
-        for (auto v : m_current_param)
+        for (auto v : p)
             {
             s << v << ",";
             }
-        s << ")\n";
-        m_exec_conf->msg->notice(4) << "Getting parameter " << s.str();
-
-        return m_current_param;
+        s << ")";
+        return s.str();
         }
 
     /// Test if the scan is complete.
@@ -293,14 +295,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
             if (current_dimension == dimension_ranges.size()-1)
                 {
                 m_parameters.push_back(parameter);
-                std::ostringstream s;
-                s << "(";
-                for (auto v : parameter)
-                    {
-                    s << v << ",";
-                    }
-                s << ")\n";
-                m_exec_conf->msg->notice(4) << "Adding parameter " << s.str();
+                m_exec_conf->msg->notice(4) << "Adding parameter " << formatParam(parameter) << std::endl;
                 }
             else
                 {
@@ -384,10 +379,10 @@ void Autotuner<n_dimensions>::end()
         hipEventRecord(m_stop, 0);
         hipEventSynchronize(m_stop);
         hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
-        // TODO
+
         m_exec_conf->msg->notice(9)
-            << "Autotuner " << m_name << ": t(" << /*m_current_param <<*/ "," << m_current_sample
-            << ") = " << m_samples[m_current_element][m_current_sample] << std::endl;
+            << "Autotuner " << m_name << ": t[" << formatParam(m_current_param) << "," << m_current_sample
+            << "] = " << m_samples[m_current_element][m_current_sample] << std::endl;
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -523,9 +518,9 @@ size_t Autotuner<n_dimensions>::computeOptimalParameterIndex()
         // Get the optimal parameter.
         unsigned int percent = int(max_value/min_value * 100.0f)-100;
 
-        // Notify user ot optimal parameter selection. (TODO)
+        // Notify user ot optimal parameter selection.
         m_exec_conf->msg->notice(4)
-            << "Autotuner " << m_name << " found optimal parameter " /* << opt */
+            << "Autotuner " << m_name << " found optimal parameter " << formatParam(m_parameters[min_idx])
             << " with a performance spread of " << percent << "%." << std::endl;
         }
 

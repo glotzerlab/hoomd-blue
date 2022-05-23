@@ -65,7 +65,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         {
         // create Messenger internally
         msg = std::shared_ptr<Messenger>(new Messenger(m_mpi_config));
-        msg->setNoticeLevel(4);
+        msg->setNoticeLevel(2);
         }
 
     ostringstream s;
