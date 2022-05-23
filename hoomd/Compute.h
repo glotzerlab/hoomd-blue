@@ -1,8 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "SharedSignal.h"
-#include "SystemDefinition.h"
+#include "Action.h"
 
 #include <memory>
 #include <string>
@@ -56,7 +55,7 @@ namespace hoomd
     See \ref page_dev_info for more information
     \ingroup computes
 */
-class PYBIND11_EXPORT Compute
+class PYBIND11_EXPORT Compute : public Action
     {
     public:
     //! Constructs the compute and associates it with the ParticleData
@@ -89,37 +88,7 @@ class PYBIND11_EXPORT Compute
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
-    void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
-        {
-        m_slots.push_back(slot);
-        }
-
-    void removeDisconnectedSlots()
-        {
-        for (unsigned int i = 0; i < m_slots.size();)
-            {
-            if (!m_slots[i]->connected())
-                {
-                m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get()
-                                            << std::dec << std::endl;
-                m_slots.erase(m_slots.begin() + i);
-                }
-            else
-                {
-                i++;
-                }
-            }
-        }
-
     protected:
-    const std::shared_ptr<SystemDefinition>
-        m_sysdef; //!< The system definition this compute is associated with
-    const std::shared_ptr<ParticleData>
-        m_pdata; //!< The particle data this compute is associated with
-    std::shared_ptr<const ExecutionConfiguration>
-        m_exec_conf; //!< Stored shared ptr to the execution configuration
-    std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots;              //!< Stored shared ptr to the system signals
     bool m_force_compute;     //!< true if calculation is enforced
     uint64_t m_last_computed; //!< Stores the last timestep compute was called
     bool m_first_compute;     //!< true if compute has not yet been called

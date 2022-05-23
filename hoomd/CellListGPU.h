@@ -32,13 +32,6 @@ class PYBIND11_EXPORT CellListGPU : public CellList
 
     virtual ~CellListGPU() {};
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // CellList::startAutotuning();
-        m_tuner->startScan();
-        }
-
     //! Request a multi-GPU cell list
     virtual void setPerDevice(bool per_device)
         {
@@ -87,9 +80,11 @@ class PYBIND11_EXPORT CellListGPU : public CellList
     //! Combine the per-device cell lists
     virtual void combineCellLists();
 
-    std::unique_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    std::unique_ptr<Autotuner<1>>
-        m_tuner_combine; //!< Autotuner for block size of combine cell lists kernel
+    /// Autotune block sizes for main kernel.
+    std::unique_ptr<Autotuner<1>> m_tuner;
+
+    /// Autotune block sizes for combination kernel.
+    std::unique_ptr<Autotuner<1>> m_tuner_combine;
     };
 
 namespace detail

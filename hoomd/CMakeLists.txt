@@ -52,7 +52,8 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
 ##############################
 ## Source setup
 
-set(_hoomd_sources Analyzer.cc
+set(_hoomd_sources Action.cc
+                   Analyzer.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
                    CellList.cc
@@ -112,6 +113,7 @@ endif()
 set(_hoomd_headers
     AABB.h
     AABBTree.h
+    Action.h
     Analyzer.h
     ArrayView.h
     Autotuner.h

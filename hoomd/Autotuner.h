@@ -51,6 +51,12 @@ class PYBIND11_EXPORT AutotunerInterface
     /// Call to start the autotuning sequence.
     virtual void startScan() { }
 
+    /// Check if autotuning is complete.
+    virtual bool isComplete()
+        {
+        return true;
+        }
+
 #ifndef __HIPCC__
     /// Get the autotuner parameters as a Python tuple.
     pybind11::tuple getParameterPython()
@@ -200,7 +206,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     /// Test if the scan is complete.
     /*! \returns true when autotuning is complete.
     */
-    bool isComplete()
+    virtual bool isComplete()
         {
         if (m_state != SCANNING)
             return true;

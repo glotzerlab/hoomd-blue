@@ -1,10 +1,9 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "Action.h"
 #include "Communicator.h"
 #include "HOOMDMath.h"
-#include "SharedSignal.h"
-#include "SystemDefinition.h"
 #include "Trigger.h"
 
 #include <memory>
@@ -54,7 +53,7 @@ namespace hoomd
 
     \ingroup updaters
 */
-class PYBIND11_EXPORT Updater
+class PYBIND11_EXPORT Updater : public Action
     {
     public:
     //! Constructs the compute and associates it with the ParticleData
@@ -88,28 +87,6 @@ class PYBIND11_EXPORT Updater
         return m_exec_conf;
         }
 
-    void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
-        {
-        m_slots.push_back(slot);
-        }
-
-    void removeDisconnectedSlots()
-        {
-        for (unsigned int i = 0; i < m_slots.size();)
-            {
-            if (!m_slots[i]->connected())
-                {
-                m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get()
-                                            << std::dec << std::endl;
-                m_slots.erase(m_slots.begin() + i);
-                }
-            else
-                {
-                i++;
-                }
-            }
-        }
-
     /// Get Trigger
     std::shared_ptr<Trigger> getTrigger()
         {
@@ -132,14 +109,6 @@ class PYBIND11_EXPORT Updater
         }
 
     protected:
-    const std::shared_ptr<SystemDefinition>
-        m_sysdef; //!< The system definition this compute is associated with
-    const std::shared_ptr<ParticleData>
-        m_pdata; //!< The particle data this compute is associated with
-    std::shared_ptr<const ExecutionConfiguration>
-        m_exec_conf; //!< Stored shared ptr to the execution configuration
-    std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots;                        //!< Stored shared ptr to the system signals
     std::shared_ptr<Trigger> m_trigger; /// Trigger that determines if updater runs.
     };
 

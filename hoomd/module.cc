@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "Action.h"
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
@@ -270,6 +271,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_GSDReader(m);
 
     // computes
+    export_Action(m);
     export_Compute(m);
     export_CellList(m);
     export_CellListStencil(m);

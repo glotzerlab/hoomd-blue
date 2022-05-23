@@ -197,29 +197,30 @@ void System::updateTPS()
 
 void System::startAutotuning()
     {
-//     // set the autotuner parameters on everything
-//     if (m_integrator)
-//         m_integrator->startAutotuning();
+    // set the autotuner parameters on everything
+    if (m_integrator)
+        m_integrator->startAutotuning();
 
 //     //TODO: Integrator needs to call startAutotuning on all child classes, as do classes like
 //     // PotentialPair
 
-//     // analyzers
-//     for (auto& analyzer : m_analyzers)
-//         analyzer->startAutotuning();
+    // analyzers
+    for (auto& analyzer : m_analyzers)
+        analyzer->startAutotuning();
 
-//     // updaters
-//     for (auto& updater : m_updaters)
-//         updater->startAutotuning();
+    // updaters
+    for (auto& updater : m_updaters)
+        updater->startAutotuning();
 
-//     // computes
-//     for (auto compute : m_computes)
-//         compute->startAutotuning();
+    // computes
+    for (auto compute : m_computes)
+        compute->startAutotuning();
 
-// #ifdef ENABLE_MPI
-//     if (m_sysdef->isDomainDecomposed())
-//         m_comm->startAutotuning();
-// #endif
+    // tuners
+    for (auto tuner : m_tuners)
+        tuner->startAutotuning();
+
+    // TODO: isAutotuningComplete
     }
 
 // --------- Steps in the simulation run implemented in helper functions
