@@ -160,7 +160,7 @@ class ThermodynamicQuantities(Compute):
             \\frac{1}{2}
             \\sum_{i \\in \\mathrm{filter}}
             \\begin{cases}
-            \\frac{L_{x,i}^2}{I_{d,i}} & I^d_i > 0 \\\\
+            \\frac{L_{d,i}^2}{I_{d,i}} & I^d_i > 0 \\\\
             0 & I^d_i = 0
             \\end{cases}
 
