@@ -629,11 +629,8 @@ class Logger(_SafeNamespaceDict):
             if quantity.category not in self._categories:
                 continue
             # Must be before default check to overwrite _only_default
-            if force_quantities:
+            if not self._only_default or quantity.default or force_quantities:
                 yield quantity
-            if self._only_default and not quantity.default:
-                continue
-            yield quantity
 
     def _get_loggables_by_name(self, obj, quantities):
         if quantities is None:
