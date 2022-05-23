@@ -48,8 +48,11 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
 #endif
 
     private:
-    std::unique_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size counting particles
-    GPUArray<unsigned int> m_off_ranks; //!< Array to hold the ranks of particles that have moved
+    /// Autotuner for block size counting particles
+    std::shared_ptr<Autotuner<1>> m_tuner;
+
+    /// Array to hold the ranks of particles that have moved
+    GPUArray<unsigned int> m_off_ranks;
     };
 
 namespace detail

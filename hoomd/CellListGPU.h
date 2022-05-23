@@ -81,10 +81,10 @@ class PYBIND11_EXPORT CellListGPU : public CellList
     virtual void combineCellLists();
 
     /// Autotune block sizes for main kernel.
-    std::unique_ptr<Autotuner<1>> m_tuner;
+    std::shared_ptr<Autotuner<1>> m_tuner;
 
     /// Autotune block sizes for combination kernel.
-    std::unique_ptr<Autotuner<1>> m_tuner_combine;
+    std::shared_ptr<Autotuner<1>> m_tuner_combine;
     };
 
 namespace detail

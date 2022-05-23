@@ -33,6 +33,7 @@ LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(m_exec_conf)},
                                    this->m_exec_conf, "load_balance"));
+    m_autotuners.push_back(m_tuner);
     }
 
 LoadBalancerGPU::~LoadBalancerGPU()
