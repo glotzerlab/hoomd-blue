@@ -47,6 +47,15 @@ class SolverStep(metaclass=ABCMeta):
         """
         pass
 
+    @abstractmethod
+    def reset(self):
+        """Reset all solving internals.
+
+        This should put the solver in its initial state as if it has not seen
+        any tunables or done any solving yet.
+        """
+        pass
+
     def _solve_one_internal(self, tunable):
         if tunable.y is None:
             return False
@@ -157,6 +166,10 @@ class ScaleSolver(RootSolver):
         tunable.x = tunable.clamp_into_domain(scale * x)
         return False
 
+    def reset(self):
+        """Reset all solving internals."""
+        pass
+
     def __eq__(self, other):
         """Test for equality."""
         if not isinstance(other, SolverStep):
@@ -239,9 +252,8 @@ class SecantSolver(RootSolver, _GradientHelper):
 
     def __init__(self, gamma=0.9, tol=1e-5):
         self.gamma = gamma
-        self._previous_pair = dict()
         self.tol = tol
-        self._counters = dict()
+        self.reset()
 
     def solve_one(self, tunable):
         """Solve one step."""
@@ -283,6 +295,11 @@ class SecantSolver(RootSolver, _GradientHelper):
             tunable.x = new_x
             self._previous_pair[tunable] = (x, y - target)
         return False
+
+    def reset(self):
+        """Reset all solving internals."""
+        self._previous_pair = {}
+        self._counters = {}
 
     def __eq__(self, other):
         """Test for equality."""
@@ -364,15 +381,12 @@ class GradientDescent(Optimizer, _GradientHelper):
         self.alpha = alpha
         self.kappa = None if kappa is None else kappa
         if self.kappa is not None:
-            self._past_grads = np.zeros(len(kappa) + 1)
             self._remainder_kappa = 1 - kappa.sum()
         self.tol = tol
         self.maximize = maximize
         self.max_delta = max_delta
-        self._previous_pair = {}
         self._tuned = set()
-        self._counters = {}
-        self._cnt = 0
+        self.reset()
 
     def solve(self, tunables):
         """Iterates towards a solution for a list of tunables.
@@ -434,8 +448,6 @@ class GradientDescent(Optimizer, _GradientHelper):
         if old_y == y:
             new_x = self._handle_static_y(tunable, x, old_x)
             return False
-        # Reset the counter for a static y.
-        self._counters[tunable] = 0
 
         grad = (y - old_y) / (x - old_x)
         if self.maximize:
@@ -468,6 +480,13 @@ class GradientDescent(Optimizer, _GradientHelper):
             return delta
         return (grad / abs(grad)) * self.max_delta
 
+    def reset(self):
+        """Reset all solving internals."""
+        self._cnt = 0
+        self._previous_pair = {}
+        if self.kappa is not None:
+            self._past_grads = np.zeros(len(self.kappa) + 1)
+
     def __eq__(self, other):
         """Test for equality."""
         if not isinstance(other, SolverStep):
@@ -476,9 +495,8 @@ class GradientDescent(Optimizer, _GradientHelper):
             return False
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ("alpha", "tol", "_counters",
-                         "_previous_pair")) and np.array_equal(
-                             self.kappa, other.kappa)
+            for attr in ("alpha", "tol", "_previous_pair")) and np.array_equal(
+                self.kappa, other.kappa)
 
 
 class _Repeater:
@@ -521,12 +539,7 @@ class GridOptimizer(Optimizer):
         self._n_bins = n_bins
         self._n_rounds = n_rounds
         self._opt = max if maximize else min
-
-        self._bins = {}
-        self._round = defaultdict(_Repeater(1))
-        self._bin_y = defaultdict(list)
-        self._final_bins = {}
-        self._solved = defaultdict(_Repeater(False))
+        self.reset()
 
     def solve_one(self, tunable):
         """Perform one step of optimization protocol."""
@@ -560,6 +573,19 @@ class GridOptimizer(Optimizer):
         # Standard intra-round optimizing.
         tunable.x = self._get_bin_center(tunable, len(bin_y))
         return False
+
+    def reset(self):
+        """Reset all solving internals."""
+        # bin boundaries
+        self._bins = {}
+        # The current optimization round
+        self._round = defaultdict(_Repeater(1))
+        # The y values for the center of the bins
+        self._bin_y = defaultdict(list)
+        # The final bin for each tunable
+        self._final_bins = {}
+        # Whether a tunable is solved
+        self._solved = defaultdict(_Repeater(False))
 
     def _initial_binning(self, tunable):
         """Get the initial bin boundaries for a tunable."""
