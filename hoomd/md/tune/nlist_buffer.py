@@ -207,9 +207,10 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         minimum_buffer (float): The smallest buffer value to allow.
 
     Warning:
-        When using with a `hoomd.device.GPU` device, autotuning can mess with
-        convergence. Running the simulation before adding the tuner to allow the
-        autotuning to converge first results in better TPS optimization.
+        When using with a `hoomd.device.GPU` device, kernel launch parameter
+        autotuning can prevent convergence. Run the simulation for 25,000 steps
+        before adding the tuner to allow the autotuning to converge first
+        results in better TPS optimization.
 
     Note:
         `NeighborListBuffer.with_grid` generally performs better than
