@@ -3,7 +3,7 @@
 
 import hoomd
 from hoomd import md
-from hoomd.logging import LoggerCategories
+from hoomd.conftest import expected_loggable_params
 from hoomd.conftest import logging_check, pickling_check
 import pytest
 import numpy
@@ -181,36 +181,7 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
                          zip((md.dihedral.Dihedral, md.dihedral.Harmonic,
                               md.dihedral.Table, md.dihedral.OPLS),
                              itertools.repeat(('md', 'dihedral')),
-                             itertools.repeat({
-                                 'energy': {
-                                     'category': LoggerCategories.scalar,
-                                     'default': True
-                                 },
-                                 'energies': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'forces': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'torques': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'virials': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'additional_energy': {
-                                     'category': LoggerCategories.scalar,
-                                     'default': True
-                                 },
-                                 'additional_virial': {
-                                     'category': LoggerCategories.sequence,
-                                     'default': True
-                                 }
-                             })))
+                             itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 

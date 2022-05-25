@@ -6,7 +6,7 @@ import pytest
 
 import hoomd
 import hoomd.md as md
-from hoomd.logging import LoggerCategories
+from hoomd.conftest import expected_loggable_params
 from hoomd.conftest import logging_check, pickling_check
 
 import itertools
@@ -261,39 +261,9 @@ def test_r_extrap(simulation, cls, params):
 
 # Test Logging
 @pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
-                         zip(
-                             _potential_cls,
+                         zip(_potential_cls,
                              itertools.repeat(('md', 'external', 'wall')),
-                             itertools.repeat({
-                                 'energy': {
-                                     'category': LoggerCategories.scalar,
-                                     'default': True
-                                 },
-                                 'energies': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'forces': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'torques': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'virials': {
-                                     'category': LoggerCategories.particle,
-                                     'default': True
-                                 },
-                                 'additional_energy': {
-                                     'category': LoggerCategories.scalar,
-                                     'default': True
-                                 },
-                                 'additional_virial': {
-                                     'category': LoggerCategories.sequence,
-                                     'default': True
-                                 }
-                             })))
+                             itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
