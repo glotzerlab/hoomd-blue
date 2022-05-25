@@ -54,8 +54,9 @@ class Action
             if (n_params != m_autotuners.size())
                 {
                 m_exec_conf->msg->warning() << "Ignoring autotuner parameter set. Got "
-                                            << n_params << " parameters, but expected "
-                                            << m_autotuners.size();
+                                            << n_params << " parameters, expected "
+                                            << m_autotuners.size() << "." << std::endl;
+                return;
                 }
 
             for (unsigned int i=0; i < n_params; i++)

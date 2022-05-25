@@ -310,6 +310,30 @@ class Operation(_HOOMDBaseObject):
         ARCHITECTURE.md
     """
 
+    @property
+    def kernel_launch_parameters(self):
+        if not self._attached:
+            raise hoomd.error.DataAccessError("kernel_launch_parameters")
+        return self._cpp_obj.getAutotunerParameters()
+
+    @kernel_launch_parameters.setter
+    def kernel_launch_parameters(self, parameters):
+        if not self._attached:
+            raise hoomd.error.DataAccessError("kernel_launch_parameters")
+        return self._cpp_obj.setAutotunerParameters(parameters)
+
+    @property
+    def is_autotuning_complete(self):
+        if not self._attached:
+            raise hoomd.error.DataAccessError("is_autotuning_complete")
+        return self._cpp_obj.isAutotuningComplete()
+
+    def autotune_kernel_launch_paramters(self):
+        if not self._attached:
+            raise RuntimeError("Call Simulation.run() before "
+                               "autotune_kernel_launch_parameters.")
+        return self._cpp_obj.startAutotuning()
+
 
 class TriggeredOperation(Operation):
     """Operations that include a trigger to determine when to run.
