@@ -198,11 +198,12 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
 class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
     """Optimize neighbor list buffer size for maximum TPS.
 
-    Direct instantiation of this class requires a `hoomd.tune.Optimizer`
-    that determines how move sizes are updated. This class also provides class
-    methods to create a `NeighborListBuffer` tuner with built-in solvers; see
-    `NeighborListBuffer.with_grid` and
-    `NeighborListBuffer.with_gradient_descent`.
+    Tip:
+        Direct instantiation of this class requires a `hoomd.tune.Optimizer`
+        that determines how move sizes are updated. This class also provides
+        class methods to create a `NeighborListBuffer` tuner with built-in
+        solvers; see `NeighborListBuffer.with_grid` and
+        `NeighborListBuffer.with_gradient_descent`.
 
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
