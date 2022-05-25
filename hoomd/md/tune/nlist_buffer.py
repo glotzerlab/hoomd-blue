@@ -172,6 +172,22 @@ class _NeighborListBufferInternal(hoomd.custom._InternalAction):
             return None
         return self.solver._final_bins.get(self._tunable, None)
 
+    def reset(self):
+        """Reset tuning.
+
+        If in the middle of tuning, this resets solvers to their initial values,
+        by calling ``self.solver.reset``.
+
+        Properties such as `best_buffer_size` are maintained at pre-reset
+        values.
+
+        Note:
+            If simulation conditions change (such as a phase transition or
+            compression), `reset` can be used to re-tune at the new condition.
+        """
+        self._tuned = 0
+        self.solver.reset()
+
     def __getstate__(self):
         state = copy.copy(self.__dict__)
         for attr in self._skip_for_equality:
