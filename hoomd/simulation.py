@@ -347,7 +347,7 @@ class Simulation(metaclass=Loggable):
 
     @log
     def initial_timestep(self):
-        """float: `run` will end at this timestep.
+        """float: `run` started at this timestep.
 
         `initial_timestep` is the timestep on which the currently executing
         `run` started.
