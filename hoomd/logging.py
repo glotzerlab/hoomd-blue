@@ -139,7 +139,7 @@ class _NamespaceFilter:
             the logging namespace whenever encountered.
         base_names (set[str], optional): A set of names which indicate that the
             next encountered name in the string should be skipped. For example,
-            if a module hierarchy went like ``project.foo.bar.Bar`` and ``foo``
+            if a module hierarchy was structured as ``project.foo.bar.Bar`` and ``foo``
             directly imports ``Bar``, ``bar`` may not be desirable to have in
             the logging namespace since users interact with it via ``foo.Bar``.
             Currently, this only handles a single level of nesting like this.
