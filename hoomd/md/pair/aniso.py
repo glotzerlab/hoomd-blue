@@ -382,9 +382,9 @@ class ALJ(AnisotropicPair):
 
         * ``epsilon`` (`float`, **required**) - base energy scale
           :math:`\varepsilon` :math:`[energy]`.
-        * ``sigma_i`` (`float`, **required**) - the insphere radius of the first
-          particle type, :math:`[length]`.
-        * ``sigma_j`` (`float`, **required**) - the insphere radius of the
+        * ``sigma_i`` (`float`, **required**) - the insphere diameter of the
+          first particle type, :math:`[length]`.
+        * ``sigma_j`` (`float`, **required**) - the insphere diameter of the
           second particle type, :math:`[length]`.
         * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
           not to include the attractive component of the interaction (see
@@ -399,6 +399,10 @@ class ALJ(AnisotropicPair):
 
         Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
         ``particle_types``], `dict`]
+
+    Note:
+        Parameters which end with i and j refer to the first and second particle
+        type in the parameter tuple, respectively.
 
     .. py:attribute:: shape
 
