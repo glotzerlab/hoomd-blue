@@ -2,9 +2,12 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+from hoomd.conftest import expected_loggable_params
+from hoomd.conftest import logging_check, pickling_check
 import pytest
 import numpy
 
+import itertools
 # Test parameters include the class, improper params, force, and energy.
 # This is parameterized to plan for any future expansion with additional
 # improper potentials.
@@ -109,3 +112,37 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, improper_cls,
     if sim.device.communicator.rank == 0:
         assert sum(sim_energies) == pytest.approx(energy, rel=1e-4)
         numpy.testing.assert_allclose(sim_forces, force, rtol=1e-4, atol=1e-4)
+
+
+# Test Logging
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((hoomd.md.improper.Improper, hoomd.md.improper.Harmonic),
+        itertools.repeat(('md', 'improper')),
+        itertools.repeat(expected_loggable_params)))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
+
+
+# Test pickling
+@pytest.mark.parametrize("improper_cls, params, force, energy",
+                         improper_test_parameters)
+def test_pickling(simulation_factory, snapshot_factory, improper_cls, params,
+                  force, energy):
+    snapshot = snapshot_factory()
+    sim = simulation_factory(snapshot)
+
+    potential = improper_cls()
+    potential.params['A-A-A-A'] = params
+
+    pickling_check(potential)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All())
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    pickling_check(potential)

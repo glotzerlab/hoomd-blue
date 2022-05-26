@@ -4,6 +4,7 @@
 """Implement CustomOperation."""
 
 from abc import abstractmethod
+import functools
 import itertools
 
 from hoomd.data.parameterdicts import ParameterDict
@@ -116,8 +117,60 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
 
 
 class _AbstractLoggableWithPassthrough(_AbstractLoggable):
+    """Enhances wrapping of an internal action class for custom operations.
+
+    Attributes:
+        _internal_cls (type): The action class to wrap.
+        _wrap_methods (list[str]): A list of ``_internal_cls`` methods to
+            actively wrap. Note all loggables are automatically wrapped.
+
+    Extra Features:
+    * Wrap loggable properties/methods to allow for sphinx documentation.
+    * Pass through non-wrapped internal class attributes and methods to custom
+      wrapping class.
+
+    Note:
+        Sphinx can only document wrapped methods/properties.
+    """
+
+    def __init__(cls, name, base, dct):  # noqa: N805
+        """Wrap extant internal class loggables for documentation."""
+        action_cls = dct.get("_internal_class", None)
+        if action_cls is None or isinstance(action_cls, property):
+            return
+        extra_methods = dct.get("_wrap_methods", [])
+        for name in itertools.chain(action_cls._export_dict, extra_methods):
+            wrapped_method = _AbstractLoggableWithPassthrough._wrap_loggable(
+                name, getattr(action_cls, name))
+            setattr(cls, name, wrapped_method)
+        cls._export_dict = action_cls._export_dict
+        _AbstractLoggable.__init__(cls, name, base, dct)
+
+    @staticmethod
+    def _wrap_loggable(name, mthd):
+        if isinstance(mthd, property):
+
+            @property
+            @functools.wraps(mthd)
+            def getter(self):
+                return getattr(self._action, name)
+
+            if mthd.fset is not None:
+
+                @getter.setter
+                def setter(self, new_value):
+                    setattr(self._action, name, new_value)
+
+            return getter
+
+        @functools.wraps(mthd)
+        def func(self, *args, **kwargs):
+            return getattr(self._action, name)(*args, **kwargs)
+
+        return func
 
     def __getattr__(self, attr):
+        """Treat class attributes/methods of inner class as from this class."""
         try:
             # This will not work with classmethods that are constructors. We
             # need a trigger for operations, and the action does not contain a

@@ -7,7 +7,8 @@ import abc
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
-from hoomd.tune.attr_tuner import _TuneDefinition, SolverStep
+from hoomd.tune.attr_tuner import _TuneDefinition
+from hoomd.tune import RootSolver
 
 
 class _MCTuneDefinition(_TuneDefinition):
@@ -40,7 +41,7 @@ class _MCTuneDefinition(_TuneDefinition):
         # timesteps may not be indicative of the current system. None in the
         # hoomd solver infrastructure means that the value either cannot be
         # computed or would be inaccurate at the current time. It informs the
-        # `SolverStep` object to skip tuning this attribute for now.
+        # `RootSolver` object to skip tuning this attribute for now.
         if self.previous_total is None or total_moves == 0:
             self.previous_accepted_moves = accepted_moves
             self.previous_total = total_moves
@@ -91,7 +92,7 @@ class _TuneMCMove(_InternalAction):
         # attributes. However, these are simply forwarding a change along.
         param_dict = ParameterDict(target=OnlyTypes(
             float, postprocess=self._target_postprocess),
-                                   solver=SolverStep)
+                                   solver=RootSolver)
 
         self._param_dict.update(param_dict)
         self.target = target
@@ -109,8 +110,8 @@ class _TuneMCMove(_InternalAction):
     def tuned(self):
         """bool: Whether or not the move sizes are considered tuned.
 
-        A `MoveSize` object is considered tuned if it the solver tolerance has
-        been met by all tunables for 2 iterations.
+        An instance is considered tuned if it the solver tolerance has been met
+        by all tunables for 2 iterations.
         """
         return self._tuned >= 2
 
