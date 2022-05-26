@@ -5,6 +5,7 @@ set(files __init__.py
           balance.py
           custom_tuner.py
           sorter.py
+          solve.py
     )
 
 install(FILES ${files}
