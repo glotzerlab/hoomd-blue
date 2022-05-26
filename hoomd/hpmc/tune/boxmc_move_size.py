@@ -174,9 +174,10 @@ class _InternalBoxMCMoveSize(mc_move_tune._TuneMCMove):
 class BoxMCMoveSize(_InternalCustomTuner):
     """Tunes ``BoxMC`` move sizes to targeted acceptance rate.
 
-    For most common creation of a `BoxMCMoveSize` tuner see
-    `BoxMCMoveSize.secant_solver` and `BoxMCMoveSize.scale_solver`
-    respectively.
+    Tip:
+        For most common creation of a `BoxMCMoveSize` tuner see
+        `BoxMCMoveSize.secant_solver` and `BoxMCMoveSize.scale_solver`
+        respectively.
 
     The tuner will continue tuning despite being ``tuned``. Thus, if simulation
     conditions change the move sizes will continue to change and the tuner will
