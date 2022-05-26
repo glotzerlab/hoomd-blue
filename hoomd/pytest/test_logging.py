@@ -415,3 +415,17 @@ class TestLogger:
     def test_pickling(self, blank_logger, logged_obj):
         blank_logger.add(logged_obj)
         pickling_check(blank_logger)
+
+    def test_iter(self):
+        logger = Logger()
+        logger[("a", "b", "c")] = (lambda: 4, "scalar")
+        logger[("b", "c")] = (lambda: "hello", "string")
+        logger[("a", "a")] = (lambda: 17, "scalar")
+        keys = list(logger)
+        assert len(keys) == 3
+        assert ("a",) not in keys
+        assert ("a", "b") not in keys
+        assert ("b",) not in keys
+        assert ("a", "b", "c") in keys
+        assert ("a", "a") in keys
+        assert ("b", "c") in keys
