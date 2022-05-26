@@ -185,10 +185,11 @@ class _InternalMoveSize(mc_move_tune._TuneMCMove):
 class MoveSize(_InternalCustomTuner):
     """Tunes HPMCIntegrator move sizes to targeted acceptance rate.
 
-    Direct instantiation of this class requires a `hoomd.tune.RootSolver` that
-    determines how move sizes are updated. This class also provides class
-    methods to create a `MoveSize` tuner with built-in solvers; see
-    `MoveSize.secant_solver` and `MoveSize.scale_solver`.
+    Tip:
+        Direct instantiation of this class requires a `hoomd.tune.RootSolver`
+        that determines how move sizes are updated. This class also provides
+        class methods to create a `MoveSize` tuner with built-in solvers; see
+        `MoveSize.secant_solver` and `MoveSize.scale_solver`.
 
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
