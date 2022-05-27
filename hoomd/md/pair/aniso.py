@@ -15,7 +15,7 @@ particle in the simulation state commensurate with the potential energy:
 `AnisotropicPair` applies cuttoffs, exclusions, and assigns per particle
 energies and virials in the same manner as `hoomd.md.pair.Pair`
 
-`AnisotropicPair` does not support ``'xplor'`` shifting mode or the ``r_on``
+`AnisotropicPair` does not support the ``'xplor'`` shifting mode or the ``r_on``
 parameter.
 """
 
@@ -256,21 +256,29 @@ class ALJ(AnisotropicPair):
     .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
 
     .. math::
-        U(r, r_c) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-            \left( \frac{\sigma}{r} \right)^{6} \right] +
+        U(r, r_c) &= U_0(r) &+ U_c(r_c)
+
+            &= 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+            \left( \frac{\sigma}{r} \right)^{6} \right] &+
             4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c} \right)^{12} -
             \left( \frac{\sigma_c}{r_c} \right)^{6} \right]
 
-    The first term is the standard center-center interaction between two
-    Lennard-Jones spheres. The second term is a contact interaction computed
-    based on the smallest distance between the surfaces of the two shapes,
-    :math:`r_c`. The total potential energy can thus be viewed as the sum of
-    two interactions, a central Lennard-Jones potential and a shifted
+    where :math:`\varepsilon` is BLANK, :math:`\varepsilon_s` BLANK,
+    :math:`sigma` is BLANK, :math:`sigma_c` is BLANK.
+    :math:`r` is the center-center distance, :math:`r_c` is the contact distance.
+
+    The first term is the "central" interaction :math:`U_0`, the standard center-center interaction between two
+    Lennard-Jones particles. The second term is the contact interaction :math:`U_c` computed
+    from the smallest distance between the surfaces of the two shapes,
+    :math:`r_c`.
+
+    The total potential energy is therefore the sum of
+    two interactions, a central Lennard-Jones potential and a radially-shifted
     Lennard-Jones potential where the shift is anisotropic and depends on the
     extent of the shape in each direction.
 
     Like a standard LJ potential, each term has an independent cutoff beyond
-    which it decays to zero the behavior of these cutoffs is dependent on
+    which it decays to zero. The behavior of these cutoffs is dependent on
     whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
     (repulsive-only) behavior. This behavior is controlled using the ``alpha``
     parameter, which can take on the following values:
