@@ -139,10 +139,11 @@ class _NamespaceFilter:
             the logging namespace whenever encountered.
         base_names (set[str], optional): A set of names which indicate that the
             next encountered name in the string should be skipped. For example,
-            if a module hierarchy was structured as ``project.foo.bar.Bar`` and ``foo``
-            directly imports ``Bar``, ``bar`` may not be desirable to have in
-            the logging namespace since users interact with it via ``foo.Bar``.
-            Currently, this only handles a single level of nesting like this.
+            if a module hierarchy was structured as ``project.foo.bar.Bar`` and
+            ``foo`` directly imports ``Bar``, ``bar`` may not be desirable to
+            have in the logging namespace since users interact with it via
+            ``foo.Bar``. Currently, this only handles a single level of nesting
+            like this.
         non_native_remove (set[str], optional): A set of names which to remove
             for the logging namespace when found in non-native loggables.
         skip_duplicates (bool, optional): Whether or not to remove consecutive
