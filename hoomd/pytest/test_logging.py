@@ -3,8 +3,9 @@
 
 from hoomd.conftest import pickling_check
 from pytest import raises, fixture
-from hoomd.logging import (_LoggerQuantity, _SafeNamespaceDict, Logger,
-                           dict_map, Loggable, LoggerCategories, log)
+from hoomd.logging import (_LoggerQuantity, _NamespaceFilter,
+                           _SafeNamespaceDict, Logger, dict_map, Loggable,
+                           LoggerCategories, log)
 
 
 class DummyNamespace:
@@ -110,6 +111,38 @@ class TestLoggableMetaclass():
     def test_loggables(self):
         dummy_obj = self.dummy_loggable()
         assert dummy_obj.loggables == {'prop': 'scalar', 'proplist': 'sequence'}
+
+
+class TestNamespaceFilter:
+
+    def test_remove_name(self):
+        filter_ = _NamespaceFilter(remove_names={"foo", "bar"})
+        assert ("baz",) == tuple(filter_(("foo", "bar", "baz")))
+        assert () == tuple(filter_(("foo", "bar")))
+        assert ("a", "c") == tuple(filter_(("a", "bar", "c")))
+
+    def test_base_names(self):
+        filter_ = _NamespaceFilter(base_names={"foo", "bar"})
+        assert ("foo", "bar") == tuple(filter_(("foo", "baz", "bar")))
+        assert ("foo",) == tuple(filter_(("foo", "bar")))
+        assert ("a", "bar") == tuple(filter_(("a", "bar", "c")))
+
+    def test_skip_duplicates(self):
+        filter_ = _NamespaceFilter()
+        assert ("a",) == tuple(filter_(("a", "a", "a", "a")))
+        assert ("a", "b", "a") == tuple(filter_(("a", "a", "b", "a")))
+        assert ("a", "b", "a") == tuple(filter_(("a", "b", "a", "a")))
+
+    def test_non_native_remove(self):
+        filter_ = _NamespaceFilter(non_native_remove={"foo", "bar"})
+        assert (
+            "foo",
+            "bar",
+            "baz",
+        ) == tuple(filter_(("foo", "bar", "baz")))
+        assert ("baz",) == tuple(filter_(("foo", "bar", "baz"), False))
+        assert () == tuple(filter_(("foo", "bar"), False))
+        assert ("a", "c") == tuple(filter_(("a", "bar", "c"), False))
 
 
 # ------- Test dict_map function
