@@ -201,6 +201,7 @@ class _NamespaceFilter:
             yield name
         # Reset for next call of filter
         self._skip_next = False
+        self._last_name = None
 
 
 class _LoggerQuantity:
