@@ -568,11 +568,12 @@ class Logger(_SafeNamespaceDict):
     ``categories`` determines what if any types of loggable quantities (see
     `LoggerCategories`) are appropriate for a given `Logger` object. This helps
     logging backends determine if a `Logger` object is compatible. The
-    ``only_default`` flag affects performance by controlling whether available
-    quantities not commonly logged are skipped (the default) or logged.
-    You can override the ``only_default`` flag by explicitly listing the
-    quantities you want in `add`, but the same is not true with regards
-    to ``categories``.
+    ``only_default`` flag determines whether generally undesired quantities
+    (e.g. performance measures) are logged when using `Logger.__iadd__` and
+    `Logger.add` without specifying quantities. In `Logger.add`, you can
+    override the ``only_default`` flag by explicitly listing the quantities you
+    want to add. On the other hand, ``categories`` is rigidly obeyed as it is a
+    promise to logging backends.
 
     Note:
         The logger provides a way for users to create their own logger back
@@ -595,8 +596,9 @@ class Logger(_SafeNamespaceDict):
             the only types of loggable quantities that can be logged by this
             logger. Defaults to allowing every type.
         only_default (`bool`, optional): Whether to log only quantities that are
-            logged by "default". Defaults to ``True``. If ``False``, loggable
-            quantities that would slow performance are not be logged.
+            logged by _default_. Defaults to ``True``. Non-default quantities
+            are typically measures of operation performance rather than
+            information about simulation state.
     """
 
     def __init__(self, categories=None, only_default=True):
