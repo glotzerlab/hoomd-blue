@@ -568,9 +568,9 @@ class Logger(_SafeNamespaceDict):
     ``categories`` determines what if any types of loggable quantities (see
     `LoggerCategories`) are appropriate for a given `Logger` object. This helps
     logging backends determine if a `Logger` object is compatible. The
-    ``only_default`` flag is mainly a convenience by allowing quantities not
-    commonly logged (but available) to be passed over unless explicitly asked
-    for. You can override the ``only_default`` flag by explicitly listing the
+    ``only_default`` flag affects performance by controlling whether available
+    quantities not commonly logged are skipped (the default) or logged.
+    You can override the ``only_default`` flag by explicitly listing the
     quantities you want in `add`, but the same is not true with regards
     to ``categories``.
 
@@ -595,9 +595,8 @@ class Logger(_SafeNamespaceDict):
             the only types of loggable quantities that can be logged by this
             logger. Defaults to allowing every type.
         only_default (`bool`, optional): Whether to log only quantities that are
-            logged by "default", defaults to ``True``. This mostly means that
-            performance centric loggable quantities will be passed over when
-            logging when false.
+            logged by "default". Defaults to ``True``. If ``False``, loggable
+            quantities that would slow performance are not be logged.
     """
 
     def __init__(self, categories=None, only_default=True):
