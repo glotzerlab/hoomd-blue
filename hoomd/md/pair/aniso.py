@@ -401,8 +401,10 @@ class ALJ(AnisotropicPair):
         ``particle_types``], `dict`]
 
     Note:
-        Parameters which end with i and j refer to the first and second particle
-        type in the parameter tuple, respectively.
+        While the evaluation of the potential is symmetric with respect to
+        the potential parameter labels ``i`` and ``j``, the parameters which
+        physically represent a specific particle type must appear in all sets
+        of pair parameters which include that particle type.
 
     .. py:attribute:: shape
 
