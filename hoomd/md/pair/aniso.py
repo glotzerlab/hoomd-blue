@@ -256,26 +256,45 @@ class ALJ(AnisotropicPair):
     .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
 
     .. math::
-        U(r, r_c) &= U_0(r) &+ U_c(r_c)
 
-            &= 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-            \left( \frac{\sigma}{r} \right)^{6} \right] &+
-            4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c} \right)^{12} -
-            \left( \frac{\sigma_c}{r_c} \right)^{6} \right]
+        U(r, r_c) = U_0(r) + U_c(r_c)
 
-    where :math:`\varepsilon` is BLANK, :math:`\varepsilon_s` BLANK,
-    :math:`sigma` is BLANK, :math:`sigma_c` is BLANK.
-    :math:`r` is the center-center distance, :math:`r_c` is the contact distance.
+    The first term is the central interaction :math:`U_0`, the standard
+    center-center interaction between two Lennard-Jones particles. The second
+    term is the contact interaction :math:`U_c`, computed from the smallest
+    distance between the surfaces of the two shapes, :math:`r_c`. The central
+    and contact interactions are defind as follows:
 
-    The first term is the "central" interaction :math:`U_0`, the standard center-center interaction between two
-    Lennard-Jones particles. The second term is the contact interaction :math:`U_c` computed
-    from the smallest distance between the surfaces of the two shapes,
-    :math:`r_c`.
+    .. math::
 
-    The total potential energy is therefore the sum of
-    two interactions, a central Lennard-Jones potential and a radially-shifted
-    Lennard-Jones potential where the shift is anisotropic and depends on the
-    extent of the shape in each direction.
+        &U_0(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+        \left( \frac{\sigma}{r} \right)^{6} \right]
+
+        &U_c(r_c) = 4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c}
+        \right)^{12} - \left( \frac{\sigma_c}{r_c} \right)^{6} \right]
+
+    where :math:`r` is the center-center distance, :math:`r_c` is the contact
+    distance, :math:`\varepsilon` (``epsilon``) is the strength of both the
+    central and contact interactions, :math:`\varepsilon_c` is an energy
+    coefficient proportional to :math:`\varepsilon`, :math:`\sigma` is the
+    interaction distance of the central term computed as the average of
+    :math:`\sigma_i` (``sigma_i``) and :math:`\sigma_j` (``sigma_j``). Lastly,
+    we use the contact ratios :math:`\beta_i` (``contact_ratio_i``) and
+    :math:`\beta_j` (``contact_ratio_j``) to compute :math:`\sigma_c` as
+    follows:
+
+    .. math::
+
+        \sigma_c &= \frac{1}{2} \left[\sigma_{ci} + \sigma_{cj} \right]
+
+        \sigma_{ci} &= \beta_i \cdot \sigma_i
+
+        \sigma_{cj} &= \beta_j \cdot \sigma_j
+
+    The total potential energy is therefore the sum of two interactions, a
+    central Lennard-Jones potential and a radially-shifted Lennard-Jones
+    potential where the shift is anisotropic and depends on the extent of the
+    shape in each direction.
 
     Like a standard LJ potential, each term has an independent cutoff beyond
     which it decays to zero. The behavior of these cutoffs is dependent on
