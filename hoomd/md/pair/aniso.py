@@ -250,8 +250,7 @@ class ALJ(AnisotropicPair):
           .. deprecated:: v3.1.0
 
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
-    described in `Ramasubramani, V.  et. al. 2020`_. Specifically we implement
-    the formula:
+    described in `Ramasubramani, V.  et. al. 2020`_, using the formula:
 
     .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
 
@@ -279,7 +278,7 @@ class ALJ(AnisotropicPair):
     coefficient proportional to :math:`\varepsilon`, :math:`\sigma` is the
     interaction distance of the central term computed as the average of
     :math:`\sigma_i` (``sigma_i``) and :math:`\sigma_j` (``sigma_j``). Lastly,
-    we use the contact ratios :math:`\beta_i` (``contact_ratio_i``) and
+    `ALJ` uses the contact ratios :math:`\beta_i` (``contact_ratio_i``) and
     :math:`\beta_j` (``contact_ratio_j``) to compute :math:`\sigma_c` as
     follows:
 
