@@ -569,11 +569,11 @@ class Logger(_SafeNamespaceDict):
     `LoggerCategories`) are appropriate for a given `Logger` object. This helps
     logging backends determine if a `Logger` object is compatible. The
     ``only_default`` flag prevents rarely-used quantities (e.g. the number of
-    neighborlist builds) from being added to the logger when using `Logger.__iadd__`
-    and `Logger.add` without specifying them explicitly. In `Logger.add`, you can
-    override the ``only_default`` flag by explicitly listing the quantities you
-    want to add. On the other hand, ``categories`` is rigidly obeyed as it is a
-    promise to logging backends.
+    neighborlist builds) from being added to the logger when
+    using`Logger.__iadd__` and `Logger.add` without specifying them explicitly.
+    In `Logger.add`, you can override the ``only_default`` flag by explicitly
+    listing the quantities you want to add. On the other hand, ``categories`` is
+    rigidly obeyed as it is a promise to logging backends.
 
     Note:
         The logger provides a way for users to create their own logger back
