@@ -383,23 +383,23 @@ def log(func=None,
             loggable quantity, defaults to 'scalar'. See `LoggerCategories` for
             available types. Keyword only argument.
         default (`bool`, optional): Whether the quantity should be logged
-            by default, defaults to True. This is orthogonal to the loggable
-            quantity's type. An example would be performance orientated loggable
-            quantities.  Many users may not want to log such quantities even
-            when logging other quantities of that type. The default category
-            allows for these to be pass over by `Logger` objects by default.
-            Keyword only argument.
+            by default. Defaults to True. This is orthogonal to the loggable
+            quantity's type. Many users may not want to log such quantities even
+            when logging other quantities of that type. An example would be
+            performance orientated loggable quantities, like the number of
+            neighborlist builds. The `default` argument allows for these to be
+            skipped by `Logger` objects by default. Keyword only argument.
         requires_run (`bool`, optional): Whether this property requires the
             simulation to run before being accessible.
 
     Note:
         The namespace (where the loggable object is stored in the `Logger`
-        object's nested dictionary, is determined by the module/script and class
+        object's nested dictionary) is determined by the module/script and class
         name the loggable class comes from. In creating subclasses of
         `hoomd.custom.Action`, for instance, if the module the subclass is
         defined in is ``user.custom.action`` and the class name is ``Foo`` then
         the namespace used will be ``('user', 'custom', 'action', 'Foo')``. This
-        helps to prevent naming conflicts, and automate the logging
+        helps to prevent naming conflicts and automates the logging
         specification for developers and users.
 
     Example::
@@ -563,14 +563,14 @@ class Logger(_SafeNamespaceDict):
 
     `Logger` objects support two ways of discriminating what loggable quantities
     they will accept: ``categories`` and ``only_default`` (the constructor
-    arguments). Both of these are static meaning that once instantiated a
+    arguments). Both of these are static, meaning that once instantiated, a
     `Logger` object will not change the values of these two properties.
-    ``categories`` determines what if any types of loggable quantities (see
+    ``categories`` determines what types of loggable quantities (see
     `LoggerCategories`) are appropriate for a given `Logger` object. This helps
     logging backends determine if a `Logger` object is compatible. The
-    ``only_default`` flag determines whether generally undesired quantities
-    (e.g. performance measures) are logged when using `Logger.__iadd__` and
-    `Logger.add` without specifying quantities. In `Logger.add`, you can
+    ``only_default`` flag prevents rarely-used quantities (e.g. the number of
+    neighborlist builds) from being added to the logger when using `Logger.__iadd__`
+    and `Logger.add` without specifying them explicitly. In `Logger.add`, you can
     override the ``only_default`` flag by explicitly listing the quantities you
     want to add. On the other hand, ``categories`` is rigidly obeyed as it is a
     promise to logging backends.
@@ -596,7 +596,7 @@ class Logger(_SafeNamespaceDict):
             the only types of loggable quantities that can be logged by this
             logger. Defaults to allowing every type.
         only_default (`bool`, optional): Whether to log only quantities that are
-            logged by _default_. Defaults to ``True``. Non-default quantities
+            logged by default. Defaults to ``True``. Non-default quantities
             are typically measures of operation performance rather than
             information about simulation state.
     """
