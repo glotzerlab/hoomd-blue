@@ -59,7 +59,7 @@ author = 'The Regents of the University of Michigan'
 version = '3.2.0'
 release = '3.2.0'
 
-language = None
+language = 'en'
 
 default_role = 'any'
 
