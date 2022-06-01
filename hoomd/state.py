@@ -626,7 +626,7 @@ class State:
         """Assign random values to particle momenta.
 
         Args:
-            filter (hoomd.filter.ParticleFilter): Particles to modify
+            filter (hoomd.filter.filter_like): Particles to modify
             kT (float): Thermal energy to set :math:`[\\mathrm{energy}]`
 
         `thermalize_particle_momenta` assigns the selected particle's velocities

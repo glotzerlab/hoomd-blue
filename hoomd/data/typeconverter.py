@@ -45,8 +45,7 @@ def variant_preprocessing(variant):
         try:
             return Constant(float(variant))
         except Exception:
-            raise ValueError(
-                "Expected a hoomd.variant.Variant or float object.")
+            raise ValueError("Expected a hoomd.variant.variant_like object.")
 
 
 def box_preprocessing(box):

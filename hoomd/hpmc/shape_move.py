@@ -89,7 +89,7 @@ class Elastic(ShapeMove):
     and :math:`V` is the particle volume.
 
     Args:
-        stiffness (`hoomd.variant.Variant`): Shape stiffness against
+        stiffness (hoomd.variant.variant_like): Shape stiffness against
             deformations.
 
         mc (`type` or `hoomd.hpmc.integrate.HPMCIntegrator`): The class of
@@ -124,7 +124,7 @@ class Elastic(ShapeMove):
         elastic_move.reference_shape["A"] = verts
 
     Attributes:
-        stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
+        stiffness (hoomd.variant.Variant): Shape stiffness against
             deformations.
 
         step_size (`TypeParameter` [``particle type``, `float`]): Maximum size

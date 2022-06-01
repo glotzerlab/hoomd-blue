@@ -206,8 +206,8 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         `NeighborListBuffer.with_gradient_descent`.
 
     Args:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
+        trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when to
+            run the tuner.
         nlist (hoomd.md.nlist.NeighborList): Neighbor list instance to tune.
         solver (`hoomd.tune.solve.Optimizer`): A solver that tunes the
             neighbor list buffer to maximize TPS.
@@ -241,11 +241,11 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
     @classmethod
     def with_gradient_descent(
         cls,
-        trigger: hoomd.trigger.Trigger,
+        trigger: hoomd.trigger.trigger_like,
         nlist: NeighborList,
         maximum_buffer: float,
         minimum_buffer: float = 0.0,
-        alpha: "hoomd.variant.Variant | float" = hoomd.variant.Ramp(
+        alpha: hoomd.variant.variant_like = hoomd.variant.Ramp(
             1e-5, 1e-6, 0, 30),
         kappa: typing.Optional[np.ndarray] = (0.33, 0.165),
         tol: float = 1e-5,
@@ -257,14 +257,14 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         solver.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             nlist (hoomd.md.nlist.NeighborList): Neighbor list buffer to
                 maximize TPS.
             maximum_buffer (float): The largest buffer value to allow.
             minimum_buffer (`float`, optional): The smallest buffer value to
                 allow (defaults to 0).
-            alpha (`float` or `hoomd.variant.Variant`, optional): Number
+            alpha (`hoomd.variant.variant_like`, optional): Number
                 between 0 and 1 or variant used to dampen the rate of change in
                 x (defaults to ``hoomd.variant.Ramp(1e-5, 1e-6, 0, 30)``).
                 ``alpha`` scales the corrections to x each iteration.  Larger
@@ -306,7 +306,7 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
     @classmethod
     def with_grid(
         cls,
-        trigger: hoomd.trigger.Trigger,
+        trigger: hoomd.trigger.trigger_like,
         nlist: NeighborList,
         maximum_buffer: float,
         minimum_buffer: float = 0.0,
@@ -316,8 +316,8 @@ class NeighborListBuffer(hoomd.tune.custom_tuner._InternalCustomTuner):
         """Create a `NeighborListBuffer` with a `hoomd.tune.GridOptimizer`.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             nlist (hoomd.md.nlist.NeighborList): Neighbor list buffer to
                 maximize TPS.
             maximum_buffer (float): The largest buffer value to allow.
