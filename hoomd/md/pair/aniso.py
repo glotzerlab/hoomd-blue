@@ -250,9 +250,9 @@ class ALJ(AnisotropicPair):
           .. deprecated:: v3.1.0
 
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
-    described in `Ramasubramani, V.  et. al. 2020`_, using the formula:
+    described in `Ramasubramani, V.  et al. 2020`_, using the formula:
 
-    .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
+    .. _Ramasubramani, V.  et al. 2020: https://doi.org/10.1063/5.0019735
 
     .. math::
 
