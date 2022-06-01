@@ -270,17 +270,18 @@ class ALJ(AnisotropicPair):
         &U_0(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
         \left( \frac{\sigma}{r} \right)^{6} \right]
 
-        &U_c(r_c) = 4 \varepsilon_c(\varepsilon) \left[ \left( \frac{\sigma_c}{r_c}
-        \right)^{12} - \left( \frac{\sigma_c}{r_c} \right)^{6} \right]
+        &U_c(r_c) = 4 \varepsilon_c(\varepsilon) \left[ \left(
+        \frac{\sigma_c}{r_c} \right)^{12} - \left( \frac{\sigma_c}{r_c}
+        \right)^{6} \right]
 
-    where :math:`\varepsilon` (`epsilon <params>`) affects strength of both the central
-    and contact interactions, :math:`\varepsilon_c` is an energy coefficient set
-    proportional to :math:`\varepsilon` to preserve the shape, :math:`\sigma` is
-    the interaction distance of the central term computed as the average of
-    :math:`\sigma_i` (`sigma_i <params>`) and :math:`\sigma_j` (`sigma_j <params>`). Lastly,
-    `ALJ` uses the contact ratios :math:`\beta_i` (`contact_ratio_i <params>`) and
-    :math:`\beta_j` (`contact_ratio_j <params>`) to compute :math:`\sigma_c` as
-    follows:
+    where :math:`\varepsilon` (`epsilon <params>`) affects strength of both the
+    central and contact interactions, :math:`\varepsilon_c` is an energy
+    coefficient set proportional to :math:`\varepsilon` to preserve the shape,
+    :math:`\sigma` is the interaction distance of the central term computed as
+    the average of :math:`\sigma_i` (`sigma_i <params>`) and :math:`\sigma_j`
+    (`sigma_j <params>`). Lastly, `ALJ` uses the contact ratios :math:`\beta_i`
+    (`contact_ratio_i <params>`) and :math:`\beta_j` (`contact_ratio_j
+    <params>`) to compute :math:`\sigma_c` as follows:
 
     .. math::
 
