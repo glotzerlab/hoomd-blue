@@ -259,27 +259,27 @@ class ALJ(AnisotropicPair):
         U(r, r_c) = U_0(r) + U_c(r_c)
 
     The first term is the central interaction :math:`U_0`, the standard
-    center-center interaction between two Lennard-Jones particles. The second
-    term is the contact interaction :math:`U_c`, computed from the smallest
-    distance between the surfaces of the two shapes, :math:`r_c`. The central
-    and contact interactions are defined as follows:
+    center-center interaction between two Lennard-Jones particles with
+    center-center distance :math:`r`. The second term is the contact interaction
+    :math:`U_c`, computed from the smallest distance between the surfaces of the
+    two shapes :math:`r_c. The central and contact interactions are defined as
+    follows:
 
     .. math::
 
         &U_0(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
         \left( \frac{\sigma}{r} \right)^{6} \right]
 
-        &U_c(r_c) = 4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c}
+        &U_c(r_c) = 4 \varepsilon_c(\varepsilon) \left[ \left( \frac{\sigma_c}{r_c}
         \right)^{12} - \left( \frac{\sigma_c}{r_c} \right)^{6} \right]
 
-    where :math:`r` is the center-center distance, :math:`r_c` is the contact
-    distance, :math:`\varepsilon` (``epsilon``) is the strength of both the
-    central and contact interactions, :math:`\varepsilon_c` is an energy
-    coefficient proportional to :math:`\varepsilon`, :math:`\sigma` is the
-    interaction distance of the central term computed as the average of
-    :math:`\sigma_i` (``sigma_i``) and :math:`\sigma_j` (``sigma_j``). Lastly,
-    `ALJ` uses the contact ratios :math:`\beta_i` (``contact_ratio_i``) and
-    :math:`\beta_j` (``contact_ratio_j``) to compute :math:`\sigma_c` as
+    where :math:`\varepsilon` (`epsilon <params>`) affects strength of both the central
+    and contact interactions, :math:`\varepsilon_c` is an energy coefficient set
+    proportional to :math:`\varepsilon` to preserve the shape, :math:`\sigma` is
+    the interaction distance of the central term computed as the average of
+    :math:`\sigma_i` (`sigma_i <params>`) and :math:`\sigma_j` (`sigma_j <params>`). Lastly,
+    `ALJ` uses the contact ratios :math:`\beta_i` (`contact_ratio_i <params>`) and
+    :math:`\beta_j` (`contact_ratio_j <params>`) to compute :math:`\sigma_c` as
     follows:
 
     .. math::
@@ -325,7 +325,7 @@ class ALJ(AnisotropicPair):
 
     Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
-    to empty list to create the ellipsoid).
+    to empty lists to create the ellipsoid).
 
     Note:
         `ALJ` accepts the ``mode`` parameter, but computes the same energy
@@ -333,7 +333,7 @@ class ALJ(AnisotropicPair):
 
     Example::
 
-        nl = hoomd.md.nlist.Cell()
+        nl = hoomd.md.nlist.Cell(buffer=0.4)
         alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
 
         cube_verts = [(-0.5, -0.5, -0.5),
@@ -375,7 +375,7 @@ class ALJ(AnisotropicPair):
 
         import coxeter
 
-        nl = hoomd.md.nlist.Cell()
+        nl = hoomd.md.nlist.Cell(buffer=0.4)
         alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
 
         cube_verts = [[-0.5, -0.5, -0.5],
@@ -416,9 +416,9 @@ class ALJ(AnisotropicPair):
           not to include the attractive component of the interaction (see
           above for details).
         * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
-          sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
+          sphere diameter of the first type with ``sigma_i``. Defaults to 0.15.
         * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
-          sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
+          sphere diameter of the second type with ``sigma_j``. Defaults to 0.15.
         * ``average_simplices`` (`bool`, **optional**) - Whether to average over
           simplices. Defaults to ``True``. See class documentation for more
           information.
@@ -449,6 +449,7 @@ class ALJ(AnisotropicPair):
           respect to the face normal vector pointing outward from the origin.
 
         Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
+
     """
 
     # We don't define a _cpp_class_name since the dimension is a template
