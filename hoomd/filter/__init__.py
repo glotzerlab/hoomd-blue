@@ -25,6 +25,8 @@ themselves to compute the kinetic temperature. See
 count.
 """
 
+import typing
+
 from hoomd.filter.filter_ import ParticleFilter
 from hoomd.filter.all_ import All
 from hoomd.filter.null import Null
@@ -33,3 +35,10 @@ from hoomd.filter.set_ import Intersection, SetDifference, Union
 from hoomd.filter.tags import Tags
 from hoomd.filter.type_ import Type
 from hoomd.filter.custom import CustomFilter
+
+filter_like = typing.Union[ParticleFilter, CustomFilter]
+"""
+An object that acts like a particle filter.
+
+Either a subclass of `ParticleFilter` or `CustomFilter`.
+"""

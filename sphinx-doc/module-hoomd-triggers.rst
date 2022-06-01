@@ -19,6 +19,7 @@ hoomd.trigger
     Or
     Periodic
     Trigger
+    trigger_like
 
 .. rubric:: Details
 
@@ -41,3 +42,4 @@ hoomd.trigger
     .. autoclass:: Periodic(period, phase)
         :show-inheritance:
     .. autoclass:: Trigger()
+    .. autodata:: trigger_like

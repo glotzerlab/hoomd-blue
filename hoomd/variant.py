@@ -29,6 +29,7 @@ Note:
     Provide the minimum and maximum values in the ``_min`` and ``_max``
     methods respectively.
 """
+import typing
 
 from hoomd import _hoomd
 
@@ -202,3 +203,12 @@ class Power(_hoomd.VariantPower, Variant):
         _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)
 
     __eq__ = Variant._private_eq
+
+
+variant_like = typing.Union[Variant, float]
+"""
+Objects that are like a variant.
+
+Any subclass of `Variant` is accepted, but float instances are also valid. They
+are internally converted to variants of type `Constant`.
+"""
