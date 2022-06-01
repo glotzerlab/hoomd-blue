@@ -8,6 +8,13 @@ import os
 import sphinx
 import datetime
 
+from sphinx.domains.python import PythonDomain
+
+# allows typing objects like variant_like to be documented correctly.
+# See: https://github.com/sphinx-doc/sphinx/issues/9560
+PythonDomain.object_types['class'].roles = ('class', 'exc', 'data', 'obj')
+PythonDomain.object_types['data'].roles = ('data', 'class', 'obj')
+
 sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
 # If extensions (or modules to document with autodoc) are in another directory,
