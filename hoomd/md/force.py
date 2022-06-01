@@ -427,7 +427,7 @@ class Active(Force):
         Args:
             trigger (hoomd.trigger.Trigger): Select the timesteps to update
                 rotational diffusion.
-            rotational_diffusion (hoomd.variant.Variant or float): The
+            rotational_diffusion (hoomd.variant.variant_like): The
                 rotational diffusion as a function of time or a constant.
 
         Returns:

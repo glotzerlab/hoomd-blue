@@ -298,8 +298,8 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     """Compute harmonic averaged thermodynamic properties of particles.
 
     Args:
-        filter (`hoomd.filter`): Particle filter to compute thermodynamic
-            properties for.
+        filter (hoomd.filter.filter_like): Particle filter to compute
+            thermodynamic properties for.
         kT (float): Temperature of the system :math:`[\\mathrm{energy}]`.
         harmonic_pressure (float): Harmonic contribution to the pressure
             :math:`[\\mathrm{pressure}]`. If omitted, the HMA pressure can
@@ -329,10 +329,10 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
 
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles compute
+        filter (hoomd.filter.filter_like): Subset of particles compute
             thermodynamic properties for.
 
-        kT (hoomd.variant.Variant): Temperature of the system
+        kT (float): Temperature of the system
             :math:`[\\mathrm{energy}]`.
 
         harmonic_pressure (float): Harmonic contribution to the pressure
