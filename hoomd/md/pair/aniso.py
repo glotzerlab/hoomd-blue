@@ -244,7 +244,7 @@ class ALJ(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
-        mode (`str`, optional) : the energy shifting mode, defaults to "none"
+        mode (`str`, optional): the energy shifting mode, defaults to "none"
           (ignored).
 
           .. deprecated:: v3.1.0
@@ -262,7 +262,7 @@ class ALJ(AnisotropicPair):
     center-center interaction between two Lennard-Jones particles with
     center-center distance :math:`r`. The second term is the contact interaction
     :math:`U_c`, computed from the smallest distance between the surfaces of the
-    two shapes :math:`r_c. The central and contact interactions are defined as
+    two shapes :math:`r_c`. The central and contact interactions are defined as
     follows:
 
     .. math::
