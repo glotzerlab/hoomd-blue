@@ -262,7 +262,7 @@ class ALJ(AnisotropicPair):
     center-center interaction between two Lennard-Jones particles. The second
     term is the contact interaction :math:`U_c`, computed from the smallest
     distance between the surfaces of the two shapes, :math:`r_c`. The central
-    and contact interactions are defind as follows:
+    and contact interactions are defined as follows:
 
     .. math::
 
