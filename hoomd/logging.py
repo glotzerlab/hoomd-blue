@@ -383,23 +383,23 @@ def log(func=None,
             loggable quantity, defaults to 'scalar'. See `LoggerCategories` for
             available types. Keyword only argument.
         default (`bool`, optional): Whether the quantity should be logged
-            by default, defaults to True. This is orthogonal to the loggable
-            quantity's type. An example would be performance orientated loggable
-            quantities.  Many users may not want to log such quantities even
-            when logging other quantities of that type. The default category
-            allows for these to be pass over by `Logger` objects by default.
-            Keyword only argument.
+            by default. Defaults to True. This is orthogonal to the loggable
+            quantity's type. Many users may not want to log such quantities even
+            when logging other quantities of that type. An example would be
+            performance orientated loggable quantities, like the number of
+            neighborlist builds. The `default` argument allows for these to be
+            skipped by `Logger` objects by default. Keyword only argument.
         requires_run (`bool`, optional): Whether this property requires the
             simulation to run before being accessible.
 
     Note:
         The namespace (where the loggable object is stored in the `Logger`
-        object's nested dictionary, is determined by the module/script and class
+        object's nested dictionary) is determined by the module/script and class
         name the loggable class comes from. In creating subclasses of
         `hoomd.custom.Action`, for instance, if the module the subclass is
         defined in is ``user.custom.action`` and the class name is ``Foo`` then
         the namespace used will be ``('user', 'custom', 'action', 'Foo')``. This
-        helps to prevent naming conflicts, and automate the logging
+        helps to prevent naming conflicts and automates the logging
         specification for developers and users.
 
     Example::
@@ -563,16 +563,17 @@ class Logger(_SafeNamespaceDict):
 
     `Logger` objects support two ways of discriminating what loggable quantities
     they will accept: ``categories`` and ``only_default`` (the constructor
-    arguments). Both of these are static meaning that once instantiated a
+    arguments). Both of these are static, meaning that once instantiated, a
     `Logger` object will not change the values of these two properties.
-    ``categories`` determines what if any types of loggable quantities (see
+    ``categories`` determines what types of loggable quantities (see
     `LoggerCategories`) are appropriate for a given `Logger` object. This helps
     logging backends determine if a `Logger` object is compatible. The
-    ``only_default`` flag is mainly a convenience by allowing quantities not
-    commonly logged (but available) to be passed over unless explicitly asked
-    for. You can override the ``only_default`` flag by explicitly listing the
-    quantities you want in `add`, but the same is not true with regards
-    to ``categories``.
+    ``only_default`` flag prevents rarely-used quantities (e.g. the number of
+    neighborlist builds) from being added to the logger when
+    using`Logger.__iadd__` and `Logger.add` without specifying them explicitly.
+    In `Logger.add`, you can override the ``only_default`` flag by explicitly
+    listing the quantities you want to add. On the other hand, ``categories`` is
+    rigidly obeyed as it is a promise to logging backends.
 
     Note:
         The logger provides a way for users to create their own logger back
@@ -595,9 +596,9 @@ class Logger(_SafeNamespaceDict):
             the only types of loggable quantities that can be logged by this
             logger. Defaults to allowing every type.
         only_default (`bool`, optional): Whether to log only quantities that are
-            logged by "default", defaults to ``True``. This mostly means that
-            performance centric loggable quantities will be passed over when
-            logging when false.
+            logged by default. Defaults to ``True``. Non-default quantities
+            are typically measures of operation performance rather than
+            information about simulation state.
     """
 
     def __init__(self, categories=None, only_default=True):
@@ -624,11 +625,12 @@ class Logger(_SafeNamespaceDict):
         quantities."""
         return self._only_default
 
-    def _filter_quantities(self, quantities):
+    def _filter_quantities(self, quantities, force_quantities=False):
         for quantity in quantities:
-            if self._only_default and not quantity.default:
+            if quantity.category not in self._categories:
                 continue
-            elif quantity.category in self._categories:
+            # Must be before default check to overwrite _only_default
+            if not self._only_default or quantity.default or force_quantities:
                 yield quantity
 
     def _get_loggables_by_name(self, obj, quantities):
@@ -643,7 +645,7 @@ class Logger(_SafeNamespaceDict):
                     "object {} has not loggable quantities {}.".format(
                         obj, bad_keys))
             yield from self._filter_quantities(
-                map(lambda q: obj._export_dict[q], quantities))
+                map(lambda q: obj._export_dict[q], quantities), True)
 
     def add(self, obj, quantities=None, user_name=None):
         """Add loggables from obj to logger.
@@ -727,10 +729,12 @@ class Logger(_SafeNamespaceDict):
                 name and category. If using a method it should not take
                 arguments or have defaults for all arguments.
         """
-        if isinstance(value, _LoggerEntry):
-            super().__setitem__(namespace, value)
-        else:
-            super().__setitem__(namespace, _LoggerEntry.from_tuple(value))
+        if not isinstance(value, _LoggerEntry):
+            value = _LoggerEntry.from_tuple(value)
+        if value.category not in self.categories:
+            raise ValueError(
+                "User specified loggable is not of an accepted category.")
+        super().__setitem__(namespace, value)
 
     def __iadd__(self, obj):
         """Add quantities from object or list of objects to logger.
