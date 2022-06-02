@@ -2,8 +2,13 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+from hoomd import md
+from hoomd.conftest import expected_loggable_params
+from hoomd.conftest import logging_check, pickling_check
 import pytest
 import numpy as np
+
+import itertools
 
 # Test parameters include the class, class keyword arguments, bond params,
 # force, and energy.
@@ -147,3 +152,29 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
         np.testing.assert_allclose(sim_forces[1], [-1 * force, 0.0, 0.0],
                                    rtol=1e-2,
                                    atol=1e-5)
+
+
+# Test Logging
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA,
+                              md.bond.Table, md.bond.Tether),
+                             itertools.repeat(('md', 'bond')),
+                             itertools.repeat(expected_loggable_params)))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
+
+
+# Pickle Testing
+@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
+                         bond_test_parameters)
+def test_pickling(simulation_factory, two_particle_snapshot_factory, bond_cls,
+                  bond_args, params, force, energy):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    potential = bond_cls(**bond_args)
+    potential.params['A-A'] = params
+
+    pickling_check(potential)
+    integrator = hoomd.md.Integrator(0.05, forces=[potential])
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(potential)

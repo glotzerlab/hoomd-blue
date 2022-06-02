@@ -6,6 +6,10 @@ import pytest
 
 import hoomd
 import hoomd.md as md
+from hoomd.conftest import expected_loggable_params
+from hoomd.conftest import logging_check, pickling_check
+
+import itertools
 
 
 @pytest.fixture
@@ -253,3 +257,25 @@ def test_r_extrap(simulation, cls, params):
     if simulation.device.communicator.rank == 0:
         assert np.all(energies != 0)
         assert np.all(np.any(forces != 0, axis=1))
+
+
+# Test Logging
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip(_potential_cls,
+                             itertools.repeat(('md', 'external', 'wall')),
+                             itertools.repeat(expected_loggable_params)))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
+
+
+# Pickle Testing
+@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
+def test_pickling(simulation, cls, params):
+    """Test pickling on a small simulation."""
+    wall_pot = cls(WallGenerator.generate_n(2))
+    simulation.operations.integrator.forces.append(wall_pot)
+    wall_pot.params["A"] = params
+
+    pickling_check(wall_pot)
+    simulation.run(0)
+    pickling_check(wall_pot)

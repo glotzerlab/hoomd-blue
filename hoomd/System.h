@@ -93,8 +93,15 @@ class PYBIND11_EXPORT System
     void run(uint64_t nsteps, bool write_at_start = false);
 
     //! Get the average TPS from the last run
-    Scalar getLastTPS() const
+    Scalar getLastTPS()
         {
+#ifdef ENABLE_MPI
+        // make sure all ranks return the same TPS
+        if (m_sysdef->isDomainDecomposed())
+            {
+            bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
         return m_last_TPS;
         }
 
@@ -107,6 +114,13 @@ class PYBIND11_EXPORT System
     /// Get the current wall time
     double getCurrentWalltime()
         {
+#ifdef ENABLE_MPI
+        // make sure all ranks return the same walltime
+        if (m_sysdef->isDomainDecomposed())
+            {
+            bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
         return m_last_walltime;
         }
 
@@ -114,6 +128,12 @@ class PYBIND11_EXPORT System
     uint64_t getEndStep()
         {
         return m_end_tstep;
+        }
+
+    /// Get the end time step
+    uint64_t getStartStep()
+        {
+        return m_start_tstep;
         }
 
     // -------------- Misc methods
