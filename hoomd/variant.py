@@ -211,4 +211,8 @@ Objects that are like a variant.
 
 Any subclass of `Variant` is accepted, but float instances are also valid. They
 are internally converted to variants of type `Constant`.
+
+Note:
+    Attributes that are `Variant` objects can be set via a `variant_like`
+    object.
 """
