@@ -135,14 +135,17 @@ class _NamespaceFilter:
     """Filter for creating the proper namespace for logging object properties.
 
     Attributes:
-        remove_names (set[str]): A set of names which to remove for the logging
-            namespace whenever encountered.
-        base_names (set[str]): A set of names which indicate that the next
-            encountered name in the string should be skipped. For example, if a
-            module hierarchy went like ``project.foo.bar.Bar`` and ``foo``
-            directly imports ``Bar``, ``bar`` may not be desirable to have in
-            the logging namespace since users interact with it via ``foo.Bar``.
-            Currently, this only handles a single level of nesting like this.
+        remove_names (set[str], optional): A set of names which to remove for
+            the logging namespace whenever encountered.
+        base_names (set[str], optional): A set of names which indicate that the
+            next encountered name in the string should be skipped. For example,
+            if a module hierarchy was structured as ``project.foo.bar.Bar`` and
+            ``foo`` directly imports ``Bar``, ``bar`` may not be desirable to
+            have in the logging namespace since users interact with it via
+            ``foo.Bar``. Currently, this only handles a single level of nesting
+            like this.
+        non_native_remove (set[str], optional): A set of names which to remove
+            for the logging namespace when found in non-native loggables.
         skip_duplicates (bool, optional): Whether or not to remove consecutive
             duplicates from a logging namespace (e.g. ``foo.foo.bar`` ->
             ``foo.bar``), default ``True``. By default we assume that this
@@ -152,15 +155,30 @@ class _NamespaceFilter:
     def __init__(self,
                  remove_names=None,
                  base_names=None,
+                 non_native_remove=None,
                  skip_duplicates=True):
         self.remove_names = set() if remove_names is None else remove_names
+        if non_native_remove is None:
+            self.non_native_remove = set()
+        else:
+            self.non_native_remove = non_native_remove
         self.base_names = set() if base_names is None else base_names
         self._skip_next = False
         self.skip_duplicates = skip_duplicates
         if skip_duplicates:
             self._last_name = None
 
-    def __call__(self, namespace):
+    def __call__(self, namespace, native=True):
+        """Filter out parts of the namespace.
+
+        Args:
+            namespace (tuple[str]): The namespace of the loggable.
+            native (bool, optional): Whether the loggable comes internally from
+                hoomd or not.
+
+        Yields:
+             str: The filtered parts of a namespace.
+        """
         for name in namespace:
             # check for duplicates in the namespace and remove them (e.g.
             # `md.pair.pair.LJ` -> `md.pair.LJ`).
@@ -169,6 +187,10 @@ class _NamespaceFilter:
                 self._last_name = name
                 if last_name == name:
                     continue
+            if not native:
+                if name not in self.non_native_remove:
+                    yield name
+                continue
             if name in self.remove_names:
                 continue
             elif self._skip_next:
@@ -179,6 +201,7 @@ class _NamespaceFilter:
             yield name
         # Reset for next call of filter
         self._skip_next = False
+        self._last_name = None
 
 
 class _LoggerQuantity:
@@ -199,11 +222,12 @@ class _LoggerQuantity:
 
     namespace_filter = _NamespaceFilter(
         # Names that are imported directly into the hoomd namespace
-        remove_names={'simulation', 'state', 'operations', 'snapshot'},
+        remove_names={"hoomd", 'simulation', 'state', 'operations', 'snapshot'},
         # Names that have their submodules' classes directly imported into them
         # (e.g. `hoomd.update.box_resize.BoxResize` gets used as
         # `hoomd.update.BoxResize`)
         base_names={'update', 'tune', 'write'},
+        non_native_remove={"__main__"},
         skip_duplicates=True)
 
     def __init__(self, name, cls, category='scalar', default=True):
@@ -255,10 +279,7 @@ class _LoggerQuantity:
         ns = tuple(loggable_cls.__module__.split('.'))
         cls_name = loggable_cls.__name__
         # Only filter namespaces of objects in the hoomd package
-        if ns[0] == 'hoomd':
-            return tuple(cls.namespace_filter(ns[1:])) + (cls_name,)
-        else:
-            return ns + (cls_name,)
+        return tuple(cls.namespace_filter(ns, ns[0] == "hoomd")) + (cls_name,)
 
 
 class Loggable(type):

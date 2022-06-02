@@ -154,6 +154,7 @@ def _keys_helper(dict_, key=()):
     for k in dict_:
         if isinstance(dict_[k], dict):
             yield from _keys_helper(dict_[k], key + (k,))
+            continue
         yield key + (k,)
 
 
