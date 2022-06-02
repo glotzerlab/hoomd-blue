@@ -312,8 +312,8 @@ class NPT(Method):
         tau (float): Coupling constant for the thermostat
             :math:`[\\mathrm{time}]`.
 
-        S (tuple[hoomd.variant.Variant]): Stress components set point for the
-            barostat.
+        S (tuple[hoomd.variant.Variant,...]): Stress components set point for
+            the barostat.
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
             :math:`[\\mathrm{pressure}]`. Stress can be reset after the method
@@ -417,7 +417,7 @@ class NPT(Method):
         if isinstance(value, Sequence):
             if len(value) != 6:
                 raise ValueError(
-                    "Expected a single hoomd.variant.Variant / float or six.")
+                    "Expected a single hoomd.variant.variant_like or six.")
             return tuple(value)
         else:
             return (value, value, value, 0, 0, 0)
@@ -467,7 +467,7 @@ class NPH(Method):
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
 
-        S (tuple[hoomd.variant.variant_like] or \
+        S (tuple[hoomd.variant.variant_like, ...] or \
                 hoomd.variant.variant_like): Stress components set point for
             the barostat.
 
@@ -618,7 +618,7 @@ class NPH(Method):
         if isinstance(value, Sequence):
             if len(value) != 6:
                 raise ValueError(
-                    "Expected a single hoomd.variant.Variant / float or six.")
+                    "Expected a single hoomd.variant.variant_like or six.")
             return tuple(value)
         else:
             return (value, value, value, 0, 0, 0)

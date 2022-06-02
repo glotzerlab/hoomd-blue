@@ -191,8 +191,8 @@ class ChainTime(_InternalCustomTuner):
         `ChainTime.secant_solver` and `ChainTime.scale_solver` respectively.
 
     Args:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
+        trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when to
+            run the tuner.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
         solver (`hoomd.tune.RootSolver`): A solver that tunes chain times to
@@ -221,8 +221,8 @@ class ChainTime(_InternalCustomTuner):
         """Create a `ChainTime` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             target (float): The number of collisions in a chain that is
                 desired.
             max_chain_time (float): The maximum value of chain time to attempt.
@@ -255,8 +255,8 @@ class ChainTime(_InternalCustomTuner):
         of gamma this should not be a problem.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             target (float): The number of collisions in a chain that is desired.
             max_chain_time (float): The maximum value of chain time to attempt,
                 defaults to ``None`` which represents no maximum chain time.
