@@ -58,13 +58,6 @@ template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPair
         m_param = param;
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // PotentialPair<evaluator>::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
     unsigned int m_param;               //!< Kernel tuning parameter

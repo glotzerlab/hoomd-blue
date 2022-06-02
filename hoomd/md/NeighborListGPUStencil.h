@@ -56,13 +56,6 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
         m_cl->setNominalWidth(cell_width);
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        NeighborListGPU::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);

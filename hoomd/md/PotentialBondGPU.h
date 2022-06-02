@@ -41,13 +41,6 @@ class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
     //! Destructor
     virtual ~PotentialBondGPU() { }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // PotentialBond<evaluator, Bonds>::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution

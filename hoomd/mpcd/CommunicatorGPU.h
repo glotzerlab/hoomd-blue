@@ -69,12 +69,6 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
         initializeCommunicationStages();
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        Communicator::startAutotuning();
-        }
-
     protected:
     //! Set the communication flags for the particle data on the GPU
     virtual void setCommFlags(const BoxDim& box);

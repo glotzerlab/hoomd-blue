@@ -332,7 +332,7 @@ class Operation(_HOOMDBaseObject):
         if not self._attached:
             raise RuntimeError("Call Simulation.run() before "
                                "autotune_kernel_launch_parameters.")
-        return self._cpp_obj.startAutotuning()
+        self._cpp_obj.startAutotuning()
 
 
 class TriggeredOperation(Operation):

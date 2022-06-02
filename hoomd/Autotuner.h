@@ -129,8 +129,10 @@ class PYBIND11_EXPORT AutotunerInterface
     Internally, m_n_samples is the number of samples to take (odd for median computation).
     m_current_sample is the current sample being taken, and m_current_element is the index of the
     current parameter being sampled. m_samples stores the time of each sampled kernel launch, and
-    m_sample_median stores the current median of each set of samples. When idle, the number of calls
-    is counted in m_calls. m_state lists the current state in the state machine.
+    m_sample_median stores the current median of each set of samples. m_state lists the current
+    state in the state machine.
+
+    TODO: Implement get/set parameters from Python.
 */
 template <size_t n_dimensions>
 class PYBIND11_EXPORT Autotuner : public AutotunerInterface

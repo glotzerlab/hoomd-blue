@@ -38,13 +38,6 @@ template<class evaluator> class PotentialSpecialPairGPU : public PotentialSpecia
     //! Destructor
     virtual ~PotentialSpecialPairGPU() { }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // PotentialSpecialPair<evaluator>::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution

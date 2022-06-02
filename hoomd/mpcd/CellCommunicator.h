@@ -87,21 +87,6 @@ class PYBIND11_EXPORT CellCommunicator
         return m_cells;
         }
 
-    /// Start autotuning kernel launch parameters
-    void startAutotuning()
-        {
-#ifdef ENABLE_HIP
-        if (m_tuner_pack)
-            {
-            m_tuner_pack->startScan();
-            }
-        if (m_tuner_unpack)
-            {
-            m_tuner_unpack->startScan();
-            }
-#endif // ENABLE_HIP
-        }
-
     private:
     static unsigned int num_instances; //!< Number of communicator instances
     const unsigned int m_id;           //!< Id for this communicator to use in tags

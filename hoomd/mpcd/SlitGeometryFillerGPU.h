@@ -32,14 +32,6 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
                           std::shared_ptr<Variant> T,
                           std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        mpcd::SlitGeometryFiller::startAutotuning();
-
-        m_tuner->startScan();
-        }
-
     protected:
     //! Draw particles within the fill volume on the GPU
     virtual void drawParticles(uint64_t timestep);

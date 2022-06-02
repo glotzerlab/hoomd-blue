@@ -35,17 +35,6 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     //! Destructor
     virtual ~CellThermoComputeGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        mpcd::CellThermoCompute::startAutotuning();
-
-        m_begin_tuner->startScan();
-        m_end_tuner->startScan();
-        m_inner_tuner->startScan();
-        m_stage_tuner->startScan();
-        }
-
     protected:
 #ifdef ENABLE_MPI
     //! Begin the calculation of outer cell properties on the GPU

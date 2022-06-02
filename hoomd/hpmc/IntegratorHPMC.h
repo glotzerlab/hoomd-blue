@@ -170,11 +170,6 @@ class PatchEnergy
         }
 
 #ifdef ENABLE_HIP
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        }
-
     //! Asynchronously launch the JIT kernel
     /*! \param args Kernel arguments
         \param hStream stream to execute on

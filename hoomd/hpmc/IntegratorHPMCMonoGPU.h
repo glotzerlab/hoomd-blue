@@ -153,23 +153,14 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     /// Start autotuning kernel launch parameters
     virtual void startAutotuning()
         {
-        m_tuner_update_pdata->startScan();
-        m_tuner_moves->startScan();
-        m_tuner_narrow->startScan();
+        IntegratorHPMCMono<Shape>::startAutotuning();
+
+        // tune patch kernels in addition to those in `m_autotuners`.
         if (this->m_patch)
             {
             this->m_patch->startAutotuning();
             }
-
-        m_tuner_depletants->startScan();
-        m_tuner_excell_block_size->startScan();
-        m_tuner_convergence->startScan();
-        m_tuner_num_depletants->startScan();
-        m_tuner_num_depletants_ntrial->startScan();
-        m_tuner_depletants_phase1->startScan();
-        m_tuner_depletants_phase2->startScan();
-        m_tuner_depletants_accept->startScan();
-       }
+        }
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep);

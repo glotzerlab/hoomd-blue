@@ -51,13 +51,6 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
     //! Implementation of the streaming rule
     virtual void stream(uint64_t timestep);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        ConfinedStreamingMethod<Geometry>::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner;
     };

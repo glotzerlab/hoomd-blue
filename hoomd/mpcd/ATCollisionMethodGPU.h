@@ -32,15 +32,6 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
                          std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                          std::shared_ptr<Variant> T);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        mpcd::ATCollisionMethod::startAutotuning();
-
-        m_tuner_draw->startScan();
-        m_tuner_apply->startScan();
-        }
-
     protected:
     //! Draw velocities for particles in each cell on the GPU
     virtual void drawVelocities(uint64_t timestep);

@@ -294,7 +294,7 @@ void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
 
 void IntegratorTwoStep::startAutotuning()
     {
-    // Integrator::startAutotuning();
+    Integrator::startAutotuning();
 
     // set params in all methods
     for (auto& method : m_methods)

@@ -33,16 +33,6 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
               unsigned int cur_timestep,
               unsigned int period);
 
-    /// Start autotuning kernel launch parameters
-    virtual void starAutotuning()
-        {
-        mpcd::Sorter::startAutotuning();
-
-        m_sentinel_tuner->startScan();
-        m_reverse_tuner->startScan();
-        m_apply_tuner->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner>
         m_sentinel_tuner;                       //!< Kernel tuner for filling sentinels in cell list

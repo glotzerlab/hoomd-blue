@@ -51,13 +51,6 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
         m_param = param;
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // AnisoPotentialPair<evaluator>::startAutotuning();
-        m_tuner->startScan();
-        }
-
     virtual void
     setParams(unsigned int typ1, unsigned int typ2, const typename evaluator::param_type& param);
 

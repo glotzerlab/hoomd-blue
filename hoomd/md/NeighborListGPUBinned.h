@@ -52,13 +52,6 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         m_param = param;
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        NeighborListGPU::startAutotuning();
-        m_tuner->startScan();
-        }
-
     /// Make the neighborlist deterministic
     void setDeterministic(bool deterministic)
         {

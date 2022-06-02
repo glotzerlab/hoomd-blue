@@ -47,30 +47,6 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     //! Destructor
     virtual ~NeighborListGPUTree();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        NeighborListGPU::startAutotuning();
-
-        m_mark_tuner->startScan();
-        m_count_tuner->startScan();
-        m_copy_tuner->startScan();
-
-        /* These may be null pointers if the first compute has not occurred, since construction of
-           these tuners is deferred until the first neighbor list build (in order to get the tuner
-           parameters from the LBVHWrapper and LBVHTraverserWrapper).
-        */
-        if (m_build_tuner)
-            {
-            m_build_tuner->startScan();
-            }
-
-        if (m_traverse_tuner)
-            {
-            m_traverse_tuner->startScan();
-            }
-        }
-
     protected:
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);

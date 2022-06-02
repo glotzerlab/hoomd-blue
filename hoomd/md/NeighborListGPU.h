@@ -103,14 +103,6 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     //! Destructor
     virtual ~NeighborListGPU() { }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // NeighborList::startAutotuning();
-        m_tuner_filter->startScan();
-        m_tuner_head_list->startScan();
-        }
-
     //! Benchmark the filter kernel
     double benchmarkFilter(unsigned int num_iters);
 

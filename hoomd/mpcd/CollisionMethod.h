@@ -43,9 +43,6 @@ class PYBIND11_EXPORT CollisionMethod
     //! Peek if a collision will occur on this timestep
     virtual bool peekCollide(uint64_t timestep) const;
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning() { }
-
     //! Toggle the grid shifting on or off
     /*!
      * \param enable_grid_shift Flag to enable grid shifting if true

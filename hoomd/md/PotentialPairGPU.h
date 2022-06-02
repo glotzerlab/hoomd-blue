@@ -60,14 +60,6 @@ template<class evaluator> class PotentialPairGPU : public PotentialPair<evaluato
         m_param = param;
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // PotentialPair<evaluator>::startAutotuning();
-        m_tuner->startScan();
-        // TODO: start autotuning the nlist as well
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
     unsigned int m_param;               //!< Kernel tuning parameter

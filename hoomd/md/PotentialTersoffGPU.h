@@ -45,13 +45,6 @@ template<class evaluator> class PotentialTersoffGPU : public PotentialTersoff<ev
     //! Destructor
     virtual ~PotentialTersoffGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // PotentialTersoff<evaluator>::startAutotuning();
-        this->m_tuner->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 

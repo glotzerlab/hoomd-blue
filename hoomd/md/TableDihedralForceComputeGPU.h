@@ -38,13 +38,6 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
     //! Destructor
     virtual ~TableDihedralForceComputeGPU() { }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // TableDihedralForceCompute::startAutotuning();
-        m_tuner->startScan();
-        }
-
     private:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution

@@ -33,14 +33,6 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
                               uint16_t seed,
                               std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        mpcd::SlitPoreGeometryFiller::startAutotuning();
-
-        m_tuner->startScan();
-        }
-
     protected:
     //! Draw particles within the fill volume on the GPU
     virtual void drawParticles(uint64_t timestep);

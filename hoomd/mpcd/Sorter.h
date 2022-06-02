@@ -49,9 +49,6 @@ class PYBIND11_EXPORT Sorter
     //! Update the particle data order
     virtual void update(uint64_t timestep);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning() { }
-
     bool peekSort(uint64_t timestep) const;
 
     //! Change the period

@@ -52,17 +52,6 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
                         std::shared_ptr<ParticleGroup> group);
     virtual ~PPPMForceComputeGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // PPPMForceCompute::startAutotuning();
-        m_tuner_assign->startScan();
-        m_tuner_reduce_mesh->startScan();
-        m_tuner_update->startScan();
-        m_tuner_force->startScan();
-        m_tuner_influence->startScan();
-        }
-
     protected:
     //! Helper function to setup FFT and allocate the mesh arrays
     virtual void initializeFFT();

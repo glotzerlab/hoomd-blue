@@ -31,15 +31,6 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
                           uint16_t seed,
                           std::shared_ptr<mpcd::CellThermoCompute> thermo);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        mpcd::SRDCollisionMethod::startAutotuning();
-
-        m_tuner_rotvec->startScan();
-        m_tuner_rotate->startScan();
-        }
-
     protected:
     //! Randomly draw cell rotation vectors
     virtual void drawRotationVectors(uint64_t timestep);

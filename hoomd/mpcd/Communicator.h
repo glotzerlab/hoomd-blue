@@ -78,9 +78,6 @@ class PYBIND11_EXPORT Communicator
         return m_unique_neighbors;
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning() { }
-
     //@}
 
     //! \name communication methods

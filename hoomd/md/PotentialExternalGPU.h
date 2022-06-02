@@ -32,13 +32,6 @@ template<class evaluator> class PotentialExternalGPU : public PotentialExternal<
     //! Constructs the compute
     PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // PotentialExternal<evaluator>::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

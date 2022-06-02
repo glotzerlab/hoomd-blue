@@ -43,13 +43,6 @@ class PYBIND11_EXPORT HarmonicImproperForceComputeGPU : public HarmonicImproperF
     //! Destructor
     ~HarmonicImproperForceComputeGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // HarmonicImproperForceCompute::startAutotuning();
-        m_tuner->startScan();
-        }
-
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar chi);
 

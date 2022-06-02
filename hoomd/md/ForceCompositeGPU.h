@@ -38,14 +38,6 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
      */
     virtual void updateCompositeParticles(uint64_t timestep);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        m_tuner_force->startScan();
-        m_tuner_virial->startScan();
-        m_tuner_update->startScan();
-        }
-
     protected:
     //! Compute the forces and torques on the central particle
     virtual void computeForces(uint64_t timestep);

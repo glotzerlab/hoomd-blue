@@ -43,13 +43,6 @@ class PYBIND11_EXPORT HarmonicAngleForceComputeGPU : public HarmonicAngleForceCo
     //! Destructor
     ~HarmonicAngleForceComputeGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // HarmonicAngleForceCompute::startAutotuning();
-        m_tuner->startScan();
-        }
-
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
 

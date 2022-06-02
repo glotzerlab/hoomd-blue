@@ -45,14 +45,6 @@ template<class Shape> class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shap
     //! Destructor
     virtual ~ComputeFreeVolumeGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // ComputeFreeVolume<Shape>::startAutotuning();
-        m_tuner_free_volume->startScan();
-        m_tuner_excell_block_size->startScan();
-        }
-
     //! Return an estimate of the overlap volume
     virtual void computeFreeVolume(uint64_t timestep);
 

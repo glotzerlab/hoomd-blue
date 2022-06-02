@@ -44,9 +44,6 @@ class PYBIND11_EXPORT VirtualParticleFiller
     //! Fill up virtual particles
     void fill(uint64_t timestep);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning() { }
-
     //! Set the fill particle density
     void setDensity(Scalar density);
 

@@ -39,13 +39,6 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
     //! Destructor
     ~HarmonicDihedralForceComputeGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // HarmonicDihedralForceCompute::startAutotuning();
-        m_tuner->startScan();
-        }
-
     //! Set the parameters
     virtual void
     setParams(unsigned int type, Scalar K, Scalar sign, int multiplicity, Scalar phi_0);

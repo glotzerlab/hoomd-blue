@@ -113,17 +113,6 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         return h_net_properties.data[mpcd::detail::thermo_index::temperature];
         }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-#ifdef ENABLE_MPI
-        if (m_vel_comm)
-            m_vel_comm->startAutotuning();
-        if (m_energy_comm)
-            m_energy_comm->startAutotuning();
-#endif // ENABLE_MPI
-        }
-
     //! Get the signal for requested thermo flags
     /*!
      * \returns A signal that subscribers can attach a callback to in order

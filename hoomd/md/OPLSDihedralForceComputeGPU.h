@@ -37,13 +37,6 @@ class PYBIND11_EXPORT OPLSDihedralForceComputeGPU : public OPLSDihedralForceComp
     //! Destructor
     virtual ~OPLSDihedralForceComputeGPU() { }
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // OPLSDihedralForceCompute::startAutotuning();
-        m_tuner->startScan();
-        }
-
     private:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 

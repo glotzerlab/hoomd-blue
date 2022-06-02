@@ -50,15 +50,6 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~ForceDistanceConstraintGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // ForceDistanceConstraint::startAutotuning();
-
-        m_tuner_fill->startScan();
-        m_tuner_force->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
     std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array

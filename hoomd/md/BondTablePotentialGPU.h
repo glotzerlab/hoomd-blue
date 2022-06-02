@@ -37,13 +37,6 @@ class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
     //! Destructor
     virtual ~BondTablePotentialGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // BondTablePotential::startAutotuning();
-        m_tuner->startScan();
-        }
-
     private:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution

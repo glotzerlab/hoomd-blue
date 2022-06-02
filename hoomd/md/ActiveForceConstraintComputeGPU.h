@@ -38,15 +38,6 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
                                     std::shared_ptr<ParticleGroup> group,
                                     Manifold manifold);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // ActiveForceConstraintCompute<Manifold>::startAutotuning();
-        m_tuner_force->startScan();
-        m_tuner_diffusion->startScan();
-        m_tuner_constraint->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner_force;      //!< Autotuner for block size (force kernel)
     std::unique_ptr<Autotuner> m_tuner_diffusion;  //!< Autotuner for block size (diff kernel)

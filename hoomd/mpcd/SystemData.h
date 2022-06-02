@@ -66,12 +66,6 @@ class PYBIND11_EXPORT SystemData
     //! Re-initialize the system from a snapshot
     void initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
 
-    /// Start autotuning kernel launch parameters
-    void startAutotuning()
-        {
-        m_particles->startAutotuning();
-        }
-
     private:
     std::shared_ptr<hoomd::SystemDefinition> m_sysdef; //!< HOOMD system definition
     std::shared_ptr<mpcd::ParticleData> m_particles;   //!< MPCD particle data

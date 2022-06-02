@@ -57,13 +57,6 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     //! Destructor
     virtual ~MuellerPlatheFlowGPU(void);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // MuellerPlatheFlow::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 

@@ -30,18 +30,6 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
 
     virtual ~CellListGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // mpcd::CellList::startAutotuning();
-
-        m_tuner_cell->startScan();
-        m_tuner_sort->startScan();
-#ifdef ENABLE_MPI
-        m_tuner_embed_migrate->startScan();
-#endif // ENABLE_MPI
-        }
-
     protected:
     //! Compute the cell list of particles on the GPU
     virtual void buildCellList();

@@ -53,6 +53,7 @@ class Action
             size_t n_params = pybind11::len(params);
             if (n_params != m_autotuners.size())
                 {
+                // TODO: Make this an error
                 m_exec_conf->msg->warning() << "Ignoring autotuner parameter set. Got "
                                             << n_params << " parameters, expected "
                                             << m_autotuners.size() << "." << std::endl;

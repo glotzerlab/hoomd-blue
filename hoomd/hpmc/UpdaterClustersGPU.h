@@ -41,19 +41,7 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
     //! Destructor
     virtual ~UpdaterClustersGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        m_tuner_excell_block_size->startScan();
-        m_tuner_overlaps->startScan();
-        m_tuner_depletants->startScan();
-        m_tuner_num_depletants->startScan();
-        m_tuner_concatenate->startScan();
-        m_tuner_transform->startScan();
-        m_tuner_flip->startScan();
-        }
-
-    //! Take one timestep forward
+     //! Take one timestep forward
     /*! \param timestep timestep at which update is being evaluated
      */
     virtual void update(uint64_t timestep);

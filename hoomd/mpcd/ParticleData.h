@@ -208,24 +208,6 @@ class PYBIND11_EXPORT ParticleData
     //! Get the tag of the particle on the local rank
     unsigned int getTag(unsigned int idx) const;
 
-    /// Start autotuning kernel launch parameters
-    void startAutotuning()
-        {
-#if defined(ENABLE_MPI) && defined(ENABLE_HIP)
-        if (m_mark_tuner)
-            {
-            m_mark_tuner->startScan();
-            }
-        if (m_remove_tuner)
-            {
-            m_remove_tuner->startScan();
-            }
-        if (m_add_tuner)
-            {
-            m_add_tuner->startScan();
-            }
-#endif // ENABLE_MPI && ENABLE_HIP
-        }
     //@}
 
     //! \name swap methods

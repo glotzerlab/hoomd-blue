@@ -45,9 +45,6 @@ class PYBIND11_EXPORT StreamingMethod
     //! Peek if the next step requires streaming
     virtual bool peekStream(uint64_t timestep) const;
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning() { }
-
     //! Change the timestep
     /*!
      * \param deltaT Fundamental HOOMD integration timestep

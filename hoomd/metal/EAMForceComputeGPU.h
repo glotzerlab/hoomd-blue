@@ -36,13 +36,6 @@ class EAMForceComputeGPU : public EAMForceCompute
     //! Destructor
     virtual ~EAMForceComputeGPU();
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        // EAMForceCompute::startAutotuning();
-        m_tuner->startScan();
-        }
-
     protected:
     GlobalArray<kernel::EAMTexInterData> m_eam_data; //!< EAM parameters to be communicated
     std::unique_ptr<Autotuner> m_tuner;              //!< autotuner for block size
