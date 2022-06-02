@@ -385,4 +385,8 @@ An object that can serve as a trigger for an operation.
 Any instance of a `Trigger` subclass is allowed, as well as an int instance. The
 integer is converted to a `Periodic` trigger via ``Periodic(period=a)`` where
 ``a`` is the passed integer.
+
+Note:
+    Attributes that are `Trigger` objects can be set via a `trigger_like`
+    object.
 """
