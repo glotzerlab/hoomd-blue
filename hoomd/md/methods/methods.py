@@ -45,10 +45,10 @@ class NVT(Method):
         tau (float): Coupling constant for the Nosé-Hoover thermostat
             :math:`[\mathrm{time}]`.
 
-    `NVT` integrates particles forward in time in the canonical ensemble
-    using the Nosé-Hoover thermostat. The thermostat is introduced as additional
-    degrees of freedom in the Hamiltonian that couple with the velocities
-    and angular momenta of the particles.
+    `NVT` integrates integrates translational and rotational degrees of freedom
+    in the canonical ensemble using the Nosé-Hoover thermostat. The thermostat
+    is introduced as additional degrees of freedom in the Hamiltonian that
+    couple with the velocities and angular momenta of the particles.
 
     The translational thermostat has a momentum :math:`\xi` and position
     :math:`\eta`. The rotational thermostat has momentum
@@ -198,10 +198,10 @@ class NPT(Method):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPT` integrates particles forward in time in the Isothermal-isobaric
-    ensemble.  The thermostat and barostat are introduced as additional
-    degrees of freedom in the Hamiltonian that couple with the particle
-    velocities and angular momenta and the box parameters.
+    `NPT` integrates integrates translational and rotational degrees of freedom
+    in the Isothermal-isobaric ensemble.  The thermostat and barostat are
+    introduced as additional degrees of freedom in the Hamiltonian that couple
+    with the particle velocities and angular momenta and the box parameters.
 
     The translational thermostat has a momentum :math:`\xi` and position
     :math:`\eta`. The rotational thermostat has momentum
@@ -492,9 +492,10 @@ class NPH(Method):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPH` integrates particles forward in time in the Isoenthalpic-isobaric
-    ensemble. The barostat is introduced as additional degrees of freedom in the
-    Hamiltonian that couple with the box parameters.
+    `NPH` integrates translational and rotational degrees of freedom forward in
+    time in the Isoenthalpic-isobaric ensemble. The barostat is introduced as
+    additional degrees of freedom in the Hamiltonian that couple with the box
+    parameters.
 
     The barostat tensor is :math:`\nu_{\mathrm{ij}}`. Access these quantities
     `barostat_dof`.
@@ -657,8 +658,9 @@ class NVE(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-    `NVE` integrates particles forward in time in the microcanonical ensemble.
-    The equations of motion are derived from the hamiltonian:
+    `NVE` integrates integrates translational and rotational degrees of freedom
+    in the microcanonical ensemble. The equations of motion are derived from the
+    hamiltonian:
 
     .. math::
 
@@ -729,7 +731,7 @@ class Langevin(Method):
     `Langevin` integrates particles forward in time according to the
     Langevin equations of motion.
 
-    In the translational degrees of freedom:
+    The translational degrees of freedom follow:
 
     .. math::
 
@@ -748,7 +750,7 @@ class Langevin(Method):
     fluctuation-dissipation theorem to be consistent with the specified drag and
     temperature, :math:`T`.
 
-    In the rotational degrees of freedom:
+    About axes where :math:`I^i > 0`, the rotational degrees of freedom follow:
 
     .. math::
 
@@ -897,9 +899,10 @@ class Brownian(Method):
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics or the
-    diffusive limit.
+    diffusive limit. It integrates both the translational and rotational
+    degrees of freedom.
 
-    In the translational degrees of freedom:
+    The translational degrees of freedom follow:
 
     .. math::
 
@@ -923,7 +926,7 @@ class Brownian(Method):
     via the fluctuation-dissipation theorem to be consistent with the specified
     drag and temperature, :math:`T`.
 
-    In the rotational degrees of freedom:
+    About axes where :math:`I^i > 0`, the rotational degrees of freedom follow:
 
     .. math::
 
@@ -1190,6 +1193,12 @@ class OverdampedViscous(Method):
     Tip:
         `OverdampedViscous` can be used to simulate systems of athermal active
         matter, such as athermal Active Brownian Particles.
+
+    Note:
+        Even though `OverdampedViscous` models systems in the limit that
+        :math:`m` and moment of inertia :math:`I` go to 0, you must still set
+        non-zero moments of inertia to enable the integration of rotational
+        degrees of freedom.
 
     Examples::
 

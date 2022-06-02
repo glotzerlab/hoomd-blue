@@ -204,6 +204,23 @@ class Integrator(_DynamicIntegrator):
     special case, as it only integrates the degrees of freedom of each body's
     center of mass. See `hoomd.md.constrain.Rigid` for details.
 
+    .. rubric:: Degrees of freedom
+
+    `Integrator` always integrates the translational degrees of freedom.
+    It *optionally* integrates one or more rotational degrees of freedom
+    for a given particle *i* when all the following conditions are met:
+
+    * The intergration method supports rotational degrees of freedom.
+    * `integrate_rotational_dof` is ``True``.
+    * The moment of inertia is non-zero :math:`I^d_i > 0`.
+
+    Each particle may have zero, one, two, or three rotational degrees of
+    freedom.
+
+    Note:
+        By default, `integrate_rotational_dof` is ``False``. `gsd` and
+        `hoomd.Snapshot` also set particle moments of inertia to 0 by default.
+
     .. rubric:: Classes
 
     Classes of the following modules can be used as elements in `methods`:
@@ -240,7 +257,7 @@ class Integrator(_DynamicIntegrator):
 
 
     Attributes:
-        dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
+        dt (float): Integrator time step size :math:`[\mathrm{time}]`.
 
         methods (list[hoomd.md.methods.Method]): List of integration methods.
 
