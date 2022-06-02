@@ -271,6 +271,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_GSDReader(m);
 
     // computes
+    export_Autotuned(m);
     export_Action(m);
     export_Compute(m);
     export_CellList(m);

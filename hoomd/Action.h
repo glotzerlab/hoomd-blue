@@ -11,7 +11,7 @@
 #include <memory>
 #include <pybind11/pybind11.h>
 
-#include "Autotuner.h"
+#include "Autotuned.h"
 #include "SystemDefinition.h"
 #include "SharedSignal.h"
 
@@ -25,7 +25,7 @@ namespace hoomd {
     autotuner parameters for all child classes. Derived classes must add all autotuners to
     m_autotuners for the base class API to be effective.
 */
-class Action
+class Action : public Autotuned
     {
     public:
         Action(std::shared_ptr<SystemDefinition> sysdef) :
@@ -33,57 +33,6 @@ class Action
             m_pdata(sysdef->getParticleData()),
             m_exec_conf(m_pdata->getExecConf())
             {
-            }
-
-        /// Get autotuner parameters.
-        pybind11::tuple getAutotunerParameters()
-            {
-            pybind11::list params;
-
-            for (const auto& tuner : m_autotuners)
-                {
-                params.append(tuner->getParameterPython());
-                }
-            return pybind11::tuple(params);
-            }
-
-        /// Set autotuner parameters.
-        void setAutotunerParameters(pybind11::tuple params)
-            {
-            size_t n_params = pybind11::len(params);
-            if (n_params != m_autotuners.size())
-                {
-                // TODO: Make this an error
-                m_exec_conf->msg->warning() << "Ignoring autotuner parameter set. Got "
-                                            << n_params << " parameters, expected "
-                                            << m_autotuners.size() << "." << std::endl;
-                return;
-                }
-
-            for (unsigned int i=0; i < n_params; i++)
-                {
-                m_autotuners[i]->setParameterPython(params[i]);
-                }
-            }
-
-        /// Start an autotuning sequence.
-        virtual void startAutotuning()
-            {
-            for (const auto& tuner : m_autotuners)
-                {
-                tuner->startScan();
-                }
-            }
-
-        /// Check if autotuning is complete.
-        virtual bool isAutotuningComplete()
-            {
-            bool result = true;
-            for (const auto& tuner : m_autotuners)
-                {
-                result = result && tuner->isComplete();
-                }
-            return true;
             }
 
     protected:
@@ -95,8 +44,6 @@ class Action
 
         /// The simulation's execution configuration.
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
-
-        std::vector<std::shared_ptr<AutotunerInterface>> m_autotuners;
 
         /// Stored shared ptr to the system signals
         std::vector<std::shared_ptr<hoomd::detail::SignalSlot>> m_slots;

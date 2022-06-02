@@ -288,27 +288,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         return state
 
 
-class Operation(_HOOMDBaseObject):
-    """Represents an operation.
-
-    Operations in the HOOMD-blue data scheme are objects that *operate* on a
-    `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
-    `Writer`, `Compute`, `Tuner`, and `Integrator`. All HOOMD-blue operations
-    inherit from one of these five base classes. To find the purpose of each
-    class see its documentation.
-
-    Warning:
-        This class should not be instantiated by users. The class can be used
-        for `isinstance` or `issubclass` checks.
-
-    Note:
-        Developers or those contributing to HOOMD-blue, see our architecture
-        `file`_ for information on HOOMD-blue's architecture decisions regarding
-        operations.
-
-    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ \
-        ARCHITECTURE.md
-    """
+class AutotunedObject(_HOOMDBaseObject):
+    """An object with autotuned kernel launch parameters."""
 
     @property
     def kernel_launch_parameters(self):
@@ -333,6 +314,29 @@ class Operation(_HOOMDBaseObject):
             raise RuntimeError("Call Simulation.run() before "
                                "autotune_kernel_launch_parameters.")
         self._cpp_obj.startAutotuning()
+
+
+class Operation(AutotunedObject):
+    """Represents an operation.
+
+    Operations in the HOOMD-blue data scheme are objects that *operate* on a
+    `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
+    `Writer`, `Compute`, `Tuner`, and `Integrator`. All HOOMD-blue operations
+    inherit from one of these five base classes. To find the purpose of each
+    class see its documentation.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+
+    Note:
+        Developers or those contributing to HOOMD-blue, see our architecture
+        `file`_ for information on HOOMD-blue's architecture decisions regarding
+        operations.
+
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ \
+        ARCHITECTURE.md
+    """
 
 
 class TriggeredOperation(Operation):
