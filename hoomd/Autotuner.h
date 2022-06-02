@@ -109,7 +109,7 @@ class PYBIND11_EXPORT AutotunerInterface
 //! Autotuner for low level GPU kernel parameters
 /*! Autotuner is autotunes GPU kernel parameters (such as block size) for performance. It runs an
     internal state machine and makes sweeps over all valid parameter values. Each parameter value is
-    a std::array<unsigned int, n_parameters>. Performance is measured just for the single kernel in
+    a std::array<unsigned int, n_dimensions>. Performance is measured just for the single kernel in
     question with cudaEvent timers. A number of sweeps are combined with a median to determine the
     fastest parameter. The sampling mode can also be changed to average or maximum. The latter is
     helpful when the distribution of kernel runtimes is bimodal, e.g. because it depends on input of
@@ -142,7 +142,8 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     Autotuner(const std::vector<std::vector<unsigned int>>& dimension_ranges,
               std::shared_ptr<const ExecutionConfiguration> exec_conf,
               const std::string& name,
-              unsigned int n_samples=5);
+              unsigned int n_samples=5,
+              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid = [](std::array<unsigned int, n_dimensions>) -> bool { return true; });
 
     /// Destructor.
     ~Autotuner()
@@ -294,6 +295,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     /// Helper method to initialize multi-dimensional arrays recursively.
     void initializeParameters(const std::vector<std::vector<unsigned int>>& dimension_ranges,
                               std::array<unsigned int, n_dimensions> parameter,
+                              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid,
                               size_t current_dimension)
         {
         for (auto value : dimension_ranges[current_dimension])
@@ -302,12 +304,15 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
 
             if (current_dimension == dimension_ranges.size()-1)
                 {
-                m_parameters.push_back(parameter);
-                m_exec_conf->msg->notice(4) << "Adding parameter " << formatParam(parameter) << std::endl;
+                if (is_parameter_valid(parameter))
+                    {
+                    m_parameters.push_back(parameter);
+                    m_exec_conf->msg->notice(5) << "Autotuner " << m_name << " adding parameter " << formatParam(parameter) << std::endl;
+                    }
                 }
             else
                 {
-                initializeParameters(dimension_ranges, parameter, current_dimension+1);
+                initializeParameters(dimension_ranges, parameter, is_parameter_valid, current_dimension+1);
                 }
             }
         }
@@ -322,7 +327,8 @@ template <size_t n_dimensions>
 Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>& dimension_ranges,
               std::shared_ptr<const ExecutionConfiguration> exec_conf,
               const std::string& name,
-              unsigned int n_samples)
+              unsigned int n_samples,
+              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
     : m_n_samples(n_samples), m_name(name),
       m_exec_conf(exec_conf), m_sync(false), m_mode(mode_median)
     {
@@ -336,7 +342,7 @@ Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>&
         throw std::invalid_argument(s.str());
         }
 
-    size_t n_parameters = 1;
+    size_t n_parameters_max = 1;
     for (auto dimension : dimension_ranges)
         {
         if (dimension.size() == 0)
@@ -345,14 +351,21 @@ Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>&
             s << "Autotuner " << m_name << " given a dimension with no values.";
             throw std::invalid_argument(s.str());
             }
-        n_parameters *= dimension.size();
+        n_parameters_max *= dimension.size();
         }
 
     // Populate the array of samples.
-    m_parameters.reserve(n_parameters);
+    m_parameters.reserve(n_parameters_max);
     std::array<unsigned int, n_dimensions> placeholder;
     placeholder.fill(0);
-    initializeParameters(dimension_ranges, placeholder, 0);
+    initializeParameters(dimension_ranges, placeholder, is_parameter_valid, 0);
+
+    if (m_parameters.size() == 0)
+        {
+        std::ostringstream s;
+        s << "Autotuner " << m_name << " has no valid parameters.";
+        throw std::invalid_argument(s.str());
+        }
 
     // Ensure that m_n_samples is non-zero and odd to simplify the median computation.
     if ((m_n_samples & 1) == 0)
