@@ -35,7 +35,7 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
         This object should not be instantiated or subclassed by an user.
 
     Attributes:
-        trigger (hoomd.trigger.trigger_like): A trigger to determine when the
+        trigger (hoomd.trigger.Trigger): A trigger to determine when the
             wrapped `hoomd.custom.Action` is run.
     """
 

@@ -209,7 +209,7 @@ class MoveSize(_InternalCustomTuner):
             to attempt.
 
     Attributes:
-        trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when to
+        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
             run the tuner.
         moves (list[str]): A list of types of moves to tune. Available options
             are ``'a'`` and ``'d'``.
