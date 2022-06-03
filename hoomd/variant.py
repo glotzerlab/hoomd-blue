@@ -209,8 +209,10 @@ variant_like = typing.Union[Variant, float]
 """
 Objects that are like a variant.
 
-Any subclass of `Variant` is accepted, but float instances are also valid. They
-are internally converted to variants of type `Constant`.
+Any subclass of `Variant` is accepted along with float instances and objects
+convertible to float. They are internally converted to variants of type
+`Constant` via ``Constant(float(a))`` where ``a`` is the float or float
+convertible object.
 
 Note:
     Attributes that are `Variant` objects can be set via a `variant_like`
