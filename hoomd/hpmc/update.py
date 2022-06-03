@@ -792,7 +792,7 @@ class QuickCompress(Updater):
         trigger (hoomd.trigger.trigger_like): Update the box dimensions on
             triggered time steps.
 
-        target_box (Box): Dimensions of the target box.
+        target_box (hoomd.box.box_like): Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.

@@ -440,7 +440,7 @@ class State:
         """Set a new simulation box.
 
         Args:
-            box (Box): New simulation box.
+            box (hoomd.box.box_like): New simulation box.
 
         Note:
             All particles must be inside the new box. `set_box` does not change
