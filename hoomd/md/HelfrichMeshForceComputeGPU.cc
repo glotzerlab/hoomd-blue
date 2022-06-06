@@ -70,6 +70,8 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
     m_sigma.swap(tmp_sigma);
     }
 
+HelfrichMeshForceComputeGPU::~HelfrichMeshForceComputeGPU() { }
+
 void HelfrichMeshForceComputeGPU::setParams(unsigned int type, Scalar K)
     {
     HelfrichMeshForceCompute::setParams(type, K);
