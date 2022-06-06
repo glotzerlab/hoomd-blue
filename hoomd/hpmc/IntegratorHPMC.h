@@ -120,10 +120,10 @@ struct hpmc_patch_args_t
     Provide a PatchEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
     when needed during the HPMC trial moves.
 */
-class PatchEnergy
+class PatchEnergy : public Autotuned
     {
     public:
-    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
+    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Autotuned(), m_sysdef(sysdef) { }
     virtual ~PatchEnergy() { }
 
 #ifdef ENABLE_HIP

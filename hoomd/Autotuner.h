@@ -143,7 +143,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
               std::shared_ptr<const ExecutionConfiguration> exec_conf,
               const std::string& name,
               unsigned int n_samples=5,
-              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid = [](std::array<unsigned int, n_dimensions>) -> bool { return true; });
+              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid = [](const std::array<unsigned int, n_dimensions>& parameter) -> bool { return true; });
 
     /// Destructor.
     ~Autotuner()

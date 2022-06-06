@@ -56,9 +56,11 @@ template<class Shape> class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shap
     GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
     Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-    std::unique_ptr<Autotuner>
-        m_tuner_free_volume; //!< Autotuner for the overlap/free volume counter
-    std::unique_ptr<Autotuner> m_tuner_excell_block_size; //!< Autotuner for excell block_size
+    /// Autotuner for the overlap/free volume counter
+    std::shared_ptr<Autotuner<3>> m_tuner_free_volume;
+
+    /// Autotuner for excell block_size
+    std::shared_ptr<Autotuner<1>> m_tuner_excell_block_size;
 
     void initializeExcellMem();
     };
@@ -69,33 +71,30 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
                                                   std::shared_ptr<CellList> cl)
     : ComputeFreeVolume<Shape>(sysdef, mc, cl)
     {
-    // initialize the autotuners
-    // the full block size, stride and group size matrix is searched,
-    // encoded as block_size*1000000 + stride*100 + group_size.
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size;
-         block_size <= (unsigned int)this->m_exec_conf->dev_prop.maxThreadsPerBlock;
-         block_size += warp_size)
+    // Autotuner parameters:
+    // 0: block size
+    // 1: stride
+    // 2: group size
+
+    // Only widen the parallelism if the shape supports it, and limit parallelism to fit within the
+    // warp.
+    std::function<bool(const std::array<unsigned int, 3>&)> is_parameter_valid = [](const std::array<unsigned int, 3>& parameter) -> bool
         {
-        for (auto s : Autotuner::getTppListPow2(warp_size))
-            {
-            unsigned int stride = 1;
-            while (stride <= this->m_exec_conf->dev_prop.warpSize / s)
-                {
-                // only widen the parallelism if the shape supports it
-                if (stride == 1 || Shape::isParallel())
-                    {
-                    // blockDim.z is limited to 64
-                    if ((block_size % (stride * s)) == 0 && block_size / s / stride <= 64)
-                        valid_params.push_back(block_size * 1000000 + stride * 100 + s);
-                    }
-                stride *= 2;
-                }
-            }
-        }
+        unsigned int block_size = parameter[0];
+        unsigned int stride = parameter[1];
+        unsigned int group_size = parameter[2];
+        return (stride == 1 || Shape::isParallel()) && (stride * group_size <= block_size) && (block_size % (stride * group_size)) == 0;
+        };
+
     m_tuner_free_volume.reset(
-        new Autotuner(valid_params, 5, 1000000, "hpmc_free_volume", this->m_exec_conf));
+        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(m_exec_conf),
+                       AutotunerInterface::getTppListPow2(m_exec_conf),
+                       AutotunerInterface::getTppListPow2(m_exec_conf)},
+                       this->m_exec_conf,
+                       "hpmc_free_volume",
+                       3,
+                       is_parameter_valid));
+    m_autotuners.push_back(m_tuner_free_volume);
 
     GPUArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
@@ -107,13 +106,10 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    m_tuner_excell_block_size.reset(new Autotuner(warp_size,
-                                                  this->m_exec_conf->dev_prop.maxThreadsPerBlock,
-                                                  warp_size,
-                                                  5,
-                                                  1000000,
+    m_tuner_excell_block_size.reset(new Autotuner({AutotunerInterface::makeBlockSizeRange(m_exec_conf)},
                                                   "hpmc_free_volume_excell_block_size",
                                                   this->m_exec_conf));
+    m_autotuners.push_back(m_tuner_excell_block_size);
     }
 
 template<class Shape> ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU() { }
@@ -236,10 +232,10 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
                                                   access_mode::overwrite);
 
         m_tuner_free_volume->begin();
-        unsigned int param = m_tuner_free_volume->getParam();
-        unsigned int block_size = param / 1000000;
-        unsigned int stride = (param % 1000000) / 100;
-        unsigned int group_size = param % 100;
+        auto param = m_tuner_free_volume->getParam();
+        unsigned int block_size = param[0]
+        unsigned int stride = param[1];
+        unsigned int group_size = param[2];
 
         unsigned int n_sample = this->m_n_sample;
 
