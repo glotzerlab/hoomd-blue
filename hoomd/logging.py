@@ -812,3 +812,32 @@ class Logger(_SafeNamespaceDict):
         return (self.categories == other.categories
                 and self.only_default == other.only_default
                 and self._dict == other._dict)
+
+
+def modify_namespace(cls, namespace=None):
+    """Modify a class's namespace to a manually assigned one.
+
+    Args:
+        cls (type or tuple[str]): The class to modify the namespace of or the
+            namespace itself. When passing a namespace (a tuple of strings), the
+            function can be used as a decorator.
+        namespace (`tuple`[`str`], optional): The namespace to change the
+            class's namespace to.
+
+    Warning:
+        This will only persist for the current class. All subclasses will have
+        the standard namespace assignment.
+    """
+    if namespace is None:
+        namespace = cls
+        cls = None
+
+    def modify(cls):
+        for entry in cls._export_dict.values():
+            entry.namespace = namespace
+        return cls
+
+    if cls is None:
+        return modify
+
+    return modify(cls)
