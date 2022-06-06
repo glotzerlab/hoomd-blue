@@ -304,7 +304,7 @@ class Integrator(_DynamicIntegrator):
                 and self._simulation.state is not None):
             self._simulation.state.update_group_dof()
 
-    @hoomd.logging.log(requires_run=True)
+    @hoomd.logging.log(category="sequence", requires_run=True)
     def linear_momentum(self):
         """tuple(float,float,float): The linear momentum vector of the system \
             :math:`[\\mathrm{mass} \\cdot \\mathrm{velocity}]`.
