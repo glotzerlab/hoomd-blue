@@ -141,6 +141,7 @@ class _DynamicIntegrator(BaseIntegrator):
         self._param_dict["rigid"] = new_rigid
 
 
+@hoomd.logging.modify_namespace(("md", "Integrator"))
 class Integrator(_DynamicIntegrator):
     r"""Molecular dynamics time integration.
 
