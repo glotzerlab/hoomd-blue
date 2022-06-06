@@ -92,3 +92,11 @@ def test_pickling(make_simulation, integrator_elements):
     sim = make_simulation()
     integrator = hoomd.md.Integrator(0.005, **integrator_elements)
     hoomd.conftest.operation_pickling_check(integrator, sim)
+
+
+def test_logging():
+    hoomd.conftest.logging_check(hoomd.md.Integrator, ("md",), {
+        "linear_momentum": {
+            "category": hoomd.logging.LoggerCategories.sequence
+        }
+    })
