@@ -107,9 +107,9 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    m_tuner_excell_block_size.reset(new Autotuner({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                                  "hpmc_free_volume_excell_block_size",
-                                                  this->m_exec_conf));
+    m_tuner_excell_block_size.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                                                                     this->m_exec_conf,
+                                                                                     "hpmc_free_volume_excell_block_size"));
     this->m_autotuners.push_back(m_tuner_excell_block_size);
     }
 
@@ -205,7 +205,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
                      this->m_cl->getCellListIndexer(),
                      this->m_cl->getCellAdjIndexer(),
                      this->m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
-                     this->m_tuner_excell_block_size->getParam());
+                     this->m_tuner_excell_block_size->getParam()[0]);
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner_excell_block_size->end();

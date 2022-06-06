@@ -303,7 +303,6 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
     m_tuner_moves.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
                                       this->m_exec_conf,
                                       "hpmc_moves"
@@ -380,7 +379,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     std::function<bool(const std::array<unsigned int, 3>&)> is_depletant_parameter_valid = [](const std::array<unsigned int, 3>& parameter) -> bool
         {
         unsigned int block_size = parameter[0];
-        unsigned int depletants_per_thread = parameter[1];
+        // unsigned int depletants_per_thread = parameter[1]; // unused
         unsigned int threads_per_particle = parameter[2];
         return (block_size % threads_per_particle) == 0;
         };
