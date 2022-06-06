@@ -17,6 +17,7 @@ from itertools import chain
 from hoomd.data import syncedlist
 from hoomd.operation import Writer, Updater, Tuner, Compute, Integrator
 from hoomd.tune import ParticleSorter
+from hoomd.error import DataAccessError
 
 
 class Operations(Collection):
@@ -289,6 +290,26 @@ class Operations(Collection):
         can be modified as a standard Python list.
         """
         return self._computes
+
+    @property
+    def is_autotuning_complete(self):
+        if not self._scheduled:
+            raise DataAccessError("is_autotuning_complete")
+
+        result = True
+        for op in self:
+            result = result and op.is_autotuning_complete
+
+        return result
+
+    def autotune_kernel_launch_parameters(self):
+        if not self._scheduled:
+            raise RuntimeError("Call Simulation.run() before "
+                               "autotune_kernel_launch_parameters.")
+
+        for op in self:
+            op.autotune_kernel_launch_parameters()
+
 
     def __getstate__(self):
         """Get the current state of the operations container for pickling."""

@@ -76,7 +76,7 @@ class Autotuned
                 {
                 result = result && tuner->isComplete();
                 }
-            return true;
+            return result;
             }
 
     protected:
