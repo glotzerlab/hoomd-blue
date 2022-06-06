@@ -89,10 +89,17 @@ class PYBIND11_EXPORT AutotunerInterface
         }
 
     /// Build a list of thread per particle targets.
-    static std::vector<unsigned int> getTppListPow2(const std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    /*! Defaults to powers of two within a warp size. Pass a value to force_size to choose powers
+        of two up to and including force_size.
+    */
+    static std::vector<unsigned int> getTppListPow2(const std::shared_ptr<const ExecutionConfiguration> exec_conf, int force_size=-1)
         {
         std::vector<unsigned int> v;
         unsigned int warp_size = exec_conf->dev_prop.warpSize;
+        if (force_size > 0)
+            {
+            warp_size = (unsigned int)force_size;
+            }
 
         for (unsigned int s = 4; s <= warp_size; s *= 2)
             {
@@ -132,6 +139,11 @@ class PYBIND11_EXPORT AutotunerInterface
     m_sample_median stores the current median of each set of samples. m_state lists the current
     state in the state machine.
 
+    Some classes may activate some autotuners optionally based on run time parameters. Set
+    *optional* to `true` and the Autotuner will report that it is complete before it starts
+    scanning. This prevents the optional autotuners from flagging the whole class as not complete
+    indefinately.
+
     TODO: Implement get/set parameters from Python.
 */
 template <size_t n_dimensions>
@@ -143,6 +155,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
               std::shared_ptr<const ExecutionConfiguration> exec_conf,
               const std::string& name,
               unsigned int n_samples=5,
+              bool optional=false,
               std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid = [](const std::array<unsigned int, n_dimensions>& parameter) -> bool { return true; });
 
     /// Destructor.
@@ -169,6 +182,8 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     /// Call before kernel launch.
     void begin()
     {
+    m_active = true;
+
 #ifdef ENABLE_HIP
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == SCANNING)
@@ -211,7 +226,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     */
     virtual bool isComplete()
         {
-        if (m_state != SCANNING)
+        if ((m_optional && !m_active) || m_state != SCANNING)
             return true;
         else
             return false;
@@ -253,6 +268,12 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
 
     /// Number of samples to take for each parameter.
     unsigned int m_n_samples;
+
+    /// Indicate if this autotuner is optional.
+    bool m_optional;
+
+    /// Record whether the autotuner has been activated.
+    bool m_active = false;
 
     /// Descriptive name.
     std::string m_name;
@@ -328,8 +349,9 @@ Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>&
               std::shared_ptr<const ExecutionConfiguration> exec_conf,
               const std::string& name,
               unsigned int n_samples,
+              bool optional,
               std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
-    : m_n_samples(n_samples), m_name(name),
+    : m_n_samples(n_samples), m_optional(optional), m_name(name),
       m_exec_conf(exec_conf), m_sync(false), m_mode(mode_median)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << name << " with " << n_samples

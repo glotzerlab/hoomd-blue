@@ -87,14 +87,15 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
         };
 
     m_tuner_free_volume.reset(
-        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(m_exec_conf),
-                       AutotunerInterface::getTppListPow2(m_exec_conf),
-                       AutotunerInterface::getTppListPow2(m_exec_conf)},
+        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf)},
                        this->m_exec_conf,
                        "hpmc_free_volume",
                        3,
+                       false,
                        is_parameter_valid));
-    m_autotuners.push_back(m_tuner_free_volume);
+    this->m_autotuners.push_back(m_tuner_free_volume);
 
     GPUArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
@@ -106,10 +107,10 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    m_tuner_excell_block_size.reset(new Autotuner({AutotunerInterface::makeBlockSizeRange(m_exec_conf)},
+    m_tuner_excell_block_size.reset(new Autotuner({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
                                                   "hpmc_free_volume_excell_block_size",
                                                   this->m_exec_conf));
-    m_autotuners.push_back(m_tuner_excell_block_size);
+    this->m_autotuners.push_back(m_tuner_excell_block_size);
     }
 
 template<class Shape> ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU() { }
@@ -233,7 +234,7 @@ template<class Shape> void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64
 
         m_tuner_free_volume->begin();
         auto param = m_tuner_free_volume->getParam();
-        unsigned int block_size = param[0]
+        unsigned int block_size = param[0];
         unsigned int stride = param[1];
         unsigned int group_size = param[2];
 

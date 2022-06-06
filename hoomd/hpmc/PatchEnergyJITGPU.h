@@ -71,6 +71,7 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
             this->m_exec_conf,
             "hpmc_narrow_patch",
             3,
+            false,
             is_parameter_valid));
 
         m_autotuners.push_back(m_tuner_narrow_patch);

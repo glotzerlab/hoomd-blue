@@ -188,23 +188,43 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     GlobalArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
     Index2D m_excell_list_indexer;           //!< Indexer to access elements of the excell_idx list
 
-    std::unique_ptr<Autotuner> m_tuner_moves;  //!< Autotuner for proposing moves
-    std::unique_ptr<Autotuner> m_tuner_narrow; //!< Autotuner for the narrow phase
-    std::unique_ptr<Autotuner>
-        m_tuner_update_pdata; //!< Autotuner for the update step group and block sizes
-    std::unique_ptr<Autotuner> m_tuner_excell_block_size; //!< Autotuner for excell block_size
-    std::unique_ptr<Autotuner> m_tuner_convergence;       //!< Autotuner for convergence check
-    std::unique_ptr<Autotuner> m_tuner_depletants;        //!< Autotuner for inserting depletants
-    std::unique_ptr<Autotuner>
-        m_tuner_num_depletants; //!< Autotuner for calculating number of depletants
-    std::unique_ptr<Autotuner> m_tuner_num_depletants_ntrial; //!< Autotuner for calculating number
-                                                              //!< of depletants with ntrial
-    std::unique_ptr<Autotuner>
-        m_tuner_depletants_phase1; //!< Tuner for depletants with ntrial, phase 1 kernel
-    std::unique_ptr<Autotuner>
-        m_tuner_depletants_phase2; //!< Tuner for depletants with ntrial, phase 2 kernel
-    std::unique_ptr<Autotuner>
-        m_tuner_depletants_accept; //!< Tuner for depletants with ntrial, acceptance kernel
+    /// Autotuner for proposing moves.
+    std::shared_ptr<Autotuner<1>> m_tuner_moves;
+
+    /// Autotuner for the narrow phase.
+    std::shared_ptr<Autotuner<3>> m_tuner_narrow;
+
+    /// Autotuner for the update step group and block sizes.
+    std::shared_ptr<Autotuner<1>>
+        m_tuner_update_pdata;
+
+    /// Autotuner for excell block_size.
+    std::shared_ptr<Autotuner<1>> m_tuner_excell_block_size;
+
+    /// Autotuner for convergence check.
+    std::shared_ptr<Autotuner<1>> m_tuner_convergence;
+
+    /// Autotuner for inserting depletants.
+    std::shared_ptr<Autotuner<3>> m_tuner_depletants;
+
+    /// Autotuner for calculating number of depletants.
+    std::shared_ptr<Autotuner<1>>
+        m_tuner_num_depletants;
+
+    /// Autotuner for calculating number of depletants with ntrial.
+    std::shared_ptr<Autotuner<1>> m_tuner_num_depletants_ntrial;
+
+    /// Tuner for depletants with ntrial, phase 1 kernel.
+    std::shared_ptr<Autotuner<3>>
+        m_tuner_depletants_phase1;
+
+    /// Tuner for depletants with ntrial, phase 2 kernel.
+    std::shared_ptr<Autotuner<3>>
+        m_tuner_depletants_phase2;
+
+    /// Tuner for depletants with ntrial, acceptance kernel
+    std::shared_ptr<Autotuner<1>>
+        m_tuner_depletants_accept;
 
     GlobalArray<Scalar4> m_trial_postype;           //!< New positions (and type) of particles
     GlobalArray<Scalar4> m_trial_orientation;       //!< New orientations
@@ -284,110 +304,115 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     m_last_nmax = 0xffffffff;
 
     hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
-    m_tuner_moves.reset(new Autotuner(dev_prop.warpSize,
-                                      dev_prop.maxThreadsPerBlock,
-                                      dev_prop.warpSize,
-                                      5,
-                                      1000000,
-                                      "hpmc_moves",
-                                      this->m_exec_conf));
-    m_tuner_update_pdata.reset(new Autotuner(dev_prop.warpSize,
-                                             dev_prop.maxThreadsPerBlock,
-                                             dev_prop.warpSize,
-                                             5,
-                                             1000000,
-                                             "hpmc_update_pdata",
-                                             this->m_exec_conf));
-    m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize,
-                                                  dev_prop.maxThreadsPerBlock,
-                                                  dev_prop.warpSize,
-                                                  5,
-                                                  1000000,
-                                                  "hpmc_excell_block_size",
-                                                  this->m_exec_conf));
-    m_tuner_num_depletants.reset(new Autotuner(dev_prop.warpSize,
-                                               dev_prop.maxThreadsPerBlock,
-                                               dev_prop.warpSize,
-                                               5,
-                                               1000000,
+    m_tuner_moves.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
+                                      "hpmc_moves"
+                                      ));
+    this->m_autotuners.push_back(m_tuner_moves);
+
+    m_tuner_update_pdata.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
+                                             "hpmc_update_pdata"));
+    this->m_autotuners.push_back(m_tuner_update_pdata);
+
+    m_tuner_excell_block_size.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
+                                                  "hpmc_excell_block_size"));
+    this->m_autotuners.push_back(m_tuner_excell_block_size);
+
+    m_tuner_num_depletants.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
                                                "hpmc_num_depletants",
-                                               this->m_exec_conf));
-    m_tuner_num_depletants_ntrial.reset(new Autotuner(dev_prop.warpSize,
-                                                      dev_prop.maxThreadsPerBlock,
-                                                      dev_prop.warpSize,
-                                                      5,
-                                                      1000000,
+                                               5,
+                                               true));
+    this->m_autotuners.push_back(m_tuner_num_depletants);
+
+    m_tuner_num_depletants_ntrial.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
                                                       "hpmc_num_depletants_ntrial",
-                                                      this->m_exec_conf));
+                                                      5,
+                                                      1));
+    this->m_autotuners.push_back(m_tuner_num_depletants_ntrial);
 
-    // tuning parameters for narrow phase
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    // Tuning parameters for narrow phase:
+    // 0: block size
+    // 1: threads per particle
+    // 2: overlap threads
+
+    // Only widen the parallelism if the shape supports it, and limit parallelism to fit within the
+    // warp.
+    std::function<bool(const std::array<unsigned int, 3>&)> is_narrow_parameter_valid = [](const std::array<unsigned int, 3>& parameter) -> bool
+        {
+        unsigned int block_size = parameter[0];
+        unsigned int threads_per_particle = parameter[1];
+        unsigned int overlap_threads = parameter[2];
+        return (threads_per_particle == 1 || Shape::isParallel()) && (threads_per_particle * overlap_threads <= block_size) && (block_size % (threads_per_particle * overlap_threads)) == 0;
+        };
+
     const unsigned int narrow_phase_max_tpp = this->m_exec_conf->dev_prop.maxThreadsDim[2];
-    for (unsigned int block_size = warp_size;
-         block_size <= (unsigned int)dev_prop.maxThreadsPerBlock;
-         block_size += warp_size)
-        {
-        for (auto s : Autotuner::getTppListPow2(narrow_phase_max_tpp))
-            {
-            for (auto t : Autotuner::getTppListPow2(warp_size))
-                {
-                // only widen the parallelism if the shape supports it
-                if (t == 1 || Shape::isParallel())
-                    {
-                    if ((s * t <= block_size) && ((block_size % (s * t)) == 0))
-                        valid_params.push_back(block_size * 1000000 + s * 100 + t);
-                    }
-                }
-            }
-        }
+    m_tuner_narrow.reset(new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf)},
+                       this->m_exec_conf,
+                       "hpmc_narrow",
+                       3,
+                       true,
+                       is_narrow_parameter_valid));
+    this->m_autotuners.push_back(m_tuner_narrow);
 
-    m_tuner_narrow.reset(new Autotuner(valid_params, 5, 100000, "hpmc_narrow", this->m_exec_conf));
+    m_tuner_convergence.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
+                                            "hpmc_convergence"));
+    this->m_autotuners.push_back(m_tuner_convergence);
 
-    m_tuner_convergence.reset(new Autotuner(dev_prop.warpSize,
-                                            dev_prop.maxThreadsPerBlock,
-                                            dev_prop.warpSize,
-                                            5,
-                                            1000000,
-                                            "hpmc_convergence",
-                                            this->m_exec_conf));
-    m_tuner_depletants_accept.reset(new Autotuner(dev_prop.warpSize,
-                                                  dev_prop.maxThreadsPerBlock,
-                                                  dev_prop.warpSize,
-                                                  5,
-                                                  1000000,
+    m_tuner_depletants_accept.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
                                                   "hpmc_depletants_accept",
-                                                  this->m_exec_conf));
+                                                  5,
+                                                  true));
+    this->m_autotuners.push_back(m_tuner_depletants_accept);
 
-    // tuning parameters for depletants
-    std::vector<unsigned int> valid_params_depletants;
-    for (unsigned int block_size = dev_prop.warpSize;
-         block_size <= (unsigned int)dev_prop.maxThreadsPerBlock;
-         block_size += dev_prop.warpSize)
+    // Tuning parameters for depletants:
+    // 0: block size
+    // 1: depletants per thread
+    // 2: threads per particle
+
+    std::function<bool(const std::array<unsigned int, 3>&)> is_depletant_parameter_valid = [](const std::array<unsigned int, 3>& parameter) -> bool
         {
-        for (unsigned int group_size = 1; group_size <= narrow_phase_max_tpp; group_size *= 2)
-            {
-            for (unsigned int depletants_per_thread = 1; depletants_per_thread <= 32;
-                 depletants_per_thread *= 2)
-                {
-                if ((block_size % group_size) == 0)
-                    valid_params_depletants.push_back(block_size * 1000000
-                                                      + depletants_per_thread * 10000 + group_size);
-                }
-            }
-        }
+        unsigned int block_size = parameter[0];
+        unsigned int depletants_per_thread = parameter[1];
+        unsigned int threads_per_particle = parameter[2];
+        return (block_size % threads_per_particle) == 0;
+        };
+
     m_tuner_depletants.reset(
-        new Autotuner(valid_params_depletants, 5, 100000, "hpmc_depletants", this->m_exec_conf));
-    m_tuner_depletants_phase1.reset(new Autotuner(valid_params_depletants,
-                                                  5,
-                                                  100000,
+        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+                       this->m_exec_conf, "hpmc_depletants", 3,
+                       true,
+                       is_depletant_parameter_valid));
+    this->m_autotuners.push_back(m_tuner_depletants);
+
+    m_tuner_depletants_phase1.reset(new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+                       this->m_exec_conf,
                                                   "hpmc_depletants_phase1",
-                                                  this->m_exec_conf));
-    m_tuner_depletants_phase2.reset(new Autotuner(valid_params_depletants,
-                                                  5,
-                                                  100000,
+                                                  3,
+                                                  true,
+                                                  is_depletant_parameter_valid));
+    this->m_autotuners.push_back(m_tuner_depletants_phase1);
+
+    m_tuner_depletants_phase2.reset(new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
+                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+                       this->m_exec_conf,
                                                   "hpmc_depletants_phase2",
-                                                  this->m_exec_conf));
+                                                  3,
+                                                  true,
+                                                  is_depletant_parameter_valid));
+    this->m_autotuners.push_back(m_tuner_depletants_phase2);
 
     // initialize memory
     GlobalArray<Scalar4>(1, this->m_exec_conf).swap(m_trial_postype);
@@ -1021,7 +1046,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                          this->m_cl->getCellListIndexer(),
                          this->m_cl->getCellAdjIndexer(),
                          this->m_exec_conf->getNumActiveGPUs(),
-                         this->m_tuner_excell_block_size->getParam());
+                         this->m_tuner_excell_block_size->getParam()[0]);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         this->m_tuner_excell_block_size->end();
@@ -1119,7 +1144,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 
                 // reset acceptance results and move types
                 m_tuner_moves->begin();
-                args.block_size = m_tuner_moves->getParam();
+                args.block_size = m_tuner_moves->getParam()[0];
                 gpu::hpmc_gen_moves<Shape>(args, params.data());
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
@@ -1339,10 +1364,10 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     this->m_exec_conf->beginMultiGPU();
 
                     m_tuner_narrow->begin();
-                    unsigned int param = m_tuner_narrow->getParam();
-                    args.block_size = param / 1000000;
-                    args.tpp = (param % 1000000) / 100;
-                    args.overlap_threads = param % 100;
+                    auto param = m_tuner_narrow->getParam();
+                    args.block_size = param[0];
+                    args.tpp = param[1];
+                    args.overlap_threads = param[2];
                     gpu::hpmc_narrow_phase<Shape>(args, params.data());
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
@@ -1377,7 +1402,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                          d_postype.data,
                                                          d_n_depletants.data
                                                              + itype * this->m_pdata->getMaxN(),
-                                                         m_tuner_num_depletants->getParam(),
+                                                         m_tuner_num_depletants->getParam()[0],
                                                          &m_depletant_streams[itype].front(),
                                                          this->m_pdata->getGPUPartition(),
                                                          this->m_pdata->getNTypes());
@@ -1398,10 +1423,10 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 
                             // insert depletants on-the-fly
                             m_tuner_depletants->begin();
-                            unsigned int param = m_tuner_depletants->getParam();
-                            args.block_size = param / 1000000;
-                            unsigned int depletants_per_thread = (param % 1000000) / 10000;
-                            args.tpp = param % 10000;
+                            auto param = m_tuner_depletants->getParam();
+                            args.block_size = param[0];
+                            unsigned int depletants_per_thread = param[1];
+                            args.tpp = param[2];
 
                             gpu::hpmc_implicit_args_t implicit_args(
                                 itype,
@@ -1435,7 +1460,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                 particle_comm_rank == particle_comm_size - 1,
                                 this->m_pdata->getNGhosts(),
                                 gpu_partition_rank,
-                                m_tuner_num_depletants_ntrial->getParam(),
+                                m_tuner_num_depletants_ntrial->getParam()[0],
                                 &m_depletant_streams[itype].front(),
                                 this->m_pdata->getNTypes());
                             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1530,10 +1555,10 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 
                             // phase 1, insert into excluded volume of particle i
                             m_tuner_depletants_phase1->begin();
-                            unsigned int param = m_tuner_depletants_phase1->getParam();
-                            args.block_size = param / 1000000;
-                            implicit_args.depletants_per_thread = (param % 1000000) / 10000;
-                            args.tpp = param % 10000;
+                            auto param = m_tuner_depletants_phase1->getParam();
+                            args.block_size = param[0];
+                            implicit_args.depletants_per_thread = param[1];
+                            args.tpp = param[2];
                             gpu::hpmc_depletants_auxilliary_phase1<Shape>(args,
                                                                           implicit_args,
                                                                           auxilliary_args,
@@ -1545,9 +1570,9 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                             // phase 2, reinsert into excluded volume of i's neighbors
                             m_tuner_depletants_phase2->begin();
                             param = m_tuner_depletants_phase2->getParam();
-                            args.block_size = param / 1000000;
-                            implicit_args.depletants_per_thread = (param % 1000000) / 10000;
-                            args.tpp = param % 10000;
+                            args.block_size = param[0];
+                            implicit_args.depletants_per_thread = param[1];
+                            args.tpp = param[2];
                             gpu::hpmc_depletants_auxilliary_phase2<Shape>(args,
                                                                           implicit_args,
                                                                           auxilliary_args,
@@ -1692,7 +1717,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                 d_ntrial.data,
                                                 d_reject_out.data,
                                                 this->m_pdata->getGPUPartition(),
-                                                m_tuner_depletants_accept->getParam(),
+                                                m_tuner_depletants_accept->getParam()[0],
                                                 this->m_pdata->getNTypes());
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
@@ -1806,7 +1831,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                 d_reject_out.data,
                                                 d_condition.data,
                                                 this->m_pdata->getGPUPartition(),
-                                                m_tuner_convergence->getParam());
+                                                m_tuner_convergence->getParam()[0]);
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
                     m_tuner_convergence->end();
@@ -1880,7 +1905,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                              d_trial_vel.data,
                                              d_trial_move_type.data,
                                              d_reject.data,
-                                             m_tuner_update_pdata->getParam());
+                                             m_tuner_update_pdata->getParam()[0]);
                 gpu::hpmc_update_pdata<Shape>(args, params.data());
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
