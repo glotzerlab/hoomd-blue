@@ -155,7 +155,8 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
         {
         IntegratorHPMCMono<Shape>::startAutotuning();
 
-        // tune patch kernels in addition to those in `m_autotuners`.
+        // Tune patch kernels and cell list in addition to those in `m_autotuners`.
+        m_cl->startAutotuning();
         if (this->m_patch)
             {
             this->m_patch->startAutotuning();

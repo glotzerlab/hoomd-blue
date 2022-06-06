@@ -59,7 +59,7 @@ class PYBIND11_EXPORT AutotunerInterface
 
 #ifndef __HIPCC__
     /// Get the autotuner parameters as a Python tuple.
-    pybind11::tuple getParameterPython()
+    virtual pybind11::tuple getParameterPython()
         {
         return pybind11::tuple();
         }
@@ -207,6 +207,17 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     std::array<unsigned int, n_dimensions> getParam()
         {
         return m_current_param;
+        }
+
+    /// Get the autotuner parameters as a Python tuple.
+    virtual pybind11::tuple getParameterPython()
+        {
+        pybind11::list params;
+        for (auto v : m_current_param)
+            {
+            params.append(v);
+            }
+        return pybind11::tuple(params);
         }
 
     static std::string formatParam(const std::array<unsigned int, n_dimensions>& p)

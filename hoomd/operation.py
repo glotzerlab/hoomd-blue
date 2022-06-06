@@ -309,7 +309,7 @@ class AutotunedObject(_HOOMDBaseObject):
             raise hoomd.error.DataAccessError("is_autotuning_complete")
         return self._cpp_obj.isAutotuningComplete()
 
-    def autotune_kernel_launch_paramters(self):
+    def autotune_kernel_launch_parameters(self):
         if not self._attached:
             raise RuntimeError("Call Simulation.run() before "
                                "autotune_kernel_launch_parameters.")
