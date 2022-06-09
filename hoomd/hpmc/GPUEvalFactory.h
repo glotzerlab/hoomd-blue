@@ -63,7 +63,8 @@ class GPUEvalFactory
         for (unsigned int i = 1; i <= (unsigned int)m_exec_conf->dev_prop.warpSize; i *= 2)
             m_eval_threads.push_back(i);
 
-        for (unsigned int i = exec_conf->dev_prop.warpSize; i <= (unsigned int)m_exec_conf->dev_prop.maxThreadsPerBlock;
+        for (unsigned int i = exec_conf->dev_prop.warpSize;
+             i <= (unsigned int)m_exec_conf->dev_prop.maxThreadsPerBlock;
              i *= 2)
             m_launch_bounds.push_back(i);
 

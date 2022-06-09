@@ -3,7 +3,8 @@
 
 #include "Action.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 
 namespace detail
     {

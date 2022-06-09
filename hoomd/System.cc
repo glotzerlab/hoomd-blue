@@ -194,8 +194,8 @@ void System::startAutotuning()
     if (m_integrator)
         m_integrator->startAutotuning();
 
-//     //TODO: Integrator needs to call startAutotuning on all child classes, as do classes like
-//     // PotentialPair
+    //     //TODO: Integrator needs to call startAutotuning on all child classes, as do classes like
+    //     // PotentialPair
 
     // analyzers
     for (auto& analyzer : m_analyzers)

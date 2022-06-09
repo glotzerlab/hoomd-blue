@@ -7,14 +7,15 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <vector>
 #include <memory>
-#include <sstream>
 #include <pybind11/pybind11.h>
+#include <sstream>
+#include <vector>
 
 #include "Autotuner.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 
 /// Base class for autotuned classes.
 /*! Some, but not all classes in HOOMD provide autotuners. To give the user a unified API to query
@@ -25,64 +26,64 @@ namespace hoomd {
 class PYBIND11_EXPORT Autotuned
     {
     public:
-        Autotuned()
+    Autotuned() { }
+
+    /// Get autotuner parameters.
+    pybind11::dict getAutotunerParameters()
+        {
+        pybind11::dict params;
+
+        for (const auto& tuner : m_autotuners)
             {
+            params[tuner->getName().c_str()] = tuner->getParameterPython();
             }
+        return params;
+        }
 
-        /// Get autotuner parameters.
-        pybind11::dict getAutotunerParameters()
+    /// Set autotuner parameters.
+    void setAutotunerParameters(pybind11::dict params)
+        {
+        for (auto item : params)
             {
-            pybind11::dict params;
+            auto name_match = [item](const std::shared_ptr<AutotunerInterface> tuner)
+            { return tuner->getName() == pybind11::cast<std::string>(item.first); };
+            auto tuner = std::find_if(m_autotuners.begin(), m_autotuners.end(), name_match);
 
-            for (const auto& tuner : m_autotuners)
+            if (tuner == m_autotuners.end())
                 {
-                params[tuner->getName().c_str()] = tuner->getParameterPython();
+                std::ostringstream s;
+                s << "Error setting autotuner parameters. Unexpected key: "
+                  << pybind11::cast<std::string>(item.first);
+                throw std::runtime_error(s.str());
                 }
-            return params;
-            }
 
-        /// Set autotuner parameters.
-        void setAutotunerParameters(pybind11::dict params)
+            (*tuner)->setParameterPython(pybind11::cast<pybind11::tuple>(item.second));
+            }
+        }
+
+    /// Start an autotuning sequence.
+    virtual void startAutotuning()
+        {
+        for (const auto& tuner : m_autotuners)
             {
-            for (auto item : params)
-                {
-                auto name_match = [item](const std::shared_ptr<AutotunerInterface> tuner){ return tuner->getName() == pybind11::cast<std::string>(item.first); };
-                auto tuner = std::find_if(m_autotuners.begin(), m_autotuners.end(), name_match);
-
-                if (tuner == m_autotuners.end())
-                    {
-                    std::ostringstream s;
-                    s << "Error setting autotuner parameters. Unexpected key: " << pybind11::cast<std::string>(item.first);
-                    throw std::runtime_error(s.str());
-                    }
-
-                (*tuner)->setParameterPython(pybind11::cast<pybind11::tuple>(item.second));
-                }
+            tuner->startScan();
             }
+        }
 
-        /// Start an autotuning sequence.
-        virtual void startAutotuning()
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = true;
+        for (const auto& tuner : m_autotuners)
             {
-            for (const auto& tuner : m_autotuners)
-                {
-                tuner->startScan();
-                }
+            result = result && tuner->isComplete();
             }
-
-        /// Check if autotuning is complete.
-        virtual bool isAutotuningComplete()
-            {
-            bool result = true;
-            for (const auto& tuner : m_autotuners)
-                {
-                result = result && tuner->isComplete();
-                }
-            return result;
-            }
+        return result;
+        }
 
     protected:
-        /// All autotuners used by this class instance.
-        std::vector<std::shared_ptr<AutotunerInterface>> m_autotuners;
+    /// All autotuners used by this class instance.
+    std::vector<std::shared_ptr<AutotunerInterface>> m_autotuners;
     };
 
 namespace detail
@@ -91,4 +92,4 @@ namespace detail
 void export_Autotuned(pybind11::module& m);
     } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

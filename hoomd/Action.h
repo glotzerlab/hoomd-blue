@@ -7,15 +7,16 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <vector>
 #include <memory>
 #include <pybind11/pybind11.h>
+#include <vector>
 
 #include "Autotuned.h"
-#include "SystemDefinition.h"
 #include "SharedSignal.h"
+#include "SystemDefinition.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 
 /// Base class for actions that act on the simulation state
 /*! Compute, Updater, Analyzer, and Tuner inherit common methods from Action.
@@ -28,25 +29,23 @@ namespace hoomd {
 class Action : public Autotuned
     {
     public:
-        Action(std::shared_ptr<SystemDefinition> sysdef) :
-            m_sysdef(sysdef),
-            m_pdata(sysdef->getParticleData()),
-            m_exec_conf(m_pdata->getExecConf())
-            {
-            }
+    Action(std::shared_ptr<SystemDefinition> sysdef)
+        : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf())
+        {
+        }
 
     protected:
-        /// The system definition this action is associated with.
-        const std::shared_ptr<SystemDefinition> m_sysdef;
+    /// The system definition this action is associated with.
+    const std::shared_ptr<SystemDefinition> m_sysdef;
 
-        /// The particle data this action is associated with.
-        const std::shared_ptr<ParticleData> m_pdata;
+    /// The particle data this action is associated with.
+    const std::shared_ptr<ParticleData> m_pdata;
 
-        /// The simulation's execution configuration.
-        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
+    /// The simulation's execution configuration.
+    std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
 
-        /// Stored shared ptr to the system signals
-        std::vector<std::shared_ptr<hoomd::detail::SignalSlot>> m_slots;
+    /// Stored shared ptr to the system signals
+    std::vector<std::shared_ptr<hoomd::detail::SignalSlot>> m_slots;
 
     void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
         {
@@ -77,4 +76,4 @@ namespace detail
 void export_Action(pybind11::module& m);
     } // end namespace detail
 
-} // end namespace hoomd
+    } // end namespace hoomd

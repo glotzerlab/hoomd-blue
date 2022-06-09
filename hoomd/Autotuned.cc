@@ -3,14 +3,14 @@
 
 #include "Autotuned.h"
 
-namespace hoomd {
+namespace hoomd
+    {
 
 namespace detail
     {
 void export_Autotuned(pybind11::module& m)
     {
-    pybind11::class_<Autotuned, std::shared_ptr<Autotuned>>(m, "Autotuned")
-        .def(pybind11::init<>());
+    pybind11::class_<Autotuned, std::shared_ptr<Autotuned>>(m, "Autotuned").def(pybind11::init<>());
     }
     } // end namespace detail
 

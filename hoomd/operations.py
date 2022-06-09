@@ -310,7 +310,6 @@ class Operations(Collection):
         for op in self:
             op.autotune_kernel_parameters()
 
-
     def __getstate__(self):
         """Get the current state of the operations container for pickling."""
         # ensure that top level changes to self.__dict__ are not propagated

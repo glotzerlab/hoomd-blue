@@ -196,8 +196,7 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     std::shared_ptr<Autotuner<3>> m_tuner_narrow;
 
     /// Autotuner for the update step group and block sizes.
-    std::shared_ptr<Autotuner<1>>
-        m_tuner_update_pdata;
+    std::shared_ptr<Autotuner<1>> m_tuner_update_pdata;
 
     /// Autotuner for excell block_size.
     std::shared_ptr<Autotuner<1>> m_tuner_excell_block_size;
@@ -209,23 +208,19 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     std::shared_ptr<Autotuner<3>> m_tuner_depletants;
 
     /// Autotuner for calculating number of depletants.
-    std::shared_ptr<Autotuner<1>>
-        m_tuner_num_depletants;
+    std::shared_ptr<Autotuner<1>> m_tuner_num_depletants;
 
     /// Autotuner for calculating number of depletants with ntrial.
     std::shared_ptr<Autotuner<1>> m_tuner_num_depletants_ntrial;
 
     /// Tuner for depletants with ntrial, phase 1 kernel.
-    std::shared_ptr<Autotuner<3>>
-        m_tuner_depletants_phase1;
+    std::shared_ptr<Autotuner<3>> m_tuner_depletants_phase1;
 
     /// Tuner for depletants with ntrial, phase 2 kernel.
-    std::shared_ptr<Autotuner<3>>
-        m_tuner_depletants_phase2;
+    std::shared_ptr<Autotuner<3>> m_tuner_depletants_phase2;
 
     /// Tuner for depletants with ntrial, acceptance kernel
-    std::shared_ptr<Autotuner<1>>
-        m_tuner_depletants_accept;
+    std::shared_ptr<Autotuner<1>> m_tuner_depletants_accept;
 
     GlobalArray<Scalar4> m_trial_postype;           //!< New positions (and type) of particles
     GlobalArray<Scalar4> m_trial_orientation;       //!< New orientations
@@ -304,34 +299,38 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    m_tuner_moves.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                      "hpmc_moves"
-                                      ));
+    m_tuner_moves.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_moves"));
     this->m_autotuners.push_back(m_tuner_moves);
 
-    m_tuner_update_pdata.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                             "hpmc_update_pdata"));
+    m_tuner_update_pdata.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_update_pdata"));
     this->m_autotuners.push_back(m_tuner_update_pdata);
 
-    m_tuner_excell_block_size.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                                  "hpmc_excell_block_size"));
+    m_tuner_excell_block_size.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_excell_block_size"));
     this->m_autotuners.push_back(m_tuner_excell_block_size);
 
-    m_tuner_num_depletants.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                               "hpmc_num_depletants",
-                                               5,
-                                               true));
+    m_tuner_num_depletants.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_num_depletants",
+                         5,
+                         true));
     this->m_autotuners.push_back(m_tuner_num_depletants);
 
-    m_tuner_num_depletants_ntrial.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                                      "hpmc_num_depletants_ntrial",
-                                                      5,
-                                                      1));
+    m_tuner_num_depletants_ntrial.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_num_depletants_ntrial",
+                         5,
+                         1));
     this->m_autotuners.push_back(m_tuner_num_depletants_ntrial);
 
     // Tuning parameters for narrow phase:
@@ -341,35 +340,41 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
 
     // Only widen the parallelism if the shape supports it, and limit parallelism to fit within the
     // warp.
-    std::function<bool(const std::array<unsigned int, 3>&)> is_narrow_parameter_valid = [](const std::array<unsigned int, 3>& parameter) -> bool
-        {
+    std::function<bool(const std::array<unsigned int, 3>&)> is_narrow_parameter_valid
+        = [](const std::array<unsigned int, 3>& parameter) -> bool
+    {
         unsigned int block_size = parameter[0];
         unsigned int threads_per_particle = parameter[1];
         unsigned int overlap_threads = parameter[2];
-        return (threads_per_particle == 1 || Shape::isParallel()) && (threads_per_particle * overlap_threads <= block_size) && (block_size % (threads_per_particle * overlap_threads)) == 0;
-        };
+        return (threads_per_particle == 1 || Shape::isParallel())
+               && (threads_per_particle * overlap_threads <= block_size)
+               && (block_size % (threads_per_particle * overlap_threads)) == 0;
+    };
 
     const unsigned int narrow_phase_max_tpp = this->m_exec_conf->dev_prop.maxThreadsDim[2];
-    m_tuner_narrow.reset(new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf)},
-                       this->m_exec_conf,
-                       "hpmc_narrow",
-                       3,
-                       true,
-                       is_narrow_parameter_valid));
+    m_tuner_narrow.reset(new Autotuner<3>(
+        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf)},
+        this->m_exec_conf,
+        "hpmc_narrow",
+        3,
+        true,
+        is_narrow_parameter_valid));
     this->m_autotuners.push_back(m_tuner_narrow);
 
-    m_tuner_convergence.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                            "hpmc_convergence"));
+    m_tuner_convergence.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_convergence"));
     this->m_autotuners.push_back(m_tuner_convergence);
 
-    m_tuner_depletants_accept.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                                  "hpmc_depletants_accept",
-                                                  5,
-                                                  true));
+    m_tuner_depletants_accept.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_depletants_accept",
+                         5,
+                         true));
     this->m_autotuners.push_back(m_tuner_depletants_accept);
 
     // Tuning parameters for depletants:
@@ -377,41 +382,46 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     // 1: depletants per thread
     // 2: threads per particle
 
-    std::function<bool(const std::array<unsigned int, 3>&)> is_depletant_parameter_valid = [](const std::array<unsigned int, 3>& parameter) -> bool
-        {
+    std::function<bool(const std::array<unsigned int, 3>&)> is_depletant_parameter_valid
+        = [](const std::array<unsigned int, 3>& parameter) -> bool
+    {
         unsigned int block_size = parameter[0];
         // unsigned int depletants_per_thread = parameter[1]; // unused
         unsigned int threads_per_particle = parameter[2];
         return (block_size % threads_per_particle) == 0;
-        };
+    };
 
-    m_tuner_depletants.reset(
-        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
-                       this->m_exec_conf, "hpmc_depletants", 3,
-                       true,
-                       is_depletant_parameter_valid));
+    m_tuner_depletants.reset(new Autotuner<3>(
+        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+        this->m_exec_conf,
+        "hpmc_depletants",
+        3,
+        true,
+        is_depletant_parameter_valid));
     this->m_autotuners.push_back(m_tuner_depletants);
 
-    m_tuner_depletants_phase1.reset(new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
-                       this->m_exec_conf,
-                                                  "hpmc_depletants_phase1",
-                                                  3,
-                                                  true,
-                                                  is_depletant_parameter_valid));
+    m_tuner_depletants_phase1.reset(new Autotuner<3>(
+        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+        this->m_exec_conf,
+        "hpmc_depletants_phase1",
+        3,
+        true,
+        is_depletant_parameter_valid));
     this->m_autotuners.push_back(m_tuner_depletants_phase1);
 
-    m_tuner_depletants_phase2.reset(new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
-                       this->m_exec_conf,
-                                                  "hpmc_depletants_phase2",
-                                                  3,
-                                                  true,
-                                                  is_depletant_parameter_valid));
+    m_tuner_depletants_phase2.reset(new Autotuner<3>(
+        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf),
+         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+        this->m_exec_conf,
+        "hpmc_depletants_phase2",
+        3,
+        true,
+        is_depletant_parameter_valid));
     this->m_autotuners.push_back(m_tuner_depletants_phase2);
 
     // initialize memory

@@ -15,14 +15,14 @@
 #include "HOOMDMPI.h"
 #endif
 
-#include <string>
-#include <vector>
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cfloat>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -48,9 +48,7 @@ stops any current tuning in process and uses the given parameter future steps.
 class PYBIND11_EXPORT AutotunerInterface
     {
     public:
-    AutotunerInterface(const std::string& name): m_name(name)
-        {
-        }
+    AutotunerInterface(const std::string& name) : m_name(name) { }
 
     /// Call to start the autotuning sequence.
     virtual void startScan() { }
@@ -80,7 +78,8 @@ class PYBIND11_EXPORT AutotunerInterface
 
 #ifdef ENABLE_HIP
     /// Build a block size range that steps on the warp size.
-    static std::vector<unsigned int> makeBlockSizeRange(const std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    static std::vector<unsigned int>
+    makeBlockSizeRange(const std::shared_ptr<const ExecutionConfiguration> exec_conf)
         {
         std::vector<unsigned int> range;
         unsigned int start = exec_conf->dev_prop.warpSize;
@@ -102,7 +101,9 @@ class PYBIND11_EXPORT AutotunerInterface
     /*! Defaults to powers of two within a warp size. Pass a value to force_size to choose powers
         of two up to and including force_size.
     */
-    static std::vector<unsigned int> getTppListPow2(const std::shared_ptr<const ExecutionConfiguration> exec_conf, int force_size=-1)
+    static std::vector<unsigned int>
+    getTppListPow2(const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                   int force_size = -1)
         {
         std::vector<unsigned int> v;
         unsigned int warp_size = exec_conf->dev_prop.warpSize;
@@ -123,7 +124,6 @@ class PYBIND11_EXPORT AutotunerInterface
 #endif
 
     protected:
-
     /// Descriptive name.
     std::string m_name;
     };
@@ -160,17 +160,18 @@ class PYBIND11_EXPORT AutotunerInterface
     indefinitely. This is implemented with an INACTIVE state that goes to SCANNING on the first
     call to begin().
 */
-template <size_t n_dimensions>
-class PYBIND11_EXPORT Autotuner : public AutotunerInterface
+template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     {
     public:
     /// Constructor.
-    Autotuner(const std::vector<std::vector<unsigned int>>& dimension_ranges,
-              std::shared_ptr<const ExecutionConfiguration> exec_conf,
-              const std::string& name,
-              unsigned int n_samples=5,
-              bool optional=false,
-              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid = [](const std::array<unsigned int, n_dimensions>& parameter) -> bool { return true; });
+    Autotuner(
+        const std::vector<std::vector<unsigned int>>& dimension_ranges,
+        std::shared_ptr<const ExecutionConfiguration> exec_conf,
+        const std::string& name,
+        unsigned int n_samples = 5,
+        bool optional = false,
+        std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid
+        = [](const std::array<unsigned int, n_dimensions>& parameter) -> bool { return true; });
 
     /// Destructor.
     ~Autotuner()
@@ -195,22 +196,22 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
 
     /// Call before kernel launch.
     void begin()
-    {
-    if (m_state == INACTIVE)
         {
-        m_state = SCANNING;
-        }
+        if (m_state == INACTIVE)
+            {
+            m_state = SCANNING;
+            }
 
 #ifdef ENABLE_HIP
-    // if we are scanning, record a cuda event - otherwise do nothing
-    if (m_state == SCANNING)
-        {
-        hipEventRecord(m_start, 0);
-        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
+        // if we are scanning, record a cuda event - otherwise do nothing
+        if (m_state == SCANNING)
+            {
+            hipEventRecord(m_start, 0);
+            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
 #endif
-    }
+        }
 
     /// Call after kernel launch.
     void end();
@@ -244,12 +245,14 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
         if (n_params != n_dimensions)
             {
             std::ostringstream s;
-            s << "Error setting autotuner parameter " << m_name << ". Got " << n_params << " parameters, " << "expected " << n_dimensions << ".";
+            s << "Error setting autotuner parameter " << m_name << ". Got " << n_params
+              << " parameters, "
+              << "expected " << n_dimensions << ".";
             throw std::runtime_error(s.str());
             }
 
         std::array<unsigned int, n_dimensions> cpp_param;
-        for (size_t i=0; i < n_dimensions; i++)
+        for (size_t i = 0; i < n_dimensions; i++)
             {
             cpp_param[i] = pybind11::cast<unsigned int>(parameter[i]);
             }
@@ -259,7 +262,8 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
         if (found == m_parameters.end())
             {
             std::ostringstream s;
-            s << "Error setting autotuner parameter " << m_name << ". " << formatParam(cpp_param) << " is not a valid parameter.";
+            s << "Error setting autotuner parameter " << m_name << ". " << formatParam(cpp_param)
+              << " is not a valid parameter.";
             throw std::runtime_error(s.str());
             }
 
@@ -267,8 +271,8 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
         m_state = IDLE;
         m_current_sample = 0;
 
-        m_exec_conf->msg->notice(4)
-            << "Autotuner " << m_name << " setting user-defined parameter " << formatParam(cpp_param) << std::endl;
+        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " setting user-defined parameter "
+                                    << formatParam(cpp_param) << std::endl;
         }
 
     static std::string formatParam(const std::array<unsigned int, n_dimensions>& p)
@@ -285,7 +289,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
 
     /// Test if the scan is complete.
     /*! \returns true when autotuning is complete.
-    */
+     */
     virtual bool isComplete()
         {
         if (m_state != SCANNING)
@@ -368,26 +372,31 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     mode_Enum m_mode;
 
     /// Helper method to initialize multi-dimensional arrays recursively.
-    void initializeParameters(const std::vector<std::vector<unsigned int>>& dimension_ranges,
-                              std::array<unsigned int, n_dimensions> parameter,
-                              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid,
-                              size_t current_dimension)
+    void initializeParameters(
+        const std::vector<std::vector<unsigned int>>& dimension_ranges,
+        std::array<unsigned int, n_dimensions> parameter,
+        std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid,
+        size_t current_dimension)
         {
         for (auto value : dimension_ranges[current_dimension])
             {
             parameter[current_dimension] = value;
 
-            if (current_dimension == dimension_ranges.size()-1)
+            if (current_dimension == dimension_ranges.size() - 1)
                 {
                 if (is_parameter_valid(parameter))
                     {
                     m_parameters.push_back(parameter);
-                    m_exec_conf->msg->notice(5) << "Autotuner " << m_name << " adding parameter " << formatParam(parameter) << std::endl;
+                    m_exec_conf->msg->notice(5) << "Autotuner " << m_name << " adding parameter "
+                                                << formatParam(parameter) << std::endl;
                     }
                 }
             else
                 {
-                initializeParameters(dimension_ranges, parameter, is_parameter_valid, current_dimension+1);
+                initializeParameters(dimension_ranges,
+                                     parameter,
+                                     is_parameter_valid,
+                                     current_dimension + 1);
                 }
             }
         }
@@ -398,15 +407,16 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     \param name Descriptive name (used in messenger output).
     \param n_samples Number of time samples to take at each parameter.
 */
-template <size_t n_dimensions>
-Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>& dimension_ranges,
-              std::shared_ptr<const ExecutionConfiguration> exec_conf,
-              const std::string& name,
-              unsigned int n_samples,
-              bool optional,
-              std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
-    : AutotunerInterface(name), m_n_samples(n_samples),
-      m_exec_conf(exec_conf), m_sync(false), m_mode(mode_median)
+template<size_t n_dimensions>
+Autotuner<n_dimensions>::Autotuner(
+    const std::vector<std::vector<unsigned int>>& dimension_ranges,
+    std::shared_ptr<const ExecutionConfiguration> exec_conf,
+    const std::string& name,
+    unsigned int n_samples,
+    bool optional,
+    std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
+    : AutotunerInterface(name), m_n_samples(n_samples), m_exec_conf(exec_conf), m_sync(false),
+      m_mode(mode_median)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << name << " with " << n_samples
                                 << " samples." << std::endl;
@@ -476,8 +486,7 @@ Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>&
         }
     }
 
-template <size_t n_dimensions>
-void Autotuner<n_dimensions>::end()
+template<size_t n_dimensions> void Autotuner<n_dimensions>::end()
     {
 #ifdef ENABLE_HIP
     // handle timing updates if scanning
@@ -488,8 +497,9 @@ void Autotuner<n_dimensions>::end()
         hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
 
         m_exec_conf->msg->notice(9)
-            << "Autotuner " << m_name << ": t[" << formatParam(m_current_param) << "," << m_current_sample
-            << "] = " << m_samples[m_current_element][m_current_sample] << std::endl;
+            << "Autotuner " << m_name << ": t[" << formatParam(m_current_param) << ","
+            << m_current_sample << "] = " << m_samples[m_current_element][m_current_sample]
+            << std::endl;
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -534,8 +544,7 @@ void Autotuner<n_dimensions>::end()
     elements. It then chooses the fastest time (with the lowest index breaking a tie) and returns
     the index of the parameter that resulted in that time.
 */
-template <size_t n_dimensions>
-size_t Autotuner<n_dimensions>::computeOptimalParameterIndex()
+template<size_t n_dimensions> size_t Autotuner<n_dimensions>::computeOptimalParameterIndex()
     {
     bool is_root = true;
 
@@ -623,12 +632,13 @@ size_t Autotuner<n_dimensions>::computeOptimalParameterIndex()
             }
 
         // Get the optimal parameter.
-        unsigned int percent = int(max_value/min_value * 100.0f)-100;
+        unsigned int percent = int(max_value / min_value * 100.0f) - 100;
 
         // Notify user ot optimal parameter selection.
         m_exec_conf->msg->notice(4)
-            << "Autotuner " << m_name << " found optimal parameter " << formatParam(m_parameters[min_idx])
-            << " with a performance spread of " << percent << "%." << std::endl;
+            << "Autotuner " << m_name << " found optimal parameter "
+            << formatParam(m_parameters[min_idx]) << " with a performance spread of " << percent
+            << "%." << std::endl;
         }
 
 #ifdef ENABLE_MPI
@@ -637,7 +647,6 @@ size_t Autotuner<n_dimensions>::computeOptimalParameterIndex()
 #endif
     return min_idx;
     }
-
 
     } // end namespace hoomd
 

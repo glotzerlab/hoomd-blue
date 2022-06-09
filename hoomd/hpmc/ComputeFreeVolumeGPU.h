@@ -78,23 +78,25 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
 
     // Only widen the parallelism if the shape supports it, and limit parallelism to fit within the
     // warp.
-    std::function<bool(const std::array<unsigned int, 3>&)> is_parameter_valid = [](const std::array<unsigned int, 3>& parameter) -> bool
-        {
+    std::function<bool(const std::array<unsigned int, 3>&)> is_parameter_valid
+        = [](const std::array<unsigned int, 3>& parameter) -> bool
+    {
         unsigned int block_size = parameter[0];
         unsigned int stride = parameter[1];
         unsigned int group_size = parameter[2];
-        return (stride == 1 || Shape::isParallel()) && (stride * group_size <= block_size) && (block_size % (stride * group_size)) == 0;
-        };
+        return (stride == 1 || Shape::isParallel()) && (stride * group_size <= block_size)
+               && (block_size % (stride * group_size)) == 0;
+    };
 
     m_tuner_free_volume.reset(
         new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf),
-                       AutotunerInterface::getTppListPow2(this->m_exec_conf)},
-                       this->m_exec_conf,
-                       "hpmc_free_volume",
-                       3,
-                       false,
-                       is_parameter_valid));
+                          AutotunerInterface::getTppListPow2(this->m_exec_conf),
+                          AutotunerInterface::getTppListPow2(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_free_volume",
+                         3,
+                         false,
+                         is_parameter_valid));
     this->m_autotuners.push_back(m_tuner_free_volume);
 
     GPUArray<unsigned int> excell_size(0, this->m_exec_conf);
@@ -107,9 +109,10 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    m_tuner_excell_block_size.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
-                                                                                     this->m_exec_conf,
-                                                                                     "hpmc_free_volume_excell_block_size"));
+    m_tuner_excell_block_size.reset(
+        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "hpmc_free_volume_excell_block_size"));
     this->m_autotuners.push_back(m_tuner_excell_block_size);
     }
 
