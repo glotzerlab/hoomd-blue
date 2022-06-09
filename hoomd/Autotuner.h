@@ -48,6 +48,10 @@ stops any current tuning in process and uses the given parameter future steps.
 class PYBIND11_EXPORT AutotunerInterface
     {
     public:
+    AutotunerInterface(const std::string& name): m_name(name)
+        {
+        }
+
     /// Call to start the autotuning sequence.
     virtual void startScan() { }
 
@@ -55,6 +59,12 @@ class PYBIND11_EXPORT AutotunerInterface
     virtual bool isComplete()
         {
         return true;
+        }
+
+    /// Get the autotuner's name
+    std::string getName()
+        {
+        return m_name;
         }
 
 #ifndef __HIPCC__
@@ -65,7 +75,7 @@ class PYBIND11_EXPORT AutotunerInterface
         }
 
     /// Set autother parameters from a Python tuple.
-    void setParameterPython(pybind11::tuple parameter) {};
+    virtual void setParameterPython(pybind11::tuple parameter) {};
 #endif
 
 #ifdef ENABLE_HIP
@@ -111,6 +121,11 @@ class PYBIND11_EXPORT AutotunerInterface
         }
 
 #endif
+
+    protected:
+
+    /// Descriptive name.
+    std::string m_name;
     };
 
 //! Autotuner for low level GPU kernel parameters
@@ -220,6 +235,40 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
         return pybind11::tuple(params);
         }
 
+    /// Set the autotuner parameter from a Python tuple.
+    virtual void setParameterPython(pybind11::tuple parameter)
+        {
+        size_t n_params = pybind11::len(parameter);
+        if (n_params != n_dimensions)
+            {
+            std::ostringstream s;
+            s << "Error setting autotuner parameter " << m_name << ". Got " << n_params << " parameters, " << "expected " << n_dimensions << ".";
+            throw std::runtime_error(s.str());
+            }
+
+        std::array<unsigned int, n_dimensions> cpp_param;
+        for (size_t i=0; i < n_dimensions; i++)
+            {
+            cpp_param[i] = pybind11::cast<unsigned int>(parameter[i]);
+            }
+
+        /// Check that the parameter is valid.
+        auto found = std::find(m_parameters.begin(), m_parameters.end(), cpp_param);
+        if (found == m_parameters.end())
+            {
+            std::ostringstream s;
+            s << "Error setting autotuner parameter " << m_name << ". " << formatParam(cpp_param) << " is not a valid parameter.";
+            throw std::runtime_error(s.str());
+            }
+
+        m_current_param = cpp_param;
+        m_state = IDLE;
+        m_current_sample = 0;
+
+        m_exec_conf->msg->notice(4)
+            << "Autotuner " << m_name << " setting user-defined parameter " << formatParam(cpp_param) << std::endl;
+        }
+
     static std::string formatParam(const std::array<unsigned int, n_dimensions>& p)
         {
         std::ostringstream s;
@@ -285,9 +334,6 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
 
     /// Record whether the autotuner has been activated.
     bool m_active = false;
-
-    /// Descriptive name.
-    std::string m_name;
 
     /// Valid parameters.
     std::vector<std::array<unsigned int, n_dimensions>> m_parameters;
@@ -362,7 +408,7 @@ Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>&
               unsigned int n_samples,
               bool optional,
               std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
-    : m_n_samples(n_samples), m_optional(optional), m_name(name),
+    : AutotunerInterface(name), m_n_samples(n_samples), m_optional(optional),
       m_exec_conf(exec_conf), m_sync(false), m_mode(mode_median)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << name << " with " << n_samples

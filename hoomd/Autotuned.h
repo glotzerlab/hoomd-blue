@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <memory>
+#include <sstream>
 #include <pybind11/pybind11.h>
 
 #include "Autotuner.h"
@@ -21,7 +22,7 @@ namespace hoomd {
     autotuner parameters for all child classes. Derived classes must add all autotuners to
     m_autotuners for the base class API to be effective.
 */
-class Autotuned
+class PYBIND11_EXPORT Autotuned
     {
     public:
         Autotuned()
@@ -29,33 +30,33 @@ class Autotuned
             }
 
         /// Get autotuner parameters.
-        pybind11::tuple getAutotunerParameters()
+        pybind11::dict getAutotunerParameters()
             {
-            pybind11::list params;
+            pybind11::dict params;
 
             for (const auto& tuner : m_autotuners)
                 {
-                params.append(tuner->getParameterPython());
+                params[tuner->getName().c_str()] = tuner->getParameterPython();
                 }
-            return pybind11::tuple(params);
+            return params;
             }
 
         /// Set autotuner parameters.
-        void setAutotunerParameters(pybind11::tuple params)
+        void setAutotunerParameters(pybind11::dict params)
             {
-            size_t n_params = pybind11::len(params);
-            if (n_params != m_autotuners.size())
+            for (auto item : params)
                 {
-                std::ostringstream s;
-                s << "Error setting autotuner parameters. Got "
-                  << n_params << " parameters, but expected "
-                  << m_autotuners.size() << "." << std::endl;
-                throw std::runtime_error(s.str());
-                }
+                auto name_match = [item](const std::shared_ptr<AutotunerInterface> tuner){ return tuner->getName() == pybind11::cast<std::string>(item.first); };
+                auto tuner = std::find_if(m_autotuners.begin(), m_autotuners.end(), name_match);
 
-            for (unsigned int i=0; i < n_params; i++)
-                {
-                m_autotuners[i]->setParameterPython(params[i]);
+                if (tuner == m_autotuners.end())
+                    {
+                    std::ostringstream s;
+                    s << "Error setting autotuner parameters. Unexpected key: " << pybind11::cast<std::string>(item.first);
+                    throw std::runtime_error(s.str());
+                    }
+
+                (*tuner)->setParameterPython(pybind11::cast<pybind11::tuple>(item.second));
                 }
             }
 

@@ -292,27 +292,27 @@ class AutotunedObject(_HOOMDBaseObject):
     """An object with autotuned kernel launch parameters."""
 
     @property
-    def kernel_launch_parameters(self):
+    def kernel_parameters(self):
         if not self._attached:
-            raise hoomd.error.DataAccessError("kernel_launch_parameters")
+            raise hoomd.error.DataAccessError("kernel_parameters")
         return self._cpp_obj.getAutotunerParameters()
 
-    @kernel_launch_parameters.setter
-    def kernel_launch_parameters(self, parameters):
+    @kernel_parameters.setter
+    def kernel_parameters(self, parameters):
         if not self._attached:
-            raise hoomd.error.DataAccessError("kernel_launch_parameters")
+            raise hoomd.error.DataAccessError("kernel_parameters")
         return self._cpp_obj.setAutotunerParameters(parameters)
 
     @property
-    def is_autotuning_complete(self):
+    def is_tuning_complete(self):
         if not self._attached:
-            raise hoomd.error.DataAccessError("is_autotuning_complete")
+            raise hoomd.error.DataAccessError("is_tuning_complete")
         return self._cpp_obj.isAutotuningComplete()
 
-    def autotune_kernel_launch_parameters(self):
+    def tune_kernel_parameters(self):
         if not self._attached:
             raise RuntimeError("Call Simulation.run() before "
-                               "autotune_kernel_launch_parameters.")
+                               "autotune_kernel_parameters.")
         self._cpp_obj.startAutotuning()
 
 

@@ -292,9 +292,9 @@ class Operations(Collection):
         return self._computes
 
     @property
-    def is_autotuning_complete(self):
+    def is_tuning_complete(self):
         if not self._scheduled:
-            raise DataAccessError("is_autotuning_complete")
+            raise DataAccessError("is_tuning_complete")
 
         result = True
         for op in self:
@@ -302,13 +302,13 @@ class Operations(Collection):
 
         return result
 
-    def autotune_kernel_launch_parameters(self):
+    def autotune_kernel_parameters(self):
         if not self._scheduled:
             raise RuntimeError("Call Simulation.run() before "
-                               "autotune_kernel_launch_parameters.")
+                               "autotune_kernel_parameters.")
 
         for op in self:
-            op.autotune_kernel_launch_parameters()
+            op.autotune_kernel_parameters()
 
 
     def __getstate__(self):
