@@ -157,9 +157,8 @@ class PYBIND11_EXPORT AutotunerInterface
     Some classes may activate some autotuners optionally based on run time parameters. Set
     *optional* to `true` and the Autotuner will report that it is complete before it starts
     scanning. This prevents the optional autotuners from flagging the whole class as not complete
-    indefinately.
-
-    TODO: Implement get/set parameters from Python.
+    indefinitely. This is implemented with an INACTIVE state that goes to SCANNING on the first
+    call to begin().
 */
 template <size_t n_dimensions>
 class PYBIND11_EXPORT Autotuner : public AutotunerInterface
@@ -197,7 +196,10 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     /// Call before kernel launch.
     void begin()
     {
-    m_active = true;
+    if (m_state == INACTIVE)
+        {
+        m_state = SCANNING;
+        }
 
 #ifdef ENABLE_HIP
     // if we are scanning, record a cuda event - otherwise do nothing
@@ -286,7 +288,7 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     */
     virtual bool isComplete()
         {
-        if ((m_optional && !m_active) || m_state != SCANNING)
+        if (m_state != SCANNING)
             return true;
         else
             return false;
@@ -322,18 +324,13 @@ class PYBIND11_EXPORT Autotuner : public AutotunerInterface
     /// State names
     enum State
         {
+        INACTIVE,
         IDLE,
         SCANNING
         };
 
     /// Number of samples to take for each parameter.
     unsigned int m_n_samples;
-
-    /// Indicate if this autotuner is optional.
-    bool m_optional;
-
-    /// Record whether the autotuner has been activated.
-    bool m_active = false;
 
     /// Valid parameters.
     std::vector<std::array<unsigned int, n_dimensions>> m_parameters;
@@ -408,7 +405,7 @@ Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>&
               unsigned int n_samples,
               bool optional,
               std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
-    : AutotunerInterface(name), m_n_samples(n_samples), m_optional(optional),
+    : AutotunerInterface(name), m_n_samples(n_samples),
       m_exec_conf(exec_conf), m_sync(false), m_mode(mode_median)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << name << " with " << n_samples
@@ -466,7 +463,17 @@ Autotuner<n_dimensions>::Autotuner(const std::vector<std::vector<unsigned int>>&
     CHECK_CUDA_ERROR();
 #endif
 
-    startScan();
+    m_current_element = 0;
+    m_current_sample = 0;
+    m_current_param = m_parameters[m_current_element];
+    if (optional)
+        {
+        m_state = INACTIVE;
+        }
+    else
+        {
+        m_state = SCANNING;
+        }
     }
 
 template <size_t n_dimensions>
