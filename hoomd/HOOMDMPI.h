@@ -16,6 +16,7 @@
 #ifdef ENABLE_MPI
 
 #include "HOOMDMath.h"
+#include "VectorMath.h"
 
 #include <mpi.h>
 
@@ -88,6 +89,24 @@ template<class Archive> void serialize(Archive& ar, uchar3& u, const unsigned in
     ar& u.x;
     ar& u.y;
     ar& u.z;
+    }
+
+//! Serialization of vec3<Real>
+template<class Archive, class Real>
+void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
+    {
+    ar& v.x;
+    ar& v.y;
+    ar& v.z;
+    }
+
+//! Serialization of quat<Real>
+template<class Archive, class Real>
+void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
+    {
+    // serialize both members
+    ar& q.s;
+    ar& q.v;
     }
 
 #ifdef ENABLE_TBB

@@ -3,7 +3,6 @@
 
 // particle data
 #include "ParticleData.h"
-#include "ParticleDataSnapshot.h"
 #include "Sorter.h"
 #ifdef ENABLE_HIP
 #include "SorterGPU.h"
@@ -111,7 +110,6 @@ using namespace hoomd;
 PYBIND11_MODULE(_mpcd, m)
     {
     mpcd::detail::export_ParticleData(m);
-    mpcd::detail::export_ParticleDataSnapshot(m);
     mpcd::detail::export_Sorter(m);
 #ifdef ENABLE_HIP
     mpcd::detail::export_SorterGPU(m);

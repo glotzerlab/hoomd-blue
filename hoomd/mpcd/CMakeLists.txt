@@ -14,7 +14,6 @@ set(_mpcd_sources
     ExternalField.cc
     Integrator.cc
     ParticleData.cc
-    ParticleDataSnapshot.cc
     SlitGeometryFiller.cc
     SlitPoreGeometryFiller.cc
     Sorter.cc

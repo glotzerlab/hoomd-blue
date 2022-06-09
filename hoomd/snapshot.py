@@ -288,6 +288,38 @@ class Snapshot:
         else:
             raise RuntimeError('Snapshot data is only present on rank 0')
 
+    @property
+    def mpcd(self):
+        """MPCD data.
+
+        Attributes:
+            mpcd.N (int): Number of MPCD particles.
+
+            mpcd.position ((*N*, 3) `numpy.ndarray` of `float`):
+                Particle position :math:`[\\mathrm{length}]`.
+
+            mpcd.velocity ((*N*, 3) `numpy.ndarray` of `float`):
+                Particle velocity :math:`[\\mathrm{velocity}]`.
+
+            mpcd.types (list[str]):
+                Names of the particle types.
+
+            mpcd.typeid ((*N*, ) `numpy.ndarray` of ``uint32``):
+                Particle type id.
+
+            mpcd.mass (float): Particle mass.
+
+        Note:
+            Set ``N`` to change the size of the arrays.
+        """
+        if self.communicator.rank == 0:
+            if hasattr(self._cpp_obj, 'mpcd'):
+                return self._cpp_obj.mpcd
+            else:
+                return None
+        else:
+            raise RuntimeError('Snapshot data is only present on rank 0')
+
     @classmethod
     def _from_cpp_snapshot(cls, snapshot, communicator):
         sp = cls()

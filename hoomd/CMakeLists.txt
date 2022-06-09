@@ -219,6 +219,12 @@ set(_cuda_sources ${_hoomd_cu_sources})
 set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
+# add the MPCD base parts that should go into _hoomd (i.e., core particle data)
+if (BUILD_MPCD)
+    list(APPEND _hoomd_sources mpcd/ParticleDataSnapshot.cc)
+    list(APPEND _hoomd_headers mpcd/ParticleDataSnapshot.h)
+endif(BUILD_MPCD)
+
 #########################
 ## Build the module
 pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
@@ -403,6 +409,7 @@ endif()
 
 if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     if (BUILD_MPCD)
+        target_compile_definitions(_hoomd PUBLIC ENABLE_MPCD)
         add_subdirectory(mpcd)
     endif()
 endif()

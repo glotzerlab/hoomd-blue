@@ -15,6 +15,9 @@
 #include "BondedGroupData.h"
 #include "BoxDim.h"
 #include "ParticleData.h"
+#ifdef ENABLE_MPCD
+#include "hoomd/mpcd/ParticleDataSnapshot.h"
+#endif
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -50,6 +53,9 @@ template<class Real> struct SnapshotSystemData
     ImproperData::Snapshot improper_data;     //!< The improper data
     ConstraintData::Snapshot constraint_data; //!< The constraint data
     PairData::Snapshot pair_data;             //!< The pair data
+#ifdef ENABLE_MPCD
+    mpcd::ParticleDataSnapshot mpcd_data;   //!< The MPCD particle data
+#endif
 
     //! Constructor
     SnapshotSystemData() : dimensions(3), global_box(std::make_shared<BoxDim>()) { }
