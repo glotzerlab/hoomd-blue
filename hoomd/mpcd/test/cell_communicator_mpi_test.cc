@@ -55,8 +55,8 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>();
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
     cl->computeDimensions();
 
@@ -158,8 +158,8 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>();
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
     cl->computeDimensions();
 

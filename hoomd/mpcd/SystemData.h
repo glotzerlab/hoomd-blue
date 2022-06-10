@@ -15,7 +15,8 @@
 
 #include "CellList.h"
 #include "ParticleData.h"
-#include "SystemDataSnapshot.h"
+#include "ParticleDataSnapshot.h"
+#include "hoomd/SnapshotSystemData.h"
 #include "hoomd/SystemDefinition.h"
 #include <pybind11/pybind11.h>
 
@@ -31,7 +32,8 @@ class PYBIND11_EXPORT SystemData
                std::shared_ptr<mpcd::ParticleData> mpcd_pdata);
 
     //! Construct from a snapshot
-    SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
+    SystemData(std::shared_ptr<hoomd::SystemDefinition> sysdef,
+               std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot);
 
     //! Destructor
     ~SystemData();
@@ -60,11 +62,11 @@ class PYBIND11_EXPORT SystemData
         return *m_global_box;
         }
 
-    //! Return a snapshot of the current system data
-    std::shared_ptr<mpcd::SystemDataSnapshot> takeSnapshot(bool particles);
+    //! Return a snapshot of the current particle data
+    std::shared_ptr<mpcd::ParticleDataSnapshot> takeParticleSnapshot();
 
     //! Re-initialize the system from a snapshot
-    void initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
+    void initializeFromParticleSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot);
 
     private:
     std::shared_ptr<hoomd::SystemDefinition> m_sysdef; //!< HOOMD system definition

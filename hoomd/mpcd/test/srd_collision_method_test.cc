@@ -25,38 +25,34 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // 4 particle system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    std::vector<Scalar3> orig_vel;
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(4);
+    
+    mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    mpcd_snap->position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
+    mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+
+    mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    mpcd_snap->velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
+    mpcd_snap->velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
+
+    std::vector<Scalar3> orig_vel(mpcd_snap->size);
+    // stash initial velocities for reference
+    for (unsigned int i = 0; i < mpcd_snap->size; ++i)
         {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(4);
-
-        mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
-
-        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap->velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
-        mpcd_snap->velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
-
-        orig_vel.resize(mpcd_snap->size);
-        // stash initial velocities for reference
-        for (unsigned int i = 0; i < mpcd_snap->size; ++i)
-            {
-            orig_vel[i] = make_scalar3(mpcd_snap->velocity[i].x,
-                                       mpcd_snap->velocity[i].y,
-                                       mpcd_snap->velocity[i].z);
-            }
+        orig_vel[i] = make_scalar3(mpcd_snap->velocity[i].x,
+                                    mpcd_snap->velocity[i].y,
+                                    mpcd_snap->velocity[i].z);
         }
+
     // Save original momentum for comparison as well
     const Scalar3 orig_mom = make_scalar3(7.0, 0.0, -2.0);
     const Scalar orig_energy = 36.5;
     const Scalar orig_temp = 9.75;
 
     // initialize system and collision method
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     std::shared_ptr<mpcd::ParticleData> pdata_4 = mpcd_sys->getParticleData();
 
     // create a thermo, and use it to check the current
@@ -181,8 +177,8 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     // mpcd system, thermo, srd collision method
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>();
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
     std::shared_ptr<mpcd::SRDCollisionMethod> collide
         = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 42, thermo);
@@ -276,23 +272,19 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // 4 particle system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(4);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(4);
+    mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    mpcd_snap->position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
+    mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
 
-        mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
-        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+    mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+    mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+    mpcd_snap->velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
+    mpcd_snap->velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
 
-        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap->velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
-        mpcd_snap->velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
-        }
     // initialize system and collision method
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     std::shared_ptr<mpcd::ParticleData> pdata_4 = mpcd_sys->getParticleData();
 
     // create a thermo, and use it to check the current

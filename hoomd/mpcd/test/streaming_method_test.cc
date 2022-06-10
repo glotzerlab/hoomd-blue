@@ -24,18 +24,13 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // 2 particle system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(2);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(2);
+    mpcd_snap->position[0] = vec3<Scalar>(1.0, 4.85, 3.0);
+    mpcd_snap->position[1] = vec3<Scalar>(-3.0, -4.75, -1.0);
 
-        mpcd_snap->position[0] = vec3<Scalar>(1.0, 4.85, 3.0);
-        mpcd_snap->position[1] = vec3<Scalar>(-3.0, -4.75, -1.0);
-
-        mpcd_snap->velocity[0] = vec3<Scalar>(1.0, 1.0, 1.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(-1.0, -1.0, -1.0);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    mpcd_snap->velocity[0] = vec3<Scalar>(1.0, 1.0, 1.0);
+    mpcd_snap->velocity[1] = vec3<Scalar>(-1.0, -1.0, -1.0);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
 
     // setup a streaming method at timestep 2 with period 2 and phase 1
     auto geom = std::make_shared<const mpcd::detail::BulkGeometry>();

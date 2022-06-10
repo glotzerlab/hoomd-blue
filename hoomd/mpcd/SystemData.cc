@@ -50,15 +50,17 @@ mpcd::SystemData::SystemData(std::shared_ptr<hoomd::SystemDefinition> sysdef,
 /*!
  * \param snapshot MPCD system snapshot to initialize from
  */
-mpcd::SystemData::SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
-    : m_sysdef(snapshot->getSystemDefinition())
+mpcd::SystemData::SystemData(std::shared_ptr<hoomd::SystemDefinition> sysdef,
+                             std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot)
+    : m_sysdef(sysdef)
     {
-    m_global_box = std::make_shared<const BoxDim>(snapshot->getGlobalBox());
+    auto pdata = m_sysdef->getParticleData();
+    m_global_box = std::make_shared<const BoxDim>(pdata->getGlobalBox());
     m_particles = std::shared_ptr<mpcd::ParticleData>(
-        new mpcd::ParticleData(snapshot->particles,
+        new mpcd::ParticleData(snapshot,
                                m_global_box,
-                               snapshot->getExecutionConfiguration(),
-                               snapshot->getDomainDecomposition()));
+                               pdata->getExecConf(),
+                               pdata->getDomainDecomposition()));
 
 // Generate one companion cell list for the system
 /*
@@ -66,7 +68,7 @@ mpcd::SystemData::SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
  * until first compute), so we always make one.
  */
 #ifdef ENABLE_HIP
-    if (snapshot->getExecutionConfiguration()->isCUDAEnabled())
+    if (pdata->getExecConf()->isCUDAEnabled())
         {
         m_cl = std::make_shared<mpcd::CellListGPU>(m_sysdef, m_particles);
         }
@@ -92,25 +94,19 @@ mpcd::SystemData::~SystemData()
         .disconnect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
     }
 
-//! Take a snapshot of the system
-/*!
- * \param particles True if particle data should be saved
- */
-std::shared_ptr<mpcd::SystemDataSnapshot> mpcd::SystemData::takeSnapshot(bool particles)
+std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd::SystemData::takeParticleSnapshot()
     {
-    auto snap = std::make_shared<mpcd::SystemDataSnapshot>(m_sysdef);
-    m_particles->takeSnapshot(snap->particles, m_global_box);
-
-    return snap;
+    std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot;
+    m_particles->takeSnapshot(snapshot, m_global_box);
+    return snapshot;
     }
 
-//! (Re-)initialize the system from a snapshot
-/*
- * \param snapshot MPCD system snapshot to initialize from
- */
-void mpcd::SystemData::initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
+/*!
+    * \param snapshot HOOMD system snapshot to initialize from
+    */
+void mpcd::SystemData::initializeFromParticleSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot)
     {
-    m_particles->initializeFromSnapshot(snapshot->particles, m_global_box);
+    m_particles->initializeFromSnapshot(snapshot, m_global_box);
     }
 
 /*!
@@ -121,11 +117,12 @@ void mpcd::detail::export_SystemData(pybind11::module& m)
     pybind11::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData>>(m, "SystemData")
         .def(pybind11::init<std::shared_ptr<hoomd::SystemDefinition>,
                             std::shared_ptr<mpcd::ParticleData>>())
-        .def(pybind11::init<std::shared_ptr<mpcd::SystemDataSnapshot>>())
+        .def(pybind11::init<std::shared_ptr<hoomd::SystemDefinition>,
+                            std::shared_ptr<mpcd::ParticleDataSnapshot>>())
         .def("getParticleData", &mpcd::SystemData::getParticleData)
         .def("getCellList", &mpcd::SystemData::getCellList)
-        .def("takeSnapshot", &mpcd::SystemData::takeSnapshot)
-        .def("initializeFromSnapshot", &mpcd::SystemData::initializeFromSnapshot);
+        .def("takeParticleSnapshot", &mpcd::SystemData::takeParticleSnapshot)
+        .def("initializeFromParticleSnapshot", &mpcd::SystemData::initializeFromParticleSnapshot);
     }
 
     } // end namespace hoomd

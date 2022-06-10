@@ -8,7 +8,6 @@
 #include "SorterGPU.h"
 #endif // ENABLE_HIP
 #include "SystemData.h"
-#include "SystemDataSnapshot.h"
 
 // cell list
 #include "CellList.h"
@@ -115,7 +114,6 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_SorterGPU(m);
 #endif // ENABLE_HIP
     mpcd::detail::export_SystemData(m);
-    mpcd::detail::export_SystemDataSnapshot(m);
 
     mpcd::detail::export_CellList(m);
     mpcd::detail::export_CellThermoCompute(m);

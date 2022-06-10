@@ -20,15 +20,11 @@ template<class F> void slit_fill_basic_test(std::shared_ptr<ExecutionConfigurati
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(1);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
+    mpcd_snap->position[0] = vec3<Scalar>(1, -2, 3);
+    mpcd_snap->velocity[0] = vec3<Scalar>(123, 456, 789);
 
-        mpcd_snap->position[0] = vec3<Scalar>(1, -2, 3);
-        mpcd_snap->velocity[0] = vec3<Scalar>(123, 456, 789);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     auto pdata = mpcd_sys->getParticleData();
     mpcd_sys->getCellList()->setCellSize(2.0);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);

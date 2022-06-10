@@ -21,7 +21,6 @@ set(_mpcd_sources
     StreamingGeometry.cc
     StreamingMethod.cc
     SystemData.cc
-    SystemDataSnapshot.cc
     VirtualParticleFiller.cc
     )
 
@@ -51,7 +50,6 @@ set(_mpcd_headers
     StreamingGeometry.h
     StreamingMethod.h
     SystemData.h
-    SystemDataSnapshot.h
     VirtualParticleFiller.h
     )
 

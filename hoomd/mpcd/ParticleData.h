@@ -92,8 +92,8 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     ~ParticleData();
 
     //! Initialize the MPCD particle data from a snapshot
-    void initializeFromSnapshot(const std::shared_ptr<const ParticleDataSnapshot> snapshot,
-                                const std::shared_ptr<const BoxDim> global_box);
+    void initializeFromSnapshot(std::shared_ptr<const ParticleDataSnapshot> snapshot,
+                                std::shared_ptr<const BoxDim> global_box);
 
     //! Default initialize the MPCD particle data per rank
     void initializeRandom(unsigned int N,

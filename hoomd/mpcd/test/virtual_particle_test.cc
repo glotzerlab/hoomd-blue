@@ -64,16 +64,11 @@ UP_TEST(virtual_add_remove_test)
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // 1 particle system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(1);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
+    mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
+    mpcd_snap->velocity[0] = vec3<Scalar>(1.0, 2.0, 3.0);
 
-        mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap->velocity[0] = vec3<Scalar>(1.0, 2.0, 3.0);
-        }
-
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
 
     // one particle at first, no virtual particles

@@ -27,15 +27,10 @@ template<class F> void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfigur
     std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
     sysdef->setCommunicator(pdata_comm);
 
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        std::shared_ptr<mpcd::ParticleDataSnapshot> mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(1);
-
-        mpcd_snap->position[0] = vec3<Scalar>(1, 1, 1);
-        mpcd_snap->velocity[0] = vec3<Scalar>(123, 456, 789);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
+    mpcd_snap->position[0] = vec3<Scalar>(1, 1, 1);
+    mpcd_snap->velocity[0] = vec3<Scalar>(123, 456, 789);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     auto pdata = mpcd_sys->getParticleData();
     mpcd_sys->getCellList()->setCellSize(2.0);
     UP_ASSERT_EQUAL(pdata->getNVirtual(), 0);

@@ -109,8 +109,8 @@ mpcd::ParticleData::~ParticleData()
  * the snapshot is only valid on the root rank.
  */
 void mpcd::ParticleData::initializeFromSnapshot(
-    const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-    const std::shared_ptr<const BoxDim> global_box)
+    std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
+    std::shared_ptr<const BoxDim> global_box)
     {
     m_exec_conf->msg->notice(4) << "MPCD ParticleData: initializing from snapshot" << std::endl;
 
@@ -123,7 +123,7 @@ void mpcd::ParticleData::initializeFromSnapshot(
     if (!checkInBox(snapshot, global_box))
         {
         m_exec_conf->msg->error() << "Not all MPCD particles were found inside the box" << endl;
-        throw runtime_error("Error initializing MPCD particle data");
+        throw std::runtime_error("Error initializing MPCD particle data");
         }
 
     // global number of particles

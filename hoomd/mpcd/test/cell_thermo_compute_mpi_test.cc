@@ -31,34 +31,29 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     sysdef->setCommunicator(pdata_comm);
 
     // place each particle all in the same cell
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->resize(9);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(9);
+    // start all particles in the middle of their domains (no overlapping comms)
+    mpcd_snap->position[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
+    mpcd_snap->position[1] = vec3<Scalar>(1.0, -1.0, -1.0);
+    mpcd_snap->position[2] = vec3<Scalar>(-1.0, 1.0, -1.0);
+    mpcd_snap->position[3] = vec3<Scalar>(1.0, 1.0, -1.0);
+    mpcd_snap->position[4] = vec3<Scalar>(-1.0, -1.0, 1.0);
+    mpcd_snap->position[5] = vec3<Scalar>(1.0, -1.0, 1.0);
+    mpcd_snap->position[6] = vec3<Scalar>(-1.0, 1.0, 1.0);
+    mpcd_snap->position[7] = vec3<Scalar>(1.0, 1.0, 1.0);
+    // put an extra particle on rank 0 so that at least one temp is defined
+    mpcd_snap->position[8] = vec3<Scalar>(-1.0, -1.0, -1.0);
 
-        // start all particles in the middle of their domains (no overlapping comms)
-        mpcd_snap->position[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
-        mpcd_snap->position[1] = vec3<Scalar>(1.0, -1.0, -1.0);
-        mpcd_snap->position[2] = vec3<Scalar>(-1.0, 1.0, -1.0);
-        mpcd_snap->position[3] = vec3<Scalar>(1.0, 1.0, -1.0);
-        mpcd_snap->position[4] = vec3<Scalar>(-1.0, -1.0, 1.0);
-        mpcd_snap->position[5] = vec3<Scalar>(1.0, -1.0, 1.0);
-        mpcd_snap->position[6] = vec3<Scalar>(-1.0, 1.0, 1.0);
-        mpcd_snap->position[7] = vec3<Scalar>(1.0, 1.0, 1.0);
-        // put an extra particle on rank 0 so that at least one temp is defined
-        mpcd_snap->position[8] = vec3<Scalar>(-1.0, -1.0, -1.0);
-
-        mpcd_snap->velocity[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, -1.0, -1.0);
-        mpcd_snap->velocity[2] = vec3<Scalar>(-1.0, 1.0, -1.0);
-        mpcd_snap->velocity[3] = vec3<Scalar>(1.0, 1.0, -1.0);
-        mpcd_snap->velocity[4] = vec3<Scalar>(-1.0, -1.0, 1.0);
-        mpcd_snap->velocity[5] = vec3<Scalar>(1.0, -1.0, 1.0);
-        mpcd_snap->velocity[6] = vec3<Scalar>(-1.0, 1.0, 1.0);
-        mpcd_snap->velocity[7] = vec3<Scalar>(1.0, 1.0, 1.0);
-        mpcd_snap->velocity[8] = vec3<Scalar>(1.0, 1.0, 1.0);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    mpcd_snap->velocity[0] = vec3<Scalar>(-1.0, -1.0, -1.0);
+    mpcd_snap->velocity[1] = vec3<Scalar>(1.0, -1.0, -1.0);
+    mpcd_snap->velocity[2] = vec3<Scalar>(-1.0, 1.0, -1.0);
+    mpcd_snap->velocity[3] = vec3<Scalar>(1.0, 1.0, -1.0);
+    mpcd_snap->velocity[4] = vec3<Scalar>(-1.0, -1.0, 1.0);
+    mpcd_snap->velocity[5] = vec3<Scalar>(1.0, -1.0, 1.0);
+    mpcd_snap->velocity[6] = vec3<Scalar>(-1.0, 1.0, 1.0);
+    mpcd_snap->velocity[7] = vec3<Scalar>(1.0, 1.0, 1.0);
+    mpcd_snap->velocity[8] = vec3<Scalar>(1.0, 1.0, 1.0);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
 
     std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
 

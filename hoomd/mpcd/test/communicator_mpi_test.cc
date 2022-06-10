@@ -51,48 +51,44 @@ void test_communicator_migrate(communicator_creator comm_creator,
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
     BoxDim ref_box = BoxDim(2.0);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap->type_mapping.push_back("M");
-        mpcd_snap->type_mapping.push_back("P");
-        mpcd_snap->type_mapping.push_back("H");
-        mpcd_snap->type_mapping.push_back("R");
-        mpcd_snap->type_mapping.push_back("L");
-        mpcd_snap->type_mapping.push_back("G");
-        mpcd_snap->type_mapping.push_back("PSU");
-        mpcd_snap->type_mapping.push_back("PU");
+    mpcd_snap->type_mapping.push_back("M");
+    mpcd_snap->type_mapping.push_back("P");
+    mpcd_snap->type_mapping.push_back("H");
+    mpcd_snap->type_mapping.push_back("R");
+    mpcd_snap->type_mapping.push_back("L");
+    mpcd_snap->type_mapping.push_back("G");
+    mpcd_snap->type_mapping.push_back("PSU");
+    mpcd_snap->type_mapping.push_back("PU");
 
-        mpcd_snap->resize(8);
-        mpcd_snap->position[0] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, -0.5)));
-        mpcd_snap->position[1] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, -0.5)));
-        mpcd_snap->position[2] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, -0.5)));
-        mpcd_snap->position[3] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, -0.5)));
-        mpcd_snap->position[4] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, 0.5)));
-        mpcd_snap->position[5] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, 0.5)));
-        mpcd_snap->position[6] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, 0.5)));
-        mpcd_snap->position[7] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, 0.5)));
+    mpcd_snap->position[0] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, -0.5)));
+    mpcd_snap->position[1] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, -0.5)));
+    mpcd_snap->position[2] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, -0.5)));
+    mpcd_snap->position[3] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, -0.5)));
+    mpcd_snap->position[4] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, -0.5, 0.5)));
+    mpcd_snap->position[5] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, -0.5, 0.5)));
+    mpcd_snap->position[6] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, 0.5)));
+    mpcd_snap->position[7] = vec3<Scalar>(REF_TO_DEST(make_scalar3(0.5, 0.5, 0.5)));
 
-        mpcd_snap->velocity[0] = vec3<Scalar>(0., -0.5, 0.5);
-        mpcd_snap->velocity[1] = vec3<Scalar>(1., -1.5, 1.5);
-        mpcd_snap->velocity[2] = vec3<Scalar>(2., -2.5, 2.5);
-        mpcd_snap->velocity[3] = vec3<Scalar>(3., -3.5, 3.5);
-        mpcd_snap->velocity[4] = vec3<Scalar>(4., -4.5, 4.5);
-        mpcd_snap->velocity[5] = vec3<Scalar>(5., -5.5, 5.5);
-        mpcd_snap->velocity[6] = vec3<Scalar>(6., -6.5, 6.5);
-        mpcd_snap->velocity[7] = vec3<Scalar>(7., -7.5, 7.5);
+    mpcd_snap->velocity[0] = vec3<Scalar>(0., -0.5, 0.5);
+    mpcd_snap->velocity[1] = vec3<Scalar>(1., -1.5, 1.5);
+    mpcd_snap->velocity[2] = vec3<Scalar>(2., -2.5, 2.5);
+    mpcd_snap->velocity[3] = vec3<Scalar>(3., -3.5, 3.5);
+    mpcd_snap->velocity[4] = vec3<Scalar>(4., -4.5, 4.5);
+    mpcd_snap->velocity[5] = vec3<Scalar>(5., -5.5, 5.5);
+    mpcd_snap->velocity[6] = vec3<Scalar>(6., -6.5, 6.5);
+    mpcd_snap->velocity[7] = vec3<Scalar>(7., -7.5, 7.5);
 
-        mpcd_snap->type[0] = 0;
-        mpcd_snap->type[1] = 1;
-        mpcd_snap->type[2] = 2;
-        mpcd_snap->type[3] = 3;
-        mpcd_snap->type[4] = 4;
-        mpcd_snap->type[5] = 5;
-        mpcd_snap->type[6] = 6;
-        mpcd_snap->type[7] = 7;
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    mpcd_snap->type[0] = 0;
+    mpcd_snap->type[1] = 1;
+    mpcd_snap->type[2] = 2;
+    mpcd_snap->type[3] = 3;
+    mpcd_snap->type[4] = 4;
+    mpcd_snap->type[5] = 5;
+    mpcd_snap->type[6] = 6;
+    mpcd_snap->type[7] = 7;
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     // set a small cell size so that nothing will lie in the diffusion layer
     mpcd_sys->getCellList()->setCellSize(0.05);
 
@@ -719,21 +715,16 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
 
     // place eight mpcd particles
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-        {
-        auto mpcd_snap = mpcd_sys_snap->particles;
-
-        mpcd_snap->resize(8);
-        mpcd_snap->position[0] = vec3<Scalar>(-1.5, -0.5, 0.0);
-        mpcd_snap->position[1] = vec3<Scalar>(-0.5, -0.5, 0.0);
-        mpcd_snap->position[2] = vec3<Scalar>(0.5, -0.5, 0.0);
-        mpcd_snap->position[3] = vec3<Scalar>(1.5, -0.5, 0.0);
-        mpcd_snap->position[4] = vec3<Scalar>(-1.5, 0.5, 0.0);
-        mpcd_snap->position[5] = vec3<Scalar>(-0.5, 0.5, 0.0);
-        mpcd_snap->position[6] = vec3<Scalar>(0.5, 0.5, 0.0);
-        mpcd_snap->position[7] = vec3<Scalar>(1.5, 0.5, 0.0);
-        }
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
+    mpcd_snap->position[0] = vec3<Scalar>(-1.5, -0.5, 0.0);
+    mpcd_snap->position[1] = vec3<Scalar>(-0.5, -0.5, 0.0);
+    mpcd_snap->position[2] = vec3<Scalar>(0.5, -0.5, 0.0);
+    mpcd_snap->position[3] = vec3<Scalar>(1.5, -0.5, 0.0);
+    mpcd_snap->position[4] = vec3<Scalar>(-1.5, 0.5, 0.0);
+    mpcd_snap->position[5] = vec3<Scalar>(-0.5, 0.5, 0.0);
+    mpcd_snap->position[6] = vec3<Scalar>(0.5, 0.5, 0.0);
+    mpcd_snap->position[7] = vec3<Scalar>(1.5, 0.5, 0.0);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
     // set a small cell size so that nothing will lie in the diffusion layer
     mpcd_sys->getCellList()->setCellSize(0.05);
 
@@ -926,8 +917,8 @@ void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exe
     auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
 
     // empty MPCD system
-    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
-    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>();
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, mpcd_snap);
 
     // initialize the communicator
     auto comm = std::make_shared<mpcd::Communicator>(mpcd_sys);
