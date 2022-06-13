@@ -62,6 +62,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_HIP_STANDARD 14)
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -207,13 +208,7 @@ configure_package_config_file(hoomd-config.cmake.in
 
 install(FILES CMake/hoomd/FindTBB.cmake
               CMake/hoomd/FindCUDALibs.cmake
-              CMake/HIP/FindHIP.cmake
               CMake/hoomd/HOOMDHIPSetup.cmake
-              CMake/hoomd/hipcc.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
-
-install(FILES CMake/HIP/FindHIP/run_hipcc.cmake
-              CMake/HIP/FindHIP/run_make2cmake.cmake
-        DESTINATION ${CONFIG_INSTALL_DIR}/FindHIP)
