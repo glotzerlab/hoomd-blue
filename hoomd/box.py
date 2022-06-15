@@ -558,12 +558,12 @@ box_like = typing.Union[Box, BoxInterface, typing.Sequence[float],
 
 This includes
 
-* `hoomd.Box` objects
-* objects with attributes ``Lx, Ly, Lz xy, xz, yz``
-* lists like ``[Lx, Ly, Lz, xy, xz, yz]``
-* dictionaries with keys ``'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz'``
-* 3x3 NumPy arrays or object convertible to a 3x3 array (see
-  `hoomd.Box.from_matrix`)
+* `hoomd.Box` objects.
+* Objects with attributes ``Lx, Ly, Lz, xy, xz, yz``.
+* Lists like ``[Lx, Ly, Lz, xy, xz, yz]``.
+* Dictionaries with keys ``'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz'``.
+* 3x3 NumPy arrays or objects convertible to a 3x3 array (see
+  `hoomd.Box.from_matrix`).
 
 Note:
     If any of ``Lz, xy, xz, yz`` for these different types are not provided,
