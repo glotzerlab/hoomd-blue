@@ -16,6 +16,7 @@ hoomd.variant
     Power
     Ramp
     Variant
+    variant_like
 
 .. rubric:: Details
 
@@ -37,3 +38,4 @@ hoomd.variant
         :show-inheritance:
     .. autoclass:: Variant()
         :members: min, max, __getstate__, __setstate__
+    .. autodata:: variant_like

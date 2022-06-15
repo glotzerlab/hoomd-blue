@@ -190,8 +190,8 @@ class BoxMCMoveSize(_InternalCustomTuner):
         invalid results due to the breaking of balance.
 
     Args:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
+        trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when to
+            run the tuner.
         boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC` object to
             tune.
         moves (list[str]): A list of types of moves to tune. Available options
@@ -249,8 +249,8 @@ class BoxMCMoveSize(_InternalCustomTuner):
         """Create a `BoxMCMoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC`
                 object to tune.
             moves (list[str]): A list of types of moves to tune. Available
@@ -289,8 +289,8 @@ class BoxMCMoveSize(_InternalCustomTuner):
         of gamma this should not be a problem.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC`
                 object to tune.
             moves (list[str]): A list of types of moves to tune. Available

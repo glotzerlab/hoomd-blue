@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
+import numpy as np
 
 import hoomd
 from hoomd.conftest import BaseMappingTest, pickling_check
@@ -177,3 +178,113 @@ class TestParameterDictAttached(TestParameterDict):
             assert test_mapping[k] == v
             if isinstance(old_v, _HOOMDSyncedCollection):
                 assert old_v._isolated
+
+
+class TestSpecialTypes:
+
+    def test_variants(self):
+        mapping = ParameterDict(variant=hoomd.variant.Variant)
+        mapping["variant"] = 4.0
+        assert mapping["variant"] == hoomd.variant.Constant(4.0)
+        ramp = hoomd.variant.Ramp(0, 1, 0, 10_000)
+        mapping["variant"] = ramp
+        assert mapping["variant"] == ramp
+
+    def test_triggers(self):
+        mapping = ParameterDict(trigger=hoomd.trigger.Trigger)
+        mapping["trigger"] = 1
+        assert mapping["trigger"] == hoomd.trigger.Periodic(1)
+        mapping["trigger"] = 1.5
+        assert mapping["trigger"] == hoomd.trigger.Periodic(1)
+        after = hoomd.trigger.After(100)
+        mapping["trigger"] = after
+        assert mapping["trigger"] == after
+
+    def test_filters(self):
+        mapping = ParameterDict(filter=hoomd.filter.ParticleFilter)
+        mapping["filter"] = hoomd.filter.All()
+        assert mapping["filter"] == hoomd.filter.All()
+        tag_100 = hoomd.filter.Tags([100])
+        mapping["filter"] = tag_100
+        assert mapping["filter"] == tag_100
+
+        class NewFilter(hoomd.filter.CustomFilter):
+
+            def __call__(self, state):
+                return np.array([], dtype=np.uint64)
+
+            def __eq__(self, other):
+                return self is other
+
+            def __hash__(self):
+                return hash(self.__class__.__name__)
+
+        new_filter = NewFilter()
+        mapping["filter"] = new_filter
+        assert mapping["filter"] == new_filter
+
+    def test_ndarray(self):
+        mapping = ParameterDict(ndarray=np.ndarray)
+        mapping["ndarray"] = np.array([], dtype=bool)
+        assert mapping["ndarray"].dtype == float
+
+        int_array = np.array([1, 2], dtype=int)
+        mapping["ndarray"] = int_array
+        assert mapping["ndarray"].dtype == float
+        assert np.allclose(mapping["ndarray"], int_array)
+
+        float_array = np.array([[3.15], [4.10]], dtype=float)
+        with pytest.raises(hoomd.error.TypeConversionError):
+            mapping["ndarray"] = float_array
+        float_array = float_array.flatten()
+        mapping["ndarray"] = float_array
+        assert np.allclose(mapping["ndarray"], float_array)
+
+    def test_str(self):
+        mapping = ParameterDict(str=str)
+        with pytest.raises(hoomd.error.TypeConversionError):
+            mapping["str"] = 4.0
+        with pytest.raises(hoomd.error.TypeConversionError):
+            mapping["str"] = {}
+        mapping["str"] = "abc"
+        assert mapping["str"] == "abc"
+
+    @pytest.mark.parametrize("box", ([10, 15, 25, 0, -0.5, 2], {
+        "Lx": 10,
+        "Ly": 15,
+        "Lz": 25,
+        "xy": 0,
+        "xz": -0.5,
+        "yz": 2
+    }, {
+        "Lx": 10,
+        "Ly": 15,
+        "Lz": 25
+    }, {
+        "Lx": 10,
+        "Ly": 15
+    }, {
+        "Lx": 10,
+        "Ly": 15,
+        "xy": 0
+    }, [10, 15]))
+    def test_box_valid(self, box):
+        mapping = ParameterDict(box=hoomd.Box)
+        mapping["box"] = box
+        assert mapping["box"] == hoomd.Box.from_box(box)
+
+    @pytest.mark.parametrize("box", ([10, 15, 25, 0, -0.5], {
+        "Ly": 15,
+        "Lz": 25,
+        "xy": 0,
+        "xz": -0.5,
+        "yz": 2
+    }, {
+        "Lx": 10,
+        "Ly": 15,
+        "xz": 1
+    }, [10]))
+    def test_box_invalid(self, box):
+        mapping = ParameterDict(box=hoomd.Box)
+        with pytest.raises(hoomd.error.TypeConversionError):
+            mapping["box"] = box

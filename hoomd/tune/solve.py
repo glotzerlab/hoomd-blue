@@ -339,13 +339,13 @@ class GradientDescent(Optimizer, _GradientHelper):
     is smaller than ``tol``).
 
     Args:
-        alpha (`float` or `hoomd.variant.Variant`, optional): Either a number
-            between 0 and 1 used to dampen the rate of change in x or a variant
-            that varies not by timestep but by the number of times `solve` has
-            been called (i.e. the number of steps taken) (defaults to
-            0.1). ``alpha`` scales the corrections to x each iteration.  Larger
-            values of ``alpha`` lead to larger changes while a ``alpha`` of 0
-            leads to no change in x at all.
+        alpha (`hoomd.variant.variant_like`, optional): Either a number between
+            0 and 1 used to dampen the rate of change in x or a variant that
+            varies not by timestep but by the number of times `solve` has been
+            called (i.e. the number of steps taken) (defaults to 0.1). ``alpha``
+            scales the corrections to x each iteration.  Larger values of
+            ``alpha`` lead to larger changes while a ``alpha`` of 0 leads to no
+            change in x at all.
         kappa (`numpy.ndarray`, optional): Real number array that determines how
             much of the previous steps' directions to use (defaults to ``None``
             which does no averaging over past step directions). The array values
@@ -420,14 +420,14 @@ class GradientDescent(Optimizer, _GradientHelper):
         return self._alpha(self._cnt)
 
     @alpha.setter
-    def alpha(self, new_alpha: typing.Union[float, hoomd.variant.Variant]):
+    def alpha(self, new_alpha: hoomd.variant.variant_like):
         if isinstance(new_alpha, float):
             self._alpha = hoomd.variant.Constant(new_alpha)
         elif isinstance(new_alpha, hoomd.variant.Variant):
             self._alpha = new_alpha
         else:
             raise TypeError(
-                "Expected either a float or hoomd.variant.Variant object.")
+                "Expected either a hoomd.variant.variant_like object.")
 
     def solve_one(self, tunable):
         """Solve one step."""

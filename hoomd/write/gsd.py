@@ -32,9 +32,9 @@ class GSD(Writer):
     r"""Write simulation trajectories in the GSD format.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to write.
         filename (str): File name to write.
-        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+        filter (hoomd.filter.filter_like): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         mode (str): The file open mode. Defaults to ``'ab'``.
         truncate (bool): When `True`, truncate the file and write a new frame 0
@@ -136,7 +136,7 @@ class GSD(Writer):
     Attributes:
         filename (str): File name to write.
         trigger (hoomd.trigger.Trigger): Select the timesteps to write.
-        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+        filter (hoomd.filter.filter_like): Select the particles to write.
         mode (str): The file open mode.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers.
@@ -201,7 +201,7 @@ class GSD(Writer):
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
-            filter (hoomd.filter.ParticleFilter): Select the particles to write.
+            filter (hoomd.filter.filter_like): Select the particles to write.
             mode (str): The file open mode. Defaults to ``'wb'``.
             log (hoomd.logging.Logger): Provide log quantities to write.
 

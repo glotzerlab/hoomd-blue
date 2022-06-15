@@ -56,7 +56,7 @@ class NVT(Alchemostat):
     particle attributes as thermodynamic variables.
 
     Args:
-        alchemical_kT (`hoomd.variant.Variant` or `float`): Temperature set
+        alchemical_kT (hoomd.variant.variant_like): Temperature set
             point for the alchemostat :math:`[\mathrm{energy}]`.
 
         alchemical_dof (`list` [`hoomd.md.alchemy.pair.AlchemicalDOF`]): List
