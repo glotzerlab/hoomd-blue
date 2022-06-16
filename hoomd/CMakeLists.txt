@@ -212,6 +212,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
+set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE HIP)
 endif (ENABLE_HIP)
 
 #########################
