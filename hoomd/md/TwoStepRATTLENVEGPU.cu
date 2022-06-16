@@ -134,8 +134,8 @@ hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
                                    unsigned int block_size)
     {
     unsigned int max_block_size;
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_one_kernel);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_one_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
