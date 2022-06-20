@@ -653,283 +653,283 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
                                             unsigned int idx_d,
                                             unsigned int type_id)
     {
-//    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-//
-//    ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
-//    ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
-//
-//    const BoxDim& box = m_pdata->getGlobalBox();
-//
-//    // calculate d\vec{r}
-//    Scalar3 dab;
-//    dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
-//    dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
-//    dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
-//
-//    Scalar3 dac;
-//    dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
-//    dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
-//    dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
-//
-//    Scalar3 dad;
-//    dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
-//    dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
-//    dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
-//
-//    Scalar3 dbc;
-//    dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
-//    dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
-//    dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
-//
-//    Scalar3 dbd;
-//    dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
-//    dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
-//    dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
-//
-//    Scalar3 dcd;
-//    dcd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
-//    dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
-//    dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
-//
-//    // apply minimum image conventions to all 3 vectors
-//    dab = box.minImage(dab);
-//    dac = box.minImage(dac);
-//    dad = box.minImage(dad);
-//    dbc = box.minImage(dbc);
-//    dbd = box.minImage(dbd);
-//    dcd = box.minImage(dcd);
-//
-//    Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-//    Scalar rab = sqrt(rsqab);
-//    Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-//    Scalar rac = sqrt(rsqac);
-//    Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
-//    Scalar rad = sqrt(rsqad);
-//
-//    Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
-//    Scalar rbc = sqrt(rsqbc);
-//    Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
-//    Scalar rbd = sqrt(rsqbd);
-//    Scalar rsqcd = dcd.x * dcd.x + dcd.y * dcd.y + dcd.z * dcd.z;
-//    Scalar rcd = sqrt(rsqcd);
-//
-//    Scalar3 nab, nac, nad, nbc, nbd, ncd;
-//    nab = dab / rab;
-//    nac = dac / rac;
-//    nad = dad / rad;
-//    nbc = dbc / rbc;
-//    nbd = dbd / rbd;
-//    ncd = dcd / rcd;
-//
-//    Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
-//
-//    if (c_accb > 1.0)
-//        c_accb = 1.0;
-//    if (c_accb < -1.0)
-//        c_accb = -1.0;
-//
-//    Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
-//    if (inv_s_accb < SMALL)
-//        inv_s_accb = SMALL;
-//    inv_s_accb = 1.0 / inv_s_accb;
-//
-//    Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
-//
-//    if (c_addb > 1.0)
-//        c_addb = 1.0;
-//    if (c_addb < -1.0)
-//        c_addb = -1.0;
-//
-//    Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
-//    if (inv_s_addb < SMALL)
-//        inv_s_addb = SMALL;
-//    inv_s_addb = 1.0 / inv_s_addb;
-//
-//    Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-//
-//    if (c_baac > 1.0)
-//        c_baac = 1.0;
-//    if (c_baac < -1.0)
-//        c_baac = -1.0;
-//
-//    Scalar inv_s_baac = sqrt(1.0 - c_baac * c_baac);
-//    if (inv_s_baac < SMALL)
-//        inv_s_baac = SMALL;
-//    inv_s_baac = 1.0 / inv_s_baac;
-//
-//    Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
-//
-//    if (c_baad > 1.0)
-//        c_baad = 1.0;
-//    if (c_baad < -1.0)
-//        c_baad = -1.0;
-//
-//    Scalar inv_s_baad = sqrt(1.0 - c_baad * c_baad);
-//    if (inv_s_baad < SMALL)
-//        inv_s_baad = SMALL;
-//    inv_s_baad = 1.0 / inv_s_baad;
-//
-//    Scalar c_abbc = -(nab.x * nbc.x + nab.y * nbc.y + nab.z * nbc.z);
-//
-//    if (c_abbc > 1.0)
-//        c_abbc = 1.0;
-//    if (c_abbc < -1.0)
-//        c_abbc = -1.0;
-//
-//    Scalar inv_s_abbc = sqrt(1.0 - c_abbc * c_abbc);
-//    if (inv_s_abbc < SMALL)
-//        inv_s_abbc = SMALL;
-//    inv_s_abbc = 1.0 / inv_s_abbc;
-//
-//    Scalar c_abbd = -(nab.x * nbd.x + nab.y * nbd.y + nab.z * nbd.z);
-//
-//    if (c_abbd > 1.0)
-//        c_abbd = 1.0;
-//    if (c_abbd < -1.0)
-//        c_abbd = -1.0;
-//
-//    Scalar inv_s_abbd = sqrt(1.0 - c_abbd * c_abbd);
-//    if (inv_s_abbd < SMALL)
-//        inv_s_abbd = SMALL;
-//    inv_s_abbd = 1.0 / inv_s_abbd;
-//
-//    Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
-//
-//    if (c_caad > 1.0)
-//        c_caad = 1.0;
-//    if (c_caad < -1.0)
-//        c_caad = -1.0;
-//
-//    Scalar inv_s_caad = sqrt(1.0 - c_caad * c_caad);
-//    if (inv_s_caad < SMALL)
-//        inv_s_caad = SMALL;
-//    inv_s_caad = 1.0 / inv_s_caad;
-//
-//    Scalar c_cbbd = nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z;
-//
-//    if (c_cbbd > 1.0)
-//        c_cbbd = 1.0;
-//    if (c_cbbd < -1.0)
-//        c_cbbd = -1.0;
-//
-//    Scalar inv_s_cbbd = sqrt(1.0 - c_cbbd * c_cbbd);
-//    if (inv_s_cbbd < SMALL)
-//        inv_s_cbbd = SMALL;
-//    inv_s_cbbd = 1.0 / inv_s_cbbd;
-//
-//    Scalar c_accd = -(nac.x * ncd.x + nac.y * ncd.y + nac.z * ncd.z);
-//
-//    if (c_accd > 1.0)
-//        c_accd = 1.0;
-//    if (c_accd < -1.0)
-//        c_accd = -1.0;
-//
-//    Scalar inv_s_accd = sqrt(1.0 - c_accd * c_accd);
-//    if (inv_s_accd < SMALL)
-//        inv_s_accd = SMALL;
-//    inv_s_accd = 1.0 / inv_s_accd;
-//
-//    Scalar c_addc = nad.x * ncd.x + nad.y * ncd.y + nad.z * ncd.z;
-//
-//    if (c_addc > 1.0)
-//        c_addc = 1.0;
-//    if (c_addc < -1.0)
-//        c_addc = -1.0;
-//
-//    Scalar inv_s_addc = sqrt(1.0 - c_addc * c_addc);
-//    if (inv_s_addc < SMALL)
-//        inv_s_addc = SMALL;
-//    inv_s_addc = 1.0 / inv_s_addc;
-//
-//    Scalar c_bccd = -(nbc.x * ncd.x + nbc.y * ncd.y + nbc.z * ncd.z);
-//
-//    if (c_bccd > 1.0)
-//        c_bccd = 1.0;
-//    if (c_bccd < -1.0)
-//        c_bccd = -1.0;
-//
-//    Scalar inv_s_bccd = sqrt(1.0 - c_bccd * c_bccd);
-//    if (inv_s_bccd < SMALL)
-//        inv_s_bccd = SMALL;
-//    inv_s_bccd = 1.0 / inv_s_bccd;
-//
-//    Scalar c_bddc = nbd.x * ncd.x + nbd.y * ncd.y + nbd.z * ncd.z;
-//
-//    if (c_bddc > 1.0)
-//        c_bddc = 1.0;
-//    if (c_bddc < -1.0)
-//        c_bddc = -1.0;
-//
-//    Scalar inv_s_bddc = sqrt(1.0 - c_bddc * c_bddc);
-//    if (inv_s_bddc < SMALL)
-//        inv_s_bddc = SMALL;
-//    inv_s_bddc = 1.0 / inv_s_bddc;
-//
-//    Scalar cot_accb = c_accb * inv_s_accb;
-//    Scalar cot_addb = c_addb * inv_s_addb;
-//    Scalar cot_baac = c_baac * inv_s_baac;
-//    Scalar cot_baad = c_baad * inv_s_baad;
-//    Scalar cot_abbc = c_abbc * inv_s_abbc;
-//    Scalar cot_abbd = c_abbd * inv_s_abbd;
-//
-//    Scalar cot_caad = c_caad * inv_s_caad;
-//    Scalar cot_cbbd = c_cbbd * inv_s_cbbd;
-//    Scalar cot_accd = c_accd * inv_s_accd;
-//    Scalar cot_addc = c_addc * inv_s_addc;
-//    Scalar cot_bccd = c_bccd * inv_s_bccd;
-//    Scalar cot_bddc = c_bddc * inv_s_bddc;
-//
-//    Scalar sigma_hat_ab = -(cot_accb + cot_addb) * 0.5;
-//    Scalar sigma_hat_cd = (cot_caad + cot_cbbd) * 0.5;
-//    Scalar sigma_hat_ac = (cot_addc - cot_abbc) * 0.5;
-//    Scalar sigma_hat_ad = (cot_accd - cot_abbd) * 0.5;
-//    Scalar sigma_hat_bc = (cot_bddc - cot_baac) * 0.5;
-//    Scalar sigma_hat_bd = (cot_bccd - cot_baad) * 0.5;
-//
-//    Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
-//    Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
-//    Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
-//    Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
-//
-//    m_sigma_diff_a = (sigma_hat_ab * rsqab + sigma_hat_ac * rsqac + sigma_hat_ad * rsqad) * 0.25;
-//    m_sigma_diff_b = (sigma_hat_ab * rsqab + sigma_hat_bc * rsqbc + sigma_hat_bd * rsqbd) * 0.25;
-//    m_sigma_diff_c = (sigma_hat_ac * rsqac + sigma_hat_bc * rsqbc + sigma_hat_cd * rsqcd) * 0.25;
-//    m_sigma_diff_d = (sigma_hat_ad * rsqad + sigma_hat_bd * rsqbd + sigma_hat_cd * rsqcd) * 0.25;
-//
-//    Scalar sigma_a_n = sigma_a + m_sigma_diff_a;
-//    Scalar sigma_b_n = sigma_b + m_sigma_diff_b;
-//    Scalar sigma_c_n = sigma_c + m_sigma_diff_c;
-//    Scalar sigma_d_n = sigma_d + m_sigma_diff_d;
-//
-//    Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; // precomputed
-//    Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; // precomputed
-//    Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
-//    Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
-//
-//    m_sigma_dash_diff_a = sigma_hat_ab * dab + sigma_hat_ac * dac + sigma_hat_ad * dad;
-//    m_sigma_dash_diff_b = -sigma_hat_ab * dab + sigma_hat_bc * dbc + sigma_hat_bd * dbd;
-//    m_sigma_dash_diff_c = -sigma_hat_ac * dac - sigma_hat_bc * dbc + sigma_hat_cd * dcd;
-//    m_sigma_dash_diff_d = -sigma_hat_ad * dad - sigma_hat_bd * dbd - sigma_hat_cd * dcd;
-//
-//    Scalar3 sigma_dash_a_n = sigma_dash_a + m_sigma_dash_diff_a;
-//    Scalar3 sigma_dash_b_n = sigma_dash_b + m_sigma_dash_diff_b;
-//    Scalar3 sigma_dash_c_n = sigma_dash_c + m_sigma_dash_diff_c;
-//    Scalar3 sigma_dash_d_n = sigma_dash_d + m_sigma_dash_diff_d;
-//
-//    Scalar energy_old = dot(sigma_dash_a, sigma_dash_a) / sigma_a;
-//    energy_old += (dot(sigma_dash_b, sigma_dash_b) / sigma_b);
-//    energy_old += (dot(sigma_dash_c, sigma_dash_c) / sigma_c);
-//    energy_old += (dot(sigma_dash_d, sigma_dash_d) / sigma_d);
-//
-//    Scalar energy_new = dot(sigma_dash_a_n, sigma_dash_a_n) / sigma_a_n;
-//    energy_new += (dot(sigma_dash_b_n, sigma_dash_b_n) / sigma_b_n);
-//    energy_new += (dot(sigma_dash_c_n, sigma_dash_c_n) / sigma_c_n);
-//    energy_new += (dot(sigma_dash_d_n, sigma_dash_d_n) / sigma_d_n);
-//
-//    if (energy_new < 0)
-//        return DBL_MAX;
-//
-//    return m_K[0] * 0.5 * (energy_new - energy_old);
+    //ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    //ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
+    //ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
+
+    //const BoxDim& box = m_pdata->getGlobalBox();
+
+    //// calculate d\vec{r}
+    //Scalar3 dab;
+    //dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+    //dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+    //dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+
+    //Scalar3 dac;
+    //dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+    //dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+    //dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+
+    //Scalar3 dad;
+    //dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+    //dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+    //dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+
+    //Scalar3 dbc;
+    //dbc.x = h_pos.data[idx_b].x - h_pos.data[idx_c].x;
+    //dbc.y = h_pos.data[idx_b].y - h_pos.data[idx_c].y;
+    //dbc.z = h_pos.data[idx_b].z - h_pos.data[idx_c].z;
+
+    //Scalar3 dbd;
+    //dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
+    //dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
+    //dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
+
+    //Scalar3 dcd;
+    //dcd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
+    //dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
+    //dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
+
+    //// apply minimum image conventions to all 3 vectors
+    //dab = box.minImage(dab);
+    //dac = box.minImage(dac);
+    //dad = box.minImage(dad);
+    //dbc = box.minImage(dbc);
+    //dbd = box.minImage(dbd);
+    //dcd = box.minImage(dcd);
+
+    //Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+    //Scalar rab = sqrt(rsqab);
+    //Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+    //Scalar rac = sqrt(rsqac);
+    //Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+    //Scalar rad = sqrt(rsqad);
+
+    //Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+    //Scalar rbc = sqrt(rsqbc);
+    //Scalar rsqbd = dbd.x * dbd.x + dbd.y * dbd.y + dbd.z * dbd.z;
+    //Scalar rbd = sqrt(rsqbd);
+    //Scalar rsqcd = dcd.x * dcd.x + dcd.y * dcd.y + dcd.z * dcd.z;
+    //Scalar rcd = sqrt(rsqcd);
+
+    //Scalar3 nab, nac, nad, nbc, nbd, ncd;
+    //nab = dab / rab;
+    //nac = dac / rac;
+    //nad = dad / rad;
+    //nbc = dbc / rbc;
+    //nbd = dbd / rbd;
+    //ncd = dcd / rcd;
+
+    //Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
+
+    //if (c_accb > 1.0)
+    //    c_accb = 1.0;
+    //if (c_accb < -1.0)
+    //    c_accb = -1.0;
+
+    //Scalar inv_s_accb = sqrt(1.0 - c_accb * c_accb);
+    //if (inv_s_accb < SMALL)
+    //    inv_s_accb = SMALL;
+    //inv_s_accb = 1.0 / inv_s_accb;
+
+    //Scalar c_addb = nad.x * nbd.x + nad.y * nbd.y + nad.z * nbd.z;
+
+    //if (c_addb > 1.0)
+    //    c_addb = 1.0;
+    //if (c_addb < -1.0)
+    //    c_addb = -1.0;
+
+    //Scalar inv_s_addb = sqrt(1.0 - c_addb * c_addb);
+    //if (inv_s_addb < SMALL)
+    //    inv_s_addb = SMALL;
+    //inv_s_addb = 1.0 / inv_s_addb;
+
+    //Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+
+    //if (c_baac > 1.0)
+    //    c_baac = 1.0;
+    //if (c_baac < -1.0)
+    //    c_baac = -1.0;
+
+    //Scalar inv_s_baac = sqrt(1.0 - c_baac * c_baac);
+    //if (inv_s_baac < SMALL)
+    //    inv_s_baac = SMALL;
+    //inv_s_baac = 1.0 / inv_s_baac;
+
+    //Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
+
+    //if (c_baad > 1.0)
+    //    c_baad = 1.0;
+    //if (c_baad < -1.0)
+    //    c_baad = -1.0;
+
+    //Scalar inv_s_baad = sqrt(1.0 - c_baad * c_baad);
+    //if (inv_s_baad < SMALL)
+    //    inv_s_baad = SMALL;
+    //inv_s_baad = 1.0 / inv_s_baad;
+
+    //Scalar c_abbc = -(nab.x * nbc.x + nab.y * nbc.y + nab.z * nbc.z);
+
+    //if (c_abbc > 1.0)
+    //    c_abbc = 1.0;
+    //if (c_abbc < -1.0)
+    //    c_abbc = -1.0;
+
+    //Scalar inv_s_abbc = sqrt(1.0 - c_abbc * c_abbc);
+    //if (inv_s_abbc < SMALL)
+    //    inv_s_abbc = SMALL;
+    //inv_s_abbc = 1.0 / inv_s_abbc;
+
+    //Scalar c_abbd = -(nab.x * nbd.x + nab.y * nbd.y + nab.z * nbd.z);
+
+    //if (c_abbd > 1.0)
+    //    c_abbd = 1.0;
+    //if (c_abbd < -1.0)
+    //    c_abbd = -1.0;
+
+    //Scalar inv_s_abbd = sqrt(1.0 - c_abbd * c_abbd);
+    //if (inv_s_abbd < SMALL)
+    //    inv_s_abbd = SMALL;
+    //inv_s_abbd = 1.0 / inv_s_abbd;
+
+    //Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
+
+    //if (c_caad > 1.0)
+    //    c_caad = 1.0;
+    //if (c_caad < -1.0)
+    //    c_caad = -1.0;
+
+    //Scalar inv_s_caad = sqrt(1.0 - c_caad * c_caad);
+    //if (inv_s_caad < SMALL)
+    //    inv_s_caad = SMALL;
+    //inv_s_caad = 1.0 / inv_s_caad;
+
+    //Scalar c_cbbd = nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z;
+
+    //if (c_cbbd > 1.0)
+    //    c_cbbd = 1.0;
+    //if (c_cbbd < -1.0)
+    //    c_cbbd = -1.0;
+
+    //Scalar inv_s_cbbd = sqrt(1.0 - c_cbbd * c_cbbd);
+    //if (inv_s_cbbd < SMALL)
+    //    inv_s_cbbd = SMALL;
+    //inv_s_cbbd = 1.0 / inv_s_cbbd;
+
+    //Scalar c_accd = -(nac.x * ncd.x + nac.y * ncd.y + nac.z * ncd.z);
+
+    //if (c_accd > 1.0)
+    //    c_accd = 1.0;
+    //if (c_accd < -1.0)
+    //    c_accd = -1.0;
+
+    //Scalar inv_s_accd = sqrt(1.0 - c_accd * c_accd);
+    //if (inv_s_accd < SMALL)
+    //    inv_s_accd = SMALL;
+    //inv_s_accd = 1.0 / inv_s_accd;
+
+    //Scalar c_addc = nad.x * ncd.x + nad.y * ncd.y + nad.z * ncd.z;
+
+    //if (c_addc > 1.0)
+    //    c_addc = 1.0;
+    //if (c_addc < -1.0)
+    //    c_addc = -1.0;
+
+    //Scalar inv_s_addc = sqrt(1.0 - c_addc * c_addc);
+    //if (inv_s_addc < SMALL)
+    //    inv_s_addc = SMALL;
+    //inv_s_addc = 1.0 / inv_s_addc;
+
+    //Scalar c_bccd = -(nbc.x * ncd.x + nbc.y * ncd.y + nbc.z * ncd.z);
+
+    //if (c_bccd > 1.0)
+    //    c_bccd = 1.0;
+    //if (c_bccd < -1.0)
+    //    c_bccd = -1.0;
+
+    //Scalar inv_s_bccd = sqrt(1.0 - c_bccd * c_bccd);
+    //if (inv_s_bccd < SMALL)
+    //    inv_s_bccd = SMALL;
+    //inv_s_bccd = 1.0 / inv_s_bccd;
+
+    //Scalar c_bddc = nbd.x * ncd.x + nbd.y * ncd.y + nbd.z * ncd.z;
+
+    //if (c_bddc > 1.0)
+    //    c_bddc = 1.0;
+    //if (c_bddc < -1.0)
+    //    c_bddc = -1.0;
+
+    //Scalar inv_s_bddc = sqrt(1.0 - c_bddc * c_bddc);
+    //if (inv_s_bddc < SMALL)
+    //    inv_s_bddc = SMALL;
+    //inv_s_bddc = 1.0 / inv_s_bddc;
+
+    //Scalar cot_accb = c_accb * inv_s_accb;
+    //Scalar cot_addb = c_addb * inv_s_addb;
+    //Scalar cot_baac = c_baac * inv_s_baac;
+    //Scalar cot_baad = c_baad * inv_s_baad;
+    //Scalar cot_abbc = c_abbc * inv_s_abbc;
+    //Scalar cot_abbd = c_abbd * inv_s_abbd;
+
+    //Scalar cot_caad = c_caad * inv_s_caad;
+    //Scalar cot_cbbd = c_cbbd * inv_s_cbbd;
+    //Scalar cot_accd = c_accd * inv_s_accd;
+    //Scalar cot_addc = c_addc * inv_s_addc;
+    //Scalar cot_bccd = c_bccd * inv_s_bccd;
+    //Scalar cot_bddc = c_bddc * inv_s_bddc;
+
+    //Scalar sigma_hat_ab = -(cot_accb + cot_addb) * 0.5;
+    //Scalar sigma_hat_cd = (cot_caad + cot_cbbd) * 0.5;
+    //Scalar sigma_hat_ac = (cot_addc - cot_abbc) * 0.5;
+    //Scalar sigma_hat_ad = (cot_accd - cot_abbd) * 0.5;
+    //Scalar sigma_hat_bc = (cot_bddc - cot_baac) * 0.5;
+    //Scalar sigma_hat_bd = (cot_bccd - cot_baad) * 0.5;
+
+    //Scalar sigma_a = h_sigma.data[idx_a]; // precomputed
+    //Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
+    //Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
+    //Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
+
+    //m_sigma_diff_a = (sigma_hat_ab * rsqab + sigma_hat_ac * rsqac + sigma_hat_ad * rsqad) * 0.25;
+    //m_sigma_diff_b = (sigma_hat_ab * rsqab + sigma_hat_bc * rsqbc + sigma_hat_bd * rsqbd) * 0.25;
+    //m_sigma_diff_c = (sigma_hat_ac * rsqac + sigma_hat_bc * rsqbc + sigma_hat_cd * rsqcd) * 0.25;
+    //m_sigma_diff_d = (sigma_hat_ad * rsqad + sigma_hat_bd * rsqbd + sigma_hat_cd * rsqcd) * 0.25;
+
+    //Scalar sigma_a_n = sigma_a + m_sigma_diff_a;
+    //Scalar sigma_b_n = sigma_b + m_sigma_diff_b;
+    //Scalar sigma_c_n = sigma_c + m_sigma_diff_c;
+    //Scalar sigma_d_n = sigma_d + m_sigma_diff_d;
+
+    //Scalar3 sigma_dash_a = h_sigma_dash.data[idx_a]; // precomputed
+    //Scalar3 sigma_dash_b = h_sigma_dash.data[idx_b]; // precomputed
+    //Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
+    //Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
+
+    //m_sigma_dash_diff_a = sigma_hat_ab * dab + sigma_hat_ac * dac + sigma_hat_ad * dad;
+    //m_sigma_dash_diff_b = -sigma_hat_ab * dab + sigma_hat_bc * dbc + sigma_hat_bd * dbd;
+    //m_sigma_dash_diff_c = -sigma_hat_ac * dac - sigma_hat_bc * dbc + sigma_hat_cd * dcd;
+    //m_sigma_dash_diff_d = -sigma_hat_ad * dad - sigma_hat_bd * dbd - sigma_hat_cd * dcd;
+
+    //Scalar3 sigma_dash_a_n = sigma_dash_a + m_sigma_dash_diff_a;
+    //Scalar3 sigma_dash_b_n = sigma_dash_b + m_sigma_dash_diff_b;
+    //Scalar3 sigma_dash_c_n = sigma_dash_c + m_sigma_dash_diff_c;
+    //Scalar3 sigma_dash_d_n = sigma_dash_d + m_sigma_dash_diff_d;
+
+    //Scalar energy_old = dot(sigma_dash_a, sigma_dash_a) / sigma_a;
+    //energy_old += (dot(sigma_dash_b, sigma_dash_b) / sigma_b);
+    //energy_old += (dot(sigma_dash_c, sigma_dash_c) / sigma_c);
+    //energy_old += (dot(sigma_dash_d, sigma_dash_d) / sigma_d);
+
+    //Scalar energy_new = dot(sigma_dash_a_n, sigma_dash_a_n) / sigma_a_n;
+    //energy_new += (dot(sigma_dash_b_n, sigma_dash_b_n) / sigma_b_n);
+    //energy_new += (dot(sigma_dash_c_n, sigma_dash_c_n) / sigma_c_n);
+    //energy_new += (dot(sigma_dash_d_n, sigma_dash_d_n) / sigma_d_n);
+
+    //if (energy_new < 0)
+    //    return DBL_MAX;
+
+    //return m_K[0] * 0.5 * (energy_new - energy_old);
     return 0;
     }
 
