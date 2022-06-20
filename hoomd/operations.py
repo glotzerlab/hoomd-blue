@@ -307,7 +307,7 @@ class Operations(Collection):
         # TODO: Call C++ System object to do this, non-operations like
         # ParticleData, Communicator, etc... may be autotuned as well
         for op in self:
-            result = result and op.is_autotuning_complete
+            result = result and op.is_tuning_complete
 
         return result
 
