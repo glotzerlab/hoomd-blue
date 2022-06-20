@@ -269,7 +269,7 @@ class Rigid(Constraint):
         - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
           `float`]]): List of orientations (as quaternions) of constituent
           particles.
-        - ``charge`` (`list` [`float`]): List of charges of constituent
+        - ``charges`` (`list` [`float`]): List of charges of constituent
           particles.
         - ``diameters`` (`list` [`float`]): List of diameters of constituent
           particles.
