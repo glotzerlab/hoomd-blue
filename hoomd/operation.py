@@ -289,10 +289,51 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
 
 
 class AutotunedObject(_HOOMDBaseObject):
-    """An object with autotuned kernel launch parameters."""
+    """An object with autotuned kernel parameters.
+
+    `AutotunedObject` instances may complete portions of their computation with
+    one or more GPU kernels. Each GPU kernel is executed with a set of
+    parameters (`kernel_parameters`) that influence the run time of the
+    execution. After initialization, `AutotunedObject` varies these parameters
+    as the simulation runs and searches for the best performing combination. The
+    optimal parameters depend on your system's size, density, force field
+    parameters, the specific hardware you execute on, and more.
+
+    Check `is_tuning_complete` to check if the search is complete. After the
+    search is complete, `AutotunedObject` holds the parameters constant.
+    Typical operations require thousands of time steps to complete tuning. Some
+    may take tens of thousands or more depending on the parameters you set.
+
+    Tip:
+        When you significantly change your system during the simulation (e.g.
+        compress to a higher density), then tune the parameters again after
+        making the change with `tune_kernel_parameters`.
+
+    See Also:
+        * `hoomd.Operations.is_tuning_complete`
+        * `hoomd.Operations.tune_kernel_parameters`
+    """
 
     @property
     def kernel_parameters(self):
+        """dict: Kernel parameters.
+
+        The dictionary maps GPU kernel names to tuples of integers that control
+        how the kernel executes on the GPU. These values will change during the
+        tuning process and remain static after tuning completes. Set the kernel
+        parameters for one or more kernels to force specific values and stop
+        tuning.
+
+        Warning:
+            The keys and valid values in this dictionary depend on the hardware
+            device, the HOOMD-blue version, and the value of class attributes.
+            Keys and/or valid values may change even with new patch releases of
+            HOOMD-blue.
+
+            Provided that you use the same HOOMD-blue binary on the same
+            hardware and execute a script with the same parameters, you may save
+            the tuned values from one run and load them in the next.
+        """
         if not self._attached:
             raise hoomd.error.DataAccessError("kernel_parameters")
         return self._cpp_obj.getAutotunerParameters()
@@ -305,11 +346,23 @@ class AutotunedObject(_HOOMDBaseObject):
 
     @property
     def is_tuning_complete(self):
+        """bool: Check if kernel parameter tuning is complete.
+
+        ``True`` when tuning is complete and `kernel_parameters` has locked
+        optimal parameters for all active kernels used by this object.
+        """
         if not self._attached:
             raise hoomd.error.DataAccessError("is_tuning_complete")
         return self._cpp_obj.isAutotuningComplete()
 
     def tune_kernel_parameters(self):
+        """Start tuning kernel parameters.
+
+        After calling `tune_kernel_parameters`, `AutotunedObject` will vary the
+        kernel parameters in subsequent time steps, check the run time of each,
+        and lock to the fastest performing parameters after the scan is
+        complete.
+        """
         if not self._attached:
             raise RuntimeError("Call Simulation.run() before "
                                "autotune_kernel_parameters.")

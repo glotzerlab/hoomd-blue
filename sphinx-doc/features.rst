@@ -77,6 +77,11 @@ run time with the `device <hoomd.device>` module. Unless otherwise stated in the
 **all** operations and methods support GPU execution. At runtime, `hoomd.version.gpu_enabled` indicates
 whether the build supports GPU devices.
 
+Autotuned kernel launch parameters
+----------------------------------
+
+
+
 MPI
 ---
 

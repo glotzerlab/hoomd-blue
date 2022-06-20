@@ -293,20 +293,36 @@ class Operations(Collection):
 
     @property
     def is_tuning_complete(self):
+        """bool: Check whether all children have completed tuning.
+
+        ``True`` when ``is_tuning_complete`` is ``True`` for all children.
+
+        See Also:
+            `hoomd.operation.AutotunedObject.is_tuning_complete`
+        """
         if not self._scheduled:
             raise DataAccessError("is_tuning_complete")
 
         result = True
+        # TODO: Call C++ System object to do this, non-operations like
+        # ParticleData, Communicator, etc... may be autotuned as well
         for op in self:
             result = result and op.is_autotuning_complete
 
         return result
 
-    def autotune_kernel_parameters(self):
+    def tune_kernel_parameters(self):
+        """Start tuning kernel parameters in all children.
+
+        See Also:
+            `hoomd.operation.AutotunedObject.tune_kernel_parameters`
+        """
         if not self._scheduled:
             raise RuntimeError("Call Simulation.run() before "
                                "autotune_kernel_parameters.")
 
+        # TODO: Call C++ System object to do this, non-operations like
+        # ParticleData, Communicator, etc... may be autotuned as well
         for op in self:
             op.autotune_kernel_parameters()
 
