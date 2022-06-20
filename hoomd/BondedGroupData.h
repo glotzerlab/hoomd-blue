@@ -88,36 +88,25 @@ template<class Archive> void serialize(Archive& ar, hoomd::typeval_t& t, const u
 template<class Archive>
 void serialize(Archive& ar, hoomd::group_storage<2>& s, const unsigned int version)
     {
-    ar& s.tag[0];
-    ar& s.tag[1];
+    ar(s.tag[0], s.tag[1]);
     }
 //! Serialization of group_storage<3> (angles)
 template<class Archive>
 void serialize(Archive& ar, hoomd::group_storage<3>& s, const unsigned int version)
     {
-    ar& s.tag[0];
-    ar& s.tag[1];
-    ar& s.tag[2];
+    ar(s.tag[0], s.tag[1], s.tag[2]);
     }
 //! Serialization of group_storage<4> (dihedrals and impropers)
 template<class Archive>
 void serialize(Archive& ar, hoomd::group_storage<4>& s, const unsigned int version)
     {
-    ar& s.tag[0];
-    ar& s.tag[1];
-    ar& s.tag[2];
-    ar& s.tag[3];
+    ar(s.tag[0], s.tag[1], s.tag[2], s.tag[3]);
     }
 //! Serialization of group_storage<6> (meshtriangles)
 template<class Archive>
 void serialize(Archive& ar, hoomd::group_storage<6>& s, const unsigned int version)
     {
-    ar& s.tag[0];
-    ar& s.tag[1];
-    ar& s.tag[2];
-    ar& s.tag[3];
-    ar& s.tag[4];
-    ar& s.tag[5];
+    ar(s.tag[0], s.tag[1], s.tag[2], s.tag[3], s.tag[4], s.tag[5]);
     }
     } // namespace cereal
 #endif
@@ -135,10 +124,7 @@ class BondedGroupData
     {
     public:
     //! Group size
-    enum
-        {
-        size = group_size
-        } Enum;
+    static const unsigned int size = group_size;
 
     //! Group data element type
     typedef union group_storage<group_size> members_t;
@@ -680,7 +666,7 @@ class BondedGroupData
     unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
 #endif
     private:
-    bool m_groups_dirty; //!< Is it necessary to rebuild the lookup-by-index table?
+    bool m_groups_dirty; //!< Check if it is necessary to rebuild the lookup-by-index table
 
     Nano::Signal<void()> m_group_reorder_signal; //!< Signal that is triggered when groups are added
                                                  //!< or deleted locally

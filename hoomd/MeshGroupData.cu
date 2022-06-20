@@ -50,6 +50,10 @@ __global__ void gpu_count_mesh_kernel(const unsigned int n_groups,
         d_scratch_g[i * n_groups + group_idx] = group_idx;
         d_scratch_idx[i * n_groups + group_idx] = pidx_i;
 
+	//if( i * n_groups + group_idx < 500){
+	//	printf("%u %u %u\n",i*n_groups+group_idx,group_idx,pidx_i);
+	//}
+
         // atomically increment number of groups
         unsigned int n = 0;
         if (pidx_i != NOT_LOCAL)
@@ -110,12 +114,12 @@ __global__ void gpu_mesh_scatter_kernel(unsigned int n_scratch,
             gpos = k;
             continue;
             }
-
         p.idx[j++] = pidx_k;
         }
 
     d_pidx_group_table[offset] = p;
     d_pidx_gpos_table[offset] = gpos;
+
     }
 
 template<unsigned int group_size, typename group_t>
@@ -163,6 +167,7 @@ void gpu_update_mesh_table(const unsigned int n_groups,
 
     // read back flag
     hipMemcpy(&flag, d_condition, sizeof(unsigned int), hipMemcpyDeviceToHost);
+
 
     if (!(flag >= next_flag) && n_groups)
         {

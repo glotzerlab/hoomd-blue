@@ -22,3 +22,4 @@ hoomd.hpmc
     module-hpmc-update
     module-hpmc-pair
     module-hpmc-external
+    module-hpmc-shape_move

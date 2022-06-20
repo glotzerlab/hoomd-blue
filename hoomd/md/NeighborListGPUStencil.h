@@ -101,12 +101,6 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     bool m_update_cell_size = false;
     };
 
-namespace detail
-    {
-//! Exports NeighborListGPUStencil to python
-void export_NeighborListGPUStencil(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

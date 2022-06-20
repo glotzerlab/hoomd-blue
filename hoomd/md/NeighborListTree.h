@@ -107,12 +107,6 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
     void traverseTree();
     };
 
-namespace detail
-    {
-//! Exports NeighborListTree to python
-void export_NeighborListTree(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

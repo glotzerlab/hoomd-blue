@@ -156,14 +156,6 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
     GlobalArray<Scalar3> m_lattice_site;
     };
 
-namespace detail
-    {
-//! Exports the ComputeThermoHMA class to python
-#ifndef NVCC
-void export_ComputeThermoHMA(pybind11::module& m);
-#endif
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

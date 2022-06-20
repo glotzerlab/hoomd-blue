@@ -9,7 +9,12 @@
 #include <functional>
 
 #include "hoomd/SnapshotSystemData.h"
-#include "hoomd/md/AllBondPotentials.h"
+#include "hoomd/md/EvaluatorBondHarmonic.h"
+#include "hoomd/md/PotentialBond.h"
+
+#ifdef ENABLE_HIP
+#include "hoomd/md/PotentialBondGPU.h"
+#endif
 
 #include "hoomd/Initializers.h"
 
@@ -23,6 +28,12 @@ using namespace hoomd::md;
            PotentialBondHarmonicGPU
     \ingroup unit_tests
 */
+
+typedef class PotentialBond<EvaluatorBondHarmonic, BondData> PotentialBondHarmonic;
+
+#ifdef ENABLE_HIP
+typedef class PotentialBondGPU<EvaluatorBondHarmonic, BondData> PotentialBondHarmonicGPU;
+#endif
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();

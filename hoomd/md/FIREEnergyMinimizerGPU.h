@@ -53,12 +53,6 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     void resizePartialSumArrays();
     };
 
-namespace detail
-    {
-//! Exports the FIREEnergyMinimizerGPU class to python
-void export_FIREEnergyMinimizerGPU(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

@@ -74,10 +74,10 @@ class ReversePerturbationFlow(Updater):
     "max" and "min" slab might be swapped.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this updater.
 
-        flow_target (`hoomd.variant.Variant`): Target value of the
+        flow_target (hoomd.variant.Variant): Target value of the
             time-integrated momentum flux.
             :math:`[\\delta t \\cdot \\mathrm{mass} \\cdot \\mathrm{length}
             \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the

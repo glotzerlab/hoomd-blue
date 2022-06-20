@@ -172,12 +172,9 @@ class PYBIND11_EXPORT NeighborList : public Compute
     /// Add Mesh for meshbond_data
     virtual void AddMesh(std::shared_ptr<MeshDefinition> meshdef)
         {
-        std::cout << "Init mesh" << std::endl;
         m_meshbond_data = meshdef->getMeshBondData();
-        std::cout << "mesh Init" << std::endl;
         m_meshbond_data->getGroupNumChangeSignal()
             .connect<NeighborList, &NeighborList::slotGlobalTopologyNumberChange>(this);
-        std::cout << "End" << std::endl;
         }
 
     /** Remove a r_cut matrix
@@ -694,12 +691,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
 #endif
     };
 
-namespace detail
-    {
-//! Exports NeighborList to python
-void export_NeighborList(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

@@ -34,6 +34,8 @@ class PYBIND11_EXPORT HelfrichMeshForceComputeGPU : public HelfrichMeshForceComp
     //! Constructs the compute
     HelfrichMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                 std::shared_ptr<MeshDefinition> meshdef);
+    //! Destructor
+    ~HelfrichMeshForceComputeGPU();
 
     //! Set autotuner parameters
     /*! \param enable Enable/disable autotuning

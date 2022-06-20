@@ -6,7 +6,6 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
-#include <pybind11/pybind11.h>
 
 /*! \file ManifoldXYPlane.h
     \brief Defines the manifold class for the XYPlane surface
@@ -99,12 +98,6 @@ class ManifoldXYPlane
     Scalar shift;
     };
 
-namespace detail
-    {
-//! Exports the XYPlane manifold class to python
-void export_ManifoldXYPlane(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

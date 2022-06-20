@@ -458,11 +458,20 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int& W_used, Sc
         {
         s2d<ndim>(W, W_used, lambdas);
         }
-    // TODO: This branch will never happen in 3D, but without using C++17 features (if constexpr)
-    // I'm not sure how to avoid compiling this for the 2D template, so I get a lot of warnings on
-    // compilation.
-    else
+    else if (ndim == 3)
         {
+        // The maximum number of points used to define a simplex in N dimensions is N+1. Therefore,
+        // num_used can only be 4 in three dimensions, so this branch is unreachable in 2D code
+        // paths. While a simple else clause is sufficient for correctness since one of the
+        // preceding three branches will always be taken in 2D, this approach is problematic because
+        // even compiling s3d invocations into 2D code paths leads to compiler warnings. To suppress
+        // these warnings, we instead condition this branch on the dimensionality of the system
+        // (which is a compile-time constant) so that the dead code optimizer will compile it out
+        // and avoid the warnings.
+
+        // TODO: Use constexpr to ensure this code path is not compiled once we can bump GPU builds
+        // to C++ 17.
+
         // This case only happens in 3D, so no dimensionality is specified.
         s3d(W, W_used, lambdas);
         }

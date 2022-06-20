@@ -39,12 +39,6 @@ class PYBIND11_EXPORT ZeroMomentumUpdater : public Updater
     virtual void update(uint64_t timestep);
     };
 
-namespace detail
-    {
-//! Export the ZeroMomentumUpdater to python
-void export_ZeroMomentumUpdater(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

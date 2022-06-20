@@ -6,7 +6,10 @@
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#endif
 
 /*! \file ManifoldSphere.h
     \brief Defines the manifold class for the Sphere surface
@@ -102,10 +105,12 @@ class ManifoldSphere
         return sqrt(R_sq);
         };
 
+    #ifndef __HIPCC__
     pybind11::tuple getP()
         {
         return pybind11::make_tuple(Px, Py, Pz);
         }
+    #endif
 
     static unsigned int dimension()
         {
@@ -119,12 +124,6 @@ class ManifoldSphere
     Scalar R_sq;
     };
 
-namespace detail
-    {
-//! Exports the Sphere manifold class to python
-void export_ManifoldSphere(pybind11::module& m);
-
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

@@ -76,11 +76,6 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
         m_tuner_angular_two; //!< Autotuner_angular for block size (angular step two kernel)
     };
 
-namespace detail
-    {
-//! Exports the TwoStepNVTMTKGPU class to python
-void export_TwoStepNVTMTKGPU(pybind11::module& m);
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

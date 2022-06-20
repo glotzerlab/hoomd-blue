@@ -194,8 +194,8 @@ class ChainTime(_InternalCustomTuner):
             the tuner.
         target (float): The acceptance rate for trial moves that is desired. The
             value should be between 0 and 1.
-        solver (`hoomd.tune.SolverStep`): A solver that tunes chain times to
-            reach the specified target.
+        solver (hoomd.tune.SolverStep): A solver that tunes chain times to reach
+            the specified target.
         max_chain_time (float): The maximum value of chain time to attempt.
 
     Attributes:

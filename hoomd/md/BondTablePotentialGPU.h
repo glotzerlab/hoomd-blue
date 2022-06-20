@@ -55,12 +55,7 @@ class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
-namespace detail
-    {
-//! Exports the BondTablePotentialGPU class to python
-void export_BondTablePotentialGPU(pybind11::module& m);
 
-    } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
 

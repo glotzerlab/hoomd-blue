@@ -51,6 +51,8 @@ template<unsigned int group_size, typename Group, const char* name, typename sna
 class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     {
     public:
+    static const unsigned int size = group_size;
+
     //! Constructor for empty MeshGroupData
     MeshGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
 
@@ -59,15 +61,13 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
 
     virtual ~MeshGroupData();
 
-//! Initialize from a snapshot
-// using MeshGroupData<group_size,Group,name,snap,bond>::initializeFromSnapshot;
+// mask the base class initializeFromSnapshot(const Snapshot& snapshot)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
     void initializeFromSnapshot(const TriangleData::Snapshot& snapshot);
 #pragma clang diagnostic pop
 
     //! Take a snapshot
-    // using MeshGroupData<group_size,Group,name,snap,bond>>::takeSnapshot;
     std::map<unsigned int, unsigned int> takeSnapshot(snap& snapshot) const;
 
     //! Add a single bonded mesh group on all processors

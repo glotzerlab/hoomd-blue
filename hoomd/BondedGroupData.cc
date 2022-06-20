@@ -567,7 +567,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getMembersByIndex(
     }
 
 /*! \param idx Tag of bonded group
- * \return Type of bonded group
+ *  \param member new member value
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::setMemberByIndex(
