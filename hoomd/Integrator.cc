@@ -914,7 +914,9 @@ void export_Integrator(pybind11::module& m)
         .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
         .def_property_readonly("forces", &Integrator::getForces)
         .def_property_readonly("constraints", &Integrator::getConstraintForces)
-        .def("computeLinearMomentum", &Integrator::computeLinearMomentum);
+        .def("computeLinearMomentum", &Integrator::computeLinearMomentum)
+        .def("setHalfStepHook", &Integrator::setHalfStepHook)
+        .def("removeHalfStepHook", &Integrator::removeHalfStepHook);
     }
 
     } // end namespace detail
