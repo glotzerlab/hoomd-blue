@@ -26,6 +26,14 @@ When the trial move is accepted, the system state is set to the the trial
 configuration. When it is not accepted, the move is rejected and the state is
 not modified.
 
+.. rubric:: Temperature
+
+HPMC assumes that :math:`\beta = \frac{1}{kT} = 1`. This is not relevant to
+systems of purely hard particles where :math:`\Delta U` is either 0 or
+:math:`\infty`. To adjust the effective temperature in systems with finite
+interactions (see *Energy evaluation* below), scale the magnitude of the
+energetic interactions accordingly.
+
 .. rubric:: Local trial moves
 
 `HPMCIntegrator` generates local trial moves for a single particle :math:`i` at
