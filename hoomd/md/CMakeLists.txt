@@ -19,6 +19,7 @@ set(_md_sources module-md.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
+                   HalfStepHook.cc
                    HarmonicAngleForceCompute.cc
                    HarmonicDihedralForceCompute.cc
                    HarmonicImproperForceCompute.cc
