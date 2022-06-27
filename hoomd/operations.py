@@ -303,13 +303,9 @@ class Operations(Collection):
         if not self._scheduled:
             raise DataAccessError("is_tuning_complete")
 
-        result = True
         # TODO: Call C++ System object to do this, non-operations like
         # ParticleData, Communicator, etc... may be autotuned as well
-        for op in self:
-            result = result and op.is_tuning_complete
-
-        return result
+        return all(op.is_tuning_complete for op in self)
 
     def tune_kernel_parameters(self):
         """Start tuning kernel parameters in all children.
