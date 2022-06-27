@@ -274,7 +274,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
-set_source_files_properties(${_md_cu_sources} PROPERTIES LANGUAGE HIP)
+set_source_files_properties(${_md_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
 # generate pybind11 export cc files
@@ -316,7 +316,7 @@ foreach(_manifold ${_manifolds})
             ActiveForceConstraintCompute${_manifold}GPU.cu
             TwoStepRATTLE${_manifold}GPU.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 
     foreach (_method ${_rattle_methods})
@@ -330,7 +330,7 @@ foreach(_manifold ${_manifolds})
                         export_TwoStepRATTLE${_method}${_manifold}GPU.cc
                         @ONLY)
             set(_md_sources ${_md_sources} export_TwoStepRATTLE${_method}${_manifold}GPU.cc)
-            set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+            set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
         endif()
     endforeach()
 
@@ -356,7 +356,7 @@ foreach(_bond ${_bonds})
         set(_cuda_sources ${_cuda_sources}
             PotentialBond${_bond}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -377,7 +377,7 @@ foreach(_bond ${_bonds})
         set(_cuda_sources ${_cuda_sources}
             PotentialMeshBond${_bond}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -401,7 +401,7 @@ foreach(_pair ${_pairs})
         set(_cuda_sources ${_cuda_sources}
             PotentialSpecialPair${_pair}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -424,7 +424,7 @@ foreach(_evaluator ${_triplets})
         set(_cuda_sources ${_cuda_sources}
             PotentialTersoff${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -447,7 +447,7 @@ foreach(_evaluator ${_external_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialExternal${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -470,7 +470,7 @@ foreach(_evaluator ${_wall_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialExternalWall${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -493,7 +493,7 @@ foreach(_evaluator ${_dpdthermo_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialPairDPDThermo${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
@@ -542,7 +542,7 @@ foreach(_evaluator ${_pair_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialPair${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
 
