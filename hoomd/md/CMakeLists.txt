@@ -311,8 +311,8 @@ foreach(_manifold ${_manifolds})
         configure_file(TwoStepRATTLEGPU.cu.inc
                        TwoStepRATTLE${_manifold}GPU.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_ActiveForceConstraintCompute${_manifold}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_ActiveForceConstraintCompute${_manifold}GPU.cc
             ActiveForceConstraintCompute${_manifold}GPU.cu
             TwoStepRATTLE${_manifold}GPU.cu
             )
@@ -329,7 +329,7 @@ foreach(_manifold ${_manifolds})
             configure_file(export_TwoStepRATTLEGPU.cc.inc
                         export_TwoStepRATTLE${_method}${_manifold}GPU.cc
                         @ONLY)
-            set(_cuda_sources ${_cuda_sources} export_TwoStepRATTLE${_method}${_manifold}GPU.cc)
+            set(_md_sources ${_md_sources} export_TwoStepRATTLE${_method}${_manifold}GPU.cc)
             set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
         endif()
     endforeach()
@@ -352,8 +352,8 @@ foreach(_bond ${_bonds})
         configure_file(PotentialBondGPUKernel.cu.inc
                        PotentialBond${_bond}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialBond${_bond}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialBond${_bond}GPU.cc
             PotentialBond${_bond}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
@@ -373,8 +373,8 @@ foreach(_bond ${_bonds})
         configure_file(PotentialMeshBondGPUKernel.cu.inc
                        PotentialMeshBond${_bond}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialMeshBond${_bond}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialMeshBond${_bond}GPU.cc
             PotentialMeshBond${_bond}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
@@ -397,8 +397,8 @@ foreach(_pair ${_pairs})
         configure_file(PotentialSpecialPairGPUKernel.cu.inc
                        PotentialSpecialPair${_pair}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialSpecialPair${_pair}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialSpecialPair${_pair}GPU.cc
             PotentialSpecialPair${_pair}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
@@ -420,8 +420,8 @@ foreach(_evaluator ${_triplets})
         configure_file(PotentialTersoffGPUKernel.cu.inc
                        PotentialTersoff${_evaluator}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialTersoff${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialTersoff${_evaluator}GPU.cc
             PotentialTersoff${_evaluator}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
@@ -443,8 +443,8 @@ foreach(_evaluator ${_external_evaluators})
         configure_file(PotentialExternalGPUKernel.cu.inc
                        PotentialExternal${_evaluator}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialExternal${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialExternal${_evaluator}GPU.cc
             PotentialExternal${_evaluator}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
@@ -466,8 +466,8 @@ foreach(_evaluator ${_wall_evaluators})
         configure_file(PotentialExternalWallGPUKernel.cu.inc
                        PotentialExternalWall${_evaluator}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialExternalWall${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialExternalWall${_evaluator}GPU.cc
             PotentialExternalWall${_evaluator}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
@@ -489,8 +489,8 @@ foreach(_evaluator ${_dpdthermo_evaluators})
         configure_file(PotentialPairDPDThermoGPUKernel.cu.inc
                        PotentialPairDPDThermo${_evaluator}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialPairDPDThermo${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialPairDPDThermo${_evaluator}GPU.cc
             PotentialPairDPDThermo${_evaluator}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
@@ -538,8 +538,8 @@ foreach(_evaluator ${_pair_evaluators})
         configure_file(PotentialPairGPUKernel.cu.inc
                        PotentialPair${_evaluator}GPUKernel.cu
                        @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
-            export_PotentialPair${_evaluator}GPU.cc
             PotentialPair${_evaluator}GPUKernel.cu
             )
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE HIP)
