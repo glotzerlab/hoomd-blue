@@ -7,38 +7,6 @@ if(ENABLE_HIP)
         # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
         set(CMAKE_HIP_ARCHITECTURES gfx900 gfx906 gfx908 gfx90a CACHE STRING "List of AMD GPU to compile HIP code for. Separate with semicolons.")
         set(HIP_PLATFORM hip-clang)
-
-        #foreach(_amdgpu_target ${AMDGPU_TARGET_LIST})
-        #    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --amdgpu-target=${_amdgpu_target}")
-        #endforeach (_amdgpu_target)
-
-        #if (HIP_FOUND)
-        #    # reduce link time (no device linking)
-        #    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -fno-gpu-rdc")
-        #endif()
-
-        #search for HIP include directory
-#        find_path(HIP_INCLUDE_DIR hip/hip_runtime.h
-#                PATHS
-#               "${HIP_ROOT_DIR}"
-#                ENV ROCM_PATH
-#                ENV HIP_PATH
-#                PATH_SUFFIXES include)
-#
-#        find_path(ROCm_hsa_INCLUDE_DIR
-#            NAMES hsa/hsa.h
-#            PATHS
-#            ${HIP_ROOT_DIR}/hsa
-#            ${HIP_ROOT_DIR}/hsa
-#            $ENV{ROCM_PATH}/hsa
-#            $ENV{HIP_PATH}/hsa
-#            $ENV{HSA_PATH}
-#            /opt/rocm
-#            PATH_SUFFIXES include
-#            NO_DEFAULT_PATH)
-#
-#
-#        list(APPEND HIP_INCLUDE_DIR ${ROCm_hsa_INCLUDE_DIR})
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
         ENABLE_LANGUAGE(CUDA)
