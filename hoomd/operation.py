@@ -316,7 +316,7 @@ class AutotunedObject(_HOOMDBaseObject):
 
     @property
     def kernel_parameters(self):
-        """dict: Kernel parameters.
+        """dict[str, tuple[float]]: Kernel parameters.
 
         The dictionary maps GPU kernel names to tuples of integers that control
         how the kernel executes on the GPU. These values will change during the
