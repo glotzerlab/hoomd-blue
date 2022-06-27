@@ -109,7 +109,7 @@ class PYBIND11_EXPORT AutotunerInterface
         unsigned int warp_size = exec_conf->dev_prop.warpSize;
         if (force_size > 0)
             {
-            warp_size = (unsigned int)force_size;
+            warp_size = static_cast<unsigned int>(force_size);
             }
 
         for (unsigned int s = 4; s <= warp_size; s *= 2)
