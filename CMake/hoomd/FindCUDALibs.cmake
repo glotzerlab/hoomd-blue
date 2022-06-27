@@ -161,64 +161,8 @@ else()
     add_library(CUDA::cusparse UNKNOWN IMPORTED)
 endif()
 
-
-#find_library(HIP_hipsparse_LIBRARY hipsparse
-#    PATHS
-#    "${HIP_ROOT_DIR}"
-#    ENV ROCM_PATH
-#    ENV HIP_PATH
-#    /opt/rocm
-#    /opt/rocm/hipsparse
-#    PATH_SUFFIXES lib
-#    NO_DEFAULT_PATH)
-#find_path(HIP_hipsparse_INCLUDE_DIR
-#    NAMES hipsparse.h
-#    PATHS
-#    ${HIP_ROOT_DIR}/hipsparse/include
-#    $ENV{ROCM_PATH}/hipsparse/include
-#    $ENV{HIP_PATH}/hipsparse/include
-#    /opt/rocm/include
-#    /opt/rocm/hipsparse/include
-#    NO_DEFAULT_PATH)
-#mark_as_advanced(HIP_hipsparse_LIBRARY)
-#list(APPEND REQUIRED_CUDA_LIB_VARS HIP_hipsparse_LIBRARY)
-#list(APPEND _hipsparse_includes ${HIP_hipsparse_INCLUDE_DIR})
-
-#if(HIP_hipsparse_LIBRARY AND NOT TARGET HIP::hipsparse)
-#  add_library(HIP::hipsparse UNKNOWN IMPORTED)
-#  set_target_properties(HIP::hipsparse PROPERTIES
-#    IMPORTED_LOCATION "${HIP_hipsparse_LIBRARY}"
-#    )
-#endif()
-
 if (HIP_PLATFORM STREQUAL "hip-clang")
     find_package(hipfft)
-#    find_library(HIP_rocsparse_LIBRARY rocsparse
-#        PATHS
-#        "${HIP_ROOT_DIR}"
-#        ENV ROCM_PATH
-#        ENV HIP_PATH
-#        /opt/rocm
-#        /opt/rocm/rocsparse
-#        PATH_SUFFIXES lib
-#        NO_DEFAULT_PATH)
-#    find_path(HIP_rocsparse_INCLUDE_DIR
-#        NAMES rocsparse.h
-#        PATHS
-#        ${HIP_ROOT_DIR}/rocsparse/include
-#        $ENV{ROCM_PATH}/rocsparse/include
-#        $ENV{HIP_PATH}/rocsparse/include
-#        /opt/rocm/include
-#        /opt/rocm/rocsparse/include
-#        NO_DEFAULT_PATH)
-#
-#    list(APPEND _hipsparse_includes ${HIP_rocsparse_INCLUDE_DIR})
-#    mark_as_advanced(HIP_rocsparse_LIBRARY)
-#    set_target_properties(HIP::hipsparse PROPERTIES
-#        INTERFACE_INCLUDE_DIRECTORIES "${_hipsparse_includes}"
-#        INTERFACE_LINK_LIBRARIES "${HIP_rocsparse_LIBRARY}"
-#        )
-#    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_rocsparse_LIBRARY)
 endif()
 
 if (HIP_PLATFORM STREQUAL "nvcc")
