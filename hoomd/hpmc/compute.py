@@ -246,7 +246,7 @@ class SDF(Compute):
         dx (float): Bin width :math:`[\mathrm{length}]`.
     """
 
-    def __init__(self, xmax, dx, mode='binary'):
+    def __init__(self, xmax, dx, mode='binary', do_expansions=False):
         # store metadata
         self.patchy_modes = ['brute force', 'brute', 1, 'patchy']
         self.athermal_modes = ['binary', 0]
@@ -257,6 +257,7 @@ class SDF(Compute):
             xmax=float(xmax),
             dx=float(dx),
             mode=str(mode),
+            do_expansions=bool(do_expansions),
         )
         self._param_dict.update(param_dict)
 
@@ -280,6 +281,7 @@ class SDF(Compute):
             self.xmax,
             self.dx,
             mode,
+            self.do_expansions,
         )
 
         super()._attach()
@@ -330,6 +332,30 @@ class SDF(Compute):
             box = self._simulation.state.box
             N = self._simulation.state.N_particles
             rho = N / box.volume
-            return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
+            fit = numpy.polyval(p, 0.0)
+            betaP_compression = rho * (1 + fit / (2 * box.dimensions))
+            if not self.do_expansions:
+                return betaP_compression
         else:
             return None
+        if self.do_expansions:
+            if not numpy.isnan(self.sdf_expansion).all():
+                # get the values to fit
+                n_fit = int(numpy.ceil(self.xmax / self.dx))
+                # reverse the sdf so that it starts at 0 and goes negative
+                sdf_fit_expansion = self.sdf_expansion[0:n_fit][::-1]
+                # construct the x coordinates
+                x_fit = numpy.arange(0, self.xmax, self.dx)
+                x_fit += self.dx / 2
+                x_fit = x_fit[::-1]
+                # perform the fit and extrapolation
+                p = numpy.polyfit(x_fit, sdf_fit_expansion, 5)
+
+                box = self._simulation.state.box
+                N = self._simulation.state.N_particles
+                rho = N / box.volume
+                fit = numpy.polyval(p, 0.0)
+                betaP_expansion = rho * (1 + fit / (2 * box.dimensions))
+                return 0.5 * (betaP_compression + betaP_expansion)
+            else:
+                return None

@@ -115,7 +115,8 @@ template<class Shape> class ComputeSDF : public Compute
                std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                double xmax,
                double dx,
-               int mode);
+               int mode,
+               bool do_expansions);
     //! Destructor
     virtual ~ComputeSDF() {};
 
@@ -150,15 +151,19 @@ template<class Shape> class ComputeSDF : public Compute
 
     //! Return an sdf
     virtual pybind11::array_t<double> getSDF();
+    virtual pybind11::array_t<double> getSDF_expansion();
 
     protected:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
-    int m_mode; //!< Sampling mode; 0 = binary search, 1 = random sampling
+    int m_mode;           //!< Sampling mode; 0 = binary search, 1 = random sampling
+    bool m_do_expansions; //!< If true, estimate pressure with both +V and -V perturbations
 
-    std::vector<double> m_hist; //!< Raw histogram data
-    std::vector<double> m_sdf;  //!< Computed SDF
+    std::vector<double> m_hist;           //!< Raw histogram data
+    std::vector<double> m_sdf;            //!< Computed SDF
+    std::vector<double> m_hist_expansion; //!< Raw histogram data
+    std::vector<double> m_sdf_expansion;  //!< Computed SDF
 
     Scalar m_last_max_diam; //!< Last recorded maximum diameter
     unsigned int m_instance = 0;
@@ -170,6 +175,7 @@ template<class Shape> class ComputeSDF : public Compute
     void countHistogram(uint64_t timestep);
 
     //! Determine the s bin of a given particle pair
+    //! Only used for the binary search mode
     size_t computeBin(const vec3<Scalar>& r_ij,
                       const quat<Scalar>& orientation_i,
                       const quat<Scalar>& orientation_j,
@@ -185,8 +191,10 @@ ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
                               std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                               double xmax,
                               double dx,
-                              int mode)
-    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx), m_mode(mode)
+                              int mode,
+                              bool do_expansions)
+    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx), m_mode(mode),
+      m_do_expansions(do_expansions)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
 
@@ -228,6 +236,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     countHistogram(timestep);
 
     std::vector<double> hist_total(m_hist);
+    std::vector<double> hist_total_expansion(m_hist_expansion);
 
 // in MPI, total up all of the histogram bins from all nodes to the root node
 #ifdef ENABLE_MPI
@@ -240,14 +249,23 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
                    MPI_SUM,
                    0,
                    m_exec_conf->getMPICommunicator());
+        MPI_Reduce(m_hist_expansion.data(),
+                   hist_total_expansion.data(),
+                   (unsigned int)m_hist_expansion.size(),
+                   MPI_DOUBLE,
+                   MPI_SUM,
+                   0,
+                   m_exec_conf->getMPICommunicator());
         }
 #endif
 
     // compute the probability density
     m_sdf.resize(m_hist.size());
+    m_sdf_expansion.resize(m_hist_expansion.size());
     for (size_t i = 0; i < m_hist.size(); i++)
         {
         m_sdf[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
+        m_sdf_expansion[i] = hist_total_expansion[i] / (m_pdata->getNGlobal() * m_dx);
         }
     }
 
@@ -262,14 +280,27 @@ template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
     return pybind11::array_t<double>(m_sdf.size(), m_sdf.data());
     }
 
+// \return the sdf histogram for expansion moves
+template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF_expansion()
+    {
+#ifdef ENABLE_MPI
+    if (!m_exec_conf->isRoot())
+        return pybind11::none();
+#endif
+
+    return pybind11::array_t<double>(m_sdf_expansion.size(), m_sdf_expansion.data());
+    }
+
 template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
     {
     // resize the histogram
     m_hist.resize((size_t)(m_xmax / m_dx));
+    m_hist_expansion.resize((size_t)(m_xmax / m_dx));
     // Zero the histogram
     for (size_t i = 0; i < m_hist.size(); i++)
         {
         m_hist[i] = 0.0;
+        m_hist_expansion[i] = 0.0;
         }
     }
 
@@ -319,8 +350,12 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     // of overlap corresponding to particle i's first overlap.
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        size_t min_bin_ptl_i = m_hist.size();
-        double hist_weight_ptl_i = 2.0;
+        size_t min_bin_ptl_i_compression = m_hist.size();
+        size_t min_bin_ptl_i_expansion = m_hist.size();
+        // initialize weight to 2.0, but check if weight <= 1 before adding to histogram; if weight
+        // > 1, then there is no overlap and we should not add anything to the histogram
+        double hist_weight_ptl_i_compression = 2.0;
+        double hist_weight_ptl_i_expansion = 2.0;
 
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
@@ -380,13 +415,14 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
 
                                 if (bin >= 0)
                                     {
-                                    min_bin_ptl_i = std::min(min_bin_ptl_i, bin);
+                                    min_bin_ptl_i_compression
+                                        = std::min(min_bin_ptl_i_compression, bin);
                                     // bisection search path does not account for patches
-                                    hist_weight_ptl_i = 1.0;
+                                    hist_weight_ptl_i_compression = 1.0;
                                     }
                                 } // end binary search path
 
-                            else if (m_mode == 1) // account for patches
+                            else if (m_mode == 1) // brute force overlap search
                                 {
                                 double u_ij_0
                                     = 0.0; // energy of pair interaction in unperturbed state
@@ -404,7 +440,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                     }
                                 // loop over bins; only going up to min_bin_ptl_i-1 since we only
                                 // want the _first_ overlap of particle i with its neighbors
-                                for (size_t bin_to_sample = 0; bin_to_sample < min_bin_ptl_i;
+                                for (size_t bin_to_sample = 0;
+                                     bin_to_sample < min_bin_ptl_i_compression;
                                      bin_to_sample++)
                                     {
                                     double scale_factor
@@ -413,7 +450,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                     // TODO: think about order of overlap checks: there may be a
                                     // micro-optimization here if one check is significantly more
                                     // expensive than the other
-                                    //
+
                                     // first check for any "hard" overlaps
                                     // if there is one for a given scale value, there is no need to
                                     // check for any "soft" overlaps from m_mc.m_patch
@@ -428,10 +465,10 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                         {
                                         // add appropriate weight to appropriate bin and exit the
                                         // loop over bins
-                                        hist_weight_ptl_i = 1.0; // = 1-e^(-\infty)
-                                        min_bin_ptl_i = bin_to_sample;
-                                        break;
-                                        } // end if overlap
+                                        hist_weight_ptl_i_compression = 1.0; // = 1-e^(-\infty)
+                                        min_bin_ptl_i_compression = bin_to_sample;
+                                        break; // move on to next particle j
+                                        }      // end if hard_overlap
 
                                     // if no hard overlap, check for a soft overlap if we have
                                     // patches
@@ -456,14 +493,86 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                         // histogram and break out of the loop over bins
                                         if (u_ij_new != u_ij_0)
                                             {
-                                            min_bin_ptl_i = bin_to_sample;
-                                            hist_weight_ptl_i
+                                            min_bin_ptl_i_compression = bin_to_sample;
+                                            hist_weight_ptl_i_compression
                                                 = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
-                                            break;
+                                            break; // move on to next particle j
                                             }
                                         } // end if (m_mc->m_patch)
                                     }     // end loop over histogram bins
-                                }         // end enthalpic sdf path
+
+                                // now loop over the bins but do expansive moves if asked to do so
+                                // there is a lot of repeated code from above here because 1) i
+                                // couldn't quickly figure out a quick but elegant way to do both
+                                // checks in the same loop and 2) i can always clean it up if this
+                                // ends up working
+                                if (m_do_expansions)
+                                    {
+                                    for (size_t bin_to_sample = 0;
+                                         bin_to_sample < min_bin_ptl_i_expansion;
+                                         bin_to_sample++)
+                                        {
+                                        // the only difference b/t this loop and the above loop over
+                                        // bins is that the scale factor is negative here compared
+                                        // to above to make the volume perturbations positive
+                                        double scale_factor
+                                            = -m_dx * static_cast<double>(bin_to_sample + 1);
+
+                                        // TODO: think about order of overlap checks: there may be a
+                                        // micro-optimization here if one check is significantly
+                                        // more expensive than the other
+
+                                        // first check for any "hard" overlaps
+                                        // if there is one for a given scale value, there is no need
+                                        // to check for any "soft" overlaps from m_mc.m_patch
+                                        bool hard_overlap = detail::test_scaled_overlap<Shape>(
+                                            r_ij,
+                                            quat<Scalar>(orientation_i),
+                                            quat<Scalar>(orientation_j),
+                                            params[__scalar_as_int(postype_i.w)],
+                                            params[__scalar_as_int(postype_j.w)],
+                                            scale_factor);
+                                        if (hard_overlap)
+                                            {
+                                            // add appropriate weight to appropriate bin and exit
+                                            // the loop over bins
+                                            hist_weight_ptl_i_expansion = 1.0; // = 1-e^(-\infty)
+                                            min_bin_ptl_i_expansion = bin_to_sample;
+                                            break; // move on to next particle j
+                                            }      // end if hard_overlap
+
+                                        // if no hard overlap, check for a soft overlap if we have
+                                        // patches
+                                        if (m_mc->m_patch)
+                                            {
+                                            // compute the energy at this size of the perturbation
+                                            // and compare to the energy in the unperturbed state
+                                            vec3<Scalar> r_ij_scaled
+                                                = r_ij * (Scalar(1.0) - scale_factor);
+                                            double u_ij_new = m_mc->m_patch->energy(
+                                                r_ij_scaled,
+                                                typ_i,
+                                                quat<float>(shape_i.orientation),
+                                                float(h_diameter.data[i]),
+                                                float(h_charge.data[i]),
+                                                typ_j,
+                                                quat<float>(orientation_j),
+                                                float(h_diameter.data[j]),
+                                                float(h_charge.data[j]));
+                                            // if enery has changed, there is a new soft overlap
+                                            // add the appropriate weight to the appropriate bin of
+                                            // the histogram and break out of the loop over bins
+                                            if (u_ij_new != u_ij_0)
+                                                {
+                                                min_bin_ptl_i_expansion = bin_to_sample;
+                                                hist_weight_ptl_i_expansion
+                                                    = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                                break; // move on to next particle j
+                                                }
+                                            } // end if (m_mc->m_patch)
+                                        }     // end loop over histogram bins
+                                    }         // end if m_do_expansions
+                                }             // end enthalpic sdf path
                             }
                         }
                     }
@@ -474,9 +583,13 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                     }
                 } // end loop over AABB nodes
             }     // end loop over images
-        if (min_bin_ptl_i < m_hist.size() && hist_weight_ptl_i <= 1.0)
+        if (min_bin_ptl_i_compression < m_hist.size() && hist_weight_ptl_i_compression <= 1.0)
             {
-            m_hist[min_bin_ptl_i] += hist_weight_ptl_i;
+            m_hist[min_bin_ptl_i_compression] += hist_weight_ptl_i_compression;
+            }
+        if (min_bin_ptl_i_expansion < m_hist.size() && hist_weight_ptl_i_expansion <= 1.0)
+            {
+            m_hist_expansion[min_bin_ptl_i_expansion] += hist_weight_ptl_i_expansion;
             }
         } // end loop over all particles
     }
@@ -557,10 +670,12 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             double,
                             double,
-                            int>())
+                            int,
+                            bool>())
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
-        .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
+        .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF)
+        .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDF_expansion);
     }
 
     } // end namespace detail
