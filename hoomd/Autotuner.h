@@ -612,6 +612,7 @@ template<size_t n_dimensions> size_t Autotuner<n_dimensions>::computeOptimalPara
 
     size_t min_idx = 0;
 
+    // Report performance characteristics of Autotuning
     if (is_root)
         {
         // Now find the minimum and maximum times in the medians.
