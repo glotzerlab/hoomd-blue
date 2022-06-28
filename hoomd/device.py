@@ -144,7 +144,9 @@ class Device:
     def notice_print(self, mpi_config, notice_level, msg_file):
         msg = _hoomd.Messenger(mpi_config)
         if not hoomd.version.tbb_enabled:
-            msg.notice(notice_level)
+            self._cpp_msg.notice(
+                "Input a message here"
+            )
         
         # This will open the given msg_file if not None
         if msg_file is not None:
