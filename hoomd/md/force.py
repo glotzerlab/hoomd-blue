@@ -407,6 +407,14 @@ class Active(Force):
 
     def _attach(self):
 
+        # Set C++ class
+        self._set_cpp_obj()
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
+
+    def _set_cpp_obj(self):
+
         # initialize the reflected c++ class
         sim = self._simulation
 
@@ -417,9 +425,6 @@ class Active(Force):
 
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter))
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
     def create_diffusion_updater(self, trigger, rotational_diffusion):
         """Create a rotational diffusion updater for this active force.
@@ -513,7 +518,7 @@ class ActiveOnManifold(Active):
                 "Cannot set manifold_constraint after construction.")
         super()._setattr_param(attr, value)
 
-    def _attach(self):
+    def _set_cpp_obj(self):
 
         # initialize the reflected c++ class
         sim = self._simulation
@@ -529,6 +534,3 @@ class ActiveOnManifold(Active):
             _md, base_class_str)(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
