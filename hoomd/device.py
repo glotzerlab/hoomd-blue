@@ -140,6 +140,15 @@ class Device:
         else:
             self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
+    #Want to add a function here for print
+    def notice_print(self, mpi_config, notice_level, msg_file):
+        msg = _hoomd.Messenger(mpi_config)
+        if not hoomd.version.tbb_enabled:
+            msg.notice(notice_level)
+        
+        # This will open the given msg_file if not None
+        if msg_file is not None:
+            msg.openFile(msg_file)
 
 def _create_messenger(mpi_config, notice_level, msg_file):
     msg = _hoomd.Messenger(mpi_config)
