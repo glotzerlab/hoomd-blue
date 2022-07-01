@@ -118,7 +118,8 @@ Install prerequisites
 
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 10.0, < 13
+- LLVM >= 10.0
+- libclang-cpp >= 10.0
 
 **To build the documentation:**
 
