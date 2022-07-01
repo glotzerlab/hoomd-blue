@@ -11,11 +11,7 @@ namespace detail
 void export_Action(pybind11::module& m)
     {
     pybind11::class_<Action, std::shared_ptr<Action>>(m, "Action")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("getAutotunerParameters", &Action::getAutotunerParameters)
-        .def("setAutotunerParameters", &Action::setAutotunerParameters)
-        .def("startAutotuning", &Action::startAutotuning)
-        .def("isAutotuningComplete", &Action::isAutotuningComplete);
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
     } // end namespace detail
 

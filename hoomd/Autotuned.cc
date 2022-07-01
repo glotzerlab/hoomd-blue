@@ -10,7 +10,12 @@ namespace detail
     {
 void export_Autotuned(pybind11::module& m)
     {
-    pybind11::class_<Autotuned, std::shared_ptr<Autotuned>>(m, "Autotuned").def(pybind11::init<>());
+    pybind11::class_<Autotuned, std::shared_ptr<Autotuned>>(m, "Autotuned")
+        .def(pybind11::init<>())
+        .def("getAutotunerParameters", &Autotuned::getAutotunerParameters)
+        .def("setAutotunerParameters", &Autotuned::setAutotunerParameters)
+        .def("startAutotuning", &Autotuned::startAutotuning)
+        .def("isAutotuningComplete", &Autotuned::isAutotuningComplete);
     }
     } // end namespace detail
 
