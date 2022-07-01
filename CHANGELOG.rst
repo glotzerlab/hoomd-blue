@@ -7,6 +7,25 @@ Change Log
 v3.x
 ----
 
+v3.2.1 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* A decorator that modifies the namespace of operation and custom action classes
+  ``hoomd.logging.modify_namespace``.
+
+*Changed*
+
+* Removed ``"__main__"`` from some user custom action logging namespaces.
+
+*Fixed*
+
+* Improve documentation.
+* Non-default loggables can now be explicitly specified with ``Logger.add``.
+* Iteration of ``Logger`` instances.
+* The logging category of ``hoomd.md.Integrate.linear_momentum``
+
 v3.2.0 (2022-05-18)
 ^^^^^^^^^^^^^^^^^^^
 

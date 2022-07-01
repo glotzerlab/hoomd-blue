@@ -15,7 +15,7 @@ particle in the simulation state commensurate with the potential energy:
 `AnisotropicPair` applies cuttoffs, exclusions, and assigns per particle
 energies and virials in the same manner as `hoomd.md.pair.Pair`
 
-`AnisotropicPair` does not support ``'xplor'`` shifting mode or the ``r_on``
+`AnisotropicPair` does not support the ``'xplor'`` shifting mode or the ``r_on``
 parameter.
 """
 
@@ -244,33 +244,60 @@ class ALJ(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
-        mode (`str`, optional) : the energy shifting mode, defaults to "none"
+        mode (`str`, optional): the energy shifting mode, defaults to "none"
           (ignored).
 
           .. deprecated:: v3.1.0
 
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
-    described in `Ramasubramani, V.  et. al. 2020`_. Specifically we implement
-    the formula:
+    described in `Ramasubramani, V.  et al. 2020`_, using the formula:
 
-    .. _Ramasubramani, V.  et. al. 2020: https://doi.org/10.1063/5.0019735
+    .. _Ramasubramani, V.  et al. 2020: https://doi.org/10.1063/5.0019735
 
     .. math::
-        U(r, r_c) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-            \left( \frac{\sigma}{r} \right)^{6} \right] +
-            4 \varepsilon_c \left[ \left( \frac{\sigma_c}{r_c} \right)^{12} -
-            \left( \frac{\sigma_c}{r_c} \right)^{6} \right]
 
-    The first term is the standard center-center interaction between two
-    Lennard-Jones spheres. The second term is a contact interaction computed
-    based on the smallest distance between the surfaces of the two shapes,
-    :math:`r_c`. The total potential energy can thus be viewed as the sum of
-    two interactions, a central Lennard-Jones potential and a shifted
-    Lennard-Jones potential where the shift is anisotropic and depends on the
-    extent of the shape in each direction.
+        U(r, r_c) = U_0(r) + U_c(r_c)
+
+    The first term is the central interaction :math:`U_0`, the standard
+    center-center interaction between two Lennard-Jones particles with
+    center-center distance :math:`r`. The second term is the contact interaction
+    :math:`U_c`, computed from the smallest distance between the surfaces of the
+    two shapes :math:`r_c`. The central and contact interactions are defined as
+    follows:
+
+    .. math::
+
+        &U_0(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+        \left( \frac{\sigma}{r} \right)^{6} \right]
+
+        &U_c(r_c) = 4 \varepsilon_c(\varepsilon) \left[ \left(
+        \frac{\sigma_c}{r_c} \right)^{12} - \left( \frac{\sigma_c}{r_c}
+        \right)^{6} \right]
+
+    where :math:`\varepsilon` (`epsilon <params>`) affects strength of both the
+    central and contact interactions, :math:`\varepsilon_c` is an energy
+    coefficient set proportional to :math:`\varepsilon` to preserve the shape,
+    :math:`\sigma` is the interaction distance of the central term computed as
+    the average of :math:`\sigma_i` (`sigma_i <params>`) and :math:`\sigma_j`
+    (`sigma_j <params>`). Lastly, `ALJ` uses the contact ratios :math:`\beta_i`
+    (`contact_ratio_i <params>`) and :math:`\beta_j` (`contact_ratio_j
+    <params>`) to compute :math:`\sigma_c` as follows:
+
+    .. math::
+
+        \sigma_c &= \frac{1}{2} \left[\sigma_{ci} + \sigma_{cj} \right]
+
+        \sigma_{ci} &= \beta_i \cdot \sigma_i
+
+        \sigma_{cj} &= \beta_j \cdot \sigma_j
+
+    The total potential energy is therefore the sum of two interactions, a
+    central Lennard-Jones potential and a radially-shifted Lennard-Jones
+    potential where the shift is anisotropic and depends on the extent of the
+    shape in each direction.
 
     Like a standard LJ potential, each term has an independent cutoff beyond
-    which it decays to zero the behavior of these cutoffs is dependent on
+    which it decays to zero. The behavior of these cutoffs is dependent on
     whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
     (repulsive-only) behavior. This behavior is controlled using the ``alpha``
     parameter, which can take on the following values:
@@ -299,7 +326,7 @@ class ALJ(AnisotropicPair):
 
     Specifying only ``rounding_radii`` creates an ellipsoid, while specifying
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
-    to empty list to create the ellipsoid).
+    to empty lists to create the ellipsoid).
 
     Note:
         `ALJ` accepts the ``mode`` parameter, but computes the same energy
@@ -307,7 +334,7 @@ class ALJ(AnisotropicPair):
 
     Example::
 
-        nl = hoomd.md.nlist.Cell()
+        nl = hoomd.md.nlist.Cell(buffer=0.4)
         alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
 
         cube_verts = [(-0.5, -0.5, -0.5),
@@ -349,7 +376,7 @@ class ALJ(AnisotropicPair):
 
         import coxeter
 
-        nl = hoomd.md.nlist.Cell()
+        nl = hoomd.md.nlist.Cell(buffer=0.4)
         alj = hoomd.md.pair.aniso.ALJ(nl, r_cut=2.5)
 
         cube_verts = [[-0.5, -0.5, -0.5],
@@ -382,23 +409,29 @@ class ALJ(AnisotropicPair):
 
         * ``epsilon`` (`float`, **required**) - base energy scale
           :math:`\varepsilon` :math:`[energy]`.
-        * ``sigma_i`` (`float`, **required**) - the insphere radius of the first
-          particle type, :math:`[length]`.
-        * ``sigma_j`` (`float`, **required**) - the insphere radius of the
+        * ``sigma_i`` (`float`, **required**) - the insphere diameter of the
+          first particle type, :math:`[length]`.
+        * ``sigma_j`` (`float`, **required**) - the insphere diameter of the
           second particle type, :math:`[length]`.
         * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
           not to include the attractive component of the interaction (see
           above for details).
         * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
-          sphere radius of the first type with ``sigma_i``. Defaults to 0.15.
+          sphere diameter of the first type with ``sigma_i``. Defaults to 0.15.
         * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
-          sphere radius of the second type with ``sigma_j``. Defaults to 0.15.
+          sphere diameter of the second type with ``sigma_j``. Defaults to 0.15.
         * ``average_simplices`` (`bool`, **optional**) - Whether to average over
           simplices. Defaults to ``True``. See class documentation for more
           information.
 
         Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
         ``particle_types``], `dict`]
+
+    Note:
+        While the evaluation of the potential is symmetric with respect to
+        the potential parameter labels ``i`` and ``j``, the parameters which
+        physically represent a specific particle type must appear in all sets
+        of pair parameters which include that particle type.
 
     .. py:attribute:: shape
 
@@ -417,6 +450,7 @@ class ALJ(AnisotropicPair):
           respect to the face normal vector pointing outward from the origin.
 
         Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
+
     """
 
     # We don't define a _cpp_class_name since the dimension is a template
