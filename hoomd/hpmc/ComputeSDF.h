@@ -166,6 +166,8 @@ template<class Shape> class ComputeSDF : public Compute
 
     //! Add to histogram counts
     void countHistogram(uint64_t timestep);
+    void countHistogramBinarySearch(uint64_t timestep);
+    void countHistogramBruteForce(uint64_t timestep);
 
     //! Determine the s bin of a given particle pair
     size_t computeBin(const vec3<Scalar>& r_ij,
@@ -323,6 +325,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
+        size_t min_bin_ptl_i = m_hist.size();
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
@@ -641,8 +644,7 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             double,
-                            double,
-                            bool>())
+                            double>())
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
