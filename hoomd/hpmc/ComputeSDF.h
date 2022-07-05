@@ -11,7 +11,6 @@
 #include "HPMCCounters.h"
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
-#include "hoomd/RNGIdentifiers.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/HOOMDMPI.h"
@@ -107,15 +106,15 @@ bool test_scaled_overlap(const vec3<Scalar>& r_ij,
 template<class Shape> class ComputeSDF : public Compute
     {
     public:
-    //! Shape parameter time (shorthand)
+    //! Shape parameters
     typedef typename Shape::param_type param_type;
 
     //! Construct the integrator
     ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
                std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                double xmax,
-               double dx,
-               int mode);
+               double dx);
+
     //! Destructor
     virtual ~ComputeSDF() {};
 
@@ -155,7 +154,6 @@ template<class Shape> class ComputeSDF : public Compute
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
-    int m_mode; //!< Sampling mode; 0 = binary search, 1 = random sampling
 
     std::vector<double> m_hist; //!< Raw histogram data
     std::vector<double> m_sdf;  //!< Computed SDF
@@ -184,11 +182,11 @@ template<class Shape>
 ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
                               std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                               double xmax,
-                              double dx,
-                              int mode)
-    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx), m_mode(mode)
+                              double dx)
+    : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx)
     {
-    m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: xmax = " << xmax << ", dx = " << dx
+                                << std::endl;
 
     zeroHistogram();
 
@@ -276,16 +274,33 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
 /*! \param timestep current timestep
 
     countHistogram() loops through all particle pairs *i,j* where *i* is on the local rank, computes
-    the bin in which that pair should be and adds 1 to the bin. countHistogram() can be called
-    multiple times to increment the counters for averaging, and it operates without any
-    communication.
+    the bin corresponding to the scale factor of the vector r_ij that induces the first overlap
+    between particles *i* and *j*, and then adds s_ij to the bin, where s_ij = 1 - e^{\beta\Delta
+   U_{ij}}. Note that this definition allows for the consideration of soft overlaps where the pair
+   potential changes value, and reduces 1 for hard particle overlaps.  countHistogram() operates
+   without any communication.
       - The integrator performs the ghost exchange (with the ghost width extra that we add)
-      - Only on writeOutput() do we need to sum the per-rank histograms into a global histogram
+
+    This function is a wrapper that calls the appropriate method depending on the value of
+   m_mc->m_patch
 */
 template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
+    if (m_mc->m_patch)
+        {
+        countHistogramBruteForce(timestep);
+        }
+    else
+        {
+        countHistogramBinarySearch(timestep);
+        }
+    } // end countHistogram()
+
+template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_t timestep)
+    {
     // update the aabb tree
     const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
@@ -302,13 +317,106 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                                    access_location::host,
                                    access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-
     const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
         = m_mc->getParams();
 
-    const uint16_t seed = m_sysdef->getSeed();
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCComputeSDF, timestep, seed),
-                               hoomd::Counter(m_instance));
+    // loop through N particles
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        // read in the current position and orientation
+        Scalar4 postype_i = h_postype.data[i];
+        Scalar4 orientation_i = h_orientation.data[i];
+        Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
+        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+        // construct the AABB around the particle's circumsphere
+        // pad with enough extra width so that when scaled by xmax, found particles might touch
+        hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
+                                         shape_i.getCircumsphereDiameter() / Scalar(2)
+                                             + extra_width);
+
+        size_t n_images = image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            {
+            vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
+            hoomd::detail::AABB aabb = aabb_i_local;
+            aabb.translate(pos_i_image);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
+                 cur_node_idx++)
+                {
+                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    {
+                    if (aabb_tree.isNodeLeaf(cur_node_idx))
+                        {
+                        for (unsigned int cur_p = 0;
+                             cur_p < aabb_tree.getNodeNumParticles(cur_node_idx);
+                             cur_p++)
+                            {
+                            // read in its position and orientation
+                            unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                            // skip i==j in the 0 image
+                            if (cur_image == 0 && i == j)
+                                continue;
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            Scalar4 orientation_j = h_orientation.data[j];
+
+                            // put particles in coordinate system of particle i
+                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+
+                            size_t bin = computeBin(r_ij,
+                                                    quat<Scalar>(orientation_i),
+                                                    quat<Scalar>(orientation_j),
+                                                    params[__scalar_as_int(postype_i.w)],
+                                                    params[__scalar_as_int(postype_j.w)]);
+
+                            if (bin >= 0)
+                                {
+                                min_bin_ptl_i = std::min(min_bin_ptl_i, bin);
+                                }
+                            }
+                        }
+                    }
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+                } // end loop over AABB nodes
+            }     // end loop over images
+        if (min_bin_ptl_i < m_hist.size())
+            {
+            m_hist[min_bin_ptl_i]++;
+            }
+        } // end loop over all particles
+    }     // end countHistogram()
+
+template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t timestep)
+    {
+    // update the aabb tree
+    const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+
+    // update the image list
+    const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
+
+    Scalar extra_width = m_xmax / (1 - m_xmax) * m_mc->getMaxCoreDiameter();
+
+    // access particle data and system box
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
+        = m_mc->getParams();
 
     // loop through N particles
     // At the top of this loop, we initialize min_bin_ptl_i to the size of the sdf histogram
@@ -370,100 +478,77 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-                            if (m_mode == 0)
+                            double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
+                            if (m_mc->m_patch)
                                 {
-                                size_t bin = computeBin(r_ij,
-                                                        quat<Scalar>(orientation_i),
-                                                        quat<Scalar>(orientation_j),
-                                                        params[__scalar_as_int(postype_i.w)],
-                                                        params[__scalar_as_int(postype_j.w)]);
+                                u_ij_0 = m_mc->m_patch->energy(r_ij,
+                                                               typ_i,
+                                                               quat<float>(shape_i.orientation),
+                                                               float(h_diameter.data[i]),
+                                                               float(h_charge.data[i]),
+                                                               typ_j,
+                                                               quat<float>(orientation_j),
+                                                               float(h_diameter.data[j]),
+                                                               float(h_charge.data[j]));
+                                }
+                            // loop over bins; only going up to min_bin_ptl_i-1 since we only
+                            // want the _first_ overlap of particle i with its neighbors
+                            for (size_t bin_to_sample = 0; bin_to_sample < min_bin_ptl_i;
+                                 bin_to_sample++)
+                                {
+                                double scale_factor = m_dx * static_cast<double>(bin_to_sample + 1);
 
-                                if (bin >= 0)
+                                // TODO: think about order of overlap checks: there may be a
+                                // micro-optimization here if one check is significantly more
+                                // expensive than the other
+                                //
+                                // first check for any hard overlaps
+                                // if there is one for a given scale value, there is no need to
+                                // check for any soft overlaps from m_mc.m_patch
+                                bool hard_overlap = detail::test_scaled_overlap<Shape>(
+                                    r_ij,
+                                    quat<Scalar>(orientation_i),
+                                    quat<Scalar>(orientation_j),
+                                    params[__scalar_as_int(postype_i.w)],
+                                    params[__scalar_as_int(postype_j.w)],
+                                    scale_factor);
+                                if (hard_overlap)
                                     {
-                                    min_bin_ptl_i = std::min(min_bin_ptl_i, bin);
-                                    // bisection search path does not account for patches
-                                    hist_weight_ptl_i = 1.0;
-                                    }
-                                } // end binary search path
+                                    // add appropriate weight to appropriate bin and exit the
+                                    // loop over bins
+                                    hist_weight_ptl_i = 1.0; // = 1-e^(-\infty)
+                                    min_bin_ptl_i = bin_to_sample;
+                                    break;
+                                    } // end if overlap
 
-                            else if (m_mode == 1) // account for patches
-                                {
-                                double u_ij_0
-                                    = 0.0; // energy of pair interaction in unperturbed state
+                                // if no hard overlap, check for a soft overlap if we have
+                                // patches
                                 if (m_mc->m_patch)
                                     {
-                                    u_ij_0 = m_mc->m_patch->energy(r_ij,
-                                                                   typ_i,
-                                                                   quat<float>(shape_i.orientation),
-                                                                   float(h_diameter.data[i]),
-                                                                   float(h_charge.data[i]),
-                                                                   typ_j,
-                                                                   quat<float>(orientation_j),
-                                                                   float(h_diameter.data[j]),
-                                                                   float(h_charge.data[j]));
-                                    }
-                                // loop over bins; only going up to min_bin_ptl_i-1 since we only
-                                // want the _first_ overlap of particle i with its neighbors
-                                for (size_t bin_to_sample = 0; bin_to_sample < min_bin_ptl_i;
-                                     bin_to_sample++)
-                                    {
-                                    double scale_factor
-                                        = m_dx * static_cast<double>(bin_to_sample + 1);
-
-                                    // TODO: think about order of overlap checks: there may be a
-                                    // micro-optimization here if one check is significantly more
-                                    // expensive than the other
-                                    //
-                                    // first check for any "hard" overlaps
-                                    // if there is one for a given scale value, there is no need to
-                                    // check for any "soft" overlaps from m_mc.m_patch
-                                    bool hard_overlap = detail::test_scaled_overlap<Shape>(
-                                        r_ij,
-                                        quat<Scalar>(orientation_i),
-                                        quat<Scalar>(orientation_j),
-                                        params[__scalar_as_int(postype_i.w)],
-                                        params[__scalar_as_int(postype_j.w)],
-                                        scale_factor);
-                                    if (hard_overlap)
+                                    // compute the energy at this size of the perturbation and
+                                    // compare to the energy in the unperturbed state
+                                    vec3<Scalar> r_ij_scaled = r_ij * (Scalar(1.0) - scale_factor);
+                                    double u_ij_new
+                                        = m_mc->m_patch->energy(r_ij_scaled,
+                                                                typ_i,
+                                                                quat<float>(shape_i.orientation),
+                                                                float(h_diameter.data[i]),
+                                                                float(h_charge.data[i]),
+                                                                typ_j,
+                                                                quat<float>(orientation_j),
+                                                                float(h_diameter.data[j]),
+                                                                float(h_charge.data[j]));
+                                    // if enery has changed, there is a new soft overlap
+                                    // add the appropriate weight to the appropriate bin of the
+                                    // histogram and break out of the loop over bins
+                                    if (u_ij_new != u_ij_0)
                                         {
-                                        // add appropriate weight to appropriate bin and exit the
-                                        // loop over bins
-                                        hist_weight_ptl_i = 1.0; // = 1-e^(-\infty)
                                         min_bin_ptl_i = bin_to_sample;
+                                        hist_weight_ptl_i = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
                                         break;
-                                        } // end if overlap
-
-                                    // if no hard overlap, check for a soft overlap if we have
-                                    // patches
-                                    if (m_mc->m_patch)
-                                        {
-                                        // compute the energy at this size of the perturbation and
-                                        // compare to the energy in the unperturbed state
-                                        vec3<Scalar> r_ij_scaled
-                                            = r_ij * (Scalar(1.0) - scale_factor);
-                                        double u_ij_new = m_mc->m_patch->energy(
-                                            r_ij_scaled,
-                                            typ_i,
-                                            quat<float>(shape_i.orientation),
-                                            float(h_diameter.data[i]),
-                                            float(h_charge.data[i]),
-                                            typ_j,
-                                            quat<float>(orientation_j),
-                                            float(h_diameter.data[j]),
-                                            float(h_charge.data[j]));
-                                        // if enery has changed, there is a new soft overlap
-                                        // add the appropriate weight to the appropriate bin of the
-                                        // histogram and break out of the loop over bins
-                                        if (u_ij_new != u_ij_0)
-                                            {
-                                            min_bin_ptl_i = bin_to_sample;
-                                            hist_weight_ptl_i
-                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
-                                            break;
-                                            }
-                                        } // end if (m_mc->m_patch)
-                                    }     // end loop over histogram bins
-                                }         // end enthalpic sdf path
+                                        }
+                                    } // end if (m_mc->m_patch)
+                                }     // end loop over histogram bins
                             }
                         }
                     }
@@ -479,7 +564,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
             m_hist[min_bin_ptl_i] += hist_weight_ptl_i;
             }
         } // end loop over all particles
-    }
+    }     // end countHistogramBruteForce()
 
 /*! \param r_ij Vector pointing from particle i to j (already wrapped into the box)
     \param orientation_i Orientation of the particle i
@@ -557,7 +642,7 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             double,
                             double,
-                            int>())
+                            bool>())
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);

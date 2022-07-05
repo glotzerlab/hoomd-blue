@@ -246,17 +246,11 @@ class SDF(Compute):
         dx (float): Bin width :math:`[\mathrm{length}]`.
     """
 
-    def __init__(self, xmax, dx, mode='binary'):
+    def __init__(self, xmax, dx):
         # store metadata
-        self.patchy_modes = ['brute force', 'brute', 1, 'patchy']
-        self.athermal_modes = ['binary', 0]
-        valid_modes = self.patchy_modes + self.athermal_modes
-        if mode not in valid_modes:
-            raise ValueError(f'Mode must be one of {[x for x in valid_modes]}.')
         param_dict = ParameterDict(
             xmax=float(xmax),
             dx=float(dx),
-            mode=str(mode),
         )
         self._param_dict.update(param_dict)
 
@@ -270,16 +264,11 @@ class SDF(Compute):
 
         cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
 
-        if self.mode in self.athermal_modes:
-            mode = 0
-        elif self.mode in self.patchy_modes:
-            mode = 1
         self._cpp_obj = cpp_cls(
             self._simulation.state._cpp_sys_def,
             integrator._cpp_obj,
             self.xmax,
             self.dx,
-            mode,
         )
 
         super()._attach()
