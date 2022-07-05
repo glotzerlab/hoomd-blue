@@ -146,6 +146,26 @@ template<class Shape> class ComputeSDF : public Compute
         m_dx = dx;
         }
 
+    uint64_t getNumExpansionOverlaps()
+        {
+        return m_num_total_entries_hist_expansion;
+        }
+
+    uint64_t getNumCompressionOverlaps()
+        {
+        return m_num_total_entries_hist_compression;
+        }
+
+    uint64_t getLocalNumCompressionOverlaps()
+        {
+        return m_num_entries_hist_compression;
+        }
+
+    uint64_t getLocalNumExpansionOverlaps()
+        {
+        return m_num_entries_hist_expansion;
+        }
+
     //! Analyze the current configuration
     virtual void compute(uint64_t timestep);
 
@@ -159,6 +179,10 @@ template<class Shape> class ComputeSDF : public Compute
     double m_dx;                                     //!< Histogram step size
     int m_mode;           //!< Sampling mode; 0 = binary search, 1 = random sampling
     bool m_do_expansions; //!< If true, estimate pressure with both +V and -V perturbations
+    uint64_t m_num_entries_hist_expansion;
+    uint64_t m_num_entries_hist_compression;
+    uint64_t m_num_total_entries_hist_expansion;
+    uint64_t m_num_total_entries_hist_compression;
 
     std::vector<double> m_hist;           //!< Raw histogram data
     std::vector<double> m_sdf;            //!< Computed SDF
@@ -256,7 +280,41 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
                    MPI_SUM,
                    0,
                    m_exec_conf->getMPICommunicator());
+        MPI_Reduce(&m_num_entries_hist_expansion,
+                   &m_num_total_entries_hist_expansion,
+                   1,
+                   MPI_UINT64_T,
+                   MPI_SUM,
+                   0,
+                   m_exec_conf->getMPICommunicator());
+        MPI_Reduce(&m_num_entries_hist_compression,
+                   &m_num_total_entries_hist_compression,
+                   1,
+                   MPI_UINT64_T,
+                   MPI_SUM,
+                   0,
+                   m_exec_conf->getMPICommunicator());
+        // bcast(m_num_total_entries_hist_compression, 0, m_exec_conf->getMPICommunicator());
+        // bcast(m_num_total_entries_hist_expansion, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_num_total_entries_hist_expansion,
+                  1,
+                  MPI_UINT64_T,
+                  0,
+                  m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_num_total_entries_hist_expansion,
+                  1,
+                  MPI_UINT64_T,
+                  0,
+                  m_exec_conf->getMPICommunicator());
         }
+    else
+        {
+        m_num_total_entries_hist_expansion = m_num_entries_hist_expansion;
+        m_num_total_entries_hist_compression = m_num_entries_hist_compression;
+        }
+#else
+    m_num_total_entries_hist_expansion = m_num_entries_hist_expansion;
+    m_num_total_entries_hist_compression = m_num_entries_hist_compression;
 #endif
 
     // compute the probability density
@@ -302,6 +360,11 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
         m_hist[i] = 0.0;
         m_hist_expansion[i] = 0.0;
         }
+    // Zero the counters
+    m_num_entries_hist_expansion = 0;
+    m_num_entries_hist_compression = 0;
+    m_num_total_entries_hist_expansion = 0;
+    m_num_total_entries_hist_compression = 0;
     }
 
 /*! \param timestep current timestep
@@ -586,10 +649,12 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
         if (min_bin_ptl_i_compression < m_hist.size() && hist_weight_ptl_i_compression <= 1.0)
             {
             m_hist[min_bin_ptl_i_compression] += hist_weight_ptl_i_compression;
+            m_num_entries_hist_compression++;
             }
         if (min_bin_ptl_i_expansion < m_hist.size() && hist_weight_ptl_i_expansion <= 1.0)
             {
             m_hist_expansion[min_bin_ptl_i_expansion] += hist_weight_ptl_i_expansion;
+            m_num_entries_hist_expansion++;
             }
         } // end loop over all particles
     }
@@ -675,7 +740,15 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF)
-        .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDF_expansion);
+        .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDF_expansion)
+        .def_property_readonly("num_compression_overlaps",
+                               &ComputeSDF<Shape>::getNumCompressionOverlaps)
+        .def_property_readonly("num_expansion_overlaps",
+                               &ComputeSDF<Shape>::getNumExpansionOverlaps)
+        .def_property_readonly("num_compression_overlaps_rank",
+                               &ComputeSDF<Shape>::getLocalNumCompressionOverlaps)
+        .def_property_readonly("num_expansion_overlaps_rank",
+                               &ComputeSDF<Shape>::getLocalNumExpansionOverlaps);
     }
 
     } // end namespace detail
