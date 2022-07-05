@@ -161,15 +161,25 @@ class SDF(Compute):
 
     For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
     separation vector by the factor :math:`(1-x)` and finds the smallest
-    positive value of :math:`x` leading to an overlap of the particle shapes:
+    positive value of :math:`x` leading to either an overlap of the particle
+    shapes (a "hard overlap") or a change in the pair energy
+    :math:`U_{\mathrm{pair},ij}` (a "soft overlap"):
 
     .. math::
 
         x_{ij}(\vec{A}) = \min \{ x \in \mathbb{R}_{> 0} :
             \mathrm{overlap}\left(
                 S_i(\mathbf{q}_i),
-                S_j(\mathbf{q}_j, (1-x)(\vec{r}^t_j - (\vec{r}_i + \vec{A})))
-            \right) \ne \emptyset \}
+                S_j(\mathbf{q}_j, (1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})))
+            \right) \ne \emptyset
+            \\
+            \lor U_{\mathrm{pair},ij}((1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j)
+                \ne
+            U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j) \}
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
     `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle
@@ -187,17 +197,21 @@ class SDF(Compute):
     overlaps between particles in the primary image with particles in periodic
     images.
 
-    `SDF` adds a single count to the histogram for each particle :math:`i`:
+    `SDF` adds a single count to the histogram for each particle :math:`i`,
+    weighted by a factor that is a function of the change in energy upon
+    overlap:
 
     .. math::
 
         s(x + \delta x/2) = \frac{1}{N_\mathrm{particles} \cdot \delta x}
             \sum_{i=0}^{N_\mathrm{particles}-1}
-            [x \le x_i < x + \delta x]
+            [x \le x_i < x + \delta x] \cdot (1 - \exp(-\beta \Delta U_{i}))
 
-    where the square brackets denote the Iverson bracket, and :math:`s(x +
-    \delta x/2)` is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x <
-    x_\mathrm{max}, x = k \cdot \delta x, k \in \mathbb{Z}^* \}`.
+    where :math:`\Delta U_{i}` is the change in energy associated with the first
+    overlap involving particle :math:`i` (:math:`\infty` for hard overlaps), the
+    square brackets denote the Iverson bracket, and :math:`s(x + \delta x/2)`
+    is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x < x_\mathrm{max}, x = k
+    \cdot \delta x, k \in \mathbb{Z}^* \}`.
 
     .. rubric:: Pressure
 
@@ -222,8 +236,10 @@ class SDF(Compute):
     smaller ``xmax``. Check that :math:`\sum_k s(x_k) \cdot dx \approx 0.5`.
 
     Warning:
-        `SDF` does not compute correct pressures for simulations with
-        concave particles or enthalpic interactions.
+        `SDF` only considers negative volume perturbations, and therefore may
+        not compute the correct pressure in simulations where positive volume
+        perturbations may change the system's potential energy, e.g., systems of
+        concave particles or with enthalpic interactions.
 
     Note:
         `SDF` always runs on the CPU.
