@@ -156,12 +156,18 @@ class ThermodynamicQuantities(Compute):
 
         .. math::
 
-            K_\\mathrm{rotational} = \\frac{1}{2}
+            K_\\mathrm{rotational,d} =
+            \\frac{1}{2}
             \\sum_{i \\in \\mathrm{filter}}
-            \\frac{L_{x,i}^2}{I_{x,i}} + \\frac{L_{y,i}^2}{I_{y,i}} +
-            \\frac{L_{z,i}^2}{I_{z,i}},
+            \\begin{cases}
+            \\frac{L_{d,i}^2}{I_{d,i}} & I^d_i > 0 \\\\
+            0 & I^d_i = 0
+            \\end{cases}
 
-        where :math:`I` is the moment of inertia and :math:`L` is the angular
+            K_\\mathrm{rotational} = K_\\mathrm{rotational,x} +
+            K_\\mathrm{rotational,y} + K_\\mathrm{rotational,z}
+
+        :math:`I` is the moment of inertia and :math:`L` is the angular
         momentum in the (diagonal) reference frame of the particle.
         """
         self._cpp_obj.compute(self._simulation.timestep)
@@ -292,8 +298,8 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     """Compute harmonic averaged thermodynamic properties of particles.
 
     Args:
-        filter (`hoomd.filter`): Particle filter to compute thermodynamic
-            properties for.
+        filter (hoomd.filter.filter_like): Particle filter to compute
+            thermodynamic properties for.
         kT (float): Temperature of the system :math:`[\\mathrm{energy}]`.
         harmonic_pressure (float): Harmonic contribution to the pressure
             :math:`[\\mathrm{pressure}]`. If omitted, the HMA pressure can
@@ -323,10 +329,10 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
 
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles compute
+        filter (hoomd.filter.filter_like): Subset of particles compute
             thermodynamic properties for.
 
-        kT (hoomd.variant.Variant): Temperature of the system
+        kT (float): Temperature of the system
             :math:`[\\mathrm{energy}]`.
 
         harmonic_pressure (float): Harmonic contribution to the pressure

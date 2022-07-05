@@ -16,6 +16,7 @@ import os
 import numpy
 import math
 import warnings
+from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
@@ -348,6 +349,38 @@ def pytest_sessionfinish(session, exitstatus):
     """
     if exitstatus != 0 and hoomd.version.mpi_enabled:
         atexit.register(abort, exitstatus)
+
+
+expected_loggable_params = {
+    'energy': {
+        'category': LoggerCategories.scalar,
+        'default': True
+    },
+    'energies': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'forces': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'torques': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'virials': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'additional_energy': {
+        'category': LoggerCategories.scalar,
+        'default': True
+    },
+    'additional_virial': {
+        'category': LoggerCategories.sequence,
+        'default': True
+    }
+}
 
 
 def logging_check(cls, expected_namespace, expected_loggables):

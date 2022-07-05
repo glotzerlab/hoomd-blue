@@ -12,6 +12,7 @@ hoomd.logging
     :nosignatures:
 
     log
+    modify_namespace
     Logger
     LoggerCategories
 
@@ -19,7 +20,7 @@ hoomd.logging
 
 .. automodule:: hoomd.logging
     :synopsis: Classes for logging data.
-    :members: log, Logger
+    :members: log, modify_namespace, Logger
     :undoc-members:
 
     .. autoclass:: LoggerCategories

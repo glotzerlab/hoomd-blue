@@ -25,11 +25,11 @@ class BoxMC(Updater):
     r"""Apply box updates to sample isobaric and related ensembles.
 
     Args:
-        betaP (`float` or :py:mod:`hoomd.variant.Variant`):
-            :math:`\frac{p}{k_{\mathrm{B}}T}` :math:`[\mathrm{length}^{-2}]`
-            in 2D or :math:`[\mathrm{length}^{-3}]` in 3D.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
-            trial moves.
+        betaP (hoomd.variant.variant_like): :math:`\frac{p}{k_{\mathrm{B}}T}`
+            :math:`[\mathrm{length}^{-2}]` in 2D or
+            :math:`[\mathrm{length}^{-3}]` in 3D.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to perform
+            box trial moves.
 
     Use `BoxMC` in conjunction with an HPMC integrator to allow the simulation
     box to undergo random fluctuations at constant pressure, or random
@@ -519,7 +519,8 @@ class Shape(Updater):
         `hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
 
     Args:
-        trigger (Trigger): Call the updater on triggered time steps.
+        trigger (hoomd.trigger.trigger_like): Call the updater on triggered time
+            steps.
 
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
@@ -685,8 +686,8 @@ class Clusters(Updater):
                                         pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        trigger (Trigger): Select the timesteps on which to perform cluster
-            moves.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps on which to
+            perform cluster moves.
 
     The GCA as described in Liu and Lujten (2004),
     http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
@@ -785,9 +786,10 @@ class QuickCompress(Updater):
     r"""Quickly compress a hard particle system to a target box.
 
     Args:
-        trigger (Trigger): Update the box dimensions on triggered time steps.
+        trigger (hoomd.trigger.trigger_like): Update the box dimensions on
+            triggered time steps.
 
-        target_box (Box): Dimensions of the target box.
+        target_box (hoomd.box.box_like): Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.

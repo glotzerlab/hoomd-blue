@@ -31,6 +31,7 @@ set(files __init__.py
     test_thermoHMA.py
     forces_and_energies.json
     test_nlist.py
+    test_nlist_tuner.py
     test_rigid.py
     test_zero_momentum.py
     test_gsd.py

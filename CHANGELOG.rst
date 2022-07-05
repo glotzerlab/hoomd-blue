@@ -7,6 +7,29 @@ Change Log
 v3.x
 ----
 
+v3.3.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* A decorator that modifies the namespace of operation and custom action classes
+  ``hoomd.logging.modify_namespace``.
+* Tuner for the neighbor list buffer size ``hoomd.md.tune.NeighborListBuffer``.
+* Solver infrastructure for optimization problems.
+* ``Simulation.initial_timestep``: the timestep on which the last call to ``run`` started.
+* ``variant_like``, ``trigger_like``, and ``filter_like`` typing objects for documentation.
+
+*Changed*
+
+* Removed ``"__main__"`` from some user custom action logging namespaces.
+
+*Fixed*
+
+* Improve documentation.
+* Non-default loggables can now be explicitly specified with ``Logger.add``.
+* Iteration of ``Logger`` instances.
+* The logging category of ``hoomd.md.Integrate.linear_momentum``
+
 v3.2.0 (2022-05-18)
 ^^^^^^^^^^^^^^^^^^^
 
