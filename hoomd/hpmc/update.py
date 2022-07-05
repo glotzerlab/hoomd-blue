@@ -420,7 +420,7 @@ class MuVT(Updater):
           to swap depletants
         fugacity (`TypeParameter` [ ``particle type``, `float`]):
             Particle fugacity
-            :math:`[\mathrm{volume}^{-1}]` (**default:** ``0``).
+            :math:`[\mathrm{volume}^{-1}]` (**default:** 0).
     """
 
     def __init__(self,

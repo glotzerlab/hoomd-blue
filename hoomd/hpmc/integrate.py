@@ -319,7 +319,7 @@ class HPMCIntegrator(Integrator):
 
         depletant_fugacity (`TypeParameter` [ ``particle type``, `float`]):
             Depletant fugacity
-            :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
+            :math:`[\\mathrm{volume}^{-1}]` (**default:** 0)
 
             Allows setting the fugacity per particle type, e.g. ``'A'``
             refers to a depletant of type **A**.
