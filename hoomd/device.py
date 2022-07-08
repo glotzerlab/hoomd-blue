@@ -141,11 +141,17 @@ class Device:
             self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
     def notice(self, notice_level, msg):
-        return self._cpp_msg.noticeStr(notice_level, msg)
+        """If the devices notice level is less than given notice level
+           there is no output"""
+        if notice_level > self.notice_level:
+            return
+        else:
+            return self._cpp_msg.noticeStr(notice_level, str(msg) + "\n")
 
     def print(self, msg):
-        # How to return it to the self.msg_file?
-        return self._cpp_msg.notice(msg)
+        """Easily directed to msg_file"""
+        return self._cpp_msg.notice(str(msg) + "\n")
+
 
 def _create_messenger(mpi_config, notice_level, msg_file):
     msg = _hoomd.Messenger(mpi_config)
