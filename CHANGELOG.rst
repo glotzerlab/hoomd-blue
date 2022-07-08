@@ -7,13 +7,17 @@ Change Log
 v3.x
 ----
 
-v3.2.1 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.3.0 (2022-07-08)
+^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 * A decorator that modifies the namespace of operation and custom action classes
   ``hoomd.logging.modify_namespace``.
+* Tuner for the neighbor list buffer size ``hoomd.md.tune.NeighborListBuffer``.
+* Solver infrastructure for optimization problems.
+* ``Simulation.initial_timestep``: the timestep on which the last call to ``run`` started.
+* ``variant_like``, ``trigger_like``, and ``filter_like`` typing objects for documentation.
 
 *Changed*
 
