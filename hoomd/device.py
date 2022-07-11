@@ -146,11 +146,12 @@ class Device:
         if notice_level > self.notice_level:
             return
         else:
-            return self._cpp_msg.noticeStr(notice_level, str(msg) + "\n")
+            return self._cpp_msg.notice(notice_level, str(msg) + "\n")
 
     def print(self, msg):
-        """Easily directed to msg_file"""
-        return self._cpp_msg.notice(str(msg) + "\n")
+        """Easily directed to msg_file regardless of notice level"""
+        return self._cpp_msg.notice(5, str(msg) + "\n")
+        # Only works if notice_level is > 3?
 
 
 def _create_messenger(mpi_config, notice_level, msg_file):

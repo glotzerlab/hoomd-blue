@@ -110,26 +110,23 @@ def test_cpu_build_specifics():
     assert type(hoomd.device.auto_select()) == hoomd.device.CPU
 
 
-def test_api_notice(device, tmp_path):
-    # Test notice and print
-    # test default params, don't assert default tbb threads b/c it depends on
-    # hardware
-    _assert_common_properties(device, 2, None)
+# def test_api_notice(device, tmp_path):
+#     # Test when notice level is lower, and when msg file is given or not
 
-    # make sure we can set those properties
+
+def test_device_print(device, capsys, tmp_path):
+    # No message file declared. Should output to sys.stdout
     device.notice_level = 3
+    device.msg_file = None
+    _assert_common_properties(device, 3, None)
+
+    device.print("This message should output.")
+    # Print is not outputting to stdout
+    captured = capsys.readouterr()
+    assert captured.out == 'This message should output.\n'
+
+    #Message file declared. Should output in the file
     device.msg_file = str(tmp_path / "example.txt")
-    # Returns ostream
-    device.notice(device.notice_level, "Message")
-
-    _assert_common_properties(device, 3, str(tmp_path / "example.txt"))
-
-    # now make a device with non-default arguments
-    device_type = type(device)
-    dev = device_type(msg_file=str(tmp_path / "example2.txt"),
-                      notice_level=10,
-                      num_cpu_threads=10)
-    _assert_common_properties(dev,
-                              notice_level=10,
-                              msg_file=str(tmp_path / "example2.txt"),
-                              num_cpu_threads=10)
+    device.print("This message should output.")
+    
+    # Check the msg file if the output is correctly placed
