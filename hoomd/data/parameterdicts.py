@@ -64,6 +64,9 @@ def _raise_if_required_arg(value, current_context=()):
     # _is_iterable is required over isinstance(value, Sequence) because a
     # str of 1 character is still a sequence and results in infinite recursion.
     elif _is_iterable(value):
+        # Special case where a sequence type spec was given no value.
+        if len(value) == 1 and value[0] is RequiredArg:
+            _raise_error_with_context(current_context)
         for index, item in enumerate(value):
             _raise_if_required_arg(item, current_context + (index,))
 
