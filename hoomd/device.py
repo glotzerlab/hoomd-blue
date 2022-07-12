@@ -143,15 +143,14 @@ class Device:
     def notice(self, notice_level, msg):
         """If the devices notice level is less than given notice level
            there is no output"""
-        if notice_level > self.notice_level:
-            return
-        else:
-            return self._cpp_msg.notice(notice_level, str(msg) + "\n")
+        if notice_level <= self.notice_level:
+            self._cpp_msg.notice(notice_level, str(msg) + "\n")
+        #For debugging purposes?
 
     def print(self, msg):
         """Easily directed to msg_file regardless of notice level"""
-        return self._cpp_msg.notice(5, str(msg) + "\n")
-        # Only works if notice_level is > 3?
+        self._cpp_msg.notice(self.notice_level + 1, str(msg) + "\n")
+        # Only works if notice_level is greater than the devices notice level
 
 
 def _create_messenger(mpi_config, notice_level, msg_file):
