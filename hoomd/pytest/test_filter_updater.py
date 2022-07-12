@@ -107,8 +107,12 @@ def test_updating(simulation, filter_updater, filter_list):
             assert_group_match(filter_, simulation.state)
 
 
-def test_pickling(simulation, filter_list):
-    # Remove local custom filter
-    filter_list.pop()
+def test_pickling(simulation):
+    # Don't use filter_list fixture since NewFilter is not picklable.
+    filters = [
+        hoomd.filter.All(),
+        hoomd.filter.Tags([1, 2, 3]),
+        hoomd.filter.Type(["A"]),
+    ]
     hoomd.conftest.operation_pickling_check(
-        hoomd.update.FilterUpdater(1, filter_list), simulation)
+        hoomd.update.FilterUpdater(1, filters), simulation)
