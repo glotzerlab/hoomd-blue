@@ -9,20 +9,6 @@ from copy import copy
 from hoomd.data.typeconverter import _BaseConverter, TypeConverter
 
 
-class _PartialIsInstance:
-    """Allows partial function application of isinstance over classes.
-
-    This is a solution to avoid lambdas to enable pickling. We cannot use
-    functools.partial since we need to partially apply the second argument.
-    """
-
-    def __init__(self, classes):
-        self.classes = classes
-
-    def __call__(self, instance):
-        return isinstance(instance, self.classes)
-
-
 class _PartialGetAttr:
     """Allows partial function application of isinstance over attributes.
 
