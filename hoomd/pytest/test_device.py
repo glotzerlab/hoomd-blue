@@ -111,13 +111,12 @@ def test_cpu_build_specifics():
 
 
 def test_device_notice(device, tmp_path):
-    device.notice_level = 4
-
     # Message file declared. Should output in specified file
+    device.notice_level = 4
     device.msg_file = str(tmp_path / "example.txt")
     device.notice("This message should output.")
     file = open(device.msg_file)
-    #Check the msg file if the output is correctly placed
+    # Check the msg file if the output is correctly placed
     assert file.read() == "This message should output.\n"
 
     file.close()
@@ -126,7 +125,7 @@ def test_device_notice(device, tmp_path):
     snapshot.particles.N = 4
 
     device.msg_file = str(tmp_path/"example2.txt")
-    #Test notice with a message that is not a string
+    # Test notice with a message that is not a string
     device.notice(snapshot.particles.N)
     file = open(device.msg_file)
     assert file.read() == "4\n"
