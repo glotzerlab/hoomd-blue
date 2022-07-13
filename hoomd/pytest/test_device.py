@@ -110,38 +110,14 @@ def test_cpu_build_specifics():
     assert type(hoomd.device.auto_select()) == hoomd.device.CPU
 
 
-# def test_device_notice(device, capsys, tmp_path):
-#     # Test when notice level is higher
-#     device.notice_level = 3
-#     device.notice(2, "This message should output.")
-#     captured = capsys.readouterr()
-#     assert captured.out == "This message should output.\n"
+def test_device_notice(device, tmp_path):
+    device.notice_level = 4
 
-#     # Test when notice level is lower
-#     device.notice(4, "This message should not output.")
-#     captured = capsys.readouterr()
-#     assert captured.out == None
+    # Message file declared. Should output in specified file
+    device.msg_file = str(tmp_path / "example.txt")
+    device.notice("This message should output.")
+    file = open(device.msg_file)
+    #Check the msg file if the output is correctly placed
+    assert file.read() == "This message should output.\n"
 
-#     #Test message file notice
-#     device.msg_file = str(tmp_path / "example.txt")
-#     device.notice(2, "This message should output.")
-#     # assert example.txt has the msg
-
-
-def test_device_print(device, capsys, tmp_path):
-    # No message file declared. Should output to sys.stdout
-    device.notice_level = 2
-    device.msg_file = None
-    _assert_common_properties(device, 2, None)
-
-    device.print("This message should output.")
-    # Print is not outputting to stdout or anywhere really.
-    captured = capsys.readouterr()
-    assert captured.out == 'This message should output.\n'
-
-    # Message file declared. Should output in the file
-    # device.msg_file = str(tmp_path / "example.txt")
-    # device.print("This message should output.")
-    # file = open(device.msg_file)
-    # assert file.read() == "This message should output."
-    # Check the msg file if the output is correctly placed
+    file.close()

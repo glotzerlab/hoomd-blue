@@ -140,17 +140,10 @@ class Device:
         else:
             self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
-    def notice(self, notice_level, msg):
-        """If the devices notice level is less than given notice level
-           there is no output"""
-        if notice_level <= self.notice_level:
-            self._cpp_msg.notice(notice_level, str(msg) + "\n")
-        #For debugging purposes?
-
-    def print(self, msg):
-        """Easily directed to msg_file regardless of notice level"""
-        self._cpp_msg.notice(self.notice_level + 1, str(msg) + "\n")
-        # Only works if notice_level is greater than the devices notice level
+    def notice(self, msg, notice_level=1):
+        """If msg_file is specified then msg will output in msg_file,
+           else msg will output to stdout"""
+        self._cpp_msg.notice(notice_level, str(msg) + "\n")
 
 
 def _create_messenger(mpi_config, notice_level, msg_file):
