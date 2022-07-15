@@ -463,6 +463,7 @@ Autotuner<n_dimensions>::Autotuner(
         s << "Autotuner " << m_name << " has no valid parameters.";
         throw std::invalid_argument(s.str());
         }
+    m_parameters.shrink_to_fit();
 
     // Ensure that m_n_samples is non-zero and odd to simplify the median computation.
     if ((m_n_samples & 1) == 0)
