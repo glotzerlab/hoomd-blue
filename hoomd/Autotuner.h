@@ -404,6 +404,7 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
                 }
             else
                 {
+                // populate parameter for higher dimensions
                 initializeParameters(dimension_ranges,
                                      parameter,
                                      is_parameter_valid,
