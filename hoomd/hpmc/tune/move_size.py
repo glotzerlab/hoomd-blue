@@ -192,8 +192,8 @@ class MoveSize(_InternalCustomTuner):
         `MoveSize.secant_solver` and `MoveSize.scale_solver`.
 
     Args:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
+        trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when to
+            run the tuner.
         moves (list[str]): A list of types of moves to tune. Available options
             are ``'a'`` and ``'d'``.
         target (float): The acceptance rate for trial moves that is desired. The
@@ -209,8 +209,8 @@ class MoveSize(_InternalCustomTuner):
             to attempt.
 
     Attributes:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
+        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
+            run the tuner.
         moves (list[str]): A list of types of moves to tune. Available options
             are ``'a'`` and ``'d'``.
         target (float): The acceptance rate for trial moves that is desired. The
@@ -264,8 +264,8 @@ class MoveSize(_InternalCustomTuner):
         """Create a `MoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             moves (list[str]): A list of types of moves to tune. Available
                 options are ``'a'`` and ``'d'``.
             target (float): The acceptance rate for trial moves that is desired.
@@ -309,8 +309,8 @@ class MoveSize(_InternalCustomTuner):
         of gamma this should not be a problem.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             moves (list[str]): A list of types of moves to tune. Available
                 options are ``'a'`` and ``'d'``.
             target (float): The acceptance rate for trial moves that is desired.

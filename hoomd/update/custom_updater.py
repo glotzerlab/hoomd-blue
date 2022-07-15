@@ -27,7 +27,7 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
 
     Args:
         action (hoomd.custom.Action): The action to call.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to call the
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to call the
           action.
 
     `CustomUpdater` is a `hoomd.operation.Updater` that wraps a user-defined

@@ -15,8 +15,8 @@ class ParticleSorter(Tuner):
     """Order particles in memory to improve performance.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps on which to sort.
-            Defaults to a ``hoomd.trigger.Periodic(200)`` trigger.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps on which to
+            sort. Defaults to a ``hoomd.trigger.Periodic(200)`` trigger.
 
         grid (int): Resolution of the grid to use when sorting. The default
             value of `None` sets ``grid=4096`` in 2D simulations and

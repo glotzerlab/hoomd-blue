@@ -190,8 +190,8 @@ class BoxMCMoveSize(_InternalCustomTuner):
         invalid results due to the breaking of balance.
 
     Args:
-        trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
-            the tuner.
+        trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when to
+            run the tuner.
         boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC` object to
             tune.
         moves (list[str]): A list of types of moves to tune. Available options
@@ -249,12 +249,14 @@ class BoxMCMoveSize(_InternalCustomTuner):
         """Create a `BoxMCMoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC`
                 object to tune.
             moves (list[str]): A list of types of moves to tune. Available
-                options are 'a' and 'd'.
+                options are 'volume', 'aspect', 'shear_{x,y,z}', and
+                'length_{x,y,z}' where brackets denote multiple options. For
+                shear and length moves each dimension is tuned independently.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
             max_move_size (float): The maximum value of a volume
@@ -289,12 +291,14 @@ class BoxMCMoveSize(_InternalCustomTuner):
         of gamma this should not be a problem.
 
         Args:
-            trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
-                run the tuner.
+            trigger (hoomd.trigger.trigger_like): ``Trigger`` to determine when
+                to run the tuner.
             boxmc (hoomd.hpmc.update.BoxMC): The `hoomd.hpmc.update.BoxMC`
                 object to tune.
             moves (list[str]): A list of types of moves to tune. Available
-                options are 'a' and 'd'.
+                options are 'volume', 'aspect', 'shear_{x,y,z}', and
+                'length_{x,y,z}' where brackets denote multiple options. For
+                shear and length moves each dimension is tuned independently.
             target (float): The acceptance rate for trial moves that is desired.
                 The value should be between 0 and 1.
             max_move_size (float): The maximum value of a volume
