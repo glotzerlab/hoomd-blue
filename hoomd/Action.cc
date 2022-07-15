@@ -10,7 +10,7 @@ namespace detail
     {
 void export_Action(pybind11::module& m)
     {
-    pybind11::class_<Action, std::shared_ptr<Action>>(m, "Action")
+    pybind11::class_<Action, Autotuned, std::shared_ptr<Action>>(m, "Action")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
     } // end namespace detail

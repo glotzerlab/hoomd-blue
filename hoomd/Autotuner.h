@@ -188,10 +188,18 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
     virtual void startScan()
         {
         m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " starting scan." << std::endl;
-        m_state = SCANNING;
         m_current_element = 0;
         m_current_sample = 0;
         m_current_param = m_parameters[m_current_element];
+
+        if (m_optional)
+            {
+            m_state = INACTIVE;
+            }
+        else
+            {
+            m_state = SCANNING;
+            }
         }
 
     /// Call before kernel launch.
@@ -371,6 +379,9 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
     /// Sampling mode.
     mode_Enum m_mode;
 
+    /// True when this is an optional tuner.
+    bool m_optional;
+
     /// Helper method to initialize multi-dimensional arrays recursively.
     void initializeParameters(
         const std::vector<std::vector<unsigned int>>& dimension_ranges,
@@ -416,7 +427,7 @@ Autotuner<n_dimensions>::Autotuner(
     bool optional,
     std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
     : AutotunerInterface(name), m_n_samples(n_samples), m_exec_conf(exec_conf), m_sync(false),
-      m_mode(mode_median)
+      m_mode(mode_median), m_optional(optional)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << name << " with " << n_samples
                                 << " samples." << std::endl;
@@ -473,17 +484,7 @@ Autotuner<n_dimensions>::Autotuner(
     CHECK_CUDA_ERROR();
 #endif
 
-    m_current_element = 0;
-    m_current_sample = 0;
-    m_current_param = m_parameters[m_current_element];
-    if (optional)
-        {
-        m_state = INACTIVE;
-        }
-    else
-        {
-        m_state = SCANNING;
-        }
+    startScan();
     }
 
 template<size_t n_dimensions> void Autotuner<n_dimensions>::end()
