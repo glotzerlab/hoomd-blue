@@ -89,9 +89,9 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
     };
 
     m_tuner_free_volume.reset(
-        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                          AutotunerInterface::getTppListPow2(this->m_exec_conf),
-                          AutotunerInterface::getTppListPow2(this->m_exec_conf)},
+        new Autotuner<3>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_free_volume",
                          3,
@@ -110,7 +110,7 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
     m_last_nmax = 0xffffffff;
 
     m_tuner_excell_block_size.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_free_volume_excell_block_size"));
     this->m_autotuners.push_back(m_tuner_excell_block_size);

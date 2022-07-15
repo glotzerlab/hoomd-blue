@@ -45,10 +45,10 @@ The methods getParameterPython and setParameterPython() facilitate user queries 
 autotuner values. These encode the autotuner's parameter as a Python tuple. setParameterPython()
 stops any current tuning in process and uses the given parameter future steps.
 */
-class PYBIND11_EXPORT AutotunerInterface
+class PYBIND11_EXPORT AutotunerBase
     {
     public:
-    AutotunerInterface(const std::string& name) : m_name(name) { }
+    AutotunerBase(const std::string& name) : m_name(name) { }
 
     /// Call to start the autotuning sequence.
     virtual void startScan() { }
@@ -160,7 +160,7 @@ class PYBIND11_EXPORT AutotunerInterface
     indefinitely. This is implemented with an INACTIVE state that goes to SCANNING on the first
     call to begin().
 */
-template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public AutotunerInterface
+template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public AutotunerBase
     {
     public:
     /// Constructor.
@@ -426,7 +426,7 @@ Autotuner<n_dimensions>::Autotuner(
     unsigned int n_samples,
     bool optional,
     std::function<bool(const std::array<unsigned int, n_dimensions>&)> is_parameter_valid)
-    : AutotunerInterface(name), m_n_samples(n_samples), m_exec_conf(exec_conf), m_sync(false),
+    : AutotunerBase(name), m_n_samples(n_samples), m_exec_conf(exec_conf), m_sync(false),
       m_mode(mode_median), m_optional(optional)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << name << " with " << n_samples

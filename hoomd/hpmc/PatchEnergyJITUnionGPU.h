@@ -83,7 +83,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             valid_group_size.insert(valid_group_size.begin(), i);
 
         m_tuner_narrow_patch.reset(new Autotuner<3>(
-            {launch_bounds, AutotunerInterface::getTppListPow2(m_exec_conf), valid_group_size},
+            {launch_bounds, AutotunerBase::getTppListPow2(m_exec_conf), valid_group_size},
             this->m_exec_conf,
             "hpmc_narrow_patch",
             3,

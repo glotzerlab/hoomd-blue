@@ -45,7 +45,7 @@ class PYBIND11_EXPORT Autotuned
         {
         for (auto item : params)
             {
-            auto name_match = [item](const std::shared_ptr<AutotunerInterface> tuner)
+            auto name_match = [item](const std::shared_ptr<AutotunerBase> tuner)
             { return tuner->getName() == pybind11::cast<std::string>(item.first); };
             auto tuner = std::find_if(m_autotuners.begin(), m_autotuners.end(), name_match);
 
@@ -83,7 +83,7 @@ class PYBIND11_EXPORT Autotuned
 
     protected:
     /// All autotuners used by this class instance.
-    std::vector<std::shared_ptr<AutotunerInterface>> m_autotuners;
+    std::vector<std::shared_ptr<AutotunerBase>> m_autotuners;
     };
 
 namespace detail

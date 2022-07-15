@@ -31,7 +31,7 @@ LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
     m_off_ranks.swap(off_ranks);
 
-    m_tuner.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(m_exec_conf)},
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    this->m_exec_conf,
                                    "load_balance"));
     m_autotuners.push_back(m_tuner);

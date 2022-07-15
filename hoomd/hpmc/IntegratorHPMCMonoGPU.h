@@ -300,25 +300,25 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     m_last_nmax = 0xffffffff;
 
     m_tuner_moves.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_moves"));
     this->m_autotuners.push_back(m_tuner_moves);
 
     m_tuner_update_pdata.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_update_pdata"));
     this->m_autotuners.push_back(m_tuner_update_pdata);
 
     m_tuner_excell_block_size.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_excell_block_size"));
     this->m_autotuners.push_back(m_tuner_excell_block_size);
 
     m_tuner_num_depletants.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_num_depletants",
                          5,
@@ -326,7 +326,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     this->m_autotuners.push_back(m_tuner_num_depletants);
 
     m_tuner_num_depletants_ntrial.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_num_depletants_ntrial",
                          5,
@@ -353,9 +353,9 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
 
     const unsigned int narrow_phase_max_tpp = this->m_exec_conf->dev_prop.maxThreadsDim[2];
     m_tuner_narrow.reset(new Autotuner<3>(
-        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf)},
+        {AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerBase::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp),
+         AutotunerBase::getTppListPow2(this->m_exec_conf)},
         this->m_exec_conf,
         "hpmc_narrow",
         3,
@@ -364,13 +364,13 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     this->m_autotuners.push_back(m_tuner_narrow);
 
     m_tuner_convergence.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_convergence"));
     this->m_autotuners.push_back(m_tuner_convergence);
 
     m_tuner_depletants_accept.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_depletants_accept",
                          5,
@@ -392,9 +392,9 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     };
 
     m_tuner_depletants.reset(new Autotuner<3>(
-        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+        {AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerBase::getTppListPow2(this->m_exec_conf),
+         AutotunerBase::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
         this->m_exec_conf,
         "hpmc_depletants",
         3,
@@ -403,9 +403,9 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     this->m_autotuners.push_back(m_tuner_depletants);
 
     m_tuner_depletants_phase1.reset(new Autotuner<3>(
-        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+        {AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerBase::getTppListPow2(this->m_exec_conf),
+         AutotunerBase::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
         this->m_exec_conf,
         "hpmc_depletants_phase1",
         3,
@@ -414,9 +414,9 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     this->m_autotuners.push_back(m_tuner_depletants_phase1);
 
     m_tuner_depletants_phase2.reset(new Autotuner<3>(
-        {AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf),
-         AutotunerInterface::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
+        {AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+         AutotunerBase::getTppListPow2(this->m_exec_conf),
+         AutotunerBase::getTppListPow2(this->m_exec_conf, narrow_phase_max_tpp)},
         this->m_exec_conf,
         "hpmc_depletants_phase2",
         3,

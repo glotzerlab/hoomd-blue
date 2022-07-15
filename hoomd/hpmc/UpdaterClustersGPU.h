@@ -146,13 +146,13 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
 
     hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
     m_tuner_excell_block_size.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "clusters_excell_block_size"));
     this->m_autotuners.push_back(m_tuner_excell_block_size);
 
     m_tuner_num_depletants.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "clusters_num_depletants",
                          5,
@@ -160,12 +160,12 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     this->m_autotuners.push_back(m_tuner_num_depletants);
 
     m_tuner_transform.reset(
-        new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "clusters_transform"));
     this->m_autotuners.push_back(m_tuner_transform);
 
-    m_tuner_flip.reset(new Autotuner<1>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf)},
+    m_tuner_flip.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                                         this->m_exec_conf,
                                         "clusters_flip"));
     this->m_autotuners.push_back(m_tuner_flip);
@@ -191,9 +191,9 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     const unsigned int overlaps_max_tpp = dev_prop.maxThreadsDim[2];
 
     m_tuner_overlaps.reset(
-        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                          AutotunerInterface::getTppListPow2(this->m_exec_conf, overlaps_max_tpp),
-                          AutotunerInterface::getTppListPow2(this->m_exec_conf)},
+        new Autotuner<3>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf, overlaps_max_tpp),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf)},
                          this->m_exec_conf,
                          "clusters_overlaps",
                          3,
@@ -216,9 +216,9 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     };
 
     m_tuner_depletants.reset(
-        new Autotuner<3>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                          AutotunerInterface::getTppListPow2(this->m_exec_conf),
-                          AutotunerInterface::getTppListPow2(this->m_exec_conf, overlaps_max_tpp)},
+        new Autotuner<3>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf, overlaps_max_tpp)},
                          this->m_exec_conf,
                          "clusters_depletants",
                          3,
@@ -239,8 +239,8 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     };
 
     m_tuner_concatenate.reset(
-        new Autotuner<2>({AutotunerInterface::makeBlockSizeRange(this->m_exec_conf),
-                          AutotunerInterface::getTppListPow2(this->m_exec_conf, overlaps_max_tpp)},
+        new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf, overlaps_max_tpp)},
                          this->m_exec_conf,
                          "clusters_concatenate"));
     this->m_autotuners.push_back(m_tuner_concatenate);
