@@ -151,7 +151,7 @@ class PYBIND11_EXPORT AutotunerInterface
     Internally, m_n_samples is the number of samples to take (odd for median computation).
     m_current_sample is the current sample being taken, and m_current_element is the index of the
     current parameter being sampled. m_samples stores the time of each sampled kernel launch, and
-    m_sample_median stores the current median of each set of samples. m_state lists the current
+    m_sample_center stores the current median of each set of samples. m_state lists the current
     state in the state machine.
 
     Some classes may activate some autotuners optionally based on run time parameters. Set
@@ -363,7 +363,7 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
     std::vector<std::vector<float>> m_samples;
 
     /// Processed (avg, median, or max) time for each parameter.
-    std::vector<float> m_sample_median;
+    std::vector<float> m_sample_center;
 
     /// The Execution configuration.
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
@@ -471,7 +471,7 @@ Autotuner<n_dimensions>::Autotuner(
 
     // Initialize memory.
     m_samples.resize(m_parameters.size());
-    m_sample_median.resize(m_parameters.size());
+    m_sample_center.resize(m_parameters.size());
 
     for (unsigned int i = 0; i < m_parameters.size(); i++)
         {
@@ -588,17 +588,17 @@ template<size_t n_dimensions> size_t Autotuner<n_dimensions>::computeOptimalPara
                 float sum = 0.0f;
                 for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
                     sum += *it;
-                m_sample_median[i] = sum / float(v.size());
+                m_sample_center[i] = sum / float(v.size());
                 }
             else if (m_mode == mode_max)
                 {
                 // Compute maximum.
-                m_sample_median[i] = -FLT_MIN;
+                m_sample_center[i] = -FLT_MIN;
                 for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
                     {
-                    if (*it > m_sample_median[i])
+                    if (*it > m_sample_center[i])
                         {
-                        m_sample_median[i] = *it;
+                        m_sample_center[i] = *it;
                         }
                     }
                 }
@@ -607,7 +607,7 @@ template<size_t n_dimensions> size_t Autotuner<n_dimensions>::computeOptimalPara
                 // Compute median.
                 size_t n = v.size() / 2;
                 nth_element(v.begin(), v.begin() + n, v.end());
-                m_sample_median[i] = v[n];
+                m_sample_center[i] = v[n];
                 }
             }
         }
@@ -618,19 +618,19 @@ template<size_t n_dimensions> size_t Autotuner<n_dimensions>::computeOptimalPara
     if (is_root)
         {
         // Now find the minimum and maximum times in the medians.
-        float min_value = m_sample_median[0];
-        float max_value = m_sample_median[0];
+        float min_value = m_sample_center[0];
+        float max_value = m_sample_center[0];
 
         for (size_t i = 1; i < m_parameters.size(); i++)
             {
-            if (m_sample_median[i] < min_value)
+            if (m_sample_center[i] < min_value)
                 {
-                min_value = m_sample_median[i];
+                min_value = m_sample_center[i];
                 min_idx = i;
                 }
-            if (m_sample_median[i] > max_value)
+            if (m_sample_center[i] > max_value)
                 {
-                max_value = m_sample_median[i];
+                max_value = m_sample_center[i];
                 }
             }
 
