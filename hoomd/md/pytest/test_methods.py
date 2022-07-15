@@ -143,7 +143,8 @@ def _method_base_params():
     method_base_params_list.extend([
         paramtuple(displacement_capped_setup_params,
                    displacement_capped_extra_params,
-                   displacement_capped_changed_params, None,
+                   displacement_capped_changed_params,
+                   hoomd.md.methods.rattle.DisplacementCapped,
                    hoomd.md.methods.DisplacementCapped)
     ])
 
