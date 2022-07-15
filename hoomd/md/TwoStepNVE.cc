@@ -359,7 +359,7 @@ void export_TwoStepNVE(pybind11::module& m)
         m,
         "TwoStepNVE")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
-        .def_property("limit", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
+        .def_property("maximum_displacement", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
         .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
     }
     } // end namespace detail
