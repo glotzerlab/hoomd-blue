@@ -43,7 +43,7 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
 
 std::pair<bool, Scalar> TwoStepNVEGPU::getKernelLimitValues(uint64_t timestep)
     {
-    auto use_limit = this->m_limit == nullptr;
+    auto use_limit = !(this->m_limit == nullptr);
     Scalar maximum_displacement;
     if (use_limit)
         {

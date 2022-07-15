@@ -57,7 +57,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
 
     std::pair<bool, Scalar> getKernelLimitValues(uint64_t timestep)
         {
-        auto use_limit = this->m_limit == nullptr;
+        auto use_limit = !(this->m_limit == nullptr);
         Scalar maximum_displacement;
         if (use_limit)
             {
