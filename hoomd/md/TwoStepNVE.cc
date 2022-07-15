@@ -19,7 +19,7 @@ namespace md
 */
 TwoStepNVE::TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group)
-    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
+    : IntegrationMethodTwoStep(sysdef, group), m_limit(), m_zero_force(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVE" << endl;
     }
@@ -35,31 +35,14 @@ TwoStepNVE::~TwoStepNVE()
     a distance larger than the limit in a single time step
 */
 
-pybind11::object TwoStepNVE::getLimit()
+std::shared_ptr<Variant> TwoStepNVE::getLimit()
     {
-    pybind11::object result;
-    if (m_limit)
-        {
-        result = pybind11::cast(m_limit_val);
-        }
-    else
-        {
-        result = pybind11::none();
-        }
-    return result;
+    return m_limit;
     }
 
-void TwoStepNVE::setLimit(pybind11::object limit)
+void TwoStepNVE::setLimit(std::shared_ptr<Variant>& limit)
     {
-    if (limit.is_none())
-        {
-        m_limit = false;
-        }
-    else
-        {
-        m_limit = true;
-        m_limit_val = pybind11::cast<Scalar>(limit);
-        }
+    m_limit = limit;
     }
 
 bool TwoStepNVE::getZeroForce()
@@ -109,12 +92,13 @@ void TwoStepNVE::integrateStepOne(uint64_t timestep)
         // limit the movement of the particles
         if (m_limit)
             {
+            Scalar maximum_displacement = m_limit->operator()(timestep);
             Scalar len = sqrt(dx * dx + dy * dy + dz * dz);
-            if (len > m_limit_val)
+            if (len > maximum_displacement)
                 {
-                dx = dx / len * m_limit_val;
-                dy = dy / len * m_limit_val;
-                dz = dz / len * m_limit_val;
+                dx = dx / len * maximum_displacement;
+                dy = dy / len * maximum_displacement;
+                dz = dz / len * maximum_displacement;
                 }
             }
 
@@ -305,13 +289,14 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
         // limit the movement of the particles
         if (m_limit)
             {
+            Scalar maximum_displacement = m_limit->operator()(timestep);
             Scalar vel = sqrt(h_vel.data[j].x * h_vel.data[j].x + h_vel.data[j].y * h_vel.data[j].y
                               + h_vel.data[j].z * h_vel.data[j].z);
-            if ((vel * m_deltaT) > m_limit_val)
+            if ((vel * m_deltaT) > maximum_displacement)
                 {
-                h_vel.data[j].x = h_vel.data[j].x / vel * m_limit_val / m_deltaT;
-                h_vel.data[j].y = h_vel.data[j].y / vel * m_limit_val / m_deltaT;
-                h_vel.data[j].z = h_vel.data[j].z / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].x = h_vel.data[j].x / vel * maximum_displacement / m_deltaT;
+                h_vel.data[j].y = h_vel.data[j].y / vel * maximum_displacement / m_deltaT;
+                h_vel.data[j].z = h_vel.data[j].z / vel * maximum_displacement / m_deltaT;
                 }
             }
         }
