@@ -365,7 +365,7 @@ class AutotunedObject(_HOOMDBaseObject):
         """
         if not self._attached:
             raise RuntimeError("Call Simulation.run() before "
-                               "autotune_kernel_parameters.")
+                               "tune_kernel_parameters.")
         self._cpp_obj.startAutotuning()
 
 

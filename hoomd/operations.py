@@ -315,12 +315,12 @@ class Operations(Collection):
         """
         if not self._scheduled:
             raise RuntimeError("Call Simulation.run() before "
-                               "autotune_kernel_parameters.")
+                               "tune_kernel_parameters.")
 
         # TODO: Call C++ System object to do this, non-operations like
         # ParticleData, Communicator, etc... may be autotuned as well
         for op in self:
-            op.autotune_kernel_parameters()
+            op.tune_kernel_parameters()
 
     def __getstate__(self):
         """Get the current state of the operations container for pickling."""
