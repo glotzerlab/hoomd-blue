@@ -632,7 +632,7 @@ template<class Manifold> void export_TwoStepRATTLENVE(pybind11::module& m, const
                             std::shared_ptr<ParticleGroup>,
                             Manifold,
                             Scalar>())
-        .def_property("limit",
+        .def_property("maximum_displacement",
                       &TwoStepRATTLENVE<Manifold>::getLimit,
                       &TwoStepRATTLENVE<Manifold>::setLimit)
         .def_property("zero_force",
