@@ -428,6 +428,13 @@ def test_seed(device, lattice_snapshot_factory):
     assert sim.seed == 20
 
 
+def test_seed_constructor_out_of_range(device, lattice_snapshot_factory):
+    sim = hoomd.Simulation(device, seed=0x123456789abcdef)
+
+    sim.create_state_from_snapshot(lattice_snapshot_factory())
+    assert sim.seed == 0xcdef
+
+
 def test_operations_setting(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory()
     sim.create_state_from_snapshot(lattice_snapshot_factory())
