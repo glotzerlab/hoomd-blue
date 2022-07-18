@@ -215,7 +215,7 @@ def test_cylinder(simulation, cls, params):
     for _ in range(10):
         simulation.run(10)
         with simulation.state.cpu_local_snapshot as snap:
-            for i in range(simulation.state.N_particles):
+            for i in range(len(snap.particles.position)):
                 r = snap.particles.position[i]
                 assert np.linalg.norm(r - (np.dot(r, n) * n)) < radius
 
