@@ -202,7 +202,7 @@ def test_sphere(simulation, cls, params):
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_cylinder(simulation, cls, params):
     """Test that particles stay within the pipe defined by a cylinder wall."""
-    n = np.array([1,1,1])
+    n = np.array([1, 1, 1])
     radius = 5
     wall_pot = cls([
         hoomd.wall.Cylinder(radius=radius,
@@ -217,7 +217,7 @@ def test_cylinder(simulation, cls, params):
         with simulation.state.cpu_local_snapshot as snap:
             for i in range(simulation.state.N_particles):
                 r = snap.particles.position[i]
-                assert np.linalg.norm(r-(np.dot(r,n)*n)) < radius
+                assert np.linalg.norm(r - (np.dot(r, n) * n)) < radius
 
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
