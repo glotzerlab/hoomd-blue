@@ -23,11 +23,12 @@ from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.md.force import Force
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
 
 
-class Constraint(_HOOMDBaseObject):
+class Constraint(Force):
     """Constraint force base class.
 
     `Constraint` is the base class for all constraint forces.
