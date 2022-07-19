@@ -338,7 +338,7 @@ void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
         h_force.data[i4].x = h_force.data[i4].x + f4.x;
         h_force.data[i4].y = h_force.data[i4].y + f4.y;
         h_force.data[i4].z = h_force.data[i4].z + f4.z;
-        h_force.data[i4].w = h_force.data[i4].z + f4.w;
+        h_force.data[i4].w = h_force.data[i4].w + f4.w;
 
         // Compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // upper triangular version of virial tensor
