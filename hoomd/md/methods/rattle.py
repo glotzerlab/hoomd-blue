@@ -139,16 +139,20 @@ class NVE(MethodRATTLE):
 
 
 class DisplacementCapped(NVE):
-    r"""NVE-like integration with capped displacement.
+    r"""Newtonian dynamics with a cap on the maximum displacement per time step.
 
     Integration is via a maximum displacement capped Velocity-Verlet with
     RATTLE constraint. This class is useful to relax a simulation on a manifold.
+
+    Warning:
+        This method does not conserve energy or momentum.
 
     Args:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
         maximum_displacement (hoomd.variant.variant_like): The maximum
-            displacement allowed for a particular timestep.
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
         tolerance (`float`, optional): Defines the tolerated error particles are
@@ -173,7 +177,8 @@ class DisplacementCapped(NVE):
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
         maximum_displacement (hoomd.variant.variant_like): The maximum
-            displacement allowed for a particular timestep.
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
             which is used by and as a trigger for the RATTLE algorithm of this
             method.

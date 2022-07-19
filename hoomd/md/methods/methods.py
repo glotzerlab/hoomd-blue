@@ -709,17 +709,21 @@ class NVE(Method):
 
 
 class DisplacementCapped(NVE):
-    r"""Modified constant volume, constant energy dynamics with a cap on motion.
+    r"""Newtonian dynamics with a cap on the maximum displacement per time step.
 
     The method employs a maximum displacement allowed each time step. This
     method can be helpful to relax a system with too much overlaps without
     "blowing up" the system.
 
+    Warning:
+        This method does not conserve energy or momentum.
+
     Args:
         filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this method.
         maximum_displacement (hoomd.variant.variant_like): The maximum
-            displacement allowed for a particular timestep.
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
 
     `MotionCapped` integrates integrates translational and rotational degrees of
     freedom using modified microcanoncial dynamics. See `NVE` for the basis of
@@ -735,7 +739,8 @@ class DisplacementCapped(NVE):
         filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this method.
         maximum_displacement (hoomd.variant.variant_like): The maximum
-            displacement allowed for a particular timestep.
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
     """
 
     def __init__(self, filter,
