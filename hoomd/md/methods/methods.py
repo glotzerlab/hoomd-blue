@@ -725,13 +725,14 @@ class DisplacementCapped(NVE):
             displacement allowed for a particular timestep
             :math:`[\mathrm{length}]`.
 
-    `MotionCapped` integrates integrates translational and rotational degrees of
-    freedom using modified microcanoncial dynamics. See `NVE` for the basis of
-    the algorithm.
+    `DisplacementCapped` integrates integrates translational and rotational
+    degrees of freedom using modified microcanoncial dynamics. See `NVE` for the
+    basis of the algorithm.
 
     Examples::
 
-        relaxer = hoomd.md.methods.MotionCapped(filter=hoomd.filter.All(), 1e-3)
+        relaxer = hoomd.md.methods.DisplacementCapped(
+            filter=hoomd.filter.All(), 1e-3)
         integrator = hoomd.md.Integrator(
             dt=0.005, methods=[relaxer], forces=[lj])
 
