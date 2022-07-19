@@ -25,7 +25,6 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.md.force import Force
 import hoomd
-from hoomd.operation import _HOOMDBaseObject
 
 
 class Constraint(Force):
@@ -223,9 +222,9 @@ class Rigid(Constraint):
     .. rubric:: Continuing simulations with rigid bodies.
 
     To continue a simulation, write the simulation state to a file with
-    `hoomd.write.GSD` and initialize the new `Simulation` using
-    `create_state_from_gsd <Simulation.create_state_from_gsd>`. GSD stores all
-    the particle data fields needed to reconstruct the state of the system,
+    `hoomd.write.GSD` and initialize the new `Simulation <hoomd.Simulation>`
+    using `create_state_from_gsd <Simulation.create_state_from_gsd>`. GSD stores
+    all the particle data fields needed to reconstruct the state of the system,
     including the body, angular momentum, and orientation of the body. You must
     specify the same local body space environment to `body` as you did in the
     earlier simulation - GSD does not store this information.
