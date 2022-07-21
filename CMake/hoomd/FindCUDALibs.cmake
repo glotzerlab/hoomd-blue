@@ -334,9 +334,9 @@ endif()
 #endif()
 
 if (HIP_PLATFORM STREQUAL "nvcc")
-    # find cuda-memcheck
+    # find compute-sanitizer
     find_program(CUDA_MEMCHECK_EXECUTABLE
-      NAMES cuda-memcheck
+      NAMES compute-sanitizer
       HINTS "${CUDA_BIN_PATH}"
       NO_DEFAULT_PATH)
     mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
