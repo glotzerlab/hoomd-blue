@@ -1,6 +1,7 @@
 set(files __init__.py
           potential.py
           bond.py
+	  surfacetension.py
    )
 
 install(FILES ${files}
