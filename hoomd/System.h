@@ -144,9 +144,6 @@ class PYBIND11_EXPORT System
         return m_sysdef;
         }
 
-    //! Start all autotuners in the simulation
-    void startAutotuning();
-
     std::vector<std::shared_ptr<Analyzer>>& getAnalyzers()
         {
         return m_analyzers;

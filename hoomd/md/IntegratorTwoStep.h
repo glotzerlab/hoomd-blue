@@ -96,6 +96,9 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// Start autotuning kernel launch parameters
     virtual void startAutotuning();
 
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete();
+
     /// Getter and setter for accessing rigid body objects in Python
     std::shared_ptr<ForceComposite> getRigid()
         {

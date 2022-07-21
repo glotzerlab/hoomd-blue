@@ -299,9 +299,17 @@ void IntegratorTwoStep::startAutotuning()
     // set params in all methods
     for (auto& method : m_methods)
         method->startAutotuning();
+    }
 
-    // TODO: start autotuning in all forces
-    // TODO: isAutotuningComplete in all forces and methods
+/// Check if autotuning is complete.
+virtual bool isAutotuningComplete()
+    {
+    bool result = Integrator::isAutotuningComplete();
+    for (auto& method : m_methods)
+        {
+        result = result && method->isAutotuningComplete();
+        }
+    return result;
     }
 
 /// helper function to compute net force/virial

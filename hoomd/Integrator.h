@@ -149,6 +149,27 @@ class PYBIND11_EXPORT Integrator : public Updater
             }
         }
 
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        Updater::startAutotuning();
+        for (auto& force : m_forces)
+            {
+            force->startAutotuning();
+            }
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = Updater::isAutotuningComplete();
+        for (auto& force : m_forces)
+            {
+            result = result && force->isAutotuningComplete();
+            }
+        return result;
+        }
+
     protected:
     /// The step size
     Scalar m_deltaT;

@@ -95,7 +95,7 @@ namespace md
     -# each integration method only applies these operations to the particles contained within its
    group (exceptions are allowed when box rescaling is needed) \ingroup updaters
 */
-class PYBIND11_EXPORT IntegrationMethodTwoStep
+class PYBIND11_EXPORT IntegrationMethodTwoStep : public Autotuned
     {
     public:
     //! Constructs the integration method and associates it with the system
@@ -117,9 +117,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     /*! \param timestep Current time step
      */
     virtual void includeRATTLEForce(uint64_t timestep) { }
-
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning() { }
 
     //! Change the timestep
     virtual void setDeltaT(Scalar deltaT);
