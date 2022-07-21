@@ -105,12 +105,18 @@ Install prerequisites
     external dependency when building for AMD GPUs
   - roctracer-dev
   - Linux kernel >= 3.5.0
+  - CMake >= 3.21
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
    1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
    2. The ``mpcd`` component is disabled on AMD GPUs.
    3. Multi-GPU execution via unified memory is not available.
+
+.. note::
+
+    When ``ENABLE_GPU=on``, HOOMD-blue will attempt to find HIP first. If it cannot find HIP, it
+    will attemp to find CUDA.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
