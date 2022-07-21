@@ -40,7 +40,9 @@ class Simulation(metaclass=Loggable):
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
-        self._seed = seed
+        self._seed = None
+        if seed is not None:
+            self.seed = seed
 
     @property
     def device(self):
