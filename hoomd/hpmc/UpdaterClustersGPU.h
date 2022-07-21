@@ -149,7 +149,6 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "clusters_excell_block_size"));
-    this->m_autotuners.push_back(m_tuner_excell_block_size);
 
     m_tuner_num_depletants.reset(
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
@@ -157,18 +156,14 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
                          "clusters_num_depletants",
                          5,
                          true));
-    this->m_autotuners.push_back(m_tuner_num_depletants);
 
-    m_tuner_transform.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                         this->m_exec_conf,
-                         "clusters_transform"));
-    this->m_autotuners.push_back(m_tuner_transform);
+    m_tuner_transform.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "clusters_transform"));
 
     m_tuner_flip.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                                         this->m_exec_conf,
                                         "clusters_flip"));
-    this->m_autotuners.push_back(m_tuner_flip);
 
     // Tuning parameters for overlap checks:
     // 0: block size
@@ -199,7 +194,6 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
                          3,
                          true,
                          is_overlaps_parameter_valid));
-    this->m_autotuners.push_back(m_tuner_overlaps);
 
     // Tuning parameters for depletants:
     // 0: block size
@@ -224,7 +218,6 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
                          3,
                          true,
                          is_depletant_parameter_valid));
-    this->m_autotuners.push_back(m_tuner_depletants);
 
     // Tuning parameters for nlist concatenation kernel:
     // 0: block size
@@ -243,7 +236,15 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
                           AutotunerBase::getTppListPow2(this->m_exec_conf, overlaps_max_tpp)},
                          this->m_exec_conf,
                          "clusters_concatenate"));
-    this->m_autotuners.push_back(m_tuner_concatenate);
+
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_excell_block_size,
+                               m_tuner_num_depletants,
+                               m_tuner_transform,
+                               m_tuner_flip,
+                               m_tuner_overlaps,
+                               m_tuner_depletants,
+                               m_tuner_concatenate});
 
     GlobalArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);

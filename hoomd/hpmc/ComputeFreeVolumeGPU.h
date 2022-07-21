@@ -97,8 +97,6 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
                          3,
                          false,
                          is_parameter_valid));
-    this->m_autotuners.push_back(m_tuner_free_volume);
-
     GPUArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
 
@@ -113,7 +111,9 @@ ComputeFreeVolumeGPU<Shape>::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefiniti
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "hpmc_free_volume_excell_block_size"));
-    this->m_autotuners.push_back(m_tuner_excell_block_size);
+
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_free_volume, m_tuner_excell_block_size});
     }
 
 template<class Shape> ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU() { }

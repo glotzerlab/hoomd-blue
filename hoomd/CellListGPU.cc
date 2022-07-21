@@ -27,12 +27,11 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    this->m_exec_conf,
                                    "cell_list"));
-    m_autotuners.push_back(m_tuner);
 
     m_tuner_combine.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                            this->m_exec_conf,
                                            "cell_list_combine"));
-    m_autotuners.push_back(m_tuner_combine);
+    m_autotuners.insert(m_autotuners.end(), {m_tuner, m_tuner_combine});
     }
 
 void CellListGPU::computeCellList()
