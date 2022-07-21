@@ -303,8 +303,6 @@ class Operations(Collection):
         if not self._scheduled:
             raise DataAccessError("is_tuning_complete")
 
-        # TODO: Call C++ System object to do this, non-operations like
-        # ParticleData, Communicator, etc... may be autotuned as well
         return all(op.is_tuning_complete for op in self)
 
     def tune_kernel_parameters(self):
@@ -317,8 +315,6 @@ class Operations(Collection):
             raise RuntimeError("Call Simulation.run() before "
                                "tune_kernel_parameters.")
 
-        # TODO: Call C++ System object to do this, non-operations like
-        # ParticleData, Communicator, etc... may be autotuned as well
         for op in self:
             op.tune_kernel_parameters()
 
