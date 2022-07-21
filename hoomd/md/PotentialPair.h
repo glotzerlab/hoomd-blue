@@ -221,6 +221,9 @@ template<class evaluator> class PotentialPair : public ForceCompute
         m_nlist->resetStats();
         }
 
+    // TODO: Pair potential needs to pass startAutotuning and isAutotuningComplete down to the nlist
+    // TODO: Nlist needs to pass startAutotuning and isAutotuningComplete down to the cell list
+
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
