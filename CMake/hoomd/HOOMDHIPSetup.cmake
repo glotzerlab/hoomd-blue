@@ -1,7 +1,8 @@
 if(ENABLE_HIP)
-    find_package(HIP)
+    find_package(HIP QUIET)
 
     if (HIP_FOUND)
+        find_package(HIP)
         ENABLE_LANGUAGE(HIP)
         SET(HOOMD_DEVICE_LANGUAGE HIP)
 
