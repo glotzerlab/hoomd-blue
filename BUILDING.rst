@@ -115,8 +115,8 @@ Install prerequisites
 
 .. note::
 
-    When ``ENABLE_GPU=on``, HOOMD-blue will attempt to find HIP first. If it cannot find HIP, it
-    will attemp to find CUDA.
+    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HHOOMD_GPU_PLATFORM=HIP`` to
+    choose HIP.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
@@ -233,6 +233,7 @@ Other option changes take effect at any time:
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
+- ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
 
   - When set to ``on``, all calculations are performed in single precision.

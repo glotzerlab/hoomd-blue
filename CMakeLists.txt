@@ -86,6 +86,7 @@ endif()
 option(SINGLE_PRECISION "Use single precision math" OFF)
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
+set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
 option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
 option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)

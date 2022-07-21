@@ -1,8 +1,7 @@
 if(ENABLE_HIP)
-    find_package(HIP QUIET)
 
-    if (HIP_FOUND)
-        find_package(HIP)
+    if (HOOMD_GPU_PLATFORM STREQUAL "HIP")
+        find_package(HIP REQUIRED)
         CMAKE_MINIMUM_REQUIRED(VERSION 3.21 FATAL_ERROR)
         ENABLE_LANGUAGE(HIP)
         SET(HOOMD_DEVICE_LANGUAGE HIP)
@@ -10,7 +9,7 @@ if(ENABLE_HIP)
         # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
         set(CMAKE_HIP_ARCHITECTURES gfx900 gfx906 gfx908 gfx90a CACHE STRING "List of AMD GPU to compile HIP code for. Separate with semicolons.")
         set(HIP_PLATFORM hip-clang)
-    else()
+    elseif (HOOMD_GPU_PLATFORM STREQUAL "CUDA")
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
         ENABLE_LANGUAGE(CUDA)
         SET(HOOMD_DEVICE_LANGUAGE CUDA)
@@ -34,6 +33,8 @@ if(ENABLE_HIP)
             # Use system provided CUB for CUDA 11 and newer
             set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/")
         endif()
+    else()
+        message(FATAL_ERROR "HOOMD_GPU_PLATFORM must be either CUDA or HIP")
     endif()
 
     if(NOT TARGET hip::host)
