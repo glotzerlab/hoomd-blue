@@ -39,6 +39,7 @@ void export_ForceDistanceConstraint(pybind11::module& m);
 void export_ForceComposite(pybind11::module& m);
 void export_PPPMForceCompute(pybind11::module& m);
 void export_SurfaceTensionMeshForceCompute(pybind11::module& m);
+void export_SurfaceTensionMeshForceCompute2D(pybind11::module& m);
 void export_wall_data(pybind11::module& m);
 void export_wall_field(pybind11::module& m);
 
@@ -357,6 +358,7 @@ PYBIND11_MODULE(_md, m)
     export_ForceComposite(m);
     export_PPPMForceCompute(m);
     export_SurfaceTensionMeshForceCompute(m);
+    export_SurfaceTensionMeshForceCompute2D(m);
 
     export_PotentialExternalPeriodic(m);
     export_PotentialExternalElectricField(m);

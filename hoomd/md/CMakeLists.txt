@@ -40,6 +40,7 @@ set(_md_sources module-md.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
                    SurfaceTensionMeshForceCompute.cc
+                   SurfaceTensionMeshForceCompute2D.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TwoStepBD.cc
@@ -172,6 +173,7 @@ set(_md_headers ActiveForceComputeGPU.h
 		SurfaceTensionMeshForceComputeGPU.h
                 SurfaceTensionMeshForceComputeGPU.cuh
                 SurfaceTensionMeshForceCompute.h
+                SurfaceTensionMeshForceCompute2D.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
