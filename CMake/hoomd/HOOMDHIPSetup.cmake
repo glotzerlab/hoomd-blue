@@ -50,14 +50,6 @@ if(ENABLE_HIP)
         set_property(TARGET hip::host APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
             $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:HIP_VERSION_PATCH=${HIP_VERSION_PATCH}>)
 
-#        # branch upon HCC or NVCC target
-#        if(${HIP_PLATFORM} STREQUAL "nvcc")
-#            set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
-#                $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_NVCC__>)
-#        elseif(${HIP_PLATFORM} STREQUAL "hip-clang")
-#            set_property(TARGET HIP::hip APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS
-#                $<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:__HIP_PLATFORM_HCC__>)
-#        endif()
     endif()
 
     # branch upon HCC or NVCC target
