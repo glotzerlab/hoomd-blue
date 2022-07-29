@@ -128,8 +128,8 @@ pybind11::dict BondTablePotential::getParams(std::string type)
 
     auto type_id = m_bond_data->getTypeByName(type);
     pybind11::dict params;
-    params["r_min"] = (Scalar)h_params.data[type_id].x;
-    params["r_max"] = (Scalar)h_params.data[type_id].y;
+    params["r_min"] = static_cast<Scalar>(h_params.data[type_id].x);
+    params["r_max"] = static_cast<Scalar>(h_params.data[type_id].y);
 
     auto V = pybind11::array_t<Scalar>(m_table_width);
     auto V_unchecked = V.mutable_unchecked<1>();
