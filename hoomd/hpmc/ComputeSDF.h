@@ -496,10 +496,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                 {
                                 double scale_factor = m_dx * static_cast<double>(bin_to_sample + 1);
 
-                                // TODO: think about order of overlap checks: there may be a
-                                // micro-optimization here if one check is significantly more
-                                // expensive than the other
-                                //
                                 // first check for any hard overlaps
                                 // if there is one for a given scale value, there is no need to
                                 // check for any soft overlaps from m_mc.m_patch
