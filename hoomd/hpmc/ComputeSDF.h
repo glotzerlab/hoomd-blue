@@ -399,7 +399,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
-    Scalar extra_width = m_xmax / (1 - m_xmax) * m_mc->getMaxCoreDiameter();
+    Scalar extra_width
+        = m_xmax / (1 - m_xmax) * (m_mc->getMaxCoreDiameter() + m_mc->getPatchEnergy()->getRCut());
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
@@ -433,8 +434,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
         int typ_i = __scalar_as_int(postype_i.w);
         Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-
-        // TODO: do we need to account for patch r_cut in here somewhere?
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
