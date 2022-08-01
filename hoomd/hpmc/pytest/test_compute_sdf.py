@@ -10,6 +10,8 @@ import hoomd.hpmc.pytest.conftest
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check
 
+llvm_disabled = not hoomd.version.llvm_enabled
+
 
 def test_before_attaching():
     xmax = 0.02
@@ -199,6 +201,38 @@ def test_values(simulation_factory, lattice_snapshot_factory):
         v = np.mean(sdf_data[1:, :], axis=0)
         invalid = np.abs(_avg - v) > (8 * _err)
         assert np.sum(invalid) == 0
+
+
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
+    xmax = 0.02
+    dx = 1e-3
+    r_core = 0.5  # radius of hard core
+    r_patch = 0.5001  # if r_ij < 2*r_patch, particles interact
+    sim = simulation_factory(two_particle_snapshot_factory(d=1.001101081081081))
+    sim.seed = 0
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.0)
+    mc.shape['A'] = {'diameter': 2 * r_core}
+    sim.operations.add(mc)
+
+    # pair potential
+    square_well = rf'''float rsq = dot(r_ij, r_ij);
+                    float rcut = {r_patch};
+                    if (rsq > rcut * rcut)
+                        return 0.0f;
+                    else
+                        return -2.0;'''
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_patch, code=square_well)
+    mc.pair_potential = patch
+
+    # sdf compute
+    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
+    sim.operations.add(sdf)
+    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=sdf_log,
+                                 trigger=hoomd.trigger.Periodic(10)))
+    sim.run(0)
 
 
 def test_logging():
