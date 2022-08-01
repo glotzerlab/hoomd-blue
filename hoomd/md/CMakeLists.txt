@@ -593,6 +593,7 @@ set(files __init__.py
           constrain.py
           dihedral.py
           force.py
+          half_step_hook.py
           improper.py
           integrate.py
           manifold.py
