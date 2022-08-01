@@ -177,7 +177,7 @@ template<class Shape> class ComputeSDF : public Compute
 
     //! Return the sdf
     virtual void computeSDF(uint64_t timestep);
-    }; // end class ComputeSDF
+    };
 
 template<class Shape>
 ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
