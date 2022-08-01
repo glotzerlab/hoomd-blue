@@ -289,7 +289,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
     if (m_mc->getPatchEnergy())
         {
-        countHistogramBruteForce(timestep);
+        countHistogramLinearSearch(timestep);
         }
     else
         {
@@ -392,7 +392,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
         } // end loop over all particles
     }     // end countHistogramBinarySearch()
 
-template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t timestep)
+template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_t timestep)
     {
     // update the aabb tree
     const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
@@ -471,7 +471,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
                                 continue;
                                 }
 
-
                             Scalar4 postype_j = h_postype.data[j];
                             Scalar4 orientation_j = h_orientation.data[j];
                             int typ_j = __scalar_as_int(postype_j.w);
@@ -482,15 +481,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
                             if (m_mc->m_patch)
                                 {
-                                u_ij_0 = m_mc->getPatchEnergy()->energy(r_ij,
-                                                               typ_i,
-                                                               quat<float>(shape_i.orientation),
-                                                               float(h_diameter.data[i]),
-                                                               float(h_charge.data[i]),
-                                                               typ_j,
-                                                               quat<float>(orientation_j),
-                                                               float(h_diameter.data[j]),
-                                                               float(h_charge.data[j]));
+                                u_ij_0 = m_mc->getPatchEnergy()->energy(
+                                    r_ij,
+                                    typ_i,
+                                    quat<float>(shape_i.orientation),
+                                    float(h_diameter.data[i]),
+                                    float(h_charge.data[i]),
+                                    typ_j,
+                                    quat<float>(orientation_j),
+                                    float(h_diameter.data[j]),
+                                    float(h_charge.data[j]));
                                 }
                             // loop over bins; only going up to min_bin_ptl_i-1 since we only
                             // want the _first_ overlap of particle i with its neighbors
@@ -529,16 +529,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
                                     // compute the energy at this size of the perturbation and
                                     // compare to the energy in the unperturbed state
                                     vec3<Scalar> r_ij_scaled = r_ij * (Scalar(1.0) - scale_factor);
-                                    double u_ij_new
-                                        = m_mc->getPatchEnergy()->energy(r_ij_scaled,
-                                                                typ_i,
-                                                                quat<float>(shape_i.orientation),
-                                                                float(h_diameter.data[i]),
-                                                                float(h_charge.data[i]),
-                                                                typ_j,
-                                                                quat<float>(orientation_j),
-                                                                float(h_diameter.data[j]),
-                                                                float(h_charge.data[j]));
+                                    double u_ij_new = m_mc->getPatchEnergy()->energy(
+                                        r_ij_scaled,
+                                        typ_i,
+                                        quat<float>(shape_i.orientation),
+                                        float(h_diameter.data[i]),
+                                        float(h_charge.data[i]),
+                                        typ_j,
+                                        quat<float>(orientation_j),
+                                        float(h_diameter.data[j]),
+                                        float(h_charge.data[j]));
                                     // if enery has changed, there is a new soft overlap
                                     // add the appropriate weight to the appropriate bin of the
                                     // histogram and break out of the loop over bins
@@ -565,7 +565,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
             m_hist[min_bin_ptl_i] += hist_weight_ptl_i;
             }
         } // end loop over all particles
-    }     // end countHistogramBruteForce()
+    }     // end countHistogramLinearSearch()
 
 /*! \param r_ij Vector pointing from particle i to j (already wrapped into the box)
     \param orientation_i Orientation of the particle i
