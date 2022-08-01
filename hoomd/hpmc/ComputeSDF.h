@@ -159,7 +159,6 @@ template<class Shape> class ComputeSDF : public Compute
     std::vector<double> m_sdf;  //!< Computed SDF
 
     Scalar m_last_max_diam; //!< Last recorded maximum diameter
-    unsigned int m_instance = 0;
 
     //! Zero the histogram counts
     void zeroHistogram();
@@ -167,7 +166,7 @@ template<class Shape> class ComputeSDF : public Compute
     //! Add to histogram counts
     void countHistogram(uint64_t timestep);
     void countHistogramBinarySearch(uint64_t timestep);
-    void countHistogramBruteForce(uint64_t timestep);
+    void countHistogramLinearSearch(uint64_t timestep);
 
     //! Determine the s bin of a given particle pair
     size_t computeBin(const vec3<Scalar>& r_ij,
@@ -284,11 +283,11 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
       - The integrator performs the ghost exchange (with the ghost width extra that we add)
 
     This function is a wrapper that calls the appropriate method depending on the value of
-   m_mc->m_patch
+   m_mc->getPatchEnergy()
 */
 template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
-    if (m_mc->m_patch)
+    if (m_mc->getPatchEnergy())
         {
         countHistogramBruteForce(timestep);
         }
@@ -315,10 +314,6 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                        access_location::host,
                                        access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
         = m_mc->getParams();
 
@@ -395,7 +390,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
             m_hist[min_bin_ptl_i]++;
             }
         } // end loop over all particles
-    }     // end countHistogram()
+    }     // end countHistogramBinarySearch()
 
 template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t timestep)
     {
@@ -472,7 +467,10 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
 
                             // skip i==j in the 0 image
                             if (cur_image == 0 && i == j)
+                                {
                                 continue;
+                                }
+
 
                             Scalar4 postype_j = h_postype.data[j];
                             Scalar4 orientation_j = h_orientation.data[j];
@@ -484,7 +482,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
                             if (m_mc->m_patch)
                                 {
-                                u_ij_0 = m_mc->m_patch->energy(r_ij,
+                                u_ij_0 = m_mc->getPatchEnergy()->energy(r_ij,
                                                                typ_i,
                                                                quat<float>(shape_i.orientation),
                                                                float(h_diameter.data[i]),
@@ -526,13 +524,13 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
 
                                 // if no hard overlap, check for a soft overlap if we have
                                 // patches
-                                if (m_mc->m_patch)
+                                if (m_mc->getPatchEnergy())
                                     {
                                     // compute the energy at this size of the perturbation and
                                     // compare to the energy in the unperturbed state
                                     vec3<Scalar> r_ij_scaled = r_ij * (Scalar(1.0) - scale_factor);
                                     double u_ij_new
-                                        = m_mc->m_patch->energy(r_ij_scaled,
+                                        = m_mc->getPatchEnergy()->energy(r_ij_scaled,
                                                                 typ_i,
                                                                 quat<float>(shape_i.orientation),
                                                                 float(h_diameter.data[i]),
@@ -550,7 +548,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBruteForce(uint64_t 
                                         hist_weight_ptl_i = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
                                         break;
                                         }
-                                    } // end if (m_mc->m_patch)
+                                    } // end if (m_mc->getPatchEnergy())
                                 }     // end loop over histogram bins
                             }
                         }
