@@ -319,7 +319,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        size_t min_bin_ptl_i = m_hist.size();
+        size_t min_bin = m_hist.size();
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
@@ -372,7 +372,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
 
                             if (bin >= 0)
                                 {
-                                min_bin_ptl_i = std::min(min_bin_ptl_i, bin);
+                                min_bin = std::min(min_bin, bin);
                                 }
                             }
                         }
@@ -384,9 +384,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
                     }
                 } // end loop over AABB nodes
             }     // end loop over images
-        if (min_bin_ptl_i < m_hist.size())
+        if (min_bin < m_hist.size())
             {
-            m_hist[min_bin_ptl_i]++;
+            m_hist[min_bin]++;
             }
         } // end loop over all particles
     }     // end countHistogramBinarySearch()
@@ -416,15 +416,15 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
         = m_mc->getParams();
 
     // loop through N particles
-    // At the top of this loop, we initialize min_bin_ptl_i to the size of the sdf histogram
+    // At the top of this loop, we initialize min_bin to the size of the sdf histogram
     // For each of particle i's neighbors, we find the scaling that produces the first overlap.
     // For each neighbor, we do a brute force search from the scaling corresponding to bin 0
     // up to the minimum bin that we've already found for particle i.
-    // Then we add to m_hist[min_bin_ptl_i] the negative Mayer-function corresponding to the type
+    // Then we add to m_hist[min_bin] the negative Mayer-function corresponding to the type
     // of overlap corresponding to particle i's first overlap.
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        size_t min_bin_ptl_i = m_hist.size();
+        size_t min_bin = m_hist.size();
         double hist_weight_ptl_i = 2.0;
 
         // read in the current position and orientation
@@ -491,10 +491,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     float(h_diameter.data[j]),
                                     float(h_charge.data[j]));
                                 }
-                            // loop over bins; only going up to min_bin_ptl_i-1 since we only
+                            // loop over bins; only going up to min_bin-1 since we only
                             // want the _first_ overlap of particle i with its neighbors
-                            for (size_t bin_to_sample = 0; bin_to_sample < min_bin_ptl_i;
-                                 bin_to_sample++)
+                            for (size_t bin_to_sample = 0; bin_to_sample < min_bin; bin_to_sample++)
                                 {
                                 double scale_factor = m_dx * static_cast<double>(bin_to_sample + 1);
 
@@ -517,7 +516,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     // add appropriate weight to appropriate bin and exit the
                                     // loop over bins
                                     hist_weight_ptl_i = 1.0; // = 1-e^(-\infty)
-                                    min_bin_ptl_i = bin_to_sample;
+                                    min_bin = bin_to_sample;
                                     break;
                                     } // end if overlap
 
@@ -543,7 +542,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     // histogram and break out of the loop over bins
                                     if (u_ij_new != u_ij_0)
                                         {
-                                        min_bin_ptl_i = bin_to_sample;
+                                        min_bin = bin_to_sample;
                                         hist_weight_ptl_i = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
                                         break;
                                         }
@@ -559,9 +558,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                     }
                 } // end loop over AABB nodes
             }     // end loop over images
-        if (min_bin_ptl_i < m_hist.size() && hist_weight_ptl_i <= 1.0)
+        if (min_bin < m_hist.size() && hist_weight_ptl_i <= 1.0)
             {
-            m_hist[min_bin_ptl_i] += hist_weight_ptl_i;
+            m_hist[min_bin] += hist_weight_ptl_i;
             }
         } // end loop over all particles
     }     // end countHistogramLinearSearch()
