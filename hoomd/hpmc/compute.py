@@ -371,12 +371,11 @@ class SDF(Compute):
             box = self._simulation.state.box
             N = self._simulation.state.N_particles
             rho = N / box.volume
-            p0 = numpy.polyval(p, 0.0)
-            betaP_compression = rho * (1 + p0 / (2 * box.dimensions))
-            w_compression = self.num_compression_overlaps / (
-                self.num_expansion_overlaps + self.num_compression_overlaps)
+            p0_compression = numpy.polyval(p, 0.0)
+            compression_contribution = rho * p0_compression / (2
+                                                               * box.dimensions)
             if not self.do_expansions:
-                return betaP_compression
+                return rho + compression_contribution
         else:
             return None
         if self.do_expansions:
@@ -394,12 +393,9 @@ class SDF(Compute):
 
                 box = self._simulation.state.box
                 N = self._simulation.state.N_particles
-                rho = N / box.volume
-                p0 = numpy.polyval(p, 0.0)
-                betaP_expansion = -rho * (1 + p0 / (2 * box.dimensions))
-                w_expansion = self.num_expansion_overlaps / (
-                    self.num_expansion_overlaps + self.num_compression_overlaps)
-                return w_compression * betaP_compression + (w_expansion
-                                                            * betaP_expansion)
+                p0_expansion = numpy.polyval(p, 0.0)
+                expansion_contribution = -rho * p0_expansion / (
+                    2 * box.dimensions)
+                return rho + compression_contribution + expansion_contribution
             else:
                 return None
