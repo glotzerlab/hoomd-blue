@@ -205,34 +205,54 @@ def test_values(simulation_factory, lattice_snapshot_factory):
 
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
 def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
+    """Test that adding patches changes the pressure calculation.
+
+    The system and sdf compute here are constructed such that the first search
+    bin creates a soft overlap and the second one creates a hard overlap. We
+    test that the first overlap is found in the 2nd bin before adding patches
+    and that an overlap is found in the first bin after adding patches. We also
+    test that the SDF values are as expected: (1-exp(U-U_new)) * sdf.dx.
+    """
     xmax = 0.02
     dx = 1e-3
     r_core = 0.5  # radius of hard core
     r_patch = 0.5001  # if r_ij < 2*r_patch, particles interact
+    epsilon = 2.0  # strength of square well attraction
     sim = simulation_factory(two_particle_snapshot_factory(d=1.001101081081081))
     sim.seed = 0
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.0)
     mc.shape['A'] = {'diameter': 2 * r_core}
     sim.operations.add(mc)
 
-    # pair potential
-    square_well = rf'''float rsq = dot(r_ij, r_ij);
-                    float rcut = {r_patch};
-                    if (rsq > rcut * rcut)
-                        return 0.0f;
-                    else
-                        return -2.0;'''
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=r_patch, code=square_well)
-    mc.pair_potential = patch
-
     # sdf compute
     sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
     sim.operations.add(sdf)
-    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
-    sim.operations.writers.append(
-        hoomd.write.CustomWriter(action=sdf_log,
-                                 trigger=hoomd.trigger.Periodic(10)))
+
+    # confirm that there is a hard overlap in the 2nd bin when there is no pair
+    # potential and that the SDF is zero everywhere else
     sim.run(0)
+    norm_factor = 1 / sdf.dx
+    assert (sdf.sdf[1] == norm_factor)
+    assert (np.count_nonzero(sdf.sdf) == 1)
+
+    # add pair potential
+    square_well = rf'''float rsq = dot(r_ij, r_ij);
+                    float rcut = {r_patch};
+                    if (rsq > 2*rcut)
+                        return 0.0f;
+                    else
+                        return -{epsilon};'''
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2.5 * r_patch,
+                                              code=square_well,
+                                              param_array=[])
+    mc.pair_potential = patch
+
+    # assert we have an overlap in the first bin with the expected weight and
+    # that the SDF is zero everywhere else
+    sim.run(1)
+    neg_mayerF = 1 - np.exp(epsilon)
+    assert (np.count_nonzero(sdf.sdf) == 1)
+    assert (sdf.sdf[0] == neg_mayerF * norm_factor)
 
 
 def test_logging():
