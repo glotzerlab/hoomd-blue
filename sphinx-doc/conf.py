@@ -81,6 +81,7 @@ html_logo = 'hoomdblue-logo-vertical.svg'
 html_theme_options = {
     'logo_only': True
     }
+html_favicon = 'hoomdblue-logo-favicon.svg'
 
 IGNORE_MODULES = ['hoomd._hoomd']
 IGNORE_CLASSES = []
