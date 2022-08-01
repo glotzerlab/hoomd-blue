@@ -446,8 +446,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_patch;
         }
 
-    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
-
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
@@ -488,6 +486,8 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
 #endif
+
+    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
