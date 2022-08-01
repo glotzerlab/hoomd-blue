@@ -186,8 +186,7 @@ ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
                               double dx)
     : Compute(sysdef), m_mc(mc), m_xmax(xmax), m_dx(dx)
     {
-    m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: xmax = " << xmax << ", dx = " << dx
-                                << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
 
     zeroHistogram();
 
