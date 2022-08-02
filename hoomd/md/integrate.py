@@ -167,6 +167,9 @@ class Integrator(_DynamicIntegrator):
         rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
           the simulation.
 
+        half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
+            arbitrary computations during the half-step of the integration.
+
     `Integrator` is the top level class that orchestrates the time integration
     step in molecular dynamics simulations. The integration `methods` define
     the equations of motion to integrate under the influence of the given
@@ -273,6 +276,9 @@ class Integrator(_DynamicIntegrator):
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
             simulation associated with the integrator.
+
+        half_step_hook (hoomd.md.HalfStepHook): User defined implementation to
+            perform computations during the half-step of the integration.
     """
 
     def __init__(self,
@@ -281,14 +287,19 @@ class Integrator(_DynamicIntegrator):
                  forces=None,
                  constraints=None,
                  methods=None,
-                 rigid=None):
+                 rigid=None,
+                 half_step_hook=None):
 
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
             ParameterDict(
                 dt=float(dt),
-                integrate_rotational_dof=bool(integrate_rotational_dof)))
+                integrate_rotational_dof=bool(integrate_rotational_dof),
+                half_step_hook=OnlyTypes(hoomd.md.HalfStepHook,
+                                         allow_none=True)))
+
+        self.half_step_hook = half_step_hook
 
     def _attach(self):
         # initialize the reflected c++ class
