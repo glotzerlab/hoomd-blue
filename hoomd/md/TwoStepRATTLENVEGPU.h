@@ -102,18 +102,26 @@ TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinit
         throw std::runtime_error("Error initializing TwoStepRATTLENVEGPU");
         }
 
-    m_tuner_one.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_step_one"));
-    m_tuner_two.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_step_two"));
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                       this->m_exec_conf,
+                                       "rattle_nve_step_one"));
+    m_tuner_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                       this->m_exec_conf,
+                                       "rattle_nve_step_two"));
     m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                            this->m_exec_conf,
-                                            "rattle_nve_force"));
+                                         this->m_exec_conf,
+                                         "rattle_nve_force"));
     m_tuner_angular_one.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_angular_one"));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "rattle_nve_angular_one"));
     m_tuner_angular_two.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_angular_two"));
-    this->m_autotuners.insert(this->m_autotuners.end(), {m_tuner_one, m_tuner_two, m_tuner_force, m_tuner_angular_one, m_tuner_angular_two});
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "rattle_nve_angular_two"));
+    this->m_autotuners.insert(
+        this->m_autotuners.end(),
+        {m_tuner_one, m_tuner_two, m_tuner_force, m_tuner_angular_one, m_tuner_angular_two});
     }
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the

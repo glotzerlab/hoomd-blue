@@ -103,17 +103,17 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
     m_partial_sum1.swap(partial_sum1);
 
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                    this->m_exec_conf,
-                                    "rattle_langevin_nve"));
+                                       this->m_exec_conf,
+                                       "rattle_langevin_nve"));
     m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                            this->m_exec_conf,
-                                            "rattle_langevin_force"));
-    m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                            this->m_exec_conf,
-                                            "rattle_langevin_angular"));
-    this->
-    m_autotuners.insert(this->
-                        m_autotuners.end(), {m_tuner_one, m_tuner_force, m_tuner_angular_one});
+                                         this->m_exec_conf,
+                                         "rattle_langevin_force"));
+    m_tuner_angular_one.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "rattle_langevin_angular"));
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_one, m_tuner_force, m_tuner_angular_one});
     }
 template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)

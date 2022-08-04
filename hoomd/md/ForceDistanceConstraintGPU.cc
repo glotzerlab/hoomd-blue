@@ -29,11 +29,11 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDef
 #endif
     {
     m_tuner_fill.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                     m_exec_conf,
-                                     "dist_constraint_fill_matrix_vec"));
+                                        m_exec_conf,
+                                        "dist_constraint_fill_matrix_vec"));
     m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                      m_exec_conf,
-                                      "dist_constraint_force"));
+                                         m_exec_conf,
+                                         "dist_constraint_force"));
     m_autotuners.insert(m_autotuners.end(), {m_tuner_fill, m_tuner_force});
 
 #ifdef CUSOLVER_AVAILABLE

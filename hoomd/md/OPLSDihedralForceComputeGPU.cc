@@ -27,8 +27,9 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemD
         throw std::runtime_error("Error initializing OPLSDihedralForceComputeGPU");
         }
 
-    m_tuner.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "opls_dihedral"));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "opls_dihedral"));
     m_autotuners.push_back(m_tuner);
     }
 

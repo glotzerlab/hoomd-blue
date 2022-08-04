@@ -73,9 +73,10 @@ PotentialPairGPU<evaluator>::PotentialPairGPU(std::shared_ptr<SystemDefinition> 
         }
 
     // Initialize autotuner.
-    m_tuner.reset(
-        new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
-                                    AutotunerBase::getTppListPow2(this->m_exec_conf)}, this->m_exec_conf, "pair_" + evaluator::getName()));
+    m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                                    AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "pair_" + evaluator::getName()));
 
     this->m_autotuners.push_back(m_tuner);
 
@@ -185,8 +186,7 @@ template<class T> void export_PotentialPairGPU(pybind11::module& m, const std::s
     pybind11::class_<PotentialPairGPU<T>, PotentialPair<T>, std::shared_ptr<PotentialPairGPU<T>>>(
         m,
         name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        ;
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
 
     } // end namespace detail

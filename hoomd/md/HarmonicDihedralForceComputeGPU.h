@@ -45,7 +45,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
 
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    GPUArray<Scalar4> m_params;         //!< Parameters stored on the GPU (k,sign,m)
+    GPUArray<Scalar4> m_params;            //!< Parameters stored on the GPU (k,sign,m)
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

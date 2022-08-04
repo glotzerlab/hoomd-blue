@@ -55,10 +55,10 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
     virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-    std::shared_ptr<Autotuner<1>> m_tuner_one;         //!< Autotuner for block size (step one kernel)
-    std::shared_ptr<Autotuner<1>> m_tuner_two;         //!< Autotuner for block size (step two kernel)
-    std::shared_ptr<Autotuner<1>> m_tuner_wrap;        //!< Autotuner for wrapping particle positions
-    std::shared_ptr<Autotuner<1>> m_tuner_rescale;     //!< Autotuner for thermostat rescaling
+    std::shared_ptr<Autotuner<1>> m_tuner_one;     //!< Autotuner for block size (step one kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_two;     //!< Autotuner for block size (step two kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_wrap;    //!< Autotuner for wrapping particle positions
+    std::shared_ptr<Autotuner<1>> m_tuner_rescale; //!< Autotuner for thermostat rescaling
     std::shared_ptr<Autotuner<1>> m_tuner_angular_one; //!< Autotuner for angular step one
     std::shared_ptr<Autotuner<1>> m_tuner_angular_two; //!< Autotuner for angular step two
     };

@@ -70,7 +70,9 @@ PotentialTersoffGPU<evaluator>::PotentialTersoffGPU(std::shared_ptr<SystemDefini
 
     // Initialize autotuner.
     m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
-                                    AutotunerBase::getTppListPow2(this->m_exec_conf)}, this->m_exec_conf, "pair_tersoff"));
+                                    AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "pair_tersoff"));
     this->m_autotuners.push_back(m_tuner);
     }
 

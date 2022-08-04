@@ -82,13 +82,18 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
         }
 
     // Initialize autotuners.
-    m_tuner_force.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "active_constraint_force"));
-    m_tuner_diffusion.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "active_constraint_diffusion"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "active_constraint_force"));
+    m_tuner_diffusion.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "active_constraint_diffusion"));
     m_tuner_constraint.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "active_constraint_constraint"));
-    this->m_autotuners.insert(this->m_autotuners.end(), {m_tuner_force, m_tuner_diffusion, m_tuner_constraint});
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "active_constraint_constraint"));
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_force, m_tuner_diffusion, m_tuner_constraint});
 
     unsigned int type = this->m_pdata->getNTypes();
     GlobalVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);

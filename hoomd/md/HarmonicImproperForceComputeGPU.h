@@ -48,7 +48,7 @@ class PYBIND11_EXPORT HarmonicImproperForceComputeGPU : public HarmonicImproperF
 
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    GPUArray<Scalar2> m_params;         //!< Parameters stored on the GPU (k,chi)
+    GPUArray<Scalar2> m_params;            //!< Parameters stored on the GPU (k,chi)
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

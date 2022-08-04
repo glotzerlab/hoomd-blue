@@ -35,8 +35,9 @@ TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(std::shared_ptr<Syste
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    m_tuner.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "table_dihedral"));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "table_dihedral"));
     m_autotuners.push_back(m_tuner);
     }
 

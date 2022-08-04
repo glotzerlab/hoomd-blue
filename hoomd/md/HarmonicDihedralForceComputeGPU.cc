@@ -33,8 +33,8 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(
     m_params.swap(params);
 
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                m_exec_conf,
-                                "harmonic_dihedral"));
+                                   m_exec_conf,
+                                   "harmonic_dihedral"));
     m_autotuners.push_back(m_tuner);
     }
 

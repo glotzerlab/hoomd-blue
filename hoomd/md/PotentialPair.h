@@ -851,8 +851,7 @@ CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
-template<class evaluator>
-void PotentialPair<evaluator>::startAutotuning()
+template<class evaluator> void PotentialPair<evaluator>::startAutotuning()
     {
     ForceCompute::startAutotuning();
 
@@ -860,8 +859,7 @@ void PotentialPair<evaluator>::startAutotuning()
     m_nlist->startAutotuning();
     }
 
-template<class evaluator>
-bool PotentialPair<evaluator>::isAutotuningComplete()
+template<class evaluator> bool PotentialPair<evaluator>::isAutotuningComplete()
     {
     bool result = ForceCompute::isAutotuningComplete();
     result = result && m_nlist->isAutotuningComplete();

@@ -20,16 +20,19 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
     : ForceComposite(sysdef)
     {
     // Initialize autotuners.
-    m_tuner_force.reset(
-        new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
-                                    AutotunerBase::getTppListPow2(m_exec_conf)}, m_exec_conf, "force_composite"));
+    m_tuner_force.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                          AutotunerBase::getTppListPow2(m_exec_conf)},
+                                         m_exec_conf,
+                                         "force_composite"));
 
-    m_tuner_virial.reset(
-        new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
-                                    AutotunerBase::getTppListPow2(m_exec_conf)}, m_exec_conf, "virial_composite"));
+    m_tuner_virial.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                           AutotunerBase::getTppListPow2(m_exec_conf)},
+                                          m_exec_conf,
+                                          "virial_composite"));
 
-    m_tuner_update.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "update_composite"));
+    m_tuner_update.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                          m_exec_conf,
+                                          "update_composite"));
     m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_virial, m_tuner_update});
 
     GlobalArray<uint2> flag(1, m_exec_conf);

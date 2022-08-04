@@ -74,8 +74,8 @@ AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDe
     // Initialize autotuner that tunes block sizes and threads per particle.
     m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
                                     AutotunerBase::getTppListPow2(this->m_exec_conf)},
-                                this->m_exec_conf,
-                                "aniso_pair_" + evaluator::getName()));
+                                   this->m_exec_conf,
+                                   "aniso_pair_" + evaluator::getName()));
     this->m_autotuners.push_back(m_tuner);
 
 #ifdef ENABLE_MPI

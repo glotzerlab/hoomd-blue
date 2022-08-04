@@ -30,8 +30,9 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(std::shared_ptr<Syste
     GPUArray<Scalar2> params(m_angle_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
-    m_tuner.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "harmonic_angle"));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "harmonic_angle"));
     m_autotuners.push_back(m_tuner);
     }
 

@@ -48,7 +48,7 @@ class PYBIND11_EXPORT CosineSqAngleForceComputeGPU : public CosineSqAngleForceCo
 
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    GPUArray<Scalar2> m_params;         //!< Parameters stored on the GPU
+    GPUArray<Scalar2> m_params;            //!< Parameters stored on the GPU
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

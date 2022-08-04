@@ -40,7 +40,7 @@ template<class evaluator> class PotentialSpecialPairGPU : public PotentialSpecia
 
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
+    GPUArray<unsigned int> m_flags;        //!< Flags set during the kernel execution
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -74,8 +74,8 @@ PotentialSpecialPairGPU<evaluator>::PotentialSpecialPairGPU(
     h_flags.data[0] = 0;
 
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                this->m_exec_conf,
-                                "special_pair_" + evaluator::getName()));
+                                   this->m_exec_conf,
+                                   "special_pair_" + evaluator::getName()));
     this->m_autotuners.push_back(m_tuner);
     }
 

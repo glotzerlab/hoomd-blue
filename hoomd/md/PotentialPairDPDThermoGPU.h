@@ -72,9 +72,10 @@ PotentialPairDPDThermoGPU<evaluator>::PotentialPairDPDThermoGPU(
         }
 
     // Initialize autotuner.
-    m_tuner.reset(
-        new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
-                                    AutotunerBase::getTppListPow2(this->m_exec_conf)}, this->m_exec_conf, "pair_" + evaluator::getName()));
+    m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                                    AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "pair_" + evaluator::getName()));
     this->m_autotuners.push_back(m_tuner);
 
 #ifdef ENABLE_MPI

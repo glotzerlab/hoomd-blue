@@ -62,7 +62,7 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
 
     private:
     std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size and threads per particle
-    uint64_t m_last_tuned_timestep;     //!< Last tuning timestep
+    uint64_t m_last_tuned_timestep;        //!< Last tuning timestep
 
     std::shared_ptr<CellList> m_cl;         //!< The cell list
     std::shared_ptr<CellListStencil> m_cls; //!< The cell list stencil

@@ -84,11 +84,11 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
 
         // Initialize autotuners.
         m_tuner_filter.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                           m_exec_conf,
-                                           "nlist_filter"));
-        m_tuner_head_list.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                               m_exec_conf,
-                                              "nlist_head_list"));
+                                              "nlist_filter"));
+        m_tuner_head_list.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                                 m_exec_conf,
+                                                 "nlist_head_list"));
         m_autotuners.insert(m_autotuners.end(), {m_tuner_filter, m_tuner_head_list});
         }
 

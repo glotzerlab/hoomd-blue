@@ -32,14 +32,14 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
         .connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
 
     m_mark_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                      m_exec_conf,
-                                      "nlist_tree_mark"));
+                                        m_exec_conf,
+                                        "nlist_tree_mark"));
     m_count_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                      m_exec_conf,
-                                      "nlist_tree_count"));
+                                         m_exec_conf,
+                                         "nlist_tree_count"));
     m_copy_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                     m_exec_conf,
-                                     "nlist_tree_copy"));
+                                        m_exec_conf,
+                                        "nlist_tree_copy"));
     m_autotuners.insert(m_autotuners.end(), {m_mark_tuner, m_count_tuner, m_copy_tuner});
     }
 
@@ -149,8 +149,8 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
     if (!m_build_tuner)
         {
         m_build_tuner.reset(new Autotuner<1>({m_lbvhs[0]->getTunableParameters()},
-                                          m_exec_conf,
-                                          "nlist_tree_build"));
+                                             m_exec_conf,
+                                             "nlist_tree_build"));
         m_autotuners.push_back(m_build_tuner);
         }
 

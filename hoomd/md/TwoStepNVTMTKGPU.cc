@@ -41,15 +41,20 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
         }
 
     // Initialize autotuners.
-    m_tuner_one.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nvt_mtk_step_one"));
-    m_tuner_two.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nvt_mtk_step_two"));
-    m_tuner_angular_one.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nvt_mtk_angular_one"));
-    m_tuner_angular_two.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nvt_mtk_angular_two"));
-    m_autotuners.insert(m_autotuners.end(), {m_tuner_one, m_tuner_two, m_tuner_angular_one, m_tuner_angular_two});
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "nvt_mtk_step_one"));
+    m_tuner_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "nvt_mtk_step_two"));
+    m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "nvt_mtk_angular_one"));
+    m_tuner_angular_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "nvt_mtk_angular_two"));
+    m_autotuners.insert(m_autotuners.end(),
+                        {m_tuner_one, m_tuner_two, m_tuner_angular_one, m_tuner_angular_two});
     }
 
 /*! \param timestep Current time step

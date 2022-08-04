@@ -98,7 +98,8 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         }
 
     private:
-    std::shared_ptr<Autotuner<1>> m_tuner_assign; //!< Autotuner for assigning binned charges to mesh
+    std::shared_ptr<Autotuner<1>>
+        m_tuner_assign; //!< Autotuner for assigning binned charges to mesh
     std::shared_ptr<Autotuner<1>> m_tuner_reduce_mesh; //!< Autotuner to reduce meshes for multi GPU
     std::shared_ptr<Autotuner<1>> m_tuner_update;      //!< Autotuner for updating mesh values
     std::shared_ptr<Autotuner<1>> m_tuner_force;       //!< Autotuner for populating the force array

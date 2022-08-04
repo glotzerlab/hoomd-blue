@@ -37,8 +37,12 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
         }
 
     // initialize autotuner
-    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, this->m_exec_conf, "active_force"));
-    m_tuner_diffusion.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, this->m_exec_conf, "active_diffusion"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "active_force"));
+    m_tuner_diffusion.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "active_diffusion"));
     m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_diffusion});
 
     // unsigned int N = m_pdata->getNGlobal();

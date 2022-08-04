@@ -43,7 +43,7 @@ class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
 
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
-    GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
+    GPUArray<unsigned int> m_flags;        //!< Flags set during the kernel execution
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -75,8 +75,9 @@ PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(std::shared_ptr<SystemDefin
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    m_tuner.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "bond_" + evaluator::getName()));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "bond_" + evaluator::getName()));
     this->m_autotuners.push_back(m_tuner);
     }
 
@@ -107,8 +108,9 @@ PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(std::shared_ptr<SystemDefin
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    m_tuner.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "bond_" + evaluator::getName()));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "bond_" + evaluator::getName()));
     this->m_autotuners.push_back(m_tuner);
     }
 

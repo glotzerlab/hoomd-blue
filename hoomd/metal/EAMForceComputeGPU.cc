@@ -35,8 +35,9 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing EAMForceComputeGPU");
         }
 
-    m_tuner.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "pair_eam"));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "pair_eam"));
     m_autotuners.push_back(m_tuner);
 
     // allocate the coefficients data on the GPU

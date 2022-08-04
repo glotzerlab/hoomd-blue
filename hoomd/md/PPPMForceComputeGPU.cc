@@ -20,20 +20,25 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
     : PPPMForceCompute(sysdef, nlist, group), m_local_fft(true), m_sum(m_exec_conf),
       m_block_size(256)
     {
-    m_tuner_assign.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "pppm_assign"));
+    m_tuner_assign.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                          m_exec_conf,
+                                          "pppm_assign"));
     m_tuner_reduce_mesh.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-m_exec_conf,
-                                            "pppm_reduce_mesh"));
+                                               m_exec_conf,
+                                               "pppm_reduce_mesh"));
     m_tuner_update.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-m_exec_conf,
-                                       "pppm_update_mesh"));
-    m_tuner_force.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "pppm_force"));
-    m_tuner_influence.reset(
-        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "pppm_influence"));
+                                          m_exec_conf,
+                                          "pppm_update_mesh"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "pppm_force"));
+    m_tuner_influence.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                             m_exec_conf,
+                                             "pppm_influence"));
 
-    m_autotuners.insert(m_autotuners.end(), {m_tuner_assign, m_tuner_reduce_mesh, m_tuner_update, m_tuner_force, m_tuner_influence});
+    m_autotuners.insert(
+        m_autotuners.end(),
+        {m_tuner_assign, m_tuner_reduce_mesh, m_tuner_update, m_tuner_force, m_tuner_influence});
 
     m_cufft_initialized = false;
     m_cuda_dfft_initialized = false;

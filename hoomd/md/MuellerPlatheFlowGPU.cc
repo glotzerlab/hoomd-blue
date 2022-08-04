@@ -45,8 +45,8 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
         }
 
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                m_exec_conf,
-                                "muellerplatheflow"));
+                                   m_exec_conf,
+                                   "muellerplatheflow"));
     m_autotuners.push_back(m_tuner);
     }
 

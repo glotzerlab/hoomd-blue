@@ -47,8 +47,8 @@ PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefi
     : PotentialExternal<evaluator>(sysdef)
     {
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
-                                      this->m_exec_conf,
-                                      "external_" + evaluator::getName()));
+                                   this->m_exec_conf,
+                                   "external_" + evaluator::getName()));
     this->m_autotuners.push_back(m_tuner);
     }
 

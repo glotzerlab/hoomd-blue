@@ -62,24 +62,31 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
 
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-m_exec_conf,                                    "npt_mtk_step_one"));
+                                       m_exec_conf,
+                                       "npt_mtk_step_one"));
     m_tuner_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                    m_exec_conf,
-                                    "npt_mtk_step_two"));
+                                       m_exec_conf,
+                                       "npt_mtk_step_two"));
     m_tuner_wrap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                     m_exec_conf,
-                                     "npt_mtk_wrap"));
-    m_tuner_rescale.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                         m_exec_conf,
-                                        "npt_mtk_rescale"));
+                                        "npt_mtk_wrap"));
+    m_tuner_rescale.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           m_exec_conf,
+                                           "npt_mtk_rescale"));
     m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                            m_exec_conf,
-                                            "npt_mtk_angular_one"));
+                                               m_exec_conf,
+                                               "npt_mtk_angular_one"));
     m_tuner_angular_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                            m_exec_conf,
-                                            "npt_mtk_angular_two"));
+                                               m_exec_conf,
+                                               "npt_mtk_angular_two"));
 
-    m_autotuners.insert(m_autotuners.end(), {m_tuner_one, m_tuner_two, m_tuner_wrap, m_tuner_rescale, m_tuner_angular_one, m_tuner_angular_two});
+    m_autotuners.insert(m_autotuners.end(),
+                        {m_tuner_one,
+                         m_tuner_two,
+                         m_tuner_wrap,
+                         m_tuner_rescale,
+                         m_tuner_angular_one,
+                         m_tuner_angular_two});
     }
 
 TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
