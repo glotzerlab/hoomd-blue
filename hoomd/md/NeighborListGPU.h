@@ -129,7 +129,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         m_checkn; //!< Internal counter to assign when checking if the nlist needs an update
 
     private:
-    std::shared_ptr<Autotuner<1>> m_tuner_filter;    //!< Autotuner for filter block size
+    std::shared_ptr<Autotuner<1>> m_tuner_filter; //!< Autotuner for filter block size
 
     GlobalArray<unsigned int>
         m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
