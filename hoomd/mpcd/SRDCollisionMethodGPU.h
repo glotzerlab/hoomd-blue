@@ -39,8 +39,8 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
     virtual void rotate(uint64_t timestep);
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_rotvec; //!< Tuner for drawing rotation vectors
-    std::unique_ptr<Autotuner> m_tuner_rotate; //!< Tuner for rotating velocities
+    std::shared_ptr<Autotuner<1>> m_tuner_rotvec; //!< Tuner for drawing rotation vectors
+    std::shared_ptr<Autotuner<1>> m_tuner_rotate; //!< Tuner for rotating velocities
     };
 
 namespace detail

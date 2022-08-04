@@ -40,8 +40,8 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     virtual void applyVelocities();
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_draw;  //!< Tuner for drawing random velocities
-    std::unique_ptr<Autotuner> m_tuner_apply; //!< Tuner for applying random velocities
+    std::shared_ptr<Autotuner<1>> m_tuner_draw;  //!< Tuner for drawing random velocities
+    std::shared_ptr<Autotuner<1>> m_tuner_apply; //!< Tuner for applying random velocities
     };
 
 namespace detail

@@ -38,7 +38,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
     virtual void drawParticles(uint64_t timestep);
 
     private:
-    std::unique_ptr<hoomd::Autotuner> m_tuner; //!< Autotuner for drawing particles
+    std::shared_ptr<hoomd::Autotuner<1>> m_tuner; //!< Autotuner for drawing particles
     };
 
 namespace detail

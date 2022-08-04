@@ -15,6 +15,7 @@
 
 #include "ExternalField.h"
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include "hoomd/GPUPolymorph.h"
 
 #include <pybind11/pybind11.h>
@@ -28,7 +29,7 @@ namespace mpcd
  * This method implements the base version of ballistic propagation of MPCD
  * particles.
  */
-class PYBIND11_EXPORT StreamingMethod
+class PYBIND11_EXPORT StreamingMethod : public Autotuned
     {
     public:
     //! Constructor

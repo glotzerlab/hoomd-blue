@@ -30,20 +30,13 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
-        m_tuner_pack.reset(new Autotuner(32,
-                                         1024,
-                                         32,
-                                         5,
-                                         100000,
-                                         "mpcd_cell_comm_pack_" + std::to_string(m_id),
-                                         m_exec_conf));
-        m_tuner_unpack.reset(new Autotuner(32,
-                                           1024,
-                                           32,
-                                           5,
-                                           100000,
-                                           "mpcd_cell_comm_unpack_" + std::to_string(m_id),
-                                           m_exec_conf));
+        m_tuner_pack.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "mpcd_cell_comm_pack_" + std::to_string(m_id)));
+        m_tuner_unpack.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                              m_exec_conf,
+                                              "mpcd_cell_comm_unpack_" + std::to_string(m_id)));
+        m_autotuners.insert(m_autotuners.end(), {m_tuner_pack, m_tuner_unpack});
         }
 #endif // ENABLE_HIP
 

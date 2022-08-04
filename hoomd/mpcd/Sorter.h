@@ -14,6 +14,7 @@
 #endif
 
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include <pybind11/pybind11.h>
 
 namespace hoomd
@@ -35,7 +36,7 @@ namespace mpcd
  * because they cannot be removed easily if they are sorted with the rest of the particles,
  * and the performance gains from doing a separate (segmented) sort on them is probably small.
  */
-class PYBIND11_EXPORT Sorter
+class PYBIND11_EXPORT Sorter : public Autotuned
     {
     public:
     //! Constructor

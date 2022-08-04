@@ -14,6 +14,7 @@
 #endif
 
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include <pybind11/pybind11.h>
 
 namespace hoomd
@@ -26,7 +27,7 @@ namespace mpcd
  * setting up the method and implementing the collision. Each deriving class should implement a
  * rule() that gives the physics of the collision.
  */
-class PYBIND11_EXPORT CollisionMethod
+class PYBIND11_EXPORT CollisionMethod : public Autotuned
     {
     public:
     //! Constructor

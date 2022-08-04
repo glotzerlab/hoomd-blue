@@ -92,7 +92,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     void initializeCommunicationStages();
 
     /* Autotuners */
-    std::unique_ptr<Autotuner> m_flags_tuner; //!< Tuner for marking communication flags
+    std::shared_ptr<Autotuner<1>> m_flags_tuner; //!< Tuner for marking communication flags
     };
 
 namespace detail

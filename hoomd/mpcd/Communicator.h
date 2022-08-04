@@ -19,6 +19,7 @@
 #include "ParticleData.h"
 #include "SystemData.h"
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/Autotuner.h"
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/GPUArray.h"
@@ -54,7 +55,7 @@ namespace mpcd
  *
  * \ingroup communication
  */
-class PYBIND11_EXPORT Communicator
+class PYBIND11_EXPORT Communicator : public Autotuned
     {
     public:
     //! Constructor

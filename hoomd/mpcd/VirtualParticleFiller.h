@@ -14,6 +14,7 @@
 #endif
 
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include "hoomd/Variant.h"
 #include <pybind11/pybind11.h>
 
@@ -31,7 +32,7 @@ namespace mpcd
  *  1. computeNumFill(), which is the number of virtual particles to add.
  *  2. drawParticles(), which is the rule to determine where to put the particles.
  */
-class PYBIND11_EXPORT VirtualParticleFiller
+class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
     {
     public:
     VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,

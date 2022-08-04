@@ -64,9 +64,6 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         }
 #endif
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning();
-
     //! Get current collision method
     std::shared_ptr<mpcd::CollisionMethod> getCollisionMethod() const
         {

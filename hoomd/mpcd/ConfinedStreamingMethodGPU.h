@@ -45,14 +45,17 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
                                std::shared_ptr<const Geometry> geom)
         : mpcd::ConfinedStreamingMethod<Geometry>(sysdata, cur_timestep, period, phase, geom)
         {
-        m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_stream", this->m_exec_conf));
+        m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                       this->m_exec_conf,
+                                       "mpcd_stream"));
+        this->m_autotuners.push_back(m_tuner);
         }
 
     //! Implementation of the streaming rule
     virtual void stream(uint64_t timestep);
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner;
+    std::shared_ptr<Autotuner<1>> m_tuner;
     };
 
 /*!
@@ -85,7 +88,7 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
                                   this->m_mpcd_sys->getCellList()->getCoverageBox(),
                                   this->m_mpcd_dt,
                                   this->m_mpcd_pdata->getN(),
-                                  m_tuner->getParam());
+                                  m_tuner->getParam()[0]);
 
     m_tuner->begin();
     mpcd::gpu::confined_stream<Geometry>(args, *(this->m_geom));

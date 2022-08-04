@@ -153,19 +153,6 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
 #endif // ENABLE_MPI
     }
 
-/// Start autotuning kernel launch parameters
-void mpcd::Integrator::startAutotuning()
-    {
-    IntegratorTwoStep::startAutotuning();
-    m_mpcd_sys->startAutotuning();
-    if (m_collide)
-        m_collide->startAutotuning();
-    if (m_stream)
-        m_stream->startAutotuning();
-    if (m_sorter)
-        m_sorter->startAutotuning();
-    }
-
 /*!
  * \param filler Virtual particle filler to add to the integrator
  *

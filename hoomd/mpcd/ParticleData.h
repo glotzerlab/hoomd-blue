@@ -19,6 +19,7 @@
 #ifdef ENABLE_HIP
 #include "ParticleData.cuh"
 #ifdef ENABLE_MPI
+#include "hoomd/Autotuned.h"
 #include "hoomd/Autotuner.h"
 #endif // ENABLE_MPI
 #endif // ENABLE_HIP
@@ -67,7 +68,7 @@ namespace mpcd
  *
  * \ingroup data_structs
  */
-class PYBIND11_EXPORT ParticleData
+class PYBIND11_EXPORT ParticleData : public Autotuned
     {
     public:
     //! Number constructor
@@ -430,11 +431,11 @@ class PYBIND11_EXPORT ParticleData
     GPUArray<unsigned char> m_remove_flags; //!< Temporary flag to mark keeping particle
     GPUFlags<unsigned int> m_num_remove;    //!< Number of particles to remove
 
-    std::unique_ptr<Autotuner> m_mark_tuner;   //!< Tuner for marking particles
-    std::unique_ptr<Autotuner> m_remove_tuner; //!< Tuner for removing particles
-    std::unique_ptr<Autotuner> m_add_tuner;    //!< Tuner for adding particles
-#endif                                         // ENABLE_HIP
-#endif                                         // ENABLE_MPI
+    std::shared_ptr<Autotuner<1>> m_mark_tuner;   //!< Tuner for marking particles
+    std::shared_ptr<Autotuner<1>> m_remove_tuner; //!< Tuner for removing particles
+    std::shared_ptr<Autotuner<1>> m_add_tuner;    //!< Tuner for adding particles
+#endif                                            // ENABLE_HIP
+#endif                                            // ENABLE_MPI
 
     bool m_valid_cell_cache;               //!< Flag for validity of cell cache
     SortSignal m_sort_signal;              //!< Signal triggered when particles are sorted

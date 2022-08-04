@@ -46,11 +46,15 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
 #endif                                     // ENABLE_MPI
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_cell; //!< Autotuner for the cell list calculation
-    std::unique_ptr<Autotuner> m_tuner_sort; //!< Autotuner for sorting the cell list
+    /// Autotuner for the cell list calculation.
+    std::shared_ptr<Autotuner<1>> m_tuner_cell;
+
+    /// Autotuner for sorting the cell list.
+    std::shared_ptr<Autotuner<1>> m_tuner_sort;
 #ifdef ENABLE_MPI
-    std::unique_ptr<Autotuner> m_tuner_embed_migrate; //!< Autotuner for checking embedded migration
-#endif                                                // ENABLE_MPI
+    /// Autotuner for checking embedded migration.
+    std::shared_ptr<Autotuner<1>> m_tuner_embed_migrate;
+#endif // ENABLE_MPI
     };
 
 namespace detail
