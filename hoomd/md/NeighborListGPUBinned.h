@@ -70,6 +70,23 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         return m_cl->getNmax();
         }
 
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        NeighborListGPU::startAutotuning();
+
+        // Start autotuning the cell list.
+        m_cl->startAutotuning();
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = NeighborListGPU::isAutotuningComplete();
+        result = result && m_cl->isAutotuningComplete();
+        return result;
+        }
+
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
     unsigned int m_block_size;      //!< Block size to execute on the GPU
