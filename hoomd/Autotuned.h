@@ -28,6 +28,8 @@ class PYBIND11_EXPORT Autotuned
     public:
     Autotuned() { }
 
+    virtual ~Autotuned() { }
+
     /// Get autotuner parameters.
     pybind11::dict getAutotunerParameters()
         {
