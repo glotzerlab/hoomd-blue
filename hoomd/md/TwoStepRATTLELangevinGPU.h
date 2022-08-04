@@ -111,7 +111,9 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
     m_tuner_angular_one.reset(
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
-                         "rattle_langevin_angular"));
+                         "rattle_langevin_angular",
+                         5,
+                         true));
     this->m_autotuners.insert(this->m_autotuners.end(),
                               {m_tuner_one, m_tuner_force, m_tuner_angular_one});
     }

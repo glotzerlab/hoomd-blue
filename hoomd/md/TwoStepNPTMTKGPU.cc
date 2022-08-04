@@ -75,10 +75,14 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            "npt_mtk_rescale"));
     m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                                m_exec_conf,
-                                               "npt_mtk_angular_one"));
+                                               "npt_mtk_angular_one",
+                                               5,
+                                               true));
     m_tuner_angular_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                                m_exec_conf,
-                                               "npt_mtk_angular_two"));
+                                               "npt_mtk_angular_two",
+                                               5,
+                                               true));
 
     m_autotuners.insert(m_autotuners.end(),
                         {m_tuner_one,

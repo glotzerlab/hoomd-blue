@@ -45,7 +45,9 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
                                        "langevin_nve"));
     m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                                m_exec_conf,
-                                               "langevin_angular"));
+                                               "langevin_angular",
+                                               5,
+                                               true));
     m_autotuners.insert(m_autotuners.end(), {m_tuner_one, m_tuner_angular_one});
     }
 

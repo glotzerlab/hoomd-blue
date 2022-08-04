@@ -39,7 +39,8 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
                                     AutotunerBase::getTppListPow2(m_exec_conf)},
                                    m_exec_conf,
-                                   "nlist_binned"));
+                                   "nlist_binned",
+                                   3));
     m_autotuners.push_back(m_tuner);
     }
 

@@ -114,11 +114,15 @@ TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinit
     m_tuner_angular_one.reset(
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
-                         "rattle_nve_angular_one"));
+                         "rattle_nve_angular_one",
+                         5,
+                         true));
     m_tuner_angular_two.reset(
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
-                         "rattle_nve_angular_two"));
+                         "rattle_nve_angular_two",
+                         5,
+                         true));
     this->m_autotuners.insert(
         this->m_autotuners.end(),
         {m_tuner_one, m_tuner_two, m_tuner_force, m_tuner_angular_one, m_tuner_angular_two});

@@ -19,11 +19,11 @@
 #ifdef ENABLE_HIP
 #include "ParticleData.cuh"
 #ifdef ENABLE_MPI
-#include "hoomd/Autotuned.h"
 #include "hoomd/Autotuner.h"
 #endif // ENABLE_MPI
 #endif // ENABLE_HIP
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/ExecutionConfiguration.h"

@@ -30,7 +30,9 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
 
     m_tuner_combine.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                            this->m_exec_conf,
-                                           "cell_list_combine"));
+                                           "cell_list_combine",
+                                           5,
+                                           true));
     m_autotuners.insert(m_autotuners.end(), {m_tuner, m_tuner_combine});
     }
 

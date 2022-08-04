@@ -49,10 +49,14 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                                        "nvt_mtk_step_two"));
     m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                                m_exec_conf,
-                                               "nvt_mtk_angular_one"));
+                                               "nvt_mtk_angular_one",
+                                               5,
+                                               true));
     m_tuner_angular_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                                m_exec_conf,
-                                               "nvt_mtk_angular_two"));
+                                               "nvt_mtk_angular_two",
+                                               5,
+                                               true));
     m_autotuners.insert(m_autotuners.end(),
                         {m_tuner_one, m_tuner_two, m_tuner_angular_one, m_tuner_angular_two});
     }

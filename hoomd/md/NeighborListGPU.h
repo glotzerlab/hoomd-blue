@@ -85,18 +85,14 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         // Initialize autotuners.
         m_tuner_filter.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                               m_exec_conf,
-                                              "nlist_filter"));
-        m_tuner_head_list.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                                 m_exec_conf,
-                                                 "nlist_head_list"));
-        m_autotuners.insert(m_autotuners.end(), {m_tuner_filter, m_tuner_head_list});
+                                              "nlist_filter",
+                                              5,
+                                              true));
+        m_autotuners.push_back(m_tuner_filter);
         }
 
     //! Destructor
     virtual ~NeighborListGPU() { }
-
-    //! Benchmark the filter kernel
-    double benchmarkFilter(unsigned int num_iters);
 
     //! Update the exclusion list on the GPU
     virtual void updateExListIdx();
@@ -134,7 +130,6 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
 
     private:
     std::shared_ptr<Autotuner<1>> m_tuner_filter;    //!< Autotuner for filter block size
-    std::shared_ptr<Autotuner<1>> m_tuner_head_list; //!< Autotuner for the head list block size
 
     GlobalArray<unsigned int>
         m_alt_head_list; //!< Alternate array to hold the head list from prefix sum

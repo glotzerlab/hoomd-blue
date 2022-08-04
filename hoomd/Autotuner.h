@@ -303,7 +303,10 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
         if (m_state != SCANNING)
             return true;
         else
+            {
+            m_exec_conf->msg->notice(5) << "Autotuner " << m_name << " is not complete" << std::endl;
             return false;
+            }
         }
 
     /// Set flag for synchronization via MPI
