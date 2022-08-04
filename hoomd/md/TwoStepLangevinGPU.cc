@@ -40,21 +40,13 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
 
-    hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
-    m_tuner_one.reset(new Autotuner(dev_prop.warpSize,
-                                    dev_prop.maxThreadsPerBlock,
-                                    dev_prop.warpSize,
-                                    5,
-                                    100000,
-                                    "langevin_nve",
-                                    this->m_exec_conf));
-    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize,
-                                            dev_prop.maxThreadsPerBlock,
-                                            dev_prop.warpSize,
-                                            5,
-                                            100000,
-                                            "langevin_angular",
-                                            this->m_exec_conf));
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                    m_exec_conf,
+                                    "langevin_nve"));
+    m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "langevin_angular"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_one, m_tuner_angular_one});
     }
 
 /*! \param timestep Current time step
@@ -99,7 +91,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                              false,
                              0,
                              false,
-                             m_tuner_one->getParam());
+                             m_tuner_one->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -133,7 +125,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          1.0,
-                                         m_tuner_angular_one->getParam());
+                                         m_tuner_angular_one->getParam()[0]);
 
         m_tuner_angular_one->end();
         m_exec_conf->endMultiGPU();

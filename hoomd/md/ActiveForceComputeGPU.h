@@ -40,8 +40,8 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
         }
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner_force;     //!< Autotuner for block size (force kernel)
-    std::unique_ptr<Autotuner> m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_force;     //!< Autotuner for block size (force kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
 
     //! Set forces for particles
     virtual void setForces();

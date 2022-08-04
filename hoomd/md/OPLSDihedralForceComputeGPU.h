@@ -38,7 +38,7 @@ class PYBIND11_EXPORT OPLSDihedralForceComputeGPU : public OPLSDihedralForceComp
     virtual ~OPLSDihedralForceComputeGPU() { }
 
     private:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
 
     virtual void computeForces(uint64_t timestep);
     };

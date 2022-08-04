@@ -36,7 +36,7 @@ template<class evaluator> class PotentialExternalGPU : public PotentialExternal<
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
     };
 
 /*! Constructor
@@ -46,14 +46,10 @@ template<class evaluator>
 PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef)
     : PotentialExternal<evaluator>(sysdef)
     {
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    this->m_tuner.reset(new Autotuner(warp_size,
-                                      1024,
-                                      warp_size,
-                                      5,
-                                      100000,
-                                      "external_" + evaluator::getName(),
-                                      this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                      this->m_exec_conf,
+                                      "external_" + evaluator::getName()));
+    this->m_autotuners.push_back(m_tuner);
     }
 
 /*! Computes the specified constraint forces
@@ -80,7 +76,7 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                                          access_location::device,
                                                          access_mode::read);
 
-    this->m_tuner->begin();
+    m_tuner->begin();
     kernel::gpu_compute_potential_external_forces<evaluator>(
         kernel::external_potential_args_t(d_force.data,
                                           d_virial.data,
@@ -90,14 +86,14 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                           d_diameter.data,
                                           d_charge.data,
                                           box,
-                                          this->m_tuner->getParam()),
+                                          m_tuner->getParam()[0]),
         d_params.data,
         this->m_field.get());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    this->m_tuner->end();
+    m_tuner->end();
     }
 
 namespace detail

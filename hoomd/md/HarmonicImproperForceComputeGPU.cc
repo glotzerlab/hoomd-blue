@@ -31,14 +31,10 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(
     // allocate and zero device memory
     GPUArray<Scalar2> params(m_improper_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "harmonic_improper",
-                                this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                m_exec_conf,
+                                "harmonic_improper"));
+    m_autotuners.push_back(m_tuner);
     }
 
 HarmonicImproperForceComputeGPU::~HarmonicImproperForceComputeGPU() { }
@@ -100,7 +96,7 @@ void HarmonicImproperForceComputeGPU::computeForces(uint64_t timestep)
                                                  d_n_dihedrals.data,
                                                  d_params.data,
                                                  m_improper_data->getNTypes(),
-                                                 m_tuner->getParam(),
+                                                 m_tuner->getParam()[0],
                                                  m_exec_conf->dev_prop.warpSize);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -35,9 +35,9 @@ TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(std::shared_ptr<Syste
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
     m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_dihedral", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "table_dihedral"));
+    m_autotuners.push_back(m_tuner);
     }
 
 /*! \post The table based forces are computed for the given timestep.
@@ -85,7 +85,7 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
                                                   d_tables.data,
                                                   m_table_width,
                                                   m_table_value,
-                                                  m_tuner->getParam());
+                                                  m_tuner->getParam()[0]);
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

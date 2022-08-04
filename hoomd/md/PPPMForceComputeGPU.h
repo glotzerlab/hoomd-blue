@@ -98,12 +98,13 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         }
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_assign; //!< Autotuner for assigning binned charges to mesh
-    std::unique_ptr<Autotuner> m_tuner_reduce_mesh; //!< Autotuner to reduce meshes for multi GPU
-    std::unique_ptr<Autotuner> m_tuner_update;      //!< Autotuner for updating mesh values
-    std::unique_ptr<Autotuner> m_tuner_force;       //!< Autotuner for populating the force array
-    std::unique_ptr<Autotuner>
-        m_tuner_influence; //!< Autotuner for computing the influence function
+    std::shared_ptr<Autotuner<1>> m_tuner_assign; //!< Autotuner for assigning binned charges to mesh
+    std::shared_ptr<Autotuner<1>> m_tuner_reduce_mesh; //!< Autotuner to reduce meshes for multi GPU
+    std::shared_ptr<Autotuner<1>> m_tuner_update;      //!< Autotuner for updating mesh values
+    std::shared_ptr<Autotuner<1>> m_tuner_force;       //!< Autotuner for populating the force array
+
+    /// Autotuner for computing the influence function
+    std::shared_ptr<Autotuner<1>> m_tuner_influence;
 
     hipfftHandle m_hipfft_plan;   //!< The FFT plan
     bool m_local_fft;             //!< True if we are only doing local FFTs (not distributed)

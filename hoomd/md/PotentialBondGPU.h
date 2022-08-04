@@ -42,7 +42,7 @@ class PotentialBondGPU : public PotentialBond<evaluator, Bonds>
     virtual ~PotentialBondGPU() { }
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
 
     //! Actually compute the forces
@@ -75,9 +75,9 @@ PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(std::shared_ptr<SystemDefin
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
     m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "bond_" + evaluator::getName()));
+    this->m_autotuners.push_back(m_tuner);
     }
 
 template<class evaluator, class Bonds>
@@ -107,9 +107,9 @@ PotentialBondGPU<evaluator, Bonds>::PotentialBondGPU(std::shared_ptr<SystemDefin
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
     m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "bond_" + evaluator::getName()));
+    this->m_autotuners.push_back(m_tuner);
     }
 
 template<class evaluator, class Bonds>
@@ -169,7 +169,7 @@ void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
                                              gpu_table_indexer,
                                              d_gpu_n_bonds.data,
                                              this->m_bond_data->getNTypes(),
-                                             this->m_tuner->getParam()),
+                                             this->m_tuner->getParam()[0]),
             d_params.data,
             d_flags.data);
         }

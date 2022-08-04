@@ -35,10 +35,9 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing EAMForceComputeGPU");
         }
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    unsigned int max_threads = m_exec_conf->dev_prop.maxThreadsPerBlock;
     m_tuner.reset(
-        new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "pair_eam", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "pair_eam"));
+    m_autotuners.push_back(m_tuner);
 
     // allocate the coefficients data on the GPU
     loadFile(filename, type_of_file);
@@ -129,7 +128,7 @@ void EAMForceComputeGPU::computeForces(uint64_t timestep)
                                              d_dF.data,
                                              d_drho.data,
                                              d_drphi.data,
-                                             m_tuner->getParam());
+                                             m_tuner->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -82,22 +82,14 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
             }
 #endif
 
-        // create cuda event
-        unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-        m_tuner_filter.reset(new Autotuner(warp_size,
-                                           1024,
-                                           warp_size,
-                                           5,
-                                           100000,
-                                           "nlist_filter",
-                                           this->m_exec_conf));
-        m_tuner_head_list.reset(new Autotuner(warp_size,
-                                              1024,
-                                              warp_size,
-                                              5,
-                                              100000,
-                                              "nlist_head_list",
-                                              this->m_exec_conf));
+        // Initialize autotuners.
+        m_tuner_filter.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           m_exec_conf,
+                                           "nlist_filter"));
+        m_tuner_head_list.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                              m_exec_conf,
+                                              "nlist_head_list"));
+        m_autotuners.insert(m_autotuners.end(), {m_tuner_filter, m_tuner_head_list});
         }
 
     //! Destructor
@@ -141,8 +133,8 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         m_checkn; //!< Internal counter to assign when checking if the nlist needs an update
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_filter;    //!< Autotuner for filter block size
-    std::unique_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
+    std::shared_ptr<Autotuner<1>> m_tuner_filter;    //!< Autotuner for filter block size
+    std::shared_ptr<Autotuner<1>> m_tuner_head_list; //!< Autotuner for the head list block size
 
     GlobalArray<unsigned int>
         m_alt_head_list; //!< Alternate array to hold the head list from prefix sum

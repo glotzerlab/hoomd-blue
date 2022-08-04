@@ -50,23 +50,18 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
     //! Performs the second step of the integration
     virtual void integrateStepTwo(uint64_t timestep);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
-        {
-        TwoStepNVTMTK::startAutotuning();
-        m_tuner_one->startScan();
-        m_tuner_two->startScan();
-        m_tuner_angular_one->startScan();
-        m_tuner_angular_two->startScan();
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-    std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
-    std::unique_ptr<Autotuner>
-        m_tuner_angular_one; //!< Autotuner_angular for block size (angular step one kernel)
-    std::unique_ptr<Autotuner>
-        m_tuner_angular_two; //!< Autotuner_angular for block size (angular step two kernel)
+    /// Autotuner for block size (step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_one;
+
+    /// Autotuner for block size (step two kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_two;
+
+    /// Autotuner_angular for block size (angular step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_one;
+
+    /// Autotuner_angular for block size (angular step two kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
     };
 
     } // end namespace md

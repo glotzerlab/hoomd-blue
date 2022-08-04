@@ -28,21 +28,13 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDef
       m_T(m_exec_conf), m_nnz(m_exec_conf), m_nnz_tot(0)
 #endif
     {
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner_fill.reset(new Autotuner(warp_size,
-                                     1024,
-                                     warp_size,
-                                     5,
-                                     100000,
-                                     "dist_constraint_fill_matrix_vec",
-                                     this->m_exec_conf));
-    m_tuner_force.reset(new Autotuner(warp_size,
-                                      1024,
-                                      warp_size,
-                                      5,
-                                      100000,
-                                      "dist_constraint_force",
-                                      this->m_exec_conf));
+    m_tuner_fill.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                     m_exec_conf,
+                                     "dist_constraint_fill_matrix_vec"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                      m_exec_conf,
+                                      "dist_constraint_force"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_fill, m_tuner_force});
 
 #ifdef CUSOLVER_AVAILABLE
     // initialize cuSPARSE
@@ -196,7 +188,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(uint64_t timestep)
                                        d_group_typeval.data,
                                        m_deltaT,
                                        m_pdata->getBox(),
-                                       m_tuner_fill->getParam());
+                                       m_tuner_fill->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -704,7 +696,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
                                           m_virial_pitch,
                                           box,
                                           n_ptl,
-                                          m_tuner_force->getParam(),
+                                          m_tuner_force->getParam()[0],
                                           d_lagrange.data);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

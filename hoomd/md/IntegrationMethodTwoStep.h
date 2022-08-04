@@ -3,6 +3,7 @@
 
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/SystemDefinition.h"
+#include "hoomd/Autotuned.h"
 
 #include <memory>
 

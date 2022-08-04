@@ -159,7 +159,7 @@ void NeighborListGPU::filterNlist()
                              d_ex_list_idx.data,
                              m_ex_list_indexer,
                              m_pdata->getN(),
-                             m_tuner_filter->getParam());
+                             m_tuner_filter->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_filter->end();
@@ -236,7 +236,7 @@ void NeighborListGPU::buildHeadList()
                                           d_pos.data,
                                           m_pdata->getN(),
                                           m_pdata->getNTypes(),
-                                          m_tuner_head_list->getParam());
+                                          m_tuner_head_list->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_head_list->end();

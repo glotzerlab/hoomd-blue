@@ -52,11 +52,11 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     virtual void buildNlist(uint64_t timestep);
 
     private:
-    std::unique_ptr<Autotuner> m_mark_tuner;     //!< Tuner for the type mark kernel
-    std::unique_ptr<Autotuner> m_count_tuner;    //!< Tuner for the type-count kernel
-    std::unique_ptr<Autotuner> m_copy_tuner;     //!< Tuner for the primitive-copy kernel
-    std::unique_ptr<Autotuner> m_build_tuner;    //!< Tuner for LBVH builds
-    std::unique_ptr<Autotuner> m_traverse_tuner; //!< Tuner for LBVH traversers
+    std::shared_ptr<Autotuner<1>> m_mark_tuner;     //!< Tuner for the type mark kernel
+    std::shared_ptr<Autotuner<1>> m_count_tuner;    //!< Tuner for the type-count kernel
+    std::shared_ptr<Autotuner<1>> m_copy_tuner;     //!< Tuner for the primitive-copy kernel
+    std::shared_ptr<Autotuner<1>> m_build_tuner;    //!< Tuner for LBVH builds
+    std::shared_ptr<Autotuner<1>> m_traverse_tuner; //!< Tuner for LBVH traversers
 
     GPUArray<unsigned int> m_types;          //!< Particle types (for sorting)
     GPUArray<unsigned int> m_sorted_types;   //!< Sorted particle types

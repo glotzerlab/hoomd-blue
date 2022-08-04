@@ -27,18 +27,14 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Cannot initialize TwoStepNVEGPU on a CPU device.");
         }
 
-    // initialize autotuner
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        valid_params.push_back(block_size);
-
-    m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nve_step_one", this->m_exec_conf));
-    m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nve_step_two", this->m_exec_conf));
+    // Initialize autotuners.
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nve_step_one"));
+    m_tuner_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nve_step_two"));
     m_tuner_angular_one.reset(
-        new Autotuner(valid_params, 5, 100000, "nve_angular_one", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nve_angular_one"));
     m_tuner_angular_two.reset(
-        new Autotuner(valid_params, 5, 100000, "nve_angular_two", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "nve_angular_two"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_one, m_tuner_two, m_tuner_angular_one, m_tuner_angular_two});
     }
 
 /*! \param timestep Current time step
@@ -80,7 +76,7 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
                              m_limit,
                              m_limit_val,
                              m_zero_force,
-                             m_tuner_one->getParam());
+                             m_tuner_one->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -115,7 +111,7 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          1.0,
-                                         m_tuner_angular_one->getParam());
+                                         m_tuner_angular_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -157,7 +153,7 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
                              m_limit,
                              m_limit_val,
                              m_zero_force,
-                             m_tuner_two->getParam());
+                             m_tuner_two->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -192,7 +188,7 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          1.0,
-                                         m_tuner_angular_two->getParam());
+                                         m_tuner_angular_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

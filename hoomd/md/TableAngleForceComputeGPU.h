@@ -36,7 +36,7 @@ class PYBIND11_EXPORT TableAngleForceComputeGPU : public TableAngleForceCompute
     virtual ~TableAngleForceComputeGPU() { }
 
     private:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
 
     //! Actually compute the forces

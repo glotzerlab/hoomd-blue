@@ -58,7 +58,7 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     virtual ~MuellerPlatheFlowGPU(void);
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
 
     virtual void searchMinMaxVelocity(void);
     virtual void updateMinMaxVelocity(void);

@@ -221,7 +221,12 @@ template<class evaluator> class PotentialPair : public ForceCompute
         m_nlist->resetStats();
         }
 
-    // TODO: Pair potential needs to pass startAutotuning and isAutotuningComplete down to the nlist
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning();
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete();
+
     // TODO: Nlist needs to pass startAutotuning and isAutotuningComplete down to the cell list
 
     protected:
@@ -845,6 +850,23 @@ CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
     return flags;
     }
 #endif
+
+template<class evaluator>
+void PotentialPair<evaluator>::startAutotuning()
+    {
+    ForceCompute::startAutotuning();
+
+    // Start autotuning the neighbor list.
+    m_nlist->startAutotuning();
+    }
+
+template<class evaluator>
+bool PotentialPair<evaluator>::isAutotuningComplete()
+    {
+    bool result = ForceCompute::isAutotuningComplete();
+    result = result && m_nlist->isAutotuningComplete();
+    return result;
+    }
 
 //! function to compute the energy between two lists of particles.
 //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.

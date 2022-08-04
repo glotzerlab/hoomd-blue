@@ -51,8 +51,8 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     virtual ~ForceDistanceConstraintGPU();
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
-    std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+    std::shared_ptr<Autotuner<1>> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
+    std::shared_ptr<Autotuner<1>> m_tuner_force; //!< Autotuner for populating the force array
 
 #ifdef CUSOLVER_AVAILABLE
     cusparseHandle_t m_cusparse_handle;        //!< cuSPARSE handle

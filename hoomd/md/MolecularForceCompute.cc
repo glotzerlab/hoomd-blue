@@ -48,7 +48,8 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
             valid_params.push_back(block_size);
 
         m_tuner_fill.reset(
-            new Autotuner(valid_params, 5, 100000, "fill_molecule_table", this->m_exec_conf));
+            new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "fill_molecule_table"));
+        this->m_autotuners.push_back(m_tuner_fill);
         }
 #endif
     }
@@ -169,7 +170,7 @@ void MolecularForceCompute::initMoleculesGPU()
                                                  access_mode::read);
 
         m_tuner_fill->begin();
-        unsigned int block_size = m_tuner_fill->getParam();
+        unsigned int block_size = m_tuner_fill->getParam()[0];
 
         kernel::gpu_fill_molecule_table(nptl_local,
                                         n_local_ptls_in_molecules,

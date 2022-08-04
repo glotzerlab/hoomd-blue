@@ -296,13 +296,13 @@ void IntegratorTwoStep::startAutotuning()
     {
     Integrator::startAutotuning();
 
-    // set params in all methods
+    // Start autotuning in all methods.
     for (auto& method : m_methods)
         method->startAutotuning();
     }
 
 /// Check if autotuning is complete.
-virtual bool isAutotuningComplete()
+bool IntegratorTwoStep::isAutotuningComplete()
     {
     bool result = Integrator::isAutotuningComplete();
     for (auto& method : m_methods)

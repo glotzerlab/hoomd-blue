@@ -57,10 +57,14 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         MolecularForceCompute::checkParticlesSorted();
         }
 
-    std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size and threads per particle
-    std::unique_ptr<Autotuner>
-        m_tuner_virial; //!< Autotuner for block size and threads per particle
-    std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
+    /// Autotuner for block size and threads per body.
+    std::shared_ptr<Autotuner<2>> m_tuner_force;
+
+    /// Autotuner for block size and threads per body.
+    std::shared_ptr<Autotuner<2>> m_tuner_virial;
+
+    /// Autotuner for block size of update kernel.
+    std::shared_ptr<Autotuner<1>> m_tuner_update;
 
     GlobalArray<uint2> m_flag; //!< Flag to read out error condition
 

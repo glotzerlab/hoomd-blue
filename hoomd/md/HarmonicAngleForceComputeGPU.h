@@ -47,7 +47,7 @@ class PYBIND11_EXPORT HarmonicAngleForceComputeGPU : public HarmonicAngleForceCo
     virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
     GPUArray<Scalar2> m_params;         //!< Parameters stored on the GPU
 
     //! Actually compute the forces

@@ -31,30 +31,16 @@ NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysde
     m_pdata->getMaxParticleNumberChangeSignal()
         .connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
 
-    hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
-    unsigned int warp_size = dev_prop.warpSize;
-    unsigned int max_threads = dev_prop.maxThreadsPerBlock;
-    m_mark_tuner.reset(new Autotuner(warp_size,
-                                     max_threads,
-                                     warp_size,
-                                     5,
-                                     100000,
-                                     "nlist_tree_mark",
-                                     m_exec_conf));
-    m_count_tuner.reset(new Autotuner(warp_size,
-                                      max_threads,
-                                      warp_size,
-                                      5,
-                                      100000,
-                                      "nlist_tree_count",
-                                      m_exec_conf));
-    m_copy_tuner.reset(new Autotuner(warp_size,
-                                     max_threads,
-                                     warp_size,
-                                     5,
-                                     100000,
-                                     "nlist_tree_copy",
-                                     m_exec_conf));
+    m_mark_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                      m_exec_conf,
+                                      "nlist_tree_mark"));
+    m_count_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                      m_exec_conf,
+                                      "nlist_tree_count"));
+    m_copy_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                     m_exec_conf,
+                                     "nlist_tree_copy"));
+    m_autotuners.insert(m_autotuners.end(), {m_mark_tuner, m_count_tuner, m_copy_tuner});
     }
 
 /*!
@@ -162,21 +148,19 @@ void NeighborListGPUTree::buildNlist(uint64_t timestep)
     // ensure build tuner is set
     if (!m_build_tuner)
         {
-        m_build_tuner.reset(new Autotuner(m_lbvhs[0]->getTunableParameters(),
-                                          5,
-                                          100000,
-                                          "nlist_tree_build",
-                                          m_exec_conf));
+        m_build_tuner.reset(new Autotuner<1>({m_lbvhs[0]->getTunableParameters()},
+                                          m_exec_conf,
+                                          "nlist_tree_build"));
+        m_autotuners.push_back(m_build_tuner);
         }
 
     // ensure traverser tuner is set
     if (!m_traverse_tuner)
         {
-        m_traverse_tuner.reset(new Autotuner(m_traversers[0]->getTunableParameters(),
-                                             5,
-                                             100000,
-                                             "nlist_tree_traverse",
-                                             m_exec_conf));
+        m_traverse_tuner.reset(new Autotuner<1>({m_traversers[0]->getTunableParameters()},
+                                                m_exec_conf,
+                                                "nlist_tree_traverse"));
+        m_autotuners.push_back(m_traverse_tuner);
         }
 
     // build the tree
@@ -247,7 +231,7 @@ void NeighborListGPUTree::buildTree()
                                          m_pdata->getNGhosts(),
                                          box,
                                          ghost_width,
-                                         m_mark_tuner->getParam());
+                                         m_mark_tuner->getParam()[0]);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             m_mark_tuner->end();
@@ -349,7 +333,7 @@ void NeighborListGPUTree::buildTree()
                                       d_sorted_types.data,
                                       m_pdata->getNTypes(),
                                       m_pdata->getN() + m_pdata->getNGhosts(),
-                                      m_count_tuner->getParam());
+                                      m_count_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_count_tuner->end();
@@ -395,7 +379,7 @@ void NeighborListGPUTree::buildTree()
         // then, launch all of the builds in their own streams
         hipDeviceSynchronize();
         m_build_tuner->begin();
-        const unsigned int block_size = m_build_tuner->getParam();
+        const unsigned int block_size = m_build_tuner->getParam()[0];
 
         for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
             {
@@ -454,7 +438,7 @@ void NeighborListGPUTree::buildTree()
                                                   d_sorted_indexes.data + first,
                                                   d_primitives,
                                                   Ni,
-                                                  m_copy_tuner->getParam());
+                                                  m_copy_tuner->getParam()[0]);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 m_copy_tuner->end();
@@ -524,7 +508,7 @@ void NeighborListGPUTree::traverseTree()
     // traverse all pairs in (now-transposed) streams
     hipDeviceSynchronize();
     m_traverse_tuner->begin();
-    const unsigned int block_size = m_traverse_tuner->getParam();
+    const unsigned int block_size = m_traverse_tuner->getParam()[0];
     for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
         {
         // skip this type if there are no particles

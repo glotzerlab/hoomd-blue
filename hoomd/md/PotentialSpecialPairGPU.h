@@ -39,7 +39,7 @@ template<class evaluator> class PotentialSpecialPairGPU : public PotentialSpecia
     virtual ~PotentialSpecialPairGPU() { }
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
 
     //! Actually compute the forces
@@ -73,14 +73,10 @@ PotentialSpecialPairGPU<evaluator>::PotentialSpecialPairGPU(
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "special_pair_" + evaluator::getName(),
-                                this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                this->m_exec_conf,
+                                "special_pair_" + evaluator::getName()));
+    this->m_autotuners.push_back(m_tuner);
     }
 
 template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces(uint64_t timestep)
@@ -125,7 +121,7 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
-        this->m_tuner->begin();
+        m_tuner->begin();
         kernel::gpu_compute_bond_forces<evaluator, 2>(
             kernel::bond_args_t<2>(d_force.data,
                                    d_virial.data,
@@ -140,7 +136,7 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
                                    gpu_table_indexer,
                                    d_gpu_n_bonds.data,
                                    this->m_pair_data->getNTypes(),
-                                   this->m_tuner->getParam()),
+                                   m_tuner->getParam()[0]),
             d_params.data,
             d_flags.data);
         }
@@ -161,7 +157,7 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
             throw std::runtime_error("Error in special_pair calculation");
             }
         }
-    this->m_tuner->end();
+    m_tuner->end();
     }
 
 namespace detail

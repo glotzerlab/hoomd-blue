@@ -65,12 +65,20 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
         }
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-    std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
-    std::unique_ptr<Autotuner>
-        m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
-    std::unique_ptr<Autotuner>
-        m_tuner_angular_two; //!< Autotuner for block size (angular step two kernel)
+    /// Autotuner for block size (step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_one;
+
+    /// Autotuner for block size (step two kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_two;
+
+    /// Autotuner for block size (force kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_force;
+
+    /// Autotuner for block size (angular step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_one;
+
+    /// Autotuner for block size (angular step two kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
     };
 
 /*! \file TwoStepRATTLENVEGPU.h
@@ -94,19 +102,18 @@ TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinit
         throw std::runtime_error("Error initializing TwoStepRATTLENVEGPU");
         }
 
-    // initialize autotuner
-    std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
-        valid_params.push_back(block_size);
-
     m_tuner_one.reset(
-        new Autotuner(valid_params, 5, 100000, "rattle_nve_step_one", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_step_one"));
     m_tuner_two.reset(
-        new Autotuner(valid_params, 5, 100000, "rattle_nve_step_two", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_step_two"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                            this->m_exec_conf,
+                                            "rattle_nve_force"));
     m_tuner_angular_one.reset(
-        new Autotuner(valid_params, 5, 100000, "rattle_nve_angular_one", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_angular_one"));
     m_tuner_angular_two.reset(
-        new Autotuner(valid_params, 5, 100000, "rattle_nve_angular_two", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)}, this->m_exec_conf, "rattle_nve_angular_two"));
+    this->m_autotuners.insert(this->m_autotuners.end(), {m_tuner_one, m_tuner_two, m_tuner_force, m_tuner_angular_one, m_tuner_angular_two});
     }
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
@@ -154,7 +161,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
                                     this->m_deltaT,
                                     this->m_limit,
                                     this->m_limit_val,
-                                    m_tuner_one->getParam());
+                                    m_tuner_one->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -189,7 +196,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
                                                 this->m_group->getGPUPartition(),
                                                 this->m_deltaT,
                                                 1.0,
-                                                m_tuner_angular_one->getParam());
+                                                m_tuner_angular_one->getParam()[0]);
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -237,7 +244,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
                                               this->m_limit,
                                               this->m_limit_val,
                                               this->m_zero_force,
-                                              m_tuner_two->getParam());
+                                              m_tuner_two->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -272,7 +279,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
                                                 this->m_group->getGPUPartition(),
                                                 this->m_deltaT,
                                                 1.0,
-                                                m_tuner_angular_two->getParam());
+                                                m_tuner_angular_two->getParam()[0]);
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -308,7 +315,7 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
 
     // perform the update on the GPU
     this->m_exec_conf->beginMultiGPU();
-    m_tuner_one->begin();
+    m_tuner_force->begin();
     kernel::gpu_include_rattle_force_nve<Manifold>(d_pos.data,
                                                    d_vel.data,
                                                    d_accel.data,
@@ -321,12 +328,12 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(
                                                    this->m_tolerance,
                                                    this->m_deltaT,
                                                    this->m_zero_force,
-                                                   m_tuner_one->getParam());
+                                                   m_tuner_force->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_tuner_one->end();
+    m_tuner_force->end();
     this->m_exec_conf->endMultiGPU();
     }
 

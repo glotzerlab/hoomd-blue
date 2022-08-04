@@ -114,17 +114,6 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         return m_molecule_idx;
         }
 
-#ifdef ENABLE_HIP
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuners()
-        {
-        if (m_exec_conf->isCUDAEnabled())
-            {
-            m_tuner_fill->startScan();
-            }
-        }
-#endif
-
     protected:
     GlobalVector<unsigned int> m_molecule_tag; //!< Molecule tag per particle tag
     unsigned int m_n_molecules_global;         //!< Global number of molecules
@@ -162,7 +151,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     GlobalVector<unsigned int> m_molecule_idx;
 
 #ifdef ENABLE_HIP
-    std::unique_ptr<Autotuner>
+    std::shared_ptr<Autotuner<1>>
         m_tuner_fill; //!< Autotuner for block size for filling the molecule table
 #endif
 

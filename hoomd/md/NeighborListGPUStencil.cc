@@ -40,25 +40,11 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
 
     CHECK_CUDA_ERROR();
 
-    // initialize autotuner
-    // the full block size and threads_per_particle matrix is searched,
-    // encoded as block_size*10000 + threads_per_particle
-    std::vector<unsigned int> valid_params;
-
-    const unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        {
-        unsigned int s = 1;
-
-        while (s <= max_tpp)
-            {
-            valid_params.push_back(block_size * 10000 + s);
-            s = s * 2;
-            }
-        }
-
-    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_stencil", this->m_exec_conf));
+    // Initialize autotuner.
+    m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                    AutotunerBase::getTppListPow2(m_exec_conf)},
+                                    m_exec_conf, "nlist_stencil"));
+    m_autotuners.push_back(m_tuner);
     m_last_tuned_timestep = 0;
 
 #ifdef ENABLE_MPI
@@ -282,9 +268,9 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
 
     if (tune)
         m_tuner->begin();
-    unsigned int param = m_tuner->getParam();
-    unsigned int block_size = param / 10000;
-    unsigned int threads_per_particle = param % 10000;
+    auto param = m_tuner->getParam();
+    unsigned int block_size = param[0];
+    unsigned int threads_per_particle = param[1];
 
     // launch neighbor list kernel
     kernel::gpu_compute_nlist_stencil(d_nlist.data,
