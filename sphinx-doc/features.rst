@@ -82,19 +82,22 @@ Autotuned kernel parameters
 
 HOOMD-blue automatically tunes kernel parameters to improve performance when executing on a GPU
 device. During the first 1,000 - 20,000 timesteps of the simulation run, HOOMD-blue will change
-kernel parameters each time it calls a kernel. Kernels compute the same (within floating point
-precision) output regardless of the parameter, but the parameters have a large impact on
-performance.
+kernel parameters each time it calls a kernel. Kernels compute the same output regardless of the
+parameter (within floating point precision), but the parameters have a large impact on performance.
 
-Check to see whether tuning is complete with `hoomd.Operations.is_tuning_complete`. For example, use
-this to run timed benchmarks after the performance stabilizes. The optimal parameters can depend on
-the number of particles in the simulation and the density, and may vary weakly with other system
-properties. To maintain peak performance, call `hoomd.Operations.tune_kernel_parameters` to tune the
-parameters again after making a drastic change in your system.
+Check to see whether tuning is complete with the `is_tuning_complete
+<hoomd.Operations.is_tuning_complete>` method in your simulation's `Operations <hoomd.Operations>`.
+For example, use this to run timed benchmarks after the performance stabilizes.
 
-Autotuned objects provide a settable dictionary parameter with the current kernel parameters in
-`hoomd.operation.AutotunedObject.kernel_parameters`. Use this to inspect what the autotuner is doing
-or override with specific values (e.g. values saved from a previous execution).
+The optimal parameters can depend on the number of particles in the simulation and the density, and
+may vary weakly with other system properties. To maintain peak performance, call
+`tune_kernel_parmeters <hoomd.Operations.tune_kernel_parameters>` to tune the parameters again after
+making a change to your system.
+
+`AutotunedObject` provides a settable dictionary parameter with the current kernel parameters in
+`kernel_parameters <hoomd.operation.AutotunedObject.kernel_parameters>`. Use this to inspect what
+the autotuner is doing or override with specific values (e.g. values saved from a previous
+execution).
 
 MPI
 ---
