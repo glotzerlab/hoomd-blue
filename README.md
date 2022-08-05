@@ -1,4 +1,4 @@
-# HOOMD-blue
+[![HOOMD-blue](sphinx-doc/hoomdblue-logo-horizontal.svg)](https://glotzerlab.engin.umich.edu/hoomd-blue/)
 
 [![Citing HOOMD](https://img.shields.io/badge/cite-hoomd-blue.svg)](https://hoomd-blue.readthedocs.io/en/latest/citing.html)
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
