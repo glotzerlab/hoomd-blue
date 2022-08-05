@@ -209,7 +209,17 @@ parameters (such as `BoxDim`).
 
 ## Autotuning
 
-TODO: Write this section.
+HOOMD-blue automatically tunes kernel block sizes, threads per particle, and other kernel launch
+paramters. The `Autotuner` class manages the sparse multi-dimensional of parameters for each kernel.
+It dynamically cycles through the possible parameters and records the performance of each using CUDA
+events. After scanning through all parameters, it selects the best performing one to continue
+executing. GPU code in HOOMD-blue should instantiate and use one `Autotuner` for each kernel.
+Classes that use the autotuner should inherit from `Autotuned` which tracks all the autotuners and
+provides a UI to users. Classes should use the base class `isAutotuningComplete` and
+`startAutotuning` methods to cover managed autotuners and manually call these methods for child
+objects that are not otherwise managed by the `Simulation`. For example,
+`PotentialPair::isAutotuningComplete`, calls both `ForceCompute::isAutotuningComplete` and
+`m_nlist->isAutotuningComplete` and combines the results.
 
 ## Python
 

@@ -77,10 +77,24 @@ run time with the `device <hoomd.device>` module. Unless otherwise stated in the
 **all** operations and methods support GPU execution. At runtime, `hoomd.version.gpu_enabled` indicates
 whether the build supports GPU devices.
 
-Autotuned kernel launch parameters
-----------------------------------
+Autotuned kernel parameters
+---------------------------
 
-TODO: Write this section.
+HOOMD-blue automatically tunes kernel parameters to improve performance when executing on a GPU
+device. During the first 1,000 - 20,000 timesteps of the simulation run, HOOMD-blue will change
+kernel parameters each time it calls a kernel. Kernels compute the same (within floating point
+precision) output regardless of the parameter, but the parameters have a large impact on
+performance.
+
+Check to see whether tuning is complete with `hoomd.Operations.is_tuning_complete`. For example, use
+this to run timed benchmarks after the performance stabilizes. The optimal parameters can depend on
+the number of particles in the simulation and the density, and may vary weakly with other system
+properties. To maintain peak performance, call `hoomd.Operations.tune_kernel_parameters` to tune the
+parameters again after making a drastic change in your system.
+
+Autotuned objects provide a settable dictionary parameter with the current kernel parameters in
+`hoomd.operation.AutotunedObject.kernel_parameters`. Use this to inspect what the autotuner is doing
+or override with specific values (e.g. values saved from a previous execution).
 
 MPI
 ---
