@@ -140,10 +140,21 @@ class Device:
         else:
             self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
-    def notice(self, msg, notice_level=1):
-        """If msg_file is specified then msg will output in msg_file,
-           else msg will output to stdout"""
-        self._cpp_msg.notice(notice_level, str(msg) + "\n")
+    def notice(self, message, notice_level=1):
+        """Write a notice message.
+
+        Args:
+            message (str): Message to write.
+
+        Write the given message string to the output defined by `msg_file`.
+
+        Hint:
+            Use `notice` instead of `print` to write status messages and your
+            scripts will work well in parallel MPI jobs. `notice` writes message
+            only on rank 0. Use with a rank-specific `msg_file` to troubleshoot
+            issues with specific partitions.
+        """
+        self._cpp_msg.notice(notice_level, str(message) + "\n")
 
 
 def _create_messenger(mpi_config, notice_level, msg_file):
