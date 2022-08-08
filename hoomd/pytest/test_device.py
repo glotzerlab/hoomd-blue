@@ -3,7 +3,6 @@
 
 import hoomd
 import pytest
-import gsd.hoomd
 
 @pytest.mark.gpu
 def test_gpu_profile(device):
@@ -114,20 +113,14 @@ def test_device_notice(device, tmp_path):
     # Message file declared. Should output in specified file
     device.notice_level = 4
     device.msg_file = str(tmp_path / "example.txt")
-    device.notice("This message should output.")
-    file = open(device.msg_file)
-    # Check the msg file if the output is correctly placed
-    assert file.read() == "This message should output.\n"
-
-    file.close()
-
-    snapshot = gsd.hoomd.Snapshot()
-    snapshot.particles.N = 4
-
+    msg = "This message should output."
+    device.notice(msg)
+    with open(device.msg_file) as fh:
+        # Check the msg file if the output is correctly placed
+        assert fh.read() == msg + "\n"
     device.msg_file = str(tmp_path/"example2.txt")
     # Test notice with a message that is not a string
-    device.notice(snapshot.particles.N)
-    file = open(device.msg_file)
-    assert file.read() == "4\n"
-
-    file.close()
+    msg = 123456
+    device.notice(msg)
+    with open(device.msg_file) as fh:
+        assert fh.read() == str(msg) + "\n"
