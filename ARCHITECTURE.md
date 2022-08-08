@@ -215,11 +215,10 @@ It dynamically cycles through the possible parameters and records the performanc
 events. After scanning through all parameters, it selects the best performing one to continue
 executing. GPU code in HOOMD-blue should instantiate and use one `Autotuner` for each kernel.
 Classes that use the autotuner should inherit from `Autotuned` which tracks all the autotuners and
-provides a UI to users. Classes should use the base class `isAutotuningComplete` and
-`startAutotuning` methods to cover managed autotuners and manually call these methods for child
-objects that are not otherwise managed by the `Simulation`. For example,
-`PotentialPair::isAutotuningComplete`, calls both `ForceCompute::isAutotuningComplete` and
-`m_nlist->isAutotuningComplete` and combines the results.
+provides a UI to users. When needed, classes should override the base class `isAutotuningComplete`
+and `startAutotuning` as needed to pass the calls on to child objects. not otherwise managed by the
+`Simulation`. For example, `PotentialPair::isAutotuningComplete`, calls both
+`ForceCompute::isAutotuningComplete` and `m_nlist->isAutotuningComplete` and combines the results.
 
 ## Python
 
