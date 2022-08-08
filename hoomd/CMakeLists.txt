@@ -214,6 +214,7 @@ set(_hoomd_cu_sources BondedGroupData.cu
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
+set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
 #########################
@@ -270,8 +271,8 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "hcc" OR HIP_PLATFORM STREQUAL "hip-clang")
-        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
+    if (HIP_PLATFORM STREQUAL "hip-clang")
+        target_link_libraries(_hoomd PUBLIC hip::hipfft)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
@@ -290,7 +291,7 @@ if (ENABLE_HIP)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
     endif()
 
-    target_link_libraries(_hoomd PUBLIC HIP::hip)
+    target_link_libraries(_hoomd PUBLIC hip::host)
 
     if (ENABLE_ROCTRACER)
         target_link_libraries(_hoomd PUBLIC HIP::roctracer)

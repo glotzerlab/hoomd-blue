@@ -323,22 +323,22 @@ void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
         f3.w = e_dihedral;
 
         // Apply force to each of the 4 atoms
-        h_force.data[i1].x += f1.x;
-        h_force.data[i1].y += f1.y;
-        h_force.data[i1].z += f1.z;
-        h_force.data[i1].w += f1.w;
-        h_force.data[i2].x += f2.x;
-        h_force.data[i2].y += f2.y;
-        h_force.data[i2].z += f2.z;
-        h_force.data[i2].w += f2.w;
-        h_force.data[i3].x += f3.x;
-        h_force.data[i3].y += f3.y;
-        h_force.data[i3].z += f3.z;
-        h_force.data[i3].w += f3.w;
-        h_force.data[i4].x += f4.x;
-        h_force.data[i4].y += f4.y;
-        h_force.data[i4].z += f4.z;
-        h_force.data[i4].w += f4.w;
+        h_force.data[i1].x = h_force.data[i1].x + f1.x;
+        h_force.data[i1].y = h_force.data[i1].y + f1.y;
+        h_force.data[i1].z = h_force.data[i1].z + f1.z;
+        h_force.data[i1].w = h_force.data[i1].w + f1.w;
+        h_force.data[i2].x = h_force.data[i2].x + f2.x;
+        h_force.data[i2].y = h_force.data[i2].y + f2.y;
+        h_force.data[i2].z = h_force.data[i2].z + f2.z;
+        h_force.data[i2].w = h_force.data[i2].w + f2.w;
+        h_force.data[i3].x = h_force.data[i3].x + f3.x;
+        h_force.data[i3].y = h_force.data[i3].y + f3.y;
+        h_force.data[i3].z = h_force.data[i3].z + f3.z;
+        h_force.data[i3].w = h_force.data[i3].w + f3.w;
+        h_force.data[i4].x = h_force.data[i4].x + f4.x;
+        h_force.data[i4].y = h_force.data[i4].y + f4.y;
+        h_force.data[i4].z = h_force.data[i4].z + f4.z;
+        h_force.data[i4].w = h_force.data[i4].w + f4.w;
 
         // Compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // upper triangular version of virial tensor

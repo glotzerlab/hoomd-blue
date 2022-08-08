@@ -1,11 +1,11 @@
 # Find CUDA libraries and binaries used by HOOMD
 
-# find CUDA library path
-get_filename_component(CUDA_BIN_PATH ${CMAKE_CUDA_COMPILER} DIRECTORY)
-get_filename_component(CUDA_LIB_PATH "${CUDA_BIN_PATH}/../lib64/" ABSOLUTE)
-
 set(REQUIRED_CUDA_LIB_VARS "")
 if (HIP_PLATFORM STREQUAL "nvcc")
+    # find CUDA library path
+    get_filename_component(CUDA_BIN_PATH ${CMAKE_CUDA_COMPILER} DIRECTORY)
+    get_filename_component(CUDA_LIB_PATH "${CUDA_BIN_PATH}/../lib64/" ABSOLUTE)
+
     # find libraries that go with this compiler
     find_library(CUDA_cudart_LIBRARY cudart HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_cudart_LIBRARY)
@@ -21,42 +21,6 @@ else()
     # define empty target
     add_library(CUDA::cudart UNKNOWN IMPORTED)
 endif()
-
-if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
-    # find libraries that go with this compiler
-    find_library(HIP_hip_hcc_LIBRARY hip_hcc
-        PATHS
-        "${HIP_ROOT_DIR}"
-        ENV ROCM_PATH
-        ENV HIP_PATH
-        /opt/rocm
-        PATH_SUFFIXES lib
-        NO_DEFAULT_PATH)
-    mark_as_advanced(HIP_hip_hcc_LIBRARY)
-    find_library(HIP_hiprtc_LIBRARY hiprtc
-        PATHS
-        "${HIP_ROOT_DIR}"
-        ENV ROCM_PATH
-        ENV HIP_PATH
-        /opt/rocm
-        PATH_SUFFIXES lib
-        NO_DEFAULT_PATH)
-    mark_as_advanced(HIP_hiprtc_LIBRARY)
-
-    if(HIP_hip_hcc_LIBRARY AND NOT TARGET HIP::hiprt)
-      add_library(HIP::hiprt UNKNOWN IMPORTED)
-      set_target_properties(HIP::hiprt PROPERTIES
-        IMPORTED_LOCATION "${HIP_hip_hcc_LIBRARY}"
-        INTERFACE_LINK_LIBRARIES ${HIP_hiprtc_LIBRARY}
-      )
-    endif()
-    list(APPEND REQUIRED_HIP_LIB_VARS "HIP_hip_hcc_LIBRARY")
-    list(APPEND REQUIRED_HIP_LIB_VARS "HIP_hiprtc_LIBRARY")
-else()
-    # define empty target
-    add_library(HIP::hiprt UNKNOWN IMPORTED)
-endif()
-
 
 if (HIP_PLATFORM STREQUAL "nvcc")
     find_library(CUDA_cudadevrt_LIBRARY cudadevrt HINTS ${CUDA_LIB_PATH})
@@ -197,141 +161,9 @@ else()
     add_library(CUDA::cusparse UNKNOWN IMPORTED)
 endif()
 
-if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
-    find_path(HIP_hipfft_INCLUDE_DIR
-        NAMES hipfft.h
-        PATHS
-        ${HIP_ROOT_DIR}/rocfft/include
-        $ENV{ROCM_PATH}/hipfft/include
-        $ENV{HIP_PATH}/hipfft/include
-        /opt/rocm/include
-        /opt/rocm/hipfft/include
-        NO_DEFAULT_PATH)
-
-    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_hipfft_INCLUDE_DIR)
-
-    find_library(HIP_rocfft_LIBRARY rocfft
-        PATHS
-        "${HIP_ROOT_DIR}"
-        $ENV{ROCM_PATH}/rocfft
-        ENV HIP_PATH
-        /opt/rocm
-        /opt/rocm/rocfft
-        PATH_SUFFIXES lib
-        NO_DEFAULT_PATH)
-
-    find_path(HIP_rocfft_INCLUDE_DIR
-        NAMES rocfft.h
-        PATHS
-        ${HIP_ROOT_DIR}/rocfft
-        $ENV{ROCM_PATH}/rocfft
-        $ENV{HIP_PATH}/rocfft
-        /opt/rocm
-        /opt/rocm/rocfft
-        PATH_SUFFIXES include
-        NO_DEFAULT_PATH)
-
-    mark_as_advanced(HIP_rocfft_LIBRARY)
-    if(HIP_rocfft_LIBRARY AND NOT TARGET HIP::hipfft)
-      add_library(HIP::hipfft UNKNOWN IMPORTED)
-      set_target_properties(HIP::hipfft PROPERTIES
-        IMPORTED_LOCATION "${HIP_rocfft_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${HIP_hipfft_INCLUDE_DIR};${HIP_rocfft_INCLUDE_DIR}"
-        )
-    endif()
-    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_rocfft_LIBRARY)
+if (HIP_PLATFORM STREQUAL "hip-clang")
+    find_package(hipfft)
 endif()
-
-if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
-    find_library(HIP_roctracer_LIBRARY roctracer64
-        PATHS
-        "${HIP_ROOT_DIR}"
-        ENV ROCM_PATH
-        ENV HIP_PATH
-        /opt/rocm
-        /opt/rocm/roctracer
-        PATH_SUFFIXES lib
-        NO_DEFAULT_PATH)
-
-    find_path(HIP_roctracer_INCLUDE_DIR
-        NAMES roctracer.h
-        PATHS
-        ${HIP_ROOT_DIR}/roctracer
-        $ENV{ROCM_PATH}/roctracer
-        $ENV{HIP_PATH}/roctracer
-        /opt/rocm
-        /opt/rocm/roctracer
-        PATH_SUFFIXES include
-        NO_DEFAULT_PATH)
-
-    mark_as_advanced(HIP_roctracer_LIBRARY)
-    if(HIP_roctracer_LIBRARY AND NOT TARGET HIP::roctracer)
-      add_library(HIP::roctracer UNKNOWN IMPORTED)
-      set_target_properties(HIP::roctracer PROPERTIES
-        IMPORTED_LOCATION "${HIP_roctracer_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${HIP_roctracer_INCLUDE_DIR};${HIP_roctracer_INCLUDE_DIR}"
-        )
-    endif()
-endif()
-
-
-#find_library(HIP_hipsparse_LIBRARY hipsparse
-#    PATHS
-#    "${HIP_ROOT_DIR}"
-#    ENV ROCM_PATH
-#    ENV HIP_PATH
-#    /opt/rocm
-#    /opt/rocm/hipsparse
-#    PATH_SUFFIXES lib
-#    NO_DEFAULT_PATH)
-#find_path(HIP_hipsparse_INCLUDE_DIR
-#    NAMES hipsparse.h
-#    PATHS
-#    ${HIP_ROOT_DIR}/hipsparse/include
-#    $ENV{ROCM_PATH}/hipsparse/include
-#    $ENV{HIP_PATH}/hipsparse/include
-#    /opt/rocm/include
-#    /opt/rocm/hipsparse/include
-#    NO_DEFAULT_PATH)
-#mark_as_advanced(HIP_hipsparse_LIBRARY)
-#list(APPEND REQUIRED_CUDA_LIB_VARS HIP_hipsparse_LIBRARY)
-#list(APPEND _hipsparse_includes ${HIP_hipsparse_INCLUDE_DIR})
-
-#if(HIP_hipsparse_LIBRARY AND NOT TARGET HIP::hipsparse)
-#  add_library(HIP::hipsparse UNKNOWN IMPORTED)
-#  set_target_properties(HIP::hipsparse PROPERTIES
-#    IMPORTED_LOCATION "${HIP_hipsparse_LIBRARY}"
-#    )
-#endif()
-
-#if (HIP_PLATFORM STREQUAL "hip-clang" OR HIP_PLATFORM STREQUAL "hcc")
-#    find_library(HIP_rocsparse_LIBRARY rocsparse
-#        PATHS
-#        "${HIP_ROOT_DIR}"
-#        ENV ROCM_PATH
-#        ENV HIP_PATH
-#        /opt/rocm
-#        /opt/rocm/rocsparse
-#        PATH_SUFFIXES lib
-#        NO_DEFAULT_PATH)
-#    find_path(HIP_rocsparse_INCLUDE_DIR
-#        NAMES rocsparse.h
-#        PATHS
-#        ${HIP_ROOT_DIR}/rocsparse/include
-#        $ENV{ROCM_PATH}/rocsparse/include
-#        $ENV{HIP_PATH}/rocsparse/include
-#        /opt/rocm/include
-#        /opt/rocm/rocsparse/include
-#        NO_DEFAULT_PATH)
-#
-#    list(APPEND _hipsparse_includes ${HIP_rocsparse_INCLUDE_DIR})
-#    mark_as_advanced(HIP_rocsparse_LIBRARY)
-#    set_target_properties(HIP::hipsparse PROPERTIES
-#        INTERFACE_INCLUDE_DIRECTORIES "${_hipsparse_includes}"
-#        INTERFACE_LINK_LIBRARIES "${HIP_rocsparse_LIBRARY}"
-#        )
-#    list(APPEND REQUIRED_CUDA_LIB_VARS HIP_rocsparse_LIBRARY)
-#endif()
 
 if (HIP_PLATFORM STREQUAL "nvcc")
     # find compute-sanitizer
