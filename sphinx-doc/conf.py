@@ -77,6 +77,9 @@ todo_include_todos = False
 html_theme = 'sphinx_rtd_theme'
 html_css_files = ['css/hoomd-theme.css']
 html_static_path = ['_static']
+html_logo = 'hoomdblue-logo-vertical.svg'
+html_theme_options = {'logo_only': True}
+html_favicon = 'hoomdblue-logo-favicon.svg'
 
 IGNORE_MODULES = ['hoomd._hoomd']
 IGNORE_CLASSES = []

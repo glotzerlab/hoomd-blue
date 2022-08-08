@@ -7,6 +7,25 @@ Change Log
 v3.x
 ----
 
+v3.4.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The new HOOMD-blue logo is now available in the documentation.
+
+*Changed*
+
+*Fixed*
+
+* Active forces on manifolds now attach to the ``Simulation`` correctly.
+* ``hoomd.update.FilterUpdater`` now accepts ``hoomd.filter.CustomFilter`` subclasses.
+* Correct error message is given when a sequence like parameter is not given to a type parameter.
+* Fix non-axis-aligned Cylinder walls in MD.
+* ``hoomd.md.constrain.Constraint`` now has ``hoomd.md.force.Force`` as a base class.
+* Provide a warning instead of an error when passing an out of range seed to the ``Simulation``
+  constructor.
+
 v3.3.0 (2022-07-08)
 ^^^^^^^^^^^^^^^^^^^
 
