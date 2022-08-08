@@ -4,6 +4,7 @@
 import hoomd
 import pytest
 
+
 @pytest.mark.gpu
 def test_gpu_profile(device):
 
@@ -110,17 +111,30 @@ def test_cpu_build_specifics():
 
 
 def test_device_notice(device, tmp_path):
-    # Message file declared. Should output in specified file
+    # Message file declared. Should output in specified file.
     device.notice_level = 4
-    device.msg_file = str(tmp_path / "example.txt")
+    device.msg_file = str(tmp_path / "str_message")
     msg = "This message should output."
     device.notice(msg)
-    with open(device.msg_file) as fh:
-        # Check the msg file if the output is correctly placed
-        assert fh.read() == msg + "\n"
-    device.msg_file = str(tmp_path/"example2.txt")
-    # Test notice with a message that is not a string
+
+    if device.communicator.rank == 0:
+        with open(device.msg_file) as fh:
+            assert fh.read() == msg + "\n"
+
+    # Test notice with a message that is not a string.
+    device.msg_file = str(tmp_path / "int_message")
     msg = 123456
     device.notice(msg)
-    with open(device.msg_file) as fh:
-        assert fh.read() == str(msg) + "\n"
+
+    if device.communicator.rank == 0:
+        with open(device.msg_file) as fh:
+            assert fh.read() == str(msg) + "\n"
+
+    # Test the level argument.
+    device.msg_file = str(tmp_path / "empty_notice")
+    msg = "This message should not output."
+    device.notice(msg, level=5)
+
+    if device.communicator.rank == 0:
+        with open(device.msg_file) as fh:
+            assert fh.read() == ""
