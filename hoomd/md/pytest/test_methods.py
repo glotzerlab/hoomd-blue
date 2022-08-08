@@ -2,7 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-from hoomd.conftest import pickling_check, logging_check
+from hoomd.conftest import (pickling_check, logging_check, autotuned_kernel_parameter_check)
 from hoomd.logging import LoggerCategories
 import pytest
 from copy import deepcopy
@@ -599,6 +599,23 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     xi_rot, eta_rot = nvt.rotational_thermostat_dof
     assert xi_rot != 0.0
     assert eta_rot == 0.0
+
+
+def test_kernel_parameters(method_base_params, simulation_factory,
+                  two_particle_snapshot_factory):
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=hoomd.filter.All())
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    if (method_base_params.method == hoomd.md.methods.Berendsen
+            and sim.device.communicator.num_ranks > 1):
+        pytest.skip("Berendsen method does not support multiple processor "
+                    "configurations.")
+    integrator = hoomd.md.Integrator(0.05, methods=[method])
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=method, activate=lambda: sim.run(1))
 
 
 def test_pickling(method_base_params, simulation_factory,

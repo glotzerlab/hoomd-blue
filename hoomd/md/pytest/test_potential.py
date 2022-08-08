@@ -10,7 +10,7 @@ import numpy as np
 import hoomd
 from hoomd import md
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
 from hoomd.error import TypeConversionError
 import pytest
 import itertools
@@ -739,6 +739,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
 
+    autotuned_kernel_parameter_check(instance=pot, activate=lambda: sim.run(1))
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     # A subtle bug existed where we used "shifted" instead of "shift" in Python

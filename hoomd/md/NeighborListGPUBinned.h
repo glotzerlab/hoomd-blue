@@ -89,7 +89,6 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
 
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
-    unsigned int m_block_size;      //!< Block size to execute on the GPU
     bool m_use_index;               //!< True for indirect lookup of particle data via index
 
     /// Track when the cell size needs to be updated

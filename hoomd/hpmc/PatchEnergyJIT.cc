@@ -55,7 +55,7 @@ namespace detail
     {
 void export_PatchEnergyJIT(pybind11::module& m)
     {
-    pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy>>(m, "PatchEnergy")
+    pybind11::class_<hpmc::PatchEnergy, Autotuned, std::shared_ptr<hpmc::PatchEnergy>>(m, "PatchEnergy")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     pybind11::class_<PatchEnergyJIT, hpmc::PatchEnergy, std::shared_ptr<PatchEnergyJIT>>(
         m,

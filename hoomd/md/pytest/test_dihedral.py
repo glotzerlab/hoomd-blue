@@ -4,7 +4,7 @@
 import hoomd
 from hoomd import md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
 import pytest
 import numpy
 
@@ -174,6 +174,26 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
                                       [0, force_array[1], -1 * force_array[2]],
                                       rtol=1e-2,
                                       atol=1e-5)
+
+
+@pytest.mark.parametrize('dihedral_cls, dihedral_args, params, force, energy',
+                         dihedral_test_parameters)
+def test_kernel_parameters(dihedral_snapshot_factory, simulation_factory,
+                             dihedral_cls, dihedral_args, params, force,
+                             energy):
+    phi_deg = 45
+    snapshot = dihedral_snapshot_factory(phi_deg=phi_deg)
+    sim = simulation_factory(snapshot)
+
+    potential = dihedral_cls(**dihedral_args)
+    potential.params['A-A-A-A'] = params
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=potential, activate=lambda: sim.run(1))
 
 
 # Test Logging

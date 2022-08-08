@@ -3,7 +3,7 @@
 
 import hoomd
 import pytest
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
 
 
 def test_attributes():
@@ -58,6 +58,20 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
     assert active.active_force['A'] == (0.0, 0.0, 1.0)
 
 
+def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
+    active = hoomd.md.force.Active(filter=hoomd.filter.All())
+
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
+    integrator = hoomd.md.Integrator(.05)
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
+    integrator.forces.append(active)
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=active, activate=lambda: sim.run(1))
+
+
 def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
     plane = hoomd.md.manifold.Plane()
     active = hoomd.md.force.ActiveOnManifold(filter=hoomd.filter.All(),
@@ -83,6 +97,22 @@ def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
     with pytest.raises(AttributeError):
         active.manifold_constraint = sphere
     assert active.manifold_constraint == plane
+
+
+def test_kernel_parameters_manifold(simulation_factory, two_particle_snapshot_factory):
+    plane = hoomd.md.manifold.Plane()
+    active = hoomd.md.force.ActiveOnManifold(filter=hoomd.filter.All(),
+                                             manifold_constraint=plane)
+
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
+    integrator = hoomd.md.Integrator(.05)
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
+    integrator.forces.append(active)
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=active, activate=lambda: sim.run(1))
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):

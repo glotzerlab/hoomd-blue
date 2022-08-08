@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
 
 
 def _nlist_params():
@@ -100,6 +100,11 @@ def test_simple_simulation(nlist_params, simulation_factory,
     sim = simulation_factory(lattice_snapshot_factory(n=10))
     sim.operations.integrator = integrator
     sim.run(2)
+
+    # Force nlist to update every step to ensure autotuning occurs.
+    nlist.check_dist=False
+    nlist.rebuild_check_delay=1
+    autotuned_kernel_parameter_check(instance=nlist, activate=lambda: sim.run(1))
 
 
 def test_auto_detach_simulation(simulation_factory,

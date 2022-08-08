@@ -6,6 +6,7 @@
 import hoomd
 import pytest
 import numpy as np
+from hoomd.conftest import autotuned_kernel_parameter_check
 
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
@@ -125,6 +126,32 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     sim.run(0)
     assert mc._attached
     assert patch._attached
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotentialUnion(
+        r_cut_isotropic=1.4,
+        r_cut_constituent=1.0,
+        code_isotropic='',
+        code_constituent='return 6;',
+        param_array_constituent=[],
+        param_array_isotropic=[],
+    )
+    patch.positions['A'] = [(0, 0, 0)]
+    patch.orientations['A'] = [(1, 0, 0, 0)]
+    patch.diameters['A'] = [1.0]
+    patch.typeids['A'] = [0]
+    patch.charges['A'] = [0]
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=patch, activate=lambda: sim.run(1))
 
 
 @pytest.mark.validate

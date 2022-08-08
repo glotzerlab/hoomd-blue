@@ -5,7 +5,7 @@ import hoomd
 import pytest
 from itertools import permutations
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check
+from hoomd.conftest import logging_check, autotuned_kernel_parameter_check
 
 _directions = list(permutations(['x', 'y', 'z'], 2))
 
@@ -82,6 +82,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
 
     sim.run(10)
 
+    autotuned_kernel_parameter_check(instance=mpf, activate=lambda: sim.run(1))
 
 def test_logging():
     logging_check(

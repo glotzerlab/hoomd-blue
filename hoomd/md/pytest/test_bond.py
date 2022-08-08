@@ -4,7 +4,7 @@
 import hoomd
 from hoomd import md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
 import pytest
 import numpy as np
 
@@ -154,6 +154,23 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
                                    atol=1e-5)
 
 
+@pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
+                         bond_test_parameters)
+def test_kernel_parameters(snapshot_factory, simulation_factory, bond_cls,
+                             bond_args, params, force, energy):
+    sim = simulation_factory(snapshot_factory())
+
+    potential = bond_cls(**bond_args)
+    potential.params['A-A'] = params
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=potential, activate=lambda: sim.run(1))
+
+
 # Test Logging
 @pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
                          zip((md.bond.Bond, md.bond.Harmonic, md.bond.FENEWCA,
@@ -167,9 +184,9 @@ def test_logging(cls, expected_namespace, expected_loggables):
 # Pickle Testing
 @pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
                          bond_test_parameters)
-def test_pickling(simulation_factory, two_particle_snapshot_factory, bond_cls,
+def test_pickling(simulation_factory, snapshot_factory, bond_cls,
                   bond_args, params, force, energy):
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(snapshot_factory())
     potential = bond_cls(**bond_args)
     potential.params['A-A'] = params
 

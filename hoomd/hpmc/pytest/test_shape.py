@@ -4,7 +4,8 @@
 from collections.abc import Sequence
 
 import hoomd
-from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.conftest import (operation_pickling_check, logging_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.error import DataAccessError
 import hoomd.hpmc
 import numpy as np
@@ -102,8 +103,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
     check_dict(mc.shape["A"], args)
 
 
-def test_moves(device, simulation_factory, lattice_snapshot_factory,
-               test_moves_args):
+def test_moves(simulation_factory, lattice_snapshot_factory, test_moves_args):
     integrator = test_moves_args[0]
     args = test_moves_args[1]
     n_dimensions = test_moves_args[2]
@@ -128,6 +128,25 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
     if 'sphere' not in str(integrator).lower():
         accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
         assert accepted_rejected_rot > 0
+
+
+def test_kernel_parameters(simulation_factory, lattice_snapshot_factory,
+                           test_moves_args):
+    integrator = test_moves_args[0]
+
+    if integrator == hoomd.hpmc.integrate.Sphinx:
+        pytest.skip("Sphinx does not build on the GPU by default.")
+
+    args = test_moves_args[1]
+    n_dimensions = test_moves_args[2]
+    mc = integrator()
+    mc.shape['A'] = args
+
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=n_dimensions))
+    sim.operations.add(mc)
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=mc, activate=lambda: sim.run(1))
 
 
 # An ellipsoid with a = b = c should be a sphere
