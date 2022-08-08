@@ -154,6 +154,18 @@ std::string mpi_bcast_str(pybind11::object string,
 #endif
     }
 
+bool mpi_allreduce_bcast_and(bool v, std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+#ifdef ENABLE_MPI
+    bool reduced_result = false;
+    MPI_Allreduce(&v, &reduced_result, 1, MPI_C_BOOL, MPI_LAND, exec_conf->getMPICommunicator());
+    bcast(reduced_result, 0, exec_conf->getMPICommunicator());
+    return reduced_result;
+#else
+    return v;
+#endif
+    }
+
     } // end namespace detail
 
     } // end namespace hoomd
@@ -183,6 +195,7 @@ PYBIND11_MODULE(_hoomd, m)
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
     m.def("mpi_bcast_str", mpi_bcast_str);
+    m.def("mpi_allreduce_bcast_and", mpi_allreduce_bcast_and);
 
     pybind11::class_<BuildInfo>(m, "BuildInfo")
         .def_static("getVersion", BuildInfo::getVersion)

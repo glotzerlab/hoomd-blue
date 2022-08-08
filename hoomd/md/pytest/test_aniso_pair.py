@@ -13,7 +13,8 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import (pickling_check, logging_check, autotuned_kernel_parameter_check)
+from hoomd.conftest import (pickling_check, logging_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.logging import LoggerCategories
 from hoomd import md
 from hoomd.error import TypeConversionError
@@ -413,7 +414,8 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
         assert np.any(energies != 0)
         assert np.any(forces != 0)
 
-    autotuned_kernel_parameter_check(instance=pair_potential, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=pair_potential,
+                                     activate=lambda: sim.run(1))
 
 
 @pytest.mark.parametrize("aniso_forces_and_energies",

@@ -4,7 +4,8 @@
 import hoomd
 from hoomd import md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 import pytest
 import numpy
 
@@ -176,7 +177,7 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
 @pytest.mark.parametrize('angle_cls, angle_args, params, force, energy',
                          angle_test_parameters)
 def test_kernel_parameters(triplet_snapshot_factory, simulation_factory,
-                             angle_cls, angle_args, params, force, energy):
+                           angle_cls, angle_args, params, force, energy):
     theta_deg = 60
     snapshot = triplet_snapshot_factory(theta_deg=theta_deg)
     sim = simulation_factory(snapshot)
@@ -189,7 +190,8 @@ def test_kernel_parameters(triplet_snapshot_factory, simulation_factory,
 
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=potential, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=potential,
+                                     activate=lambda: sim.run(1))
 
 
 # Test Logging

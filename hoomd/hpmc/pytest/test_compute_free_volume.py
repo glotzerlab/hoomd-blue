@@ -81,9 +81,8 @@ def test_validation_systems(simulation_factory, lattice_snapshot_factory,
         sim.run(1)
         return free_volume_compute.free_volume
 
-    autotuned_kernel_parameter_check(
-        instance=free_volume_compute,
-        activate=activate_tuner)
+    autotuned_kernel_parameter_check(instance=free_volume_compute,
+                                     activate=activate_tuner)
 
 
 def test_logging():

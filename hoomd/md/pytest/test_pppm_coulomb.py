@@ -99,7 +99,8 @@ def test_attach_detach(simulation_factory,
         coulomb.alpha = 3.0
 
 
-def test_kernel_parameters(simulation_factory, two_charged_particle_snapshot_factory):
+def test_kernel_parameters(simulation_factory,
+                           two_charged_particle_snapshot_factory):
     """Test that md.long_range.pppm.Coulomb can be pickled and unpickled."""
     nlist = hoomd.md.nlist.Cell(buffer=0.4)
     ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
@@ -114,7 +115,9 @@ def test_kernel_parameters(simulation_factory, two_charged_particle_snapshot_fac
 
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=coulomb, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=coulomb,
+                                     activate=lambda: sim.run(1))
+
 
 def test_pickling(simulation_factory, two_charged_particle_snapshot_factory):
     """Test that md.long_range.pppm.Coulomb can be pickled and unpickled."""

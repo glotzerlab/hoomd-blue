@@ -3,8 +3,7 @@
 
 import hoomd
 import pytest
-from hoomd.conftest import (operation_pickling_check,
-                            autotuned_kernel_parameter_check)
+from hoomd.conftest import operation_pickling_check
 
 
 def test_balance_properties():
@@ -115,6 +114,3 @@ def test_balance_action(device, simulation_factory, lattice_snapshot_factory):
 
     # the load balance should move the split place down toward the particles
     assert sim.state.domain_decomposition_split_fractions[2][0] < 0.5
-
-    # Kernel parameters are not changing for unknown reasons.
-    # autotuned_kernel_parameter_check(simulation=sim, instance=balance)

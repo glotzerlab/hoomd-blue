@@ -32,9 +32,8 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Cannot create TwoStepBDGPU on a CPU device.");
         }
 
-    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
-                                       m_exec_conf,
-                                       "bd"));
+    m_tuner.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "bd"));
     m_autotuners.push_back(m_tuner);
     }
 

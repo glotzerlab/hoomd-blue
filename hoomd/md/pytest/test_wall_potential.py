@@ -7,7 +7,8 @@ import pytest
 import hoomd
 import hoomd.md as md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 
 import itertools
 
@@ -278,7 +279,9 @@ def test_kernel_parameters(simulation, cls, params):
 
     simulation.run(0)
 
-    autotuned_kernel_parameter_check(instance=wall_pot, activate=lambda: simulation.run(1))
+    autotuned_kernel_parameter_check(instance=wall_pot,
+                                     activate=lambda: simulation.run(1))
+
 
 # Pickle Testing
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))

@@ -253,7 +253,8 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     if sim.device.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
 
-    autotuned_kernel_parameter_check(instance=rigid, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=rigid,
+                                     activate=lambda: sim.run(1))
 
 
 def test_running_without_body_definition(simulation_factory,

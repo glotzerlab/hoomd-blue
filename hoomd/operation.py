@@ -309,6 +309,13 @@ class AutotunedObject(_HOOMDBaseObject):
         compress to a higher density), then tune the parameters again after
         making the change with `tune_kernel_parameters`.
 
+    Note:
+        In MPI parallel execution, all methods and attributes of
+        `AutotunedObject` reference the rank local tuner objects. Different
+        ranks may tune different optimal kernel parameters and may complete
+        tuning at different times.
+
+
     See Also:
         * `hoomd.Operations.is_tuning_complete`
         * `hoomd.Operations.tune_kernel_parameters`

@@ -151,7 +151,8 @@ def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=patch, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=patch,
+                                     activate=lambda: sim.run(1))
 
 
 @pytest.mark.validate

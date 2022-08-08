@@ -18,6 +18,7 @@ from hoomd.data import syncedlist
 from hoomd.operation import Writer, Updater, Tuner, Compute, Integrator
 from hoomd.tune import ParticleSorter
 from hoomd.error import DataAccessError
+from hoomd import _hoomd
 
 
 class Operations(Collection):
@@ -297,13 +298,22 @@ class Operations(Collection):
 
         ``True`` when ``is_tuning_complete`` is ``True`` for all children.
 
+        Note:
+            In MPI parallel execution, `is_tuning_complete` is ``True`` only
+            when all children on **all ranks** have completed tuning.
+
         See Also:
             `hoomd.operation.AutotunedObject.is_tuning_complete`
         """
         if not self._scheduled:
             raise DataAccessError("is_tuning_complete")
 
-        return all(op.is_tuning_complete for op in self)
+        result = all(op.is_tuning_complete for op in self)
+        if self._simulation.device.communicator.num_ranks == 1:
+            return result
+        else:
+            return _hoomd.mpi_allreduce_bcast_and(
+                result, self._simulation.device._cpp_exec_conf)
 
     def tune_kernel_parameters(self):
         """Start tuning kernel parameters in all children.

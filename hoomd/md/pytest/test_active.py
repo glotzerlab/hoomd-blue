@@ -69,7 +69,8 @@ def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = integrator
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=active, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=active,
+                                     activate=lambda: sim.run(1))
 
 
 def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
@@ -99,7 +100,8 @@ def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
     assert active.manifold_constraint == plane
 
 
-def test_kernel_parameters_manifold(simulation_factory, two_particle_snapshot_factory):
+def test_kernel_parameters_manifold(simulation_factory,
+                                    two_particle_snapshot_factory):
     plane = hoomd.md.manifold.Plane()
     active = hoomd.md.force.ActiveOnManifold(filter=hoomd.filter.All(),
                                              manifold_constraint=plane)
@@ -112,7 +114,8 @@ def test_kernel_parameters_manifold(simulation_factory, two_particle_snapshot_fa
     sim.operations.integrator = integrator
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=active, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=active,
+                                     activate=lambda: sim.run(1))
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):

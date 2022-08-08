@@ -3,7 +3,8 @@
 
 import hoomd
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 import pytest
 import numpy
 
@@ -116,8 +117,8 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, improper_cls,
 
 @pytest.mark.parametrize("improper_cls, params, force, energy",
                          improper_test_parameters)
-def test_forces_and_energies(snapshot_factory, simulation_factory, improper_cls,
-                             params, force, energy):
+def test_kernel_parameters(snapshot_factory, simulation_factory, improper_cls,
+                           params, force, energy):
     snapshot = snapshot_factory()
     sim = simulation_factory(snapshot)
 
@@ -133,7 +134,8 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, improper_cls,
 
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=potential, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=potential,
+                                     activate=lambda: sim.run(1))
 
 
 # Test Logging

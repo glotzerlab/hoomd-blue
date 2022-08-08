@@ -4,7 +4,8 @@
 import hoomd
 from hoomd import md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import (logging_check, pickling_check, autotuned_kernel_parameter_check)
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 import pytest
 import numpy as np
 
@@ -157,7 +158,7 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, bond_cls,
 @pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
                          bond_test_parameters)
 def test_kernel_parameters(snapshot_factory, simulation_factory, bond_cls,
-                             bond_args, params, force, energy):
+                           bond_args, params, force, energy):
     sim = simulation_factory(snapshot_factory())
 
     potential = bond_cls(**bond_args)
@@ -168,7 +169,8 @@ def test_kernel_parameters(snapshot_factory, simulation_factory, bond_cls,
 
     sim.run(0)
 
-    autotuned_kernel_parameter_check(instance=potential, activate=lambda: sim.run(1))
+    autotuned_kernel_parameter_check(instance=potential,
+                                     activate=lambda: sim.run(1))
 
 
 # Test Logging
@@ -184,8 +186,8 @@ def test_logging(cls, expected_namespace, expected_loggables):
 # Pickle Testing
 @pytest.mark.parametrize('bond_cls, bond_args, params, force, energy',
                          bond_test_parameters)
-def test_pickling(simulation_factory, snapshot_factory, bond_cls,
-                  bond_args, params, force, energy):
+def test_pickling(simulation_factory, snapshot_factory, bond_cls, bond_args,
+                  params, force, energy):
     sim = simulation_factory(snapshot_factory())
     potential = bond_cls(**bond_args)
     potential.params['A-A'] = params
