@@ -140,13 +140,15 @@ class Device:
         else:
             self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
 
-    def notice(self, message, notice_level=1):
+    def notice(self, message, level=1):
         """Write a notice message.
 
         Args:
             message (str): Message to write.
+            level (int): Message notice level.
 
-        Write the given message string to the output defined by `msg_file`.
+        Write the given message string to the output defined by `msg_file`
+        on MPI rank 0 when `notice_level` >= ``level``.
 
         Hint:
             Use `notice` instead of `print` to write status messages and your
@@ -154,7 +156,7 @@ class Device:
             only on rank 0. Use with a rank-specific `msg_file` to troubleshoot
             issues with specific partitions.
         """
-        self._cpp_msg.notice(notice_level, str(message) + "\n")
+        self._cpp_msg.notice(level, str(message) + "\n")
 
 
 def _create_messenger(mpi_config, notice_level, msg_file):
