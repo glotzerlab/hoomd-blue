@@ -13,7 +13,7 @@ class LoadBalancer(Tuner):
     r"""Adjusts the boundaries of the domain decomposition.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps on which to
+        trigger (hoomd.trigger.trigger_like): Select the timesteps on which to
             perform load balancing.
         x (bool): Balance the **x** direction when `True`.
         y (bool): Balance the **y** direction when `True`.

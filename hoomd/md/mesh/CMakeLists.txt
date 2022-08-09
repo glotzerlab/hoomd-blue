@@ -2,6 +2,7 @@ set(files __init__.py
           bond.py
           conservation.py
           potential.py
+	  surfacetension.py
    )
 
 install(FILES ${files}

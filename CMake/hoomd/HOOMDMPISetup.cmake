@@ -14,13 +14,21 @@ if (ENABLE_MPI)
             add_library(cereal::cereal ALIAS cereal)
         endif()
     else()
-        # work around missing ceralConfig.cmake
-
+        # work around missing ceralConfig.cmake (common on Ubuntu 20.04)
         find_path(cereal_INCLUDE_DIR NAMES cereal/cereal.hpp
             PATHS ${CMAKE_INSTALL_PREFIX}/include)
         add_library(cereal::cereal INTERFACE IMPORTED)
         set_target_properties(cereal::cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
-        find_package_message(cereal "Could not find cereal, assuming it is on a default path" "[${cereal_INCLUDE_DIR}]")
+        find_package_message(cereal "Could not find cereal by config file, falling back to ${cereal_INCLUDE_DIR}" "[${cereal_INCLUDE_DIR}]")
+    endif()
+
+    # Work around broken cereal::cereal target (common on Ubuntu 22.04)
+    get_target_property(_cereal_include cereal::cereal INTERFACE_INCLUDE_DIRECTORIES)
+    if (_cereal_include STREQUAL "/include")
+        find_path(cereal_INCLUDE_DIR NAMES cereal/cereal.hpp
+            PATHS ${CMAKE_INSTALL_PREFIX}/include)
+        set_target_properties(cereal::cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
+        find_package_message(cereal "Fixing broken cereal::cereal target with ${cereal_INCLUDE_DIR}" "[${cereal_INCLUDE_DIR}]")
     endif()
 
     mark_as_advanced(MPI_EXTRA_LIBRARY)

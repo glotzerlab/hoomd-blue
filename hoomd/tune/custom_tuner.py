@@ -29,7 +29,7 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
 
     Args:
         action (hoomd.custom.Action): The action to call.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to call the
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to call the
           action.
 
     `CustomTuner` is a `hoomd.operation.Tuner` that wraps a user-defined

@@ -34,11 +34,10 @@ class Harmonic(ExternalField):
         reference_orientations ((*N_particles*, 4) `numpy.ndarray` of `float`):
             the reference orientations to which particles are restrained
             :math:`[\mathrm{dimensionless}]`.
-        k_translational (`hoomd.variant.Variant` or `float`): translational
-            spring constant :math:`[\mathrm{energy} \cdot
-            \mathrm{length}^{-2}]`.
-        k_rotational (`hoomd.variant.Variant` or `float`): rotational spring
-            constant :math:`[\mathrm{energy}]`.
+        k_translational (hoomd.variant.variant_like): translational spring
+            constant :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`.
+        k_rotational (hoomd.variant.variant_like): rotational spring constant
+            :math:`[\mathrm{energy}]`.
         symmetries ((*N_symmetries*, 4) `numpy.ndarray` of `float`): the
             orientations that are equivalent through symmetry, i.e., the
             rotation quaternions that leave the particles unchanged. At a

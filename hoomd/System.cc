@@ -84,6 +84,8 @@ void System::run(uint64_t nsteps, bool write_at_start)
 
     // initialize the last status time
     m_initial_time = m_clk.getTime();
+    m_last_walltime = 0.0;
+    m_last_TPS = 0.0;
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
     // info they need but set the flags before prepRun, as prepRun may remove some flags that it
@@ -169,22 +171,13 @@ void System::run(uint64_t nsteps, bool write_at_start)
             }
 
         updateTPS();
-        }
 
-    // propagate Python exceptions related to signals
-    if (PyErr_CheckSignals() != 0)
-        {
-        throw pybind11::error_already_set();
+        // propagate Python exceptions related to signals
+        if (PyErr_CheckSignals() != 0)
+            {
+            throw pybind11::error_already_set();
+            }
         }
-
-#ifdef ENABLE_MPI
-    // make sure all ranks return the same TPS after the run completes
-    if (m_sysdef->isDomainDecomposed())
-        {
-        bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
-        bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
-        }
-#endif
     }
 
 void System::updateTPS()
@@ -316,6 +309,7 @@ void export_System(pybind11::module& m)
         .def("getPressureFlag", &System::getPressureFlag)
         .def_property_readonly("walltime", &System::getCurrentWalltime)
         .def_property_readonly("final_timestep", &System::getEndStep)
+        .def_property_readonly("initial_timestep", &System::getStartStep)
         .def_property_readonly("analyzers", &System::getAnalyzers)
         .def_property_readonly("updaters", &System::getUpdaters)
         .def_property_readonly("tuners", &System::getTuners)

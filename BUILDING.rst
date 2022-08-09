@@ -77,7 +77,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++17 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12, 13)
+- C++17 capable compiler (tested with ``gcc`` 7 - 12 and ``clang`` 6 - 14)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
@@ -118,7 +118,8 @@ Install prerequisites
 
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 10.0, < 13
+- LLVM >= 10.0
+- libclang-cpp >= 10.0
 
 **To build the documentation:**
 
@@ -138,7 +139,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.1.0.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.3.0.tar.gz`_.
 
 .. seealso::
 
@@ -151,7 +152,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-v3.1.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.1.0/hoomd-v3.1.0.tar.gz
+.. _Download hoomd-v3.3.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.3.0/hoomd-v3.3.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/

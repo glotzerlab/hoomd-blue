@@ -215,6 +215,12 @@ template<class evaluator> class PotentialPair : public ForceCompute
         return type_shape_mapping;
         }
 
+    /// Reset stats counters for children objects
+    virtual void resetStats()
+        {
+        m_nlist->resetStats();
+        }
+
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut

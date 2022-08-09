@@ -62,8 +62,8 @@ class NVE(MethodRATTLE):
     r"""NVE Integration via Velocity-Verlet with RATTLE constraint.
 
     Args:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
-         apply this method.
+        filter (hoomd.filter.filter_like): Subset of particles on which to apply
+            this method.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
@@ -87,8 +87,8 @@ class NVE(MethodRATTLE):
 
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
-            apply this method.
+        filter (hoomd.filter.filter_like): Subset of particles on which to apply
+            this method.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
             which is used by and as a trigger for the RATTLE algorithm of this
@@ -142,11 +142,11 @@ class Langevin(MethodRATTLE):
     r"""Langevin dynamics with RATTLE constraint.
 
     Args:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to
-            apply this method to.
+        filter (hoomd.filter.filter_like): Subset of particles to apply this
+            method to.
 
-        kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation :math:`[\mathrm{energy}]`.
+        kT (hoomd.variant.variant_like): Temperature of the simulation
+            :math:`[\mathrm{energy}]`.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
@@ -194,8 +194,8 @@ class Langevin(MethodRATTLE):
         manifold_constraint = sphere, seed=1, alpha=1.0)
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to
-            apply this method to.
+        filter (hoomd.filter.filter_like): Subset of particles to apply this
+            method to.
 
         kT (hoomd.variant.Variant): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
@@ -297,11 +297,11 @@ class Brownian(MethodRATTLE):
     r"""Brownian dynamics with RATTLE constraint.
 
     Args:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to
-            apply this method to.
+        filter (hoomd.filter.filter_like): Subset of particles to apply this
+            method to.
 
-        kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation :math:`[\mathrm{energy}]`.
+        kT (hoomd.variant.variant_like): Temperature of the simulation
+            :math:`[\mathrm{energy}]`.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold
             constraint.
@@ -335,8 +335,8 @@ class Brownian(MethodRATTLE):
         forces=[lj])
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to
-            apply this method to.
+        filter (hoomd.filter.filter_like): Subset of particles to apply this
+            method to.
 
         kT (hoomd.variant.Variant): Temperature of the
             simulation :math:`[\mathrm{energy}]`.
@@ -436,7 +436,7 @@ class OverdampedViscous(MethodRATTLE):
     r"""Overdamped viscous dynamics with RATTLE constraint.
 
     Args:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to apply this
+        filter (hoomd.filter.filter_like): Subset of particles to apply this
             method to.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
@@ -470,7 +470,7 @@ class OverdampedViscous(MethodRATTLE):
 
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to apply this
+        filter (hoomd.filter.filter_like): Subset of particles to apply this
             method to.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint

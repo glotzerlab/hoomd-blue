@@ -39,6 +39,8 @@ set(_md_sources module-md.cc
                    NeighborListTree.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
+                   SurfaceTensionMeshForceCompute.cc
+                   SurfaceTensionMeshForceCompute2D.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TwoStepBD.cc
@@ -169,6 +171,10 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
+		SurfaceTensionMeshForceComputeGPU.h
+                SurfaceTensionMeshForceComputeGPU.cuh
+                SurfaceTensionMeshForceCompute.h
+                SurfaceTensionMeshForceCompute2D.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
@@ -226,6 +232,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            NeighborListGPUTree.cc
                            OPLSDihedralForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
+                           SurfaceTensionMeshForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TwoStepBDGPU.cc
@@ -262,6 +269,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
                       PPPMForceComputeGPU.cu
+                      SurfaceTensionMeshForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TwoStepBDGPU.cu
@@ -619,6 +627,7 @@ add_subdirectory(long_range)
 add_subdirectory(external)
 add_subdirectory(minimize)
 add_subdirectory(alchemy)
+add_subdirectory(tune)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

@@ -342,8 +342,8 @@ class Table(_InternalCustomWriter):
         values once created.
 
     Args:
-        trigger (hoomd.trigger.Trigger): The trigger to determine when to run
-            the Table backend.
+        trigger (hoomd.trigger.trigger_like): The trigger to determine when to
+            run the Table backend.
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
