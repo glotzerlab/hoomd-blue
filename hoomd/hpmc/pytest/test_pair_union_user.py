@@ -154,7 +154,7 @@ def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
     autotuned_kernel_parameter_check(instance=patch,
                                      activate=lambda: sim.run(1))
 
-    assert False
+    assert isinstance(sim.device, hoomd.device.CPU)
 
 
 @pytest.mark.validate
