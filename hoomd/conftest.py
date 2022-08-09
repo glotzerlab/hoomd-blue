@@ -24,7 +24,8 @@ logger = logging.getLogger()
 
 pytest_plugins = ("hoomd.pytest_plugin_validate",)
 
-devices = [hoomd.device.CPU]
+# devices = [hoomd.device.CPU]
+devices = []
 _n_available_gpu = len(hoomd.device.GPU.get_available_devices())
 _github_actions = os.environ.get('GITHUB_ACTIONS') is not None
 if hoomd.version.gpu_enabled and (_n_available_gpu > 0 or _github_actions):
@@ -514,7 +515,7 @@ def operation_pickling_check(instance, sim):
     pickling_check(instance)
 
 
-def autotuned_kernel_parameter_check(instance, activate):
+def autotuned_kernel_parameter_check(instance, activate, all_optional=False):
     """Check that an AutotunedObject behaves as expected."""
     instance.tune_kernel_parameters()
 
@@ -527,12 +528,17 @@ def autotuned_kernel_parameter_check(instance, activate):
     else:
         # GPU instances have parameters and start incomplete.
         assert initial_kernel_parameters != {}
-        assert not instance.is_tuning_complete
+
+        # is_tuning_complete is True when all tuners are optional.
+        if not all_optional:
+            assert not instance.is_tuning_complete
+
+        print("Initial parameters:", initial_kernel_parameters)
 
         activate()
 
-        # Parameters should have changed
         assert instance.kernel_parameters != initial_kernel_parameters
+        print("Current parameters:", instance.kernel_parameters)
 
         # Note: It is not practical to automatically test that
         # `is_tuning_complete` is eventually achieved as failure results in an

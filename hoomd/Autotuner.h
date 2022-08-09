@@ -408,7 +408,7 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
                 if (is_parameter_valid(parameter))
                     {
                     m_parameters.push_back(parameter);
-                    m_exec_conf->msg->notice(5) << "Autotuner " << m_name << " adding parameter "
+                    m_exec_conf->msg->notice(1) << "Autotuner " << m_name << " adding parameter "
                                                 << formatParam(parameter) << std::endl;
                     }
                 }
@@ -549,6 +549,9 @@ template<size_t n_dimensions> void Autotuner<n_dimensions>::end()
             m_current_param = m_parameters[m_current_element];
             }
         }
+
+     m_exec_conf->msg->notice(1) << "Autotuner " << m_name << ": current parameter is now " << formatParam(m_current_param) << " " << m_current_element << std::endl;
+
     }
 
 /*! \returns The index of the optimal parameter given the current data in m_samples.

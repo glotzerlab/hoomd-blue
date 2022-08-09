@@ -154,6 +154,8 @@ def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
     autotuned_kernel_parameter_check(instance=patch,
                                      activate=lambda: sim.run(1))
 
+    assert False
+
 
 @pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
