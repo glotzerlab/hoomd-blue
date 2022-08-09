@@ -100,6 +100,8 @@ very limited and only applies to implicit depletants in `hpmc.integrate.HPMCInte
 ``ENABLE_TBB`` CMake option (see :doc:`building`). At runtime, `hoomd.version.tbb_enabled` indicates
 whether the build supports threaded execution.
 
+.. _Run time compilation:
+
 Run time compilation
 --------------------
 

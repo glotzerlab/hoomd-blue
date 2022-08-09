@@ -418,6 +418,9 @@ class MuVT(Updater):
           (applies to Gibbs ensemble)
         ntrial (float): (**default**: 1) Number of configurational bias attempts
           to swap depletants
+        fugacity (`TypeParameter` [ ``particle type``, `float`]):
+            Particle fugacity
+            :math:`[\mathrm{volume}^{-1}]` (**default:** 0).
     """
 
     def __init__(self,

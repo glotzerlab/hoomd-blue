@@ -174,6 +174,7 @@ Molecular dynamics:
    notation
    units
    deprecated
+   logo
    license
    credits
    indices
