@@ -56,14 +56,13 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
             unsigned int group_size = parameter[1];
             unsigned int eval_threads = parameter[2];
 
-            return (group_size <= block_size)
-                   && (block_size % (group_size * eval_threads)) == 0;
+            return (group_size <= block_size) && (block_size % (group_size * eval_threads)) == 0;
         };
 
         auto& launch_bounds = m_gpu_factory.getLaunchBounds();
         std::vector<unsigned int> valid_group_size = launch_bounds;
         // add subwarp group sizes
-        for (unsigned int i = this->m_exec_conf->dev_prop.warpSize/2; i >= 1; i /= 2)
+        for (unsigned int i = this->m_exec_conf->dev_prop.warpSize / 2; i >= 1; i /= 2)
             valid_group_size.insert(valid_group_size.begin(), i);
 
         m_tuner_narrow_patch.reset(new Autotuner<3>(
