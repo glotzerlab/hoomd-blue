@@ -159,7 +159,6 @@ bool mpi_allreduce_bcast_and(bool v, std::shared_ptr<ExecutionConfiguration> exe
 #ifdef ENABLE_MPI
     bool reduced_result = false;
     MPI_Allreduce(&v, &reduced_result, 1, MPI_C_BOOL, MPI_LAND, exec_conf->getMPICommunicator());
-    bcast(reduced_result, 0, exec_conf->getMPICommunicator());
     return reduced_result;
 #else
     return v;
