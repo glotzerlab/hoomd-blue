@@ -44,6 +44,8 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
         throw std::runtime_error("Error initializing MuellerPlatheFlowGPU");
         }
 
+    // m_tuner is only used on some ranks and only some times. Make it optional.
+    // This is the only tuner, so `is_tuning_complete` will not read `False` after starting a scan.
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
                                    "muellerplatheflow",
