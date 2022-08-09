@@ -168,6 +168,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     operation_pickling_check(cl, sim)
 
 
+@pytest.mark.serial
 def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
     """Test that Cluster objects tune their kernel parameters."""
     sim = simulation_factory(two_particle_snapshot_factory())
