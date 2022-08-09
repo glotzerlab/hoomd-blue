@@ -79,7 +79,8 @@ def test_validation_systems(simulation_factory, lattice_snapshot_factory,
     # Tet the kernel parameter tuner.
     def activate_tuner():
         sim.run(1)
-        return free_volume_compute.free_volume
+        # We need to make the kernel be called.
+        free_volume_compute.free_volume
 
     autotuned_kernel_parameter_check(instance=free_volume_compute,
                                      activate=activate_tuner)

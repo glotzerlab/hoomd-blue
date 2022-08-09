@@ -860,8 +860,7 @@ template<class evaluator> void PotentialPair<evaluator>::startAutotuning()
 template<class evaluator> bool PotentialPair<evaluator>::isAutotuningComplete()
     {
     bool result = ForceCompute::isAutotuningComplete();
-    result = result && m_nlist->isAutotuningComplete();
-    return result;
+    return result && m_nlist->isAutotuningComplete();
     }
 
 //! function to compute the energy between two lists of particles.

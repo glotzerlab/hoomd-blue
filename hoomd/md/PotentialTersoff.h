@@ -120,8 +120,7 @@ template<class evaluator> class PotentialTersoff : public ForceCompute
     virtual bool isAutotuningComplete()
         {
         bool result = ForceCompute::isAutotuningComplete();
-        result = result && m_nlist->isAutotuningComplete();
-        return result;
+        return result && m_nlist->isAutotuningComplete();
         }
 
     protected:
