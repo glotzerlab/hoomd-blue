@@ -116,6 +116,9 @@ class PYBIND11_EXPORT AutotunerBase
             {
             v.push_back(s);
             }
+
+        // Include sizes 1 and 2 at the end. This forces the unit tests (which typically run only
+        // the first few parameters) to run the more general tpp >= 2 code path.
         v.push_back(1);
         v.push_back(2);
         return v;
