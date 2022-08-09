@@ -395,7 +395,10 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
         {
         for (auto value : dimension_ranges[current_dimension])
             {
-            parameter[current_dimension] = value;
+            if (current_dimension < n_dimensions)
+                {
+                parameter[current_dimension] = value;
+                }
 
             if (current_dimension == dimension_ranges.size() - 1)
                 {
