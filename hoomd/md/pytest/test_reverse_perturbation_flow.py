@@ -82,7 +82,11 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
 
     sim.run(10)
 
-    autotuned_kernel_parameter_check(instance=mpf, activate=lambda: sim.run(1))
+    if sim.device.communicator.num_ranks == 1:
+        # ReversePerturbationFlow doesn't execute its kernel on all ranks,
+        # test only on serial simulations.
+        autotuned_kernel_parameter_check(instance=mpf,
+                                         activate=lambda: sim.run(1))
 
 
 def test_logging():
