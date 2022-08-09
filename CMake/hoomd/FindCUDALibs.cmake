@@ -169,7 +169,7 @@ if (HIP_PLATFORM STREQUAL "nvcc")
     # find compute-sanitizer
     find_program(CUDA_MEMCHECK_EXECUTABLE
       NAMES compute-sanitizer
-      HINTS "${CUDA_BIN_PATH}"
+      HINTS "${CUDA_BIN_PATH}" "${CUDA_BIN_PATH}../../extras/compute-sanitizer"
       NO_DEFAULT_PATH)
     mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
     list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_MEMCHECK_EXECUTABLE)
