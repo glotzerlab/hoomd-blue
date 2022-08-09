@@ -46,28 +46,28 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
 
         // Autotuner parameters:
         // 0: block size
-        // 1: threads per particle
+        // 1: group size
         // 2: eval threads
 
         std::function<bool(const std::array<unsigned int, 3>&)> is_parameter_valid
             = [](const std::array<unsigned int, 3>& parameter) -> bool
         {
             unsigned int block_size = parameter[0];
-            unsigned int threads_per_particle = parameter[1];
-            unsigned int group_size = parameter[2];
+            unsigned int group_size = parameter[1];
+            unsigned int eval_threads = parameter[2];
 
             return (group_size <= block_size)
-                   && (block_size % (group_size * threads_per_particle)) == 0;
+                   && (block_size % (group_size * eval_threads)) == 0;
         };
 
         auto& launch_bounds = m_gpu_factory.getLaunchBounds();
         std::vector<unsigned int> valid_group_size = launch_bounds;
         // add subwarp group sizes
-        for (unsigned int i = this->m_exec_conf->dev_prop.warpSize; i >= 1; i /= 2)
+        for (unsigned int i = this->m_exec_conf->dev_prop.warpSize/2; i >= 1; i /= 2)
             valid_group_size.insert(valid_group_size.begin(), i);
 
         m_tuner_narrow_patch.reset(new Autotuner<3>(
-            {launch_bounds, AutotunerBase::getTppListPow2(m_exec_conf), valid_group_size},
+            {launch_bounds, valid_group_size, AutotunerBase::getTppListPow2(m_exec_conf)},
             this->m_exec_conf,
             "hpmc_narrow_patch",
             3,
