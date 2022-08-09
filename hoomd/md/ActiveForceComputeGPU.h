@@ -31,14 +31,6 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotining()
-        {
-        // ActiveForceCompute::startAutotuning();
-        m_tuner_force->startScan();
-        m_tuner_diffusion->startScan();
-        }
-
     protected:
     std::shared_ptr<Autotuner<1>> m_tuner_force;     //!< Autotuner for block size (force kernel)
     std::shared_ptr<Autotuner<1>> m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
