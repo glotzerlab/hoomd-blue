@@ -298,13 +298,13 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
     countHistogram() loops through all particle pairs *i,j* where *i* is on the local rank, computes
     the bin corresponding to the scale factor of the vector r_ij that induces the first overlap
     between particles *i* and *j*, and then adds s_ij to the bin, where s_ij = 1 - e^{\beta\Delta
-   U_{ij}}. Note that this definition allows for the consideration of soft overlaps where the pair
-   potential changes value, and reduces 1 for hard particle overlaps.  countHistogram() operates
-   without any communication.
+    U_{ij}}. Note that this definition allows for the consideration of soft overlaps where the pair
+    potential changes value, and reduces to 1 for hard particle overlaps.  countHistogram() operates
+    without any communication.
       - The integrator performs the ghost exchange (with the ghost width extra that we add)
 
     This function is a wrapper that calls the appropriate method depending on the value of
-   m_mc->getPatchEnergy()
+    m_mc->getPatchEnergy()
 */
 template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {

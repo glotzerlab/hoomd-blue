@@ -236,10 +236,10 @@ class SDF(Compute):
     smaller ``xmax``. Check that :math:`\sum_k s(x_k) \cdot dx \approx 0.5`.
 
     Warning:
-        `SDF` only considers negative volume perturbations, and therefore may
+        `SDF` only considers negative volume perturbations, and therefore does
         not compute the correct pressure in simulations where positive volume
         perturbations may change the system's potential energy, e.g., systems of
-        concave particles or with enthalpic interactions.
+        concave particles or with non-monotonic enthalpic interactions.
 
     Note:
         `SDF` always runs on the CPU.
