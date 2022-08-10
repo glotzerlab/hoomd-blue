@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <cfloat>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
