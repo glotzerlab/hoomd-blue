@@ -158,6 +158,8 @@ template<class Shape> class ComputeSDF : public Compute
     std::vector<double> m_hist; //!< Raw histogram data
     std::vector<double> m_sdf;  //!< Computed SDF
 
+    //! Find the maximum particle separation beyond which all interactions are zero
+    Scalar getMaxInteractionDiameter();
     Scalar m_last_max_diam; //!< Last recorded maximum diameter
 
     //! Zero the histogram counts
@@ -190,7 +192,7 @@ ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
 
     zeroHistogram();
 
-    Scalar max_diam = m_mc->getMaxCoreDiameter();
+    Scalar max_diam = this->getMaxInteractionDiameter();
     m_last_max_diam = max_diam;
     Scalar extra = xmax * max_diam;
     m_mc->setExtraGhostWidth(extra);
@@ -203,7 +205,7 @@ template<class Shape> void ComputeSDF<Shape>::compute(uint64_t timestep)
         return;
 
     // kludge to update the max diameter dynamically if it changes
-    Scalar max_diam = m_mc->getMaxCoreDiameter();
+    Scalar max_diam = this->getMaxInteractionDiameter();
     if (max_diam != m_last_max_diam)
         {
         m_last_max_diam = max_diam;
@@ -271,6 +273,23 @@ template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
         }
     }
 
+template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
+    {
+    Scalar max_core_diameter = m_mc->getMaxCoreDiameter();
+    Scalar max_r_cut_patch(0.0);
+
+    if (m_mc->getPatchEnergy())
+        {
+        for (unsigned int typ_i = 0; typ_i < m_mc->m_pdata->getNTypes(); typ_i++)
+            {
+            Shape shape_i(quat<Scalar>(), m_mc->m_params[typ_i]);
+            Scalar r_cut_patch_i = m_patch->getRCut() + 0.5 * m_patch->getAdditiveCutoff(typ_i);
+            max_r_cut_patch = std::max(max_r_cut_patch, r_cut_patch_i);
+            }
+        }
+    return std::max(max_core_diameter, max_r_cut_patch);
+    }
+
 /*! \param timestep current timestep
 
     countHistogram() loops through all particle pairs *i,j* where *i* is on the local rank, computes
@@ -304,7 +323,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
-    Scalar extra_width = m_xmax / (1 - m_xmax) * m_mc->getMaxCoreDiameter();
+    Scalar extra_width = m_xmax / (1 - m_xmax) * this->getMaxInteractionDiameter();
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
@@ -399,8 +418,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
-    Scalar extra_width
-        = m_xmax / (1 - m_xmax) * (m_mc->getMaxCoreDiameter() + m_mc->getPatchEnergy()->getRCut());
+    Scalar extra_width = m_xmax / (1 - m_xmax) * this->getMaxInteractionDiameter();
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
