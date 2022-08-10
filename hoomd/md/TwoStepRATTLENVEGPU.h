@@ -14,6 +14,7 @@
 #include "hoomd/md/TwoStepRATTLENVEGPU.cuh"
 
 #include "hoomd/Autotuner.h"
+#include <utility>
 
 #ifdef ENABLE_MPI
 #include "hoomd/HOOMDMPI.h"
@@ -54,14 +55,19 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
     //! Includes the RATTLE forces to the virial/net force
     virtual void includeRATTLEForce(uint64_t timestep);
 
-    /// Start autotuning kernel launch parameters
-    virtual void startAutotuning()
+    std::pair<bool, Scalar> getKernelLimitValues(uint64_t timestep)
         {
-        TwoStepRATTLENVE<Manifold>::startAutotuning();
-        m_tuner_one->startScan();
-        m_tuner_two->startScan();
-        m_tuner_angular_one->startScan();
-        m_tuner_angular_two->startScan();
+        auto use_limit = !(this->m_limit == nullptr);
+        Scalar maximum_displacement;
+        if (use_limit)
+            {
+            maximum_displacement = this->m_limit->operator()(timestep);
+            }
+        else
+            {
+            maximum_displacement = 0.0;
+            }
+        return std::pair<bool, Scalar>(use_limit, maximum_displacement);
         }
 
     private:
@@ -161,6 +167,8 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
                                             access_mode::read);
 
     // perform the update on the GPU
+    auto limit_params = this->getKernelLimitValues(timestep);
+
     this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     kernel::gpu_rattle_nve_step_one(d_pos.data,
@@ -171,9 +179,15 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
                                     this->m_group->getGPUPartition(),
                                     this->m_pdata->getBox(),
                                     this->m_deltaT,
+<<<<<<< HEAD
                                     this->m_limit,
                                     this->m_limit_val,
                                     m_tuner_one->getParam()[0]);
+=======
+                                    limit_params.first,
+                                    limit_params.second,
+                                    m_tuner_one->getParam());
+>>>>>>> trunk-minor
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -244,6 +258,8 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
     this->m_exec_conf->beginMultiGPU();
     m_tuner_two->begin();
 
+    auto limit_params = this->getKernelLimitValues(timestep);
+
     kernel::gpu_rattle_nve_step_two<Manifold>(d_pos.data,
                                               d_vel.data,
                                               d_accel.data,
@@ -253,8 +269,8 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(ui
                                               this->m_manifold,
                                               this->m_tolerance,
                                               this->m_deltaT,
-                                              this->m_limit,
-                                              this->m_limit_val,
+                                              limit_params.first,
+                                              limit_params.second,
                                               this->m_zero_force,
                                               m_tuner_two->getParam()[0]);
 

@@ -41,6 +41,8 @@ class PYBIND11_EXPORT TwoStepNVEGPU : public TwoStepNVE
     //! Performs the second step of the integration
     virtual void integrateStepTwo(uint64_t timestep);
 
+    std::pair<bool, Scalar> getKernelLimitValues(uint64_t timestep);
+
     private:
     /// Autotuner for block size (step one kernel).
     std::shared_ptr<Autotuner<1>> m_tuner_one;
