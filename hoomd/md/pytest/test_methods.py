@@ -131,6 +131,23 @@ def _method_base_params():
                    hoomd.md.methods.rattle.NVE, hoomd.md.methods.NVE)
     ])
 
+    displacement_capped_setup_params = {
+        "maximum_displacement": hoomd.variant.Ramp(1e-3, 1e-1, 0, 1_00)
+    }
+
+    displacement_capped_extra_params = {}
+    displacement_capped_changed_params = {
+        "maximum_displacement": hoomd.variant.Constant(1e-2)
+    }
+
+    method_base_params_list.extend([
+        paramtuple(displacement_capped_setup_params,
+                   displacement_capped_extra_params,
+                   displacement_capped_changed_params,
+                   hoomd.md.methods.rattle.DisplacementCapped,
+                   hoomd.md.methods.DisplacementCapped)
+    ])
+
     return method_base_params_list
 
 
