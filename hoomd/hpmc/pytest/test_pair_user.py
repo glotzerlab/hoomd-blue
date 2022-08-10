@@ -89,14 +89,14 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
 
 @pytest.mark.validate
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
-    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=3,
+def test_kernel_parameters(simulation_factory, lattice_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1,
                                               param_array=[0, 1],
                                               code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
     mc.pair_potential = patch
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(lattice_snapshot_factory())
     sim.operations.integrator = mc
     sim.run(0)
 

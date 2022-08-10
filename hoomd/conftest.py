@@ -532,12 +532,9 @@ def autotuned_kernel_parameter_check(instance, activate, all_optional=False):
         if not all_optional:
             assert not instance.is_tuning_complete
 
-        print("Initial parameters:", initial_kernel_parameters)
-
         activate()
 
         assert instance.kernel_parameters != initial_kernel_parameters
-        print("Current parameters:", instance.kernel_parameters)
 
         # Note: It is not practical to automatically test that
         # `is_tuning_complete` is eventually achieved as failure results in an
