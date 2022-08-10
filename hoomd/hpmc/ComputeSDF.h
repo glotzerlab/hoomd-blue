@@ -280,10 +280,13 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
 
     if (m_mc->getPatchEnergy())
         {
-        for (unsigned int typ_i = 0; typ_i < m_mc->m_pdata->getNTypes(); typ_i++)
+        const std::vector<param_type, hoomd::detail::managed_allocator<param_type>>& params
+            = m_mc->getParams();
+        for (unsigned int typ_i = 0; typ_i < m_pdata->getNTypes(); typ_i++)
             {
-            Shape shape_i(quat<Scalar>(), m_mc->m_params[typ_i]);
-            Scalar r_cut_patch_i = m_patch->getRCut() + 0.5 * m_patch->getAdditiveCutoff(typ_i);
+            Shape shape_i(quat<Scalar>(), params[typ_i]);
+            Scalar r_cut_patch_i = m_mc->getPatchEnergy()->getRCut()
+                                   + 0.5 * m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i);
             max_r_cut_patch = std::max(max_r_cut_patch, r_cut_patch_i);
             }
         }
