@@ -41,6 +41,21 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
         new Autotuner(valid_params, 5, 100000, "nve_angular_two", this->m_exec_conf));
     }
 
+std::pair<bool, Scalar> TwoStepNVEGPU::getKernelLimitValues(uint64_t timestep)
+    {
+    auto use_limit = !(this->m_limit == nullptr);
+    Scalar maximum_displacement;
+    if (use_limit)
+        {
+        maximum_displacement = this->m_limit->operator()(timestep);
+        }
+    else
+        {
+        maximum_displacement = 0.0;
+        }
+    return std::pair<bool, Scalar>(use_limit, maximum_displacement);
+    }
+
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    velocity verlet method.
@@ -69,6 +84,7 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
     // perform the update on the GPU
     m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
+    auto limit_params = this->getKernelLimitValues(timestep);
     kernel::gpu_nve_step_one(d_pos.data,
                              d_vel.data,
                              d_accel.data,
@@ -77,8 +93,8 @@ void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
                              m_group->getGPUPartition(),
                              box,
                              m_deltaT,
-                             m_limit,
-                             m_limit_val,
+                             limit_params.first,
+                             limit_params.second,
                              m_zero_force,
                              m_tuner_one->getParam());
 
@@ -148,14 +164,15 @@ void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
     m_exec_conf->beginMultiGPU();
     m_tuner_two->begin();
 
+    auto limit_params = this->getKernelLimitValues(timestep);
     kernel::gpu_nve_step_two(d_vel.data,
                              d_accel.data,
                              d_index_array.data,
                              m_group->getGPUPartition(),
                              d_net_force.data,
                              m_deltaT,
-                             m_limit,
-                             m_limit_val,
+                             limit_params.first,
+                             limit_params.second,
                              m_zero_force,
                              m_tuner_two->getParam());
 

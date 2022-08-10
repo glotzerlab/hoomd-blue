@@ -688,7 +688,7 @@ class NVE(Method):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
-        param_dict.update(dict(filter=filter, zero_force=False))
+        param_dict["filter"] = filter
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -706,6 +706,54 @@ class NVE(Method):
 
         # Attach param_dict and typeparam_dict
         super()._attach()
+
+
+class DisplacementCapped(NVE):
+    r"""Newtonian dynamics with a cap on the maximum displacement per time step.
+
+    The method employs a maximum displacement allowed each time step. This
+    method can be helpful to relax a system with too much overlaps without
+    "blowing up" the system.
+
+    Warning:
+        This method does not conserve energy or momentum.
+
+    Args:
+        filter (hoomd.filter.filter_like): Subset of particles on which to
+            apply this method.
+        maximum_displacement (hoomd.variant.variant_like): The maximum
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
+
+    `DisplacementCapped` integrates integrates translational and rotational
+    degrees of freedom using modified microcanoncial dynamics. See `NVE` for the
+    basis of the algorithm.
+
+    Examples::
+
+        relaxer = hoomd.md.methods.DisplacementCapped(
+            filter=hoomd.filter.All(), maximum_displacement=1e-3)
+        integrator = hoomd.md.Integrator(
+            dt=0.005, methods=[relaxer], forces=[lj])
+
+    Attributes:
+        filter (hoomd.filter.filter_like): Subset of particles on which to
+            apply this method.
+        maximum_displacement (hoomd.variant.variant_like): The maximum
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
+    """
+
+    def __init__(self, filter,
+                 maximum_displacement: hoomd.variant.variant_like):
+
+        # store metadata
+        super().__init__(filter)
+        param_dict = ParameterDict(maximum_displacement=hoomd.variant.Variant)
+        param_dict["maximum_displacement"] = maximum_displacement
+
+        # set defaults
+        self._param_dict.update(param_dict)
 
 
 class Langevin(Method):
