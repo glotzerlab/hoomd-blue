@@ -232,8 +232,10 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # potential and that the SDF is zero everywhere else
     sim.run(0)
     norm_factor = 1 / sdf.dx
-    assert (sdf.sdf[1] == norm_factor)
-    assert (np.count_nonzero(sdf.sdf) == 1)
+    sdf_result = sdf.sdf
+    if sim.device.communicator.rank == 0:
+        assert (sdf_result[1] == norm_factor)
+        assert (np.count_nonzero(sdf_result) == 1)
 
     # add pair potential
     square_well = rf'''float rsq = dot(r_ij, r_ij);
@@ -251,8 +253,10 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # that the SDF is zero everywhere else
     sim.run(1)
     neg_mayerF = 1 - np.exp(epsilon)
-    assert (np.count_nonzero(sdf.sdf) == 1)
-    assert (sdf.sdf[0] == neg_mayerF * norm_factor)
+    sdf_result = sdf.sdf
+    if sim.device.communicator.rank == 0:
+        assert (np.count_nonzero(sdf_result) == 1)
+        assert (sdf_result[0] == neg_mayerF * norm_factor)
 
 
 def test_logging():
