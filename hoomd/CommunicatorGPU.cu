@@ -17,12 +17,17 @@
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#include <thrust/fill.h>
+#include <thrust/functional.h>
 #include <thrust/gather.h>
 #include <thrust/iterator/constant_iterator.h>
+#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/scan.h>
 #include <thrust/scatter.h>
 #include <thrust/sort.h>
 #include <thrust/transform.h>
+#include <thrust/tuple.h>
 #pragma GCC diagnostic pop
 
 #include <cassert>

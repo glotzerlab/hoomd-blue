@@ -9,8 +9,9 @@
 #include <hip/hip_runtime.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
-#include <thrust/sort.h>
 #include <thrust/iterator/constant_iterator.h>
+#include <thrust/scan.h>
+#include <thrust/sort.h>
 #pragma GCC diagnostic pop
 
 /*! \file BondedGroupData.cu

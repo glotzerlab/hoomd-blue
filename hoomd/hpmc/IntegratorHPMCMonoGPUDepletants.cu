@@ -12,6 +12,7 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#include <thrust/functional.h>
 #include <thrust/reduce.h>
 #pragma GCC diagnostic pop
 
