@@ -57,8 +57,7 @@ void SurfaceTensionMeshForceCompute2D::setParams(unsigned int type, Scalar sigma
         m_exec_conf->msg->warning() << "SurfaceTension: specified sigma <= 0" << endl;
     }
 
-void SurfaceTensionMeshForceCompute2D::setParamsPython(std::string type,
-                                                               pybind11::dict params)
+void SurfaceTensionMeshForceCompute2D::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
     auto _params = surface_tension_params(params);
@@ -125,7 +124,7 @@ void SurfaceTensionMeshForceCompute2D::computeForces(uint64_t timestep)
 
     // from whole surface area A_mesh to the surface of individual triangle A_mesh -> At
 
-    m_circumference= 0;
+    m_circumference = 0;
 
     for (unsigned int i = 0; i < size; i++)
         {
@@ -142,92 +141,91 @@ void SurfaceTensionMeshForceCompute2D::computeForces(uint64_t timestep)
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
 
+        if (bond.tag[2] == bond.tag[3])
+            {
+            // calculate d\vec{r}
+            Scalar3 dab;
+            dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+            dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+            dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
-	if (bond.tag[2] == bond.tag[3])
-	{
-		// calculate d\vec{r}
-		Scalar3 dab;
-		dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-		dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-		dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+            // apply minimum image conventions to all 2 vectors
+            dab = box.minImage(dab);
 
-		// apply minimum image conventions to all 2 vectors
-		dab = box.minImage(dab);
+            Scalar3 da, db, dc;
+            da.x = h_pos.data[idx_a].x;
+            da.y = h_pos.data[idx_a].y;
+            da.z = h_pos.data[idx_a].z;
+            db.x = h_pos.data[idx_b].x;
+            db.y = h_pos.data[idx_b].y;
+            db.z = h_pos.data[idx_b].z;
 
-		Scalar3 da, db, dc;
-		da.x = h_pos.data[idx_a].x;
-		da.y = h_pos.data[idx_a].y;
-		da.z = h_pos.data[idx_a].z;
-		db.x = h_pos.data[idx_b].x;
-		db.y = h_pos.data[idx_b].y;
-		db.z = h_pos.data[idx_b].z;
+            // FLOPS: 14 / MEM TRANSFER: 2 Scalars
 
-		// FLOPS: 14 / MEM TRANSFER: 2 Scalars
+            // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+            Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
 
-		// FLOPS: 42 / MEM TRANSFER: 6 Scalars
-		Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+            Scalar rab = sqrt(rsqab);
 
-		Scalar rab = sqrt(rsqab);
+            Scalar energy_pp = m_sigma[0] * rab / 2;
 
-		Scalar energy_pp = m_sigma[0] * rab / 2;
+            m_circumference += rab;
 
-		m_circumference+= rab ;
+            Scalar3 Fa, Fb;
+            Fa = m_sigma[0] / rab * dab;
+            Fb = -Fa;
 
-        	Scalar3 Fa, Fb;
-		Fa = m_sigma[0]/rab*dab;
-		Fb = -Fa ;
+            if (compute_virial)
+                {
+                surface_tension_virial[0] = Scalar(1. / 2.) * da.x * Fa.x; // xx
+                surface_tension_virial[1] = Scalar(1. / 2.) * da.y * Fa.x; // xy
+                surface_tension_virial[2] = Scalar(1. / 2.) * da.z * Fa.x; // xz
+                surface_tension_virial[3] = Scalar(1. / 2.) * da.y * Fa.y; // yy
+                surface_tension_virial[4] = Scalar(1. / 2.) * da.z * Fa.y; // yz
+                surface_tension_virial[5] = Scalar(1. / 2.) * da.z * Fa.z; // zz
+                }
+            // Now, apply the force to each individual atom a,b, and accumulate the energy/virial
+            // do not update ghost particles
+            if (idx_a < m_pdata->getN())
+                {
+                h_force.data[idx_a].x += Fa.x;
+                h_force.data[idx_a].y += Fa.y;
+                h_force.data[idx_a].z += Fa.z;
+                h_force.data[idx_a].w += energy_pp; // divided by 3 because of three
+                                                    // particles sharing the energy
 
-        	if (compute_virial)
-        	    {
-        	    surface_tension_virial[0] = Scalar(1. / 2.) * da.x * Fa.x; // xx
-        	    surface_tension_virial[1] = Scalar(1. / 2.) * da.y * Fa.x; // xy
-        	    surface_tension_virial[2] = Scalar(1. / 2.) * da.z * Fa.x; // xz
-        	    surface_tension_virial[3] = Scalar(1. / 2.) * da.y * Fa.y; // yy
-        	    surface_tension_virial[4] = Scalar(1. / 2.) * da.z * Fa.y; // yz
-        	    surface_tension_virial[5] = Scalar(1. / 2.) * da.z * Fa.z; // zz
-        	    }
-		// Now, apply the force to each individual atom a,b, and accumulate the energy/virial
-		// do not update ghost particles
-		if (idx_a < m_pdata->getN())
-		    {
-		    h_force.data[idx_a].x += Fa.x;
-		    h_force.data[idx_a].y += Fa.y;
-		    h_force.data[idx_a].z += Fa.z;
-		    h_force.data[idx_a].w += energy_pp; // divided by 3 because of three
-							// particles sharing the energy
+                for (int j = 0; j < 6; j++)
+                    h_virial.data[j * virial_pitch + idx_a] += surface_tension_virial[j];
+                }
 
-		    for (int j = 0; j < 6; j++)
-			h_virial.data[j * virial_pitch + idx_a] += surface_tension_virial[j];
-		    }
+            if (compute_virial)
+                {
+                surface_tension_virial[0] = Scalar(1. / 2.) * db.x * Fb.x; // xx
+                surface_tension_virial[1] = Scalar(1. / 2.) * db.y * Fb.x; // xy
+                surface_tension_virial[2] = Scalar(1. / 2.) * db.z * Fb.x; // xz
+                surface_tension_virial[3] = Scalar(1. / 2.) * db.y * Fb.y; // yy
+                surface_tension_virial[4] = Scalar(1. / 2.) * db.z * Fb.y; // yz
+                surface_tension_virial[5] = Scalar(1. / 2.) * db.z * Fb.z; // zz
+                }
 
-		if (compute_virial)
-		    {
-		    surface_tension_virial[0] = Scalar(1. / 2.) * db.x * Fb.x; // xx
-		    surface_tension_virial[1] = Scalar(1. / 2.) * db.y * Fb.x; // xy
-		    surface_tension_virial[2] = Scalar(1. / 2.) * db.z * Fb.x; // xz
-		    surface_tension_virial[3] = Scalar(1. / 2.) * db.y * Fb.y; // yy
-		    surface_tension_virial[4] = Scalar(1. / 2.) * db.z * Fb.y; // yz
-		    surface_tension_virial[5] = Scalar(1. / 2.) * db.z * Fb.z; // zz
-		    }
-
-		if (idx_b < m_pdata->getN())
-		    {
-		    h_force.data[idx_b].x += Fb.x;
-		    h_force.data[idx_b].y += Fb.y;
-		    h_force.data[idx_b].z += Fb.z;
-		    h_force.data[idx_b].w += energy_pp;
-		    for (int j = 0; j < 6; j++)
-			h_virial.data[j * virial_pitch + idx_b] += surface_tension_virial[j];
-		    }
-		}
+            if (idx_b < m_pdata->getN())
+                {
+                h_force.data[idx_b].x += Fb.x;
+                h_force.data[idx_b].y += Fb.y;
+                h_force.data[idx_b].z += Fb.z;
+                h_force.data[idx_b].w += energy_pp;
+                for (int j = 0; j < 6; j++)
+                    h_virial.data[j * virial_pitch + idx_b] += surface_tension_virial[j];
+                }
+            }
         }
     }
 
 Scalar SurfaceTensionMeshForceCompute2D::energyDiff(unsigned int idx_a,
-                                                            unsigned int idx_b,
-                                                            unsigned int idx_c,
-                                                            unsigned int idx_d,
-                                                            unsigned int type_id)
+                                                    unsigned int idx_b,
+                                                    unsigned int idx_c,
+                                                    unsigned int idx_d,
+                                                    unsigned int type_id)
     {
     return 0;
     }
@@ -244,7 +242,7 @@ void export_SurfaceTensionMeshForceCompute2D(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
         .def("setParams", &SurfaceTensionMeshForceCompute2D::setParamsPython)
         .def("getParams", &SurfaceTensionMeshForceCompute2D::getParams)
-        .def("getArea", &SurfaceTensionMeshForceCompute2D::getArea);
+        .def("getCircumference", &SurfaceTensionMeshForceCompute2D::getCircumference);
     }
 
     } // end namespace detail
