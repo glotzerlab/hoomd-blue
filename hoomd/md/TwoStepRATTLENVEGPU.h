@@ -179,15 +179,9 @@ template<class Manifold> void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(ui
                                     this->m_group->getGPUPartition(),
                                     this->m_pdata->getBox(),
                                     this->m_deltaT,
-<<<<<<< HEAD
-                                    this->m_limit,
-                                    this->m_limit_val,
-                                    m_tuner_one->getParam()[0]);
-=======
                                     limit_params.first,
                                     limit_params.second,
-                                    m_tuner_one->getParam());
->>>>>>> trunk-minor
+                                    m_tuner_one->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
