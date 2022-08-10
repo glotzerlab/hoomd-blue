@@ -28,7 +28,10 @@ from hoomd import _hoomd
 class Device:
     """Base class device object.
 
-    Provides methods and properties common to `CPU` and `GPU`.
+    Provides methods and properties common to `CPU` and `GPU`, including those
+    that control where status messages are stored (`msg_file`) how many status
+    messages HOOMD-blue prints (`notice_level`) and a method for user provided
+    status messages (`notice`).
 
     Warning:
         `Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
@@ -139,6 +142,24 @@ class Device:
                 "to set number of threads.\n")
         else:
             self._cpp_exec_conf.setNumThreads(int(num_cpu_threads))
+
+    def notice(self, message, level=1):
+        """Write a notice message.
+
+        Args:
+            message (str): Message to write.
+            level (int): Message notice level.
+
+        Write the given message string to the output defined by `msg_file`
+        on MPI rank 0 when `notice_level` >= ``level``.
+
+        Hint:
+            Use `notice` instead of `print` to write status messages and your
+            scripts will work well in parallel MPI jobs. `notice` writes message
+            only on rank 0. Use with a rank-specific `msg_file` to troubleshoot
+            issues with specific partitions.
+        """
+        self._cpp_msg.notice(level, str(message) + "\n")
 
 
 def _create_messenger(mpi_config, notice_level, msg_file):
