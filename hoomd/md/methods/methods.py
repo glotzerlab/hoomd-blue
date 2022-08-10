@@ -732,7 +732,7 @@ class DisplacementCapped(NVE):
     Examples::
 
         relaxer = hoomd.md.methods.DisplacementCapped(
-            filter=hoomd.filter.All(), 1e-3)
+            filter=hoomd.filter.All(), maximum_displacement=1e-3)
         integrator = hoomd.md.Integrator(
             dt=0.005, methods=[relaxer], forces=[lj])
 

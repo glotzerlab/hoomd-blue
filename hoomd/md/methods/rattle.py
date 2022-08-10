@@ -168,7 +168,7 @@ class DisplacementCapped(NVE):
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         relax_rattle = hoomd.md.methods.rattle.DisplacementCapped(
-            filter=hoomd.filter.All(),maifold=sphere)
+            filter=hoomd.filter.All(), maximum_displacement=0.01, manifold=sphere)
         integrator = hoomd.md.Integrator(
             dt=0.005, methods=[relax_rattle], forces=[lj])
 
