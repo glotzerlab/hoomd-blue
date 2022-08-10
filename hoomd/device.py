@@ -28,7 +28,10 @@ from hoomd import _hoomd
 class Device:
     """Base class device object.
 
-    Provides methods and properties common to `CPU` and `GPU`.
+    Provides methods and properties common to `CPU` and `GPU`, including those
+    that control where status messages are stored (`msg_file`) how many status
+    messages HOOMD-blue prints (`notice_level`) and a method for user provided
+    status messages (`notice`).
 
     Warning:
         `Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
