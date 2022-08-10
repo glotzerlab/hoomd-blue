@@ -167,19 +167,21 @@ class SDF(Compute):
 
     .. math::
 
-        x_{ij}(\vec{A}) = \min \{ x \in \mathbb{R}_{> 0} :
-            \mathrm{overlap}\left(
+        x_{ij}(\vec{A}) = \min \{ & x \in \mathbb{R}_{> 0} : \\
+           & \mathrm{overlap}\left(
                 S_i(\mathbf{q}_i),
                 S_j(\mathbf{q}_j, (1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})))
             \right) \ne \emptyset
             \\
-            \lor U_{\mathrm{pair},ij}((1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
+            &\lor \\
+            & U_{\mathrm{pair},ij}((1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
                                  \mathbf{q}_i,
                                  \mathbf{q}_j)
                 \ne
             U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
                                  \mathbf{q}_i,
-                                 \mathbf{q}_j) \}
+                                 \mathbf{q}_j) \\
+            \} &
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
     `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle
