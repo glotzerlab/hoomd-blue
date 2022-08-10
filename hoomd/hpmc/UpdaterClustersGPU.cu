@@ -16,6 +16,7 @@
 #include <thrust/iterator/discard_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/unique.h>
+#include <thrust/sort.h>
 #pragma GCC diagnostic pop
 
 #ifdef __HIP_PLATFORM_NVCC__

@@ -10,6 +10,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/sort.h>
+#include <thrust/iterator/constant_iterator.h>
 #pragma GCC diagnostic pop
 
 /*! \file BondedGroupData.cu
