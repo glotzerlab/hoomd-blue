@@ -300,20 +300,25 @@ class AutotunedObject(_HOOMDBaseObject):
     parameters, the specific hardware you execute on, and more.
 
     Check `is_tuning_complete` to check if the search is complete. After the
-    search is complete, `AutotunedObject` holds the parameters constant.
-    Typical operations require thousands of time steps to complete tuning. Some
-    may take tens of thousands or more depending on the parameters you set.
+    search is complete, `AutotunedObject` holds the parameters constant at the
+    optimal values. Typical operations require thousands of time steps to
+    complete tuning. Some may take tens of thousands or more depending on the
+    parameters you set.
 
     Tip:
         When you significantly change your system during the simulation (e.g.
-        compress to a higher density), then tune the parameters again after
-        making the change with `tune_kernel_parameters`.
+        compress to a higher density), then you can tune the parameters again
+        after with `tune_kernel_parameters`. This step is optional, but may
+        increase performance as the new system parameters may lead to different
+        optimal parameters.
 
     Note:
         In MPI parallel execution, all methods and attributes of
         `AutotunedObject` reference the rank local tuner objects. Different
         ranks may tune different optimal kernel parameters and may complete
-        tuning at different times.
+        tuning at different times. Use only
+        `hoomd.Operations.is_tuning_complete` in control flow operations, as
+        this method is reduced across all ranks.
 
 
     See Also:
