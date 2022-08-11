@@ -189,13 +189,29 @@ class BondedGroupData
         //! Validate the snapshot
         /* \returns true if number of elements in snapshot is consistent
          */
-        bool validate() const
+        void validate() const
             {
             if (has_type_mapping && groups.size() != type_id.size())
-                return false;
+                {
+                throw std::runtime_error("All array sizes must match.");
+                }
+
             if (!has_type_mapping && groups.size() != val.size())
-                return false;
-            return true;
+                {
+                throw std::runtime_error("All array sizes must match.");
+                }
+
+            // Check that the user provided unique type names.
+            if (has_type_mapping)
+                {
+                std::vector<std::string> types_copy = type_mapping;
+                std::sort(types_copy.begin(), types_copy.end());
+                auto last = std::unique(types_copy.begin(), types_copy.end());
+                if (last - types_copy.begin() != type_mapping.size())
+                    {
+                    throw std::runtime_error("Type names must be unique.");
+                    }
+                }
             }
 
         //! Replicate this snapshot
