@@ -462,15 +462,18 @@ def test_no_particle_types(simulation_factory, lattice_snapshot_factory):
         simulation_factory(snap)
 
 
+@pytest.mark.serial
 def test_no_duplicate_particle_types(simulation_factory,
                                      lattice_snapshot_factory):
     """Test that initialization fails when there are duplicate types."""
     snap = lattice_snapshot_factory(particle_types=['A', 'B', 'C', 'A'])
 
+    # Run test in serial as only rank 0 raises the runtime error.
     with pytest.raises(RuntimeError):
         simulation_factory(snap)
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('bond',
                          ['bonds', 'angles', 'dihedrals', 'impropers', 'pairs'])
 def test_no_duplicate_bond_types(simulation_factory, lattice_snapshot_factory,
@@ -480,6 +483,7 @@ def test_no_duplicate_bond_types(simulation_factory, lattice_snapshot_factory,
 
     getattr(snap, bond).types = ['A', 'B', 'B', 'C']
 
+    # Run test in serial as only rank 0 raises the runtime error.
     with pytest.raises(RuntimeError):
         simulation_factory(snap)
 
