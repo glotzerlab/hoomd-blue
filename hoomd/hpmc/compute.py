@@ -162,7 +162,7 @@ class SDF(Compute):
     For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
     separation vector by the factor :math:`(1-x)` and finds the smallest
     positive value of :math:`x` leading to either an overlap of the particle
-    shapes (a "hard overlap") or a change in the pair energy
+    shapes (a "hard overlap") or a discontinuous change in the pair energy
     :math:`U_{\mathrm{pair},ij}` (a "soft overlap"):
 
     .. math::
