@@ -207,7 +207,7 @@ class BondedGroupData
                 std::vector<std::string> types_copy = type_mapping;
                 std::sort(types_copy.begin(), types_copy.end());
                 auto last = std::unique(types_copy.begin(), types_copy.end());
-                if (last - types_copy.begin() != type_mapping.size())
+                if (static_cast<size_t>(last - types_copy.begin()) != type_mapping.size())
                     {
                     throw std::runtime_error("Type names must be unique.");
                     }
