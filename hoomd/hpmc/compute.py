@@ -243,6 +243,11 @@ class SDF(Compute):
         perturbations may change the system's potential energy, e.g., systems of
         concave particles or with non-monotonic enthalpic interactions.
 
+    Warning:
+        Because SDF samples pair configurations at discrete separations, the
+        computed pressure is correct only for potentials with constant values
+        and step discontinuities, e.g., square well potentials.
+
     Note:
         `SDF` always runs on the CPU.
 
