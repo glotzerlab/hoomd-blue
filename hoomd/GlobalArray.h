@@ -33,7 +33,6 @@
 #include <memory>
 
 #include "GPUArray.h"
-#include "MemoryTraceback.h"
 
 #include <cxxabi.h>
 #include <utility>
@@ -150,12 +149,6 @@ template<class T> class managed_deleter
             {
             free(m_allocation_ptr);
             }
-
-        // update memory allocation table
-        if (m_exec_conf->getMemoryTracer())
-            this->m_exec_conf->getMemoryTracer()->unregisterAllocation(
-                reinterpret_cast<const void*>(ptr),
-                sizeof(T) * m_N);
         }
 
     std::pair<const void*, const void*> getAllocationRange() const
@@ -643,10 +636,6 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
         {
         // update the tag
         m_tag = tag;
-        if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer() && get())
-            this->m_exec_conf->getMemoryTracer()->updateTag(reinterpret_cast<const void*>(get()),
-                                                            sizeof(T) * m_num_elements,
-                                                            m_tag);
 
         // set tag on deleter so it can be displayed upon free
         if (!isNull() && m_data)
@@ -847,14 +836,6 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
         // construct objects explicitly using placement new
         for (std::size_t i = 0; i < m_num_elements; ++i)
             ::new ((void**)&((T*)ptr)[i]) T;
-
-        // register new allocation
-        if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer())
-            this->m_exec_conf->getMemoryTracer()->registerAllocation(
-                reinterpret_cast<const void*>(m_data.get()),
-                sizeof(T) * m_num_elements,
-                typeid(T).name(),
-                m_tag);
 
         // display representation for debugging
         if (m_tag != "")
