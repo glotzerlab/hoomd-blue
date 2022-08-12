@@ -34,8 +34,13 @@ template<class Geometry> class PYBIND11_EXPORT BounceBackNVEGPU : public BounceB
                      std::shared_ptr<const Geometry> geom)
         : BounceBackNVE<Geometry>(sysdef, group, geom)
         {
-        m_tuner_1.reset(new Autotuner(32, 1024, 32, 5, 100000, "nve_bounce_1", this->m_exec_conf));
-        m_tuner_2.reset(new Autotuner(32, 1024, 32, 5, 100000, "nve_bounce_2", this->m_exec_conf));
+        m_tuner_1.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "nve_bounce_1"));
+        m_tuner_2.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "nve_bounce_2"));
+        this->m_autotuners.insert(this->m_autotuners.end(), {m_tuner_1, m_tuner_2});
         }
 
     //! Performs the first step of the integration
@@ -44,25 +49,9 @@ template<class Geometry> class PYBIND11_EXPORT BounceBackNVEGPU : public BounceB
     //! Performs the second step of the integration
     virtual void integrateStepTwo(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        BounceBackNVE<Geometry>::setAutotunerParams(enable, period);
-        m_tuner_1->setEnabled(enable);
-        m_tuner_1->setPeriod(period);
-        m_tuner_2->setEnabled(enable);
-        m_tuner_2->setPeriod(period);
-        }
-
     private:
-    std::unique_ptr<Autotuner> m_tuner_1;
-    std::unique_ptr<Autotuner> m_tuner_2;
+    std::shared_ptr<Autotuner<1>> m_tuner_1;
+    std::shared_ptr<Autotuner<1>> m_tuner_2;
     };
 
 template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepOne(uint64_t timestep)
@@ -108,7 +97,7 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepOne(uint6
                             this->m_deltaT,
                             box,
                             group_size,
-                            this->m_tuner_1->getParam());
+                            this->m_tuner_1->getParam()[0]);
 
     gpu::nve_bounce_step_one<Geometry>(args, *(this->m_geom));
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -148,7 +137,7 @@ template<class Geometry> void BounceBackNVEGPU<Geometry>::integrateStepTwo(uint6
                              d_group.data,
                              this->m_deltaT,
                              group_size,
-                             this->m_tuner_2->getParam());
+                             this->m_tuner_2->getParam()[0]);
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner_2->end();

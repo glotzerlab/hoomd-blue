@@ -35,6 +35,11 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
         throw runtime_error("Bond table width must be greater than 0.");
         }
 
+    if (m_bond_data->getNTypes() == 0)
+        {
+        throw runtime_error("There must be 1 or more bond types.");
+        }
+
     // allocate storage for the tables and parameters
     GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNTypes(), m_exec_conf);
     m_tables.swap(tables);

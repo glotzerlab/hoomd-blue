@@ -32,7 +32,9 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Cannot create TwoStepBDGPU on a CPU device.");
         }
 
-    m_block_size = 256;
+    m_tuner.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "bd"));
+    m_autotuners.push_back(m_tuner);
     }
 
 /*! \param timestep Current time step
@@ -92,7 +94,6 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     args.seed = m_sysdef->getSeed();
     args.d_sum_bdenergy = NULL;
     args.d_partial_sum_bdenergy = NULL;
-    args.block_size = m_block_size;
     args.num_blocks = 0; // handled in driver function
     args.tally = false;
 
@@ -118,6 +119,8 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 #endif
 
     m_exec_conf->beginMultiGPU();
+    m_tuner->begin();
+    args.block_size = m_tuner->getParam()[0];
 
     // perform the update on the GPU
     gpu_brownian_step_one(d_pos.data,
@@ -145,6 +148,7 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    m_tuner->end();
     m_exec_conf->endMultiGPU();
     }
 

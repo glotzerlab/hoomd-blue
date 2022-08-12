@@ -166,11 +166,20 @@ if (HIP_PLATFORM STREQUAL "hip-clang")
 endif()
 
 if (HIP_PLATFORM STREQUAL "nvcc")
-    # find compute-sanitizer
+    # find compute-sanitizer / cuda-memcheck
     find_program(CUDA_MEMCHECK_EXECUTABLE
       NAMES compute-sanitizer
-      HINTS "${CUDA_BIN_PATH}"
+      HINTS "${CUDA_BIN_PATH}" "${CUDA_BIN_PATH}../../extras/compute-sanitizer"
       NO_DEFAULT_PATH)
+
+    # Fall back on cuda-memcheck when compute-sanitizer is not available (CUDA 10)
+    if (NOT CUDA_MEMCHECK_EXECUTABLE)
+        find_program(CUDA_MEMCHECK_EXECUTABLE
+          NAMES cuda-memcheck
+          HINTS "${CUDA_BIN_PATH}"
+          NO_DEFAULT_PATH)
+    endif()
+
     mark_as_advanced(CUDA_MEMCHECK_EXECUTABLE)
     list(APPEND REQUIRED_CUDA_LIB_VARS CUDA_MEMCHECK_EXECUTABLE)
 endif()

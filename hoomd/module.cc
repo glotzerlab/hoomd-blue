@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "Action.h"
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
@@ -153,6 +154,17 @@ std::string mpi_bcast_str(pybind11::object string,
 #endif
     }
 
+bool mpi_allreduce_bcast_and(bool v, std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+#ifdef ENABLE_MPI
+    bool reduced_result = false;
+    MPI_Allreduce(&v, &reduced_result, 1, MPI_C_BOOL, MPI_LAND, exec_conf->getMPICommunicator());
+    return reduced_result;
+#else
+    return v;
+#endif
+    }
+
     } // end namespace detail
 
     } // end namespace hoomd
@@ -182,6 +194,7 @@ PYBIND11_MODULE(_hoomd, m)
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
     m.def("mpi_bcast_str", mpi_bcast_str);
+    m.def("mpi_allreduce_bcast_and", mpi_allreduce_bcast_and);
 
     pybind11::class_<BuildInfo>(m, "BuildInfo")
         .def_static("getVersion", BuildInfo::getVersion)
@@ -270,6 +283,8 @@ PYBIND11_MODULE(_hoomd, m)
     export_GSDReader(m);
 
     // computes
+    export_Autotuned(m);
+    export_Action(m);
     export_Compute(m);
     export_CellList(m);
     export_CellListStencil(m);

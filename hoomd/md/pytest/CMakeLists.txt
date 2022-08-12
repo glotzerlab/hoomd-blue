@@ -17,6 +17,7 @@ set(files __init__.py
     test_bond.py
     test_dihedral.py
     test_flags.py
+    test_kernel_parameters.py
     test_lj_equation_of_state.py
     test_potential.py
     test_pppm_coulomb.py

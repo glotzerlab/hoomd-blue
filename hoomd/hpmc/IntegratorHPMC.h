@@ -120,10 +120,10 @@ struct hpmc_patch_args_t
     Provide a PatchEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
     when needed during the HPMC trial moves.
 */
-class PatchEnergy
+class PatchEnergy : public Autotuned
     {
     public:
-    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
+    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Autotuned(), m_sysdef(sysdef) { }
     virtual ~PatchEnergy() { }
 
 #ifdef ENABLE_HIP
@@ -170,15 +170,6 @@ class PatchEnergy
         }
 
 #ifdef ENABLE_HIP
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        throw std::runtime_error("PatchEnergy (base class) does not support setAutotunerParams");
-        }
-
     //! Asynchronously launch the JIT kernel
     /*! \param args Kernel arguments
         \param hStream stream to execute on

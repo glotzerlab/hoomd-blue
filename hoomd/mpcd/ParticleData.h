@@ -23,6 +23,7 @@
 #endif // ENABLE_MPI
 #endif // ENABLE_HIP
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/ExecutionConfiguration.h"
@@ -67,7 +68,7 @@ namespace mpcd
  *
  * \ingroup data_structs
  */
-class PYBIND11_EXPORT ParticleData
+class PYBIND11_EXPORT ParticleData : public Autotuned
     {
     public:
     //! Number constructor
@@ -208,31 +209,6 @@ class PYBIND11_EXPORT ParticleData
     //! Get the tag of the particle on the local rank
     unsigned int getTag(unsigned int idx) const;
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
-        {
-#if defined(ENABLE_MPI) && defined(ENABLE_HIP)
-        if (m_mark_tuner)
-            {
-            m_mark_tuner->setEnabled(enable);
-            m_mark_tuner->setPeriod(period);
-            }
-        if (m_remove_tuner)
-            {
-            m_remove_tuner->setEnabled(enable);
-            m_remove_tuner->setPeriod(period);
-            }
-        if (m_add_tuner)
-            {
-            m_add_tuner->setEnabled(enable);
-            m_add_tuner->setPeriod(period);
-            }
-#endif // ENABLE_MPI && ENABLE_HIP
-        }
     //@}
 
     //! \name swap methods
@@ -455,11 +431,11 @@ class PYBIND11_EXPORT ParticleData
     GPUArray<unsigned char> m_remove_flags; //!< Temporary flag to mark keeping particle
     GPUFlags<unsigned int> m_num_remove;    //!< Number of particles to remove
 
-    std::unique_ptr<Autotuner> m_mark_tuner;   //!< Tuner for marking particles
-    std::unique_ptr<Autotuner> m_remove_tuner; //!< Tuner for removing particles
-    std::unique_ptr<Autotuner> m_add_tuner;    //!< Tuner for adding particles
-#endif                                         // ENABLE_HIP
-#endif                                         // ENABLE_MPI
+    std::shared_ptr<Autotuner<1>> m_mark_tuner;   //!< Tuner for marking particles
+    std::shared_ptr<Autotuner<1>> m_remove_tuner; //!< Tuner for removing particles
+    std::shared_ptr<Autotuner<1>> m_add_tuner;    //!< Tuner for adding particles
+#endif                                            // ENABLE_HIP
+#endif                                            // ENABLE_MPI
 
     bool m_valid_cell_cache;               //!< Flag for validity of cell cache
     SortSignal m_sort_signal;              //!< Signal triggered when particles are sorted

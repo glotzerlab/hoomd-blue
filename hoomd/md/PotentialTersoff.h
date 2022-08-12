@@ -107,6 +107,22 @@ template<class evaluator> class PotentialTersoff : public ForceCompute
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);
 #endif
 
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        ForceCompute::startAutotuning();
+
+        // Start autotuning the neighbor list.
+        m_nlist->startAutotuning();
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = ForceCompute::isAutotuningComplete();
+        return result && m_nlist->isAutotuningComplete();
+        }
+
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     Index2D m_typpair_idx;                 //!< Helper class for indexing per type pair arrays

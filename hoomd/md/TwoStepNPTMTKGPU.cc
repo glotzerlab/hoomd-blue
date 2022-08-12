@@ -61,49 +61,36 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
 
-    hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
-    m_tuner_one.reset(new Autotuner(dev_prop.warpSize,
-                                    dev_prop.maxThreadsPerBlock,
-                                    dev_prop.warpSize,
-                                    5,
-                                    100000,
-                                    "npt_mtk_step_one",
-                                    this->m_exec_conf));
-    m_tuner_two.reset(new Autotuner(dev_prop.warpSize,
-                                    dev_prop.maxThreadsPerBlock,
-                                    dev_prop.warpSize,
-                                    5,
-                                    100000,
-                                    "npt_mtk_step_two",
-                                    this->m_exec_conf));
-    m_tuner_wrap.reset(new Autotuner(dev_prop.warpSize,
-                                     dev_prop.maxThreadsPerBlock,
-                                     dev_prop.warpSize,
-                                     5,
-                                     100000,
-                                     "npt_mtk_wrap",
-                                     this->m_exec_conf));
-    m_tuner_rescale.reset(new Autotuner(dev_prop.warpSize,
-                                        dev_prop.maxThreadsPerBlock,
-                                        dev_prop.warpSize,
-                                        5,
-                                        100000,
-                                        "npt_mtk_rescale",
-                                        this->m_exec_conf));
-    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize,
-                                            dev_prop.maxThreadsPerBlock,
-                                            dev_prop.warpSize,
-                                            5,
-                                            100000,
-                                            "npt_mtk_angular_one",
-                                            this->m_exec_conf));
-    m_tuner_angular_two.reset(new Autotuner(dev_prop.warpSize,
-                                            dev_prop.maxThreadsPerBlock,
-                                            dev_prop.warpSize,
-                                            5,
-                                            100000,
-                                            "npt_mtk_angular_two",
-                                            this->m_exec_conf));
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "npt_mtk_step_one"));
+    m_tuner_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "npt_mtk_step_two"));
+    m_tuner_wrap.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "npt_mtk_wrap"));
+    m_tuner_rescale.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           m_exec_conf,
+                                           "npt_mtk_rescale"));
+    m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "npt_mtk_angular_one",
+                                               5,
+                                               true));
+    m_tuner_angular_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "npt_mtk_angular_two",
+                                               5,
+                                               true));
+
+    m_autotuners.insert(m_autotuners.end(),
+                        {m_tuner_one,
+                         m_tuner_two,
+                         m_tuner_wrap,
+                         m_tuner_rescale,
+                         m_tuner_angular_one,
+                         m_tuner_angular_two});
     }
 
 TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
@@ -192,7 +179,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                     m_mat_exp_r[3],
                                     m_mat_exp_r[4],
                                     m_mat_exp_r[5],
-                                    m_tuner_rescale->getParam());
+                                    m_tuner_rescale->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -234,7 +221,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                      m_mat_exp_r_int,
                                      m_deltaT,
                                      m_rescale_all,
-                                     m_tuner_one->getParam());
+                                     m_tuner_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -262,7 +249,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                  d_pos.data,
                                  d_image.data,
                                  box,
-                                 m_tuner_wrap->getParam());
+                                 m_tuner_wrap->getParam()[0]);
 
         m_tuner_wrap->end();
         m_exec_conf->endMultiGPU();
@@ -301,7 +288,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          exp_thermo_fac_rot,
-                                         m_tuner_angular_one->getParam());
+                                         m_tuner_angular_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -363,7 +350,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                      m_mat_exp_v,
                                      m_deltaT,
                                      exp_thermo_fac,
-                                     m_tuner_two->getParam());
+                                     m_tuner_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -405,7 +392,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          exp_thermo_fac_rot,
-                                         m_tuner_angular_two->getParam());
+                                         m_tuner_angular_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
