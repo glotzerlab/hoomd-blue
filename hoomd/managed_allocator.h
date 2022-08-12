@@ -45,7 +45,7 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error allocating managed memory");
+                throw std::bad_alloc();
                 }
             }
         else
@@ -54,7 +54,7 @@ template<class T> class managed_allocator
             int retval = posix_memalign(&result, 32, n * sizeof(T));
             if (retval != 0)
                 {
-                throw std::runtime_error("Error allocating aligned memory");
+                throw std::bad_alloc();
                 }
             }
 
@@ -88,7 +88,7 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error allocating managed memory");
+                throw std::bad_alloc();
                 }
 
             allocation_ptr = result;
@@ -103,7 +103,7 @@ template<class T> class managed_allocator
 #endif
 
                 if (!result)
-                    throw std::runtime_error("managed_allocator: Error aligning managed memory");
+                    throw std::bad_alloc();
                 }
             }
         else
@@ -114,14 +114,14 @@ template<class T> class managed_allocator
                 int retval = posix_memalign((void**)&result, align_size, n * sizeof(T));
                 if (retval != 0)
                     {
-                    throw std::runtime_error("Error allocating aligned memory");
+                    throw std::bad_alloc();
                     }
                 }
             else
                 {
                 result = malloc(n * sizeof(T));
                 if (!result)
-                    throw std::runtime_error("Error allocating memory");
+                    throw std::bad_alloc();
                 }
             allocation_bytes = n * sizeof(T);
             allocation_ptr = result;
@@ -134,8 +134,7 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error(
-                    "managed_allocator: Error on device sync during allocate_construct");
+                throw std::bad_alloc();
                 }
             }
 #endif
@@ -156,7 +155,6 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error freeing managed memory");
                 }
             }
         else
@@ -184,8 +182,6 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error(
-                    "managed_allocator: Error on device sync during deallocate_destroy");
                 }
             }
 #endif
@@ -203,7 +199,6 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error freeing managed memory");
                 }
             }
         else

@@ -110,7 +110,6 @@ template<class T> class device_deleter
 #ifdef ENABLE_HIP
             hipFree(ptr);
 #endif
-            CHECK_CUDA_ERROR();
             }
         }
 
@@ -158,7 +157,6 @@ template<class T> class host_deleter
 #if (ENABLE_HIP)
             hipHostUnregister(ptr);
 #endif
-            CHECK_CUDA_ERROR();
             }
 
         // free the allocation

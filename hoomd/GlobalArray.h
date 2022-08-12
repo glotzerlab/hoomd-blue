@@ -142,7 +142,6 @@ template<class T> class managed_deleter
             this->m_exec_conf->msg->notice(10) << oss.str();
 
             hipFree(m_allocation_ptr);
-            CHECK_CUDA_ERROR();
             }
         else
 #endif

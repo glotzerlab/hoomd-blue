@@ -291,7 +291,6 @@ template<class T> void GPUFlags<T>::deallocate()
         if (!m_mapped)
             {
             hipFree(d_data);
-            CHECK_CUDA_ERROR();
             }
         }
     else
