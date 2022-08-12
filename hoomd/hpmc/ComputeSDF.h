@@ -280,7 +280,6 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
 
     if (m_mc->getPatchEnergy())
         {
-        const auto& params = m_mc->getParams();
         for (unsigned int typ_i = 0; typ_i < m_pdata->getNTypes(); typ_i++)
             {
             Scalar r_cut_patch_i = m_mc->getPatchEnergy()->getRCut()
