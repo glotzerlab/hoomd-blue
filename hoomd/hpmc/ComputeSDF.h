@@ -457,9 +457,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0),
-                                         shape_i.getCircumsphereDiameter() / Scalar(2)
-                                             + extra_width);
+        OverlapReal r_cut_patch = 0;
+        if (m_mc->getPatchEnergy())
+            {
+            r_cut_patch = static_cast<OverlapReal>(
+                m_mc->getPatchEnergy()->getRCut()
+                + 0.5 * m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i));
+            }
+        OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter() / OverlapReal(2.0),
+                                       r_cut_patch - m_mc->getMinCoreDiameter() / (OverlapReal)2.0);
+        hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0), R_query + extra_width);
 
         size_t n_images = image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
