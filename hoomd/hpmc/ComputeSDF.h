@@ -323,7 +323,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
 
-    Scalar extra_width = m_xmax / (1 - m_xmax) * this->getMaxInteractionDiameter();
+    Scalar extra_width = m_xmax / (1 - m_xmax) * m_last_max_diam;
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
@@ -421,7 +421,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
     // Note - If needed for future simulations with a large disparity in additive cutoffs, compute
     // extra_width_i with knowledge of the additive cutoff of type i and half the largest additive
     // cutoff.
-    Scalar extra_width = m_xmax / (1 - m_xmax) * this->getMaxInteractionDiameter();
+    Scalar extra_width = m_xmax / (1 - m_xmax) * m_last_max_diam;
 
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
