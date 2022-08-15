@@ -10,7 +10,7 @@ using namespace hoomd::detail;
 
 // specify the python module. Note that the name must explicitly match the PROJECT() name provided
 // in CMakeLists (with an underscore in front)
-PYBIND11_MODULE(_example_plugin, m)
+PYBIND11_MODULE(_updater_plugin, m)
     {
     export_ExampleUpdater(m);
 

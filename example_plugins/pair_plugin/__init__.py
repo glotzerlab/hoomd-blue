@@ -3,4 +3,4 @@
 
 """Example python module."""
 
-from hoomd.example_plugin import update
+from hoomd.pair_plugin import pair
