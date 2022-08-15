@@ -81,11 +81,17 @@ class PYBIND11_EXPORT Integrator : public Updater
         return m_constraint_forces;
         }
 
-    /// Set HalfStepHook
-    virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
+    /// Set the half step hook.
+    virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
+        {
+        m_half_step_hook = hook;
+        }
 
-    // Removes HalfStepHook
-    virtual void removeHalfStepHook();
+    // Get the half step hook.
+    virtual std::shared_ptr<HalfStepHook> getHalfStepHook()
+        {
+        return m_half_step_hook;
+        }
 
     /// Change the timestep
     virtual void setDeltaT(Scalar deltaT);
