@@ -39,13 +39,23 @@ template<class T> class managed_allocator
 #ifdef ENABLE_HIP
         if (m_use_device)
             {
-            size_t allocation_bytes = n * sizeof(T);
-
-            hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+            // Check for pending errors.
+            hipError_t error = hipGetLastError();
             if (error != hipSuccess)
                 {
-                std::cerr << hipGetErrorString(error) << std::endl;
+                throw std::runtime_error(hipGetErrorString(error));
+                }
+
+            size_t allocation_bytes = n * sizeof(T);
+
+            error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+            if (error == hipErrorMemoryAllocation)
+                {
                 throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
                 }
             }
         else
@@ -79,16 +89,26 @@ template<class T> class managed_allocator
 #ifdef ENABLE_HIP
         if (use_device)
             {
+            // Check for pending errors.
+            hipError_t error = hipGetLastError();
+            if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
+
             allocation_bytes = n * sizeof(T);
 
             if (align_size)
                 allocation_bytes = ((n * sizeof(T)) / align_size + 1) * align_size;
 
-            hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
-            if (error != hipSuccess)
+            error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+            if (error == hipErrorMemoryAllocation)
                 {
-                std::cerr << hipGetErrorString(error) << std::endl;
                 throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
                 }
 
             allocation_ptr = result;
@@ -130,12 +150,7 @@ template<class T> class managed_allocator
 #ifdef ENABLE_HIP
         if (use_device)
             {
-            hipError_t error = hipDeviceSynchronize();
-            if (error != hipSuccess)
-                {
-                std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::bad_alloc();
-                }
+            hipDeviceSynchronize();
             }
 #endif
 

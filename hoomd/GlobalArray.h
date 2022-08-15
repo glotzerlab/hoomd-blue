@@ -763,6 +763,9 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
 #ifdef ENABLE_HIP
         if (use_device)
             {
+            // Check for pending errors.
+            CHECK_CUDA_ERROR();
+
             allocation_bytes = m_num_elements * sizeof(T);
 
             // always reserve an extra page
@@ -772,8 +775,15 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
             this->m_exec_conf->msg->notice(10)
                 << "Allocating " << allocation_bytes << " bytes of managed memory." << std::endl;
 
-            hipMallocManaged(&ptr, allocation_bytes, hipMemAttachGlobal);
-            CHECK_CUDA_ERROR();
+            hipError_t error = hipMallocManaged(&ptr, allocation_bytes, hipMemAttachGlobal);
+            if (error == hipErrorMemoryAllocation)
+                {
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
 
             allocation_ptr = ptr;
 
@@ -790,7 +800,7 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
 #endif
 
                 if (!ptr)
-                    throw std::runtime_error("GlobalArray: Error aligning managed memory");
+                    throw std::bad_alloc();
                 }
             }
         else
@@ -799,7 +809,7 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
             int retval = posix_memalign((void**)&ptr, 32, m_num_elements * sizeof(T));
             if (retval != 0)
                 {
-                throw std::runtime_error("Error allocating aligned memory");
+                throw std::bad_alloc();
                 }
             allocation_bytes = m_num_elements * sizeof(T);
             allocation_ptr = ptr;

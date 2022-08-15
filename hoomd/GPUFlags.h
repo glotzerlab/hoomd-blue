@@ -282,11 +282,9 @@ template<class T> void GPUFlags<T>::deallocate()
         assert(d_data);
 #ifdef ENABLE_MPI
         hipHostUnregister(h_data);
-        CHECK_CUDA_ERROR();
         free(h_data);
 #else
         hipHostFree(h_data);
-        CHECK_CUDA_ERROR();
 #endif
         if (!m_mapped)
             {
