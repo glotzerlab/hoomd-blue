@@ -18,11 +18,11 @@ v3.4.0 (not yet released)
 * ``hoomd.device.Device.notice`` - print user-defined messages to the configured message output
   stream.
 * Tutorial: Modelling Rigid Bodies.
-* `AutotunedObject` class that provides an interface to read and write tuned kernel parameters,
+* ``AutotunedObject`` class that provides an interface to read and write tuned kernel parameters,
   query whether tuning is complete, and start tuning again at the object level.
-* `is_tuning_complete` method to `Operations`. Check whether kernel parameter tuning is complete for
-  all operations.
-* `tune_kernel_parameters` methods to `Operations` and many other classes. Start tuning kernel
+* ``is_tuning_complete`` method to ``Operations``. Check whether kernel parameter tuning is complete
+  for all operations.
+* ``tune_kernel_parameters`` methods to ``Operations`` and many other classes. Start tuning kernel
   parameters in all operations.
 
 *Fixed*
