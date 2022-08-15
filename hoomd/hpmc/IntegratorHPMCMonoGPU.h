@@ -340,7 +340,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
         unsigned int block_size = parameter[0];
         unsigned int threads_per_particle = parameter[1];
         unsigned int overlap_threads = parameter[2];
-        return (threads_per_particle == 1 || Shape::isParallel())
+        return (overlap_threads == 1 || Shape::isParallel())
                && (threads_per_particle * overlap_threads <= block_size)
                && (block_size % (threads_per_particle * overlap_threads)) == 0;
     };
