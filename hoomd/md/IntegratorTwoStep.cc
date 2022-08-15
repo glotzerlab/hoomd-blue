@@ -384,7 +384,16 @@ void export_IntegratorTwoStep(pybind11::module& m)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("integrate_rotational_dof",
                       &IntegratorTwoStep::getIntegrateRotationalDOF,
-                      &IntegratorTwoStep::setIntegrateRotationalDOF);
+                      &IntegratorTwoStep::setIntegrateRotationalDOF)
+        .def_property("half_step_hook",
+                      nullptr,
+                      [](IntegratorTwoStep& self, std::shared_ptr<HalfStepHook> hook)
+                      {
+                          if (hook)
+                              self.setHalfStepHook(hook);
+                          else // `if hook is None` on the python side
+                              self.removeHalfStepHook();
+                      });
     }
 
     } // end namespace detail
