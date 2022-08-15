@@ -24,6 +24,9 @@ v3.4.0 (2020-08-15)
   for all operations.
 * ``tune_kernel_parameters`` methods to ``Operations`` and many other classes. Start tuning kernel
   parameters in all operations.
+* ``hoomd.md.HalfStepHook`` - extensible hook class called between step 1 and 2 of MD integration.
+* ``hoomd.md.Integrator.half_step_hook`` - property to get/set the half step hook.
+
 
 *Fixed*
 
