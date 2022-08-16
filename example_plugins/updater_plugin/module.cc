@@ -13,7 +13,6 @@ using namespace hoomd::detail;
 PYBIND11_MODULE(_updater_plugin, m)
     {
     export_ExampleUpdater(m);
-
 #ifdef ENABLE_HIP
     export_ExampleUpdaterGPU(m);
 #endif

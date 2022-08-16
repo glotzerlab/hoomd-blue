@@ -8,21 +8,26 @@ from hoomd.updater_plugin import _updater_plugin
 
 # Import the hoomd Python package.
 import hoomd
+from hoomd import operation
 
 
-class ExampleUpdater():
+class ExampleUpdater(operation.Updater):
     """Example updater."""
 
-    def __init__(self, period=1):
+    def __init__(self, trigger: hoomd.trigger.Trigger):
         # initialize base class
-        # hoomd.update._updater.__init__(self)
+        super().__init__(trigger)
 
+    def _add(self, simulation):
+        """Add the operation to a simulation."""
+        super()._add(simulation)
+
+    def _attach(self):
         # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _updater_plugin.ExampleUpdater(
-                hoomd.context.current.system_definition)
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            self._cpp_obj = _updater_plugin.ExampleUpdater(
+                self._simulation.state._cpp_sys_def, self.trigger)
         else:
-            self.cpp_updater = _updater_plugin.ExampleUpdaterGPU(
-                hoomd.context.current.system_definition)
-
-        self.setupUpdater(period)
+            self._cpp_obj = _updater_plugin.ExampleUpdaterGPU(
+                self._simulation.state._cpp_sys_def, self.trigger)
+        super()._attach()

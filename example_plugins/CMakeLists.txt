@@ -1,3 +1,5 @@
+# if compiling as an external component, point CMake to the containing folder
+
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
 # Name the plugin project
@@ -14,4 +16,4 @@ set(CMAKE_INSTALL_PREFIX ${HOOMD_INSTALL_PREFIX} CACHE PATH "Installation prefix
 # add subdirectories
 add_subdirectory(updater_plugin)
 add_subdirectory(pair_plugin)
-add_subdirectory(force_compute_plugin)
+# add_subdirectory(force_compute_plugin)

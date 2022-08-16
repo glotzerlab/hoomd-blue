@@ -7,6 +7,7 @@ set(_${COMPONENT_NAME}_sources
     )
 
 set(_${COMPONENT_NAME}_cu_sources
+    PotentialPairExampleGPUKernel.cu
     )
 
 if (ENABLE_HIP)
@@ -24,7 +25,10 @@ set_target_properties(_${COMPONENT_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\
 endif()
 
 # link the library to its dependencies
-target_link_libraries(_${COMPONENT_NAME} PUBLIC HOOMD::_hoomd)
+target_link_libraries(_${COMPONENT_NAME}
+                      PUBLIC HOOMD::_hoomd
+                      PUBLIC HOOMD::_md
+                      )
 
 fix_cudart_rpath(_${COMPONENT_NAME})
 
