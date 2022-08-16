@@ -132,7 +132,7 @@ class EvaluatorPairExample
             {
             Scalar r = fast::sqrt(rsq);
             Scalar rinv = 1 / r;
-            Scalar overlap = r - sigma;
+            Scalar overlap = sigma - r;
 
             force_divr = k * overlap * rinv;
 
@@ -141,7 +141,7 @@ class EvaluatorPairExample
             if (energy_shift)
                 {
                 Scalar rcut = fast::sqrt(rcutsq);
-                Scalar cut_overlap = rcut - sigma;
+                Scalar cut_overlap = sigma - rcut;
                 pair_eng -= Scalar(0.5) * k * cut_overlap * cut_overlap;
                 }
             return true;
