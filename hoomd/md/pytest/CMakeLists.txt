@@ -12,6 +12,7 @@ set(files __init__.py
     test_custom_force.py
     test_external.py
     test_filter_md.py
+    test_half_step_hook.py
     test_improper.py
     test_integrate.py
     test_bond.py
