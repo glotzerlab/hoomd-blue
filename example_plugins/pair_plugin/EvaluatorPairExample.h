@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_EXAMPLE_H__
 #define __PAIR_EVALUATOR_EXAMPLE_H__
@@ -36,8 +36,8 @@ class EvaluatorPairExample
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar a;    //!< Parameter a
-        Scalar b;    //!< Parameter b
+        Scalar k;     //!< Spring constant
+        Scalar sigma; //!< Minima of the spring
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -52,34 +52,34 @@ class EvaluatorPairExample
 #endif
 
 #ifndef __HIPCC__
-        param_type() : a(0), b(0) { }
+        param_type() : k(0), sigma(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
-            a = v["a"].cast<Scalar>();
-            b = v["b"].cast<Scalar>();
+            k = v["k"].cast<Scalar>();
+            sigma = v["sigma"].cast<Scalar>();
             }
 
         // this constructor facilitates unit testing
-        param_type(Scalar a, Scalar b, bool managed = false)
+        param_type(Scalar k, Scalar sigma, bool managed = false)
             {
-            this->a = a;
-            this->b = b;
+            this->k = k;
+            this->sigma = sigma;
             }
 
         pybind11::dict asDict()
             {
             pybind11::dict v;
-            v["a"] = a;
-            v["b"] = b;
+            v["k"] = k;
+            v["sigma"] = sigma;
             return v;
             }
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -88,7 +88,7 @@ class EvaluatorPairExample
         \param _params Per type pair parameters of this potential
     */
     DEVICE EvaluatorPairExample(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), a(_params.a), b(_params.b)
+        : rsq(_rsq), rcutsq(_rcutsq), k(_params.k), sigma(_params.sigma)
         {
         }
 
@@ -130,32 +130,33 @@ class EvaluatorPairExample
         // compute the force divided by r in force_divr
         if (rsq < rcutsq)
             {
+            Scalar r = fast::sqrt(rsq);
+            Scalar rinv = 1 / r;
+            Scalar overlap = r - sigma;
 
-            
-            Scalar r2inv = 1 / rsq;
+            force_divr = k * overlap * rinv;
 
-            Scalar r6inv = r2inv * r2inv * r2inv;
-            force_divr = r2inv * r6inv * (Scalar(12.0) * a * r6inv - Scalar(6.0) * b);
-
-            pair_eng = r6inv * (a * r6inv - b);
+            pair_eng = Scalar(0.5) * k * overlap * overlap;
 
             if (energy_shift)
                 {
-                Scalar rcut2inv = Scalar(1.0) / rcutsq;
-                Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-                pair_eng -= rcut6inv * (a * rcut6inv - b);
+                Scalar rcut = fast::sqrt(rcutsq);
+                Scalar cut_overlap = rcut - sigma;
+                pair_eng -= Scalar(0.5) * k * cut_overlap * cut_overlap;
                 }
             return true;
             }
         else
             return false;
         }
-    
+
+    //! Implement if desired
     DEVICE Scalar evalPressureLRCIntegral()
         {
         return 0;
         }
 
+    //! Implement if desired
     DEVICE Scalar evalEnergyLRCIntegral()
         {
         return 0;
@@ -179,9 +180,8 @@ class EvaluatorPairExample
     protected:
     Scalar rsq;    //!< Stored rsq from the constructor
     Scalar rcutsq; //!< Stored rcutsq from the constructor
-    Scalar a;    //!< a parameter extracted from the params passed to the constructor
-    Scalar b;    //!< b parameter extracted from the params passed to the constructor
-    // Add any additional fields
+    Scalar k;
+    Scalar sigma;
     };
 
     } // end namespace md
