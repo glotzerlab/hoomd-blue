@@ -150,13 +150,13 @@ class EvaluatorPairExample
             return false;
         }
 
-    //! Implement if desired
+    //! Example doesn't eval LRC integrals
     DEVICE Scalar evalPressureLRCIntegral()
         {
         return 0;
         }
 
-    //! Implement if desired
+    //! Example doesn't eval LRC integrals
     DEVICE Scalar evalEnergyLRCIntegral()
         {
         return 0;
@@ -180,8 +180,8 @@ class EvaluatorPairExample
     protected:
     Scalar rsq;    //!< Stored rsq from the constructor
     Scalar rcutsq; //!< Stored rcutsq from the constructor
-    Scalar k;
-    Scalar sigma;
+    Scalar k;      //!< Stored k from the constructor
+    Scalar sigma;  //!< Stored sigma from the constructor
     };
 
     } // end namespace md
