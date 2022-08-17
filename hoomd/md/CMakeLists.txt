@@ -204,6 +204,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVTAlchemy.h
 		VolumeConservationMeshForceCompute.h
 		VolumeConservationMeshForceComputeGPU.h
+		VolumeConservationMeshForceComputeGPU.cuh
                 AlchemostatTwoStep.h
                 WallData.h
                 ZeroMomentumUpdater.h

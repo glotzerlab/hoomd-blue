@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Mesh Bond potentials."""
+"""Mesh conservation potentials."""
 
 from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
@@ -33,7 +33,7 @@ class Volume(MeshPotential):
     Examples::
 
         volume = mesh.conservation.Volume(mesh)
-        volume.params["mesh"] = dict(k=10.0, r0=100)
+        volume.params["mesh"] = dict(k=10.0, V0=100)
     """
     _cpp_class_name = "VolumeConservationMeshForceCompute"
 
