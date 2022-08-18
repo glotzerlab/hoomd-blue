@@ -1,6 +1,5 @@
 name: Bug report
 description: Report a problem with HOOMD-blue.
-title: ''
 labels: ['bug']
 body:
   - type: textarea
