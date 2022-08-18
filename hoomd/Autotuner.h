@@ -184,7 +184,6 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
 #ifdef ENABLE_HIP
         hipEventDestroy(m_start);
         hipEventDestroy(m_stop);
-        CHECK_CUDA_ERROR();
 #endif
         }
 
