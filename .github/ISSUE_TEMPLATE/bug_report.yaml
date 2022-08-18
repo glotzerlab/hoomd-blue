@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a problem with HOOMD-blue.
+title: ''
+labels: ['bug']
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: Describe the problem.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Script
+      description: |
+        The *minimal* script that demonstrates the problem. The script should depend only on
+        HOOMD-blue and its dependencies so that developers can run it. Attach any needed input
+        files.
+      placeholder: |
+        import hoomd
+        ...
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Output
+      description: |
+        What output did you get?
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected output
+      description: |
+        What output do you expect?
+      render: shell
+  - type: dropdown
+    attributes:
+      label: Platform
+      description: What platform are you using? Select all that apply.
+      multiple: true
+      options:
+        - label: CPU
+        - label: GPU
+        - label: Linux
+        - label: macOS
+  - type: dropdown
+    attributes:
+      label: Installation method
+      description: How did you install HOOMD-blue?
+      multiple: true
+      options:
+        - label: Conda package
+        - label: Compiled from source
+        - label: glotzerlab-software container
+  - type: input
+    attributes:
+      label: HOOMD-blue version
+      description: What version of HOOMD-blue are you using?
+      placeholder: python3 -c "import hoomd; print(hoomd.version.version)"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Python version
+      description: What version of Python are you using?
+      placeholder: python3 --version"
+  - type: dropdown
+    attributes:
+      label: Installation method
+      description: How did you install HOOMD-blue?
+      multiple: false
+      options:
+        - label: Conda package
+        - label: Compiled from source
+        - label: glotzerlab-software container
+  - type: dropdown
+    attributes:
+      label: Developer
+      description: Who should implement the fix? We would welcome your contribution!
+      multiple: false
+      options:
+        - label: I will submit a pull request that fixes this problem.
+        - label: Would someone else please fix this?
