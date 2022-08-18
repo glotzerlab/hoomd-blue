@@ -60,12 +60,6 @@ class EvaluatorPairExample
             sigma = v["sigma"].cast<Scalar>();
             }
 
-        // this constructor facilitates unit testing
-        param_type(Scalar k, Scalar sigma, bool managed = false)
-            {
-            this->k = k;
-            this->sigma = sigma;
-            }
 
         pybind11::dict asDict()
             {
