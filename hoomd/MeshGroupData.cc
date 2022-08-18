@@ -112,11 +112,9 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
     const TriangleData::Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
-    if (this->m_exec_conf->getRank() == 0 && !snapshot.validate())
+    if (this->m_exec_conf->getRank() == 0)
         {
-        std::ostringstream s;
-        s << "Error initializing from " << name << " data snapshot.";
-        throw std::runtime_error(s.str());
+        snapshot.validate();
         }
 
     // re-initialize data structures

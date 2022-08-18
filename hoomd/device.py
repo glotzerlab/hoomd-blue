@@ -259,6 +259,9 @@ class GPU(Device):
         """bool: Whether GPU memory tracebacks should be enabled.
 
         Memory tracebacks are useful for developers when debugging GPU code.
+
+        .. deprecated:: v3.4.0
+           `memory_traceback` has no effect.
         """
         return self._cpp_exec_conf.memoryTracingEnabled()
 
