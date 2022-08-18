@@ -16,4 +16,3 @@ set(CMAKE_INSTALL_PREFIX ${HOOMD_INSTALL_PREFIX} CACHE PATH "Installation prefix
 # add subdirectories
 add_subdirectory(updater_plugin)
 add_subdirectory(pair_plugin)
-# add_subdirectory(force_compute_plugin)
