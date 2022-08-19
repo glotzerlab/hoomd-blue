@@ -21,13 +21,15 @@ body:
   - type: dropdown
     attributes:
       label: Developer
-      description: Who should implement the new functionality? We would welcome your contribution!
+      description: Who should implement the new functionality?
       multiple: false
       options:
-        - label: I will submit a pull request that implements this feature.
-        - label: Would someone else please implement this?
+        - I will submit a pull request that implements this feature.
+        - Would someone else please implement this?
   - type: markdown
     attributes:
       value: |
+        We would welcome your contribution!
+
         If you plan to implement this functionality, the HOOMD-blue developers will discuss the
         proposed design and API with you **before** you begin work.

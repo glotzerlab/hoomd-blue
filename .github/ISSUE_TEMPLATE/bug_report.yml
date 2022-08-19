@@ -13,14 +13,17 @@ body:
       label: Script
       description: |
         The *minimal* script that demonstrates the problem. The script should depend only on
-        HOOMD-blue and its dependencies so that developers can run it. Attach any needed input
-        files.
+        HOOMD-blue and its dependencies so that developers can run it.
       placeholder: |
         import hoomd
         ...
       render: python
     validations:
       required: true
+  - type: textarea
+    attributes:
+      label: Input files
+      description: Attach any input files needed to run the script.
   - type: textarea
     attributes:
       label: Output
@@ -32,45 +35,53 @@ body:
   - type: textarea
     attributes:
       label: Expected output
-      description: |
-        What output do you expect?
-      render: shell
+      description: What output do you expect?
   - type: dropdown
     attributes:
       label: Platform
       description: What platform are you using? Select all that apply.
       multiple: true
       options:
-        - label: CPU
-        - label: GPU
-        - label: Linux
-        - label: macOS
+        - CPU
+        - GPU
+        - Linux
+        - macOS
   - type: dropdown
     attributes:
       label: Installation method
       description: How did you install HOOMD-blue?
-      multiple: true
       options:
-        - label: Conda package
-        - label: Compiled from source
-        - label: glotzerlab-software container
+        - Compiled from source
+        - Conda package
+        - glotzerlab-software container
   - type: input
     attributes:
       label: HOOMD-blue version
       description: What version of HOOMD-blue are you using?
-      placeholder: python3 -c "import hoomd; print(hoomd.version.version)"
+      placeholder: 3.4.0
     validations:
       required: true
+  - type: markdown
+    attributes:
+      value: |
+        Run `python3 -c "import hoomd; print(hoomd.version.version)"` to find your HOOMD-blue version.
   - type: input
     attributes:
       label: Python version
       description: What version of Python are you using?
-      placeholder: python3 --version"
+      placeholder: 3.10.6
+  - type: markdown
+    attributes:
+      value: |
+        Run `python3 --version` to find your Python version.
   - type: dropdown
     attributes:
       label: Developer
-      description: Who should implement the fix? We would welcome your contribution!
+      description: Who should implement the fix?
       multiple: false
       options:
-        - label: I will submit a pull request that fixes this problem.
-        - label: Would someone else please fix this?
+        - I will submit a pull request that fixes this problem.
+        - Would someone else please fix this?
+  - type: markdown
+    attributes:
+      value: We would welcome your contribution!
