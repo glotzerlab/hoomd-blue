@@ -68,15 +68,6 @@ body:
       placeholder: python3 --version"
   - type: dropdown
     attributes:
-      label: Installation method
-      description: How did you install HOOMD-blue?
-      multiple: false
-      options:
-        - label: Conda package
-        - label: Compiled from source
-        - label: glotzerlab-software container
-  - type: dropdown
-    attributes:
       label: Developer
       description: Who should implement the fix? We would welcome your contribution!
       multiple: false
