@@ -66,7 +66,6 @@ def harm_force_and_energy(
     return f, e
 
 
-# This may be a bit excessive with all the tests
 rng = np.random.default_rng(seed=0)
 positions = 0.5 * rng.random((10, 3)) - 0.25
 positions = list(positions) + list(2.0 * rng.random((10, 3)) - 1.0)
@@ -103,10 +102,8 @@ def test_force_and_energy_eval(pos, device, k, sigma):
 
     forces = example_pair.forces
     print(forces, f)
-    # assert (forces == pytest.approx([-f, f])).all()
     np.testing.assert_array_almost_equal(forces, [-f, f])
 
     energies = example_pair.energies
     print(energies, e)
-    # assert (energies == pytest.approx([e, e])).all()
     np.testing.assert_array_almost_equal(energies, [e, e])
