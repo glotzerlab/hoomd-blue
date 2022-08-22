@@ -60,7 +60,6 @@ class EvaluatorPairExample
             sigma = v["sigma"].cast<Scalar>();
             }
 
-
         pybind11::dict asDict()
             {
             pybind11::dict v;

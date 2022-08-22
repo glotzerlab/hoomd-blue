@@ -6,19 +6,21 @@ import itertools
 import pytest
 
 import hoomd
-from hoomd import updater_plugin, operation
+from hoomd import operation
 from hoomd.device import Device
+
+from hoomd import updater_plugin
 
 import numpy as np
 
 
-def build_system(
-    vel: Optional[List[float]] = None,
-    device: Optional[Device] = None
-) -> hoomd.Simulation:
-    """Build a system of one partice with velocity `vel`. `vel` should be a
-    list of 3 floats, and is defaulted to [1, 1, 1]."""
+def build_system(vel: Optional[List[float]] = None,
+                 device: Optional[Device] = None) -> hoomd.Simulation:
+    """Builds a one-particle system.
 
+    Builds a one-particle system with velocity `vel`. `vel` should be a list of
+    3 floats, and is defaulted to [1, 1, 1].
+    """
     if vel is None:
         vel = [1, 1, 1]
     else:
@@ -66,24 +68,17 @@ def test_updater(vel, device):
     sim.operations.integrator = integrator
 
     updater: operation.Updater = updater_plugin.update.ExampleUpdater(
-        hoomd.trigger.On(sim.timestep)
-    )
+        hoomd.trigger.On(sim.timestep))
     sim.operations.updaters.append(updater)
 
     sim.run(0)
 
     velocity = sim.state.get_snapshot().particles.velocity[0]
-    np.testing.assert_array_almost_equal(
-        velocity,
-        vel,
-        decimal=6
-    )
+    np.testing.assert_array_almost_equal(velocity, vel, decimal=6)
 
     sim.run(1)
 
     velocity = sim.state.get_snapshot().particles.velocity[0]
-    np.testing.assert_array_almost_equal(
-        velocity,
-        np.array([0.0, 0.0, 0.0]),
-        decimal=6
-    )
+    np.testing.assert_array_almost_equal(velocity,
+                                         np.array([0.0, 0.0, 0.0]),
+                                         decimal=6)

@@ -6,21 +6,22 @@ import itertools
 import pytest
 
 import hoomd
-from hoomd import pair_plugin
 from hoomd.device import Device
+
+from hoomd import pair_plugin
 
 import numpy as np
 from numpy.typing import NDArray
 
 
-def build_binary_system(
-    pos: Optional[List[float]] = None,
-    device: Optional[Device] = None
-) -> hoomd.Simulation:
-    """Build a system of two particles, with one particle located at the origin
-    and the other located at `pos`. `pos` should be a list of 3 floats, and is
-    defaulted to [0.5, 0, 0]. The box is 4x4x4."""
+def build_binary_system(pos: Optional[List[float]] = None,
+                        device: Optional[Device] = None) -> hoomd.Simulation:
+    """Builds a two-particle system.
 
+    Builds a system of two particles, with one particle located at the origin
+    and the other located at `pos`. `pos` should be a list of 3 floats, and is
+    defaulted to [0.5, 0, 0]. The box is 4x4x4.
+    """
     if pos is None:
         pos = [0.5, 0, 0]
     else:
@@ -46,19 +47,18 @@ def build_binary_system(
 
 
 def harm_force_and_energy(
-    dx: List[float],
-    k: float,
-    sigma: float,
-    r_cut: float,
-    shift: Optional[bool] = False
-) -> Tuple[NDArray[np.float64], float]:
+        dx: List[float],
+        k: float,
+        sigma: float,
+        r_cut: float,
+        shift: Optional[bool] = False) -> Tuple[NDArray[np.float64], float]:
 
     dr = np.linalg.norm(dx)
 
     if dr >= r_cut:
         return np.array([0.0, 0.0, 0.0], dtype=np.float64), 0.0
 
-    f = - k * (dr - sigma) * np.array(dx, dtype=np.float64) / dr
+    f = -k * (dr - sigma) * np.array(dx, dtype=np.float64) / dr
     e = 0.5 * k * (dr - sigma)**2
     if shift:
         e -= 0.5 * k * (r_cut - sigma)**2
@@ -89,9 +89,7 @@ def test_force_and_energy_eval(pos, device, k, sigma):
 
     cell = hoomd.md.nlist.Cell(buffer=0.4)
     example_pair: hoomd.md.pair.Pair = pair_plugin.pair.ExamplePair(
-        cell,
-        default_r_cut=sigma
-    )
+        cell, default_r_cut=sigma)
     example_pair.params[("A", "A")] = dict(k=k, sigma=sigma)
     integrator.forces = [example_pair]
     integrator.methods = [nve]
