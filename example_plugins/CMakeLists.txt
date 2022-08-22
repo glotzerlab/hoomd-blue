@@ -1,4 +1,4 @@
-# if compiling as an external component, point CMake to the containing folder
+# CMakeLists.txt for building as an external plugin or a symlinked component.
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
