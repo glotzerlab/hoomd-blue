@@ -361,6 +361,7 @@ set(files box.py
           mesh.py
           version.py
           wall.py
+          pytest.ini
     )
 
 install(FILES ${files}
