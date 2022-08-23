@@ -283,7 +283,7 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
         for (unsigned int typ_i = 0; typ_i < m_pdata->getNTypes(); typ_i++)
             {
             const Scalar r_cut_patch_i = m_mc->getPatchEnergy()->getRCut()
-                                   + m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i);
+                                         + m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i);
             max_r_cut_patch = std::max(max_r_cut_patch, r_cut_patch_i);
             }
         }
@@ -464,8 +464,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                 m_mc->getPatchEnergy()->getRCut()
                 + 0.5 * m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i));
             }
-        const OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter() / OverlapReal(2.0),
-                                       r_cut_patch - m_mc->getMinCoreDiameter() / (OverlapReal)2.0);
+        const OverlapReal R_query
+            = std::max(shape_i.getCircumsphereDiameter() / OverlapReal(2.0),
+                       r_cut_patch - m_mc->getMinCoreDiameter() / (OverlapReal)2.0);
         hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0), R_query + extra_width);
 
         const size_t n_images = image_list.size();
@@ -521,7 +522,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                             // want the _first_ overlap of particle i with its neighbors
                             for (size_t bin_to_sample = 0; bin_to_sample < min_bin; bin_to_sample++)
                                 {
-                                const double scale_factor = m_dx * static_cast<double>(bin_to_sample + 1);
+                                const double scale_factor
+                                    = m_dx * static_cast<double>(bin_to_sample + 1);
 
                                 // first check for any hard overlaps
                                 // if there is one for a given scale value, there is no need to
@@ -548,7 +550,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     {
                                     // compute the energy at this size of the perturbation and
                                     // compare to the energy in the unperturbed state
-                                    const vec3<Scalar> r_ij_scaled = r_ij * (Scalar(1.0) - scale_factor);
+                                    const vec3<Scalar> r_ij_scaled
+                                        = r_ij * (Scalar(1.0) - scale_factor);
                                     double u_ij_new = m_mc->getPatchEnergy()->energy(
                                         r_ij_scaled,
                                         typ_i,
