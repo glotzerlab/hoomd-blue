@@ -37,9 +37,10 @@ BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> s
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_bond", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "bond_table"));
+    m_autotuners.push_back(m_tuner);
     }
 
 BondTablePotentialGPU::~BondTablePotentialGPU()
@@ -94,7 +95,7 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
                                              m_table_width,
                                              m_table_value,
                                              d_flags.data,
-                                             m_tuner->getParam());
+                                             m_tuner->getParam()[0]);
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

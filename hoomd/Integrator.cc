@@ -58,21 +58,6 @@ Integrator::~Integrator()
 #endif
     }
 
-/** @param hook HalfStepHook to set
- */
-void Integrator::setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
-    {
-    assert(hook);
-    m_half_step_hook = hook;
-    }
-
-/** Call removeHalfStepHook() to unset the integrator's HalfStep hook
- */
-void Integrator::removeHalfStepHook()
-    {
-    m_half_step_hook.reset();
-    }
-
 /** @param deltaT New time step to set
  */
 void Integrator::setDeltaT(Scalar deltaT)

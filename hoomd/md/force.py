@@ -7,7 +7,7 @@ from abc import abstractmethod
 
 import hoomd
 from hoomd.md import _md
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import AutotunedObject
 from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
@@ -17,7 +17,7 @@ from hoomd.md.manifold import Manifold
 import numpy
 
 
-class Force(_HOOMDBaseObject):
+class Force(AutotunedObject):
     r"""Defines a force for molecular dynamics simulations.
 
     `Force` is the base class for all molecular dynamics forces and provides

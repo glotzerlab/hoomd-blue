@@ -19,10 +19,16 @@ mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
                            unsigned int period)
     : mpcd::Sorter(sysdata, cur_timestep, period)
     {
-    m_sentinel_tuner.reset(
-        new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_sentinel", m_exec_conf));
-    m_reverse_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_reverse", m_exec_conf));
-    m_apply_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_apply", m_exec_conf));
+    m_sentinel_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "mpcd_sort_sentinel"));
+    m_reverse_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           m_exec_conf,
+                                           "mpcd_sort_reverse"));
+    m_apply_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_sort_apply"));
+    m_autotuners.insert(m_autotuners.end(), {m_sentinel_tuner, m_reverse_tuner, m_apply_tuner});
     }
 
 /*!
@@ -51,7 +57,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
                                      d_cell_np.data,
                                      m_cl->getCellListIndexer(),
                                      0xffffffff,
-                                     m_sentinel_tuner->getParam());
+                                     m_sentinel_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_sentinel_tuner->end();
@@ -88,7 +94,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
         mpcd::gpu::sort_gen_reverse(d_rorder.data,
                                     d_order.data,
                                     m_mpcd_pdata->getN(),
-                                    m_reverse_tuner->getParam());
+                                    m_reverse_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_reverse_tuner->end();
@@ -135,7 +141,7 @@ void mpcd::SorterGPU::applyOrder() const
                               d_tag.data,
                               d_order.data,
                               m_mpcd_pdata->getN(),
-                              m_apply_tuner->getParam());
+                              m_apply_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_apply_tuner->end();

@@ -24,3 +24,6 @@ v3.x
    * - ``hoomd.md.pair.aniso.Dipole.mode`` parameter
      - n/a: ``mode`` has no effect since v3.0.0.
      - v3.1.0
+   * - ``hoomd.device.GPU.memory_traceback`` parameter
+     - n/a: ``memory_traceback`` has no effect since v3.0.0.
+     - v3.4.0

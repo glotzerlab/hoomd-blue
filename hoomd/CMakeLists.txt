@@ -52,8 +52,9 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
 ##############################
 ## Source setup
 
-set(_hoomd_sources Analyzer.cc
-                   Autotuner.cc
+set(_hoomd_sources Action.cc
+                   Autotuned.cc
+                   Analyzer.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
                    CellList.cc
@@ -77,7 +78,6 @@ set(_hoomd_sources Analyzer.cc
                    MeshGroupData.cc
                    MeshDefinition.cc
                    Messenger.cc
-                   MemoryTraceback.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
@@ -113,6 +113,7 @@ endif()
 set(_hoomd_headers
     AABB.h
     AABBTree.h
+    Action.h
     Analyzer.h
     ArrayView.h
     Autotuner.h
@@ -160,7 +161,6 @@ set(_hoomd_headers
     LoadBalancer.h
     managed_allocator.h
     ManagedArray.h
-    MemoryTraceback.h
     MeshGroupData.cuh
     MeshGroupData.h
     MeshDefinition.h

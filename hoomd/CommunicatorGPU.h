@@ -11,7 +11,6 @@
 #ifdef ENABLE_MPI
 #ifdef ENABLE_HIP
 
-#include "Autotuner.h"
 #include "Communicator.h"
 
 #include "CommunicatorGPU.cuh"

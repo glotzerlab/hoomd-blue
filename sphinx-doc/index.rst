@@ -143,6 +143,7 @@ Molecular dynamics:
     tutorial/03-Parallel-Simulations-With-MPI/00-index
     tutorial/04-Custom-Actions-In-Python/00-index
     tutorial/05-Organizing-and-Executing-Simulations/00-index
+    tutorial/06-Modelling-Rigid-Bodies/00-index
 
 .. toctree::
     :maxdepth: 1

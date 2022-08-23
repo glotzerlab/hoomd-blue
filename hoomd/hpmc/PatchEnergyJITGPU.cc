@@ -17,10 +17,10 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
     assert(args.d_postype);
     assert(args.d_orientation);
 
-    unsigned int param = m_tuner_narrow_patch->getParam();
-    unsigned int block_size = param / 1000000;
-    unsigned int req_tpp = (param % 1000000) / 100;
-    unsigned int eval_threads = param % 100;
+    auto param = m_tuner_narrow_patch->getParam();
+    unsigned int block_size = param[0];
+    unsigned int req_tpp = param[1];
+    unsigned int eval_threads = param[2];
 
     this->m_exec_conf->beginMultiGPU();
     m_tuner_narrow_patch->begin();

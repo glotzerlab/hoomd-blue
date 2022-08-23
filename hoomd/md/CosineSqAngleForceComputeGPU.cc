@@ -30,9 +30,10 @@ CosineSqAngleForceComputeGPU::CosineSqAngleForceComputeGPU(std::shared_ptr<Syste
     GPUArray<Scalar2> params(m_angle_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "cosinesq_angle", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "cosinesq_angle"));
+    m_autotuners.push_back(m_tuner);
     }
 
 CosineSqAngleForceComputeGPU::~CosineSqAngleForceComputeGPU() { }
@@ -95,7 +96,7 @@ void CosineSqAngleForceComputeGPU::computeForces(uint64_t timestep)
                                               d_gpu_n_angles.data,
                                               d_params.data,
                                               m_angle_data->getNTypes(),
-                                              m_tuner->getParam());
+                                              m_tuner->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -12,11 +12,13 @@ set(files __init__.py
     test_custom_force.py
     test_external.py
     test_filter_md.py
+    test_half_step_hook.py
     test_improper.py
     test_integrate.py
     test_bond.py
     test_dihedral.py
     test_flags.py
+    test_kernel_parameters.py
     test_lj_equation_of_state.py
     test_potential.py
     test_pppm_coulomb.py

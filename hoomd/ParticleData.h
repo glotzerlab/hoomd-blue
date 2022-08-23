@@ -178,9 +178,9 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     void insert(unsigned int i, unsigned int n);
 
     //! Validate the snapshot
-    /*! \returns true if the number of elements is consistent
+    /*! Throws an exception when the snapshot contains invalid data.
      */
-    bool validate() const;
+    void validate() const;
 
 #ifdef ENABLE_MPI
     //! Broadcast the snapshot using MPI

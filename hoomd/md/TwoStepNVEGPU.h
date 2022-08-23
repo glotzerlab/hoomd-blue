@@ -43,30 +43,18 @@ class PYBIND11_EXPORT TwoStepNVEGPU : public TwoStepNVE
 
     std::pair<bool, Scalar> getKernelLimitValues(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        TwoStepNVE::setAutotunerParams(enable, period);
-        m_tuner_one->setPeriod(period);
-        m_tuner_one->setEnabled(enable);
-        m_tuner_two->setPeriod(period);
-        m_tuner_two->setEnabled(enable);
-        m_tuner_angular_one->setPeriod(period);
-        m_tuner_angular_one->setEnabled(enable);
-        m_tuner_angular_two->setPeriod(period);
-        m_tuner_angular_two->setEnabled(enable);
-        }
-
     private:
-    std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-    std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
-    std::unique_ptr<Autotuner>
-        m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
-    std::unique_ptr<Autotuner>
-        m_tuner_angular_two; //!< Autotuner for block size (angular step two kernel)
+    /// Autotuner for block size (step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_one;
+
+    /// Autotuner for block size (step two kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_two;
+
+    /// Autotuner for block size (angular step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_one;
+
+    /// Autotuner for block size (angular step two kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
     };
 
     } // end namespace md

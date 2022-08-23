@@ -456,9 +456,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Computes the NeighborList if it needs updating
     void compute(uint64_t timestep);
 
-    //! Benchmark the neighbor list
-    virtual double benchmark(unsigned int num_iters);
-
     //! Forces a full update of the list on the next call to compute()
     void forceUpdate()
         {
