@@ -1,4 +1,4 @@
-# CMakeLists.txt for building as an external plugin or a symlinked component.
+# CMakeLists.txt template for building a plugin as an external component.
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9 FATAL_ERROR)
 
@@ -13,6 +13,6 @@ message(STATUS "Found HOOMD ${HOOMD_VERSION}: ${HOOMD_INSTALL_PREFIX}/${PYTHON_S
 # Force installation to the HOOMD installation location
 set(CMAKE_INSTALL_PREFIX ${HOOMD_INSTALL_PREFIX} CACHE PATH "Installation prefix" FORCE)
 
-# add subdirectories
+# Add subdirectories
 add_subdirectory(updater_plugin)
 add_subdirectory(pair_plugin)

@@ -61,12 +61,6 @@ def test_updater(vel, device):
 
     sim = build_system(list(vel), device)
 
-    integrator = hoomd.md.Integrator(dt=0.001)
-    nve = hoomd.md.methods.NVE(hoomd.filter.All())
-    integrator.methods = [nve]
-
-    sim.operations.integrator = integrator
-
     updater: operation.Updater = updater_plugin.update.ExampleUpdater(
         hoomd.trigger.On(sim.timestep))
     sim.operations.updaters.append(updater)
