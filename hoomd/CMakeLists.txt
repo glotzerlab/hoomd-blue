@@ -116,6 +116,7 @@ set(_hoomd_headers
     Action.h
     Analyzer.h
     ArrayView.h
+    Autotuned.h
     Autotuner.h
     BondedGroupData.cuh
     BondedGroupData.h
