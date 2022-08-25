@@ -75,6 +75,12 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
      */
     unsigned int addBondedGroup(Group g);
 
+    void meshChanged()
+    	{
+        this->m_group_num_change_signal.emit();
+        this->notifyGroupReorder();
+	}
+
 #ifdef ENABLE_MPI
     //! Helper function to transfer bonded groups connected to a single particle
     /*! \param tag Tag of particle that moves between domains

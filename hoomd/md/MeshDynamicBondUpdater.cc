@@ -71,7 +71,8 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh->getMeshBondData()->getN();
 
-    unsigned int zahl = 0;
+    bool changeDetected = false;
+
     for (unsigned int i = 0; i < size; i++)
         {
         const typename MeshBond::members_t& bond = h_bonds.data[i];
@@ -156,7 +157,7 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
         if (exp(-m_inv_T * energyDifference) > uniform(rng))
             {
-            zahl++;
+            changeDetected = true;
 
             typename MeshBond::members_t bond_n;
             typename MeshTriangle::members_t triangle1_n;
@@ -256,9 +257,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             h_triangles.data[tr_idx1] = triangle1_n;
             h_triangles.data[tr_idx2] = triangle2_n;
 
-            m_mesh->getMeshBondData()->setDirty();
-            m_mesh->getMeshTriangleData()->setDirty();
-
             if (a_before_b)
                 {
                 for (auto& force : forces)
@@ -275,6 +273,13 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 }
             }
         }
+
+    if(changeDetected)
+        {
+        m_mesh->getMeshBondData()->meshChanged();
+        m_mesh->getMeshTriangleData()->meshChanged();
+	}
+
     //std::cout << float(zahl) / size << std::endl;
     }
 

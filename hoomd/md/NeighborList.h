@@ -617,6 +617,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     uint64_t m_forced_updates;    //!< Number of times the neighbor list has been forcibly updated
     uint64_t m_dangerous_updates; //!< Number of dangerous builds counted
     bool m_force_update;          //!< Flag to handle the forcing of neighborlist updates
+    bool m_meshbonds_changed;     //!< Flag to handle updating the neighborlist updates when meshbonds change
     bool m_dist_check;            //!< Set to false to disable distance checks (nlist always built
                                   //!< m_rebuild_check_delay steps)
     bool m_has_been_updated_once; //!< True if the neighbor list has been updated at least once

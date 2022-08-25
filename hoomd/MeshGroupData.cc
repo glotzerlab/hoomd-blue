@@ -419,8 +419,7 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
     this->m_nglobal++;
 
     // notify observers
-    this->m_group_num_change_signal.emit();
-    this->notifyGroupReorder();
+    meshChanged();
 
     return tag;
     }
@@ -1000,8 +999,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups(unsi
         }
 
     // notify observers
-    this->m_group_num_change_signal.emit();
-    this->notifyGroupReorder();
+    meshChanged();
     }
 #endif
 
