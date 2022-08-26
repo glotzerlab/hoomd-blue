@@ -1,77 +1,48 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-from typing import List, Optional
-import itertools
-import pytest
-
-import hoomd
-from hoomd import operation
-from hoomd.device import Device
-
+# Import the plugin module.
 from hoomd import updater_plugin
 
+# Import the hoomd Python package.
+import hoomd
+from hoomd import operation
+
+import itertools
+import pytest
 import numpy as np
 
+# Generate a list of velocities to test against. Hard-coded values are also
+# appropriate here.
+v_comp = np.linspace(-5.0, 5.0, 3)
 
-def build_system(vel: Optional[List[float]] = None,
-                 device: Optional[Device] = None) -> hoomd.Simulation:
-    """Builds a one-particle system.
-
-    Builds a one-particle system with velocity `vel`. `vel` should be a list of
-    3 floats, and is defaulted to [1, 1, 1].
-    """
-    if vel is None:
-        vel = [1, 1, 1]
-    else:
-        if not isinstance(vel, list):
-            raise ValueError("`vel` must be a list")
-        if len(vel) != 3:
-            raise ValueError("`vel` must be a list of length 3")
-
-    if device is None:
-        device = hoomd.device.CPU()
-
-    sim = hoomd.Simulation(device, 0)
-
-    snap = hoomd.Snapshot()
-    snap.particles.N = 1
-    snap.particles.types = ["A"]
-    snap.particles.position[:] = [[0, 0, 0]]
-    snap.particles.velocity[:] = [vel]
-
-    snap.configuration.box = [1, 1, 1, 0, 0, 0]
-
-    sim.create_state_from_snapshot(snap)
-
-    return sim
+# An array of 3-tuples that will be our testing velocities.
+velocities = list(itertools.product(v_comp, v_comp, v_comp))
 
 
-rng = np.random.default_rng(seed=0)
-velocities = rng.random((5, 3))
-devices = [hoomd.device.CPU()]
-if hoomd.device.GPU.is_available():
-    devices.append(hoomd.device.GPU())
+# Use pytest decorator to automate testing over the sequence of parameters.
+@pytest.mark.parametrize("vel", velocities)
+def test_updater(simulation_factory, one_particle_snapshot_factory, vel):
 
-testdata = list(itertools.product(velocities, devices))
+    # `one_particle_snapshot_factory` and `simulation_factory` are pytest
+    # fixtures defined in hoomd/conftest.py. These factories automatically
+    # handle iterating tests over different CPU and GPU devices.
+    snap = one_particle_snapshot_factory()
+    snap.particles.velocity[0] = vel
+    sim = simulation_factory(snap)
 
-
-@pytest.mark.parametrize("vel,device", testdata)
-def test_updater(vel, device):
-
-    sim = build_system(list(vel), device)
-
+    # Add our plugin to the simulation.
     updater: operation.Updater = updater_plugin.update.ExampleUpdater(
         hoomd.trigger.On(sim.timestep))
     sim.operations.updaters.append(updater)
 
+    # Test that the initial velocity matches our input.
     sim.run(0)
-
     velocity = sim.state.get_snapshot().particles.velocity[0]
     np.testing.assert_array_almost_equal(velocity, vel, decimal=6)
 
+    # Test that the velocity is properly zeroed after the update.
     sim.run(1)
-
     velocity = sim.state.get_snapshot().particles.velocity[0]
     np.testing.assert_array_almost_equal(velocity,
                                          np.array([0.0, 0.0, 0.0]),

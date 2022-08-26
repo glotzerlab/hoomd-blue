@@ -1,53 +1,22 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-from typing import List, Optional, Tuple
-import itertools
-import pytest
-
-import hoomd
-from hoomd.device import Device
-
+# Import the plugin module.
 from hoomd import pair_plugin
 
+# Import the hoomd Python package.
+import hoomd
+
+import itertools
+import pytest
+from typing import Optional, Tuple
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 
 
-def build_binary_system(pos: Optional[List[float]] = None,
-                        device: Optional[Device] = None) -> hoomd.Simulation:
-    """Builds a two-particle system.
-
-    Builds a system of two particles, with one particle located at the origin
-    and the other located at `pos`. `pos` should be a list of 3 floats, and is
-    defaulted to [0.5, 0, 0]. The box is 4x4x4.
-    """
-    if pos is None:
-        pos = [0.5, 0, 0]
-    else:
-        if not isinstance(pos, list):
-            raise ValueError("`pos` must be a list")
-        if len(pos) != 3:
-            raise ValueError("`pos` must be a list of length 3")
-
-    if device is None:
-        device = hoomd.device.CPU()
-
-    sim = hoomd.Simulation(device, 0)
-
-    snap = hoomd.Snapshot()
-    snap.particles.N = 2
-    snap.particles.types = ["A"]
-    snap.particles.position[:] = [[0, 0, 0], pos]
-    snap.configuration.box = [4, 4, 4, 0, 0, 0]
-
-    sim.create_state_from_snapshot(snap)
-
-    return sim
-
-
+# Python implementation of the pair force and energy.
 def harm_force_and_energy(
-        dx: List[float],
+        dx: ArrayLike,
         k: float,
         sigma: float,
         r_cut: float,
@@ -58,37 +27,40 @@ def harm_force_and_energy(
     if dr >= r_cut:
         return np.array([0.0, 0.0, 0.0], dtype=np.float64), 0.0
 
-    f = -k * (dr - sigma) * np.array(dx, dtype=np.float64) / dr
-    e = 0.5 * k * (dr - sigma)**2
+    f = k * (sigma - dr) * np.array(dx, dtype=np.float64) / dr
+    e = 0.5 * k * (sigma - dr)**2
     if shift:
         e -= 0.5 * k * (r_cut - sigma)**2
 
     return f, e
 
 
-rng = np.random.default_rng(seed=0)
-positions = 0.5 * rng.random((10, 3)) - 0.25
-positions = list(positions) + list(2.0 * rng.random((10, 3)) - 1.0)
-devices = [hoomd.device.CPU()]
-if hoomd.device.GPU.is_available():
-    devices.append(hoomd.device.GPU())
-ks = [0.5, 1.0, 2.0, 5.0]
+# Build up list of parameters.
+distances = np.linspace(0.1, 2.0, 3)
+ks = [0.5, 2.0, 5.0]
 sigmas = [0.5, 1.0, 1.5]
+# No need to test "xplor", as that is handled outside of the plugin impl.
+modes = ["none", "shift"]
 
-testdata = list(itertools.product(positions, devices, ks, sigmas))
+testdata = list(itertools.product(distances, ks, sigmas, modes))
 
 
-@pytest.mark.parametrize("pos,device,k,sigma", testdata)
-def test_force_and_energy_eval(pos, device, k, sigma):
+@pytest.mark.parametrize("distance, k, sigma, mode", testdata)
+def test_force_and_energy_eval(simulation_factory,
+                               two_particle_snapshot_factory, distance, k,
+                               sigma, mode):
 
-    sim = build_binary_system(list(pos), device)
+    # Build the simulation from the factory fixtures defined in
+    # hoomd/conftest.py.
+    sim = simulation_factory(two_particle_snapshot_factory(d=distance))
 
+    # Setup integrator and force.
     integrator = hoomd.md.Integrator(dt=0.001)
     nve = hoomd.md.methods.NVE(hoomd.filter.All())
 
     cell = hoomd.md.nlist.Cell(buffer=0.4)
     example_pair: hoomd.md.pair.Pair = pair_plugin.pair.ExamplePair(
-        cell, default_r_cut=sigma)
+        cell, default_r_cut=sigma, mode=mode)
     example_pair.params[("A", "A")] = dict(k=k, sigma=sigma)
     integrator.forces = [example_pair]
     integrator.methods = [nve]
@@ -96,14 +68,17 @@ def test_force_and_energy_eval(pos, device, k, sigma):
     sim.operations.integrator = integrator
 
     sim.run(0)
+    snap = sim.state.get_snapshot()
+    vec_dist = snap.particles.position[1] - snap.particles.position[0]
 
-    f, e = harm_force_and_energy(pos, k, sigma, sigma)
+    # Compute force and energy from Python
+    shift = mode == "shift"
+    f, e = harm_force_and_energy(vec_dist, k, sigma, sigma, shift)
     e /= 2.0
 
+    # Test that the forces and energies match that predicted by the Python impl.
     forces = example_pair.forces
-    print(forces, f)
-    np.testing.assert_array_almost_equal(forces, [-f, f])
+    np.testing.assert_array_almost_equal(forces, [-f, f], decimal=6)
 
     energies = example_pair.energies
-    print(energies, e)
-    np.testing.assert_array_almost_equal(energies, [e, e])
+    np.testing.assert_array_almost_equal(energies, [e, e], decimal=6)
