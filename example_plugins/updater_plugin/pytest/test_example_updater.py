@@ -28,7 +28,8 @@ def test_updater(simulation_factory, one_particle_snapshot_factory, vel):
     # fixtures defined in hoomd/conftest.py. These factories automatically
     # handle iterating tests over different CPU and GPU devices.
     snap = one_particle_snapshot_factory()
-    snap.particles.velocity[0] = vel
+    if snap.communicator.rank == 0:
+        snap.particles.velocity[0] = vel
     sim = simulation_factory(snap)
 
     # Add our plugin to the simulation.
@@ -38,12 +39,16 @@ def test_updater(simulation_factory, one_particle_snapshot_factory, vel):
 
     # Test that the initial velocity matches our input.
     sim.run(0)
-    velocity = sim.state.get_snapshot().particles.velocity[0]
-    np.testing.assert_array_almost_equal(velocity, vel, decimal=6)
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        velocity = snap.particles.velocity[0]
+        np.testing.assert_array_almost_equal(velocity, vel, decimal=6)
 
     # Test that the velocity is properly zeroed after the update.
     sim.run(1)
-    velocity = sim.state.get_snapshot().particles.velocity[0]
-    np.testing.assert_array_almost_equal(velocity,
-                                         np.array([0.0, 0.0, 0.0]),
-                                         decimal=6)
+    snap = sim.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        velocity = snap.particles.velocity[0]
+        np.testing.assert_array_almost_equal(velocity,
+                                             np.array([0.0, 0.0, 0.0]),
+                                             decimal=6)

@@ -69,16 +69,18 @@ def test_force_and_energy_eval(simulation_factory,
 
     sim.run(0)
     snap = sim.state.get_snapshot()
-    vec_dist = snap.particles.position[1] - snap.particles.position[0]
+    if snap.communicator.rank == 0:
+        vec_dist = snap.particles.position[1] - snap.particles.position[0]
 
-    # Compute force and energy from Python
-    shift = mode == "shift"
-    f, e = harm_force_and_energy(vec_dist, k, sigma, sigma, shift)
-    e /= 2.0
+        # Compute force and energy from Python
+        shift = mode == "shift"
+        f, e = harm_force_and_energy(vec_dist, k, sigma, sigma, shift)
+        e /= 2.0
 
-    # Test that the forces and energies match that predicted by the Python impl.
-    forces = example_pair.forces
-    np.testing.assert_array_almost_equal(forces, [-f, f], decimal=6)
+        # Test that the forces and energies match that predicted by the Python
+        # implementation.
+        forces = example_pair.forces
+        np.testing.assert_array_almost_equal(forces, [-f, f], decimal=6)
 
-    energies = example_pair.energies
-    np.testing.assert_array_almost_equal(energies, [e, e], decimal=6)
+        energies = example_pair.energies
+        np.testing.assert_array_almost_equal(energies, [e, e], decimal=6)
