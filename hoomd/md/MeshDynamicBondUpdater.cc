@@ -73,6 +73,8 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
     bool changeDetected = false;
 
+    std::vector<unsigned int> changed;
+
     for (unsigned int i = 0; i < size; i++)
         {
         const typename MeshBond::members_t& bond = h_bonds.data[i];
@@ -82,12 +84,29 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int tag_a = bond.tag[0];
-        unsigned int idx_a = h_rtag.data[tag_a];
         unsigned int tag_b = bond.tag[1];
+
+
+	bool already_used = false;
+	for(unsigned int j = 0; changed.size(); j++)
+	{
+		if( tag_a == changed[j] || tag_b == changed[j])
+		{
+			already_used = true;
+			break;
+		}
+
+	}
+
+	if(already_used) 
+		continue;
+
+        unsigned int idx_a = h_rtag.data[tag_a];
         unsigned int idx_b = h_rtag.data[tag_b];
 
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
+
 
         if (tr_idx1 == tr_idx2)
             continue;
@@ -121,6 +140,21 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         unsigned int tag_d = triangle2.tag[0];
         unsigned int idx_d = h_rtag.data[tag_d];
 
+	for(unsigned int j = 0; changed.size(); j++)
+	{
+		if( tag_c == changed[j] || tag_d == changed[j])
+		{
+			already_used = true;
+			break;
+		}
+
+	}
+
+	if(already_used) 
+		continue;
+
+
+
         iterator = 0;
         while (idx_a == idx_d || idx_b == idx_d)
             {
@@ -136,17 +170,14 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         if (a_before_b)
             {
             for (auto& force : forces)
-                {
                 energyDifference += force->energyDiff(idx_a, idx_b, idx_c, idx_d, type_id);
-                }
             }
         else
             {
             for (auto& force : forces)
-                {
                 energyDifference += force->energyDiff(idx_a, idx_b, idx_d, idx_c, type_id);
-                }
             }
+
 
         // Initialize the RNG
         RandomGenerator rng(hoomd::Seed(RNGIdentifier::MeshDynamicBondUpdater, timestep, seed),
@@ -159,6 +190,11 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             {
             changeDetected = true;
 
+	    changed.push_back(tag_a);
+	    changed.push_back(tag_b);
+	    changed.push_back(tag_c);
+	    changed.push_back(tag_d);
+
             typename MeshBond::members_t bond_n;
             typename MeshTriangle::members_t triangle1_n;
             typename MeshTriangle::members_t triangle2_n;
@@ -167,6 +203,8 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             bond_n.tag[1] = tag_d;
             bond_n.tag[2] = tr_idx1;
             bond_n.tag[3] = tr_idx2;
+
+
 
             h_bonds.data[i] = bond_n;
 
@@ -280,7 +318,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         m_mesh->getMeshTriangleData()->meshChanged();
 	}
 
-    //std::cout << float(zahl) / size << std::endl;
     }
 
 namespace detail
