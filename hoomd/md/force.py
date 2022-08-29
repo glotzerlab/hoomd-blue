@@ -7,7 +7,7 @@ from abc import abstractmethod
 
 import hoomd
 from hoomd.md import _md
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import AutotunedObject
 from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
@@ -17,7 +17,7 @@ from hoomd.md.manifold import Manifold
 import numpy
 
 
-class Force(_HOOMDBaseObject):
+class Force(AutotunedObject):
     r"""Defines a force for molecular dynamics simulations.
 
     `Force` is the base class for all molecular dynamics forces and provides
@@ -407,12 +407,13 @@ class Active(Force):
 
     def _attach(self):
 
-        self._class_name()
+        # Set C++ class
+        self._set_cpp_obj()
 
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-    def _class_name(self):
+    def _set_cpp_obj(self):
 
         # initialize the reflected c++ class
         sim = self._simulation
@@ -425,14 +426,13 @@ class Active(Force):
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter))
 
-
     def create_diffusion_updater(self, trigger, rotational_diffusion):
         """Create a rotational diffusion updater for this active force.
 
         Args:
-            trigger (hoomd.trigger.Trigger): Select the timesteps to update
+            trigger (hoomd.trigger.trigger_like): Select the timesteps to update
                 rotational diffusion.
-            rotational_diffusion (hoomd.variant.Variant or float): The
+            rotational_diffusion (hoomd.variant.variant_like): The
                 rotational diffusion as a function of time or a constant.
 
         Returns:
@@ -518,7 +518,7 @@ class ActiveOnManifold(Active):
                 "Cannot set manifold_constraint after construction.")
         super()._setattr_param(attr, value)
 
-    def _class_name(self):
+    def _set_cpp_obj(self):
 
         # initialize the reflected c++ class
         sim = self._simulation

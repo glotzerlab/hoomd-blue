@@ -144,6 +144,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
 
     bool aniso = this->m_aniso;
 
+#if defined(__HIP_PLATFORM_NVCC__)
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
@@ -160,6 +161,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+#endif
 
     this->m_exec_conf->beginMultiGPU();
 
@@ -231,6 +233,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
     args.timestep = timestep;
     args.seed = this->m_sysdef->getSeed();
 
+#if defined(__HIP_PLATFORM_NVCC__)
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
@@ -244,6 +247,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+#endif
 
     this->m_exec_conf->beginMultiGPU();
 

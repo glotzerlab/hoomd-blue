@@ -86,7 +86,7 @@ struct __attribute__((visibility("default"))) CylinderWall
             }
         quatAxisToZRot = quat<Scalar>(realPart, w);
         Scalar norm = fast::rsqrt(norm2(quatAxisToZRot));
-        quatAxisToZRot = norm * quatAxisToZRot;
+        quatAxisToZRot = conj(norm * quatAxisToZRot);
         }
     quat<Scalar>
         quatAxisToZRot; // need to order datatype in descending order of type size for Fermi

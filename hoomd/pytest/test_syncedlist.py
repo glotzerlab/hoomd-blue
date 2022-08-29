@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from hoomd.conftest import BaseListTest, pickling_check
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
-from hoomd.data.syncedlist import SyncedList, _PartialIsInstance
+from hoomd.data.syncedlist import SyncedList
 
 
 class OpInt(int):
@@ -68,8 +68,7 @@ class TestSyncedList(BaseListTest):
 
     @pytest.fixture
     def empty_collection(self, item_cls, attached, attach_items):
-        list_ = SyncedList(validation=_PartialIsInstance(item_cls),
-                           attach_members=attach_items)
+        list_ = SyncedList(validation=item_cls, attach_members=attach_items)
         if attached:
             self._synced_list = []
             list_._sync(DummySimulation(), self._synced_list)
@@ -97,11 +96,9 @@ class TestSyncedList(BaseListTest):
 
     def test_init(self, generate_plain_collection, item_cls):
 
-        validate = _PartialIsInstance(item_cls)
-
         # Test automatic to_synced_list function generation
-        synced_list = SyncedList(validation=validate)
-        assert synced_list._validate == validate
+        synced_list = SyncedList(validation=item_cls)
+        assert item_cls in synced_list._validate.types
         op = item_cls()
         assert synced_list._to_synced_list_conversion(op) is op
 
@@ -111,7 +108,7 @@ class TestSyncedList(BaseListTest):
 
         # Test full initialziation
         plain_list = generate_plain_collection(5)
-        synced_list = SyncedList(validation=validate,
+        synced_list = SyncedList(validation=item_cls,
                                  to_synced_list=cpp_identity,
                                  iterable=plain_list)
         assert synced_list._to_synced_list_conversion == cpp_identity
@@ -137,7 +134,7 @@ class TestSyncedList(BaseListTest):
 
     def test_validate_or_error(self, empty_collection, item_cls):
         with pytest.raises(ValueError):
-            empty_collection._validate_or_error(3)
+            empty_collection._validate_or_error({})
         with pytest.raises(ValueError):
             empty_collection._validate_or_error(None)
         with pytest.raises(ValueError):

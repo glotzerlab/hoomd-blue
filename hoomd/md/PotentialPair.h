@@ -215,6 +215,18 @@ template<class evaluator> class PotentialPair : public ForceCompute
         return type_shape_mapping;
         }
 
+    /// Reset stats counters for children objects
+    virtual void resetStats()
+        {
+        m_nlist->resetStats();
+        }
+
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning();
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete();
+
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
@@ -836,6 +848,20 @@ CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
     return flags;
     }
 #endif
+
+template<class evaluator> void PotentialPair<evaluator>::startAutotuning()
+    {
+    ForceCompute::startAutotuning();
+
+    // Start autotuning the neighbor list.
+    m_nlist->startAutotuning();
+    }
+
+template<class evaluator> bool PotentialPair<evaluator>::isAutotuningComplete()
+    {
+    bool result = ForceCompute::isAutotuningComplete();
+    return result && m_nlist->isAutotuningComplete();
+    }
 
 //! function to compute the energy between two lists of particles.
 //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.

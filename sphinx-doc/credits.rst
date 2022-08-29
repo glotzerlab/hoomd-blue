@@ -65,6 +65,7 @@ The following people have contributed to the to HOOMD-blue:
 * Kevin Kohlstedt, University of Michigan
 * Kevin Silmore, Princeton University
 * Khalid Ahmed, University of Michigan
+* Kody Takada, University of Michigan
 * Kristi Pepa, University of Michigan
 * Kwanghwi Je, University of Michigan
 * Lin Yang, Iowa State University
@@ -77,6 +78,7 @@ The following people have contributed to the to HOOMD-blue:
 * Mike Henry, Boise State University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
+* Pablo Zubieta, PME, The University of Chicago
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
 * Pavani Medapuram Lakshmi Narasimha, University of Minnesota

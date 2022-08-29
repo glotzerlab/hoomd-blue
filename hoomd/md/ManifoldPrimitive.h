@@ -96,12 +96,12 @@ class ManifoldPrimitive
                      // accepted
         }
 
-    #ifndef __HIPCC__
+#ifndef __HIPCC__
     pybind11::tuple getN()
         {
         return pybind11::make_tuple(Nx, Ny, Nz);
         }
-    #endif
+#endif
 
     Scalar getEpsilon()
         {

@@ -32,17 +32,6 @@ class PYBIND11_EXPORT CellListGPU : public CellList
 
     virtual ~CellListGPU() {};
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        CellList::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period / 10);
-        m_tuner->setEnabled(enable);
-        }
-
     //! Request a multi-GPU cell list
     virtual void setPerDevice(bool per_device)
         {
@@ -91,9 +80,11 @@ class PYBIND11_EXPORT CellListGPU : public CellList
     //! Combine the per-device cell lists
     virtual void combineCellLists();
 
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
-    std::unique_ptr<Autotuner>
-        m_tuner_combine; //!< Autotuner for block size of combine cell lists kernel
+    /// Autotune block sizes for main kernel.
+    std::shared_ptr<Autotuner<1>> m_tuner;
+
+    /// Autotune block sizes for combination kernel.
+    std::shared_ptr<Autotuner<1>> m_tuner_combine;
     };
 
 namespace detail

@@ -16,7 +16,8 @@ class ZeroMomentum(Updater):
     r"""Zeroes system momentum.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to zero momentum.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to zero
+            momentum.
 
     `ZeroMomentum` computes the center of mass linear momentum of the system:
 
@@ -74,10 +75,10 @@ class ReversePerturbationFlow(Updater):
     "max" and "min" slab might be swapped.
 
     Args:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this updater.
 
-        flow_target (hoomd.variant.Variant): Target value of the
+        flow_target (hoomd.variant.variant_like): Target value of the
             time-integrated momentum flux.
             :math:`[\\delta t \\cdot \\mathrm{mass} \\cdot \\mathrm{length}
             \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the
@@ -123,7 +124,7 @@ class ReversePerturbationFlow(Updater):
                                                       n_slabs=20)
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this updater.
 
         flow_target (hoomd.variant.Variant): Target value of the
@@ -265,13 +266,13 @@ class ActiveRotationalDiffusion(Updater):
     r"""Updater to introduce rotational diffusion with an active force.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to update
             rotational diffusion.
         active_force (hoomd.md.force.Active): The active force associated with
             the updater can be any subclass of the class
             `hoomd.md.force.Active`.
-        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
-            as a function of time.
+        rotational_diffusion (hoomd.variant.variant_like): The rotational
+            diffusion as a function of time.
 
     `ActiveRotationalDiffusion` works directly with `hoomd.md.force.Active` or
     `hoomd.md.force.ActiveOnManifold` to apply rotational diffusion to the

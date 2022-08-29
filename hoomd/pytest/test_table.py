@@ -32,7 +32,7 @@ class Identity:
 
 @pytest.fixture
 def logger():
-    logger = hoomd.logging.Logger(categories=['scalar'])
+    logger = hoomd.logging.Logger(categories=['scalar', "string"])
     logger[('dummy', 'loggable', 'int')] = (Identity(42000000), 'scalar')
     logger[('dummy', 'loggable', 'float')] = (Identity(3.1415), 'scalar')
     logger[('dummy', 'loggable', 'string')] = (Identity("foobarbaz"), 'string')

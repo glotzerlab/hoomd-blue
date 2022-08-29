@@ -8,7 +8,8 @@ import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 
 
 def _nlist_params():
@@ -101,6 +102,12 @@ def test_simple_simulation(nlist_params, simulation_factory,
     sim.operations.integrator = integrator
     sim.run(2)
 
+    # Force nlist to update every step to ensure autotuning occurs.
+    nlist.check_dist = False
+    nlist.rebuild_check_delay = 1
+    autotuned_kernel_parameter_check(instance=nlist,
+                                     activate=lambda: sim.run(1))
+
 
 def test_auto_detach_simulation(simulation_factory,
                                 two_particle_snapshot_factory):
@@ -145,10 +152,52 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     pickling_check(nlist)
 
 
+def test_cell_properties(simulation_factory, lattice_snapshot_factory):
+    nlist = hoomd.md.nlist.Cell(buffer=0)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
+    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
+    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    integrator = hoomd.md.Integrator(0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1))
+
+    sim = simulation_factory(lattice_snapshot_factory(n=10))
+    sim.operations.integrator = integrator
+
+    sim.run(10)
+
+    assert nlist.num_builds == 10
+    assert nlist.shortest_rebuild == 1
+    dim = nlist.dimensions
+    assert len(dim) == 3
+    assert dim >= (1, 1, 1)
+    assert nlist.allocated_particles_per_cell >= 1
+
+
 def test_logging():
-    logging_check(hoomd.md.nlist.NeighborList, ('md', 'nlist'), {
+    base_loggables = {
         'shortest_rebuild': {
             'category': LoggerCategories.scalar,
             'default': True
+        },
+        'num_builds': {
+            'category': LoggerCategories.scalar,
+            'default': False
         }
-    })
+    }
+    logging_check(hoomd.md.nlist.NeighborList, ('md', 'nlist'), base_loggables)
+
+    logging_check(
+        hoomd.md.nlist.Cell, ('md', 'nlist'), {
+            **base_loggables,
+            'dimensions': {
+                'category': LoggerCategories.sequence,
+                'default': False
+            },
+            'allocated_particles_per_cell': {
+                'category': LoggerCategories.scalar,
+                'default': False
+            },
+        })

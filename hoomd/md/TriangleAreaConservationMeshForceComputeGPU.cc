@@ -46,20 +46,10 @@ TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceCo
     GPUArray<Scalar> sum(1, m_exec_conf);
     m_sum.swap(sum);
 
-    m_block_size = 256;
-    unsigned int group_size = m_pdata->getN();
-    m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
-    m_partial_sum.swap(partial_sum);
-
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "TriangleAreaConservation_forces",
-                                this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "taconstraint_forces"));
+    this->m_autotuners.push_back(m_tuner);
     }
 
 void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type,
@@ -121,7 +111,7 @@ void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timeste
         d_gpu_n_meshtriangle.data,
         d_params.data,
         m_mesh_data->getMeshTriangleData()->getNTypes(),
-        m_tuner->getParam(),
+        m_tuner->getParam()[0],
         d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())

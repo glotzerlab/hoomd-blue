@@ -52,7 +52,7 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
         auto const img = make_int3(static_cast<int>(std::floor(frac.x)),
                                    static_cast<int>(std::floor(frac.y)),
                                    static_cast<int>(std::floor(frac.z)));
-        particle_data.image[i] += img;
+        particle_data.image[i] = particle_data.image[i] + img;
         }
     }
 

@@ -13,6 +13,7 @@ md.methods
 
     Method
     Brownian
+    DisplacementCapped
     Langevin
     NPH
     NPT
@@ -27,6 +28,7 @@ md.methods
     :synopsis: Integration methods.
     :members: Method,
               Brownian,
+              DisplacementCapped,
               Langevin,
               NPH,
               NPT,

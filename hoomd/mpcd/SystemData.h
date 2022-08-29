@@ -66,16 +66,6 @@ class PYBIND11_EXPORT SystemData
     //! Re-initialize the system from a snapshot
     void initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
-        {
-        m_particles->setAutotunerParams(enable, period);
-        }
-
     private:
     std::shared_ptr<hoomd::SystemDefinition> m_sysdef; //!< HOOMD system definition
     std::shared_ptr<mpcd::ParticleData> m_particles;   //!< MPCD particle data

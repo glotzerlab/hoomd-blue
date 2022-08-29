@@ -69,16 +69,6 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
         initializeCommunicationStages();
         }
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        Communicator::setAutotunerParams(enable, period);
-        }
-
     protected:
     //! Set the communication flags for the particle data on the GPU
     virtual void setCommFlags(const BoxDim& box);
@@ -102,7 +92,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     void initializeCommunicationStages();
 
     /* Autotuners */
-    std::unique_ptr<Autotuner> m_flags_tuner; //!< Tuner for marking communication flags
+    std::shared_ptr<Autotuner<1>> m_flags_tuner; //!< Tuner for marking communication flags
     };
 
 namespace detail

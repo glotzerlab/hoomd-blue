@@ -1811,7 +1811,7 @@ class LJGauss(Pair):
     .. math::
         U(r) = 1\ [\mathrm{energy}] \cdot \left[
                  \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
-                 \left ( \frac{2\ [\mathrm{length}]}{r} \right)^{6} \right] -
+                 2\  \left(\frac{1 [\mathrm{length}]}{r} \right)^{6} \right] -
             \epsilon
             \exp \left[- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}} \right]
 

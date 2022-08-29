@@ -19,39 +19,21 @@ namespace md
 ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
     : ForceComposite(sysdef)
     {
-    // power of two block sizes
-    const hipDeviceProp_t& dev_prop = m_exec_conf->dev_prop;
-    std::vector<unsigned int> valid_params;
-    unsigned int bodies_per_block = 1;
+    // Initialize autotuners.
+    m_tuner_force.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                          AutotunerBase::getTppListPow2(m_exec_conf)},
+                                         m_exec_conf,
+                                         "force_composite"));
 
-    for (unsigned int i = 0; bodies_per_block <= static_cast<unsigned int>(dev_prop.warpSize); ++i)
-        {
-        bodies_per_block = 1 << i;
-        unsigned int cur_block_size = m_exec_conf->dev_prop.warpSize;
-        while (cur_block_size <= static_cast<unsigned int>(dev_prop.maxThreadsPerBlock))
-            {
-            if (cur_block_size >= bodies_per_block)
-                {
-                valid_params.push_back(cur_block_size + bodies_per_block * 10000);
-                }
-            cur_block_size *= 2;
-            }
-        }
+    m_tuner_virial.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                           AutotunerBase::getTppListPow2(m_exec_conf)},
+                                          m_exec_conf,
+                                          "virial_composite"));
 
-    m_tuner_force.reset(
-        new Autotuner(valid_params, 5, 100000, "force_composite", this->m_exec_conf));
-    m_tuner_virial.reset(
-        new Autotuner(valid_params, 5, 100000, "virial_composite", this->m_exec_conf));
-
-    // initialize autotuner
-    std::vector<unsigned int> valid_params_update;
-    for (unsigned int block_size = dev_prop.warpSize;
-         block_size <= static_cast<unsigned int>(dev_prop.maxThreadsPerBlock);
-         block_size += dev_prop.warpSize)
-        valid_params_update.push_back(block_size);
-
-    m_tuner_update.reset(
-        new Autotuner(valid_params_update, 5, 100000, "update_composite", this->m_exec_conf));
+    m_tuner_update.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                          m_exec_conf,
+                                          "update_composite"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_virial, m_tuner_update});
 
     GlobalArray<uint2> flag(1, m_exec_conf);
     std::swap(m_flag, flag);
@@ -191,9 +173,9 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
 
         m_tuner_force->begin();
-        unsigned int param = m_tuner_force->getParam();
-        unsigned int block_size = param % 10000;
-        unsigned int n_bodies_per_block = param / 10000;
+        auto param = m_tuner_force->getParam();
+        unsigned int block_size = param[0];
+        unsigned int n_bodies_per_block = param[1];
 
         // launch GPU kernel
         kernel::gpu_rigid_force(d_force.data,
@@ -272,9 +254,9 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
 
         m_exec_conf->beginMultiGPU();
         m_tuner_virial->begin();
-        unsigned int param = m_tuner_virial->getParam();
-        unsigned int block_size = param % 10000;
-        unsigned int n_bodies_per_block = param / 10000;
+        auto param = m_tuner_virial->getParam();
+        unsigned int block_size = param[0];
+        unsigned int n_bodies_per_block = param[1];
 
         // launch GPU kernel
         kernel::gpu_rigid_virial(d_virial.data,
@@ -360,7 +342,7 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
 
         m_tuner_update->begin();
-        unsigned int block_size = m_tuner_update->getParam();
+        unsigned int block_size = m_tuner_update->getParam()[0];
 
         kernel::gpu_update_composite(m_pdata->getN(),
                                      m_pdata->getNGhosts(),

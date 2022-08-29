@@ -14,6 +14,7 @@
 #endif
 
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include "hoomd/Variant.h"
 #include <pybind11/pybind11.h>
 
@@ -31,7 +32,7 @@ namespace mpcd
  *  1. computeNumFill(), which is the number of virtual particles to add.
  *  2. drawParticles(), which is the rule to determine where to put the particles.
  */
-class PYBIND11_EXPORT VirtualParticleFiller
+class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
     {
     public:
     VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
@@ -43,15 +44,6 @@ class PYBIND11_EXPORT VirtualParticleFiller
 
     //! Fill up virtual particles
     void fill(uint64_t timestep);
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //! Set the fill particle density
     void setDensity(Scalar density);

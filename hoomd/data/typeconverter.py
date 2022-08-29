@@ -31,7 +31,7 @@ def trigger_preprocessing(trigger):
         try:
             return Periodic(period=int(trigger), phase=0)
         except Exception:
-            raise ValueError("Expected a hoomd.trigger.Trigger or int object.")
+            raise ValueError("Expected a hoomd.trigger.trigger_like object.")
 
 
 def variant_preprocessing(variant):
@@ -45,8 +45,7 @@ def variant_preprocessing(variant):
         try:
             return Constant(float(variant))
         except Exception:
-            raise ValueError(
-                "Expected a hoomd.variant.Variant or float object.")
+            raise ValueError("Expected a hoomd.variant.variant_like object.")
 
 
 def box_preprocessing(box):

@@ -39,13 +39,23 @@ template<class T> class managed_allocator
 #ifdef ENABLE_HIP
         if (m_use_device)
             {
-            size_t allocation_bytes = n * sizeof(T);
-
-            hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+            // Check for pending errors.
+            hipError_t error = hipGetLastError();
             if (error != hipSuccess)
                 {
-                std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error allocating managed memory");
+                throw std::runtime_error(hipGetErrorString(error));
+                }
+
+            size_t allocation_bytes = n * sizeof(T);
+
+            error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+            if (error == hipErrorMemoryAllocation)
+                {
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
                 }
             }
         else
@@ -54,7 +64,7 @@ template<class T> class managed_allocator
             int retval = posix_memalign(&result, 32, n * sizeof(T));
             if (retval != 0)
                 {
-                throw std::runtime_error("Error allocating aligned memory");
+                throw std::bad_alloc();
                 }
             }
 
@@ -79,16 +89,26 @@ template<class T> class managed_allocator
 #ifdef ENABLE_HIP
         if (use_device)
             {
+            // Check for pending errors.
+            hipError_t error = hipGetLastError();
+            if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
+
             allocation_bytes = n * sizeof(T);
 
             if (align_size)
                 allocation_bytes = ((n * sizeof(T)) / align_size + 1) * align_size;
 
-            hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
-            if (error != hipSuccess)
+            error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+            if (error == hipErrorMemoryAllocation)
                 {
-                std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error allocating managed memory");
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
                 }
 
             allocation_ptr = result;
@@ -103,7 +123,7 @@ template<class T> class managed_allocator
 #endif
 
                 if (!result)
-                    throw std::runtime_error("managed_allocator: Error aligning managed memory");
+                    throw std::bad_alloc();
                 }
             }
         else
@@ -114,14 +134,14 @@ template<class T> class managed_allocator
                 int retval = posix_memalign((void**)&result, align_size, n * sizeof(T));
                 if (retval != 0)
                     {
-                    throw std::runtime_error("Error allocating aligned memory");
+                    throw std::bad_alloc();
                     }
                 }
             else
                 {
                 result = malloc(n * sizeof(T));
                 if (!result)
-                    throw std::runtime_error("Error allocating memory");
+                    throw std::bad_alloc();
                 }
             allocation_bytes = n * sizeof(T);
             allocation_ptr = result;
@@ -130,13 +150,7 @@ template<class T> class managed_allocator
 #ifdef ENABLE_HIP
         if (use_device)
             {
-            hipError_t error = hipDeviceSynchronize();
-            if (error != hipSuccess)
-                {
-                std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error(
-                    "managed_allocator: Error on device sync during allocate_construct");
-                }
+            hipDeviceSynchronize();
             }
 #endif
 
@@ -156,7 +170,6 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error freeing managed memory");
                 }
             }
         else
@@ -184,8 +197,6 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error(
-                    "managed_allocator: Error on device sync during deallocate_destroy");
                 }
             }
 #endif
@@ -203,7 +214,6 @@ template<class T> class managed_allocator
             if (error != hipSuccess)
                 {
                 std::cerr << hipGetErrorString(error) << std::endl;
-                throw std::runtime_error("managed_allocator: Error freeing managed memory");
                 }
             }
         else

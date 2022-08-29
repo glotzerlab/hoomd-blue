@@ -2,7 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
 import numpy
 import pytest
 
@@ -144,3 +144,5 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
         numpy.testing.assert_allclose(bond_lengths,
                                       snap.constraints.value,
                                       rtol=1e-5)
+
+    autotuned_kernel_parameter_check(instance=d, activate=lambda: sim.run(1))

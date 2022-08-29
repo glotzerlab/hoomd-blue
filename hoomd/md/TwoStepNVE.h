@@ -2,6 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
+#include "hoomd/Variant.h"
 
 #ifndef __TWO_STEP_NVE_H__
 #define __TWO_STEP_NVE_H__
@@ -33,10 +34,10 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     virtual ~TwoStepNVE();
 
     /// Get the movement limit
-    pybind11::object getLimit();
+    std::shared_ptr<Variant> getLimit();
 
     //! Sets the movement limit
-    void setLimit(pybind11::object limit);
+    void setLimit(std::shared_ptr<Variant>& limit);
 
     /// Get zero force
     bool getZeroForce();
@@ -54,9 +55,9 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-    bool m_limit;       //!< True if we should limit the distance a particle moves in one step
-    Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
-    bool m_zero_force;  //!< True if the integration step should ignore computed forces
+    //!< The maximum distance a particle is to move in one step
+    std::shared_ptr<Variant> m_limit;
+    bool m_zero_force; //!< True if the integration step should ignore computed forces
     };
 
     } // end namespace md

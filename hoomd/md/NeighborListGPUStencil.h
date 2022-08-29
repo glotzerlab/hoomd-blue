@@ -56,24 +56,13 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
         m_cl->setNominalWidth(cell_width);
         }
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        NeighborListGPU::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period / 10);
-        m_tuner->setEnabled(enable);
-        }
-
     protected:
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
 
     private:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
-    uint64_t m_last_tuned_timestep;     //!< Last tuning timestep
+    std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size and threads per particle
+    uint64_t m_last_tuned_timestep;        //!< Last tuning timestep
 
     std::shared_ptr<CellList> m_cl;         //!< The cell list
     std::shared_ptr<CellListStencil> m_cls; //!< The cell list stencil

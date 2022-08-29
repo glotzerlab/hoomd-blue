@@ -10,7 +10,8 @@ import numpy as np
 import hoomd
 from hoomd import md
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.error import TypeConversionError
 import pytest
 import itertools
@@ -739,6 +740,8 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
 
+    autotuned_kernel_parameter_check(instance=pot, activate=lambda: sim.run(1))
+
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     # A subtle bug existed where we used "shifted" instead of "shift" in Python
@@ -1012,8 +1015,9 @@ def test_force_energy_accuracy(simulation_factory,
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
             assert isclose(sum(sim_energies), forces_and_energies.energies[i])
-            assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
-            assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
+            assert np.allclose(sim_forces[0],
+                               forces_and_energies.forces[i] * r,
+                               equal_nan=True)
 
 
 def populate_sim(sim):
@@ -1080,8 +1084,11 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
 # Test logging
 @pytest.mark.parametrize(
     'cls, expected_namespace, expected_loggables',
-    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet),
-        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body')),
+    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet,
+         md.many_body.Tersoff, md.many_body.RevCross,
+         md.many_body.SquareDensity),
+        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body'),
+         ('md', 'many_body'), ('md', 'many_body'), ('md', 'many_body')),
         itertools.repeat({
             'energy': {
                 'category': LoggerCategories.scalar,

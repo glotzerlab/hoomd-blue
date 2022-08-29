@@ -41,11 +41,13 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner_force.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "helfrich_forces", this->m_exec_conf));
-    m_tuner_sigma.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "helfrich_sigma", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "helfrich_forces"));
+    m_tuner_sigma.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "helfrich_sigmas"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_sigma});
 
     GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
     GlobalVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
@@ -139,7 +141,7 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
                                        d_gpu_n_meshbond.data,
                                        d_params.data,
                                        m_mesh_data->getMeshBondData()->getNTypes(),
-                                       m_tuner_force->getParam(),
+                                       m_tuner_force->getParam()[0],
                                        d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -206,7 +208,7 @@ void HelfrichMeshForceComputeGPU::precomputeParameter()
                                        d_triangles.data,
                                        gpu_table_indexer,
                                        d_gpu_n_meshbond.data,
-                                       m_tuner_sigma->getParam());
+                                       m_tuner_sigma->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {

@@ -58,18 +58,22 @@ of exclusions. The valid exclusion types are:
   (j,k), and (k,m).
 """
 
-import hoomd
+import hoomd.device
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.logging import log
 from hoomd.mesh import Mesh
 from hoomd.md import _md
-from hoomd.operation import _HOOMDBaseObject
-import warnings
-import copy
+#<<<<<<< HEAD
+#from hoomd.operation import _HOOMDBaseObject
+#import warnings
+#import copy
+#=======
+from hoomd.operation import AutotunedObject
+#>>>>>>> trunk-minor
 
 
-class NeighborList(_HOOMDBaseObject):
+class NeighborList(AutotunedObject):
     r"""Base class neighbor list.
 
     Note:
@@ -140,9 +144,18 @@ class NeighborList(_HOOMDBaseObject):
         """int: The shortest period between neighbor list rebuilds.
 
         `shortest_rebuild` is the smallest number of time steps between neighbor
-        list rebuilds during the previous `Simulation.run`.
+        list rebuilds since the last call to `Simulation.run`.
         """
         return self._cpp_obj.getSmallestRebuild()
+
+    @log(requires_run=True, default=False)
+    def num_builds(self):
+        """int: The number of neighbor list builds.
+
+        `num_builds` is the number of neighbor list rebuilds performed since the
+        last call to `Simulation.run`.
+        """
+        return self._cpp_obj.num_builds
 
     def _remove_dependent(self, obj):
         super()._remove_dependent(obj)
@@ -226,6 +239,27 @@ class Cell(NeighborList):
                                   self.buffer)
 
         super()._attach()
+
+    @log(requires_run=True, default=False, category='sequence')
+    def dimensions(self):
+        """tuple[int, int, int]: Cell list dimensions.
+
+        `dimensions` is the number of cells in the x, y, and z directions.
+
+        See Also:
+            `allocated_particles_per_cell`
+        """
+        dimensions = self._cpp_obj.getDim()
+        return (dimensions.x, dimensions.y, dimensions.z)
+
+    @log(requires_run=True, default=False)
+    def allocated_particles_per_cell(self):
+        """int: Number of particle slots allocated per cell.
+
+        The total memory usage of `Cell` is proportional to the product of the
+        three cell list `dimensions` and the `allocated_particles_per_cell`.
+        """
+        return self._cpp_obj.getNmax()
 
 
 class Stencil(NeighborList):
