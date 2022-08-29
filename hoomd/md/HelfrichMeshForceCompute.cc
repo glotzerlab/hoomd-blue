@@ -721,6 +721,13 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     nbd = dbd / rbd;
     ncd = dcd / rcd;
 
+    Scalar c_acbd = -(nac.x * nbd.x + nac.y * nbd.y + nac.z * nbd.z);
+
+    if (c_acbd > 1.0)
+        c_acbd = 1.0;
+    if (c_acbd < -1.0)
+        c_acbd = -1.0;
+
     Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
     if (c_accb > 1.0)
@@ -792,6 +799,9 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     if (inv_s_abbd < SMALL)
         inv_s_abbd = SMALL;
     inv_s_abbd = 1.0 / inv_s_abbd;
+
+    if (c_acbd - c_baac * c_abbd > 0)
+        return DBL_MAX;
 
     Scalar c_caad = nac.x * nad.x + nac.y * nad.y + nac.z * nad.z;
 
@@ -930,7 +940,7 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
         return DBL_MAX;
 
     return m_K[0] * 0.5 * (energy_new - energy_old);
-    //return 0;
+    // return 0;
     }
 
 namespace detail
