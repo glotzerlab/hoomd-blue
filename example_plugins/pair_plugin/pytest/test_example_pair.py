@@ -77,10 +77,12 @@ def test_force_and_energy_eval(simulation_factory,
         f, e = harm_force_and_energy(vec_dist, k, sigma, sigma, shift)
         e /= 2.0
 
-        # Test that the forces and energies match that predicted by the Python
-        # implementation.
-        forces = example_pair.forces
+    # Test that the forces and energies match that predicted by the Python
+    # implementation.
+    forces = example_pair.forces
+    if snap.communicator.rank == 0:
         np.testing.assert_array_almost_equal(forces, [-f, f], decimal=6)
 
-        energies = example_pair.energies
+    energies = example_pair.energies
+    if snap.communicator.rank == 0:
         np.testing.assert_array_almost_equal(energies, [e, e], decimal=6)
