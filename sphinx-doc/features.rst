@@ -77,6 +77,27 @@ run time with the `device <hoomd.device>` module. Unless otherwise stated in the
 **all** operations and methods support GPU execution. At runtime, `hoomd.version.gpu_enabled` indicates
 whether the build supports GPU devices.
 
+Autotuned kernel parameters
+---------------------------
+
+HOOMD-blue automatically tunes kernel parameters to improve performance when executing on a GPU
+device. During the first 1,000 - 20,000 timesteps of the simulation run, HOOMD-blue will change
+kernel parameters each time it calls a kernel. Kernels compute the same output regardless of the
+parameter (within floating point precision), but the parameters have a large impact on performance.
+
+Check to see whether tuning is complete with the `is_tuning_complete
+<hoomd.Operations.is_tuning_complete>` attribute of your simulation's `Operations
+<hoomd.Operations>`. For example, use this to run timed benchmarks after the performance stabilizes.
+
+The optimal parameters can depend on the number of particles in the simulation and the density, and
+may vary weakly with other system properties. To maintain peak performance, call
+`tune_kernel_parmeters <hoomd.Operations.tune_kernel_parameters>` to tune the parameters again after
+making a change to your system.
+
+`AutotunedObject` provides a settable dictionary parameter with the current kernel parameters in
+`kernel_parameters <hoomd.operation.AutotunedObject.kernel_parameters>`. Use this to inspect the
+autotuner's behavior or override with specific values (e.g. values saved from a previous execution).
+
 MPI
 ---
 
@@ -99,6 +120,8 @@ very limited and only applies to implicit depletants in `hpmc.integrate.HPMCInte
 `hpmc.pair.user.CPPPotentialUnion`. Threading must must be enabled at compile time with the
 ``ENABLE_TBB`` CMake option (see :doc:`building`). At runtime, `hoomd.version.tbb_enabled` indicates
 whether the build supports threaded execution.
+
+.. _Run time compilation:
 
 Run time compilation
 --------------------

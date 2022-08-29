@@ -7,6 +7,62 @@ Change Log
 v3.x
 ----
 
+v3.4.0 (2022-08-15)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The new HOOMD-blue logo is now available in the documentation.
+* ``hoomd.md.methods.DisplacementCapped`` class for relaxing configurations with overlaps.
+* ``hoomd.md.methods.rattle.DisplacementCapped`` class for relaxing configurations with overlaps.
+* ``hoomd.device.Device.notice`` - print user-defined messages to the configured message output
+  stream.
+* Tutorial: Modelling Rigid Bodies.
+* ``AutotunedObject`` class that provides an interface to read and write tuned kernel parameters,
+  query whether tuning is complete, and start tuning again at the object level.
+* ``is_tuning_complete`` method to ``Operations``. Check whether kernel parameter tuning is complete
+  for all operations.
+* ``tune_kernel_parameters`` methods to ``Operations`` and many other classes. Start tuning kernel
+  parameters in all operations.
+* ``hoomd.md.HalfStepHook`` - extensible hook class called between step 1 and 2 of MD integration.
+* ``hoomd.md.Integrator.half_step_hook`` - property to get/set the half step hook.
+
+
+*Fixed*
+
+* Active forces on manifolds now attach to the ``Simulation`` correctly.
+* ``hoomd.update.FilterUpdater`` now accepts ``hoomd.filter.CustomFilter`` subclasses.
+* Correct error message is given when a sequence like parameter is not given to a type parameter.
+* Fix non-axis-aligned Cylinder walls in MD.
+* ``hoomd.md.constrain.Constraint`` now has ``hoomd.md.force.Force`` as a base class.
+* Provide a warning instead of an error when passing an out of range seed to the ``Simulation``
+  constructor.
+* Compile with current versions of HIP and ROCm.
+* Compilation errors with CUDA >=11.8.
+
+v3.3.0 (2022-07-08)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* A decorator that modifies the namespace of operation and custom action classes
+  ``hoomd.logging.modify_namespace``.
+* Tuner for the neighbor list buffer size ``hoomd.md.tune.NeighborListBuffer``.
+* Solver infrastructure for optimization problems.
+* ``Simulation.initial_timestep``: the timestep on which the last call to ``run`` started.
+* ``variant_like``, ``trigger_like``, and ``filter_like`` typing objects for documentation.
+
+*Changed*
+
+* Removed ``"__main__"`` from some user custom action logging namespaces.
+
+*Fixed*
+
+* Improve documentation.
+* Non-default loggables can now be explicitly specified with ``Logger.add``.
+* Iteration of ``Logger`` instances.
+* The logging category of ``hoomd.md.Integrate.linear_momentum``
+
 v3.2.0 (2022-05-18)
 ^^^^^^^^^^^^^^^^^^^
 

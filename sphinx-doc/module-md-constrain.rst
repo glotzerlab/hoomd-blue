@@ -20,5 +20,5 @@ md.constrain
 
 .. automodule:: hoomd.md.constrain
     :synopsis: Constraints.
-    :undoc-members:
+    :show-inheritance:
     :members: Constraint, Distance, Rigid

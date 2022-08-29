@@ -16,6 +16,7 @@ import os
 import numpy
 import math
 import warnings
+from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
@@ -350,6 +351,38 @@ def pytest_sessionfinish(session, exitstatus):
         atexit.register(abort, exitstatus)
 
 
+expected_loggable_params = {
+    'energy': {
+        'category': LoggerCategories.scalar,
+        'default': True
+    },
+    'energies': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'forces': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'torques': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'virials': {
+        'category': LoggerCategories.particle,
+        'default': True
+    },
+    'additional_energy': {
+        'category': LoggerCategories.scalar,
+        'default': True
+    },
+    'additional_virial': {
+        'category': LoggerCategories.sequence,
+        'default': True
+    }
+}
+
+
 def logging_check(cls, expected_namespace, expected_loggables):
     """Function for testing object logging specification.
 
@@ -479,6 +512,40 @@ def operation_pickling_check(instance, sim):
     sim.operations += instance
     sim.run(0)
     pickling_check(instance)
+
+
+def autotuned_kernel_parameter_check(instance, activate, all_optional=False):
+    """Check that an AutotunedObject behaves as expected."""
+    instance.tune_kernel_parameters()
+
+    initial_kernel_parameters = instance.kernel_parameters
+
+    if isinstance(instance._simulation.device, hoomd.device.CPU):
+        # CPU instances have no parameters and are always complete.
+        assert initial_kernel_parameters == {}
+        assert instance.is_tuning_complete
+    else:
+        # GPU instances have parameters and start incomplete.
+        assert initial_kernel_parameters != {}
+
+        # is_tuning_complete is True when all tuners are optional.
+        if not all_optional:
+            assert not instance.is_tuning_complete
+
+        activate()
+
+        assert instance.kernel_parameters != initial_kernel_parameters
+
+        # Note: It is not practical to automatically test that
+        # `is_tuning_complete` is eventually achieved as failure results in an
+        # infinite loop. Also, some objects (like neighbor lists) require
+        # realistic simulation conditions to test adequately. `hoomd-benchmarks`
+        # tests that tuning completes in all benchmarks.
+
+        # Ensure that we can set parameters.
+        instance.kernel_parameters = initial_kernel_parameters
+        activate()
+        assert instance.kernel_parameters == initial_kernel_parameters
 
 
 class BlockAverage:

@@ -10,10 +10,23 @@ import hoomd.conftest
 
 @pytest.fixture
 def filter_list():
+
+    class NewFilter(hoomd.filter.CustomFilter):
+
+        def __call__(self, state):
+            return np.array([])
+
+        def __hash__(self):
+            return hash(self.__class__.__name__)
+
+        def __eq__(self, other):
+            return isinstance(self, other.__class__)
+
     return [
         hoomd.filter.All(),
         hoomd.filter.Tags([1, 2, 3]),
-        hoomd.filter.Type(["A"])
+        hoomd.filter.Type(["A"]),
+        NewFilter()
     ]
 
 
@@ -22,12 +35,12 @@ def test_initialization_setting(filter_list):
     assert filter_updater.trigger == hoomd.trigger.Periodic(1)
     assert filter_updater.filters == []
     filter_updater.filters.extend(filter_list)
-    assert len(filter_updater.filters) == 3
+    assert len(filter_updater.filters) == 4
     assert filter_list == filter_updater.filters
 
     filter_updater = hoomd.update.FilterUpdater(5, filter_list)
     assert filter_updater.trigger == hoomd.trigger.Periodic(5)
-    assert len(filter_updater.filters) == 3
+    assert len(filter_updater.filters) == 4
     assert filter_list == filter_updater.filters
     filter_updater.trigger = hoomd.trigger.After(100)
     assert filter_updater.trigger == hoomd.trigger.After(100)
@@ -94,5 +107,12 @@ def test_updating(simulation, filter_updater, filter_list):
             assert_group_match(filter_, simulation.state)
 
 
-def test_pickling(simulation, filter_updater):
-    hoomd.conftest.operation_pickling_check(filter_updater, simulation)
+def test_pickling(simulation):
+    # Don't use filter_list fixture since NewFilter is not picklable.
+    filters = [
+        hoomd.filter.All(),
+        hoomd.filter.Tags([1, 2, 3]),
+        hoomd.filter.Type(["A"]),
+    ]
+    hoomd.conftest.operation_pickling_check(
+        hoomd.update.FilterUpdater(1, filters), simulation)

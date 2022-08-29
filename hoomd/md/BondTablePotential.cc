@@ -35,6 +35,11 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
         throw runtime_error("Bond table width must be greater than 0.");
         }
 
+    if (m_bond_data->getNTypes() == 0)
+        {
+        throw runtime_error("There must be 1 or more bond types.");
+        }
+
     // allocate storage for the tables and parameters
     GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNTypes(), m_exec_conf);
     m_tables.swap(tables);
@@ -128,8 +133,8 @@ pybind11::dict BondTablePotential::getParams(std::string type)
 
     auto type_id = m_bond_data->getTypeByName(type);
     pybind11::dict params;
-    params["r_min"] = h_params.data[type_id].x;
-    params["r_max"] = h_params.data[type_id].y;
+    params["r_min"] = static_cast<Scalar>(h_params.data[type_id].x);
+    params["r_max"] = static_cast<Scalar>(h_params.data[type_id].y);
 
     auto V = pybind11::array_t<Scalar>(m_table_width);
     auto V_unchecked = V.mutable_unchecked<1>();

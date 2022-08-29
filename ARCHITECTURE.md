@@ -173,7 +173,7 @@ of user-supplied integration methos (`IntegrationMethodTwoStep`). Each method in
 on a single particle group (`ParticleGroup`) and is solely responsible for integrating the equations
 of motion of all particles in that group.
 
-## Templates evaluator
+## Template evaluator
 
 Many operations in HOOMD-blue provide similar functionality with different functional forms. For
 example pair potentials with many different V(r) and HPMC integration with many different particle
@@ -191,7 +191,9 @@ To add a new functional form to the code, a developer must:
 3. Instantiate the method class with the evaluator and export them to Python.
 4. Add the Python Operation class to wrap the C++ implementation.
 
-See existing examples in the codebase (e.g. grep for `EvaluatorPairLJ>`) for details.
+See existing examples in the codebase (e.g. grep for `EvaluatorPairLJ>`) for details. For most
+classes, steps 2 and 3 are performed using file templates expanded in CMakeLists.txt and exported in
+the appropriate `module*.cc` file.
 
 ## GPU kernel driver functions
 
@@ -204,6 +206,19 @@ functions of their respective class, and therefore must take a long C-style argu
 of bare pointers to data arrays, array sizes, etc... The ABI for these calls is not strictly C, as
 driver functions may be templated on functor classes and/or accept lightwight C++ objects as
 parameters (such as `BoxDim`).
+
+## Autotuning
+
+HOOMD-blue automatically tunes kernel block sizes, threads per particle, and other kernel launch
+paramters. The `Autotuner` class manages the sparse multi-dimensional of parameters for each kernel.
+It dynamically cycles through the possible parameters and records the performance of each using CUDA
+events. After scanning through all parameters, it selects the best performing one to continue
+executing. GPU code in HOOMD-blue should instantiate and use one `Autotuner` for each kernel.
+Classes that use have `Autotuner` member variables should inherit from `Autotuned` which tracks all
+the autotuners and provides a UI to users. When needed, classes should override the base class
+`isAutotuningComplete` and `startAutotuning` as to pass the calls on to child objects. not otherwise
+managed by the `Simulation`. For example, `PotentialPair::isAutotuningComplete`, calls both
+`ForceCompute::isAutotuningComplete` and `m_nlist->isAutotuningComplete` and combines the results.
 
 ## Python
 

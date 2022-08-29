@@ -207,6 +207,23 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
         return true;
         }
 
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        ForceCompute::startAutotuning();
+
+        // Start autotuning the neighbor list.
+        m_nlist->startAutotuning();
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = ForceCompute::isAutotuningComplete();
+        result = result && m_nlist->isAutotuningComplete();
+        return result;
+        }
+
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
     energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut

@@ -35,28 +35,6 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     //! Destructor
     virtual ~CellThermoComputeGPU();
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        mpcd::CellThermoCompute::setAutotunerParams(enable, period);
-
-        m_begin_tuner->setEnabled(enable);
-        m_begin_tuner->setPeriod(period);
-
-        m_end_tuner->setEnabled(enable);
-        m_end_tuner->setPeriod(period);
-
-        m_inner_tuner->setEnabled(enable);
-        m_inner_tuner->setPeriod(period);
-
-        m_stage_tuner->setEnabled(enable);
-        m_stage_tuner->setPeriod(period);
-        }
-
     protected:
 #ifdef ENABLE_MPI
     //! Begin the calculation of outer cell properties on the GPU
@@ -73,10 +51,10 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     virtual void computeNetProperties();
 
     private:
-    std::unique_ptr<Autotuner> m_begin_tuner; //!< Tuner for cell begin kernel
-    std::unique_ptr<Autotuner> m_end_tuner;   //!< Tuner for cell end kernel
-    std::unique_ptr<Autotuner> m_inner_tuner; //!< Tuner for inner cell compute kernel
-    std::unique_ptr<Autotuner> m_stage_tuner; //!< Tuner for staging net property compute
+    std::shared_ptr<Autotuner<2>> m_begin_tuner; //!< Tuner for cell begin kernel
+    std::shared_ptr<Autotuner<1>> m_end_tuner;   //!< Tuner for cell end kernel
+    std::shared_ptr<Autotuner<2>> m_inner_tuner; //!< Tuner for inner cell compute kernel
+    std::shared_ptr<Autotuner<1>> m_stage_tuner; //!< Tuner for staging net property compute
 
     GPUVector<mpcd::detail::cell_thermo_element>
         m_tmp_thermo; //!< Temporary array for holding cell data

@@ -13,6 +13,7 @@ md.methods.rattle
 
     MethodRATTLE
     Brownian
+    DisplacementCapped
     Langevin
     NVE
     OverdampedViscous
@@ -23,6 +24,7 @@ md.methods.rattle
     :synopsis: RATTLE integration methods.
     :members: MethodRATTLE,
         Brownian,
+        DisplacementCapped,
         Langevin,
         NVE,
         OverdampedViscous

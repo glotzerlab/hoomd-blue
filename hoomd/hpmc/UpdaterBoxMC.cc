@@ -405,7 +405,9 @@ void UpdaterBoxMC::update(uint64_t timestep)
 
     if (is_oversheared())
         {
-        while (remove_overshear()) { }; // lattice reduction, possibly in several steps
+        while (remove_overshear())
+            {
+            }; // lattice reduction, possibly in several steps
         m_exec_conf->msg->notice(5)
             << "Lattice reduction performed at step " << timestep << std::endl;
         }

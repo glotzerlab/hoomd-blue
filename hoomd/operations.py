@@ -17,6 +17,8 @@ from itertools import chain
 from hoomd.data import syncedlist
 from hoomd.operation import Writer, Updater, Tuner, Compute, Integrator
 from hoomd.tune import ParticleSorter
+from hoomd.error import DataAccessError
+from hoomd import _hoomd
 
 
 class Operations(Collection):
@@ -289,6 +291,42 @@ class Operations(Collection):
         can be modified as a standard Python list.
         """
         return self._computes
+
+    @property
+    def is_tuning_complete(self):
+        """bool: Check whether all children have completed tuning.
+
+        ``True`` when ``is_tuning_complete`` is ``True`` for all children.
+
+        Note:
+            In MPI parallel execution, `is_tuning_complete` is ``True`` only
+            when all children on **all ranks** have completed tuning.
+
+        See Also:
+            `hoomd.operation.AutotunedObject.is_tuning_complete`
+        """
+        if not self._scheduled:
+            raise DataAccessError("is_tuning_complete")
+
+        result = all(op.is_tuning_complete for op in self)
+        if self._simulation.device.communicator.num_ranks == 1:
+            return result
+        else:
+            return _hoomd.mpi_allreduce_bcast_and(
+                result, self._simulation.device._cpp_exec_conf)
+
+    def tune_kernel_parameters(self):
+        """Start tuning kernel parameters in all children.
+
+        See Also:
+            `hoomd.operation.AutotunedObject.tune_kernel_parameters`
+        """
+        if not self._scheduled:
+            raise RuntimeError("Call Simulation.run() before "
+                               "tune_kernel_parameters.")
+
+        for op in self:
+            op.tune_kernel_parameters()
 
     def __getstate__(self):
         """Get the current state of the operations container for pickling."""

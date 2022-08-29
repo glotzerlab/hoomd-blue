@@ -161,15 +161,27 @@ class SDF(Compute):
 
     For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
     separation vector by the factor :math:`(1-x)` and finds the smallest
-    positive value of :math:`x` leading to an overlap of the particle shapes:
+    positive value of :math:`x` leading to either an overlap of the particle
+    shapes (a "hard overlap") or a discontinuous change in the pair energy
+    :math:`U_{\mathrm{pair},ij}` (a "soft overlap"):
 
     .. math::
 
-        x_{ij}(\vec{A}) = \min \{ x \in \mathbb{R}_{> 0} :
-            \mathrm{overlap}\left(
+        x_{ij}(\vec{A}) = \min \{ & x \in \mathbb{R}_{> 0} : \\
+           & \mathrm{overlap}\left(
                 S_i(\mathbf{q}_i),
-                S_j(\mathbf{q}_j, (1-x)(\vec{r}^t_j - (\vec{r}_i + \vec{A})))
-            \right) \ne \emptyset \}
+                S_j(\mathbf{q}_j, (1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})))
+            \right) \ne \emptyset
+            \\
+            &\lor \\
+            & U_{\mathrm{pair},ij}((1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j)
+                \ne
+            U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j) \\
+            \} &
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
     `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle
@@ -187,17 +199,21 @@ class SDF(Compute):
     overlaps between particles in the primary image with particles in periodic
     images.
 
-    `SDF` adds a single count to the histogram for each particle :math:`i`:
+    `SDF` adds a single count to the histogram for each particle :math:`i`,
+    weighted by a factor that is a function of the change in energy upon
+    overlap:
 
     .. math::
 
         s(x + \delta x/2) = \frac{1}{N_\mathrm{particles} \cdot \delta x}
             \sum_{i=0}^{N_\mathrm{particles}-1}
-            [x \le x_i < x + \delta x]
+            [x \le x_i < x + \delta x] \cdot (1 - \exp(-\beta \Delta U_{i}))
 
-    where the square brackets denote the Iverson bracket, and :math:`s(x +
-    \delta x/2)` is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x <
-    x_\mathrm{max}, x = k \cdot \delta x, k \in \mathbb{Z}^* \}`.
+    where :math:`\Delta U_{i}` is the change in energy associated with the first
+    overlap involving particle :math:`i` (:math:`\infty` for hard overlaps), the
+    square brackets denote the Iverson bracket, and :math:`s(x + \delta x/2)`
+    is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x < x_\mathrm{max}, x = k
+    \cdot \delta x, k \in \mathbb{Z}^* \}`.
 
     .. rubric:: Pressure
 
@@ -222,8 +238,15 @@ class SDF(Compute):
     smaller ``xmax``. Check that :math:`\sum_k s(x_k) \cdot dx \approx 0.5`.
 
     Warning:
-        `SDF` does not compute correct pressures for simulations with
-        concave particles or enthalpic interactions.
+        `SDF` only considers negative volume perturbations, and therefore does
+        not compute the correct pressure in simulations where positive volume
+        perturbations may change the system's potential energy, e.g., systems of
+        concave particles or with non-monotonic enthalpic interactions.
+
+    Warning:
+        Because SDF samples pair configurations at discrete separations, the
+        computed pressure is correct only for potentials with constant values
+        and step discontinuities, e.g., square well potentials.
 
     Note:
         `SDF` always runs on the CPU.
@@ -246,18 +269,11 @@ class SDF(Compute):
         dx (float): Bin width :math:`[\mathrm{length}]`.
     """
 
-    def __init__(self, xmax, dx, mode='binary', do_expansions=False):
+    def __init__(self, xmax, dx):
         # store metadata
-        self.patchy_modes = ['brute force', 'brute', 1, 'patchy']
-        self.athermal_modes = ['binary', 0]
-        valid_modes = self.patchy_modes + self.athermal_modes
-        if mode not in valid_modes:
-            raise ValueError(f'Mode must be one of {[x for x in valid_modes]}.')
         param_dict = ParameterDict(
             xmax=float(xmax),
             dx=float(dx),
-            mode=str(mode),
-            do_expansions=bool(do_expansions),
         )
         self._param_dict.update(param_dict)
 
@@ -271,17 +287,11 @@ class SDF(Compute):
 
         cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
 
-        if self.mode in self.athermal_modes:
-            mode = 0
-        elif self.mode in self.patchy_modes:
-            mode = 1
         self._cpp_obj = cpp_cls(
             self._simulation.state._cpp_sys_def,
             integrator._cpp_obj,
             self.xmax,
             self.dx,
-            mode,
-            self.do_expansions,
         )
 
         super()._attach()
@@ -315,30 +325,6 @@ class SDF(Compute):
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf_expansion
-
-    @log
-    def num_expansion_overlaps(self):
-        """The total number of overlaps upon expansion."""
-        self._cpp_obj.compute(self._simulation.timestep)
-        return self._cpp_obj.num_expansion_overlaps
-
-    @log
-    def num_compression_overlaps(self):
-        """The total number of overlaps upon compression."""
-        self._cpp_obj.compute(self._simulation.timestep)
-        return self._cpp_obj.num_compression_overlaps
-
-    @log
-    def num_expansion_overlaps_rank(self):
-        """The number of overlaps upon expansion on the current MPI rank."""
-        self._cpp_obj.compute(self._simulation.timestep)
-        return self._cpp_obj.num_expansion_overlaps_rank
-
-    @log
-    def num_compression_overlaps_rank(self):
-        """The number of overlaps upon compression on the current MPI rank."""
-        self._cpp_obj.compute(self._simulation.timestep)
-        return self._cpp_obj.num_compression_overlaps_rank
 
     @log(requires_run=True)
     def betaP(self):  # noqa: N802 - allow function name

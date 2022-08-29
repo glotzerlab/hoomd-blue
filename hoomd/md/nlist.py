@@ -58,16 +58,16 @@ of exclusions. The valid exclusion types are:
   (j,k), and (k,m).
 """
 
-import hoomd
+import hoomd.device
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.logging import log
 from hoomd.mesh import Mesh
 from hoomd.md import _md
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import AutotunedObject
 
 
-class NeighborList(_HOOMDBaseObject):
+class NeighborList(AutotunedObject):
     r"""Base class neighbor list.
 
     Note:

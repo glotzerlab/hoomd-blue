@@ -141,6 +141,7 @@ class _DynamicIntegrator(BaseIntegrator):
         self._param_dict["rigid"] = new_rigid
 
 
+@hoomd.logging.modify_namespace(("md", "Integrator"))
 class Integrator(_DynamicIntegrator):
     r"""Molecular dynamics time integration.
 
@@ -165,6 +166,9 @@ class Integrator(_DynamicIntegrator):
 
         rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
           the simulation.
+
+        half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
+            arbitrary computations during the half-step of the integration.
 
     `Integrator` is the top level class that orchestrates the time integration
     step in molecular dynamics simulations. The integration `methods` define
@@ -204,6 +208,23 @@ class Integrator(_DynamicIntegrator):
     special case, as it only integrates the degrees of freedom of each body's
     center of mass. See `hoomd.md.constrain.Rigid` for details.
 
+    .. rubric:: Degrees of freedom
+
+    `Integrator` always integrates the translational degrees of freedom.
+    It *optionally* integrates one or more rotational degrees of freedom
+    for a given particle *i* when all the following conditions are met:
+
+    * The intergration method supports rotational degrees of freedom.
+    * `integrate_rotational_dof` is ``True``.
+    * The moment of inertia is non-zero :math:`I^d_i > 0`.
+
+    Each particle may have zero, one, two, or three rotational degrees of
+    freedom.
+
+    Note:
+        By default, `integrate_rotational_dof` is ``False``. `gsd` and
+        `hoomd.Snapshot` also set particle moments of inertia to 0 by default.
+
     .. rubric:: Classes
 
     Classes of the following modules can be used as elements in `methods`:
@@ -240,7 +261,7 @@ class Integrator(_DynamicIntegrator):
 
 
     Attributes:
-        dt (float): Integrator time step size :math:`[\\mathrm{time}]`.
+        dt (float): Integrator time step size :math:`[\mathrm{time}]`.
 
         methods (list[hoomd.md.methods.Method]): List of integration methods.
 
@@ -255,6 +276,9 @@ class Integrator(_DynamicIntegrator):
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
             simulation associated with the integrator.
+
+        half_step_hook (hoomd.md.HalfStepHook): User defined implementation to
+            perform computations during the half-step of the integration.
     """
 
     def __init__(self,
@@ -263,14 +287,19 @@ class Integrator(_DynamicIntegrator):
                  forces=None,
                  constraints=None,
                  methods=None,
-                 rigid=None):
+                 rigid=None,
+                 half_step_hook=None):
 
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
             ParameterDict(
                 dt=float(dt),
-                integrate_rotational_dof=bool(integrate_rotational_dof)))
+                integrate_rotational_dof=bool(integrate_rotational_dof),
+                half_step_hook=OnlyTypes(hoomd.md.HalfStepHook,
+                                         allow_none=True)))
+
+        self.half_step_hook = half_step_hook
 
     def _attach(self):
         # initialize the reflected c++ class
@@ -287,7 +316,7 @@ class Integrator(_DynamicIntegrator):
                 and self._simulation.state is not None):
             self._simulation.state.update_group_dof()
 
-    @hoomd.logging.log(requires_run=True)
+    @hoomd.logging.log(category="sequence", requires_run=True)
     def linear_momentum(self):
         """tuple(float,float,float): The linear momentum vector of the system \
             :math:`[\\mathrm{mass} \\cdot \\mathrm{velocity}]`.

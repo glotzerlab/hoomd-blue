@@ -110,6 +110,7 @@ void export_TwoStepNVTAlchemy(pybind11::module& m);
 void export_FIREEnergyMinimizer(pybind11::module& m);
 void export_MuellerPlatheFlow(pybind11::module& m);
 void export_AlchemostatTwoStep(pybind11::module& m);
+void export_HalfStepHook(pybind11::module& m);
 
 void export_TwoStepRATTLEBDCylinder(pybind11::module& m);
 void export_TwoStepRATTLEBDDiamond(pybind11::module& m);
@@ -466,6 +467,7 @@ PYBIND11_MODULE(_md, m)
     export_MuellerPlatheFlow(m);
     export_AlchemostatTwoStep(m);
     export_TwoStepNVTAlchemy(m);
+    export_HalfStepHook(m);
 
     // RATTLE
     export_TwoStepRATTLEBDCylinder(m);

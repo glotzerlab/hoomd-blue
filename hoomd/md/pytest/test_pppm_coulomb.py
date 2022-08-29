@@ -2,7 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
 import pytest
 import numpy
 
@@ -97,6 +97,26 @@ def test_attach_detach(simulation_factory,
         coulomb.r_cut = 4.5
     with pytest.raises(AttributeError):
         coulomb.alpha = 3.0
+
+
+def test_kernel_parameters(simulation_factory,
+                           two_charged_particle_snapshot_factory):
+    """Test that md.long_range.pppm.Coulomb can be pickled and unpickled."""
+    nlist = hoomd.md.nlist.Cell(buffer=0.4)
+    ewald, coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
+        nlist=nlist, resolution=(64, 64, 64), order=6, r_cut=3.0, alpha=0)
+
+    sim = simulation_factory(two_charged_particle_snapshot_factory())
+    integrator = hoomd.md.Integrator(dt=0.005)
+    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    integrator.methods.append(nve)
+    integrator.forces.extend([ewald, coulomb])
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=coulomb,
+                                     activate=lambda: sim.run(1))
 
 
 def test_pickling(simulation_factory, two_charged_particle_snapshot_factory):

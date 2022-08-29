@@ -8,6 +8,13 @@ import os
 import sphinx
 import datetime
 
+from sphinx.domains.python import PythonDomain
+
+# allows typing objects like variant_like to be documented correctly.
+# See: https://github.com/sphinx-doc/sphinx/issues/9560
+PythonDomain.object_types['class'].roles = ('class', 'exc', 'data', 'obj')
+PythonDomain.object_types['data'].roles = ('data', 'class', 'obj')
+
 sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -56,10 +63,10 @@ year = datetime.date.today().year
 copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.2.0'
-release = '3.2.0'
+version = '3.4.0'
+release = '3.4.0'
 
-language = None
+language = 'en'
 
 default_role = 'any'
 
@@ -70,30 +77,24 @@ todo_include_todos = False
 html_theme = 'sphinx_rtd_theme'
 html_css_files = ['css/hoomd-theme.css']
 html_static_path = ['_static']
+html_logo = 'hoomdblue-logo-vertical.svg'
+html_theme_options = {'logo_only': True}
+html_favicon = 'hoomdblue-logo-favicon.svg'
 
 IGNORE_MODULES = ['hoomd._hoomd']
-IGNORE_CLASSES = [
-    '_TunerProperty',
-    '_UpdaterProperty',
-    '_HOOMDGetSetAttrBase',
-    '_InternalCustomWriter',
-    '_WriterProperty',
-    '_HOOMDBaseObject',
-    '_AlchemicalPairForce',
-]
+IGNORE_CLASSES = []
 
 
 def autodoc_process_bases(app, name, obj, options, bases):
     """Ignore base classes from the '_hoomd' module."""
-    # bases must be modified in place. Assume that only one matching
-    # class is in the list
-    for i in range(len(bases)):
-        if bases[i].__module__ in IGNORE_MODULES:
-            del bases[i]
-            return
-        if bases[i].__name__ in IGNORE_CLASSES:
-            del bases[i]
-            return
+    # bases must be modified in place.
+    remove_indices = []
+    for i, base in enumerate(bases):
+        if (base.__module__ in IGNORE_MODULES or base.__name__.startswith("_")
+                or base.__name__ in IGNORE_CLASSES):
+            remove_indices.append(i)
+    for i in reversed(remove_indices):
+        del bases[i]
 
 
 def setup(app):

@@ -4,22 +4,9 @@
 """Synced list utility classes."""
 
 from collections.abc import MutableSequence
-import inspect
 from copy import copy
 
-
-class _PartialIsInstance:
-    """Allows partial function application of isinstance over classes.
-
-    This is a solution to avoid lambdas to enable pickling. We cannot use
-    functools.partial since we need to partially apply the second argument.
-    """
-
-    def __init__(self, classes):
-        self.classes = classes
-
-    def __call__(self, instance):
-        return isinstance(instance, self.classes)
+from hoomd.data.typeconverter import _BaseConverter, TypeConverter
 
 
 class _PartialGetAttr:
@@ -96,8 +83,8 @@ class SyncedList(MutableSequence):
         if to_synced_list is None:
             to_synced_list = identity
 
-        if inspect.isclass(validation) and not callable_class:
-            self._validate = _PartialIsInstance(validation)
+        if not isinstance(validation, TypeConverter):
+            self._validate = _BaseConverter.to_base_converter(validation)
         else:
             self._validate = validation
 
@@ -236,12 +223,10 @@ class SyncedList(MutableSequence):
     def _validate_or_error(self, value):
         """Complete error checking and processing of value."""
         try:
-            if self._validate(value):
-                return value
-            else:
-                raise ValueError(f"Value {value} could not be validated.")
+            processed_value = self._validate(value)
         except ValueError as verr:
             raise ValueError(f"Validation failed: {verr.args[0]}") from verr
+        return processed_value
 
     def _sync(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""

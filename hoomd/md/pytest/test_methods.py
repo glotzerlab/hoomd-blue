@@ -2,7 +2,8 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-from hoomd.conftest import pickling_check, logging_check
+from hoomd.conftest import (pickling_check, logging_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.logging import LoggerCategories
 import pytest
 from copy import deepcopy
@@ -129,6 +130,23 @@ def _method_base_params():
     method_base_params_list.extend([
         paramtuple(nve_setup_params, nve_extra_params, nve_changed_params,
                    hoomd.md.methods.rattle.NVE, hoomd.md.methods.NVE)
+    ])
+
+    displacement_capped_setup_params = {
+        "maximum_displacement": hoomd.variant.Ramp(1e-3, 1e-1, 0, 1_00)
+    }
+
+    displacement_capped_extra_params = {}
+    displacement_capped_changed_params = {
+        "maximum_displacement": hoomd.variant.Constant(1e-2)
+    }
+
+    method_base_params_list.extend([
+        paramtuple(displacement_capped_setup_params,
+                   displacement_capped_extra_params,
+                   displacement_capped_changed_params,
+                   hoomd.md.methods.rattle.DisplacementCapped,
+                   hoomd.md.methods.DisplacementCapped)
     ])
 
     return method_base_params_list
@@ -599,6 +617,24 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     xi_rot, eta_rot = nvt.rotational_thermostat_dof
     assert xi_rot != 0.0
     assert eta_rot == 0.0
+
+
+def test_kernel_parameters(method_base_params, simulation_factory,
+                           two_particle_snapshot_factory):
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=hoomd.filter.All())
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    if (method_base_params.method == hoomd.md.methods.Berendsen
+            and sim.device.communicator.num_ranks > 1):
+        pytest.skip("Berendsen method does not support multiple processor "
+                    "configurations.")
+    integrator = hoomd.md.Integrator(0.05, methods=[method])
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=method,
+                                     activate=lambda: sim.run(1))
 
 
 def test_pickling(method_base_params, simulation_factory,
