@@ -21,24 +21,28 @@ namespace kernel
 //! Temporary holder struct to limit the number of arguments passed to gpu_langevin_step_two()
 struct langevin_step_two_args
     {
-    langevin_step_two_args(    Scalar* _d_gamma,
-    unsigned int _n_types,
-    bool _use_alpha,
-    Scalar _alpha,
-    Scalar _T,
-    uint64_t _timestep,
-    uint16_t _seed,
-    Scalar* _d_sum_bdenergy,
-    Scalar* _d_partial_sum_bdenergy,
-    unsigned int _block_size,
-    unsigned int _num_blocks,
-    bool _noiseless_t,
-    bool _noiseless_r,
-    bool _tally,
-    const hipDeviceProp_t& _devprop) : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha),
-    alpha(_alpha), T(_T), timestep(_timestep), seed(_seed), d_sum_bdenergy(_d_sum_bdenergy),
-    d_partial_sum_bdenergy(_d_partial_sum_bdenergy), block_size(_block_size), num_blocks(_num_blocks),
-    noiseless_t(_noiseless_t), noiseless_r(_noiseless_r), tally(_tally), devprop(_devprop) {}
+    langevin_step_two_args(Scalar* _d_gamma,
+                           unsigned int _n_types,
+                           bool _use_alpha,
+                           Scalar _alpha,
+                           Scalar _T,
+                           uint64_t _timestep,
+                           uint16_t _seed,
+                           Scalar* _d_sum_bdenergy,
+                           Scalar* _d_partial_sum_bdenergy,
+                           unsigned int _block_size,
+                           unsigned int _num_blocks,
+                           bool _noiseless_t,
+                           bool _noiseless_r,
+                           bool _tally,
+                           const hipDeviceProp_t& _devprop)
+        : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha), alpha(_alpha), T(_T),
+          timestep(_timestep), seed(_seed), d_sum_bdenergy(_d_sum_bdenergy),
+          d_partial_sum_bdenergy(_d_partial_sum_bdenergy), block_size(_block_size),
+          num_blocks(_num_blocks), noiseless_t(_noiseless_t), noiseless_r(_noiseless_r),
+          tally(_tally), devprop(_devprop)
+        {
+        }
 
     Scalar* d_gamma;                //!< Device array listing per-type gammas
     unsigned int n_types;           //!< Number of types in \a d_gamma

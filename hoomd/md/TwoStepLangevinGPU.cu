@@ -416,12 +416,12 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
     dim3 threads(block_size, 1, 1);
 
     unsigned int shared_bytes = max((unsigned int)(sizeof(Scalar3) * langevin_args.n_types),
-                           (unsigned int)(langevin_args.block_size * sizeof(Scalar)));
+                                    (unsigned int)(langevin_args.block_size * sizeof(Scalar)));
 
     if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
         {
         throw std::runtime_error("Langevin gamma parameters exceed the available shared "
-                                    "memory per block.");
+                                 "memory per block.");
         }
 
     // run the kernel
@@ -484,12 +484,12 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
     dim3 threads1(256, 1, 1);
 
     unsigned int shared_bytes = max((unsigned int)(sizeof(Scalar) * langevin_args.n_types),
-                           (unsigned int)(langevin_args.block_size * sizeof(Scalar)));
+                                    (unsigned int)(langevin_args.block_size * sizeof(Scalar)));
 
     if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
         {
         throw std::runtime_error("Langevin gamma parameters exceed the available shared "
-                                    "memory per block.");
+                                 "memory per block.");
         }
 
     // run the kernel

@@ -38,17 +38,18 @@ struct external_potential_args_t
                               const unsigned int _block_size,
                               const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), box(_box), N(_N),
-          d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), block_size(_block_size), devprop(_devprop) {};
+          d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), block_size(_block_size),
+          devprop(_devprop) {};
 
-    Scalar4* d_force;              //!< Force to write out
-    Scalar* d_virial;              //!< Virial to write out
-    const size_t virial_pitch;     //!< The pitch of the 2D array of virial matrix elements
-    const BoxDim box;              //!< Simulation box in GPU format
-    const unsigned int N;          //!< Number of particles
-    const Scalar4* d_pos;          //!< Device array of particle positions
-    const Scalar* d_diameter;      //!< particle diameters
-    const Scalar* d_charge;        //!< particle charges
-    const unsigned int block_size; //!< Block size to execute
+    Scalar4* d_force;               //!< Force to write out
+    Scalar* d_virial;               //!< Virial to write out
+    const size_t virial_pitch;      //!< The pitch of the 2D array of virial matrix elements
+    const BoxDim box;               //!< Simulation box in GPU format
+    const unsigned int N;           //!< Number of particles
+    const Scalar4* d_pos;           //!< Device array of particle positions
+    const Scalar* d_diameter;       //!< particle diameters
+    const Scalar* d_charge;         //!< particle charges
+    const unsigned int block_size;  //!< Block size to execute
     const hipDeviceProp_t& devprop; //!< Device properties
     };
 

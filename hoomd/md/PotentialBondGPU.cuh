@@ -247,8 +247,7 @@ __attribute__((visibility("default"))) hipError_t
 gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                         const typename evaluator::param_type* d_params,
                         unsigned int* d_flags,
-                        const hipDeviceProp_t& devprop
-                        )
+                        const hipDeviceProp_t& devprop)
     {
     assert(d_params);
     assert(bond_args.n_bond_types > 0);
