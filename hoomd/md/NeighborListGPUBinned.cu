@@ -90,7 +90,6 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
 
     // pointer for the r_listsq data
     Scalar* s_r_list = (Scalar*)(&s_data[0]);
-    unsigned int* s_Nmax = (unsigned int*)(&s_data[sizeof(Scalar) * num_typ_parameters]);
 
     if (enable_shared_cache)
         {
@@ -103,10 +102,6 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                 // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
                 s_r_list[cur_offset + threadIdx.x]
                     = (r_cut > Scalar(0.0)) ? r_cut + r_buff : Scalar(-1.0);
-                }
-            if (cur_offset + threadIdx.x < ntypes)
-                {
-                s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
                 }
             }
         __syncthreads();
@@ -171,15 +166,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
     // total number of neighbors
     unsigned int nneigh = 0;
 
-    unsigned int my_n_max;
-    if (enable_shared_cache)
-        {
-        my_n_max = s_Nmax[my_type];
-        }
-    else
-        {
-        my_n_max = d_Nmax[my_type];
-        }
+    unsigned int my_n_max = __ldg(d_Nmax + my_type);
 
     while (!done)
         {
@@ -371,8 +358,7 @@ inline void launcher(unsigned int* d_nlist,
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
-    unsigned int shared_size = (unsigned int)(sizeof(Scalar) * typpair_idx.getNumElements()
-                                              + sizeof(unsigned int) * ntypes);
+    unsigned int shared_size = (unsigned int)(sizeof(Scalar) * typpair_idx.getNumElements());
 
     bool enable_shared = true;
 
