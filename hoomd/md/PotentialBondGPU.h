@@ -173,7 +173,8 @@ void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
                                              this->m_bond_data->getNTypes(),
                                              this->m_tuner->getParam()[0]),
             d_params.data,
-            d_flags.data);
+            d_flags.data,
+            this->m_exec_conf->dev_prop);
         }
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())

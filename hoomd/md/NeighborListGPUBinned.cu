@@ -340,12 +340,19 @@ inline void launcher(unsigned int* d_nlist,
                      unsigned int block_size,
                      std::pair<unsigned int, unsigned int> range,
                      bool use_index,
-                     const unsigned int ngpu)
+                     const unsigned int ngpu,
+                     const hipDeviceProp_t& devprop)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
     unsigned int shared_size = (unsigned int)(sizeof(Scalar) * typpair_idx.getNumElements()
                                               + sizeof(unsigned int) * ntypes);
+
+    if (shared_size > devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("Neighborlist r_cut matrix exceeds the available shared memory "
+                                 "per block.");
+        }
 
     unsigned int offset = range.first;
     unsigned int nwork = range.second - range.first;
@@ -710,7 +717,8 @@ inline void launcher(unsigned int* d_nlist,
                               block_size,
                               range,
                               use_index,
-                              ngpu);
+                              ngpu,
+                              devprop);
         }
     }
 
@@ -745,7 +753,8 @@ inline void launcher<min_threads_per_particle / 2>(unsigned int* d_nlist,
                                                    unsigned int block_size,
                                                    std::pair<unsigned int, unsigned int> range,
                                                    bool use_index,
-                                                   const unsigned int ngpu)
+                                                   const unsigned int ngpu,
+                                                   const hipDeviceProp_t& devprop)
     {
     }
 
@@ -777,7 +786,8 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     bool diameter_shift,
                                     const Scalar3& ghost_width,
                                     const GPUPartition& gpu_partition,
-                                    bool use_index)
+                                    bool use_index,
+                                    const hipDeviceProp_t& devprop)
     {
     unsigned int ngpu = gpu_partition.getNumActiveGPUs();
 
@@ -815,7 +825,8 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                            block_size,
                                            range,
                                            use_index,
-                                           ngpu);
+                                           ngpu,
+                                           devprop);
         }
     return hipSuccess;
     }

@@ -343,12 +343,20 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
         dim3 grid((nwork / run_block_size) + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
+        size_t shared_bytes = (unsigned int)(sizeof(Scalar) * langevin_args.n_types
+                                          + sizeof(Scalar3) * langevin_args.n_types);
+
+        if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
+            {
+            throw std::runtime_error("Brownian gamma parameters exceed the available shared "
+                                        "memory per block.");
+            }
+
         // run the kernel
         hipLaunchKernelGGL((gpu_brownian_step_one_kernel),
                            dim3(grid),
                            dim3(threads),
-                           (unsigned int)(sizeof(Scalar) * langevin_args.n_types
-                                          + sizeof(Scalar3) * langevin_args.n_types),
+                            shared_bytes,
                            0,
                            d_pos,
                            d_vel,

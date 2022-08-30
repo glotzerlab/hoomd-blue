@@ -246,7 +246,9 @@ template<class evaluator, int group_size>
 __attribute__((visibility("default"))) hipError_t
 gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                         const typename evaluator::param_type* d_params,
-                        unsigned int* d_flags)
+                        unsigned int* d_flags,
+                        const hipDeviceProp_t& devprop
+                        )
     {
     assert(d_params);
     assert(bond_args.n_bond_types > 0);
@@ -268,6 +270,12 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
     dim3 threads(run_block_size, 1, 1);
 
     const size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
+
+    if (shared_bytes > devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("Bond potential parameters exceed the available shared memory per "
+                                 "block.");
+        }
 
     // run the kernel
     hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size>),
@@ -297,7 +305,8 @@ template<class evaluator, int group_size>
 __attribute__((visibility("default"))) hipError_t
 gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                         const typename evaluator::param_type* d_params,
-                        unsigned int* d_flags);
+                        unsigned int* d_flags,
+                        const hipDeviceProp_t& devprop);
 #endif
 
     } // end namespace kernel

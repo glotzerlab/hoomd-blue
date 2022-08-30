@@ -138,7 +138,8 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
                                    this->m_pair_data->getNTypes(),
                                    m_tuner->getParam()[0]),
             d_params.data,
-            d_flags.data);
+            d_flags.data,
+            this->m_exec_conf->dev_prop);
         }
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
