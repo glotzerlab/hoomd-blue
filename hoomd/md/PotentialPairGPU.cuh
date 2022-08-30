@@ -455,6 +455,12 @@ struct PairForceComputeKernel
                                                                                      compute_virial,
                                                                                      tpp>));
 
+            if (param_shared_bytes + attr.sharedSizeBytes > pair_args.devprop.sharedMemPerBlock)
+                {
+                throw std::runtime_error("Pair potential parameters exceed the available shared "
+                                         "memory per block.");
+                }
+
             unsigned int max_extra_bytes = static_cast<unsigned int>(
                 pair_args.devprop.sharedMemPerBlock - param_shared_bytes - attr.sharedSizeBytes);
 
