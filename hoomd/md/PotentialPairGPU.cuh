@@ -140,7 +140,7 @@ struct pair_args_t
     Each group of \a tpp threads will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp>
+template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp, bool enable_shared_cache>
 __global__ void
 gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       Scalar* d_virial,
@@ -158,8 +158,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       const Scalar* d_ronsq,
                                       const unsigned int ntypes,
                                       const unsigned int offset,
-                                      unsigned int max_extra_bytes,
-                                      bool enable_shared_cache)
+                                      unsigned int max_extra_bytes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -464,7 +463,7 @@ struct PairForceComputeKernel
 
             unsigned int max_block_size;
             max_block_size = get_max_block_size(
-                gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>);
+                gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp, true>);
 
             hipFuncAttributes attr;
             hipFuncGetAttributes(
@@ -472,7 +471,8 @@ struct PairForceComputeKernel
                 reinterpret_cast<const void*>(&gpu_compute_pair_forces_shared_kernel<evaluator,
                                                                                      shift_mode,
                                                                                      compute_virial,
-                                                                                     tpp>));
+                                                                                     tpp,
+                                                                                     true>));
 
             if (param_shared_bytes + attr.sharedSizeBytes > pair_args.devprop.sharedMemPerBlock)
                 {
@@ -496,30 +496,58 @@ struct PairForceComputeKernel
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size / tpp) + 1, 1, 1);
 
-            hipLaunchKernelGGL(
-                (gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>),
-                dim3(grid),
-                dim3(block_size),
-                param_shared_bytes + extra_shared_bytes,
-                0,
-                pair_args.d_force,
-                pair_args.d_virial,
-                pair_args.virial_pitch,
-                N,
-                pair_args.d_pos,
-                pair_args.d_diameter,
-                pair_args.d_charge,
-                pair_args.box,
-                pair_args.d_n_neigh,
-                pair_args.d_nlist,
-                pair_args.d_head_list,
-                d_params,
-                pair_args.d_rcutsq,
-                pair_args.d_ronsq,
-                pair_args.ntypes,
-                offset,
-                max_extra_bytes,
-                enable_shared_cache);
+            if (enable_shared_cache)
+                {
+                hipLaunchKernelGGL(
+                    (gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp, true>),
+                    dim3(grid),
+                    dim3(block_size),
+                    param_shared_bytes + extra_shared_bytes,
+                    0,
+                    pair_args.d_force,
+                    pair_args.d_virial,
+                    pair_args.virial_pitch,
+                    N,
+                    pair_args.d_pos,
+                    pair_args.d_diameter,
+                    pair_args.d_charge,
+                    pair_args.box,
+                    pair_args.d_n_neigh,
+                    pair_args.d_nlist,
+                    pair_args.d_head_list,
+                    d_params,
+                    pair_args.d_rcutsq,
+                    pair_args.d_ronsq,
+                    pair_args.ntypes,
+                    offset,
+                    max_extra_bytes);
+                }
+            else
+                {
+                hipLaunchKernelGGL(
+                    (gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp, false>),
+                    dim3(grid),
+                    dim3(block_size),
+                    param_shared_bytes + extra_shared_bytes,
+                    0,
+                    pair_args.d_force,
+                    pair_args.d_virial,
+                    pair_args.virial_pitch,
+                    N,
+                    pair_args.d_pos,
+                    pair_args.d_diameter,
+                    pair_args.d_charge,
+                    pair_args.box,
+                    pair_args.d_n_neigh,
+                    pair_args.d_nlist,
+                    pair_args.d_head_list,
+                    d_params,
+                    pair_args.d_rcutsq,
+                    pair_args.d_ronsq,
+                    pair_args.ntypes,
+                    offset,
+                    max_extra_bytes);
+                }
             }
         else
             {
