@@ -247,22 +247,22 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
-        kernel::rattle_langevin_step_two_args args;
-        args.d_gamma = d_gamma.data;
-        args.n_types = this->m_gamma.getNumElements();
-        args.use_alpha = this->m_use_alpha;
-        args.alpha = this->m_alpha;
-        args.T = (*this->m_T)(timestep);
-        args.tolerance = this->m_tolerance;
-        args.timestep = timestep;
-        args.seed = this->m_sysdef->getSeed();
-        args.d_sum_bdenergy = d_sumBD.data;
-        args.d_partial_sum_bdenergy = d_partial_sumBD.data;
-        args.block_size = m_block_size;
-        args.num_blocks = m_num_blocks;
-        args.noiseless_t = this->m_noiseless_t;
-        args.noiseless_r = this->m_noiseless_r;
-        args.tally = this->m_tally;
+        kernel::rattle_langevin_step_two_args args(d_gamma.data,
+                                                   this->m_gamma.getNumElements(),
+            this->m_use_alpha,
+            this->m_alpha,
+            (*this->m_T)(timestep),
+            this->m_tolerance,
+            timestep,
+            this->m_sysdef->getSeed(),
+            d_sumBD.data,
+            d_partial_sumBD.data,
+            m_block_size,
+            m_num_blocks,
+            this->m_noiseless_t,
+            this->m_noiseless_r,
+            this->m_tally,
+            this->m_exec_conf->dev_prop);
 
         kernel::gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
                                                        d_vel.data,
