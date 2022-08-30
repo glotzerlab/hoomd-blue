@@ -70,20 +70,24 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
                                              Scalar deltaT,
                                              unsigned int D,
                                              bool tally,
-                                             Scalar* d_partial_sum_bdenergy)
+                                             Scalar* d_partial_sum_bdenergy,
+                                             bool enable_shared_cache)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* s_gammas = (Scalar*)s_data;
 
-    if (!use_alpha)
+    if (enable_shared_cache)
         {
-        // read in the gammas (1 dimensional array)
-        for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+        if (!use_alpha)
             {
-            if (cur_offset + threadIdx.x < n_types)
-                s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
+            // read in the gammas (1 dimensional array)
+            for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+                {
+                if (cur_offset + threadIdx.x < n_types)
+                    s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
+                }
+            __syncthreads();
             }
-        __syncthreads();
         }
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
@@ -115,7 +119,14 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
             // read in the type of our particle. A texture read of only the fourth part of the
             // position Scalar4 (where type is stored) is used.
             unsigned int typ = __scalar_as_int(d_pos[idx].w);
-            gamma = s_gammas[typ];
+            if (enable_shared_cache)
+                {
+                gamma = s_gammas[typ];
+                }
+            else
+                {
+                gamma = d_gamma[typ];
+                }
             }
 
         Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
@@ -263,18 +274,22 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
                                                      bool noiseless_r,
                                                      Scalar deltaT,
                                                      unsigned int D,
-                                                     Scalar scale)
+                                                     Scalar scale,
+                                                     bool enable_shared_cache)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar3* s_gammas_r = (Scalar3*)s_data;
 
-    // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
-    for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+    if (enable_shared_cache)
         {
-        if (cur_offset + threadIdx.x < n_types)
-            s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
+        // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
+        for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+            {
+            if (cur_offset + threadIdx.x < n_types)
+                s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
+            }
+        __syncthreads();
         }
-    __syncthreads();
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -286,7 +301,16 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
 
         // torque update with rotational drag and noise
         unsigned int type_r = __scalar_as_int(d_pos[idx].w);
-        Scalar3 gamma_r = s_gammas_r[type_r];
+
+        Scalar3 gamma_r;
+        if (enable_shared_cache)
+            {
+            gamma_r = s_gammas_r[type_r];
+            }
+        else
+            {
+            gamma_r = d_gamma_r[type_r];
+            }
 
         if (gamma_r.x > 0 || gamma_r.y > 0 || gamma_r.z > 0)
             {
@@ -418,10 +442,12 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
     unsigned int shared_bytes = max((unsigned int)(sizeof(Scalar3) * langevin_args.n_types),
                                     (unsigned int)(langevin_args.block_size * sizeof(Scalar)));
 
+    bool enable_shared_cache = true;
+
     if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
         {
-        throw std::runtime_error("Langevin gamma parameters exceed the available shared "
-                                 "memory per block.");
+        enable_shared_cache = false;
+        shared_bytes = 0;
         }
 
     // run the kernel
@@ -446,7 +472,8 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
                        langevin_args.noiseless_r,
                        deltaT,
                        D,
-                       scale);
+                       scale,
+                       enable_shared_cache);
 
     return hipSuccess;
     }
@@ -486,10 +513,12 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
     unsigned int shared_bytes = max((unsigned int)(sizeof(Scalar) * langevin_args.n_types),
                                     (unsigned int)(langevin_args.block_size * sizeof(Scalar)));
 
+    bool enable_shared_cache = true;
+
     if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
         {
-        throw std::runtime_error("Langevin gamma parameters exceed the available shared "
-                                 "memory per block.");
+        enable_shared_cache = false;
+        shared_bytes = 0;
         }
 
     // run the kernel
@@ -517,7 +546,8 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
                        deltaT,
                        D,
                        langevin_args.tally,
-                       langevin_args.d_partial_sum_bdenergy);
+                       langevin_args.d_partial_sum_bdenergy,
+                       enable_shared_cache);
 
     // run the summation kernel
     if (langevin_args.tally)

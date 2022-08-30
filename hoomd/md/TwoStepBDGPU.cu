@@ -81,33 +81,37 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                              unsigned int D,
                                              const bool d_noiseless_t,
                                              const bool d_noiseless_r,
-                                             const unsigned int offset)
+                                             const unsigned int offset,
+                                             bool enable_shared_cache)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
 
     Scalar3* s_gammas_r = (Scalar3*)s_data;
     Scalar* s_gammas = (Scalar*)(s_gammas_r + n_types);
 
-    if (!use_alpha)
+    if (enable_shared_cache)
         {
-        // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
-        // convention)
+        if (!use_alpha)
+            {
+            // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
+            // convention)
+            for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+                {
+                if (cur_offset + threadIdx.x < n_types)
+                    s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
+                }
+            __syncthreads();
+            }
+
+        // read in the gamma_r, stored in s_gammas_r[0: n_type], which is s_gamma_r[0:n_type]
+
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
             {
             if (cur_offset + threadIdx.x < n_types)
-                s_gammas[cur_offset + threadIdx.x] = d_gamma[cur_offset + threadIdx.x];
+                s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
             }
         __syncthreads();
         }
-
-    // read in the gamma_r, stored in s_gammas_r[0: n_type], which is s_gamma_r[0:n_type]
-
-    for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < n_types)
-            s_gammas_r[cur_offset + threadIdx.x] = d_gamma_r[cur_offset + threadIdx.x];
-        }
-    __syncthreads();
 
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int local_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -145,7 +149,14 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
             {
             // determine gamma from type
             unsigned int typ = __scalar_as_int(postype.w);
-            gamma = s_gammas[typ];
+            if (enable_shared_cache)
+                {
+                gamma = s_gammas[typ];
+                }
+            else
+                {
+                gamma = d_gamma[typ];
+                }
             }
 
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1
@@ -203,7 +214,16 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
             unsigned int type_r = __scalar_as_int(d_pos[idx].w);
 
             // gamma_r is stored in the second half of s_gammas a.k.a s_gammas_r
-            Scalar3 gamma_r = s_gammas_r[type_r];
+            Scalar3 gamma_r;
+            if (enable_shared_cache)
+                {
+                gamma_r = s_gammas_r[type_r];
+                }
+            else
+                {
+                gamma_r = d_gamma_r[type_r];
+                }
+
             if (gamma_r.x > 0 || gamma_r.y > 0 || gamma_r.z > 0)
                 {
                 vec3<Scalar> p_vec;
@@ -346,10 +366,12 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
         size_t shared_bytes = (unsigned int)(sizeof(Scalar) * langevin_args.n_types
                                              + sizeof(Scalar3) * langevin_args.n_types);
 
+        bool enable_shared_cache = true;
+
         if (shared_bytes > langevin_args.devprop.sharedMemPerBlock)
             {
-            throw std::runtime_error("Brownian gamma parameters exceed the available shared "
-                                     "memory per block.");
+            enable_shared_cache = false;
+            shared_bytes = 0;
             }
 
         // run the kernel
@@ -384,7 +406,8 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                            D,
                            d_noiseless_t,
                            d_noiseless_r,
-                           range.first);
+                           range.first,
+                           enable_shared_cache);
         }
 
     return hipSuccess;
