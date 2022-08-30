@@ -91,7 +91,7 @@ template<int group_size> struct bond_args_t
    are not enabled. \tparam evaluator EvaluatorBond class to evaluate V(r) and -delta V(r)/r
 
 */
-template<class evaluator, int group_size>
+template<class evaluator, int group_size, bool enable_shared_cache>
 __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                Scalar* d_virial,
                                                const size_t virial_pitch,
@@ -114,16 +114,19 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     extern __shared__ char s_data[];
     typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
 
-    // load in per bond type parameters
-    for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
+    if (enable_shared_cache)
         {
-        if (cur_offset + threadIdx.x < n_bond_type)
+        // load in per bond type parameters
+        for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
             {
-            s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+            if (cur_offset + threadIdx.x < n_bond_type)
+                {
+                s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+                }
             }
-        }
 
-    __syncthreads();
+        __syncthreads();
+        }
 
     if (idx >= N)
         return;
@@ -178,7 +181,15 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         dx = box.minImage(dx);
 
         // get the bond parameters (MEM TRANSFER: 8 bytes)
-        typename evaluator::param_type param = s_params[cur_bond_type];
+        typename evaluator::param_type param;
+        if (enable_shared_cache)
+            {
+            param = s_params[cur_bond_type];
+            }
+        else
+            {
+            param = d_params[cur_bond_type];
+            }
 
         Scalar rsq = dot(dx, dx);
 
@@ -259,7 +270,7 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
     hipFuncAttributes attr;
     hipFuncGetAttributes(
         &attr,
-        reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator, group_size>));
+        reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator, group_size, true>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(bond_args.block_size, max_block_size);
@@ -268,34 +279,61 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
     dim3 grid(bond_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    const size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
+    size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
+
+    bool enable_shared_cache = true;
 
     if (shared_bytes > devprop.sharedMemPerBlock)
         {
-        throw std::runtime_error("Bond potential parameters exceed the available shared memory per "
-                                 "block.");
+        enable_shared_cache = false;
+        shared_bytes = 0;
         }
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size>),
-                       grid,
-                       threads,
-                       shared_bytes,
-                       0,
-                       bond_args.d_force,
-                       bond_args.d_virial,
-                       bond_args.virial_pitch,
-                       bond_args.N,
-                       bond_args.d_pos,
-                       bond_args.d_charge,
-                       bond_args.d_diameter,
-                       bond_args.box,
-                       bond_args.d_gpu_bondlist,
-                       bond_args.gpu_table_indexer,
-                       bond_args.d_gpu_n_bonds,
-                       bond_args.n_bond_types,
-                       d_params,
-                       d_flags);
+    if (enable_shared_cache)
+        {
+        hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size, true>),
+                        grid,
+                        threads,
+                        shared_bytes,
+                        0,
+                        bond_args.d_force,
+                        bond_args.d_virial,
+                        bond_args.virial_pitch,
+                        bond_args.N,
+                        bond_args.d_pos,
+                        bond_args.d_charge,
+                        bond_args.d_diameter,
+                        bond_args.box,
+                        bond_args.d_gpu_bondlist,
+                        bond_args.gpu_table_indexer,
+                        bond_args.d_gpu_n_bonds,
+                        bond_args.n_bond_types,
+                        d_params,
+                        d_flags);
+        }
+    else
+        {
+        hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size, false>),
+                        grid,
+                        threads,
+                        shared_bytes,
+                        0,
+                        bond_args.d_force,
+                        bond_args.d_virial,
+                        bond_args.virial_pitch,
+                        bond_args.N,
+                        bond_args.d_pos,
+                        bond_args.d_charge,
+                        bond_args.d_diameter,
+                        bond_args.box,
+                        bond_args.d_gpu_bondlist,
+                        bond_args.gpu_table_indexer,
+                        bond_args.d_gpu_n_bonds,
+                        bond_args.n_bond_types,
+                        d_params,
+                        d_flags);
+        }
 
     return hipSuccess;
     }
