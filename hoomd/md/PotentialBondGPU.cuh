@@ -42,11 +42,12 @@ template<int group_size> struct bond_args_t
                 const Index2D& _gpu_table_indexer,
                 const unsigned int* _d_gpu_n_bonds,
                 const unsigned int _n_bond_types,
-                const unsigned int _block_size)
+                const unsigned int _block_size,
+                const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
           d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer),
-          d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size) {};
+          d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size), devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -62,6 +63,7 @@ template<int group_size> struct bond_args_t
     const unsigned int* d_gpu_n_bonds;               //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;                 //!< Number of bond types in the simulation
     const unsigned int block_size;                   //!< Block size to execute
+    const hipDeviceProp_t& devprop;                  //!< CUDA device properties
     };
 
 #ifdef __HIPCC__
@@ -257,8 +259,7 @@ template<class evaluator, int group_size>
 __attribute__((visibility("default"))) hipError_t
 gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                         const typename evaluator::param_type* d_params,
-                        unsigned int* d_flags,
-                        const hipDeviceProp_t& devprop)
+                        unsigned int* d_flags)
     {
     assert(d_params);
     assert(bond_args.n_bond_types > 0);
@@ -283,7 +284,7 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
 
     bool enable_shared_cache = true;
 
-    if (shared_bytes > devprop.sharedMemPerBlock)
+    if (shared_bytes > bond_args.devprop.sharedMemPerBlock)
         {
         enable_shared_cache = false;
         shared_bytes = 0;
@@ -342,8 +343,7 @@ template<class evaluator, int group_size>
 __attribute__((visibility("default"))) hipError_t
 gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                         const typename evaluator::param_type* d_params,
-                        unsigned int* d_flags,
-                        const hipDeviceProp_t& devprop);
+                        unsigned int* d_flags);
 #endif
 
     } // end namespace kernel
