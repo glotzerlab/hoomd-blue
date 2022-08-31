@@ -336,6 +336,12 @@ struct ShapePolyhedron
         return data.n_verts > 1;
         }
 
+    /// Check if this shape requires expansive volume perturbations for ComputeSDF
+    DEVICE bool requiresExpansiveSDF()
+        {
+        return data.n_verts > 1;
+        }
+
     /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const
         {

@@ -331,11 +331,12 @@ class SDF(Compute):
         """float: Beta times pressure in NVT simulations \
         :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
-        Uses a polynomial curve fit of degree 5 to estimate :math:`s(0+)` and
-        computes the pressure via:
+        Uses a polynomial curve fit of degree 5 to estimate :math:`s(0+)` (and
+        :math:`s(0-)` if required) and computes the pressure via:
 
         .. math::
-            \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} \\right)
+            \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} + \\frac{s(0-)}{2d} \
+            \\right)
 
         where :math:`d` is the dimensionality of the system, :math:`\\rho` is
         the number density, and :math:`\\beta = \\frac{1}{kT}`.
@@ -344,44 +345,37 @@ class SDF(Compute):
             In MPI parallel execution, `betaP` is available on rank 0 only.
             `betaP` is `None` on ranks >= 1.
         """
+        compression_contribution = 0
+        expansion_contribution = 0
+        n_fit = int(numpy.ceil(self.xmax / self.dx))
+        box = self._simulation.state.box
+        N = self._simulation.state.N_particles
+        rho = N / box.volume
+        if numpy.isnan(self.sdf).all() and numpy.isnan(
+                self.sdf_expansion).all():
+            return None
         if not numpy.isnan(self.sdf).all():
             # get the values to fit
-            n_fit = int(numpy.ceil(self.xmax / self.dx))
             sdf_fit = self.sdf[0:n_fit]
             # construct the x coordinates
             x_fit = numpy.arange(0, self.xmax, self.dx)
             x_fit += self.dx / 2
             # perform the fit and extrapolation
             p = numpy.polyfit(x_fit, sdf_fit, 5)
-
-            box = self._simulation.state.box
-            N = self._simulation.state.N_particles
-            rho = N / box.volume
             p0_compression = numpy.polyval(p, 0.0)
             compression_contribution = rho * p0_compression / (2
                                                                * box.dimensions)
-            if not self.do_expansions:
-                return rho + compression_contribution
-        else:
-            return None
-        if self.do_expansions:
-            if not numpy.isnan(self.sdf_expansion).all():
-                # get the values to fit
-                n_fit = int(numpy.ceil(self.xmax / self.dx))
-                # reverse the sdf so that it starts at 0 and goes negative
-                sdf_fit_expansion = self.sdf_expansion[0:n_fit][::-1]
-                # construct the x coordinates
-                x_fit = numpy.arange(0, self.xmax, self.dx)
-                x_fit += self.dx / 2
-                x_fit = x_fit[::-1]
-                # perform the fit and extrapolation
-                p = numpy.polyfit(x_fit, sdf_fit_expansion, 5)
-
-                box = self._simulation.state.box
-                N = self._simulation.state.N_particles
-                p0_expansion = numpy.polyval(p, 0.0)
-                expansion_contribution = -rho * p0_expansion / (
-                    2 * box.dimensions)
-                return rho + compression_contribution + expansion_contribution
-            else:
-                return None
+        if not numpy.isnan(self.sdf_expansion).all():
+            # get the values to fit
+            # reverse the sdf so that it starts at 0 and goes negative
+            sdf_fit_expansion = self.sdf_expansion[0:n_fit][::-1]
+            # construct the x coordinates
+            x_fit = numpy.arange(0, self.xmax, self.dx)
+            x_fit += self.dx / 2
+            # also reverse the x-coordinates
+            x_fit = x_fit[::-1]
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit, sdf_fit_expansion, 5)
+            p0_expansion = numpy.polyval(p, 0.0)
+            expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
+        return rho + compression_contribution + expansion_contribution
