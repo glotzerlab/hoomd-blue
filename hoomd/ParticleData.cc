@@ -983,6 +983,11 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                                           bool ignore_bodies)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
+    if (snapshot.type_mapping.size() >= 40)
+        {
+        m_exec_conf->msg->warning() << "Systems with many particle types perform poorly or result "
+                                       "in shared memory errors on the GPU." << std::endl;
+        }
 
     // remove all ghost particles
     removeAllGhostParticles();
