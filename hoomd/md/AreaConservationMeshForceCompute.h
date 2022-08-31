@@ -114,7 +114,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     virtual void
     postcompute(unsigned int idx_a, unsigned int idx_b, unsigned int idx_c, unsigned int idx_d)
         {
-        m_area += m_area_diff;
+        //m_area += m_area_diff;
         };
 
     virtual Scalar energyDiff(unsigned int idx_a,

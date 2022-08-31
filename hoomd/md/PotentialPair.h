@@ -9,6 +9,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <stdexcept>
+#include <float.h>
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
@@ -242,6 +243,12 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
+
+    virtual Scalar energyDiff(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int type_id);
 
     //! Compute the long-range corrections to energy and pressure to account for truncating the pair
     //! potentials
@@ -815,6 +822,171 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
         }
 
     computeTailCorrection();
+    }
+
+template<class evaluator> 
+Scalar PotentialPair<evaluator>::energyDiff(unsigned int idx_a,
+                                            unsigned int idx_b,
+                                            unsigned int idx_c,
+                                            unsigned int idx_d,
+                                            unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+
+    // access diameter (if needed)
+    Scalar diameter_a = Scalar(0.0);
+    Scalar diameter_b = Scalar(0.0);
+    Scalar diameter_c = Scalar(0.0);
+    Scalar diameter_d = Scalar(0.0);
+    if (evaluator::needsDiameter())
+        {
+        diameter_a = h_diameter.data[idx_a];
+        diameter_b = h_diameter.data[idx_b];
+        diameter_c = h_diameter.data[idx_c];
+        diameter_d = h_diameter.data[idx_d];
+        }
+
+    // access charge (if needed)
+    Scalar charge_a = Scalar(0.0);
+    Scalar charge_b = Scalar(0.0);
+    Scalar charge_c = Scalar(0.0);
+    Scalar charge_d = Scalar(0.0);
+    if (evaluator::needsCharge())
+        {
+        charge_a = h_charge.data[idx_a];
+        charge_b = h_charge.data[idx_b];
+        charge_c = h_charge.data[idx_c];
+        charge_d = h_charge.data[idx_d];
+        }
+
+    Scalar3 posa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
+    Scalar3 posb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
+    Scalar3 posc = make_scalar3(h_pos.data[idx_c].x, h_pos.data[idx_c].y, h_pos.data[idx_c].z);
+    Scalar3 posd = make_scalar3(h_pos.data[idx_d].x, h_pos.data[idx_d].y, h_pos.data[idx_d].z);
+
+    unsigned int typea = __scalar_as_int(h_pos.data[idx_a].w);
+    unsigned int typeb = __scalar_as_int(h_pos.data[idx_b].w);
+    unsigned int typec = __scalar_as_int(h_pos.data[idx_c].w);
+    unsigned int typed = __scalar_as_int(h_pos.data[idx_d].w);
+
+    Scalar3 xab = posb - posa;
+
+    Scalar3 xcd = posd - posc;
+
+    xab = box.minImage(xab);
+    xcd = box.minImage(xcd);
+
+    // calculate r_ab squared
+    Scalar rsqab = dot(xab, xab);
+    Scalar rsqcd = dot(xcd, xcd);
+
+     unsigned int typpair_ab = m_typpair_idx(typea, typeb);
+     param_type param_ab = m_params[typpair_ab];
+     Scalar rcutsq_ab = h_rcutsq.data[typpair_ab];
+     Scalar ronsq_ab = Scalar(0.0);
+
+     unsigned int typpair_cd = m_typpair_idx(typec, typed);
+     param_type param_cd = m_params[typpair_cd];
+     Scalar rcutsq_cd = h_rcutsq.data[typpair_cd];
+     Scalar ronsq_cd = Scalar(0.0);
+
+     if (m_shift_mode == xplor)
+	 {
+         ronsq_ab = h_ronsq.data[typpair_ab];
+         ronsq_cd = h_ronsq.data[typpair_cd];
+	 }
+
+     // design specifies that energies are shifted if
+     // 1) shift mode is set to shift
+     // or 2) shift mode is explor and ron > rcut
+     bool energy_shift_ab = false;
+     bool energy_shift_cd = false;
+     if (m_shift_mode == shift)
+	 {
+         energy_shift_ab = true;
+         energy_shift_cd = true;
+	 }
+     else if (m_shift_mode == xplor)
+         {
+         if (ronsq_ab > rcutsq_ab)
+             energy_shift_ab = true;
+         if (ronsq_cd > rcutsq_cd)
+             energy_shift_cd = true;
+         }
+
+     Scalar force_divr = Scalar(0.0);
+     Scalar pair_eng_ab = Scalar(0.0);
+     Scalar pair_eng_cd = Scalar(0.0);
+     evaluator eval2(rsqab, rcutsq_ab, param_ab);
+     evaluator eval1(rsqcd, rcutsq_cd, param_cd);
+    if (evaluator::needsDiameter())
+        {
+        eval2.setDiameter(diameter_a, diameter_b);
+        eval1.setDiameter(diameter_c, diameter_d);
+        }
+    if (evaluator::needsCharge())
+        {
+        eval2.setCharge(charge_a, charge_b);
+        eval1.setCharge(charge_c, charge_d);
+        }
+
+        eval1.evalForceAndEnergy(force_divr, pair_eng_cd, energy_shift_cd);
+        bool evaluated = eval2.evalForceAndEnergy(force_divr, pair_eng_ab, energy_shift_ab);
+
+        if (evaluated)
+	    {
+            if (m_shift_mode == xplor)
+                {
+                if (rsqab >= ronsq_ab && rsqab < rcutsq_ab)
+                    {
+                    // Implement XPLOR smoothing (FLOPS: 16)
+                    Scalar old_pair_eng = pair_eng_ab;
+
+                    // calculate 1.0 / (xplor denominator)
+                    Scalar xplor_denom_inv
+                        = Scalar(1.0)
+                          / ((rcutsq_ab - ronsq_ab) * (rcutsq_ab - ronsq_ab) * (rcutsq_ab - ronsq_ab));
+
+                    Scalar rsq_minus_r_cut_sq = rsqab - rcutsq_ab;
+                    Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
+                               * (rcutsq_ab + Scalar(2.0) * rsqab - Scalar(3.0) * ronsq_ab)
+                               * xplor_denom_inv;
+                    // make modifications to the old pair energy and force
+                    pair_eng_ab = old_pair_eng * s;
+                    }
+                if (rsqcd >= ronsq_cd && rsqcd < rcutsq_cd)
+                    {
+                    // Implement XPLOR smoothing (FLOPS: 16)
+                    Scalar old_pair_eng = pair_eng_cd;
+
+                    // calculate 1.0 / (xplor denominator)
+                    Scalar xplor_denom_inv
+                        = Scalar(1.0)
+                          / ((rcutsq_cd - ronsq_cd) * (rcutsq_cd - ronsq_cd) * (rcutsq_cd - ronsq_cd));
+
+                    Scalar rsq_minus_r_cut_sq = rsqcd - rcutsq_cd;
+                    Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
+                               * (rcutsq_cd + Scalar(2.0) * rsqcd - Scalar(3.0) * ronsq_cd)
+                               * xplor_denom_inv;
+                    // make modifications to the old pair energy and force
+                    pair_eng_cd = old_pair_eng * s;
+                    }
+                }
+            return (pair_eng_ab - pair_eng_cd);
+	    }
+        else
+            return DBL_MAX;
+
+
     }
 
 #ifdef ENABLE_MPI

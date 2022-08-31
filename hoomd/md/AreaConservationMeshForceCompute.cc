@@ -322,105 +322,106 @@ Scalar AreaConservationMeshForceCompute::energyDiff(unsigned int idx_a,
                                                     unsigned int idx_d,
                                                     unsigned int type_id)
     {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    //ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
-    const BoxDim& box = m_pdata->getGlobalBox();
+    //const BoxDim& box = m_pdata->getGlobalBox();
 
-    Scalar3 dab;
-    dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
-    dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
-    dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
+    //Scalar3 dab;
+    //dab.x = h_pos.data[idx_b].x - h_pos.data[idx_a].x;
+    //dab.y = h_pos.data[idx_b].y - h_pos.data[idx_a].y;
+    //dab.z = h_pos.data[idx_b].z - h_pos.data[idx_a].z;
 
-    Scalar3 dac;
-    dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
-    dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
-    dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
+    //Scalar3 dac;
+    //dac.x = h_pos.data[idx_c].x - h_pos.data[idx_a].x;
+    //dac.y = h_pos.data[idx_c].y - h_pos.data[idx_a].y;
+    //dac.z = h_pos.data[idx_c].z - h_pos.data[idx_a].z;
 
-    Scalar3 dad;
-    dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
-    dad.y = h_pos.data[idx_d].y - h_pos.data[idx_a].y;
-    dad.z = h_pos.data[idx_d].z - h_pos.data[idx_a].z;
+    //Scalar3 dad;
+    //dad.x = h_pos.data[idx_d].x - h_pos.data[idx_a].x;
+    //dad.y = h_pos.data[idx_d].y - h_pos.data[idx_a].y;
+    //dad.z = h_pos.data[idx_d].z - h_pos.data[idx_a].z;
 
-    Scalar3 ddc;
-    ddc.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
-    ddc.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
-    ddc.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
+    //Scalar3 ddc;
+    //ddc.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
+    //ddc.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
+    //ddc.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
 
-    Scalar3 dbc;
-    dbc.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
-    dbc.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
-    dbc.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
+    //Scalar3 dbc;
+    //dbc.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
+    //dbc.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
+    //dbc.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
 
-    dab = box.minImage(dab);
-    dac = box.minImage(dac);
-    dad = box.minImage(dad);
-    ddc = box.minImage(ddc);
-    dbc = box.minImage(dbc);
+    //dab = box.minImage(dab);
+    //dac = box.minImage(dac);
+    //dad = box.minImage(dad);
+    //ddc = box.minImage(ddc);
+    //dbc = box.minImage(dbc);
 
-    // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-    Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-    Scalar rab = sqrt(rsqab);
-    Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-    Scalar rac = sqrt(rsqac);
+    //// FLOPS: 42 / MEM TRANSFER: 6 Scalars
+    //Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
+    //Scalar rab = sqrt(rsqab);
+    //Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
+    //Scalar rac = sqrt(rsqac);
 
-    Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
-    Scalar rad = sqrt(rsqad);
+    //Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+    //Scalar rad = sqrt(rsqad);
 
-    Scalar rsqdc = ddc.x * ddc.x + ddc.y * ddc.y + ddc.z * ddc.z;
-    Scalar rdc = sqrt(rsqdc);
+    //Scalar rsqdc = ddc.x * ddc.x + ddc.y * ddc.y + ddc.z * ddc.z;
+    //Scalar rdc = sqrt(rsqdc);
 
-    Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
-    Scalar rbc = sqrt(rsqbc);
+    //Scalar rsqbc = dbc.x * dbc.x + dbc.y * dbc.y + dbc.z * dbc.z;
+    //Scalar rbc = sqrt(rsqbc);
 
-    Scalar3 nab, nac, nad, ndc, nbc;
-    nab = dab / rab;
-    nac = dac / rac;
-    nad = dad / rad;
-    ndc = ddc / rdc;
-    nbc = dbc / rbc;
+    //Scalar3 nab, nac, nad, ndc, nbc;
+    //nab = dab / rab;
+    //nac = dac / rac;
+    //nad = dad / rad;
+    //ndc = ddc / rdc;
+    //nbc = dbc / rbc;
 
-    Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
-    if (c_baac > 1.0)
-        c_baac = 1.0;
-    if (c_baac < -1.0)
-        c_baac = -1.0;
-    Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
+    //Scalar c_baac = nab.x * nac.x + nab.y * nac.y + nab.z * nac.z;
+    //if (c_baac > 1.0)
+    //    c_baac = 1.0;
+    //if (c_baac < -1.0)
+    //    c_baac = -1.0;
+    //Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
 
-    Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
-    if (c_baad > 1.0)
-        c_baad = 1.0;
-    if (c_baad < -1.0)
-        c_baad = -1.0;
-    Scalar s_baad = sqrt(1.0 - c_baad * c_baad);
+    //Scalar c_baad = nab.x * nad.x + nab.y * nad.y + nab.z * nad.z;
+    //if (c_baad > 1.0)
+    //    c_baad = 1.0;
+    //if (c_baad < -1.0)
+    //    c_baad = -1.0;
+    //Scalar s_baad = sqrt(1.0 - c_baad * c_baad);
 
-    Scalar c_dcca = ndc.x * nac.x + ndc.y * nac.y + ndc.z * nac.z;
-    if (c_dcca > 1.0)
-        c_dcca = 1.0;
-    if (c_dcca < -1.0)
-        c_dcca = -1.0;
-    Scalar s_dcca = sqrt(1.0 - c_dcca * c_dcca);
+    //Scalar c_dcca = ndc.x * nac.x + ndc.y * nac.y + ndc.z * nac.z;
+    //if (c_dcca > 1.0)
+    //    c_dcca = 1.0;
+    //if (c_dcca < -1.0)
+    //    c_dcca = -1.0;
+    //Scalar s_dcca = sqrt(1.0 - c_dcca * c_dcca);
 
-    Scalar c_dccb = ndc.x * nbc.x + ndc.y * nbc.y + ndc.z * nbc.z;
-    if (c_dccb > 1.0)
-        c_dccb = 1.0;
-    if (c_dccb < -1.0)
-        c_dccb = -1.0;
-    Scalar s_dccb = sqrt(1.0 - c_dccb * c_dccb);
+    //Scalar c_dccb = ndc.x * nbc.x + ndc.y * nbc.y + ndc.z * nbc.z;
+    //if (c_dccb > 1.0)
+    //    c_dccb = 1.0;
+    //if (c_dccb < -1.0)
+    //    c_dccb = -1.0;
+    //Scalar s_dccb = sqrt(1.0 - c_dccb * c_dccb);
 
-    m_area_diff = rdc * (rac * s_dcca + rbc * s_dccb);
-    m_area_diff -= rab * (rac * s_baac + rad * s_baad);
+    //m_area_diff = rdc * (rac * s_dcca + rbc * s_dccb);
+    //m_area_diff -= rab * (rac * s_baac + rad * s_baad);
 
-    m_area_diff /= 2.0;
+    //m_area_diff /= 2.0;
 
-    Scalar energy_old = m_area - m_Amesh[type_id];
+    //Scalar energy_old = m_area - m_Amesh[type_id];
 
-    Scalar energy_new = energy_old + m_area_diff;
+    //Scalar energy_new = energy_old + m_area_diff;
 
-    energy_old = energy_old * energy_old;
+    //energy_old = energy_old * energy_old;
 
-    energy_new = energy_new * energy_new;
+    //energy_new = energy_new * energy_new;
 
-    return m_K[0] / (2.0 * m_Amesh[0]) * (energy_new - energy_old);
+    //return m_K[0] / (2.0 * m_Amesh[0]) * (energy_new - energy_old);  
+    return 0;
     }
 
 namespace detail

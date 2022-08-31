@@ -88,7 +88,7 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
 
 	bool already_used = false;
-	for(unsigned int j = 0; changed.size(); j++)
+	for(unsigned int j = 0; j < changed.size(); j++)
 	{
 		if( tag_a == changed[j] || tag_b == changed[j])
 		{
@@ -140,7 +140,16 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         unsigned int tag_d = triangle2.tag[0];
         unsigned int idx_d = h_rtag.data[tag_d];
 
-	for(unsigned int j = 0; changed.size(); j++)
+
+        iterator = 0;
+        while (idx_a == idx_d || idx_b == idx_d)
+            {
+            iterator++;
+            tag_d = triangle2.tag[iterator];
+            idx_d = h_rtag.data[tag_d];
+            }
+
+	for(unsigned int j = 0; j < changed.size(); j++)
 	{
 		if( tag_c == changed[j] || tag_d == changed[j])
 		{
@@ -152,16 +161,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
 	if(already_used) 
 		continue;
-
-
-
-        iterator = 0;
-        while (idx_a == idx_d || idx_b == idx_d)
-            {
-            iterator++;
-            tag_d = triangle2.tag[iterator];
-            idx_d = h_rtag.data[tag_d];
-            }
 
         unsigned int type_id = h_typeval.data[i].type;
 
