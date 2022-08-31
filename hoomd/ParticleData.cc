@@ -986,7 +986,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
     if (snapshot.type_mapping.size() >= 40)
         {
         m_exec_conf->msg->warning() << "Systems with many particle types perform poorly or result "
-                                       "in shared memory errors on the GPU." << std::endl;
+                                       "in shared memory errors on the GPU."
+                                    << std::endl;
         }
 
     // remove all ghost particles
