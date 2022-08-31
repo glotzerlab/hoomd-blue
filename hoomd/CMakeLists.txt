@@ -362,6 +362,7 @@ set(files box.py
           mesh.py
           version.py
           wall.py
+          pytest.ini
     )
 
 install(FILES ${files}
@@ -417,6 +418,7 @@ endif()
 
 foreach(entry ${PLUGINS})
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+        message(STATUS "Found plugin: ${entry}")
         add_subdirectory(${entry})
     endif()
 endforeach()

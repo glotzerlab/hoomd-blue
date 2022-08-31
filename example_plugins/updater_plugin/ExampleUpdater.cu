@@ -45,6 +45,10 @@ hipError_t gpu_zero_velocities(Scalar4* d_vel, unsigned int N)
     // setup the grid to run the kernel
     int block_size = 256;
     dim3 grid((int)ceil((double)N / (double)block_size), 1, 1);
+    if (grid.x == 0)
+        {
+        grid.x = 1;
+        }
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
