@@ -43,7 +43,7 @@ class PYBIND11_EXPORT AreaConservationMeshForceComputeGPU : public AreaConservat
     unsigned int m_num_blocks; //!< number of memory blocks reserved for partial sum memory
 
     /// Autotuner for block size.
-    std::shared_ptr<Autotuner<1>> m_tuner;
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size of force loop
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
     GPUArray<Scalar2> m_params;         //!< Parameters stored on the GPU
 

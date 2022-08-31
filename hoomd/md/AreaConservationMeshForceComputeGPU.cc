@@ -47,7 +47,7 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
                                    "aconstraint_forces"));
-    m_autotuners.push_back(m_tuner);
+    this->m_autotuners.push_back(m_tuner);
     }
 
 void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A_mesh)
@@ -66,10 +66,10 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     precomputeParameter();
 
+    //std::cout << "Force" << std::endl;
+
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-
-    BoxDim box = this->m_pdata->getGlobalBox();
 
     const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list
         = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
@@ -79,14 +79,18 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
                                                                          access_location::device,
                                                                          access_mode::read);
+
     ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(
         m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
         access_location::device,
         access_mode::read);
+
     ArrayHandle<unsigned int> d_gpu_n_meshtriangle(
         this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),
         access_location::device,
         access_mode::read);
+
+    BoxDim box = this->m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
@@ -95,6 +99,8 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     // access the flags array for overwriting
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
+    //std::cout << "Force1" << std::endl;
+    
     m_tuner->begin();
     kernel::gpu_compute_area_constraint_force(d_force.data,
                                               d_virial.data,
@@ -128,6 +134,8 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
             }
         }
     m_tuner->end();
+
+    //std::cout << "Force2" << std::endl;
     }
 
 /*! Actually perform the force computation
@@ -135,6 +143,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
  */
 void AreaConservationMeshForceComputeGPU::precomputeParameter()
     {
+
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -194,6 +203,7 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
         }
 #endif
     m_area = h_sumArea.data[0];
+
     }
 
 namespace detail
