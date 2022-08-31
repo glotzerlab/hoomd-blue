@@ -7,6 +7,16 @@ Change Log
 v3.x
 ----
 
+v3.5.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+*Fixed*
+
+* All ``Neighborlist`` attributes now appear in the documentation.
+
+
 v3.4.0 (2022-08-15)
 ^^^^^^^^^^^^^^^^^^^
 
