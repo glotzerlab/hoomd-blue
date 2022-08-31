@@ -8,8 +8,8 @@ unit_test_configurations:
 - config: "[gcc12_py310, nomd]"
 - config: "[gcc12_py310, nohpmc]"
 - config: "[gcc12_py310, nomd, nohpmc]"
-- config: "[cuda116_gcc9_py38, mpi, llvm]"
-- config: "[cuda116_gcc9_py38]"
+- config: "[cuda117_gcc11_py310, mpi, llvm]"
+- config: "[cuda117_gcc11_py310]"
 
 
 # Configurations on which to run longer validation tests. Must be a subset of
@@ -17,8 +17,8 @@ unit_test_configurations:
 validate_configurations:
 - config: "[clang14_py310, mpi, tbb, llvm]"
 - config: "[gcc12_py310]"
-- config: "[cuda116_gcc9_py38, mpi, llvm]"
-- config: "[cuda116_gcc9_py38]"
+- config: "[cuda117_gcc11_py310, mpi, llvm]"
+- config: "[cuda117_gcc11_py310]"
 
 # Configurations to build and test only rarely, such as just before a release.
 # There should be no overlap between this list and `unit_test_configurations`
@@ -28,6 +28,7 @@ release_test_configurations:
 - config: "[clang11_py310, llvm]"
 - config: "[gcc11_py310]"
 - config: "[gcc10_py310]"
+- config: "[cuda116_gcc9_py38, mpi, llvm]"
 - config: "[cuda115_gcc9_py38, mpi, llvm]"
 - config: "[cuda114_gcc9_py38, mpi, llvm]"
 - config: "[cuda113_gcc9_py38, mpi, llvm]"
