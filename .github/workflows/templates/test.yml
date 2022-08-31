@@ -68,7 +68,8 @@ env:
                       -DBUILD_METAL=${BUILD_MD:-"ON"} \
                       -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
-                      -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
+                      -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
+                      -DPLUGINS=""
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
@@ -79,6 +80,14 @@ env:
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
+    - name: Configure plugins
+      run : |
+        mkdir -p build-example-plugins
+        cd build-example-plugins
+        CMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install cmake ../code/example_plugins -GNinja -DCMAKE_BUILD_TYPE=Release
+    - name: Build plugins
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
+      working-directory: build-example-plugins
 <% endset %>
 <% set upload_steps %>
     - name: Remove object files
