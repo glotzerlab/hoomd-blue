@@ -12,9 +12,23 @@ v3.5.0 (not yet released)
 
 *Added*
 
+* Example plugin that demonstrates how to add a MD pair potential.
+
+*Changed*
+
+* Raise an error when initializing with duplicate types.
+* ``hpmc.compute.SDF`` now computes pressures of systems of concave particles.
+* ``hpmc.compute.SDF`` now computes pressures of systems with patch interactions.
+
 *Fixed*
 
-* All ``Neighborlist`` attributes now appear in the documentation.
+* Include all ``Neighborlist`` attributes in the documentation.
+* Memory allocation errors in C++ now result in ``MemoryError`` exceptions in Python.
+* Add missing ``Autotuned.h`` header file.
+
+*Deprecated*
+
+* ``Device.memory_traceback`` attribute. This attribute has no effect.
 
 
 v3.4.0 (2022-08-15)
