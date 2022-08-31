@@ -557,11 +557,13 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                             bool do_compression = true;
                             bool do_expansion = true;
                             for (size_t bin_to_sample = 0;
-                                 bin_to_sample < std::max(min_bin_compression, min_bin_expansion);
+                                 bin_to_sample < std::max(m_hist.size(), m_hist_expansion.size());
                                  bin_to_sample++)
                                 {
                                 const double scale_factor
                                     = m_dx * static_cast<double>(bin_to_sample + 1);
+                                const double expansion_scale_factor
+                                    = -m_dx * static_cast<double>(bin_to_sample + 1);
 
                                 // first check for any hard overlaps upon compression
                                 // if there is one for a given scale value, there is no need to
@@ -577,8 +579,8 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                         scale_factor);
                                     if (hard_overlap)
                                         {
-                                        // add appropriate weight to appropriate bin and exit the
-                                        // loop over bins
+                                        // set hist weight and note no need to do compression checks
+                                        // for pair ij at any larger scale values
                                         hist_weight_ptl_i_compression = 1.0; // = 1-e^(-\infty)
                                         min_bin_compression = bin_to_sample;
                                         do_compression = false;
@@ -586,7 +588,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
                                     // if no hard overlap, check for a soft overlap if we have
                                     // patches
-                                    if (m_mc->getPatchEnergy() && !hard_overlap)
+                                    if (!hard_overlap && m_mc->getPatchEnergy())
                                         {
                                         // compute the energy at this size of the perturbation and
                                         // compare to the energy in the unperturbed state
@@ -615,7 +617,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                         } // end if (m_mc->getPatchEnergy())
                                     }     // end if (do_compression)
 
-                                // do expansive perturbations
+                                // do expansive perturbations by changing the sign of scale_factor
                                 if (do_expansion)
                                     {
                                     bool hard_overlap = detail::test_scaled_overlap<Shape>(
@@ -624,11 +626,11 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                         quat<Scalar>(orientation_j),
                                         params[__scalar_as_int(postype_i.w)],
                                         params[__scalar_as_int(postype_j.w)],
-                                        -scale_factor);
+                                        expansion_scale_factor);
                                     if (hard_overlap)
                                         {
-                                        // add appropriate weight to appropriate bin and exit the
-                                        // loop over bins
+                                        // set hist weight and note no need to do expansion checks
+                                        // for pair ij at any larger scale values
                                         hist_weight_ptl_i_expansion = 1.0; // = 1-e^(-\infty)
                                         min_bin_expansion = bin_to_sample;
                                         do_expansion = false;
@@ -636,12 +638,12 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
                                     // if no hard overlap, check for a soft overlap if we have
                                     // patches
-                                    if (m_mc->getPatchEnergy() && !hard_overlap)
+                                    if (!hard_overlap && m_mc->getPatchEnergy())
                                         {
                                         // compute the energy at this size of the perturbation and
                                         // compare to the energy in the unperturbed state
                                         const vec3<Scalar> r_ij_scaled
-                                            = r_ij * (Scalar(1.0) + scale_factor);
+                                            = r_ij * (Scalar(1.0) - expansion_scale_factor);
                                         double u_ij_new = m_mc->getPatchEnergy()->energy(
                                             r_ij_scaled,
                                             typ_i,
@@ -679,7 +681,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
             {
             m_hist[min_bin_compression] += hist_weight_ptl_i_compression;
             }
-        if (min_bin_expansion < m_hist.size() && hist_weight_ptl_i_expansion <= 1.0)
+        if (min_bin_expansion < m_hist_expansion.size() && hist_weight_ptl_i_expansion <= 1.0)
             {
             m_hist_expansion[min_bin_expansion] += hist_weight_ptl_i_expansion;
             }
