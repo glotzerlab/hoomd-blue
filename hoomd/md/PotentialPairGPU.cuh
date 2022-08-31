@@ -140,7 +140,11 @@ struct pair_args_t
     Each group of \a tpp threads will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp, bool enable_shared_cache>
+template<class evaluator,
+         unsigned int shift_mode,
+         unsigned int compute_virial,
+         int tpp,
+         bool enable_shared_cache>
 __global__ void
 gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       Scalar* d_virial,
@@ -192,7 +196,8 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
             {
             if (cur_offset + threadIdx.x < param_size)
                 {
-                ((int*)s_params)[cur_offset + threadIdx.x] = ((int*)d_params)[cur_offset + threadIdx.x];
+                ((int*)s_params)[cur_offset + threadIdx.x]
+                    = ((int*)d_params)[cur_offset + threadIdx.x];
                 }
             }
 
@@ -462,8 +467,12 @@ struct PairForceComputeKernel
                   * typpair_idx.getNumElements();
 
             unsigned int max_block_size;
-            max_block_size = get_max_block_size(
-                gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp, true>);
+            max_block_size
+                = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                                           shift_mode,
+                                                                           compute_virial,
+                                                                           tpp,
+                                                                           true>);
 
             hipFuncAttributes attr;
             hipFuncGetAttributes(
@@ -498,55 +507,61 @@ struct PairForceComputeKernel
 
             if (enable_shared_cache)
                 {
-                hipLaunchKernelGGL(
-                    (gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp, true>),
-                    dim3(grid),
-                    dim3(block_size),
-                    param_shared_bytes + extra_shared_bytes,
-                    0,
-                    pair_args.d_force,
-                    pair_args.d_virial,
-                    pair_args.virial_pitch,
-                    N,
-                    pair_args.d_pos,
-                    pair_args.d_diameter,
-                    pair_args.d_charge,
-                    pair_args.box,
-                    pair_args.d_n_neigh,
-                    pair_args.d_nlist,
-                    pair_args.d_head_list,
-                    d_params,
-                    pair_args.d_rcutsq,
-                    pair_args.d_ronsq,
-                    pair_args.ntypes,
-                    offset,
-                    max_extra_bytes);
+                hipLaunchKernelGGL((gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                                          shift_mode,
+                                                                          compute_virial,
+                                                                          tpp,
+                                                                          true>),
+                                   dim3(grid),
+                                   dim3(block_size),
+                                   param_shared_bytes + extra_shared_bytes,
+                                   0,
+                                   pair_args.d_force,
+                                   pair_args.d_virial,
+                                   pair_args.virial_pitch,
+                                   N,
+                                   pair_args.d_pos,
+                                   pair_args.d_diameter,
+                                   pair_args.d_charge,
+                                   pair_args.box,
+                                   pair_args.d_n_neigh,
+                                   pair_args.d_nlist,
+                                   pair_args.d_head_list,
+                                   d_params,
+                                   pair_args.d_rcutsq,
+                                   pair_args.d_ronsq,
+                                   pair_args.ntypes,
+                                   offset,
+                                   max_extra_bytes);
                 }
             else
                 {
-                hipLaunchKernelGGL(
-                    (gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp, false>),
-                    dim3(grid),
-                    dim3(block_size),
-                    param_shared_bytes + extra_shared_bytes,
-                    0,
-                    pair_args.d_force,
-                    pair_args.d_virial,
-                    pair_args.virial_pitch,
-                    N,
-                    pair_args.d_pos,
-                    pair_args.d_diameter,
-                    pair_args.d_charge,
-                    pair_args.box,
-                    pair_args.d_n_neigh,
-                    pair_args.d_nlist,
-                    pair_args.d_head_list,
-                    d_params,
-                    pair_args.d_rcutsq,
-                    pair_args.d_ronsq,
-                    pair_args.ntypes,
-                    offset,
-                    max_extra_bytes);
+                hipLaunchKernelGGL((gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                                          shift_mode,
+                                                                          compute_virial,
+                                                                          tpp,
+                                                                          false>),
+                                   dim3(grid),
+                                   dim3(block_size),
+                                   param_shared_bytes + extra_shared_bytes,
+                                   0,
+                                   pair_args.d_force,
+                                   pair_args.d_virial,
+                                   pair_args.virial_pitch,
+                                   N,
+                                   pair_args.d_pos,
+                                   pair_args.d_diameter,
+                                   pair_args.d_charge,
+                                   pair_args.box,
+                                   pair_args.d_n_neigh,
+                                   pair_args.d_nlist,
+                                   pair_args.d_head_list,
+                                   d_params,
+                                   pair_args.d_rcutsq,
+                                   pair_args.d_ronsq,
+                                   pair_args.ntypes,
+                                   offset,
+                                   max_extra_bytes);
                 }
             }
         else

@@ -47,7 +47,8 @@ template<int group_size> struct bond_args_t
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
           d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer),
-          d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size), devprop(_devprop) {};
+          d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size),
+          devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -269,9 +270,9 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(
-        &attr,
-        reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator, group_size, true>));
+    hipFuncGetAttributes(&attr,
+                         reinterpret_cast<const void*>(
+                             &gpu_compute_bond_forces_kernel<evaluator, group_size, true>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(bond_args.block_size, max_block_size);
@@ -294,46 +295,46 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
     if (enable_shared_cache)
         {
         hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size, true>),
-                        grid,
-                        threads,
-                        shared_bytes,
-                        0,
-                        bond_args.d_force,
-                        bond_args.d_virial,
-                        bond_args.virial_pitch,
-                        bond_args.N,
-                        bond_args.d_pos,
-                        bond_args.d_charge,
-                        bond_args.d_diameter,
-                        bond_args.box,
-                        bond_args.d_gpu_bondlist,
-                        bond_args.gpu_table_indexer,
-                        bond_args.d_gpu_n_bonds,
-                        bond_args.n_bond_types,
-                        d_params,
-                        d_flags);
+                           grid,
+                           threads,
+                           shared_bytes,
+                           0,
+                           bond_args.d_force,
+                           bond_args.d_virial,
+                           bond_args.virial_pitch,
+                           bond_args.N,
+                           bond_args.d_pos,
+                           bond_args.d_charge,
+                           bond_args.d_diameter,
+                           bond_args.box,
+                           bond_args.d_gpu_bondlist,
+                           bond_args.gpu_table_indexer,
+                           bond_args.d_gpu_n_bonds,
+                           bond_args.n_bond_types,
+                           d_params,
+                           d_flags);
         }
     else
         {
         hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size, false>),
-                        grid,
-                        threads,
-                        shared_bytes,
-                        0,
-                        bond_args.d_force,
-                        bond_args.d_virial,
-                        bond_args.virial_pitch,
-                        bond_args.N,
-                        bond_args.d_pos,
-                        bond_args.d_charge,
-                        bond_args.d_diameter,
-                        bond_args.box,
-                        bond_args.d_gpu_bondlist,
-                        bond_args.gpu_table_indexer,
-                        bond_args.d_gpu_n_bonds,
-                        bond_args.n_bond_types,
-                        d_params,
-                        d_flags);
+                           grid,
+                           threads,
+                           shared_bytes,
+                           0,
+                           bond_args.d_force,
+                           bond_args.d_virial,
+                           bond_args.virial_pitch,
+                           bond_args.N,
+                           bond_args.d_pos,
+                           bond_args.d_charge,
+                           bond_args.d_diameter,
+                           bond_args.box,
+                           bond_args.d_gpu_bondlist,
+                           bond_args.gpu_table_indexer,
+                           bond_args.d_gpu_n_bonds,
+                           bond_args.n_bond_types,
+                           d_params,
+                           d_flags);
         }
 
     return hipSuccess;
