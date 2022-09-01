@@ -10,7 +10,9 @@ unit_test_configurations:
 - config: "[gcc12_py310, nomd, nohpmc]"
 - config: "[cuda116_gcc9_py38, mpi, llvm]"
 - config: "[cuda116_gcc9_py38]"
-
+- config: "[gcc9_py39]"
+- config: "[gcc7_py37]"
+- config: "[gcc7_py36]"
 
 # Configurations on which to run longer validation tests. Must be a subset of
 # `unit_test_configurations`
@@ -35,11 +37,8 @@ release_test_configurations:
 - config: "[cuda111_gcc9_py38, mpi, llvm]"
 - config: "[cuda10_gcc7_py37, llvm]"
 - config: "[clang10_py38, llvm]"
-- config: "[gcc9_py38]"
 - config: "[clang9_py38]"
 - config: "[clang8_py38]"
 - config: "[clang7_py38]"
 - config: "[gcc8_py37]"
-- config: "[gcc7_py37]"
 - config: "[clang6_py37]"
-- config: "[gcc7_py36]"
