@@ -102,6 +102,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             }
         }
 
+    __syncthreads();
     area_sdata[threadIdx.x] = area_transfer;
     __syncthreads();
 
@@ -114,7 +115,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
         offs >>= 1;
         __syncthreads();
         }
-
+     
     // write out our partial sum
     if (threadIdx.x == 0)
         {
@@ -134,12 +135,16 @@ gpu_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigne
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* area_sdata = (Scalar*)&s_data[0];
 
+
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)
         {
         __syncthreads();
+
         if (start + threadIdx.x < num_blocks)
+	    {
             area_sdata[threadIdx.x] = d_partial_sum[start + threadIdx.x];
+	    }
         else
             area_sdata[threadIdx.x] = Scalar(0.0);
         __syncthreads();
@@ -192,6 +197,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
     dim3 grid(num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
     dim3 threads(block_size, 1, 1);
+    dim3 threads1(256, 1, 1);
 
     // run the kernel
     hipLaunchKernelGGL((gpu_compute_area_constraint_area_kernel),
@@ -210,7 +216,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
 
     hipLaunchKernelGGL((gpu_area_reduce_partial_sum_kernel),
                        dim3(grid1),
-                       dim3(threads),
+                       dim3(threads1),
                        block_size * sizeof(Scalar),
                        0,
                        &d_sum_area[0],

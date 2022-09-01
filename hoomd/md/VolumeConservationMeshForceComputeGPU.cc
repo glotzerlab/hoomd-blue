@@ -33,6 +33,12 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
+    m_block_size = 256;
+
+    m_num_blocks = m_pdata->getN() / m_block_size + 1;
+    GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
+    m_partial_sum.swap(partial_sum);
+
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);

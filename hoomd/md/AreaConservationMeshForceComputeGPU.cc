@@ -33,6 +33,12 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
     GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
+    m_block_size = 256;
+
+    m_num_blocks = m_pdata->getN() / m_block_size + 1;
+    GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
+    m_partial_sum.swap(partial_sum);
+
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
@@ -66,8 +72,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
     precomputeParameter();
 
-    //std::cout << "Force" << std::endl;
-
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -90,7 +94,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
         access_location::device,
         access_mode::read);
 
-    BoxDim box = this->m_pdata->getGlobalBox();
+    BoxDim box = m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
@@ -99,8 +103,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     // access the flags array for overwriting
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
-    //std::cout << "Force1" << std::endl;
-    
     m_tuner->begin();
     kernel::gpu_compute_area_constraint_force(d_force.data,
                                               d_virial.data,
@@ -134,8 +136,6 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
             }
         }
     m_tuner->end();
-
-    //std::cout << "Force2" << std::endl;
     }
 
 /*! Actually perform the force computation
@@ -147,7 +147,7 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    BoxDim box = this->m_pdata->getGlobalBox();
+    BoxDim box = m_pdata->getGlobalBox();
 
     m_num_blocks = m_pdata->getN() / m_block_size + 1;
 
