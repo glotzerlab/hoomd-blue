@@ -168,7 +168,6 @@ env:
       run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
 <% endset %>
 <% set prepare_steps %>
-    steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
@@ -205,6 +204,11 @@ jobs:
 << job(name='Build', run_tests=False, configurations=unit_test_configurations) >>
     env:
       CXXFLAGS: '-Werror'
+    steps:
+    - name: Set Werror on recent compilers
+      run: |
+        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
+      if: ${{ !contains(matrix.config, 'gcc7') }}
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
@@ -212,6 +216,7 @@ jobs:
 
   pytest:
 << job(name='Run pytest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
+    steps:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
@@ -219,6 +224,7 @@ jobs:
 
   ctest:
 << job(name='Run ctest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
+    steps:
 << prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
@@ -227,6 +233,7 @@ jobs:
   validate:
 << job(name='Validate', run_tests=True, configurations=validate_configurations, needs='build') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
+    steps:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_validate_steps >>
@@ -235,6 +242,7 @@ jobs:
   build_release:
 << job(name='Build', run_tests=False, configurations=release_test_configurations) >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
@@ -243,6 +251,7 @@ jobs:
   pytest_release:
 << job(name='Run pytest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
@@ -251,6 +260,7 @@ jobs:
   ctest_release:
 << job(name='Run ctest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
 << prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
