@@ -202,8 +202,6 @@ jobs:
 
   build:
 << job(name='Build', run_tests=False, configurations=unit_test_configurations) >>
-    env:
-      CXXFLAGS: '-Werror'
     steps:
     - name: Set Werror on recent compilers
       run: |

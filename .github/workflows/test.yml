@@ -74,8 +74,6 @@ jobs:
         - {config: [gcc7_py37], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
         - {config: [gcc7_py36], build_runner: [self-hosted,jetstream2,CPU], test_runner: ubuntu-latest, test_docker_options: '' }
 
-    env:
-      CXXFLAGS: '-Werror'
     steps:
     - name: Set Werror on recent compilers
       run: |
