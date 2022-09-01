@@ -208,7 +208,7 @@ jobs:
     - name: Set Werror on recent compilers
       run: |
         echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
-      if: ${{ !contains(matrix.config, 'gcc7') }}
+      if: ${{ !startsWith(matrix.config[0], 'gcc7') }}
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
