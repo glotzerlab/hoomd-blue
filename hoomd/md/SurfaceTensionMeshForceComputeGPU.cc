@@ -113,7 +113,7 @@ void SurfaceTensionMeshForceComputeGPU::computeForces(uint64_t timestep)
                                               d_gpu_n_meshtriangle.data,
                                               d_params.data,
                                               m_mesh_data->getMeshTriangleData()->getNTypes(),
-                                              m_tuner->getParam(),
+                                              m_tuner->getParam()[0],
                                               d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
