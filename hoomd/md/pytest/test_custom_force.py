@@ -10,6 +10,8 @@ try:
     import cupy  # noqa F401
     CUPY_IMPORTED = True
 except ImportError:
+    # Necessary to test failure of using GPU buffers in CPU simulation.
+    cupy = None
     CUPY_IMPORTED = False
 
 # mpi4py is needed for the ghost data test
