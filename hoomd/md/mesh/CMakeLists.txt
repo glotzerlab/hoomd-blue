@@ -3,6 +3,7 @@ set(files __init__.py
           bending.py
           conservation.py
           potential.py
+          surface_tension.py
    )
 
 install(FILES ${files}

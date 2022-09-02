@@ -43,6 +43,7 @@ set(_md_sources module-md.cc
                    NeighborListTree.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
+                   SurfaceTensionMeshForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TriangleAreaConservationMeshForceCompute.cc
@@ -180,6 +181,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
+		SurfaceTensionMeshForceComputeGPU.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
@@ -242,6 +244,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            NeighborListGPUTree.cc
                            OPLSDihedralForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
+			   SurfaceTensionMeshForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TriangleAreaConservationMeshForceComputeGPU.cc
@@ -281,6 +284,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
                       PPPMForceComputeGPU.cu
+		      SurfaceTensionMeshForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TriangleAreaConservationMeshForceComputeGPU.cu
