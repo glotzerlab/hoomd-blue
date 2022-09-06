@@ -307,6 +307,8 @@ def get_property_name_from_affix(name, affix):
 
 def general_array_equality(arr1, arr2):
     """Allows checking of equality with both HOOMDArrays and HOOMDGPUArrays."""
+    if arr1.shape != arr2.shape:
+        return False
     if any(np.issubdtype(a.dtype, np.floating) for a in (arr1, arr2)):
         if any(isinstance(a, HOOMDGPUArray) for a in (arr1, arr2)):
             return cupy.allclose(arr1, arr2)

@@ -10,6 +10,8 @@ try:
     import cupy  # noqa F401
     CUPY_IMPORTED = True
 except ImportError:
+    # Necessary to test failure of using GPU buffers in CPU simulation.
+    cupy = None
     CUPY_IMPORTED = False
 
 # mpi4py is needed for the ghost data test
@@ -79,11 +81,15 @@ class MyForce(md.force.Custom):
         self._local_force_name = local_force_name
 
     def set_forces(self, timestep):
+        if 'gpu' in self._local_force_name:
+            array_mod = cupy
+        else:
+            array_mod = np
         with getattr(self, self._local_force_name) as arrays:
             arrays.force[:] = -5
             arrays.potential_energy[:] = 37
             arrays.torque[:] = 23
-            arrays.virial[:] = np.arange(6)[None, :]
+            arrays.virial[:] = array_mod.arange(6)[None, :]
 
 
 def test_simulation(local_force_names, force_simulation_factory,
@@ -128,26 +134,32 @@ class MyPeriodicField(md.force.Custom):
 
     def _evaluate_periodic(self, snapshot):
         """Evaluate force and energy in python."""
+        if 'gpu' in self._local_force_name:
+            array_mod = cupy
+        else:
+            array_mod = np
         box = snapshot.global_box
         positions = self._numpy_array(snapshot.particles.position)
 
         # if no particles on this rank, return
         if positions.shape == (0,):
-            return np.array([]), np.array([])
+            return array_mod.array([]), array_mod.array([])
 
         a1, a2, a3 = box.to_matrix().T
-        V = np.dot(a1, np.cross(a2, a3))
-        b1 = 2 * np.pi / V * np.cross(a2, a3)
-        b2 = 2 * np.pi / V * np.cross(a3, a1)
-        b3 = 2 * np.pi / V * np.cross(a1, a2)
+        V = array_mod.dot(a1, array_mod.cross(a2, a3))
+        b1 = 2 * array_mod.pi / V * array_mod.cross(a2, a3)
+        b2 = 2 * array_mod.pi / V * array_mod.cross(a3, a1)
+        b3 = 2 * array_mod.pi / V * array_mod.cross(a1, a2)
         b = {0: b1, 1: b2, 2: b3}.get(self._i)
-        dot = np.dot(positions, b)
-        cos_term = 1 / (2 * np.pi * self._p * self._w) * np.cos(self._p * dot)
-        sin_term = 1 / (2 * np.pi * self._p * self._w) * np.sin(self._p * dot)
-        energies = self._A * np.tanh(cos_term)
+        dot = array_mod.dot(positions, b)
+        cos_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.cos(
+            self._p * dot)
+        sin_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.sin(
+            self._p * dot)
+        energies = self._A * array_mod.tanh(cos_term)
         forces = self._A * sin_term
-        forces *= 1 - np.tanh(cos_term)**2
-        forces = np.outer(forces, b)
+        forces *= 1 - array_mod.tanh(cos_term)**2
+        forces = array_mod.outer(forces, b)
         return forces, energies
 
     def set_forces(self, timestep):
@@ -361,10 +373,9 @@ def test_torques_update(local_force_names, two_particle_snapshot_factory,
     for local_force_name in local_force_names:
         snap = two_particle_snapshot_factory()
         force = MyForce(local_force_name)
-        sim = force_simulation_factory(force, snap)
-        if sim.device.communicator.rank == 0:
+        if snap.communicator.rank == 0:
             snap.particles.moment_inertia[:] = [[1, 1, 1], [1, 1, 1]]
-        sim.state.set_snapshot(snap)
+        sim = force_simulation_factory(force, snap)
 
         _skip_if_gpu_device_and_no_cupy(sim)
         sim.operations.integrator.integrate_rotational_dof = True
