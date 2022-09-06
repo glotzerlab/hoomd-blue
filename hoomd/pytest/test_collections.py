@@ -1,6 +1,8 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -227,7 +229,7 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 obj[0] = obj._data[0]
 
-            with pytest.warns(None) as warning_record:
+            with warnings.catch_warnings(record=True) as warning_record:
                 obj.to_base()
             assert len(warning_record) == 0
 
@@ -240,7 +242,7 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 list(obj._data[0])
 
-            with pytest.warns(None) as warning_record:
+            with warnings.catch_warnings(record=True) as warning_record:
                 obj._data[0].to_base()
             assert len(warning_record) == 0
 
@@ -256,7 +258,7 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 obj._data[0][1][0] = obj._data[0][1]._data[0]
 
-            with pytest.warns(None) as warning_record:
+            with warnings.catch_warnings(record=True) as warning_record:
                 obj._data[0]._data[1].to_base()
             assert len(warning_record) == 0
 
