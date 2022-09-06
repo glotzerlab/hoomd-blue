@@ -146,12 +146,13 @@ class MyPeriodicField(md.force.Custom):
             return array_mod.array([]), array_mod.array([])
 
         a1, a2, a3 = box.to_matrix().T
-        V = array_mod.dot(a1, array_mod.cross(a2, a3))
-        b1 = 2 * array_mod.pi / V * array_mod.cross(a2, a3)
-        b2 = 2 * array_mod.pi / V * array_mod.cross(a3, a1)
-        b3 = 2 * array_mod.pi / V * array_mod.cross(a1, a2)
+        V = np.dot(a1, np.cross(a2, a3))
+        b1 = 2 * np.pi / V * np.cross(a2, a3)
+        b2 = 2 * np.pi / V * np.cross(a3, a1)
+        b3 = 2 * np.pi / V * np.cross(a1, a2)
         b = {0: b1, 1: b2, 2: b3}.get(self._i)
-        dot = array_mod.dot(positions, b)
+        dot = array_mod.dot(array_mod.array(positions), array_mod.array(b))
+
         cos_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.cos(
             self._p * dot)
         sin_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.sin(
@@ -159,7 +160,7 @@ class MyPeriodicField(md.force.Custom):
         energies = self._A * array_mod.tanh(cos_term)
         forces = self._A * sin_term
         forces *= 1 - array_mod.tanh(cos_term)**2
-        forces = array_mod.outer(forces, b)
+        forces = array_mod.outer(forces, array_mod.array(b))
         return forces, energies
 
     def set_forces(self, timestep):
