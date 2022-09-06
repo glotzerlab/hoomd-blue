@@ -401,8 +401,8 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
         dim3 grid((nwork / run_block_size) + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        size_t shared_bytes = (unsigned int)(sizeof(Scalar) * rattle_bd_args.n_types
-                                             + sizeof(Scalar3) * rattle_bd_args.n_types);
+        const auto shared_bytes
+            = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
 
         if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
             {
@@ -663,8 +663,8 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
         dim3 grid((nwork / run_block_size) + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        size_t shared_bytes = (unsigned int)(sizeof(Scalar) * rattle_bd_args.n_types
-                                             + sizeof(Scalar3) * rattle_bd_args.n_types);
+        const auto shared_bytes
+            = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
 
         if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
             {

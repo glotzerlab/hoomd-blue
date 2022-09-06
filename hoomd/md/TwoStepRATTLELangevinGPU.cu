@@ -206,9 +206,8 @@ gpu_rattle_langevin_angular_step_two(const Scalar4* d_pos,
     dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    unsigned int shared_bytes
-        = max((unsigned int)(sizeof(Scalar3) * rattle_langevin_args.n_types),
-              (unsigned int)(rattle_langevin_args.block_size * sizeof(Scalar)));
+    const auto shared_bytes = max((sizeof(Scalar3) * rattle_langevin_args.n_types),
+                                  (rattle_langevin_args.block_size * sizeof(Scalar)));
 
     if (shared_bytes > rattle_langevin_args.devprop.sharedMemPerBlock)
         {

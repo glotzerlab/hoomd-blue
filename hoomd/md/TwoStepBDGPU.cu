@@ -363,8 +363,8 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
         dim3 grid((nwork / run_block_size) + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        size_t shared_bytes = (unsigned int)(sizeof(Scalar) * langevin_args.n_types
-                                             + sizeof(Scalar3) * langevin_args.n_types);
+        auto shared_bytes
+            = (sizeof(Scalar) * langevin_args.n_types + sizeof(Scalar3) * langevin_args.n_types);
 
         bool enable_shared_cache = true;
 
