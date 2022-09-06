@@ -7,6 +7,8 @@ from abc import abstractmethod
 from collections import abc
 import warnings
 
+import numpy as np
+
 import hoomd
 import hoomd.data.typeconverter as _typeconverter
 
@@ -562,6 +564,13 @@ class _HOOMDTuple(_HOOMDSyncedCollection, abc.Sequence):
 def _to_hoomd_data(root, schema, parent=None, identity=None, data=None):
     _exclude_classes = (hoomd.logging.Logger,)
     if isinstance(data, _exclude_classes):
+        return data
+    # Even though a ndarray is a MutableSequence we need to ensure that it
+    # remains a ndarray and not a list when the validation is for an array. In
+    # addition, this would error if we allowed the MutableSequence conditional
+    # to execute.
+    if (isinstance(data, np.ndarray)
+            and isinstance(schema, _typeconverter.NDArrayValidator)):
         return data
     if isinstance(data, abc.MutableMapping):
         spec = _find_structural_validator(schema,
