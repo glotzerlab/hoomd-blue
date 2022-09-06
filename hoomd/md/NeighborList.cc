@@ -1769,7 +1769,7 @@ void NeighborList::updateMemoryMapping()
 std::vector<std::pair<unsigned int, unsigned int>>
 NeighborList::getPairListPython(uint64_t timestep)
     {
-    // It would be nice to remove the timestep arguement, can we safely assume the user wants to 
+    // It would be nice to remove the timestep arguement, can we safely assume the user wants to
     // check the current timestep ()
     compute(timestep); // HELP Should this be here? Or should the user be responsible for calling?
 
@@ -1794,7 +1794,7 @@ NeighborList::getPairListPython(uint64_t timestep)
             const unsigned int tag_j = h_rtags.data[j];
 
             // HELP filter by cutoff, but which to choose??
-            // Use base cutoffs? Or expand parameters to allow 
+            // Use base cutoffs? Or expand parameters to allow
 
             pair_list.push_back(std::make_pair(tag_i, tag_j));
             }
