@@ -176,7 +176,8 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         m_diameter_shift,
         m_cl->getGhostWidth(),
         m_pdata->getGPUPartition(),
-        m_use_index);
+        m_use_index,
+        m_exec_conf->dev_prop);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

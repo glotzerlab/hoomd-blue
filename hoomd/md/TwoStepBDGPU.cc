@@ -84,18 +84,21 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                                   access_location::device,
                                   access_mode::readwrite);
 
-    kernel::langevin_step_two_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = (unsigned int)m_gamma.getNumElements();
-    args.use_alpha = m_use_alpha;
-    args.alpha = m_alpha;
-    args.T = (*m_T)(timestep);
-    args.timestep = timestep;
-    args.seed = m_sysdef->getSeed();
-    args.d_sum_bdenergy = NULL;
-    args.d_partial_sum_bdenergy = NULL;
-    args.num_blocks = 0; // handled in driver function
-    args.tally = false;
+    kernel::langevin_step_two_args args(d_gamma.data,
+                                        static_cast<unsigned int>(m_gamma.getNumElements()),
+                                        m_use_alpha,
+                                        m_alpha,
+                                        (*m_T)(timestep),
+                                        timestep,
+                                        m_sysdef->getSeed(),
+                                        NULL,
+                                        NULL,
+                                        0,
+                                        0,
+                                        false,
+                                        false,
+                                        false,
+                                        m_exec_conf->dev_prop);
 
     bool aniso = m_aniso;
 
