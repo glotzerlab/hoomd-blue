@@ -165,7 +165,16 @@ class _HOOMDSyncedCollection(abc.Collection):
 
     def __contains__(self, obj):
         self._read()
-        return obj in self._data
+        if isinstance(obj, np.ndarray):
+            return any(self._numpy_equality(obj, item) for item in self._data)
+        for item in self._data:
+            if isinstance(item, np.ndarray):
+                if self._numpy_equality(item, obj):
+                    return True
+                continue
+            if obj == item:
+                return True
+        return False
 
     def __iter__(self):
         self._read()
@@ -179,6 +188,20 @@ class _HOOMDSyncedCollection(abc.Collection):
         if isinstance(other, _HOOMDSyncedCollection):
             return self.to_base() == other.to_base()
         return self.to_base() == other
+
+    def _numpy_equality(self, a, b):
+        """Whether to consider a and b equal for purposes of __contains__.
+
+        Args:
+            a (numpy.ndarray): Any array.
+            b (any): Any value
+
+        Returns:
+            bool: Whether a and b are equal.
+        """
+        if not isinstance(b, np.ndarray):
+            return False
+        return a is b or np.array_equal(a, b, equal_nan=True)
 
     def to_base(self):
         """Return a base data object (e.g. list, dict, or tuple).
