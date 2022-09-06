@@ -59,15 +59,16 @@ of exclusions. The valid exclusion types are:
 """
 
 import hoomd.device
-from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, nonnegative_real
 from hoomd.logging import log
 from hoomd.mesh import Mesh
 from hoomd.md import _md
-from hoomd.operation import AutotunedObject
+from hoomd.operation import Compute
 
 
-class NeighborList(AutotunedObject):
+class NeighborList(Compute):
     r"""Base class neighbor list.
 
     Note:
@@ -85,7 +86,7 @@ class NeighborList(AutotunedObject):
     """
 
     def __init__(self, buffer, exclusions, rebuild_check_delay, check_dist,
-                 mesh):
+                 mesh, default_r_cut):
 
         validate_exclusions = OnlyFrom([
             'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
@@ -93,6 +94,15 @@ class NeighborList(AutotunedObject):
         ])
 
         validate_mesh = OnlyTypes(Mesh, allow_none=True)
+
+        tp_r_cut = TypeParameter(
+            'r_cut', 'particle_types',
+            TypeParameterDict(nonnegative_real, len_keys=2))
+        if default_r_cut is None:
+            tp_r_cut.default = 0.0
+        else:
+            tp_r_cut.default = default_r_cut
+        self._add_typeparam(tp_r_cut)
 
         # default exclusions
         params = ParameterDict(exclusions=[validate_exclusions],
@@ -109,6 +119,16 @@ class NeighborList(AutotunedObject):
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
         super()._attach()
+
+    # @log(requires_run=True)  # do we want this to be loggable?
+    def pair_list(self, timestep):
+        if not self._attached:
+            raise RuntimeError("Cannot get pair list before scheduling.")
+        return self._cpp_obj.getPairList(timestep)
+
+    @log(requires_run=True)
+    def pair_list_readonly_property(self):
+        return self._cpp_obj.getPairList(self._simulation.timestep)
 
     @log(requires_run=True)
     def shortest_rebuild(self):
@@ -193,10 +213,11 @@ class Cell(NeighborList):
                  rebuild_check_delay=1,
                  check_dist=True,
                  deterministic=False,
-                 mesh=None):
+                 mesh=None,
+                 default_r_cut=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh)
+                         mesh, default_r_cut)
 
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
@@ -301,10 +322,11 @@ class Stencil(NeighborList):
                  rebuild_check_delay=1,
                  check_dist=True,
                  deterministic=False,
-                 mesh=None):
+                 mesh=None,
+                 default_r_cut=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh)
+                         mesh, default_r_cut)
 
         params = ParameterDict(deterministic=bool(deterministic),
                                cell_width=float(cell_width))
@@ -373,10 +395,11 @@ class Tree(NeighborList):
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  check_dist=True,
-                 mesh=None):
+                 mesh=None,
+                 default_r_cut=None):
 
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh)
+                         mesh, default_r_cut)
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):

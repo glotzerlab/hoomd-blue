@@ -90,6 +90,23 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
         }
 #endif
 
+    // holds the base rcut on a per type basis
+    GlobalArray<Scalar> rcut_base(m_pdata->getNTypes(), m_exec_conf);
+    m_rcut_base.swap(rcut_base);
+    TAG_ALLOCATION(m_rcut_base);
+
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_rcut_base.get(),
+                      m_rcut_base.getNumElements() * sizeof(Scalar),
+                      cudaMemAdviseSetReadMostly,
+                      0);
+        CHECK_CUDA_ERROR();
+        }
+#endif
+
     // allocate the r_listsq array which accelerates CPU calculations
     GlobalArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_r_listsq.swap(r_listsq);
@@ -431,8 +448,13 @@ void NeighborList::updateRList()
     {
     // overwrite the new r_cut matrix
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_rcut_base(m_rcut_base, access_location::host, access_mode::overwrite);
 
-    memset(h_r_cut.data, 0, sizeof(Scalar) * m_r_cut.getNumElements());
+    // memset(h_r_cut.data, 0, sizeof(Scalar) * m_r_cut.getNumElements());
+    for (unsigned int i = 0; i < m_r_cut.getNumElements(); i++)
+        {
+        h_r_cut.data[i] = h_rcut_base.data[i];
+        }
 
     // first: loop over the consumer r_cut matrices and take their max in h_r_cut
     for (unsigned int matrix = 0; matrix < m_consumer_r_cut.size(); matrix++)
@@ -1742,6 +1764,91 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
+// Python API for accessing nlist neighbors
+// TODO proably should make a CUDA impl? Is this already OK with MPI?
+std::vector<std::pair<unsigned int, unsigned int>>
+NeighborList::getPairListPython(uint64_t timestep)
+    {
+    // It would be nice to remove the timestep arguement, can we safely assume the user wants to 
+    // check the current timestep ()
+    compute(timestep); // HELP Should this be here? Or should the user be responsible for calling?
+
+    std::vector<std::pair<unsigned int, unsigned int>> pair_list;
+
+    ArrayHandle<unsigned int> h_n_neigh(getNNeighArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(getNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(getHeadList(), access_location::host, access_mode::read);
+
+    ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(),
+                                      access_location::host,
+                                      access_mode::read);
+
+    for (int i = 0; i < (int)m_pdata->getN(); i++)
+        {
+        unsigned int tag_i = h_rtags.data[i];
+        const size_t myHead = h_head_list.data[i];
+        const unsigned int size = h_n_neigh.data[i];
+        for (unsigned int k = 0; k < size; k++)
+            {
+            const unsigned int j = h_nlist.data[myHead + k];
+            const unsigned int tag_j = h_rtags.data[j];
+
+            // HELP filter by cutoff, but which to choose??
+            // Use base cutoffs? Or expand parameters to allow 
+
+            pair_list.push_back(std::make_pair(tag_i, tag_j));
+            }
+        }
+
+    // HELP Should we cache the pair list so it's returned on multiple invocations?
+
+    return pair_list;
+    }
+
+void NeighborList::validateTypes(unsigned int typ1, unsigned int typ2, std::string action)
+    {
+    auto n_types = this->m_pdata->getNTypes();
+    if (typ1 >= n_types || typ2 >= n_types)
+        {
+        throw std::runtime_error("Error in" + action + " for pair potential. Invalid type");
+        }
+    }
+
+/*! \param typ1 First type index in the pair
+    \param typ2 Second type index in the pair
+    \param rcut Cutoff radius to set
+    \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
+   automatically set.
+*/
+void NeighborList::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
+    {
+    validateTypes(typ1, typ2, "setting rcut_base");
+        {
+        // store r_cut unmodified for so the neighbor list knows what particles to include
+        ArrayHandle<Scalar> h_rcut_base(m_rcut_base, access_location::host, access_mode::readwrite);
+        h_rcut_base.data[m_typpair_idx(typ1, typ2)] = rcut;
+        h_rcut_base.data[m_typpair_idx(typ2, typ1)] = rcut;
+        }
+
+    notifyRCutMatrixChange();
+    }
+
+void NeighborList::setRCutPython(pybind11::tuple types, Scalar r_cut)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    setRcut(typ1, typ2, r_cut);
+    }
+
+Scalar NeighborList::getRCut(pybind11::tuple types)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "getting rcut_base.");
+    ArrayHandle<Scalar> h_rcut_base(m_rcut_base, access_location::host, access_mode::read);
+    return h_rcut_base.data[m_typpair_idx(typ1, typ2)];
+    }
+
 namespace detail
     {
 void export_NeighborList(pybind11::module& m)
@@ -1771,7 +1878,11 @@ void export_NeighborList(pybind11::module& m)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions)
-        .def_property_readonly("num_builds", &NeighborList::getNumUpdates);
+        .def_property_readonly("num_builds", &NeighborList::getNumUpdates)
+        .def("getPairList", &NeighborList::getPairListPython)
+        .def("getStorageMode", &NeighborList::getStorageMode)
+        .def("setRCut", &NeighborList::setRCutPython)
+        .def("getRCut", &NeighborList::getRCut);
 
     pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)

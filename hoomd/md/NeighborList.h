@@ -496,11 +496,23 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_typpair_idx;
         }
 
+    // Python API for accessing nlist neighbors
+    std::vector<std::pair<unsigned int, unsigned int>> getPairListPython(uint64_t timestep);
+    /// Validate that types are within Ntypes
+    void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
+    //! Set the rcut for a single type pair
+    virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+    /// Get the r_cut for a single type pair
+    Scalar getRCut(pybind11::tuple types);
+    /// Set the rcut for a single type pair using a tuple of strings
+    virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
+
     protected:
-    Index2D m_typpair_idx;          //!< Indexer for full type pair storage
-    GlobalArray<Scalar> m_r_cut;    //!< The potential cutoffs stored by pair type
-    GlobalArray<Scalar> m_r_listsq; //!< The neighborlist cutoff radius squared stored by pair type
-    GlobalArray<Scalar> m_rcut_max; //!< The maximum value of rcut per particle type
+    Index2D m_typpair_idx;           //!< Indexer for full type pair storage
+    GlobalArray<Scalar> m_r_cut;     //!< The potential cutoffs stored by pair type
+    GlobalArray<Scalar> m_r_listsq;  //!< The neighborlist cutoff radius squared stored by pair type
+    GlobalArray<Scalar> m_rcut_max;  //!< The maximum value of rcut per particle type
+    GlobalArray<Scalar> m_rcut_base; //!< The base rcut values
 
     /// List of r_cut matrices from neighborlist consumers
     std::vector<std::shared_ptr<GlobalArray<Scalar>>> m_consumer_r_cut;
