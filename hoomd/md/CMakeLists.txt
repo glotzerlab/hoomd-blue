@@ -577,8 +577,6 @@ if (ENABLE_HIP)
     target_link_libraries(_md PRIVATE neighbor)
 endif()
 
-fix_cudart_rpath(_md)
-
 # install the library
 install(TARGETS _md EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
