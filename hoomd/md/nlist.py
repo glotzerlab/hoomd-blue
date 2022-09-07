@@ -120,14 +120,6 @@ class NeighborList(Compute):
 
         super()._attach()
 
-    # Do we want to be able to provide an arbitrary timestep, or just grab
-    # whatever the current sim timestep is?
-    def pair_list(self, timestep):
-        """TODO."""
-        if not self._attached:
-            raise RuntimeError("Cannot get pair list before scheduling.")
-        return self._cpp_obj.getPairList(timestep)
-
     @log(requires_run=True)
     def pair_list_readonly_property(self):
         """TODO."""
