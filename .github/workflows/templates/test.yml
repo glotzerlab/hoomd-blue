@@ -58,7 +58,7 @@ env:
         mkdir -p build
         cd build
         cmake ../code -GNinja \
-                      -DCMAKE_BUILD_TYPE=Release \
+                      -DCMAKE_BUILD_TYPE=$(if [[ ${BUILD_DEBUG} == "true" ]]; then echo "Debug"; else echo "Release"; fi) \
                       -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
@@ -76,6 +76,7 @@ env:
         ENABLE_LLVM: ${{ contains(matrix.config, 'llvm') }}
         BUILD_MD: ${{ !contains(matrix.config, 'nomd') }}
         BUILD_HPMC: ${{ !contains(matrix.config, 'nohpmc') }}
+        BUILD_DEBUG: ${{ contains(matrix.config, 'debug') }}
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
