@@ -203,7 +203,7 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
      - ALJ pair potential in `hoomd.md.pair.aniso`.
 
 Not yet ported
---------------
+^^^^^^^^^^^^^^
 
 The following v2 functionalities have not yet been ported to the v3 API. They may be added in a
 future 3.x release:
@@ -219,7 +219,7 @@ contact the developers if you have an interest in porting these in a future rele
 
 
 Compiling
----------
+^^^^^^^^^
 
 * CMake 3.8 or newer is required to build HOOMD v3.0.
 * To compile with GPU support, use the option ``ENABLE_GPU=ON``.
@@ -234,7 +234,7 @@ Compiling
 * ``BUILD_JIT`` is replaced with ``ENABLE_LLVM``.
 
 Components
-----------
+^^^^^^^^^^
 
 * HOOMD now uses native CUDA support in CMake. Use ``CMAKE_CUDA_COMPILER`` to
   specify a specific ``nvcc`` or ``hipcc``. Plugins will require updates to
