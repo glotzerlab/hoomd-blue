@@ -123,7 +123,7 @@ class NeighborList(Compute):
     @log(requires_run=True)
     def pair_list(self):
         """Pair-list property.
-        
+
         TODO.
         """
         return self._cpp_obj.getPairList(self._simulation.timestep)
