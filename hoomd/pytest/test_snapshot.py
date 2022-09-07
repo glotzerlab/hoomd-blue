@@ -465,6 +465,7 @@ def test_no_particle_types(simulation_factory, lattice_snapshot_factory):
 def test_zero_particle_system(simulation_factory, lattice_snapshot_factory):
     """Test that zero particle systems can be initialized with no types."""
     snap = lattice_snapshot_factory(particle_types=[], n=0)
+    snap.configuration.box = [1, 1, 1, 0, 0, 0]
 
     simulation_factory(snap)
 

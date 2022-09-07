@@ -226,9 +226,6 @@ void gpu_sort_migrating_particles(const size_t nsend,
                  thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
 
     // sort buffer by neighbors
-    assert(d_tmp);
-    assert(d_in_copy);
-
 #ifdef __HIP_PLATFORM_HCC__
     thrust::sort_by_key(thrust::hip::par(alloc),
 #else
