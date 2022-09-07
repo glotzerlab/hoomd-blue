@@ -13,18 +13,23 @@ v3.5.0 (not yet released)
 *Added*
 
 * Example plugin that demonstrates how to add a MD pair potential.
+* Support a large number of particle and bond types (subject to available GPU memory and user
+  patience) for the ``Cell`` neighbor list, MD pair potentials, MD bond potentials, Brownian, and
+  Langevin integration methods.
 
 *Changed*
 
 * Raise an error when initializing with duplicate types.
 * ``hpmc.compute.SDF`` now computes pressures of systems of concave particles.
 * ``hpmc.compute.SDF`` now computes pressures of systems with patch interactions.
+* Raise descriptive error messages when the shared memory request exceeds that available on the GPU.
 
 *Fixed*
 
 * Include all ``Neighborlist`` attributes in the documentation.
 * Memory allocation errors in C++ now result in ``MemoryError`` exceptions in Python.
 * Add missing ``Autotuned.h`` header file.
+* External components build correctly when ``ENABLE_MPI=on`` or ``ENABLE_GPU=on``.
 
 *Deprecated*
 
