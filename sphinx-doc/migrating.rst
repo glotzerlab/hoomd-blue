@@ -1,15 +1,36 @@
 .. Copyright (c) 2009-2022 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+Migrating to the latest version
+===============================
+
+Migrating to HOOMD v4
+---------------------
+
+Removed functionality
+^^^^^^^^^^^^^^^^^^^^^
+
+HOOMD v4 removes functionality deprecated in v3.x releases.
+
+Compiling
+^^^^^^^^^
+
+* HOOMD v4 no longer builds on macOS with ``ENABLE_GPU=on``.
+
+Components
+^^^^^^^^^^
+
+* Remove ``fix_cudart_rpath(_${COMPONENT_NAME})`` from your components ``CMakeLists.txt``
+
 Migrating to HOOMD v3
-=====================
+---------------------
 
 HOOMD v3 introduces many breaking changes for both users and developers
 in order to provide a cleaner Python interface, enable new functionalities, and
 move away from unsupported tools. This guide highlights those changes.
 
 Overview of API changes
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 HOOMD v3 introduces a completely new API. All classes have been renamed to match
 PEP8 naming guidelines and have new or renamed parameters, methods, and
@@ -75,7 +96,7 @@ Here is a module level overview of features that have been moved or removed:
      - `hoomd.hpmc.external.user`
 
 Removed functionality
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 HOOMD v3 removes old APIs, unused functionality, and features better served by other codes:
 
