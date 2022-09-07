@@ -99,6 +99,7 @@ jobs:
                       -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
+        cat build/CMakeCache.txt
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
@@ -343,6 +344,7 @@ jobs:
                       -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
+        cat build/CMakeCache.txt
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
