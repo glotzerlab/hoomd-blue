@@ -89,7 +89,8 @@ class MyForce(md.force.Custom):
             arrays.force[:] = -5
             arrays.potential_energy[:] = 37
             arrays.torque[:] = 23
-            arrays.virial[:] = array_mod.arange(6)[None, :]
+            if arrays.virial.shape[0] != 0:
+                arrays.virial[:] = array_mod.arange(6)[None, :]
 
 
 def test_simulation(local_force_names, force_simulation_factory,
