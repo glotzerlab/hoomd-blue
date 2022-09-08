@@ -333,8 +333,6 @@ else()
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "\$ORIGIN")
 endif()
 
-fix_cudart_rpath(_hoomd)
-
 # install the library
 install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}

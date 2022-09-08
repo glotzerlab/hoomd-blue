@@ -31,8 +31,6 @@ endif()
 # libraries) as needed.
 target_link_libraries(_${COMPONENT_NAME} PUBLIC HOOMD::_hoomd)
 
-fix_cudart_rpath(_${COMPONENT_NAME})
-
 # Install the library.
 install(TARGETS _${COMPONENT_NAME}
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/${COMPONENT_NAME}
