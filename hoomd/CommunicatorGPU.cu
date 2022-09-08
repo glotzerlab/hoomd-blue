@@ -314,37 +314,21 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(unsigned int N,
                                                     unsigned int ntypes,
                                                     unsigned int mask)
     {
-    // cache the ghost width fractions into shared memory (N_types*sizeof(Scalar3) B)
-    extern __shared__ Scalar3 sdata[];
-    Scalar3* s_ghost_fractions = sdata;
-    Scalar3* s_body_ghost_fractions = sdata + ntypes;
-
-    Scalar3 npd = box.getNearestPlaneDistance();
-
-    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < ntypes)
-            {
-            s_ghost_fractions[cur_offset + threadIdx.x] = d_r_ghost[cur_offset + threadIdx.x] / npd;
-            s_body_ghost_fractions[cur_offset + threadIdx.x]
-                = d_r_ghost_body[cur_offset + threadIdx.x] / npd;
-            }
-        }
-    __syncthreads();
-
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx >= N)
         return;
 
+    Scalar3 npd = box.getNearestPlaneDistance();
+
     Scalar4 postype = d_postype[idx];
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     const unsigned int type = __scalar_as_int(postype.w);
-    Scalar3 ghost_fraction = s_ghost_fractions[type];
+    Scalar3 ghost_fraction = __ldg(d_r_ghost + type) / npd;
 
     if (d_body[idx] < MIN_FLOPPY)
         {
-        ghost_fraction += s_body_ghost_fractions[type];
+        ghost_fraction += __ldg(d_r_ghost_body + type) / npd;
         }
 
     Scalar3 f = box.makeFraction(pos);
@@ -397,12 +381,11 @@ void gpu_make_ghost_exchange_plan(unsigned int* d_plan,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
-    const size_t shared_bytes = 2 * sizeof(Scalar3) * ntypes;
 
     hipLaunchKernelGGL(gpu_make_ghost_exchange_plan_kernel,
                        dim3(n_blocks),
                        dim3(block_size),
-                       shared_bytes,
+                       0,
                        0,
                        N,
                        d_pos,

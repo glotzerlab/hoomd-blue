@@ -70,7 +70,8 @@ env:
                       -DBUILD_METAL=${BUILD_MD:-"ON"} \
                       -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                       -DCUDA_ARCH_LIST="60;70" \
-                      -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
+                      -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
+                      -DPLUGINS=""
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
         ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
@@ -83,6 +84,14 @@ env:
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
       working-directory: build
+    - name: Configure plugins
+      run : |
+        mkdir -p build-example-plugins
+        cd build-example-plugins
+        CMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install cmake ../code/example_plugins -GNinja -DCMAKE_BUILD_TYPE=Release
+    - name: Build plugins
+      run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
+      working-directory: build-example-plugins
 <% endset %>
 <% set upload_steps %>
     - name: Remove object files
@@ -163,7 +172,6 @@ env:
       run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
 <% endset %>
 <% set prepare_steps %>
-    steps:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
@@ -198,8 +206,11 @@ jobs:
 
   build:
 << job(name='Build', run_tests=False, configurations=unit_test_configurations) >>
-    env:
-      CXXFLAGS: '-Werror'
+    steps:
+    - name: Set Werror on recent compilers
+      run: |
+        echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
+      if: ${{ !startsWith(matrix.config[0], 'gcc7') }}
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
@@ -207,6 +218,7 @@ jobs:
 
   pytest:
 << job(name='Run pytest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
+    steps:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
@@ -214,6 +226,7 @@ jobs:
 
   ctest:
 << job(name='Run ctest', run_tests=True, configurations=unit_test_configurations, needs='build') >>
+    steps:
 << prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
@@ -222,6 +235,7 @@ jobs:
   validate:
 << job(name='Validate', run_tests=True, configurations=validate_configurations, needs='build') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
+    steps:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_validate_steps >>
@@ -230,6 +244,7 @@ jobs:
   build_release:
 << job(name='Build', run_tests=False, configurations=release_test_configurations) >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
@@ -238,6 +253,7 @@ jobs:
   pytest_release:
 << job(name='Run pytest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
 << prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
@@ -246,6 +262,7 @@ jobs:
   ctest_release:
 << job(name='Run ctest', run_tests=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    steps:
 << prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>

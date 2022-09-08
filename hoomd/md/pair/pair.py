@@ -60,6 +60,10 @@ class Pair(force.Force):
     # restricted modes.
     _accepted_modes = ("none", "shift", "xplor")
 
+    # Module where the C++ class is defined. Reassign this when developing an
+    # external plugin.
+    _ext_module = _md
+
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         super().__init__()
         tp_r_cut = TypeParameter(
@@ -156,11 +160,11 @@ class Pair(force.Force):
                                "different simulation.".format(type(self)))
         self.nlist._attach()
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cls = getattr(_md, self._cpp_class_name)
+            cls = getattr(self._ext_module, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.half)
         else:
-            cls = getattr(_md, self._cpp_class_name + "GPU")
+            cls = getattr(self._ext_module, self._cpp_class_name + "GPU")
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def,

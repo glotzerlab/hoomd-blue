@@ -78,7 +78,6 @@ set(_hoomd_sources Action.cc
                    MeshGroupData.cc
                    MeshDefinition.cc
                    Messenger.cc
-                   MemoryTraceback.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
@@ -117,6 +116,7 @@ set(_hoomd_headers
     Action.h
     Analyzer.h
     ArrayView.h
+    Autotuned.h
     Autotuner.h
     BondedGroupData.cuh
     BondedGroupData.h
@@ -162,7 +162,6 @@ set(_hoomd_headers
     LoadBalancer.h
     managed_allocator.h
     ManagedArray.h
-    MemoryTraceback.h
     MeshGroupData.cuh
     MeshGroupData.h
     MeshDefinition.h
@@ -363,6 +362,7 @@ set(files box.py
           mesh.py
           version.py
           wall.py
+          pytest.ini
     )
 
 install(FILES ${files}
@@ -418,6 +418,7 @@ endif()
 
 foreach(entry ${PLUGINS})
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+        message(STATUS "Found plugin: ${entry}")
         add_subdirectory(${entry})
     endif()
 endforeach()

@@ -704,7 +704,6 @@ void export_ExecutionConfiguration(pybind11::module& m)
 #endif
         .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
         .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
-        .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer)
         .def("memoryTracingEnabled", &ExecutionConfiguration::memoryTracingEnabled)
         .def_static("getCapableDevices", &ExecutionConfiguration::getCapableDevices)
         .def_static("getScanMessages", &ExecutionConfiguration::getScanMessages)
