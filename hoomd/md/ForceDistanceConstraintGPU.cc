@@ -237,61 +237,58 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
         // reset flags
         m_condition.resetFlags(0);
 
-            {
-            // access matrix and vector
-            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
-            ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::read);
-
-            // access sparse matrix structural data
-            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
-
-            m_nnz_tot = 0;
-
-            // count non zeros
-            kernel::gpu_count_nnz(n_constraint,
-                                  d_cmatrix.data,
-                                  d_nnz.data,
-                                  m_nnz_tot,
-                                  m_cusparse_handle,
-                                  m_cusparse_mat_descr);
-
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-
         m_csr_rowptr.resize(n_constraint + 1);
+
+            {
+          ArrayHandle<int> d_csr_rowptr(m_csr_rowptr,
+                                        access_location::device,
+                                        access_mode::overwrite);
+            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
+          cusparseDnMatDescr_t cmatrix_descr;
+          cusparseSpMatDescr_t csr_descr;
+          cusparseCreateDnMat(&cmatrix_descr, n_constraint, n_constraint, n_constraint, d_cmatrix.data,
+                              CUDA_R_64F, CUSPARSE_ORDER_COL);
+          cusparseCreateCsr(&csr_descr, n_constraint, n_constraint, 0,
+                            d_csr_rowptr.data, NULL, NULL,
+                            CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                            CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
+          size_t bufferSize = 0;
+          cusparseDenseToSparse_bufferSize(m_cusparse_handle,
+                                           cmatrix_descr,
+                                           csr_descr,
+                                           CUSPARSE_DENSETOSPARSE_ALG_DEFAULT,
+                                           &bufferSize);
+          void* d_buffer    = NULL;
+          cudaMalloc(&d_buffer, bufferSize);
+          cusparseDenseToSparse_analysis(m_cusparse_handle,
+                                         cmatrix_descr,
+                                         csr_descr,
+                                         CUSPARSE_DENSETOSPARSE_ALG_DEFAULT,
+                                         d_buffer);
+          int64_t nrows, ncols, nnz;
+          cusparseSpMatGetSize(csr_descr, &nrows, &ncols, &nnz);
+          m_nnz_tot = static_cast<int>(nnz);
         m_csr_colind.resize(m_nnz_tot);
         m_sparse_val.resize(m_nnz_tot);
-
-            {
-            // access matrix and vector
-            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
-            ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::read);
-
-            // access sparse matrix structural data
-            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
             ArrayHandle<int> d_csr_colind(m_csr_colind,
-                                          access_location::device,
-                                          access_mode::overwrite);
-            ArrayHandle<int> d_csr_rowptr(m_csr_rowptr,
                                           access_location::device,
                                           access_mode::overwrite);
             ArrayHandle<double> d_sparse_val(m_sparse_val,
                                              access_location::device,
                                              access_mode::overwrite);
-
-            // count zeros and convert matrix
-            kernel::gpu_dense2sparse(n_constraint,
-                                     d_cmatrix.data,
-                                     d_nnz.data,
-                                     m_cusparse_handle,
-                                     m_cusparse_mat_descr,
+          cusparseCsrSetPointers(csr_descr,
                                      d_csr_rowptr.data,
                                      d_csr_colind.data,
                                      d_sparse_val.data);
+          cusparseDenseToSparse_convert(m_cusparse_handle,
+                                        cmatrix_descr,
+                                        csr_descr,
+                                        CUSPARSE_DENSETOSPARSE_ALG_DEFAULT,
+                                        d_buffer);
+          cusparseDestroyDnMat(cmatrix_descr);
+          cusparseDestroySpMat(csr_descr);
+          cudaFree(d_buffer);
 
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
             }
 
             {
