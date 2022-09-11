@@ -95,7 +95,8 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
                                              m_table_width,
                                              m_table_value,
                                              d_flags.data,
-                                             m_tuner->getParam()[0]);
+                                             m_tuner->getParam()[0],
+                                             m_exec_conf->dev_prop);
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

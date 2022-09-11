@@ -30,7 +30,6 @@ foreach (CUR_TEST ${TEST_LIST})
     add_dependencies(test_all ${CUR_TEST})
 
     target_link_libraries(${CUR_TEST} _hpmc ${PYTHON_LIBRARIES})
-    fix_cudart_rpath(${CUR_TEST})
 
 endforeach (CUR_TEST)
 

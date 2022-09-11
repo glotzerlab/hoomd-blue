@@ -132,16 +132,15 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
                                   access_location::device,
                                   access_mode::readwrite);
 
-    kernel::rattle_bd_step_one_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = this->m_gamma.getNumElements();
-    args.use_alpha = this->m_use_alpha;
-    args.alpha = this->m_alpha;
-    args.T = (*this->m_T)(timestep);
-    args.tolerance = this->m_tolerance;
-    args.timestep = timestep;
-    args.seed = this->m_sysdef->getSeed();
-
+    kernel::rattle_bd_step_one_args args(d_gamma.data,
+                                         this->m_gamma.getNumElements(),
+                                         this->m_use_alpha,
+                                         this->m_alpha,
+                                         (*this->m_T)(timestep),
+                                         this->m_tolerance,
+                                         timestep,
+                                         this->m_sysdef->getSeed(),
+                                         this->m_exec_conf->dev_prop);
     bool aniso = this->m_aniso;
 
 #if defined(__HIP_PLATFORM_NVCC__)
@@ -223,15 +222,15 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 
     size_t net_virial_pitch = net_virial.getPitch();
 
-    kernel::rattle_bd_step_one_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = this->m_gamma.getNumElements();
-    args.use_alpha = this->m_use_alpha;
-    args.alpha = this->m_alpha;
-    args.T = (*this->m_T)(timestep);
-    args.tolerance = this->m_tolerance;
-    args.timestep = timestep;
-    args.seed = this->m_sysdef->getSeed();
+    kernel::rattle_bd_step_one_args args(d_gamma.data,
+                                         this->m_gamma.getNumElements(),
+                                         this->m_use_alpha,
+                                         this->m_alpha,
+                                         (*this->m_T)(timestep),
+                                         this->m_tolerance,
+                                         timestep,
+                                         this->m_sysdef->getSeed(),
+                                         this->m_exec_conf->dev_prop);
 
 #if defined(__HIP_PLATFORM_NVCC__)
     if (this->m_exec_conf->allConcurrentManagedAccess())
