@@ -204,7 +204,7 @@ def test_values(simulation_factory, lattice_snapshot_factory):
 
 
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
-@pytest.mark.cpu    # SDF runs on the CPU only, no need to test on the GPUn
+@pytest.mark.cpu  # SDF runs on the CPU only, no need to test on the GPUn
 def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     """Test that adding patches changes the pressure calculation.
 
