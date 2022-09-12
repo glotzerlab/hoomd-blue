@@ -48,7 +48,16 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                          int& nnz,
                          cusparseHandle_t cusparse_handle,
                          cusparseMatDescr_t cusparse_mat_descr);
-
+#ifndef CUSPARSE_NEW_API
+hipError_t gpu_dense2sparse(unsigned int n_constraint,
+                            double* d_matrix,
+                            int* d_nnz,
+                            cusparseHandle_t cusparse_handle,
+                            cusparseMatDescr_t cusparse_mat_descr,
+                            int* d_csr_rowptr,
+                            int* d_csr_colind,
+                            double* d_csr_val);
+#endif
 #endif
 
 hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,

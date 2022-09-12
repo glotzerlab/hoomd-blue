@@ -238,7 +238,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
         m_condition.resetFlags(0);
 
         m_csr_rowptr.resize(n_constraint + 1);
-
+#ifdef CUSPARSE_NEW_API
             {
             ArrayHandle<int> d_csr_rowptr(m_csr_rowptr,
                                           access_location::device,
@@ -301,7 +301,62 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
             cusparseDestroySpMat(csr_descr);
             cudaFree(d_buffer);
             }
+#else
+            {
+            // access matrix and vector
+            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
+            ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::read);
 
+            // access sparse matrix structural data
+            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
+
+            m_nnz_tot = 0;
+
+            // count non zeros
+            kernel::gpu_count_nnz(n_constraint,
+                                  d_cmatrix.data,
+                                  d_nnz.data,
+                                  m_nnz_tot,
+                                  m_cusparse_handle,
+                                  m_cusparse_mat_descr);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        m_csr_colind.resize(m_nnz_tot);
+        m_sparse_val.resize(m_nnz_tot);
+            {
+            // access matrix and vector
+            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
+            ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::read);
+
+            // access sparse matrix structural data
+            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
+            ArrayHandle<int> d_csr_colind(m_csr_colind,
+                                          access_location::device,
+                                          access_mode::overwrite);
+            ArrayHandle<int> d_csr_rowptr(m_csr_rowptr,
+                                          access_location::device,
+                                          access_mode::overwrite);
+            ArrayHandle<double> d_sparse_val(m_sparse_val,
+                                             access_location::device,
+                                             access_mode::overwrite);
+
+            // count zeros and convert matrix
+            kernel::gpu_dense2sparse(n_constraint,
+                                     d_cmatrix.data,
+                                     d_nnz.data,
+                                     m_cusparse_handle,
+                                     m_cusparse_mat_descr,
+                                     d_csr_rowptr.data,
+                                     d_csr_colind.data,
+                                     d_sparse_val.data);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+
+#endif
             {
             ArrayHandle<int> h_sparse_idxlookup(m_sparse_idxlookup,
                                                 access_location::host,
