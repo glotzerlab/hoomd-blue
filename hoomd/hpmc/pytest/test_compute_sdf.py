@@ -71,7 +71,7 @@ def test_after_attaching(valid_args, simulation_factory,
     assert np.isclose(sdf.xmax, xmax)
     assert np.isclose(sdf.dx, dx)
 
-    sim.run(10)
+    sim.run(1)
     if not np.isnan(sdf.sdf).all():
         assert sim.device.communicator.rank == 0
         assert isinstance(sdf.sdf, np.ndarray)
@@ -204,6 +204,7 @@ def test_values(simulation_factory, lattice_snapshot_factory):
 
 
 @pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+@pytest.mark.cpu    # SDF runs on the CPU only, no need to test on the GPUn
 def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     """Test that adding patches changes the pressure calculation.
 

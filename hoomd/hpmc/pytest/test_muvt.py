@@ -153,7 +153,7 @@ def test_insertion_removal(device, simulation_factory,
     # set a positive fugacity
     muvt.fugacity['B'] = 1
 
-    sim.run(100)
+    sim.run(20)
     assert sum(muvt.insert_moves) > 0
     assert sum(muvt.remove_moves) > 0
 
