@@ -335,7 +335,6 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                          cusparseHandle_t cusparse_handle,
                          cusparseMatDescr_t cusparse_mat_descr)
     {
-#ifdef CUSOLVER_AVAILABLE
     // count zeros
     cusparseDnnz(cusparse_handle,
                  CUSPARSE_DIRECTION_ROW,
@@ -346,10 +345,11 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                  n_constraint,
                  d_nnz,
                  &nnz);
-#endif
     return hipSuccess;
     }
+#endif
 
+#ifndef CUSPARSE_NEW_API
 hipError_t gpu_dense2sparse(unsigned int n_constraint,
                             double* d_matrix,
                             int* d_nnz,
