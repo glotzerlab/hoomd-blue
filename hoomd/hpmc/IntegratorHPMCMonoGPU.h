@@ -1635,7 +1635,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 #ifdef ENABLE_MPI
                     if (m_ntrial_comm)
                         {
-// reduce free energy across rows (depletants)
+                        // reduce free energy across rows (depletants)
                         ArrayHandle<int> h_deltaF_int(m_deltaF_int,
                                                       access_location::host,
                                                       access_mode::readwrite);
@@ -1651,7 +1651,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
 #ifdef ENABLE_MPI
                     if (m_particle_comm)
                         {
-// reduce free energy across columns (particles)
+                        // reduce free energy across columns (particles)
                         ArrayHandle<int> h_deltaF_int(m_deltaF_int,
                                                       access_location::host,
                                                       access_mode::readwrite);

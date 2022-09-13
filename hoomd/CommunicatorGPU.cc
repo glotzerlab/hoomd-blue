@@ -3025,7 +3025,7 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
 
             {
             unsigned int offs = 0;
-// access particle data
+            // access particle data
             // recv buffers
             ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf,
                                                           access_location::host,
