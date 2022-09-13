@@ -6,6 +6,7 @@ import pytest
 
 
 @pytest.mark.gpu
+@pytest.mark.validate
 def test_combined_kernel_parameters(simulation_factory,
                                     lattice_snapshot_factory):
 
