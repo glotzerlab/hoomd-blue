@@ -1991,8 +1991,8 @@ void CommunicatorGPU::migrateParticles()
                 if (n_send_ptls[ineigh])
                     {
                     MPI_Isend(gpu_sendbuf_handle.data + h_begin.data[ineigh],
-                              n_send_ptls[ineigh] * sizeof(detail::pdata_element),
-                              MPI_BYTE,
+                              n_send_ptls[ineigh],
+                              m_mpi_pdata_element,
                               neighbor,
                               1,
                               m_mpi_comm,
@@ -2004,8 +2004,8 @@ void CommunicatorGPU::migrateParticles()
                 if (n_recv_ptls[ineigh])
                     {
                     MPI_Irecv(gpu_recvbuf_handle.data + offs[ineigh],
-                              n_recv_ptls[ineigh] * sizeof(detail::pdata_element),
-                              MPI_BYTE,
+                              n_recv_ptls[ineigh],
+                              m_mpi_pdata_element,
                               neighbor,
                               1,
                               m_mpi_comm,
@@ -3179,6 +3179,62 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 }
             } // end ArrayHandle scope
 
+        if (!m_comm_pending)
+            {
+                // only unpack in non-CUDA MPI builds
+                {
+                // access receive buffers
+                ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf,
+                                                         access_location::device,
+                                                         access_mode::read);
+                ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf,
+                                                         access_location::device,
+                                                         access_mode::read);
+                ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf,
+                                                                 access_location::device,
+                                                                 access_mode::read);
+                // access particle data
+                ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                                           access_location::device,
+                                           access_mode::readwrite);
+                ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                                           access_location::device,
+                                           access_mode::readwrite);
+                ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
+                                                   access_location::device,
+                                                   access_mode::readwrite);
+
+                // copy recv buf into particle data
+                gpu_exchange_ghosts_copy_buf(m_n_recv_ghosts_tot[stage],
+                                             NULL,
+                                             d_pos_ghost_recvbuf.data,
+                                             d_vel_ghost_recvbuf.data,
+                                             NULL,
+                                             NULL,
+                                             NULL,
+                                             NULL,
+                                             d_orientation_ghost_recvbuf.data,
+                                             NULL,
+                                             d_pos.data + first_idx,
+                                             d_vel.data + first_idx,
+                                             NULL,
+                                             NULL,
+                                             NULL,
+                                             NULL,
+                                             d_orientation.data + first_idx,
+                                             false,
+                                             flags[comm_flag::position],
+                                             flags[comm_flag::velocity],
+                                             false,
+                                             false,
+                                             false,
+                                             false,
+                                             flags[comm_flag::orientation]);
+
+                if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
+                }
+            }
         } // end main communication loop
     }
 

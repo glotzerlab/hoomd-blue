@@ -1100,6 +1100,27 @@ int dfft_cuda_create_plan(dfft_plan *p,
     int res = dfft_create_plan_common(p, ndim, gdim, inembed, oembed,
         pdim, pidx, row_m, input_cyclic, output_cyclic, comm, proc_map, 1);
 
+    /* allocate staging bufs */
+    /* we need to use posix_memalign/hipHostRegister instead
+     * of hipHostMalloc, because hipHostMalloc doesn't have hooks
+     * in the MPI library, and using it would lead to data corruption
+     */
+    int size = (unsigned int)(p->scratch_size*sizeof(cuda_cpx_t));
+    int page_size = getpagesize();
+    size = ((size + page_size - 1) / page_size) * page_size;
+    int retval = posix_memalign((void **)&(p->h_stage_in),page_size,size);
+    if (retval != 0)
+        return 1;
+
+    retval = posix_memalign((void **)&(p->h_stage_out),page_size,size);
+    if (retval != 0)
+        return 1;
+
+    hipHostRegister(p->h_stage_in, size, hipHostMallocDefault);
+    CHECK_CUDA();
+    hipHostRegister(p->h_stage_out, size, hipHostMallocDefault);
+    CHECK_CUDA();
+
     /* allocate memory for passing variables */
    hipMalloc((void **)&(p->d_pidx), sizeof(int)*ndim);
     CHECK_CUDA();
@@ -1175,7 +1196,10 @@ int dfft_cuda_create_plan(dfft_plan *p,
 void dfft_cuda_destroy_plan(dfft_plan plan)
     {
     dfft_destroy_plan_common(plan, 1);
-
+    hipHostUnregister(plan.h_stage_in);
+    hipHostUnregister(plan.h_stage_out);
+    free(plan.h_stage_in);
+    free(plan.h_stage_out);
     int dmax = plan.max_depth + 2;
     int d;
     for (d = 0; d < dmax; ++d)
