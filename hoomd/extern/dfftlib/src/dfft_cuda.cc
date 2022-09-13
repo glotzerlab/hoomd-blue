@@ -275,11 +275,6 @@ void dfft_cuda_redistribute_nd( dfft_plan *plan,int stage, int size_in, int *emb
     MPI_Barrier(plan->comm);
 
     /* communicate */
-    #ifdef ENABLE_MPI_CUDA
-    MPI_Alltoallv(plan->d_scratch,plan->nsend, plan->offset_send, MPI_BYTE,
-                  plan->d_scratch_2, plan->nrecv, plan->offset_recv, MPI_BYTE,
-                  plan->comm);
-    #else
     // stage into host buf
     hipMemcpy(plan->h_stage_in, plan->d_scratch, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
     if (plan->check_cuda_errors) CHECK_CUDA();
@@ -291,7 +286,6 @@ void dfft_cuda_redistribute_nd( dfft_plan *plan,int stage, int size_in, int *emb
     // copy back received data
     hipMemcpy(plan->d_scratch_2,plan->h_stage_out, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
     if (plan->check_cuda_errors) CHECK_CUDA();
-    #endif
 
     /* unpack data */
     if (dir)
@@ -441,11 +435,6 @@ void dfft_cuda_redistribute_block_to_cyclic_1d(
     MPI_Barrier(comm);
 
     /* communicate */
-    #ifdef ENABLE_MPI_CUDA
-    MPI_Alltoallv(d_scratch,dfft_nsend, dfft_offset_send, MPI_BYTE,
-                  d_work, dfft_nrecv, dfft_offset_recv, MPI_BYTE,
-                  comm);
-    #else
     // stage into host buf
     hipMemcpy(h_stage_in, d_scratch, sizeof(cuda_cpx_t)*npackets*size,hipMemcpyDefault);
     if (check_err) CHECK_CUDA();
@@ -457,7 +446,6 @@ void dfft_cuda_redistribute_block_to_cyclic_1d(
     // copy back received data
     hipMemcpy(d_work,h_stage_out, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
     if (check_err) CHECK_CUDA();
-    #endif
     }
 
 /* Redistribute from group-cyclic with cycle c0 to cycle c0>=c1
@@ -661,11 +649,6 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
 
         /* perform communication */
         MPI_Barrier(comm);
-        #ifdef ENABLE_MPI_CUDA
-        MPI_Alltoallv(d_scratch,dfft_nsend, dfft_offset_send, MPI_BYTE,
-                      d_work, dfft_nrecv, dfft_offset_recv, MPI_BYTE,
-                      comm);
-        #else
         // stage into host buf
         hipMemcpy(h_stage_in, d_scratch, sizeof(cuda_cpx_t)*length*stride,hipMemcpyDefault);
         if (check_err) CHECK_CUDA();
@@ -677,17 +660,11 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
         // copy back received data
         hipMemcpy(d_work,h_stage_out, sizeof(cuda_cpx_t)*npackets*size,hipMemcpyDefault);
         if (check_err) CHECK_CUDA();
-        #endif
         }
     else
         {
         /* perform communication */
         MPI_Barrier(comm);
-        #ifdef ENABLE_MPI_CUDA
-        MPI_Alltoallv(d_work,dfft_nsend, dfft_offset_send, MPI_BYTE,
-                      d_scratch, dfft_nrecv, dfft_offset_recv, MPI_BYTE,
-                      comm);
-        #else
         // stage into host buf
         hipMemcpy(h_stage_in, d_work, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
         if (check_err) CHECK_CUDA();
@@ -1123,29 +1100,6 @@ int dfft_cuda_create_plan(dfft_plan *p,
     int res = dfft_create_plan_common(p, ndim, gdim, inembed, oembed,
         pdim, pidx, row_m, input_cyclic, output_cyclic, comm, proc_map, 1);
 
-    #ifndef ENABLE_MPI_CUDA
-    /* allocate staging bufs */
-    /* we need to use posix_memalign/hipHostRegister instead
-     * of hipHostMalloc, because hipHostMalloc doesn't have hooks
-     * in the MPI library, and using it would lead to data corruption
-     */
-    int size = (unsigned int)(p->scratch_size*sizeof(cuda_cpx_t));
-    int page_size = getpagesize();
-    size = ((size + page_size - 1) / page_size) * page_size;
-    int retval = posix_memalign((void **)&(p->h_stage_in),page_size,size);
-    if (retval != 0)
-        return 1;
-
-    retval = posix_memalign((void **)&(p->h_stage_out),page_size,size);
-    if (retval != 0)
-        return 1;
-
-    hipHostRegister(p->h_stage_in, size, hipHostMallocDefault);
-    CHECK_CUDA();
-    hipHostRegister(p->h_stage_out, size, hipHostMallocDefault);
-    CHECK_CUDA();
-    #endif
-
     /* allocate memory for passing variables */
    hipMalloc((void **)&(p->d_pidx), sizeof(int)*ndim);
     CHECK_CUDA();
@@ -1221,13 +1175,6 @@ int dfft_cuda_create_plan(dfft_plan *p,
 void dfft_cuda_destroy_plan(dfft_plan plan)
     {
     dfft_destroy_plan_common(plan, 1);
-
-    #ifndef ENABLE_MPI_CUDA
-    hipHostUnregister(plan.h_stage_in);
-    hipHostUnregister(plan.h_stage_out);
-    free(plan.h_stage_in);
-    free(plan.h_stage_out);
-    #endif
 
     int dmax = plan.max_depth + 2;
     int d;

@@ -247,13 +247,6 @@ Other option changes take effect at any time:
   - When set to ``on``, multi-processor/multi-GPU simulations are supported.
   - When set to ``off`` (the default), always run in single-processor/single-GPU mode.
 
-- ``ENABLE_MPI_CUDA`` - Enable CUDA-aware MPI library support.
-
-  - Requires a MPI library with CUDA support to be installed.
-  - When set to ``on``, **HOOMD-blue** will make use of the capability of the MPI library to
-    accelerate CUDA-buffer transfers.
-  - When set to ``off``, standard MPI calls will be used.
-
 - ``ENABLE_TBB`` - Enable support for Intel's Threading Building Blocks (TBB).
 
   - When set to ``on``, **HOOMD-blue** will use TBB to speed up calculations in some classes on

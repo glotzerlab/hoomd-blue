@@ -42,10 +42,6 @@ std::string BuildInfo::getCompileFlags()
     o << "MPI ";
 #endif
 
-#ifdef ENABLE_MPI_CUDA
-    o << "MPI_CUDA ";
-#endif
-
 #ifdef ENABLE_TBB
     o << "TBB ";
 #endif

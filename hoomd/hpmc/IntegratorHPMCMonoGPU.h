@@ -1636,17 +1636,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     if (m_ntrial_comm)
                         {
 // reduce free energy across rows (depletants)
-#ifdef ENABLE_MPI_CUDA
-                        ArrayHandle<int> d_deltaF_int(m_deltaF_int,
-                                                      access_location::device,
-                                                      access_mode::readwrite);
-                        MPI_Allreduce(MPI_IN_PLACE,
-                                      d_deltaF_int.data,
-                                      this->m_pdata->getMaxN() * this->m_pdata->getNTypes(),
-                                      MPI_INT,
-                                      MPI_SUM,
-                                      (*m_ntrial_comm)());
-#else
                         ArrayHandle<int> h_deltaF_int(m_deltaF_int,
                                                       access_location::host,
                                                       access_mode::readwrite);
@@ -1656,7 +1645,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                       MPI_INT,
                                       MPI_SUM,
                                       (*m_ntrial_comm)());
-#endif
                         }
 #endif
 
@@ -1664,17 +1652,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                     if (m_particle_comm)
                         {
 // reduce free energy across columns (particles)
-#ifdef ENABLE_MPI_CUDA
-                        ArrayHandle<int> d_deltaF_int(m_deltaF_int,
-                                                      access_location::device,
-                                                      access_mode::readwrite);
-                        MPI_Allreduce(MPI_IN_PLACE,
-                                      d_deltaF_int.data,
-                                      this->m_pdata->getMaxN() * this->m_pdata->getNTypes(),
-                                      MPI_INT,
-                                      MPI_SUM,
-                                      (*m_particle_comm)());
-#else
                         ArrayHandle<int> h_deltaF_int(m_deltaF_int,
                                                       access_location::host,
                                                       access_mode::readwrite);
@@ -1684,7 +1661,6 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                       MPI_INT,
                                       MPI_SUM,
                                       (*m_particle_comm)());
-#endif
                         }
 #endif
 
