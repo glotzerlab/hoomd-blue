@@ -30,6 +30,7 @@ v3.5.0 (not yet released)
 * Add missing ``Autotuned.h`` header file.
 * External components build correctly when ``ENABLE_MPI=on`` or ``ENABLE_GPU=on``.
 * Type parameter validation when items contain ``numpy.ndarray`` elements.
+* Compile with CUDA 12.0.
 
 *Deprecated*
 
