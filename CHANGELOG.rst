@@ -20,7 +20,6 @@ v3.5.0 (not yet released)
 *Changed*
 
 * Raise an error when initializing with duplicate types.
-* ``hpmc.compute.SDF`` now computes pressures of systems of concave particles.
 * ``hpmc.compute.SDF`` now computes pressures of systems with patch interactions.
 * Raise descriptive error messages when the shared memory request exceeds that available on the GPU.
 
@@ -30,6 +29,7 @@ v3.5.0 (not yet released)
 * Memory allocation errors in C++ now result in ``MemoryError`` exceptions in Python.
 * Add missing ``Autotuned.h`` header file.
 * External components build correctly when ``ENABLE_MPI=on`` or ``ENABLE_GPU=on``.
+* Type parameter validation when items contain ``numpy.ndarray`` elements.
 
 *Deprecated*
 
