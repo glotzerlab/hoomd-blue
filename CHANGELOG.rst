@@ -4,6 +4,22 @@
 Change Log
 ==========
 
+v4.x
+----
+
+v4.0.0 (net yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+*Changed*
+
+*Fixed*
+
+*Removed*
+
+* ``fix_cudart_rpath`` CMake macro.
+
 v3.x
 ----
 
