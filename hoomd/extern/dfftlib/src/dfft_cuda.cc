@@ -676,7 +676,6 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
         // copy back received data
         hipMemcpy(d_scratch,h_stage_out, sizeof(cuda_cpx_t)*npackets*size,hipMemcpyDefault);
         if (check_err) CHECK_CUDA();
-        #endif
 
         /* unpack */
         gpu_c2b_unpack(npackets*size, length, c0, c1, size, j0_new_local, stride, rev, d_work, d_scratch);
