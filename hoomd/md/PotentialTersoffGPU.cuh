@@ -277,7 +277,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             unsigned int typpair
                 = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
             Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type& param = s_params[typpair];
+            const typename evaluator::param_type& param = s_params[typpair];
 
             // compute the base repulsive and attractive terms of the potential
             Scalar invratio = 0.0;
@@ -496,7 +496,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type& param = s_params[typpair];
+                const typename evaluator::param_type& param = s_params[typpair];
 
                 evaluator eval(rij_sq, rcutsq, param);
                 eval.evalPhi(s_phi_ab[threadIdx.x * ntypes + __scalar_as_int(postypej.w)]);
@@ -518,7 +518,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                     {
                     unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
                     Scalar rcutsq = s_rcutsq[typpair];
-                    typename evaluator::param_type& param = s_params[typpair];
+                    const typename evaluator::param_type& param = s_params[typpair];
 
                     evaluator eval(Scalar(0.0), rcutsq, param);
                     Scalar energy(0.0);
@@ -575,7 +575,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             unsigned int typpair
                 = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
             Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type& param = s_params[typpair];
+            const typename evaluator::param_type& param = s_params[typpair];
 
             // compute the base repulsive and attractive terms of the potential
             Scalar fR = Scalar(0.0);
