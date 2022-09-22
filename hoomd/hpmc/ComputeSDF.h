@@ -557,9 +557,17 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                             bool do_compression = true;
                             bool do_expansion = true;
                             for (size_t bin_to_sample = 0;
-                                 bin_to_sample < std::max(m_hist.size(), m_hist_expansion.size());
+                                 bin_to_sample < std::max(min_bin_compression, min_bin_expansion);
                                  bin_to_sample++)
                                 {
+                                if (bin_to_sample >= min_bin_compression)
+                                    {
+                                    do_compression = false;
+                                    }
+                                if (bin_to_sample >= min_bin_expansion)
+                                    {
+                                    do_expansion = false;
+                                    }
                                 const double scale_factor
                                     = m_dx * static_cast<double>(bin_to_sample + 1);
                                 const double expansion_scale_factor
