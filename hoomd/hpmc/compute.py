@@ -377,5 +377,5 @@ class SDF(Compute):
             # perform the fit and extrapolation
             p = numpy.polyfit(x_fit, sdf_fit_expansion, 5)
             p0_expansion = numpy.polyval(p, 0.0)
-            expansion_contribution = rho * p0_expansion / (2 * box.dimensions)
+            expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
         return rho + compression_contribution + expansion_contribution
