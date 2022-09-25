@@ -173,7 +173,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
             }
         }
 
-    /// Get the mod eused for the energy shifting
+    /// Get the mode used for the energy shifting
     std::string getShiftMode()
         {
         switch (m_shift_mode)
