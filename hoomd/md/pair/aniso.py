@@ -506,3 +506,46 @@ class ALJ(AnisotropicPair):
         log shape for visualization and storage through the GSD file type.
         """
         return self._return_type_shapes()
+
+
+class JanusLJ(AnisotropicPair):
+    r"""Janus Lennard-Jones pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        mode (str): energy shifting/smoothing mode.
+
+    `JanusPair` computes the
+
+    Defined in `Beltran-Villegas et. al.`_.
+
+    .. _Beltran-Villegas et. al.: http://dx.doi.org/10.1039/C3SM53136H
+
+    """
+    _cpp_class_name = "AnisoPotentialPairGB"
+
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              lperp=float,
+                              lpar=float,
+                              len_keys=2))
+        self._add_typeparam(params)
+
+    @log(category="object")
+    def type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> gay_berne.type_shapes
+            [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.0, 'c': 1.5}]
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super()._return_type_shapes()
+
