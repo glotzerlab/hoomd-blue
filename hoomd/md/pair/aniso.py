@@ -443,11 +443,7 @@ class ALJ(AnisotropicPair):
           dimensions. The third dimension in 2D is ignored.
         * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
           **required**) - The semimajor axes of a rounding ellipsoid. If a
-          single value is specified, the rounding ellipsoid is a sphere.
-
-          Warning:
-              ``rounding_radii`` was given a default value of 0.0 in version 3.5.1.
-
+          single value is specified, the rounding ellipsoid is a sphere. Defaults to 0.0.
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
           polyhedron specified as a list of list of integers.  The indices
           corresponding to the vertices must be ordered counterclockwise with
