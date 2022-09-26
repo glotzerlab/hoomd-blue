@@ -444,6 +444,10 @@ class ALJ(AnisotropicPair):
         * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
           **required**) - The semimajor axes of a rounding ellipsoid. If a
           single value is specified, the rounding ellipsoid is a sphere.
+
+          Warning:
+              ``rounding_radii`` was given a default value of 0.0 in version 3.5.1.
+
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
           polyhedron specified as a list of list of integers.  The indices
           corresponding to the vertices must be ordered counterclockwise with
@@ -477,7 +481,8 @@ class ALJ(AnisotropicPair):
                               rounding_radii=OnlyIf(
                                   to_type_converter((float, float, float)),
                                   preprocess=self._to_three_tuple),
-                              len_keys=1))
+                              len_keys=1,
+                              _defaults = {'rounding_radii', 0.0}))
 
         self._extend_typeparam((params, shape))
 
