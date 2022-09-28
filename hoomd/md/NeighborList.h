@@ -7,6 +7,7 @@
 #include "hoomd/GlobalArray.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/MeshDefinition.h"
+#include "hoomd/PythonLocalDataAccess.h"
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
@@ -302,19 +303,19 @@ class PYBIND11_EXPORT NeighborList : public Compute
     // @{
 
     //! Get the number of neighbors array
-    const GlobalArray<unsigned int>& getNNeighArray()
+    const GlobalArray<unsigned int>& getNNeighArray() const
         {
         return m_n_neigh;
         }
 
     //! Get the neighbor list
-    const GlobalArray<unsigned int>& getNListArray()
+    const GlobalArray<unsigned int>& getNListArray() const
         {
         return m_nlist;
         }
 
     //! Get the head list
-    const GlobalArray<size_t>& getHeadList()
+    const GlobalArray<size_t>& getHeadList() const
         {
         return m_head_list;
         }
@@ -496,8 +497,19 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_typpair_idx;
         }
 
+    unsigned int getN() const
+        {
+        return m_pdata->getN();
+        }
+
+    unsigned int getNGhosts() const
+        {
+        return m_pdata->getNGhosts();
+        }
+
     // Python API for accessing nlist neighbors
-    std::vector<std::pair<unsigned int, unsigned int>> getPairListPython(uint64_t timestep);
+    pybind11::array_t<uint32_t> getLocalPairListPython(uint64_t timestep);
+    pybind11::array_t<uint32_t> getPairListNaivePython(uint64_t timestep);
     /// Validate that types are within Ntypes
     void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
     //! Set the rcut for a single type pair
@@ -699,6 +711,80 @@ class PYBIND11_EXPORT NeighborList : public Compute
     GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
 #endif
     };
+
+/** Make the local particle data available to python via zero-copy access
+ *
+ * */
+template<class Output>
+class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, NeighborList>
+    {
+    public:
+    LocalNeighborListData(NeighborList& data)
+        : LocalDataAccess<Output, NeighborList>(data), m_nlist_handle(), m_head_list_handle(),
+          m_n_neigh_handle()
+        {
+        }
+
+    virtual ~LocalNeighborListData() = default;
+
+    Output getHeadList(GhostDataFlag flag)
+        {
+        return this->template getBuffer<size_t, unsigned long>(m_head_list_handle,
+                                                         &NeighborList::getHeadList,
+                                                         flag,
+                                                         false,
+                                                         0);
+        }
+
+    Output getNNeigh(GhostDataFlag flag)
+        {
+        return this->template getBuffer<unsigned int, unsigned int>(m_n_neigh_handle,
+                                                         &NeighborList::getNNeighArray,
+                                                         flag,
+                                                         false,
+                                                         0);
+        }
+
+    Output getNList(GhostDataFlag flag)
+        {
+        auto size = (unsigned int)this->m_data.getNListArray().getNumElements();
+        return this->template getBufferExplicitSize<unsigned int, unsigned int>(m_nlist_handle,
+                                                         &NeighborList::getNListArray,
+                                                         false,
+                                                         size,
+                                                         0);
+        }
+
+    protected:
+    void clear()
+        {
+        m_head_list_handle.reset(nullptr);
+        m_nlist_handle.reset(nullptr);
+        m_n_neigh_handle.reset(nullptr);
+        }
+
+    private:
+    std::unique_ptr<ArrayHandle<unsigned int>> m_nlist_handle;
+    std::unique_ptr<ArrayHandle<size_t>> m_head_list_handle;
+    std::unique_ptr<ArrayHandle<unsigned int>> m_n_neigh_handle;
+    };
+
+namespace detail
+    {
+
+    template<class Output> void export_LocalNeighborListData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalNeighborListData<Output>, std::shared_ptr<LocalNeighborListData<Output>>>(
+        m,
+        name.c_str())
+        .def(pybind11::init<NeighborList&>())
+        .def("getNList", &LocalNeighborListData<Output>::getNList)
+        .def("getHeadList", &LocalNeighborListData<Output>::getHeadList)
+        .def("getNNeigh", &LocalNeighborListData<Output>::getNNeigh)
+        .def("enter", &LocalNeighborListData<Output>::enter)
+        .def("exit", &LocalNeighborListData<Output>::exit);
+    };
+    } // end namespace detail
 
     } // end namespace md
     } // end namespace hoomd

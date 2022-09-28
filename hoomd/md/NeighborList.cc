@@ -1764,16 +1764,53 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
-// Python API for accessing nlist neighbors
-// TODO proably should make a CUDA impl? Is this already OK with MPI?
-std::vector<std::pair<unsigned int, unsigned int>>
-NeighborList::getPairListPython(uint64_t timestep)
+pybind11::array_t<uint32_t>
+NeighborList::getLocalPairListPython(uint64_t timestep)
     {
-    // It would be nice to remove the timestep arguement, can we safely assume the user wants to
-    // check the current timestep ()
-    compute(timestep); // HELP Should this be here? Or should the user be responsible for calling?
+    compute(timestep);
 
-    std::vector<std::pair<unsigned int, unsigned int>> pair_list;
+    ArrayHandle<unsigned int> h_n_neigh(getNNeighArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(getNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(getHeadList(), access_location::host, access_mode::read);
+
+    auto *pair_list = new std::vector<vec2<uint32_t>>();
+
+    pybind11::capsule free_when_done(pair_list, [](void *f) {
+        auto data = reinterpret_cast<std::vector<vec2<uint32_t>> *>(f);
+        delete data;
+    });
+
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        const size_t myHead = h_head_list.data[i];
+        const unsigned int size = h_n_neigh.data[i];
+        for (unsigned int k = 0; k < size; k++)
+            {
+            const unsigned int j = h_nlist.data[myHead + k];
+
+            pair_list->push_back(vec2(i, j));
+            }
+        }
+
+    unsigned long shape[] = {pair_list->size(), 2};
+    unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
+
+    return pybind11::array_t(shape, // shape
+                          stride,      // stride
+                          (uint32_t*)pair_list->data(),   // data pointer
+                          free_when_done);
+    }
+
+pybind11::array_t<uint32_t>
+NeighborList::getPairListNaivePython(uint64_t timestep)
+    {
+    compute(timestep);
+
+
+#ifdef ENABLE_MPI
+    // if we are not the root processor, return None
+    bool root = m_exec_conf->isRoot();
+#endif
 
     ArrayHandle<unsigned int> h_n_neigh(getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(getNListArray(), access_location::host, access_mode::read);
@@ -1783,6 +1820,10 @@ NeighborList::getPairListPython(uint64_t timestep)
                                       access_location::host,
                                       access_mode::read);
 
+    auto *pair_list = new std::vector<vec2<uint32_t>>();
+    pair_list->reserve(m_pdata->getN());  // it's probably a good idea to do some upfront allocation?
+
+    // do I need 
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         unsigned int tag_i = h_rtags.data[i];
@@ -1791,18 +1832,129 @@ NeighborList::getPairListPython(uint64_t timestep)
         for (unsigned int k = 0; k < size; k++)
             {
             const unsigned int j = h_nlist.data[myHead + k];
+            assert(j < m_pdata->getN() + m_pdata->getNGhosts());
             const unsigned int tag_j = h_rtags.data[j];
 
-            // HELP filter by cutoff, but which to choose??
-            // Use base cutoffs? Or expand parameters to allow
-
-            pair_list.push_back(std::make_pair(tag_i, tag_j));
+            pair_list->push_back(vec2(tag_i, tag_j));
             }
         }
 
-    // HELP Should we cache the pair list so it's returned on multiple invocations?
+    pair_list->shrink_to_fit();
 
-    return pair_list;
+#ifdef ENABLE_MPI
+
+    uint32_t *global_pair_list;
+    pybind11::capsule free_when_done;
+    unsigned long shape[] = {0, 2};  // first index needs to be set later
+    unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
+
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto n_pairs = (int)pair_list->size();
+        std::vector<int> *global_n_pairs;
+        void *recvbuf = nullptr;
+        if (root)
+            {
+            global_n_pairs = new std::vector<int>();
+            global_n_pairs->reserve(m_exec_conf->getNRanks());
+            recvbuf = global_n_pairs->data();
+            }
+            
+        // Use a gather command to get the number of pairs on each processor
+        MPI_Gather(&n_pairs,
+                   1,
+                   MPI_INT,
+                   recvbuf,
+                   1,
+                   MPI_INT,
+                   0,
+                   m_exec_conf->getMPICommunicator());
+
+        // Allocate array to hold the offsets
+        std::vector<int> *offsets;
+        int *recvcount = nullptr;
+        int *displs = nullptr;
+        int total_pairs = 0;
+        if (root)
+            {
+            offsets = new std::vector<int>();
+            offsets->reserve(m_exec_conf->getNRanks());
+            offsets->push_back(0);
+            total_pairs = global_n_pairs->data()[0];
+            for (unsigned int i = 1; i < m_exec_conf->getNRanks(); i++)
+                {
+                offsets->push_back(offsets->data()[i - 1] + global_n_pairs->data()[i - 1]);
+                total_pairs += global_n_pairs->data()[i - 1];
+                }
+            recvcount = global_n_pairs->data();
+            displs = offsets->data();
+            }
+        
+        // Use a gatherv command to produce the global_pair_list
+        global_pair_list = (uint32_t*)malloc(2 * sizeof(uint32_t) * total_pairs);
+        shape[0] = total_pairs;
+
+        free_when_done = pybind11::capsule(global_pair_list, [](void *f) {
+            auto data = reinterpret_cast<uint32_t*>(f);
+            free(data);
+        });
+        
+        MPI_Gatherv(pair_list->data(),
+                    n_pairs*2,
+                    MPI_UINT32_T,
+                    global_pair_list,
+                    recvcount,
+                    displs,
+                    MPI_UINT32_T,
+                    0,
+                    m_exec_conf->getMPICommunicator());
+        
+        // cleanup allocations
+        delete pair_list;
+        if (root)
+            {
+            delete global_n_pairs;
+            delete offsets;
+            }
+        }
+    else
+        {
+        global_pair_list = (uint32_t*)pair_list->data();
+        shape[0] = pair_list->size();
+        free_when_done = pybind11::capsule(pair_list, [](void *f) {
+            auto data = reinterpret_cast<std::vector<vec2<uint32_t>> *>(f);
+            delete data;
+        });
+        }
+
+    if (root)
+        {
+        return pybind11::array_t(shape, // shape
+                                 stride,      // stride
+                                 global_pair_list,   // data pointer
+                                 free_when_done);
+        }
+    else
+        {
+        return pybind11::none();
+        }
+
+#else
+    auto *global_pair_list = pair_list;
+
+    pybind11::capsule free_when_done(pair_list, [](void *f) {
+        auto data = reinterpret_cast<std::vector<vec2<uint32_t>> *>(f);
+        delete data;
+    });
+
+    unsigned long shape[] = {global_pair_list->size(), 2};
+    unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
+
+    return pybind11::array_t(shape, // shape
+                             stride,      // stride
+                             (uint32_t*)global_pair_list->data(),   // data pointer
+                             free_when_done);
+#endif
     }
 
 void NeighborList::validateTypes(unsigned int typ1, unsigned int typ2, std::string action)
@@ -1879,7 +2031,8 @@ void export_NeighborList(pybind11::module& m)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions)
         .def_property_readonly("num_builds", &NeighborList::getNumUpdates)
-        .def("getPairList", &NeighborList::getPairListPython)
+        .def("getLocalPairList", &NeighborList::getLocalPairListPython)
+        .def("getPairList", &NeighborList::getPairListNaivePython)
         .def("getStorageMode", &NeighborList::getStorageMode)
         .def("setRCut", &NeighborList::setRCutPython)
         .def("getRCut", &NeighborList::getRCut);
@@ -1888,7 +2041,19 @@ void export_NeighborList(pybind11::module& m)
         .value("half", NeighborList::storageMode::half)
         .value("full", NeighborList::storageMode::full)
         .export_values();
-    }
+    };
+
+void export_LocalNeighborListDataHost(pybind11::module& m)
+    {
+        export_LocalNeighborListData<HOOMDHostBuffer>(m, "LocalNeighborListDataHost");
+    };
+
+#if ENABLE_HIP
+void export_LocalNeighborListDataGPU(pybind11::module& m)
+    {
+        export_LocalNeighborListData<HOOMDDeviceBuffer>(m, "LocalNeighborListDataDevice");
+    };
+#endif
 
     } // end namespace detail
     } // end namespace md

@@ -296,6 +296,38 @@ template<class Output, class Data> class LocalDataAccess
         return Output::make(data, shape, strides, read_only);
         }
 
+    template<class T, class S, template<class> class U = GlobalArray>
+    Output getBufferExplicitSize(std::unique_ptr<ArrayHandle<T>>& handle,
+                     const U<T>& (Data::*get_array_func)() const,
+                     bool bufferWriteable,
+                     unsigned int size,
+                     unsigned int second_dimension_size = 0,
+                     ssize_t offset = 0,
+                     std::vector<ssize_t> strides = {})
+        {
+        checkManager();
+
+        bool read_only = !bufferWriteable;
+
+        updateHandle(handle, get_array_func, read_only);
+
+        T* _data = handle.get()->data;
+
+        S* data = (S*)(((char*)_data) + offset);
+
+        std::vector<ssize_t> shape {size, second_dimension_size};
+        if (strides.size() == 0 && second_dimension_size == 0)
+            {
+            shape.pop_back();
+            strides = std::vector<ssize_t>({sizeof(T)});
+            }
+        else if (strides.size() == 0 && second_dimension_size != 0)
+            {
+            strides = std::vector<ssize_t>({sizeof(T), sizeof(S)});
+            }
+        return Output::make(data, shape, strides, read_only);
+        }
+
     /// Convert Global/GPUArray or vector into an Ouput object for Python
     /** This function is for arrays that are of a size equal to their global
      *  size. An example is the reverse tag index. On each MPI rank or GPU,
@@ -338,6 +370,9 @@ template<class Output, class Data> class LocalDataAccess
     // handle can be released for other objects.
     virtual void clear() = 0;
 
+    /// object to access array data from
+    Data& m_data;
+
     private:
     /// Ensure that arrays are not accessed outside context manager.
     inline void checkManager()
@@ -362,8 +397,6 @@ template<class Output, class Data> class LocalDataAccess
             }
         }
 
-    /// object to access array data from
-    Data& m_data;
     /// flag for being inside Python context manager
     bool m_in_manager;
     };

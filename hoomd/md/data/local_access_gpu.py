@@ -5,8 +5,10 @@
 
 import hoomd
 from hoomd import _hoomd
+from hoomd.md import _md
 from hoomd.data.array import HOOMDGPUArray
-from hoomd.md.data.local_access import _ForceLocalAccessBase
+from hoomd.md.data.local_access import _ForceLocalAccessBase, \
+    _NeighborListLocalAccessBase
 
 if hoomd.version.gpu_enabled:
 
@@ -15,10 +17,19 @@ if hoomd.version.gpu_enabled:
         _cpp_cls = _hoomd.LocalForceComputeDataDevice
         _array_cls = HOOMDGPUArray
 
+    class NeighborListLocalAccessGPU(_NeighborListLocalAccessBase):
+        """Access neighbor list array data on the GPU."""
+        _cpp_cls = _md.LocalNeighborListDataDevice
+        _array_cls = HOOMDGPUArray
+
 else:
     from hoomd.util import _NoGPU
 
     class ForceLocalAccessGPU(_NoGPU):
+        """GPU data access is not available in CPU builds."""
+        pass
+
+    class NeighborListLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
@@ -38,3 +49,17 @@ Attributes:
 """
 
 ForceLocalAccessGPU.__doc__ = _gpu_force_access_docs
+# TODO fix docs
+_gpu_nlist_access_docs = """
+Access HOOMD-Blue neighbor list data buffers on the GPU.
+
+Attributes:
+    head_list ((N_particles,) `hoomd.data.array` of ``int``):
+        Local force data. :math:`[\\mathrm{force}]`
+    n_neigh ((N_particles,) `hoomd.data.array` of ``int``):
+        Local potential energy data. :math:`[\\mathrm{energy}]`
+    nlist ((N_particles, 3) `hoomd.data.array` of ``int``):
+        Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
+"""
+
+NeighborListLocalAccessGPU.__doc__ = _gpu_nlist_access_docs

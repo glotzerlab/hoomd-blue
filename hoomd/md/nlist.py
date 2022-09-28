@@ -58,13 +58,14 @@ of exclusions. The valid exclusion types are:
   (j,k), and (k,m).
 """
 
+import hoomd
+from hoomd.md import _md
 import hoomd.device
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, nonnegative_real
 from hoomd.logging import log
 from hoomd.mesh import Mesh
-from hoomd.md import _md
 from hoomd.operation import Compute
 
 
@@ -114,18 +115,65 @@ class NeighborList(Compute):
 
         self._mesh = validate_mesh(mesh)
 
+        self._in_context_manager = False
+
     def _attach(self):
         if self._mesh is not None:
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
         super()._attach()
 
-    @log(requires_run=True)
+    @property
+    def cpu_local_nlist_arrays(self):
+        """hoomd.md.data.NeighborListLocalAccess: Expose nlist arrays on the
+        CPU.
+
+        TODO.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("cpu_local_nlist_arrays")
+        if self._in_context_manager:
+            raise RuntimeError("Cannot enter cpu_local_nlist_arrays context "
+                               "manager inside another local_nlist_arrays "
+                               "context manager")
+        return hoomd.md.data.NeighborListLocalAccess(self)
+
+    @property
+    def gpu_local_nlist_arrays(self):
+        """hoomd.md.data.NeighborListLocalAccessGPU: Expose nlist arrays on the
+        GPU.
+
+        TODO.
+        """
+        if not isinstance(self._simulation.device, hoomd.device.GPU):
+            raise RuntimeError(
+                "Cannot access gpu_local_nlist_arrays without a GPU device")
+        if not self._attached:
+            raise hoomd.error.DataAccessError("gpu_local_nlist_arrays")
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter gpu_local_nlist_arrays context manager inside "
+                "another local_nlist_arrays context manager")
+        return hoomd.md.data.NeighborListLocalAccessGPU(self)
+
+    @property
+    def local_pair_list(self):
+        """Local-pair-list property.
+
+        TODO.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("local_pair_list")
+        return self._cpp_obj.getLocalPairList(self._simulation.timestep)
+
+    @property
     def pair_list(self):
         """Pair-list property.
 
         TODO.
         """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("pair_list")
         return self._cpp_obj.getPairList(self._simulation.timestep)
 
     @log(requires_run=True)

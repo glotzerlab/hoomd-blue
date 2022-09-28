@@ -40,6 +40,7 @@ void export_ForceComposite(pybind11::module& m);
 void export_PPPMForceCompute(pybind11::module& m);
 void export_wall_data(pybind11::module& m);
 void export_wall_field(pybind11::module& m);
+void export_LocalNeighborListDataHost(pybind11::module& m);
 
 void export_PotentialPairBuckingham(pybind11::module& m);
 void export_PotentialPairLJ(pybind11::module& m);
@@ -174,6 +175,7 @@ void export_NeighborListGPUTree(pybind11::module& m);
 void export_ForceDistanceConstraintGPU(pybind11::module& m);
 void export_ForceCompositeGPU(pybind11::module& m);
 void export_PPPMForceComputeGPU(pybind11::module& m);
+void export_LocalNeighborListDataGPU(pybind11::module& m);
 
 void export_PotentialPairBuckinghamGPU(pybind11::module& m);
 void export_PotentialPairLJGPU(pybind11::module& m);
@@ -355,6 +357,7 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
     export_PPPMForceCompute(m);
+    export_LocalNeighborListDataHost(m);
 
     export_PotentialExternalPeriodic(m);
     export_PotentialExternalElectricField(m);
@@ -375,6 +378,7 @@ PYBIND11_MODULE(_md, m)
     export_NeighborListGPUStencil(m);
     export_NeighborListGPUTree(m);
     export_ForceCompositeGPU(m);
+    export_LocalNeighborListDataGPU(m);
 
     export_PotentialPairBuckinghamGPU(m);
     export_PotentialPairLJGPU(m);

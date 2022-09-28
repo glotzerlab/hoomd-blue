@@ -3,9 +3,11 @@
 
 """Implement local access classes for the CPU."""
 
-from hoomd.md.data.local_access import _ForceLocalAccessBase
+from hoomd.md.data.local_access import _ForceLocalAccessBase, \
+    _NeighborListLocalAccessBase
 from hoomd.data.array import HOOMDArray
 from hoomd import _hoomd
+from hoomd.md import _md
 
 
 class ForceLocalAccess(_ForceLocalAccessBase):
@@ -23,4 +25,20 @@ class ForceLocalAccess(_ForceLocalAccessBase):
     """
 
     _cpp_cls = _hoomd.LocalForceComputeDataHost
+    _array_cls = HOOMDArray
+
+
+class NeighborListLocalAccess(_NeighborListLocalAccessBase):
+    """Access HOOMD-Blue neighbor list data buffers on the CPU.
+
+    Attributes:
+        head_list ((N_particles,) `hoomd.data.array` of ``int``):
+            Local force data. :math:`[\\mathrm{force}]`
+        n_neigh ((N_particles,) `hoomd.data.array` of ``int``):
+            Local potential energy data. :math:`[\\mathrm{energy}]`
+        nlist (() `hoomd.data.array` of ``int``):
+            Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
+    """
+
+    _cpp_cls = _md.LocalNeighborListDataHost
     _array_cls = HOOMDArray
