@@ -7,10 +7,6 @@ Change Log
 v3.x
 ----
 
-*Added*
-* For the ALJ potential, ``shape.rounding_radii`` now defaults to 0.0.
-
-
 v3.5.0 (2022-09-14)
 ^^^^^^^^^^^^^^^^^^^
 
