@@ -1764,8 +1764,7 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
-pybind11::array_t<uint32_t>
-NeighborList::getLocalPairListPython(uint64_t timestep)
+pybind11::array_t<uint32_t> NeighborList::getLocalPairListPython(uint64_t timestep)
     {
     compute(timestep);
 
@@ -1773,12 +1772,15 @@ NeighborList::getLocalPairListPython(uint64_t timestep)
     ArrayHandle<unsigned int> h_nlist(getNListArray(), access_location::host, access_mode::read);
     ArrayHandle<size_t> h_head_list(getHeadList(), access_location::host, access_mode::read);
 
-    auto *pair_list = new std::vector<vec2<uint32_t>>();
+    auto* pair_list = new std::vector<vec2<uint32_t>>();
 
-    pybind11::capsule free_when_done(pair_list, [](void *f) {
-        auto data = reinterpret_cast<std::vector<vec2<uint32_t>> *>(f);
-        delete data;
-    });
+    pybind11::capsule free_when_done(pair_list,
+                                     [](void* f)
+                                     {
+                                         auto data
+                                             = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                         delete data;
+                                     });
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -1795,17 +1797,15 @@ NeighborList::getLocalPairListPython(uint64_t timestep)
     unsigned long shape[] = {pair_list->size(), 2};
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
 
-    return pybind11::array_t(shape, // shape
-                          stride,      // stride
-                          (uint32_t*)pair_list->data(),   // data pointer
-                          free_when_done);
+    return pybind11::array_t(shape,                        // shape
+                             stride,                       // stride
+                             (uint32_t*)pair_list->data(), // data pointer
+                             free_when_done);
     }
 
-pybind11::array_t<uint32_t>
-NeighborList::getPairListNaivePython(uint64_t timestep)
+pybind11::array_t<uint32_t> NeighborList::getPairListNaivePython(uint64_t timestep)
     {
     compute(timestep);
-
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, return None
@@ -1820,10 +1820,10 @@ NeighborList::getPairListNaivePython(uint64_t timestep)
                                       access_location::host,
                                       access_mode::read);
 
-    auto *pair_list = new std::vector<vec2<uint32_t>>();
-    pair_list->reserve(m_pdata->getN());  // it's probably a good idea to do some upfront allocation?
+    auto* pair_list = new std::vector<vec2<uint32_t>>();
+    pair_list->reserve(m_pdata->getN()); // it's probably a good idea to do some upfront allocation?
 
-    // do I need 
+    // do I need
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         unsigned int tag_i = h_rtags.data[i];
@@ -1843,37 +1843,30 @@ NeighborList::getPairListNaivePython(uint64_t timestep)
 
 #ifdef ENABLE_MPI
 
-    uint32_t *global_pair_list;
+    uint32_t* global_pair_list;
     pybind11::capsule free_when_done;
-    unsigned long shape[] = {0, 2};  // first index needs to be set later
+    unsigned long shape[] = {0, 2}; // first index needs to be set later
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
 
     if (m_sysdef->isDomainDecomposed())
         {
         auto n_pairs = (int)pair_list->size();
-        std::vector<int> *global_n_pairs;
-        void *recvbuf = nullptr;
+        std::vector<int>* global_n_pairs;
+        void* recvbuf = nullptr;
         if (root)
             {
             global_n_pairs = new std::vector<int>();
             global_n_pairs->reserve(m_exec_conf->getNRanks());
             recvbuf = global_n_pairs->data();
             }
-            
+
         // Use a gather command to get the number of pairs on each processor
-        MPI_Gather(&n_pairs,
-                   1,
-                   MPI_INT,
-                   recvbuf,
-                   1,
-                   MPI_INT,
-                   0,
-                   m_exec_conf->getMPICommunicator());
+        MPI_Gather(&n_pairs, 1, MPI_INT, recvbuf, 1, MPI_INT, 0, m_exec_conf->getMPICommunicator());
 
         // Allocate array to hold the offsets
-        std::vector<int> *offsets;
-        int *recvcount = nullptr;
-        int *displs = nullptr;
+        std::vector<int>* offsets;
+        int* recvcount = nullptr;
+        int* displs = nullptr;
         int total_pairs = 0;
         if (root)
             {
@@ -1889,18 +1882,20 @@ NeighborList::getPairListNaivePython(uint64_t timestep)
             recvcount = global_n_pairs->data();
             displs = offsets->data();
             }
-        
+
         // Use a gatherv command to produce the global_pair_list
         global_pair_list = (uint32_t*)malloc(2 * sizeof(uint32_t) * total_pairs);
         shape[0] = total_pairs;
 
-        free_when_done = pybind11::capsule(global_pair_list, [](void *f) {
-            auto data = reinterpret_cast<uint32_t*>(f);
-            free(data);
-        });
-        
+        free_when_done = pybind11::capsule(global_pair_list,
+                                           [](void* f)
+                                           {
+                                               auto data = reinterpret_cast<uint32_t*>(f);
+                                               free(data);
+                                           });
+
         MPI_Gatherv(pair_list->data(),
-                    n_pairs*2,
+                    n_pairs * 2,
                     MPI_UINT32_T,
                     global_pair_list,
                     recvcount,
@@ -1908,7 +1903,7 @@ NeighborList::getPairListNaivePython(uint64_t timestep)
                     MPI_UINT32_T,
                     0,
                     m_exec_conf->getMPICommunicator());
-        
+
         // cleanup allocations
         delete pair_list;
         if (root)
@@ -1921,17 +1916,20 @@ NeighborList::getPairListNaivePython(uint64_t timestep)
         {
         global_pair_list = (uint32_t*)pair_list->data();
         shape[0] = pair_list->size();
-        free_when_done = pybind11::capsule(pair_list, [](void *f) {
-            auto data = reinterpret_cast<std::vector<vec2<uint32_t>> *>(f);
-            delete data;
-        });
+        free_when_done
+            = pybind11::capsule(pair_list,
+                                [](void* f)
+                                {
+                                    auto data = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                    delete data;
+                                });
         }
 
     if (root)
         {
-        return pybind11::array_t(shape, // shape
-                                 stride,      // stride
-                                 global_pair_list,   // data pointer
+        return pybind11::array_t(shape,            // shape
+                                 stride,           // stride
+                                 global_pair_list, // data pointer
                                  free_when_done);
         }
     else
@@ -1940,19 +1938,22 @@ NeighborList::getPairListNaivePython(uint64_t timestep)
         }
 
 #else
-    auto *global_pair_list = pair_list;
+    auto* global_pair_list = pair_list;
 
-    pybind11::capsule free_when_done(pair_list, [](void *f) {
-        auto data = reinterpret_cast<std::vector<vec2<uint32_t>> *>(f);
-        delete data;
-    });
+    pybind11::capsule free_when_done(pair_list,
+                                     [](void* f)
+                                     {
+                                         auto data
+                                             = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                         delete data;
+                                     });
 
     unsigned long shape[] = {global_pair_list->size(), 2};
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
 
-    return pybind11::array_t(shape, // shape
-                             stride,      // stride
-                             (uint32_t*)global_pair_list->data(),   // data pointer
+    return pybind11::array_t(shape,                               // shape
+                             stride,                              // stride
+                             (uint32_t*)global_pair_list->data(), // data pointer
                              free_when_done);
 #endif
     }
@@ -2045,13 +2046,13 @@ void export_NeighborList(pybind11::module& m)
 
 void export_LocalNeighborListDataHost(pybind11::module& m)
     {
-        export_LocalNeighborListData<HOOMDHostBuffer>(m, "LocalNeighborListDataHost");
+    export_LocalNeighborListData<HOOMDHostBuffer>(m, "LocalNeighborListDataHost");
     };
 
 #if ENABLE_HIP
 void export_LocalNeighborListDataGPU(pybind11::module& m)
     {
-        export_LocalNeighborListData<HOOMDDeviceBuffer>(m, "LocalNeighborListDataDevice");
+    export_LocalNeighborListData<HOOMDDeviceBuffer>(m, "LocalNeighborListDataDevice");
     };
 #endif
 

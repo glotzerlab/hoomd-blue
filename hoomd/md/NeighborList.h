@@ -730,29 +730,30 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
     Output getHeadList(GhostDataFlag flag)
         {
         return this->template getBuffer<size_t, unsigned long>(m_head_list_handle,
-                                                         &NeighborList::getHeadList,
-                                                         flag,
-                                                         false,
-                                                         0);
+                                                               &NeighborList::getHeadList,
+                                                               flag,
+                                                               false,
+                                                               0);
         }
 
     Output getNNeigh(GhostDataFlag flag)
         {
         return this->template getBuffer<unsigned int, unsigned int>(m_n_neigh_handle,
-                                                         &NeighborList::getNNeighArray,
-                                                         flag,
-                                                         false,
-                                                         0);
+                                                                    &NeighborList::getNNeighArray,
+                                                                    flag,
+                                                                    false,
+                                                                    0);
         }
 
     Output getNList(GhostDataFlag flag)
         {
         auto size = (unsigned int)this->m_data.getNListArray().getNumElements();
-        return this->template getBufferExplicitSize<unsigned int, unsigned int>(m_nlist_handle,
-                                                         &NeighborList::getNListArray,
-                                                         false,
-                                                         size,
-                                                         0);
+        return this->template getBufferExplicitSize<unsigned int, unsigned int>(
+            m_nlist_handle,
+            &NeighborList::getNListArray,
+            false,
+            size,
+            0);
         }
 
     protected:
@@ -772,7 +773,7 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
 namespace detail
     {
 
-    template<class Output> void export_LocalNeighborListData(pybind11::module& m, std::string name)
+template<class Output> void export_LocalNeighborListData(pybind11::module& m, std::string name)
     {
     pybind11::class_<LocalNeighborListData<Output>, std::shared_ptr<LocalNeighborListData<Output>>>(
         m,

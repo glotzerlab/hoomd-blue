@@ -298,12 +298,12 @@ template<class Output, class Data> class LocalDataAccess
 
     template<class T, class S, template<class> class U = GlobalArray>
     Output getBufferExplicitSize(std::unique_ptr<ArrayHandle<T>>& handle,
-                     const U<T>& (Data::*get_array_func)() const,
-                     bool bufferWriteable,
-                     unsigned int size,
-                     unsigned int second_dimension_size = 0,
-                     ssize_t offset = 0,
-                     std::vector<ssize_t> strides = {})
+                                 const U<T>& (Data::*get_array_func)() const,
+                                 bool bufferWriteable,
+                                 unsigned int size,
+                                 unsigned int second_dimension_size = 0,
+                                 ssize_t offset = 0,
+                                 std::vector<ssize_t> strides = {})
         {
         checkManager();
 

@@ -125,8 +125,7 @@ class NeighborList(Compute):
 
     @property
     def cpu_local_nlist_arrays(self):
-        """hoomd.md.data.NeighborListLocalAccess: Expose nlist arrays on the
-        CPU.
+        """hoomd.md.data.NeighborListLocalAccess: Expose nlist on the CPU.
 
         TODO.
         """
@@ -140,8 +139,7 @@ class NeighborList(Compute):
 
     @property
     def gpu_local_nlist_arrays(self):
-        """hoomd.md.data.NeighborListLocalAccessGPU: Expose nlist arrays on the
-        GPU.
+        """hoomd.md.data.NeighborListLocalAccessGPU: Expose nlist on the GPU.
 
         TODO.
         """
