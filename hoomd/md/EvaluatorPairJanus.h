@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef __EVALUATOR_PAIR_GB_H__
-#define __EVALUATOR_PAIR_GB_H__
+#ifndef __EVALUATOR_PAIR_JANUS_H__
+#define __EVALUATOR_PAIR_JANUS_H__
 
 #ifndef __HIPCC__
 #include <string>
@@ -12,13 +12,13 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#define HOOMD_GB_MIN(i, j) ((i > j) ? j : i)
+#define HOOMD_GB_MIN(i, j) ((i > j) ? j : i) // todo
 #define HOOMD_GB_MAX(i, j) ((i > j) ? i : j)
 
 #include "hoomd/VectorMath.h"
 
-/*! \file EvaluatorPairGB.h
-    \brief Defines an evaluator class for the Gay-Berne potential
+/*! \file EvaluatorPairJanus.h
+    \brief Defines an evaluator class for the Janus pair potential
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -36,12 +36,8 @@ namespace hoomd
     {
 namespace md
     {
-/*!
- * Gay-Berne potential as formulated by Allen and Germano,
- * with shape-independent energy parameter, for identical uniaxial particles.
- */
 
-class EvaluatorPairGB
+class EvaluatorPairJanus
     {
     public:
     struct param_type
@@ -136,12 +132,12 @@ class EvaluatorPairGB
         \param _q_j Quaternion of j^th particle
         \param _params Per type pair parameters of this potential
     */
-    HOSTDEVICE EvaluatorPairGB(const Scalar3& _dr,
-                               const Scalar4& _qi,
-                               const Scalar4& _qj,
-                               const Scalar _rcutsq,
-                               const param_type& _params)
-        : dr(_dr), rcutsq(_rcutsq), qi(_qi), qj(_qj), epsilon(_params.epsilon),
+    HOSTDEVICE EvaluatorPairJanus(const Scalar3& _dr,
+                                  const Scalar4& _qi,
+                                  const Scalar4& _qj,
+                                  const Scalar _rcutsq,
+                                  const param_type& _params)
+        : dr(_dr), rcutsq(_rcutsq), qi(_qi), qj(_qj), epsilon(_params.epsilon), // todo why different order?
           lperp(_params.lperp), lpar(_params.lpar)
         {
         }

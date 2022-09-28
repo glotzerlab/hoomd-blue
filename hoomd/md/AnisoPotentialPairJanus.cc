@@ -2,7 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AnisoPotentialPair.h"
-#include "EvaluatorPairGB.h"
+#include "EvaluatorPairJanusLJ.h"
 
 namespace hoomd
     {
@@ -10,12 +10,12 @@ namespace md
     {
 namespace detail
     {
-template void export_AnisoPotentialPair<EvaluatorPairGB>(pybind11::module& m,
-                                                         const std::string& name);
+template void export_AnisoPotentialPair<EvaluatorPairJanusLJ>(pybind11::module& m,
+                                                              const std::string& name);
 
-void export_AnisoPotentialPairGB(pybind11::module& m)
+void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
-    export_AnisoPotentialPair<EvaluatorPairGB>(m, "AnisoPotentialPairGB");
+    export_AnisoPotentialPair<EvaluatorPairJanus>(m, "AnisoPotentialPairGB");
     }
     } // end namespace detail
     } // end namespace md
