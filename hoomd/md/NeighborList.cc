@@ -91,7 +91,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
 #endif
 
     // holds the base rcut on a per type basis
-    GlobalArray<Scalar> rcut_base(m_pdata->getNTypes(), m_exec_conf);
+    GlobalArray<Scalar> rcut_base(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcut_base.swap(rcut_base);
     TAG_ALLOCATION(m_rcut_base);
 

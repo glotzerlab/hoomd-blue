@@ -221,3 +221,7 @@ def test_rank_local_nlist_arrays():
 
 def test_pair_list_access():
     pass
+
+
+def test_pair_list_deletion():
+    pass
