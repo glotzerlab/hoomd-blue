@@ -604,6 +604,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
     CommFlags getRequestedCommFlags(uint64_t timestep)
         {
         CommFlags flags(0);
+        flags[comm_flag::position] = 1;
 
         // exclusions require ghost particle tags
         if (m_exclusions_set)
