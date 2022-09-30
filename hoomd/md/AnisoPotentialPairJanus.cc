@@ -15,7 +15,7 @@ template void export_AnisoPotentialPair<EvaluatorPairJanusLJ>(pybind11::module& 
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
-    export_AnisoPotentialPair<EvaluatorPairJanus>(m, "AnisoPotentialPairGB");
+    export_AnisoPotentialPair<EvaluatorPairJanusLJ>(m, "PotentialPairJanusLJ");
     }
     } // end namespace detail
     } // end namespace md
