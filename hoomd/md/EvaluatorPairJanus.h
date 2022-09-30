@@ -12,9 +12,6 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#define HOOMD_GB_MIN(i, j) ((i > j) ? j : i) // todo
-#define HOOMD_GB_MAX(i, j) ((i > j) ? i : j)
-
 #include "hoomd/VectorMath.h"
 
 /*! \file EvaluatorPairJanus.h
@@ -43,8 +40,8 @@ class EvaluatorPairJanus
     struct param_type
         {
         Scalar epsilon; //! The energy scale.
-        Scalar lperp;   //! The semiaxis length perpendicular to the particle orientation.
-        Scalar lpar;    //! The semiaxis length parallel to the particle orientation.
+        Scalar alpha;   //! The semiaxis length perpendicular to the particle orientation.
+        Scalar omega;    //! The semiaxis length parallel to the particle orientation.
 
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
@@ -66,8 +63,8 @@ class EvaluatorPairJanus
         HOSTDEVICE param_type()
             {
             epsilon = 0;
-            lperp = 0;
-            lpar = 0;
+            alpha = 0;
+            omega = 0;
             }
 
 #ifndef __HIPCC__
@@ -75,16 +72,16 @@ class EvaluatorPairJanus
         param_type(pybind11::dict v, bool managed = false)
             {
             epsilon = v["epsilon"].cast<Scalar>();
-            lperp = v["lperp"].cast<Scalar>();
-            lpar = v["lpar"].cast<Scalar>();
+            alpha = v["alpha"].cast<Scalar>();
+            omega = v["omega"].cast<Scalar>();
             }
 
         pybind11::dict toPython()
             {
             pybind11::dict v;
             v["epsilon"] = epsilon;
-            v["lperp"] = lperp;
-            v["lpar"] = lpar;
+            v["alpha"] = alpha;
+            v["omega"] = omega;
             return v;
             }
 
@@ -137,8 +134,8 @@ class EvaluatorPairJanus
                                   const Scalar4& _qj,
                                   const Scalar _rcutsq,
                                   const param_type& _params)
-        : dr(_dr), rcutsq(_rcutsq), qi(_qi), qj(_qj), epsilon(_params.epsilon), // todo why different order?
-          lperp(_params.lperp), lpar(_params.lpar)
+        : dr(_dr), rcutsq(_rcutsq), qi(_qi), qj(_qj), epsilon(_params.epsilon), alpha(_params.alpha),
+          omega(_params.omega) // todo why different order?
         {
         }
 
@@ -303,12 +300,13 @@ class EvaluatorPairJanus
      */
     static std::string getName()
         {
-        return "gb";
+        return "januslj";
         }
 
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
+        // TODO
         shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << lperp << ", \"b\": " << lperp
                  << ", \"c\": " << lpar << "}";
         return shapedef.str();
@@ -321,14 +319,12 @@ class EvaluatorPairJanus
     quat<Scalar> qi; //!< Orientation quaternion for particle i
     quat<Scalar> qj; //!< Orientation quaternion for particle j
     Scalar epsilon;
-    Scalar lperp;
-    Scalar lpar;
+    Scalar alpha;
+    Scalar omega;
     // const param_type &params;  //!< The pair potential parameters
     };
 
     } // end namespace md
     } // end namespace hoomd
 
-#undef HOOMD_GB_MIN
-#undef HOOMD_GB_MAX
-#endif // __EVALUATOR_PAIR_GB_H__
+#endif // __EVALUATOR_PAIR_JANUS_H__
