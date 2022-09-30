@@ -12,11 +12,22 @@ namespace detail
     {
 template void export_AnisoPotentialPair<EvaluatorPairJanusLJ>(pybind11::module& m,
                                                               const std::string& name);
+template void export_AnisoPotentialPair<EvaluatorPairJanusMie(pybind11::module& m,
+                                                              const std::string& name)
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
-    export_AnisoPotentialPair<EvaluatorPairJanusLJ>(m, "PotentialPairJanusLJ");
+    auto JanusEnvelope = GeneralModulator<ModulatorJanus>;
+    export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, JanusEnvelope>>(m, "PotentialPairJanusLJ");
     }
+
+void export_AnisoPotentialPairMie(pybind11::module& m)
+    {
+    auto JanusEnvelope = GeneralModulator<ModulatorJanus>;
+    export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, JanusEnvelope>>(m, "PotentialPairJanusMie");
+    }
+
+
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
