@@ -67,6 +67,7 @@ void export_AnisoPotentialPairALJ2D(pybind11::module& m);
 void export_AnisoPotentialPairALJ3D(pybind11::module& m);
 void export_AnisoPotentialPairDipole(pybind11::module& m);
 void export_AnisoPotentialPairGB(pybind11::module& m);
+void export_AnisoPotentialPairJanusLJ(pybind11::module& m);
 
 void export_PotentialBondHarmonic(pybind11::module& m);
 void export_PotentialBondFENE(pybind11::module& m);
@@ -331,6 +332,7 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairALJ3D(m);
     export_AnisoPotentialPairDipole(m);
     export_AnisoPotentialPairGB(m);
+    export_AnisoPotentialPairJanusLJ(m);
 
     export_PotentialPairDPDThermoDPD(m);
     export_PotentialPairDPDThermoLJ(m);
