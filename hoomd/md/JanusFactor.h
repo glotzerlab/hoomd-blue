@@ -35,12 +35,12 @@ public:
         : dr(_dr), qi(_qi), qj(_qj), params(_params)
         {
             // compute current janus direction vectors
-            Scalar3 e = { 1,  0,  0 };
-            Scalar3 ei;
-            Scalar3 ej;
+            vec3<Scalar> e { make_scalar3(1, 0, 0) }; // TODO initialize this the right way
+            vec3<Scalar> ei;
+            vec3<Scalar> ej;
             // new sigature: rotate(quat, vec3)
-            ei = rotate(qi, e);
-            ej = rotate(qj, e);
+            ei = rotate(quat<Scalar>(qi), e);
+            ej = rotate(quat<Scalar>(qj), e);
 
             // The old signature:
             //! Rotate a vector with a quaternion
