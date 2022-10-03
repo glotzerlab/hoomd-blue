@@ -20,6 +20,17 @@
 #include "hoomd/HOOMDMath.h"
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
+//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+//! compiler
+#ifdef __HIPCC__
+#define HOSTDEVICE __host__ __device__
+//#define DEVICE __device__
+#else
+#define HOSTDEVICE
+//#define DEVICE
+#endif
+
+// need to declare these class methods with __device__ qualifiers when building in nvcc
 //! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
 #define DEVICE __device__
@@ -159,7 +170,7 @@ public:
       \param tag_j Tag of particle j
     */
     DEVICE void setShape(const shape_type* shapei, const shape_type* shapej) { }
-    
+
     //! Evaluate the force and energy
     /*
       \param force Output parameter to write the computed force.
@@ -167,7 +178,7 @@ public:
       \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
       \param torque_i The torque exerted on the ith particle.
       \param torque_j The torque exerted on the jth particle.
-      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
+      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
       in PotentialPair.
       \return True if force and energy are evaluated, false if not because r>rcut.
     */
@@ -223,6 +234,7 @@ public:
 
     std::string getShapeSpec() const
         {
+            // TODO
             throw std::runtime_error("Shape definition not supported for this pair potential.");
         }
 #endif
@@ -236,7 +248,7 @@ protected:
     directionalEnvelope envelEval;    //!< A directional envelope evaluator
 
 };
-    
+
     } // end namespace md
     } // end namespace hoomd
 
