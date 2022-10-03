@@ -1,19 +1,18 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "HOOMDMath.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-namespace py = pybind11;
 
-#ifndef __JanusFactor__
-#define __JanusFactor__
+#ifndef __JANUS_FACTOR_H__
+#define __JANUS_FACTOR_H__
+
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
 #ifdef NVCC
 #define DEVICE __device__
 #else
 #define DEVICE
 #endif
-
 
 namespace hoomd
     {
@@ -37,8 +36,22 @@ public:
         {
             // compute current janus direction vectors
             Scalar3 e = { 1,  0,  0 };
-            quatrot(e,qi,ei);
-            quatrot(e,qj,ej);
+            Scalar3 ei;
+            Scalar3 ej;
+            // new sigature: rotate(quat, vec3)
+            ei = rotate(qi, e);
+            ej = rotate(qj, e);
+
+            // The old signature:
+            //! Rotate a vector with a quaternion
+            /*! \param a Three-component vector to be rotated
+              \param q Quaternion used to rotate vector a
+              \param b Resulted three-component vector
+            */
+            // DEVICE inline void quatrot(const Scalar3& a, const Scalar4& q, Scalar3& b)
+                
+            // quatrot(e,qi,ei);
+            // quatrot(e,qj,ej);
 
             // compute distance
             drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
@@ -86,7 +99,9 @@ public:
     Scalar dotj;
 };
 
-#endif // __JanusFactor__
+
 
     } // end namespace md
     } // end namespace hoomd
+
+#endif // __JANUS_FACTOR_H__

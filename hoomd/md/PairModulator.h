@@ -70,7 +70,7 @@ public:
     DEVICE PairModulator( const Scalar3& _dr,
                           const Scalar4& _quat_eye,
                           const Scalar4& _quat_jay,
-                          const Scalar4& _rcutsq,
+                          const Scalar& _rcutsq,
                           const param_type& _params)
         : dr(_dr),
           rsq(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z),
@@ -118,6 +118,19 @@ public:
                 envelEval.setCharge(qi, qj);
         }
 
+    //! Whether the pair potential uses shape.
+    DEVICE static bool needsShape()
+        {
+            return false;
+        }
+
+    //! Accept the optional tags
+    /*
+      \param tag_i Tag of particle i
+      \param tag_j Tag of particle j
+    */
+    DEVICE void setShape(const shape_type* shapei, const shape_type* shapej) { }
+    
     //! Evaluate the force and energy
     /*
       \param force Output parameter to write the computed force.

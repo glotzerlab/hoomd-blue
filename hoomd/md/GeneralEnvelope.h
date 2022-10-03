@@ -2,15 +2,30 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 
-#ifndef __GeneralEnvelope__
-#define __GeneralEnvelope__
+#ifndef __GENERAL_ENVELOPE_H__
+#define __GENERAL_ENVELOPE_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
+#include <string>
+#endif
 
+#include "hoomd/HOOMDMath.h"
 
-// TODO see how DEVICE is defined in hoomd 3
+// need to declare these class methods with __device__ qualifiers when building in nvcc
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
+#ifdef __HIPCC__
+#define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
+#else
+#define DEVICE
+#define HOSTDEVICE
+#endif
 
-
+namespace hoomd
+    {
+namespace md
+    {
 
 /*
   This creates JanusEnvelope, which is used to modulate a pair potential.
@@ -111,4 +126,7 @@ private:
         AngleDependence s;
 };
 
-#endif // __GeneralEnvelope__
+    } // end namespace md
+    } // end namespace hoomd
+        
+#endif // __GENERAL_ENVELOPE_H__

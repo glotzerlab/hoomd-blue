@@ -3,7 +3,8 @@
 
 #include "AnisoPotentialPair.h"
 #include "PairModulator.h"
-#include "JanusEnvelope.h"
+#include "JanusFactor.h"
+#include "GeneralEnvelope.h"
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairMie.h"
 
@@ -13,10 +14,10 @@ namespace md
     {
 namespace detail
     {
-template void export_AnisoPotentialPair<EvaluatorPairJanusLJ>(pybind11::module& m,
-                                                              const std::string& name);
-template void export_AnisoPotentialPair<EvaluatorPairJanusMie(pybind11::module& m,
-                                                              const std::string& name)
+template void export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope<JanusFactor>>>(pybind11::module& m,
+                                                                                                      const std::string& name);
+template void export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope<JanusFactor>>>(pybind11::module& m,
+                                                                                                       const std::string& name);
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
