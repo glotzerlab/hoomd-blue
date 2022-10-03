@@ -2,7 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AnisoPotentialPair.h"
-#include "EvaluatorPairJanusLJ.h"
+#include "GeneralModulator.h"
+#include "JanusEnvelope.h"
+#include "EvaluatorPairLJ.h"
 
 namespace hoomd
     {
