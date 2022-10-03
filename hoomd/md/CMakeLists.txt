@@ -8,6 +8,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
+                   AnisoPotentialPairJanus.cc
                    AlchemyData.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
@@ -119,6 +120,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ForceComposite.h
                 ForceDistanceConstraintGPU.h
                 ForceDistanceConstraint.h
+                GeneralModulator.h
                 HarmonicAngleForceComputeGPU.h
                 HarmonicAngleForceCompute.h
                 HarmonicDihedralForceComputeGPU.h
@@ -127,6 +129,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                JanusEnvelope.h
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
