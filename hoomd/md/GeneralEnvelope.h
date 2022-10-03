@@ -13,7 +13,7 @@
 
 
 /*
-This creates JanusEnvelope, which is used to modulate a pair potential.
+  This creates JanusEnvelope, which is used to modulate a pair potential.
 */
 template <typename AngleDependence> // thing that we modulate the potential by
 class GeneralEnvelope // TODO fix this word
@@ -52,16 +52,18 @@ public:
 
     //! Evaluate the force and energy
     //! This function is pure virtual
-    /*! \param force Output parameter to write the computed force.
+    /*
+      \param force Output parameter to write the computed force.
       \param isoModulator Output parameter to write the amount of modulation of the isotropic part
       \param torque_i The torque exterted on the i^th particle.
       \param torque_j The torque exterted on the j^th particle.
-      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
-      in PotentialPairJanusSphere.
-            
+      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPairJanusSphere.
       \return Always true
     */
-    DEVICE bool evaluate(Scalar3& force, Scalar& isoModulator, Scalar3& torque_i, Scalar3& torque_j)
+    DEVICE bool evaluate(Scalar3& force,
+                         Scalar& isoModulator,
+                         Scalar3& torque_i,
+                         Scalar3& torque_j)
         {
             // common calculations
             Scalar modi = s.Modulatori();
@@ -97,7 +99,15 @@ public:
             return true;
         }
 
-    private:
+#ifndef _HIPCC_
+    //! Get the name of the potential
+    static std::string getName()
+        {
+            return std::string("genenv");
+        }
+#endif
+    
+private:
         AngleDependence s;
 };
 
