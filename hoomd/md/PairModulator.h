@@ -32,16 +32,21 @@ struct PairModulatorParamStruct
 };
 
 
-/*
-  
-*/
+//! Class to modulate an isotropic pair potential by an envelope to create an anisotropic pair potential.
 template <typename pairEvaluator, typename directionalEnvelope>
 class PairModulator
 {
 public:
     typedef PairModulatorParamStruct<pairEvaluator, directionalEnvelope> param_type;
 
-    // Constructor
+    // Constructs the pair potential evaluator
+    /*
+      \param _dr Displacement vector pointing from particle rj to ri
+      \param _rcutsq Squared distance at which the potential is set to 0
+      \param _quat_eye Quaternion of the ith particle
+      \param _quat_jay Quaternion of the jth particle
+      \param _params Per type pair parameters of the potential
+    */
     DEVICE PairModulator( const Scalar3& _dr,,
                           const Scalar4& _quat_eye,
                           const Scalar4& _quat_jay,
@@ -60,6 +65,11 @@ public:
             return (pairEvaluator::needsDiameter() || directionalEnvelope::needsDiameter());
         }
 
+    //! Accept the optional diameter values
+    /*
+      \param di Diameter of particle i
+      \param dj Diameter of particle j
+    */
     DEVICE void setDiameter(Scalar di, Scalar dj)
         {
             if (pairEvaluator::needsDiameter())
@@ -68,11 +78,18 @@ public:
                 envelEval.setDiameter(di, dj);
         }
 
+    //! Whether pair potential requires charges
+    // TODO what does it mean "this function is pure virtual" ?
     DEVICE static bool needsCharge()
         {
             return (pairEvaluator::needsCharge() || directionalEnvelope::needsCharge());
         }
 
+    //! Accept the optional charge values
+    /*
+      \param qi Charge of particle i
+      \param qj Charge of particle j
+    */
     DEVICE void setCharge(Scalar qi, Scalar qj)
         {
             if (pairEvaluator::needsCharge())
@@ -81,6 +98,17 @@ public:
                 envelEval.setCharge(qi, qj);
         }
 
+    //! Evaluate the force and energy
+    /*
+      \param force Output parameter to write the computed force.
+      \param pair_eng Output parameter to write the computed pair energy.
+      \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
+      \param torque_i The torque exerted on the ith particle.
+      \param torque_j The torque exerted on the jth particle.
+      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
+      in PotentialPair.
+      \return True if force and energy are evaluated, false if not because r>rcut.
+    */
     DEVICE bool evaluate(Scalar3& force,
                          Scalar& pair_eng,
                          bool energy_shift,
@@ -123,8 +151,9 @@ public:
 
 #ifndef __HIPCC__
     //! Get the name of this potential
-    /*! \returns The potential name.
-     */
+    /*
+      \returns The potential name.
+    */
     static std::string getName()
         {
             return pairEvaluator::getName() + "_" + directionalEnvelope::getName();
