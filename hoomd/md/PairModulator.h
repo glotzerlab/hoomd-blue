@@ -7,11 +7,31 @@
 
 
 /*
-  This class  aplies the directionalEnvelope to the pairEvaluator, turning the isotropic pair potential into an anisotropic potential.
+  This class aplies the directionalEnvelope to the pairEvaluator, turning the isotropic pair potential into an anisotropic potential.
 */
 
+#ifndef __PAIR_MODULATOR_H__
+#define __PAIR_MODULATOR_H__
 
-//template <typename isoEval, typename dirEval>
+#ifndef __HIPCC__
+#include <string>
+#endif
+
+#include "hoomd/HOOMDMath.h"
+
+// need to declare these class methods with __device__ qualifiers when building in nvcc
+//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+#ifdef NVCC
+#define DEVICE __device__
+#else
+#define DEVICE
+#endif
+
+namespace hoomd
+    {
+namespace md
+    {
+
 template <typename pairEvaluator, typename directionalEnvelope>
 struct PairModulatorParamStruct
 {
@@ -47,7 +67,7 @@ public:
       \param _quat_jay Quaternion of the jth particle
       \param _params Per type pair parameters of the potential
     */
-    DEVICE PairModulator( const Scalar3& _dr,,
+    DEVICE PairModulator( const Scalar3& _dr,
                           const Scalar4& _quat_eye,
                           const Scalar4& _quat_jay,
                           const Scalar4& _rcutsq,
@@ -175,3 +195,7 @@ protected:
 
 };
     
+    } // end namespace md
+    } // end namespace hoomd
+
+#endif // __PAIR_MODULATOR_H__
