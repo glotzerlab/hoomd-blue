@@ -120,7 +120,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 ForceComposite.h
                 ForceDistanceConstraintGPU.h
                 ForceDistanceConstraint.h
-                GeneralModulator.h
                 HarmonicAngleForceComputeGPU.h
                 HarmonicAngleForceCompute.h
                 HarmonicDihedralForceComputeGPU.h
@@ -129,7 +128,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
-                JanusEnvelope.h
+                JanusFactor.h
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
@@ -152,6 +151,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 NeighborListTree.h
                 OPLSDihedralForceComputeGPU.h
                 OPLSDihedralForceCompute.h
+                PairModulator.h
                 PotentialBondGPU.h
                 PotentialBondGPU.cuh
                 PotentialBond.h

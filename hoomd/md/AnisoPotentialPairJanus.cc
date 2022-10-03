@@ -2,9 +2,10 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AnisoPotentialPair.h"
-#include "GeneralModulator.h"
+#include "PairModulator.h"
 #include "JanusEnvelope.h"
 #include "EvaluatorPairLJ.h"
+#include "EvaluatorPairMie.h"
 
 namespace hoomd
     {
@@ -19,13 +20,13 @@ template void export_AnisoPotentialPair<EvaluatorPairJanusMie(pybind11::module& 
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
-    auto JanusEnvelope = GeneralModulator<ModulatorJanus>;
+    auto JanusEnvelope = GeneralEnvelope<JanusFactor>;
     export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, JanusEnvelope>>(m, "PotentialPairJanusLJ");
     }
 
 void export_AnisoPotentialPairMie(pybind11::module& m)
     {
-    auto JanusEnvelope = GeneralModulator<ModulatorJanus>;
+    auto JanusEnvelope = GeneralEnvelope<JanusFactor>;
     export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, JanusEnvelope>>(m, "PotentialPairJanusMie");
     }
 
