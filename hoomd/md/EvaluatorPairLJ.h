@@ -191,7 +191,7 @@ class EvaluatorPairLJ
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */
