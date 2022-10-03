@@ -59,6 +59,35 @@ class PairModulator
 public:
     typedef PairModulatorParamStruct<pairEvaluator, directionalEnvelope> param_type;
 
+// Nullary structure required by AnisoPotentialPair.
+    struct shape_type
+    {
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+          \param available_bytes Size of remaining shared memory allocation
+        */
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
+
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
+
+        HOSTDEVICE shape_type() { }
+
+#ifndef __HIPCC__
+
+        shape_type(pybind11::object shape_params, bool managed) { }
+
+        pybind11::object toPython()
+            {
+                return pybind11::none();
+            }
+#endif
+
+#ifdef ENABLE_HIP
+        //! Attach managed memory to CUDA stream
+        void set_memory_hint() const { }
+#endif
+    };
+
     // Constructs the pair potential evaluator
     /*
       \param _dr Displacement vector pointing from particle rj to ri
