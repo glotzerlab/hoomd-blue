@@ -25,17 +25,9 @@
 //! compiler
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
-//#define DEVICE __device__
-#else
-#define HOSTDEVICE
-//#define DEVICE
-#endif
-
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-//! DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
 #define DEVICE __device__
 #else
+#define HOSTDEVICE
 #define DEVICE
 #endif
 
@@ -44,43 +36,37 @@ namespace hoomd
 namespace md
     {
 
-template <typename pairEvaluator, typename directionalEnvelope>
-struct PairModulatorParamStruct
-{
-    typedef typename pairEvaluator::param_type pairParam;
-    typedef typename directionalEnvelope::param_type envelopeParam;
-
-    PairModulatorParamStruct()
-        {
-        }
-
-    PairModulatorParamStruct(pairParam _pairP, envelopeParam _envelP):
-        pairP(_pairP), envelP(_envelP)
-        {
-        }
-
-    PairModulatorParamStruct(pybind11::dict params, bool managed)
-        : pairP(), envelP() // TODO just to get it to compile
-        {
-        }
-
-    pybind11::object toPython()
-        {
-            return pybind11::none();
-        }
-
-
-    pairParam pairP;
-    envelopeParam envelP;
-};
-
-
 //! Class to modulate an isotropic pair potential by an envelope to create an anisotropic pair potential.
 template <typename pairEvaluator, typename directionalEnvelope>
 class PairModulator
 {
 public:
-    typedef PairModulatorParamStruct<pairEvaluator, directionalEnvelope> param_type;
+
+    struct param_type
+    {
+        // param_type()
+        //     {
+        //     }
+
+        // param_type(pairEvaluator::param_type _pairP, directionalEnvelope::param _envelP):
+        //     pairP(_pairP), envelP(_envelP)
+        //     {
+        //     }
+
+        param_type(pybind11::dict params, bool managed)
+            : pairP(), envelP() // TODO just to get it to compile
+            {
+            }
+
+        pybind11::object toPython()
+            {
+                return pybind11::none();
+            }
+
+
+        typename pairEvaluator::param_type pairP;
+        typename directionalEnvelope::param_type envelP;
+    };
 
 // Nullary structure required by AnisoPotentialPair.
     struct shape_type
@@ -189,21 +175,14 @@ public:
             return (pairEvaluator::needsTags() || directionalEnvelope::needsTags());
         }
 
-    //! Accept the optional tags
-    /*! \param tag_i Tag of particle i
-        \param tag_j Tag of particle j
-    */
+    //! No modulated potential needs tags
     HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj)
         {
-            if (pairEvaluator::needsTags())
-                pairEval.setTags(tagi, tagj);
-            if (directionalEnvelope::needsTags())
-                envelEval.setTags(tagi, tagj);
         }
 
 
     //! Evaluate the force and energy
-    /*
+    /*!
       \param force Output parameter to write the computed force.
       \param pair_eng Output parameter to write the computed pair energy.
       \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff.
@@ -265,7 +244,7 @@ public:
 
     std::string getShapeSpec() const
         {
-            // TODO
+            // TODO this is just copied in:
             throw std::runtime_error("Shape definition not supported for this pair potential.");
         }
 #endif

@@ -55,11 +55,9 @@ public:
     DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! whether pair potential requires charges
-    //! This function is pure virtual
     DEVICE static bool needsCharge() { return false; }
 
     //! Accept the optional charge values
-    //! This function is pure virtual
     /*!
       \param qi Charge of particle i
       \param qj Charge of particle j
@@ -77,7 +75,6 @@ public:
 
 
     //! Evaluate the force and energy
-    //! This function is pure virtual
     /*
       \param force Output parameter to write the computed force.
       \param isoModulator Output parameter to write the amount of modulation of the isotropic part
@@ -129,7 +126,7 @@ public:
     //! Get the name of the potential
     static std::string getName()
         {
-            return std::string("genenv");
+            return std::string("generalenvelope");
         }
 #endif
     

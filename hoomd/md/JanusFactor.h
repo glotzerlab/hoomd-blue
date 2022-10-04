@@ -38,20 +38,9 @@ public:
             vec3<Scalar> e { make_scalar3(1, 0, 0) }; // TODO initialize this the right way
             vec3<Scalar> ei;
             vec3<Scalar> ej;
-            // new sigature: rotate(quat, vec3)
+
             ei = rotate(quat<Scalar>(qi), e);
             ej = rotate(quat<Scalar>(qj), e);
-
-            // The old signature:
-            //! Rotate a vector with a quaternion
-            /*! \param a Three-component vector to be rotated
-              \param q Quaternion used to rotate vector a
-              \param b Resulted three-component vector
-            */
-            // DEVICE inline void quatrot(const Scalar3& a, const Scalar4& q, Scalar3& b)
-                
-            // quatrot(e,qi,ei);
-            // quatrot(e,qj,ej);
 
             // compute distance
             drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
