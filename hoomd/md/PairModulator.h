@@ -171,6 +171,25 @@ public:
     */
     DEVICE void setShape(const shape_type* shapei, const shape_type* shapej) { }
 
+    //! Whether the pair potential needs particle tags.
+    HOSTDEVICE static bool needsTags()
+        {
+            return (pairEvaluator::needsTags() || directionalEnvelope::needsTags());
+        }
+
+    //! Accept the optional tags
+    /*! \param tag_i Tag of particle i
+        \param tag_j Tag of particle j
+    */
+    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj)
+        {
+            if (pairEvaluator::needsTags())
+                pairEval.setTags(tagi, tagj);
+            if (directionalEnvelope::needsTags())
+                envelEval.setTags(tagi, tagj);
+        }
+
+
     //! Evaluate the force and energy
     /*
       \param force Output parameter to write the computed force.

@@ -58,12 +58,23 @@ public:
     //! This function is pure virtual
     DEVICE static bool needsCharge() { return false; }
 
-    //! Accept the optional diameter values
+    //! Accept the optional charge values
     //! This function is pure virtual
-    /*! \param qi Charge of particle i
+    /*!
+      \param qi Charge of particle i
       \param qj Charge of particle j
     */
     DEVICE void setCharge(Scalar qi, Scalar qj) { }
+
+    //! Whether the pair potential needs particle tags.
+    DEVICE static bool needsTags() { return false; }
+
+    //! Accept the optional tags
+    /*! \param tag_i Tag of particle i
+        \param tag_j Tag of particle j
+    */
+    HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
+
 
     //! Evaluate the force and energy
     //! This function is pure virtual
