@@ -102,6 +102,7 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
 
     /// Validate that types are within Ntypes
     virtual void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
+
     //! Method that is called to connect to the gsd write state signal
     void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
@@ -226,13 +227,11 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
 
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
-    energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
-    Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
-    GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
-    std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_params; //!< Pair parameters per type pair
-    std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
-        m_shape_params; //!< Shape paramters per type
+    energyShiftMode m_shift_mode;          //!< Store the mode with which to handle the energy shift at r_cut
+    Index2D m_typpair_idx;                 //!< Helper class for indexing per type pair arrays
+    GlobalArray<Scalar> m_rcutsq;          //!< Cutoff radius squared per type pair
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;       //!< Pair parameters per type pair
+    std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>> m_shape_params; //!< Shape parameters per type
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
