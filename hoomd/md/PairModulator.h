@@ -15,6 +15,7 @@
 
 #ifndef __HIPCC__
 #include <string>
+#include <pybind11/pybind11.h>
 #endif
 
 #include "hoomd/HOOMDMath.h"
@@ -57,6 +58,17 @@ struct PairModulatorParamStruct
         pairP(_pairP), envelP(_envelP)
         {
         }
+
+    PairModulatorParamStruct(pybind11::dict params, bool managed)
+        : pairP(), envelP() // TODO just to get it to compile
+        {
+        }
+
+    pybind11::object toPython()
+        {
+            return pybind11::none();
+        }
+
 
     pairParam pairP;
     envelopeParam envelP;
