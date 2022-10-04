@@ -1260,3 +1260,15 @@ def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
     # make sure corrections correct in the right direction
     assert e_true < e_false
     assert p_true < p_false
+
+
+def test_adding_to_operations(simulation_factory,
+                              two_particle_snapshot_factory):
+    """Test that forces can work like computes since they are."""
+    sim = simulation_factory(two_particle_snapshot_factory(d=0.5))
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(0.4))
+    lj.r_cut.default = 2.5
+    lj.params.default = {"epsilon": 1.0, "sigma": 1.0}
+    sim.operations += lj
+    sim.run(0)
+    assert lj.energy != 0
