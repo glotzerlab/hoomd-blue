@@ -43,15 +43,15 @@ class PairModulator
 public:
 
     struct param_type
-    {
-        // param_type()
-        //     {
-        //     }
+    {   
+        param_type()
+            {
+            }
 
-        // param_type(pairEvaluator::param_type _pairP, directionalEnvelope::param _envelP):
-        //     pairP(_pairP), envelP(_envelP)
-        //     {
-        //     }
+        param_type(typename pairEvaluator::param_type _pairP, typename directionalEnvelope::param_type _envelP):
+            pairP(_pairP), envelP(_envelP)
+            {
+            }
 
         param_type(pybind11::dict params, bool managed)
             : pairP(), envelP() // TODO just to get it to compile
@@ -62,7 +62,6 @@ public:
             {
                 return pybind11::none();
             }
-
 
         typename pairEvaluator::param_type pairP;
         typename directionalEnvelope::param_type envelP;
