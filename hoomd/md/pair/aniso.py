@@ -481,11 +481,11 @@ class ALJ(AnisotropicPair):
 
         self._extend_typeparam((params, shape))
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_class_name = "AnisoPotentialPairALJ{}".format(
             "2D" if self._simulation.state.box.is2D else "3D")
 
-        super()._attach()
+        super()._attach_hook()
 
     @staticmethod
     def _to_three_tuple(value):

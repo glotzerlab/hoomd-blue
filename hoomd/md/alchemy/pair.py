@@ -189,7 +189,7 @@ class AlchemicalDOF(_HOOMDBaseObject):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         if not self._force._attached:
             raise RuntimeError("Call Simulation.run(0) before attaching "
                                "alchemical degrees of freedom.")
@@ -197,14 +197,9 @@ class AlchemicalDOF(_HOOMDBaseObject):
             self.typepair, self.name)
         self._force._cpp_obj.enableAlchemicalPairParticle(self._cpp_obj)
 
-    def _add(self, simulation):
-        super()._add(simulation)
-
-    def _detach(self):
-        if self._attached:
-            self._force.params[self.typepair][self.name] = self.value
-            self._force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
-            super()._detach()
+    def _detach_hook(self):
+        self._force.params[self.typepair][self.name] = self.value
+        self._force._cpp_obj.disableAlchemicalPairParticle(self._cpp_obj)
 
     @log(requires_run=True)
     def value(self):

@@ -291,11 +291,10 @@ class Custom(Force):
 
         self._state = None  # to be set on attaching
 
-    def _attach(self):
+    def _attach_hook(self):
         self._state = self._simulation.state
         self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def,
                                                self.set_forces, self._aniso)
-        super()._attach()
 
     @abstractmethod
     def set_forces(self, timestep):
@@ -405,13 +404,10 @@ class Active(Force):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         # Set C++ class
         self._set_cpp_obj()
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
     def _set_cpp_obj(self):
 

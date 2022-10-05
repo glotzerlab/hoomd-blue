@@ -199,7 +199,12 @@ class SyncedList(MutableSequence):
             raise RuntimeError(f"Object {value} cannot be added to two lists.")
         value._add(self._simulation)
         if self._synced:
-            value._attach()
+            # To allow for dependencies within operations (like computes e.g.
+            # forces and neighbor list) we need to check it the object is
+            # attached first. Assuming the code for adding a simulation to an
+            # operation is correct, this is safe.
+            if not value._attached:
+                value._attach()
 
     def _detach_value(self, value, remove=True):
         """Detaches and/or removes value to simulation if attached.

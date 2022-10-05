@@ -152,7 +152,7 @@ class Pair(force.Force):
         # neighbor list when not attached we handle correctly.
         self._add_dependency(self.nlist)
 
-    def _attach(self):
+    def _attach_hook(self):
         # This should never happen, but leaving it in case the logic for adding
         # missed some edge case.
         if self._simulation != self.nlist._simulation:
@@ -170,7 +170,8 @@ class Pair(force.Force):
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
                             self.nlist._cpp_obj)
 
-        super()._attach()
+    def _detach_hook(self):
+        self.nlist._detach()
 
     def _setattr_param(self, attr, value):
         if attr == "nlist":

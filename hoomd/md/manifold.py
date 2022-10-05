@@ -34,9 +34,6 @@ class Manifold(_HOOMDBaseObject):
         Only one manifold can be applied to a given method or active forces.
     """
 
-    def _attach(self):
-        self._apply_param_dict()
-
     @staticmethod
     def _preprocess_unitcell(value):
         if isinstance(value, Sequence):
@@ -89,7 +86,7 @@ class Cylinder(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldZCylinder(
             self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
@@ -145,7 +142,7 @@ class Diamond(Manifold):
         param_dict['N'] = N
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldDiamond(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
@@ -192,7 +189,7 @@ class Ellipsoid(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldEllipsoid(
             self.a, self.b, self.c,
             _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
@@ -250,7 +247,7 @@ class Gyroid(Manifold):
         param_dict['N'] = N
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldGyroid(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
@@ -279,7 +276,7 @@ class Plane(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldXYPlane(self.shift)
 
         super()._attach()
@@ -332,7 +329,7 @@ class Primitive(Manifold):
         param_dict['N'] = N
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldPrimitive(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
@@ -370,7 +367,7 @@ class Sphere(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldSphere(
             self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
