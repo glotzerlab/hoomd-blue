@@ -70,7 +70,7 @@ class EvaluatorPairDipole
             kappa = v["kappa"].cast<Scalar>();
             }
 
-        pybind11::object toPython()
+        pybind11::object asDict()
             {
             pybind11::dict v;
             v["A"] = A;
@@ -110,7 +110,7 @@ class EvaluatorPairDipole
             mu = vec3<Scalar>(mu_[0].cast<Scalar>(), mu_[1].cast<Scalar>(), mu_[2].cast<Scalar>());
             }
 
-        pybind11::object toPython()
+        pybind11::object asDict()
             {
             return pybind11::make_tuple(mu.x, mu.y, mu.z);
             }

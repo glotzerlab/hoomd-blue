@@ -176,7 +176,7 @@ template<class evaluator> pybind11::object PotentialExternal<evaluator>::getPara
     validateType(typ, std::string("getting parameters in PotentialExternal"));
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-    return h_params.data[typ].toPython();
+    return h_params.data[typ].asDict();
     }
 
 template<class evaluator>

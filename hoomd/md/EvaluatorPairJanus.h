@@ -76,7 +76,7 @@ class EvaluatorPairJanus
             omega = v["omega"].cast<Scalar>();
             }
 
-        pybind11::dict toPython()
+        pybind11::dict asDict()
             {
             pybind11::dict v;
             v["epsilon"] = epsilon;
@@ -110,7 +110,7 @@ class EvaluatorPairJanus
 
         shape_type(pybind11::object shape_params, bool managed) { }
 
-        pybind11::object toPython()
+        pybind11::object asDict()
             {
             return pybind11::none();
             }

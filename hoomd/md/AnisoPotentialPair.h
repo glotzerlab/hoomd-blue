@@ -385,7 +385,7 @@ pybind11::object AnisoPotentialPair<aniso_evaluator>::getParamsPython(pybind11::
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
     validateTypes(typ1, typ2, "getting params");
 
-    return m_params[m_typpair_idx(typ1, typ2)].toPython();
+    return m_params[m_typpair_idx(typ1, typ2)].asDict();
     }
 
 template<class aniso_evaluator>
@@ -441,7 +441,7 @@ pybind11::object AnisoPotentialPair<aniso_evaluator>::getShapePython(std::string
         throw std::runtime_error("Error getting shape parameters in AnisoPotentialPair");
         }
 
-    return m_shape_params[typ_].toPython();
+    return m_shape_params[typ_].asDict();
     }
 
 /*! \param typ1 First type index in the pair
