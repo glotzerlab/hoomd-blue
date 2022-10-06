@@ -215,9 +215,11 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependents', '_dependencies', '_simulation'
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation', "_use_count"
     }
-    _remove_for_pickling = ('_simulation', '_cpp_obj')
+    # _use_count must be included or attaching and detaching won't work as
+    # expected as _use_count may not equal 0.
+    _remove_for_pickling = ('_simulation', '_cpp_obj', "_use_count")
 
     def _detach(self):
         """Decrement attach count and destroy C++ object if count == 0.
@@ -240,9 +242,13 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             self._cpp_obj.notifyDetach()
         # In case the C++ object is necessary for proper disconnect
         # notification we call _notify_disconnect here as well.
-        self._notify_disconnect()
-        self._cpp_obj = None
-        self._detach_hook()
+        try:
+            self._notify_disconnect()
+        except hoomd.error.SimulationDefinitionError as err:
+            raise err
+        finally:
+            self._detach_hook()
+            self._cpp_obj = None
         return self
 
     def _detach_hook(self):
@@ -256,6 +262,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
 
         Note:
             This is only called when the attach counter goes to zero.
+
+        Note:
+            The C++ object is available for this method.
         """
         pass
 
@@ -278,7 +287,11 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         self._use_count += 1
         if self._use_count > 1:
             return
-        self._attach_hook()
+        try:
+            self._attach_hook()
+        except hoomd.error.SimulationDefinitionError as err:
+            self._use_count -= 1
+            raise err
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
@@ -296,8 +309,12 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         # concern. I should note that if
         # `hoomd.operations.Operations._unschedule` is called this is
         # invalidated, but as that is not public facing this should be fine.
-        self._notify_disconnect()
-        self._simulation = None
+        try:
+            self._notify_disconnect()
+        except hoomd.error.SimulationDefinitionError as err:
+            raise err
+        finally:
+            self._simulation = None
 
     @property
     def _added(self):
