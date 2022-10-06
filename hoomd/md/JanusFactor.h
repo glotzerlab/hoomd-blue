@@ -25,8 +25,39 @@ namespace md
 class JanusFactor
 {
 public:
-    typedef Scalar2 param_type;
-    
+
+    struct param_type
+    {
+        param_type()
+            {
+            }
+
+        param_type(pybind11::dict params)
+            : alpha(params["alpha"].cast<Scalar>()),
+              omega(params["omega"].cast<Scalar>())
+            {
+            }
+
+        pybind11::dict asDict()
+            {
+                pybind11::dict v;
+
+                v["alpha"] = alpha;
+                v["omega"] = omega;
+
+                return v;
+            }
+
+        Scalar alpha;
+        Scalar omega;
+    }
+#ifdef SINGLE_PRECISION
+        __attribute__((aligned(8)));
+#else
+        __attribute__((aligned(16)));
+#endif
+
+
     DEVICE JanusFactor(const Scalar3& _dr,
                        const Scalar4& _qi,
                        const Scalar4& _qj,
@@ -35,7 +66,7 @@ public:
         : dr(_dr), qi(_qi), qj(_qj), params(_params)
         {
             // compute current janus direction vectors
-            vec3<Scalar> e { make_scalar3(1, 0, 0) }; // TODO initialize this the right way
+            vec3<Scalar> e { make_scalar3(1, 0, 0) };
             vec3<Scalar> ei;
             vec3<Scalar> ej;
 
@@ -50,30 +81,30 @@ public:
             doti = -(dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
             dotj =  (dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
         }
-    
+
     DEVICE inline Scalar Modulatori()
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.x*(doti-params.y)) );
+            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(doti-params.alpha)) ); // TODO why no cos(alpha)?
         }
-    
+
     DEVICE inline Scalar Modulatorj()
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.x*(dotj-params.y)) );
+            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(dotj-params.alpha)) );
         }
 
     DEVICE Scalar ModulatorPrimei()
         {
             Scalar fact = Modulatori();
-            return params.x * fast::exp(-params.x*(doti-params.y)) * fact * fact;
+            return params.omega * fast::exp(-params.omega*(doti-params.alpha)) * fact * fact;
         }
 
     DEVICE Scalar ModulatorPrimej()
         {
             Scalar fact = Modulatorj();
-            return params.x * fast::exp(-params.x*(dotj-params.y)) * fact * fact;
+            return params.omega * fast::exp(-params.omega*(dotj-params.alpha)) * fact * fact;
         }
 
-    
+
     // things that get passed in to constructor
     Scalar3 dr;
     Scalar4 qi;

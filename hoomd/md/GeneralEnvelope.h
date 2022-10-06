@@ -36,6 +36,11 @@ class GeneralEnvelope // TODO fix this word
 public:
     typedef typename AngleDependence::param_type param_type;
 
+    DEVICE GeneralEnvelope(pybind11::dict params)
+        : param_type(params)
+        {
+        }
+
     //! Constructor
     DEVICE GeneralEnvelope(
         const Scalar3& _dr,

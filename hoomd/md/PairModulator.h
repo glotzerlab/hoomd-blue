@@ -48,19 +48,26 @@ public:
             {
             }
 
-        param_type(typename pairEvaluator::param_type _pairP, typename directionalEnvelope::param_type _envelP):
-            pairP(_pairP), envelP(_envelP)
+        param_type(typename pairEvaluator::param_type _pairP, typename directionalEnvelope::param_type _envelP)
+            : pairP(_pairP),
+              envelP(_envelP)
             {
             }
 
         param_type(pybind11::dict params, bool managed)
-            : pairP(), envelP() // TODO just to get it to compile
+            : pairP(params["pair_params"], managed),
+              envelP(params["envel_params"])
             {
             }
 
-        pybind11::object toPython()
+        pybind11::dict asDict()
             {
-                return pybind11::none();
+                pybind11::dict v;
+
+                v["pair_params"] = pairP.asDict();
+                v["envel_params"] = envelP.asDict();
+
+                return v;
             }
 
         typename pairEvaluator::param_type pairP;
@@ -84,7 +91,7 @@ public:
 
         shape_type(pybind11::object shape_params, bool managed) { }
 
-        pybind11::object toPython()
+        pybind11::dict asDict()
             {
                 return pybind11::none();
             }
