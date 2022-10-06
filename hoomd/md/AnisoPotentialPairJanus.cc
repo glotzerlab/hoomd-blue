@@ -21,12 +21,12 @@ template void export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralE
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
-    export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope<JanusFactor>>>(m, "PotentialPairJanusLJ");
+    export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope<JanusFactor>>>(m, "AnisoPotentialPairJanusLJ");
     }
 
 void export_AnisoPotentialPairMie(pybind11::module& m)
     {
-    export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope<JanusFactor>>>(m, "PotentialPairJanusMie");
+    export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope<JanusFactor>>>(m, "AnisoPotentialPairJanusMie");
     }
 
 

@@ -516,24 +516,27 @@ class JanusLJ(AnisotropicPair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 
-    `JanusPair` computes the
+    `JanusPair` computes the TODO
 
     Defined in `Beltran-Villegas et. al.`_.
 
     .. _Beltran-Villegas et. al.: http://dx.doi.org/10.1039/C3SM53136H
 
     """
-    _cpp_class_name = "AnisoPotentialPairGB"
+    _cpp_class_name = "AnisoPotentialPairJanusLJ"
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float,
-                              lperp=float,
-                              lpar=float,
+            TypeParameterDict(dict(
+                pair_params=dict(epsilon = float,
+                                 sigma = float),
+                envel_params = dict(alpha = float,
+                                    omega= float)),
                               len_keys=2))
         self._add_typeparam(params)
+
 
     @log(category="object")
     def type_shapes(self):
@@ -541,8 +544,7 @@ class JanusLJ(AnisotropicPair):
 
         Example:
 
-            >>> gay_berne.type_shapes
-            [{'type': 'Ellipsoid', 'a': 1.0, 'b': 1.0, 'c': 1.5}]
+            >>> TODO
 
         Returns:
             A list of dictionaries, one for each particle type in the system.
