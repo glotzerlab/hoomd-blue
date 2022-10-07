@@ -28,16 +28,6 @@ def identity(obj):
     return obj
 
 
-class _SimulationPlaceHolder:
-    """Used to ensure objects are not added to two locations at once."""
-
-    def __init__(self, obj):
-        self._id = id(obj)
-
-    def __eq__(self, other):
-        return isinstance(other, type(self)) and self._id == other._id
-
-
 class SyncedList(MutableSequence):
     """Provides syncing and validation for a Python and C++ list.
 
@@ -90,7 +80,6 @@ class SyncedList(MutableSequence):
 
         self._to_synced_list_conversion = to_synced_list
         self._synced = False
-        self._simulation = _SimulationPlaceHolder(self)
         self._list = []
         if iterable is not None:
             for it in iterable:
@@ -188,42 +177,40 @@ class SyncedList(MutableSequence):
         if self._synced:
             yield from self._synced_list
 
-    def _register_item(self, value, raise_if_added=True):
+    def _register_item(self, value):
         """Attaches and/or adds value to simulation if unattached.
 
         Raises an error if value is already in this or another list.
         """
         if not self._attach_members:
             return
-        if raise_if_added and value._added:
-            raise RuntimeError(f"Object {value} cannot be added to two lists.")
-        value._add(self._simulation)
         if self._synced:
-            # To allow for dependencies within operations (like computes e.g.
-            # forces and neighbor list) we need to check it the object is
-            # attached first. Assuming the code for adding a simulation to an
-            # operation is correct, this is safe.
-            if not value._attached:
+            if not value._added:
+                value._add(self._simulation)
                 value._attach()
+                return
+            if value._simulation != self._simulation:
+                raise RuntimeError(
+                    f"Cannot place {value} into two simulations.")
+            value._attach()
+        else:
+            if value._added:
+                raise RuntimeError(
+                    f"Cannot place {value} into two simulations.")
 
-    def _unregister_item(self, value, remove=True):
+    def _unregister_item(self, value):
         """Detaches and/or removes value to simulation if attached.
 
         Args:
             value (``any``): The member of the synced list to dissociate from
                 its current simulation.
-            remove (bool, optional): Whether to add back to the `SyncedList`'s
-                current simulation or id. This defaults to ``True`` which is
-                desired when the object is removed completely from the list.
         """
         if not self._attach_members:
             return
         if self._synced:
             value._detach()
-        if remove and value._added:
+        if value._added:
             value._remove()
-        else:
-            value._add(self._simulation)
 
     def _validate_or_error(self, value):
         """Complete error checking and processing of value."""
@@ -242,7 +229,7 @@ class SyncedList(MutableSequence):
         # this case) even when facing an error.
         try:
             for item in self:
-                self._register_item(item, False)
+                self._register_item(item)
                 self._synced_list.append(self._to_synced_list_conversion(item))
         except Exception as err:
             self._synced = False
@@ -256,10 +243,10 @@ class SyncedList(MutableSequence):
         # avoid looping unless necessary (_unregister_item checks
         # self._attach_members as well) making the check a slight performance
         # bump for non-attaching members.
-        self._simulation = _SimulationPlaceHolder(self)
+        self._simulation = None
         if self._attach_members:
             for item in self:
-                self._unregister_item(item, False)
+                self._unregister_item(item)
         del self._synced_list
         self._synced = False
 
