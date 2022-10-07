@@ -108,13 +108,13 @@ class SyncedList(MutableSequence):
         # Convert negative to positive indices and validate index
         index = self._handle_int(index)
         value = self._validate_or_error(value)
-        self._attach_value(value)
+        self._register_item(value)
         # If synced need to change cpp_list and detach operation before
         # changing python list
         if self._synced:
             self._synced_list[index] = \
                 self._to_synced_list_conversion(value)
-        self._detach_value(self._list[index])
+        self._unregister_item(self._list[index])
         self._list[index] = value
 
     def __getitem__(self, index):
@@ -142,12 +142,12 @@ class SyncedList(MutableSequence):
         if self._synced:
             del self._synced_list[index]
         old_value = self._list.pop(index)
-        self._detach_value(old_value)
+        self._unregister_item(old_value)
 
     def insert(self, index, value):
         """Insert value to list at index, handling list syncing."""
         value = self._validate_or_error(value)
-        self._attach_value(value)
+        self._register_item(value)
         # Wrap index like normal but allow for inserting a new element to the
         # beginning or end of the list for out of bounds index values.
         if index <= -len(self):
@@ -188,7 +188,7 @@ class SyncedList(MutableSequence):
         if self._synced:
             yield from self._synced_list
 
-    def _attach_value(self, value, raise_if_added=True):
+    def _register_item(self, value, raise_if_added=True):
         """Attaches and/or adds value to simulation if unattached.
 
         Raises an error if value is already in this or another list.
@@ -206,7 +206,7 @@ class SyncedList(MutableSequence):
             if not value._attached:
                 value._attach()
 
-    def _detach_value(self, value, remove=True):
+    def _unregister_item(self, value, remove=True):
         """Detaches and/or removes value to simulation if attached.
 
         Args:
@@ -242,7 +242,7 @@ class SyncedList(MutableSequence):
         # this case) even when facing an error.
         try:
             for item in self:
-                self._attach_value(item, False)
+                self._register_item(item, False)
                 self._synced_list.append(self._to_synced_list_conversion(item))
         except Exception as err:
             self._synced = False
@@ -253,13 +253,13 @@ class SyncedList(MutableSequence):
         if not self._synced:
             return
         # while not strictly necessary we check self._attach_members here to
-        # avoid looping unless necessary (_detach_value checks
+        # avoid looping unless necessary (_unregister_item checks
         # self._attach_members as well) making the check a slight performance
         # bump for non-attaching members.
         self._simulation = _SimulationPlaceHolder(self)
         if self._attach_members:
             for item in self:
-                self._detach_value(item, False)
+                self._unregister_item(item, False)
         del self._synced_list
         self._synced = False
 
