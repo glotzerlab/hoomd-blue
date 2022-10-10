@@ -134,7 +134,7 @@ class Triplet(Force):
             self._add_nlist()
             old_nlist._remove_dependent(self)
 
-    def _attach(self):
+    def _attach_hook(self):
         if self._simulation != self.nlist._simulation:
             raise RuntimeError("{} object's neighbor list is used in a "
                                "different simulation.".format(type(self)))
@@ -147,8 +147,6 @@ class Triplet(Force):
 
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
                             self.nlist._cpp_obj)
-
-        super()._attach()
 
 
 class Tersoff(Triplet):

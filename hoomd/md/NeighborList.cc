@@ -745,14 +745,14 @@ void NeighborList::setSingleExclusion(std::string exclusion)
         }
     }
 
-pybind11::tuple NeighborList::getExclusions()
+pybind11::list NeighborList::getExclusions()
     {
     auto exclusions = pybind11::list();
     for (auto exclusion : m_exclusions)
         {
         exclusions.append(exclusion);
         }
-    return (pybind11::tuple)exclusions;
+    return exclusions;
     }
 
 /*! \post Gather some statistics about exclusions usage.

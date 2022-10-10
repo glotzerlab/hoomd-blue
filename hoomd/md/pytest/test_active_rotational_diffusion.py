@@ -108,16 +108,16 @@ def test_attaching(active_force, local_simulation_factory):
     with pytest.raises(hoomd.error.SimulationDefinitionError):
         sim.operations.integrator.forces.remove(active_force)
 
-    # Exception happens before removing "_simulation" attribute. We need to
-    # manual do this to perform the other checks. We don't worry about this,
+    sim.operations.remove(rd_updater)
+    # Exception above happens before removing "_simulation" attribute. We need
+    # to manual do this to perform the other checks. We don't worry about this,
     # because a SimulationDefinitionError is not really meant to be caught and
     # dealt with dynamically.
-    del active_force._simulation
+    active_force._remove()
+    sim.operations.integrator.forces.clear()
 
     # Reset simulation to test for variouos error conditions
     sim.operations._unschedule()
-    sim.operations.remove(rd_updater)
-    sim.operations.integrator.forces.clear()
 
     # ActiveRotationalDiffusion should error when active force is not attached
     sim.operations += rd_updater

@@ -173,7 +173,7 @@ class Coulomb(Force):
         self.alpha = alpha
         self._pair_force = pair_force
 
-    def _attach(self):
+    def _attach_hook(self):
         if not self._nlist._added:
             self._nlist._add(self._simulation)
         else:
@@ -262,8 +262,6 @@ class Coulomb(Force):
                 self._pair_force.r_cut[(a, b)] = rcut
 
         self._cpp_obj.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
-
-        super()._attach()
 
     @property
     def nlist(self):
