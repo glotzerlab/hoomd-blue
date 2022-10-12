@@ -54,7 +54,8 @@ public:
     DEVICE static bool needsDiameter() { return false; }
 
     //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
+    /*!
+      \param di Diameter of particle i
       \param dj Diameter of particle j
     */
     DEVICE void setDiameter(Scalar di, Scalar dj) { }
@@ -82,14 +83,14 @@ public:
     //! Evaluate the force and energy
     /*
       \param force Output parameter to write the computed force.
-      \param isoModulator Output parameter to write the amount of modulation of the isotropic part
+      \param envelope Output parameter to write the amount of modulation of the isotropic part
       \param torque_i The torque exterted on the i^th particle.
       \param torque_j The torque exterted on the j^th particle.
       \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPairJanusSphere.
       \return Always true
     */
     DEVICE bool evaluate(Scalar3& force,
-                         Scalar& isoModulator,
+                         Scalar& envelope,
                          Scalar3& torque_i,
                          Scalar3& torque_j)
         {
@@ -100,7 +101,7 @@ public:
             Scalar modPj = s.ModulatorPrimej();
 
             // the overall modulation
-            isoModulator = modi*modj;
+            envelope = modi*modj;
 
             // intermediate calculations
             Scalar iPj = modPi*modj/s.magdr;

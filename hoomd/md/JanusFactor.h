@@ -19,8 +19,6 @@ namespace hoomd
 namespace md
     {
 /*! \file JanusFactor.h
-    \brief This is a struct that handles Janus spheres of arbitrary balance
-    // TODO I don't think this is true anymore.
 */
 class JanusFactor
 {

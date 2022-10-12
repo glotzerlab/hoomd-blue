@@ -388,6 +388,7 @@ def _make_valid_param_dicts(arg_dict):
 def _valid_params(particle_types=['A', 'B']):
     valid_params_list = []
     combos = list(itertools.combinations_with_replacement(particle_types, 2))
+
     lj_arg_dict = {'sigma': [0.5, 1.0, 1.5], 'epsilon': [0.0005, 0.001, 0.0015]}
     lj_valid_param_dicts = _make_valid_param_dicts(lj_arg_dict)
     valid_params_list.append(
