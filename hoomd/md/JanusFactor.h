@@ -31,7 +31,7 @@ public:
             }
 
         param_type(pybind11::dict params)
-            : alpha(params["alpha"].cast<Scalar>()),
+            : cosalpha( fast::cos(params["alpha"].cast<Scalar>()) ), // TODO implement bound checking
               omega(params["omega"].cast<Scalar>())
             {
             }
@@ -40,13 +40,13 @@ public:
             {
                 pybind11::dict v;
 
-                v["alpha"] = alpha;
+                v["alpha"] = fast::acos(cosalpha);
                 v["omega"] = omega;
 
                 return v;
             }
 
-        Scalar alpha;
+        Scalar cosalpha;
         Scalar omega;
     }
 #ifdef SINGLE_PRECISION
@@ -54,7 +54,6 @@ public:
 #else
         __attribute__((aligned(16)));
 #endif
-
 
     DEVICE JanusFactor(const Scalar3& _dr,
                        const Scalar4& _qi,
@@ -82,24 +81,24 @@ public:
 
     DEVICE inline Scalar Modulatori()
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(doti-params.alpha)) ); // TODO why no cos(alpha)?
+            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(doti-params.cosalpha)) ); // TODO (progress) why no cos(alpha)?
         }
 
     DEVICE inline Scalar Modulatorj()
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(dotj-params.alpha)) );
+            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(dotj-params.cosalpha)) );
         }
 
     DEVICE Scalar ModulatorPrimei()
         {
             Scalar fact = Modulatori();
-            return params.omega * fast::exp(-params.omega*(doti-params.alpha)) * fact * fact;
+            return params.omega * fast::exp(-params.omega*(doti-params.cosalpha)) * fact * fact;
         }
 
     DEVICE Scalar ModulatorPrimej()
         {
             Scalar fact = Modulatorj();
-            return params.omega * fast::exp(-params.omega*(dotj-params.alpha)) * fact * fact;
+            return params.omega * fast::exp(-params.omega*(dotj-params.cosalpha)) * fact * fact;
         }
 
 
