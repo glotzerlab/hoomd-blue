@@ -86,7 +86,8 @@ template<class evaluator> void PotentialExternalGPU<evaluator>::computeForces(ui
                                           d_diameter.data,
                                           d_charge.data,
                                           box,
-                                          m_tuner->getParam()[0]),
+                                          m_tuner->getParam()[0],
+                                          this->m_exec_conf->dev_prop),
         d_params.data,
         this->m_field.get());
 

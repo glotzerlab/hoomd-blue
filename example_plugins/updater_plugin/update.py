@@ -22,7 +22,7 @@ class ExampleUpdater(operation.Updater):
         """Add the operation to a simulation."""
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _updater_plugin.ExampleUpdater(
@@ -30,4 +30,3 @@ class ExampleUpdater(operation.Updater):
         else:
             self._cpp_obj = _updater_plugin.ExampleUpdaterGPU(
                 self._simulation.state._cpp_sys_def, self.trigger)
-        super()._attach()

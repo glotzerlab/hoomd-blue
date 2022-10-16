@@ -9,18 +9,11 @@ import hoomd
 
 import itertools
 import pytest
-from typing import Optional, Tuple
 import numpy as np
-from numpy.typing import NDArray, ArrayLike
 
 
 # Python implementation of the pair force and energy.
-def harm_force_and_energy(
-        dx: ArrayLike,
-        k: float,
-        sigma: float,
-        r_cut: float,
-        shift: Optional[bool] = False) -> Tuple[NDArray[np.float64], float]:
+def harm_force_and_energy(dx, k, sigma, r_cut, shift=False):
 
     dr = np.linalg.norm(dx)
 

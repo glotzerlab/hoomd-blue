@@ -149,7 +149,7 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
                                     pivot_move_probability=0.5)
     sim.operations.updaters.append(cl)
 
-    sim.run(100)
+    sim.run(10)
 
     avg = cl.avg_cluster_size
     assert avg > 0

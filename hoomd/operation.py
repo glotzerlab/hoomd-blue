@@ -192,36 +192,106 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     infrastructure for HOOMD-blue objects.
 
     This class's main features are handling attaching and detaching from
-    simulations and adding and removing from containing object such as methods
-    for MD integrators and updaters for the operations list. Attaching is the
-    idea of creating a C++ object that is tied to a given simulation while
-    detaching is removing an object from its simulation.
+    simulations and _adding_ and _removing_ from containing object such as
+    methods for MD integrators and updaters for the operations list. _Attaching_
+    is the idea of creating a C++ object that is tied to a given simulation
+    while _detaching_ is removing an object from its simulation.
+
+    The class also has a counter ``_use_count`` which keeps track of consumers
+    of an operation outside of regular dependencies. This is necessary to avoid
+    double attaching or premature detaching if the object is removed from one of
+    its consumers. This does allow for simple dependency handling outside of the
+    features of `_DependencyRelation`.
     """
     _reserved_default_attrs = {
-        **_HOOMDGetSetAttrBase._reserved_default_attrs, '_cpp_obj': None,
+        **_HOOMDGetSetAttrBase._reserved_default_attrs,
+        '_cpp_obj': None,
         '_simulation': None,
         '_dependents': list,
-        '_dependencies': list
+        '_dependencies': list,
+        # Keeps track of the number of times _attach is called to avoid
+        # premature detaching.
+        "_use_count": int,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependents', '_dependencies', '_simulation'
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation', "_use_count"
     }
-    _remove_for_pickling = ('_simulation', '_cpp_obj')
+    # _use_count must be included or attaching and detaching won't work as
+    # expected as _use_count may not equal 0.
+    _remove_for_pickling = ('_simulation', '_cpp_obj', "_use_count")
 
     def _detach(self):
-        if self._attached:
-            self._unapply_typeparam_dict()
-            self._param_dict._detach()
-            if hasattr(self._cpp_obj, "notifyDetach"):
-                self._cpp_obj.notifyDetach()
-            # In case the C++ object is necessary for proper disconnect
-            # notification we call _notify_disconnect here as well.
-            self._notify_disconnect()
-            self._cpp_obj = None
+        """Decrement attach count and destroy C++ object if count == 0.
+
+        This method is not designed to be overwritten, but handles the necessary
+        detaching procedures for all `_HOOMDBaseObject` subclasses.
+
+        Note:
+            Use `~._detach_hook` in subclasses to provide custom detaching
+            logic.
+        """
+        if self._use_count == 0:
             return self
+        self._use_count -= 1
+        if self._use_count > 0:
+            return self
+        self._unapply_typeparam_dict()
+        self._param_dict._detach()
+        if hasattr(self._cpp_obj, "notifyDetach"):
+            self._cpp_obj.notifyDetach()
+        # In case the C++ object is necessary for proper disconnect
+        # notification we call _notify_disconnect here as well.
+        try:
+            self._notify_disconnect()
+        except hoomd.error.SimulationDefinitionError as err:
+            raise err
+        finally:
+            self._detach_hook()
+            self._cpp_obj = None
+        return self
+
+    def _detach_hook(self):
+        """Implement custom detaching behavior.
+
+        This is to provide custom detaching behavior not to:
+            - Change the instance's ``_use_count`` member.
+            - Remove the C++ instance.
+            - Handle the ``_param_dict`` and ``_typeparam_dict``.
+            - Notifying dependencies in C++ or Python of detaching.
+
+        Note:
+            This is only called when the attach counter goes to zero.
+
+        Note:
+            The C++ object is available for this method.
+        """
+        pass
+
+    def _attach_hook(self):
+        """Create the C++ object and store it in ``_cpp_obj``.
+
+        All subclasses should implement this to create the correct pybind11
+        wrapped C++ object. This should not worry about the consumer count or
+        deal with ``_param_dict`` or ``_typeparam_dict``.
+        """
+        pass
 
     def _attach(self):
+        """Attach the object to the added simulation.
+
+        This should not be overwritten by subclasses, see `~._attach_hook`
+        instead. This method handles consumer count book keeping and
+        ``_param_dict`` and ``_typeparam_dict``.
+        """
+        self._use_count += 1
+        if self._use_count > 1:
+            return
+        try:
+            self._attach_hook()
+        except hoomd.error.SimulationDefinitionError as err:
+            self._use_count -= 1
+            raise err
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
@@ -235,12 +305,16 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     def _remove(self):
         # Since objects can be added without being attached, we need to call
         # _notify_disconnect on both _remove and _detach. The method should be
-        # do nothing after being called onces so being called twice is not a
+        # do nothing after being called once so being called twice is not a
         # concern. I should note that if
         # `hoomd.operations.Operations._unschedule` is called this is
         # invalidated, but as that is not public facing this should be fine.
-        self._notify_disconnect()
-        self._simulation = None
+        try:
+            self._notify_disconnect()
+        except hoomd.error.SimulationDefinitionError as err:
+            raise err
+        finally:
+            self._simulation = None
 
     @property
     def _added(self):
@@ -483,9 +557,8 @@ class Integrator(Operation):
         for `isinstance` or `issubclass` checks.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
-        super()._attach()
 
         # The integrator has changed, update the number of DOF in all groups
         self._simulation.state.update_group_dof()
