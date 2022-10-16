@@ -18,6 +18,11 @@ if (ENABLE_HIP)
             set(CUDA_ARCH_LIST 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
         endif()
 
+        if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.2)
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUSPARSE_NEW_API")
+          set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DCUSPARSE_NEW_API")
+        endif()
+
         # need to know the minimum supported CUDA_ARCH
         set(_cuda_arch_list_sorted ${CUDA_ARCH_LIST})
         list(SORT _cuda_arch_list_sorted)

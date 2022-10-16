@@ -421,7 +421,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                         {
                         // access the index of neighbor k
                         unsigned int kk = h_nlist.data[head_i + k];
-                        assert(kk < m_pdata->getN());
+                        assert(kk < m_pdata->getN() + m_pdata->getNGhosts());
 
                         // access the position and type of neighbor k
                         Scalar3 posk
@@ -714,7 +714,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                             {
                             // access the index of neighbor k
                             unsigned int kk = h_nlist.data[head_i + k];
-                            assert(kk < m_pdata->getN());
+                            assert(kk < m_pdata->getN() + m_pdata->getNGhosts());
 
                             // access the position and type of neighbor k
                             Scalar3 posk = make_scalar3(h_pos.data[kk].x,
@@ -801,7 +801,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                             {
                             // access the index of neighbor k
                             unsigned int kk = h_nlist.data[head_i + k];
-                            assert(kk < m_pdata->getN());
+                            assert(kk < m_pdata->getN() + m_pdata->getNGhosts());
 
                             // access the position and type of neighbor k
                             Scalar3 posk = make_scalar3(h_pos.data[kk].x,

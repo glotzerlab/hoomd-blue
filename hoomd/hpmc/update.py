@@ -298,7 +298,7 @@ class BoxMC(Updater):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -309,7 +309,6 @@ class BoxMC(Updater):
         self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
                                            self.trigger, integrator._cpp_obj,
                                            self.betaP)
-        super()._attach()
 
     @property
     def counter(self):
@@ -449,7 +448,7 @@ class MuVT(Updater):
                                          _defaults=hoomd.variant.Constant(0.0)))
         self._append_typeparam(typeparam_fugacity)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -460,7 +459,6 @@ class MuVT(Updater):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.trigger, integrator._cpp_obj, self.ngibbs)
-        super()._attach()
 
     @log(category='sequence', requires_run=True)
     def insert_moves(self):
@@ -648,7 +646,7 @@ class Shape(Updater):
             new_move._attach()
         self._param_dict["shape_move"] = new_move
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -663,7 +661,6 @@ class Shape(Updater):
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     self.trigger, integrator._cpp_obj,
                                     self.shape_move._cpp_obj)
-        super()._attach()
 
     @log(category='sequence', requires_run=True)
     def shape_moves(self):
@@ -747,7 +744,7 @@ class Clusters(Updater):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -773,7 +770,6 @@ class Clusters(Updater):
         else:
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                     self.trigger, integrator._cpp_obj)
-        super()._attach()
 
     @log(requires_run=True)
     def avg_cluster_size(self):
@@ -960,7 +956,7 @@ class QuickCompress(Updater):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -972,7 +968,6 @@ class QuickCompress(Updater):
             self._simulation.state._cpp_sys_def, self.trigger,
             integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
             self.target_box._cpp_obj)
-        super()._attach()
 
     @property
     def complete(self):

@@ -64,7 +64,7 @@ class Dihedral(Force):
     def __init__(self):
         super().__init__()
 
-    def _attach(self):
+    def _attach_hook(self):
         # check that some dihedrals are defined
         if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal(
         ) == 0:
@@ -78,7 +78,6 @@ class Dihedral(Force):
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
-        super()._attach()
 
 
 class Harmonic(Dihedral):
@@ -181,7 +180,7 @@ class Table(Dihedral):
                 len_keys=1))
         self._add_typeparam(params)
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TableDihedralForceCompute
@@ -189,8 +188,6 @@ class Table(Dihedral):
             cpp_cls = _md.TableDihedralForceComputeGPU
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
-
-        Force._attach(self)
 
 
 class OPLS(Dihedral):

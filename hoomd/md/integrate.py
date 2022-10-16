@@ -44,21 +44,20 @@ class _DynamicIntegrator(BaseIntegrator):
         param_dict["rigid"] = rigid
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._forces._sync(self._simulation, self._cpp_obj.forces)
         self._constraints._sync(self._simulation, self._cpp_obj.constraints)
         self._methods._sync(self._simulation, self._cpp_obj.methods)
         if self.rigid is not None:
             self.rigid._attach()
-        super()._attach()
+        super()._attach_hook()
 
-    def _detach(self):
+    def _detach_hook(self):
         self._forces._unsync()
         self._methods._unsync()
         self._constraints._unsync()
         if self.rigid is not None:
             self.rigid._detach()
-        super()._detach()
 
     def _remove(self):
         if self.rigid is not None:
@@ -301,13 +300,13 @@ class Integrator(_DynamicIntegrator):
 
         self.half_step_hook = half_step_hook
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         self._cpp_obj = _md.IntegratorTwoStep(
             self._simulation.state._cpp_sys_def, self.dt)
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
-        super()._attach()
+        super()._attach_hook()
 
     def __setattr__(self, attr, value):
         """Hande group DOF update when setting integrate_rotational_dof."""

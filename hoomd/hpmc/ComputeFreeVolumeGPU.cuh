@@ -394,6 +394,12 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
                           + n_groups * sizeof(unsigned int)
                           + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
+    if (shared_bytes > args.devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("HPMC shape parameters exceed the available shared "
+                                 "memory per block.");
+        }
+
     unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock
                                                              - attr.sharedSizeBytes - shared_bytes);
 

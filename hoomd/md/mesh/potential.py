@@ -56,7 +56,7 @@ class MeshPotential(Force):
         # mesh when not attached we handle correctly.
         self._add_dependency(self._mesh)
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if self._simulation != self._mesh._simulation:
             raise RuntimeError("{} object's mesh is used in a "
@@ -72,8 +72,6 @@ class MeshPotential(Force):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._mesh._cpp_obj)
-
-        super()._attach()
 
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():

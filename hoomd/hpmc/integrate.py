@@ -406,7 +406,7 @@ class HPMCIntegrator(Integrator):
         if self._pair_potential is not None:
             self._pair_potential._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
         """Initialize the reflected c++ class."""
         sys_def = self._simulation.state._cpp_sys_def
         if (isinstance(self._simulation.device, hoomd.device.GPU)
@@ -422,8 +422,6 @@ class HPMCIntegrator(Integrator):
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def)
             self._cpp_cell = None
 
-        super()._attach()
-
         if self._external_potential is not None:
             self._external_potential._attach()
             self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
@@ -431,13 +429,13 @@ class HPMCIntegrator(Integrator):
         if self._pair_potential is not None:
             self._pair_potential._attach()
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
+        super()._attach_hook()
 
-    def _detach(self):
+    def _detach_hook(self):
         if self._external_potential is not None:
             self._external_potential._detach()
         if self._pair_potential is not None:
             self._pair_potential._detach()
-        super()._detach()
 
     def _remove(self):
         if self._external_potential is not None:

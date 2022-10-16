@@ -23,13 +23,11 @@ class Method(AutotunedObject):
         Users should use the subclasses and not instantiate `Method` directly.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         self._simulation.state.update_group_dof()
-        super()._attach()
 
-    def _detach(self):
+    def _detach_hook(self):
         self._simulation.state.update_group_dof()
-        super()._detach()
 
 
 class NVT(Method):
@@ -114,7 +112,7 @@ class NVT(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -128,7 +126,7 @@ class NVT(Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group)
         self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.tau, self.kT)
-        super()._attach()
+        super()._attach_hook()
 
     def thermalize_thermostat_dof(self):
         r"""Set the thermostat momenta to random values.
@@ -390,7 +388,7 @@ class NPT(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
@@ -411,7 +409,7 @@ class NPT(Method):
                                 self.S, self.couple, self.box_dof, False)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
     def _preprocess_stress(self, value):
         if isinstance(value, Sequence):
@@ -590,7 +588,7 @@ class NPH(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
@@ -611,7 +609,7 @@ class NPH(Method):
                                 self.S, self.couple, self.box_dof, True)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
     @staticmethod
     def _preprocess_stress(value):
@@ -693,7 +691,7 @@ class NVE(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         # initialize the reflected c++ class
@@ -705,7 +703,7 @@ class NVE(Method):
                                               sim.state._get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
 
 class DisplacementCapped(NVE):
@@ -916,7 +914,7 @@ class Langevin(Method):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
@@ -928,7 +926,7 @@ class Langevin(Method):
                                  sim.state._get_group(self.filter), self.kT)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
 
 class Brownian(Method):
@@ -1101,7 +1099,7 @@ class Brownian(Method):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
@@ -1114,7 +1112,7 @@ class Brownian(Method):
                                              self.kT, False, False)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
 
 class Berendsen(Method):
@@ -1172,7 +1170,7 @@ class Berendsen(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         sim = self._simulation
         # Error out in MPI simulations
         if hoomd.version.mpi_enabled:
@@ -1191,7 +1189,7 @@ class Berendsen(Method):
         self._cpp_obj = cpp_method(sim.state._cpp_sys_def, group,
                                    thermo_cls(sim.state._cpp_sys_def, group),
                                    self.tau, self.kT)
-        super()._attach()
+        super()._attach_hook()
 
 
 class OverdampedViscous(Method):
@@ -1311,7 +1309,7 @@ class OverdampedViscous(Method):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
@@ -1326,4 +1324,4 @@ class OverdampedViscous(Method):
                                              True)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()

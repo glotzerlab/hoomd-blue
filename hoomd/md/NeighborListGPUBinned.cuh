@@ -60,7 +60,8 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     bool diameter_shift,
                                     const Scalar3& ghost_width,
                                     const GPUPartition& gpu_partition,
-                                    bool use_index);
+                                    bool use_index,
+                                    const hipDeviceProp_t& devprop);
 
     } // end namespace kernel
     } // end namespace md

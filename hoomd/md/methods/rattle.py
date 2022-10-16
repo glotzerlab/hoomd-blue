@@ -115,7 +115,7 @@ class NVE(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         self._attach_constraint(self._simulation)
 
@@ -133,9 +133,6 @@ class NVE(MethodRATTLE):
                                  self._simulation.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class DisplacementCapped(NVE):
@@ -337,7 +334,7 @@ class Langevin(MethodRATTLE):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         self._attach_constraint(sim)
@@ -355,9 +352,6 @@ class Langevin(MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class Brownian(MethodRATTLE):
@@ -476,7 +470,7 @@ class Brownian(MethodRATTLE):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         self._attach_constraint(sim)
@@ -494,9 +488,6 @@ class Brownian(MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
                                  False, False, self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class OverdampedViscous(MethodRATTLE):
@@ -605,7 +596,7 @@ class OverdampedViscous(MethodRATTLE):
 
         super()._add(simulation)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         self._attach_constraint(sim)
@@ -624,6 +615,3 @@ class OverdampedViscous(MethodRATTLE):
                                  self.manifold_constraint._cpp_obj,
                                  hoomd.variant.Constant(0.0), True, True,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()

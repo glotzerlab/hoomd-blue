@@ -117,7 +117,7 @@ class NeighborList(Compute):
 
         self._in_context_manager = False
 
-    def _attach(self):
+    def _attach_hook(self):
         if self._mesh is not None:
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
@@ -266,15 +266,14 @@ class Cell(NeighborList):
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             nlist_cls = _md.NeighborListBinned
         else:
             nlist_cls = _md.NeighborListGPUBinned
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
                                   self.buffer)
-
-        super()._attach()
+        super()._attach_hook()
 
     @log(requires_run=True, default=False, category='sequence')
     def dimensions(self):
@@ -377,14 +376,14 @@ class Stencil(NeighborList):
 
         self._param_dict.update(params)
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             nlist_cls = _md.NeighborListStencil
         else:
             nlist_cls = _md.NeighborListGPUStencil
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
                                   self.buffer)
-        super()._attach()
+        super()._attach_hook()
 
 
 class Tree(NeighborList):
@@ -445,11 +444,11 @@ class Tree(NeighborList):
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
                          mesh, default_r_cut)
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             nlist_cls = _md.NeighborListTree
         else:
             nlist_cls = _md.NeighborListGPUTree
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def,
                                   self.buffer)
-        super()._attach()
+        super()._attach_hook()

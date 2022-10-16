@@ -813,8 +813,20 @@ class BaseCollectionsTest:
     def str(self, max_length=20):
         """Return a random string."""
         length = self.int(max_length) + 1
-        characters = [self.rng.choice(self.alphabet) for _ in range(length)]
+        characters = [
+            self.rng.choice(self.alphabet)
+            for _ in range(self.rng.integers(length))
+        ]
         return "".join(characters)
+
+    def ndarray(self, shape=(None,), dtype="float64"):
+        """Return a ndarray of specified shape and dtype.
+
+        A value of None in shape means any length.
+        """
+        shape = tuple(i if i is not None else self.int(20) for i in shape)
+        return (100 * self.rng.random(numpy.product(shape))
+                - 50).reshape(shape).astype(dtype)
 
     @pytest.fixture(autouse=True, params=(5, 10, 20))
     def n(self, request):
@@ -862,7 +874,25 @@ class BaseCollectionsTest:
         # collection generation this is all but guaranteed.
         new_collection = generate_plain_collection(5)
         for item in new_collection:
-            if item in plain_collection:
+            # Having a NumPy array anywhere in another collection reeks havoc
+            # because of NumPy's use of == as a elementwise operator.
+            if isinstance(item, numpy.ndarray):
+                contains = any(
+                    test_collection._numpy_equality(item, item2)
+                    for item2 in plain_collection)
+            else:
+                if any(isinstance(a, numpy.ndarray) for a in plain_collection):
+                    contains = False
+                    for a in plain_collection:
+                        if isinstance(a, numpy.ndarray):
+                            contains |= test_collection._numpy_equality(a, item)
+                        else:
+                            contains |= a == item
+                        if contains:
+                            break
+                else:
+                    contains = item in plain_collection
+            if contains:
                 assert item in test_collection
             else:
                 assert item not in test_collection

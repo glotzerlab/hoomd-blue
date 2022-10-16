@@ -160,7 +160,8 @@ void PotentialPairDPDThermoGPU<evaluator>::computeForces(uint64_t timestep)
                                 (*this->m_T)(timestep),
                                 this->m_shift_mode,
                                 flags[pdata_flag::pressure_tensor],
-                                threads_per_particle),
+                                threads_per_particle,
+                                this->m_exec_conf->dev_prop),
         this->m_params.data());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
