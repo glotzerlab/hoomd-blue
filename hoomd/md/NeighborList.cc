@@ -1866,15 +1866,7 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
             }
 
         // Use a gather command to get the number of pairs on each processor
-        int retval = MPI_Gather(&n_elem,
-                                1,
-                                MPI_INT,
-                                recvbuf,
-                                1,
-                                MPI_INT,
-                                0,
-                                m_exec_conf->getMPICommunicator());
-        assert(retval == MPI_SUCCESS);
+        MPI_Gather(&n_elem, 1, MPI_INT, recvbuf, 1, MPI_INT, 0, m_exec_conf->getMPICommunicator());
 
         // Allocate array to hold the offsets
         std::vector<int>* offsets;
@@ -1907,16 +1899,15 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
                                                free(data);
                                            });
 
-        retval = MPI_Gatherv(pair_list->data(),
-                             n_elem,
-                             MPI_UINT32_T,
-                             global_pair_list,
-                             recvcount,
-                             displs,
-                             MPI_UINT32_T,
-                             0,
-                             m_exec_conf->getMPICommunicator());
-        assert(retval == MPI_SUCCESS);
+        MPI_Gatherv(pair_list->data(),
+                    n_elem,
+                    MPI_UINT32_T,
+                    global_pair_list,
+                    recvcount,
+                    displs,
+                    MPI_UINT32_T,
+                    0,
+                    m_exec_conf->getMPICommunicator());
 
         // cleanup allocations
         delete pair_list;
