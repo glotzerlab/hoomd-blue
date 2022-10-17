@@ -1806,7 +1806,7 @@ pybind11::array_t<uint32_t> NeighborList::getLocalPairListPython(uint64_t timest
                              free_when_done);
     }
 
-pybind11::object NeighborList::getPairListNaivePython(uint64_t timestep)
+pybind11::object NeighborList::getPairListPython(uint64_t timestep)
     {
     compute(timestep);
 
@@ -1824,28 +1824,27 @@ pybind11::object NeighborList::getPairListNaivePython(uint64_t timestep)
                                       access_mode::read);
 
     auto* pair_list = new std::vector<vec2<uint32_t>>();
-    pair_list->reserve(m_pdata->getN()); // it's probably a good idea to do some upfront allocation?
+    // pair_list->reserve(m_pdata->getN());
 
-    // do I need
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         unsigned int tag_i = h_rtags.data[i];
         const size_t myHead = h_head_list.data[i];
         const unsigned int size = h_n_neigh.data[i];
+        std::cout << "i: " << i << " size: " << size << " tag: " << tag_i <<  std::endl;
+        if (tag_i >= m_pdata->getNGlobal()) continue;
         for (unsigned int k = 0; k < size; k++)
             {
             const unsigned int j = h_nlist.data[myHead + k];
-            // assert(j < m_pdata->getN() + m_pdata->getNGhosts());
-            // we don't want to grab ghost pairs
-            // if (j >= m_pdata->getN())
-            //     continue;
             const unsigned int tag_j = h_rtags.data[j];
+            if (j >= m_pdata->getN() + m_pdata->getNGhosts() || tag_j >= m_pdata->getNGlobal())
+                continue;
 
             pair_list->push_back(vec2(tag_i, tag_j));
             }
         }
 
-    pair_list->shrink_to_fit();
+    // pair_list->shrink_to_fit();
 
 #ifdef ENABLE_MPI
 
@@ -1862,12 +1861,16 @@ pybind11::object NeighborList::getPairListNaivePython(uint64_t timestep)
         if (root)
             {
             global_n_elem = new std::vector<int>();
-            global_n_elem->reserve(m_exec_conf->getNRanks());
+            for (int i = 0; i < m_exec_conf->getNRanks(); i++)
+                {
+                global_n_elem->push_back(0);
+                }
             recvbuf = global_n_elem->data();
             }
 
         // Use a gather command to get the number of pairs on each processor
-        MPI_Gather(&n_elem, 1, MPI_INT, recvbuf, 1, MPI_INT, 0, m_exec_conf->getMPICommunicator());
+        int retval = MPI_Gather(&n_elem, 1, MPI_INT, recvbuf, 1, MPI_INT, 0, m_exec_conf->getMPICommunicator());
+        std::cout << std::endl << "Return value: " << retval << std::endl;
 
         // Allocate array to hold the offsets
         std::vector<int>* offsets;
@@ -1879,19 +1882,30 @@ pybind11::object NeighborList::getPairListNaivePython(uint64_t timestep)
             offsets = new std::vector<int>();
             offsets->reserve(m_exec_conf->getNRanks());
             offsets->push_back(0);
-            total_elements = 2 * global_n_elem->data()[0];
+            total_elements = global_n_elem->data()[0];
             for (unsigned int i = 1; i < m_exec_conf->getNRanks(); i++)
                 {
                 offsets->push_back(offsets->data()[i - 1] + global_n_elem->data()[i - 1]);
-                total_elements += global_n_elem->data()[i - 1];
+                total_elements += global_n_elem->data()[i];
                 }
             recvcount = global_n_elem->data();
             displs = offsets->data();
+
+            std::cout << "total elements: " << total_elements << std::endl;
+            std::cout << "local pair list: " << pair_list->size() << std::endl;
+            std::cout << "n_elems: ";
+            for(int i=0; i<global_n_elem->size(); ++i) std::cout<<global_n_elem->at(i)<<"  ";
+            std::cout<<std::endl;
+            std::cout << "offsets: ";
+            for(int i=0; i<offsets->size(); ++i) std::cout<<offsets->at(i)<<"  ";
+            std::cout<<std::endl;
             }
 
         // Use a gatherv command to produce the global_pair_list
-        global_pair_list = (uint32_t*)malloc(2 * sizeof(uint32_t) * total_elements);
-        shape[0] = total_elements;
+        global_pair_list = (uint32_t*)malloc(sizeof(uint32_t) * total_elements);
+        shape[0] = total_elements/2;
+
+        std::cout << "shape: " << shape[0] << std::endl;
 
         free_when_done = pybind11::capsule(global_pair_list,
                                            [](void* f)
@@ -1910,13 +1924,15 @@ pybind11::object NeighborList::getPairListNaivePython(uint64_t timestep)
                     0,
                     m_exec_conf->getMPICommunicator());
 
+        std::cout << "global pair list: " << total_elements/2 << std::endl;
+
         // cleanup allocations
-        delete pair_list;
-        if (root)
-            {
-            delete global_n_elem;
-            delete offsets;
-            }
+        // delete pair_list;
+        // if (root)
+        //     {
+        //     delete global_n_elem;
+        //     delete offsets;
+        //     }
         }
     else
         {
@@ -2039,7 +2055,7 @@ void export_NeighborList(pybind11::module& m)
         .def("getNumExclusions", &NeighborList::getNumExclusions)
         .def_property_readonly("num_builds", &NeighborList::getNumUpdates)
         .def("getLocalPairList", &NeighborList::getLocalPairListPython)
-        .def("getPairList", &NeighborList::getPairListNaivePython)
+        .def("getPairList", &NeighborList::getPairListPython)
         .def("getStorageMode", &NeighborList::getStorageMode)
         .def("setRCut", &NeighborList::setRCutPython)
         .def("getRCut", &NeighborList::getRCut);

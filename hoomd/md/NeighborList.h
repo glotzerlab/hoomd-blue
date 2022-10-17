@@ -509,7 +509,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
     // Python API for accessing nlist neighbors
     pybind11::array_t<uint32_t> getLocalPairListPython(uint64_t timestep);
-    pybind11::object getPairListNaivePython(uint64_t timestep);
+    pybind11::object getPairListPython(uint64_t timestep);
     /// Validate that types are within Ntypes
     void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
     //! Set the rcut for a single type pair
@@ -605,10 +605,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         {
         CommFlags flags(0);
         flags[comm_flag::position] = 1;
-
-        // exclusions require ghost particle tags
-        if (m_exclusions_set)
-            flags[comm_flag::tag] = 1;
+        flags[comm_flag::tag] = 1;
 
         if (m_filter_body)
             flags[comm_flag::body] = 1;
