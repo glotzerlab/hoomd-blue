@@ -1810,6 +1810,8 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
     {
     compute(timestep);
 
+    bool third_law = getStorageMode() == NeighborList::half;
+
 #ifdef ENABLE_MPI
     // if we are not the root processor, return None
     bool root = m_exec_conf->isRoot();
@@ -1819,25 +1821,20 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
     ArrayHandle<unsigned int> h_nlist(getNListArray(), access_location::host, access_mode::read);
     ArrayHandle<size_t> h_head_list(getHeadList(), access_location::host, access_mode::read);
 
-    ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(),
-                                      access_location::host,
-                                      access_mode::read);
+    ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
 
     auto* pair_list = new std::vector<vec2<uint32_t>>();
-    // pair_list->reserve(m_pdata->getN());
 
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
-        unsigned int tag_i = h_rtags.data[i];
+        unsigned int tag_i = h_tags.data[i];
         const size_t myHead = h_head_list.data[i];
         const unsigned int size = h_n_neigh.data[i];
-        std::cout << "i: " << i << " size: " << size << " tag: " << tag_i <<  std::endl;
-        if (tag_i >= m_pdata->getNGlobal()) continue;
         for (unsigned int k = 0; k < size; k++)
             {
             const unsigned int j = h_nlist.data[myHead + k];
-            const unsigned int tag_j = h_rtags.data[j];
-            if (j >= m_pdata->getN() + m_pdata->getNGhosts() || tag_j >= m_pdata->getNGlobal())
+            const unsigned int tag_j = h_tags.data[j];
+            if ((!third_law || j >= m_pdata->getN()) && tag_i > tag_j)
                 continue;
 
             pair_list->push_back(vec2(tag_i, tag_j));
@@ -1861,7 +1858,7 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
         if (root)
             {
             global_n_elem = new std::vector<int>();
-            for (int i = 0; i < m_exec_conf->getNRanks(); i++)
+            for (unsigned int i = 0; i < m_exec_conf->getNRanks(); i++)
                 {
                 global_n_elem->push_back(0);
                 }
@@ -1869,8 +1866,15 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
             }
 
         // Use a gather command to get the number of pairs on each processor
-        int retval = MPI_Gather(&n_elem, 1, MPI_INT, recvbuf, 1, MPI_INT, 0, m_exec_conf->getMPICommunicator());
-        std::cout << std::endl << "Return value: " << retval << std::endl;
+        int retval = MPI_Gather(&n_elem,
+                                1,
+                                MPI_INT,
+                                recvbuf,
+                                1,
+                                MPI_INT,
+                                0,
+                                m_exec_conf->getMPICommunicator());
+        assert(retval == MPI_SUCCESS);
 
         // Allocate array to hold the offsets
         std::vector<int>* offsets;
@@ -1890,22 +1894,11 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
                 }
             recvcount = global_n_elem->data();
             displs = offsets->data();
-
-            std::cout << "total elements: " << total_elements << std::endl;
-            std::cout << "local pair list: " << pair_list->size() << std::endl;
-            std::cout << "n_elems: ";
-            for(int i=0; i<global_n_elem->size(); ++i) std::cout<<global_n_elem->at(i)<<"  ";
-            std::cout<<std::endl;
-            std::cout << "offsets: ";
-            for(int i=0; i<offsets->size(); ++i) std::cout<<offsets->at(i)<<"  ";
-            std::cout<<std::endl;
             }
 
         // Use a gatherv command to produce the global_pair_list
         global_pair_list = (uint32_t*)malloc(sizeof(uint32_t) * total_elements);
-        shape[0] = total_elements/2;
-
-        std::cout << "shape: " << shape[0] << std::endl;
+        shape[0] = total_elements / 2;
 
         free_when_done = pybind11::capsule(global_pair_list,
                                            [](void* f)
@@ -1914,25 +1907,24 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
                                                free(data);
                                            });
 
-        MPI_Gatherv(pair_list->data(),
-                    n_elem,
-                    MPI_UINT32_T,
-                    global_pair_list,
-                    recvcount,
-                    displs,
-                    MPI_UINT32_T,
-                    0,
-                    m_exec_conf->getMPICommunicator());
-
-        std::cout << "global pair list: " << total_elements/2 << std::endl;
+        retval = MPI_Gatherv(pair_list->data(),
+                             n_elem,
+                             MPI_UINT32_T,
+                             global_pair_list,
+                             recvcount,
+                             displs,
+                             MPI_UINT32_T,
+                             0,
+                             m_exec_conf->getMPICommunicator());
+        assert(retval == MPI_SUCCESS);
 
         // cleanup allocations
-        // delete pair_list;
-        // if (root)
-        //     {
-        //     delete global_n_elem;
-        //     delete offsets;
-        //     }
+        delete pair_list;
+        if (root)
+            {
+            delete global_n_elem;
+            delete offsets;
+            }
         }
     else
         {

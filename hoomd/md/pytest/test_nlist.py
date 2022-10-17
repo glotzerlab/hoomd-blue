@@ -4,7 +4,7 @@
 import copy as cp
 import hoomd
 from hoomd.logging import LoggerCategories
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import random
@@ -425,182 +425,131 @@ TRUE_PAIR_LIST = set([frozenset(pair) for pair in _TRUE_PAIR_LIST])
 
 def test_global_pair_list(simulation_factory, lattice_snapshot_factory):
 
-    nlist = hoomd.md.nlist.Tree(buffer=0, default_r_cut=1.1)
+    # start off with only the neighborlist
+    nlist = hoomd.md.nlist.Tree(buffer=0, default_r_cut=1.01)
+    sim: hoomd.Simulation = simulation_factory(lattice_snapshot_factory())
+    sim.operations.computes.append(nlist)
 
-    sim: hoomd.Simulation = simulation_factory(lattice_snapshot_factory(n=10))
+    sim.run(0)
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == TRUE_PAIR_LIST
+
+    # remove as stand alone compute and add force compute
+    sim.operations.computes.clear()
     integrator = hoomd.md.Integrator(0.005)
     lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     integrator.forces.append(lj)
     integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
     sim.operations.integrator = integrator
-    sim.operations.computes.append(nlist)
 
     sim.run(0)
-
     pair_list = nlist.pair_list
-    snap = sim.state.get_snapshot()
-    box = sim.state.box
     if sim.device.communicator.rank == 0:
-        pos = snap.particles.position
-        dists = []
-        for pair in pair_list:
-            print(pair)
-            diff = (pos[pair[0]] - pos[pair[1]]).astype(np.float32)
-            diff = hoomd._hoomd.make_scalar3(diff[0], diff[1], diff[2])
-            diff = box._cpp_obj.minImage(diff)
-            dists.append(np.linalg.norm([diff.x, diff.y, diff.z]))
-        print(len(dists))
-        plt.hist(dists, bins=100)
-        plt.show()
         pair_list = set([frozenset(pair) for pair in pair_list])
-        # assert TRUE_PAIR_LIST.issubset(pair_list)
-        assert pair_list.issubset(TRUE_PAIR_LIST)
+        assert pair_list == TRUE_PAIR_LIST
+
+    # modify cutoffs and check again
+    lj.r_cut[('A', 'A')] = 0.0
+    sim.run(0)
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == TRUE_PAIR_LIST
+
+    nlist.r_cut[('A', 'A')] = 0.0
+    sim.run(0)
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == set()
+
+    nlist.r_cut[('A', 'A')] = 1.1
+    sim.run(0)
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == TRUE_PAIR_LIST
+
+    # NOTE: this test fails
+    # re-add and remove nlist compute
+    # sim.operations.computes.append(nlist)
+    # sim.operations.computes.clear()
+    # sim.run(0)
+    # pair_list = nlist.pair_list
+    # if sim.device.communicator.rank == 0:
+    #     pair_list = set([frozenset(pair) for pair in pair_list])
+    #     assert pair_list == set()
+
+    lj.r_cut[('A', 'A')] = 1.1
+    sim.run(0)
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == TRUE_PAIR_LIST
+
+    # NOTE: this test fails
+    # add back nlist compute and remove force compute
+    # sim.operations.computes.append(nlist)
+    # sim.operations.integrator.forces.clear()
+    # sim.run(0)
+    # pair_list = nlist.pair_list
+    # if sim.device.communicator.rank == 0:
+    #     pair_list = set([frozenset(pair) for pair in pair_list])
+    #     assert pair_list == TRUE_PAIR_LIST
 
 
 def test_rank_local_pair_list(simulation_factory, lattice_snapshot_factory):
 
     nlist = hoomd.md.nlist.Tree(buffer=0.0, default_r_cut=1.1)
-
-    print(len(_TRUE_PAIR_LIST), len(_TRUE_PAIR_LIST))
-
     sim: hoomd.Simulation = simulation_factory(lattice_snapshot_factory())
-    integrator = hoomd.md.Integrator(0.005)
-    # lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    # lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
-    # integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
-    sim.operations.integrator = integrator
     sim.operations.computes.append(nlist)
 
     sim.run(0)
 
     local_pair_list = nlist.local_pair_list
-
-    print(len(local_pair_list))
-
     tag_pair_list = []
     with sim.state.cpu_local_snapshot as data:
-        rtags = data.particles.tag_with_ghost
+        tags = data.particles.tag_with_ghost
         for pair in local_pair_list:
-            tag_pair_list.append([rtags[pair[0]], rtags[pair[1]]])
+            tag_pair_list.append([tags[pair[0]], tags[pair[1]]])
 
-    tag_pair_list = np.array(tag_pair_list)
+    set_tag_pair_list = set([frozenset(p) for p in tag_pair_list])
+    assert set_tag_pair_list.issubset(TRUE_PAIR_LIST)
 
     if MPI4PY_IMPORTED:
 
+        tag_pair_list = np.array(tag_pair_list)
+
         comm = MPI.COMM_WORLD
-        # size = comm.Get_size()
+        size = comm.Get_size()
         rank = comm.Get_rank()
 
-        snapshot = sim.state.get_snapshot()
+        sendbuf = np.int32(len(tag_pair_list))
+        recvbuf = None
         if rank == 0:
-            data = np.copy(snapshot.particles.position)
-        else:
-            data = None
+            recvbuf = np.empty(size, dtype=np.int32)
+        comm.Gather(sendbuf, recvbuf, root=0)
 
-        data = comm.bcast(data, root=0)
+        # sendbuf2 = tag_pair_list
+        # recvbuf2 = None
 
-        # box = sim.state.box._cpp_obj
+        # if rank == 0:
+        #     recvbuf2 =
 
-        with sim.state.cpu_local_snapshot as snap:
-            pos = snap.particles.position_with_ghost
-            dpos = snap.particles.position
-            bad = 0
-            for p, tag_p in zip(local_pair_list, tag_pair_list):
-                if np.any(data[tag_p[1]] != pos[p[1]]):
-                    print("BAD!", tag_p[1], p[1], data[tag_p[1]], pos[p[1]])
-                    bad += 1
-                # elif p[1] >= len(dpos):
-                #     print("Ghost particle OK")
-                # else:
-                #     print("Particle OK")
-            print(bad)
-
-    # box = sim.state.box._cpp_obj
-
-    # with sim.state.cpu_local_snapshot as snap:
-    #     diffs = 0
-    #     # print(snap.particles.N)
-    #     pos = snap.particles.position_with_ghost
-    #     tag = snap.particles.tag_with_ghost
-        # # rtag = snap.particles.rtag
-        # len_pp = len(snap.particles.position)
-        # len_pt = len(tag)
-        # # print(tag)
-        # # print(rtag[10])
-        # # print(pos[rtag[10]])
-        # print(len_pp, len_pt)
-        # for i, j in local_pair_list:
-        #     # assert i != j
-        #     # if j >= len_pp:
-        #     #     continue
-        #     pos_i = pos[i]
-        #     pos_j = pos[j]
-        #     v = box.minImage(hoomd.box._make_scalar3(pos_i - pos_j))
-        #     diff = np.sqrt(np.sum(v.x**2 + v.y**2 + v.z**2))
-        #     if diff == 0.0:
-        #         print(i, j, tag[i], tag[j], pos_i, pos_j)
-        #     if diff <= 1.1:
-        #         diffs += 1
-        # print(diffs)
-
-    # if MPI4PY_IMPORTED:
-
-    #     tag_pair_list = np.array(tag_pair_list)
-
-    #     comm = MPI.COMM_WORLD
-    #     size = comm.Get_size()
-    #     rank = comm.Get_rank()
-    #     print(len(tag_pair_list))
-    #     sendbuf = np.int32(len(tag_pair_list))
-    #     recvbuf = None
-    #     if rank == 0:
-    #         recvbuf = np.empty(size, dtype=np.int32)
-    #     comm.Gather(sendbuf, recvbuf, root=0)
-
-    #     print(recvbuf)
-
-
-def test_pair_list_with_consumer(simulation_factory, lattice_snapshot_factory):
-
-    nlist = hoomd.md.nlist.Cell(buffer=0.0)
-
-    sim = simulation_factory(lattice_snapshot_factory())
-    integrator = hoomd.md.Integrator(0.005)
-    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
-    integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
-    sim.operations.integrator = integrator
-    sim.operations.computes.append(nlist)
-
-    sim.run(0)
-
-    local_pair_list = nlist.local_pair_list
-
-    print(len(local_pair_list))
+        # comm.Gatherv()
 
 
 def test_rank_local_nlist_arrays(simulation_factory, lattice_snapshot_factory):
 
     nlist = hoomd.md.nlist.Cell(buffer=0.0, default_r_cut=1.1)
-    # nlist.r_cut[("A", "A")] = 1.1
-
     sim = simulation_factory(lattice_snapshot_factory())
-    integrator = hoomd.md.Integrator(0.005)
-    # lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
-    # lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
-    # integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
-    sim.operations.integrator = integrator
     sim.operations.computes.append(nlist)
 
     sim.run(0)
-
     local_pair_list = nlist.local_pair_list
-
-    print(len(local_pair_list))
 
     with nlist.cpu_local_nlist_arrays as data:
         k = 0
