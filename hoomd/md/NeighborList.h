@@ -710,9 +710,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
 #endif
     };
 
-/** Make the local particle data available to python via zero-copy access
- *
- * */
+/// Make the local particle data available to python via zero-copy access.
 template<class Output>
 class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, NeighborList>
     {
