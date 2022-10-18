@@ -328,6 +328,54 @@ class ALJ(AnisotropicPair):
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
     to empty lists to create the ellipsoid).
 
+    Important:
+        `ALJ` implicitly rounds the given shape by :math:`\sigma_c` via the WCA
+        or Lennard-Jones potential.
+
+    .. rubric:: Choosing `r_cut <hoomd.md.pair.Pair.r_cut>`:
+
+    Set `r_cut <hoomd.md.pair.Pair.r_cut>` for each pair of particle types so
+    that `ALJ` can compute interactions for all possible relative placements
+    and orientations of the particles. The furthest apart two particles can be
+    while still interacting depends on the value of ``alpha`` (where :math:`R_i`
+    is the circumsphere radius of the particle with type :math:`i`:):
+
+    * For alpha=0:
+
+      .. math::
+
+        r_{\mathrm{cut},ij} = \max \left( \frac{2^\frac{1}{6}}{2}
+        (\sigma_i + \sigma_j), R_i + R_j + R_{\mathrm{rounding},i} +
+        R_{\mathrm{rounding},j} + \frac{2^\frac{1}{6}}{2}
+        (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+
+    * For alpha=1:
+
+      .. math::
+
+            r_{\mathrm{cut},ij} = \max \left( \frac{2.5}{2}
+            (\sigma_i + \sigma_j),  R_i + R_j  + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j}+ \frac{2^\frac{1}{6}}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+
+    * For alpha=2:
+
+      .. math::
+
+            r_{\mathrm{cut},ij} = \max \left( \frac{2^\frac{1}{6}}{2}
+            (\sigma_i + \sigma_j)),  R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{2.5}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+
+    * For alpha=3:
+
+      .. math::
+
+            r_{\mathrm{cut},ij} = \max \left( \frac{2.5}{2}
+            (\sigma_i + \sigma_j),  R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{2.5}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+
     Note:
         `ALJ` accepts the ``mode`` parameter, but computes the same energy
         regardless of the value of ``mode`` (starting with v3.0.0).
@@ -365,8 +413,7 @@ class ALJ(AnisotropicPair):
                                       alpha=1,
                                       )
         alj.shape["A"] = dict(vertices=cube_verts,
-                              faces=cube_faces,
-                              rounding_radii=1)
+                              faces=cube_faces)
 
     The following example shows how to easily get the faces, with vertex indices
     properly ordered, for a shape with known vertices by using the
@@ -396,8 +443,7 @@ class ALJ(AnisotropicPair):
                                       alpha=1,
                                       )
         alj.shape["A"] = dict(vertices=cube.vertices,
-                              faces=cube.faces,
-                              rounding_radii=1)
+                              faces=cube.faces)
 
     Warning:
         Changing dimension in a simulation will invalidate this force and will
@@ -410,16 +456,18 @@ class ALJ(AnisotropicPair):
         * ``epsilon`` (`float`, **required**) - base energy scale
           :math:`\varepsilon` :math:`[energy]`.
         * ``sigma_i`` (`float`, **required**) - the insphere diameter of the
-          first particle type, :math:`[length]`.
+          first particle type, :math:`\sigma_i` :math:`[length]`.
         * ``sigma_j`` (`float`, **required**) - the insphere diameter of the
-          second particle type, :math:`[length]`.
+          second particle type, :math:`\sigma_j` :math:`[length]`.
         * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
           not to include the attractive component of the interaction (see
           above for details).
         * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
-          sphere diameter of the first type with ``sigma_i``. Defaults to 0.15.
+          sphere diameter of the first type with ``sigma_i`` :math:`\beta_i`.
+          Defaults to 0.15.
         * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
-          sphere diameter of the second type with ``sigma_j``. Defaults to 0.15.
+          sphere diameter of the second type with ``sigma_j`` :math:`\beta_j`.
+          Defaults to 0.15.
         * ``average_simplices`` (`bool`, **optional**) - Whether to average over
           simplices. Defaults to ``True``. See class documentation for more
           information.
@@ -442,9 +490,9 @@ class ALJ(AnisotropicPair):
           **required**) - The vertices of a convex polytope in 2 or 3
           dimensions. The third dimension in 2D is ignored.
         * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
-          **required**) - The semimajor axes of a rounding ellipsoid. If a
-          single value is specified, the rounding ellipsoid is a sphere.
-          Defaults to (0.0, 0.0, 0.0).
+          **required**) - The semimajor axes of a rounding ellipsoid
+          :math:`R_{\mathrm{rounding},i}`. If a single value is specified, the
+          rounding ellipsoid is a sphere. Defaults to (0.0, 0.0, 0.0).
         * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
           polyhedron specified as a list of list of integers.  The indices
           corresponding to the vertices must be ordered counterclockwise with
