@@ -238,10 +238,10 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
     if (snapshot.type_mapping.size() >= 40)
         {
         std::ostringstream s;
-        s << "Systems with many " << name << " types perform poorly or result "
+        s << "Systems with many " << name
+          << " types perform poorly or result "
              "in shared memory errors on the GPU.";
-        m_exec_conf->msg->warning() << s.str()
-                                    << std::endl;
+        m_exec_conf->msg->warning() << s.str() << std::endl;
         }
 
     // re-initialize data structures
