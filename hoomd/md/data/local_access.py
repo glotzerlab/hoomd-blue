@@ -40,12 +40,9 @@ class _ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
 class _NeighborListLocalAccessBase(hoomd.data.local_access._LocalAccess):
     __slots__ = ('_entered', '_accessed_fields', '_cpp_obj', '_nlist_obj')
 
-    # This should work without having to comment out the @abstractmethod
-    # decorator, but it just doesn't... Once commented out, it is easily able to
-    # find the _cpp_cls attribute.
     @property
-    # @abstractmethod  # This has to be commented out for the code to work
-    def _cpp_class(self):
+    @abstractmethod
+    def _cpp_cls(self):
         pass
 
     _fields = {
