@@ -302,20 +302,6 @@ class ALJ(AnisotropicPair):
     (repulsive-only) behavior. This behavior is controlled using the ``alpha``
     parameter, which can take on the following values:
 
-    * 0:
-      All interactions are WCA (no attraction).
-
-    * 1:
-      Center-center interactions include attraction,
-      contact-contact interactions are solely repulsive.
-
-    * 2:
-      Center-center interactions are solely repulsive,
-      contact-contact interactions include attraction.
-
-    * 3:
-      All interactions include attractive and repulsive components.
-
     .. list-table:: Set alpha based on range of the center-center and contact-contact interactions.
        :header-rows: 1
        :stub-columns: 1
