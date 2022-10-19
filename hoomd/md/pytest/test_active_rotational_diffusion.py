@@ -109,11 +109,6 @@ def test_attaching(active_force, local_simulation_factory):
         sim.operations.integrator.forces.remove(active_force)
 
     sim.operations.remove(rd_updater)
-    # Exception above happens before removing "_simulation" attribute. We need
-    # to manual do this to perform the other checks. We don't worry about this,
-    # because a SimulationDefinitionError is not really meant to be caught and
-    # dealt with dynamically.
-    active_force._remove()
     sim.operations.integrator.forces.clear()
 
     # Reset simulation to test for variouos error conditions

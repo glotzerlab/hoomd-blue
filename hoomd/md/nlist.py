@@ -126,16 +126,6 @@ class NeighborList(AutotunedObject):
         """
         return self._cpp_obj.num_builds
 
-    def _remove_dependent(self, obj):
-        super()._remove_dependent(obj)
-        if len(self._dependents) == 0:
-            if self._attached:
-                self._detach()
-                self._remove()
-                return
-            if self._added:
-                self._remove()
-
 
 class Cell(NeighborList):
     r"""Neighbor list computed via a cell list.

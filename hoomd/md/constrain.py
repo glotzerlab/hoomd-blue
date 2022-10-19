@@ -311,22 +311,10 @@ class Rigid(Constraint):
         if self._attached:
             raise RuntimeError(
                 "Cannot call create_bodies after running simulation.")
-        # Attach and store information for detaching after calling
-        # createRigidBodies
-        old_sim = None
-        if self._added:
-            old_sim = self._simulation
-        self._add(state._simulation)
-        super()._attach()
-
+        super()._attach(state._simulation)
         self._cpp_obj.createRigidBodies()
-
         # Restore previous state
         self._detach()
-        if old_sim is not None:
-            self._simulation = old_sim
-        else:
-            self._remove()
 
     def _attach_hook(self):
         super()._attach_hook()

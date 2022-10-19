@@ -88,16 +88,6 @@ class Mesh(_HOOMDBaseObject):
                 self._cpp_obj.setCommunicator(
                     self._simulation._system_communicator)
 
-    def _remove_dependent(self, obj):
-        super()._remove_dependent(obj)
-        if len(self._dependents) == 0:
-            if self._attached:
-                self._detach()
-                self._remove()
-                return
-            if self._added:
-                self._remove()
-
     @log(category='sequence')
     def triangles(self):
         """((*N*, 3) `numpy.ndarray` of ``uint32``): Mesh triangulation.

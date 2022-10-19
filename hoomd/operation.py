@@ -248,6 +248,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             raise err
         finally:
             self._detach_hook()
+            self._simulation = None
             self._cpp_obj = None
         return self
 
@@ -277,7 +278,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         """
         pass
 
-    def _attach(self):
+    def _attach(self, simulation):
         """Attach the object to the added simulation.
 
         This should not be overwritten by subclasses, see `~._attach_hook`
@@ -286,7 +287,12 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         """
         self._use_count += 1
         if self._use_count > 1:
+            if simulation != self._simulation:
+                raise hoomd.error.SimulationDefinitionError(
+                    f"Cannot add {self} to multiple simulations simultaneously."
+                )
             return
+        self._simulation = simulation
         try:
             self._attach_hook()
         except hoomd.error.SimulationDefinitionError as err:
@@ -298,27 +304,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     @property
     def _attached(self):
         return self._cpp_obj is not None
-
-    def _add(self, simulation):
-        self._simulation = simulation
-
-    def _remove(self):
-        # Since objects can be added without being attached, we need to call
-        # _notify_disconnect on both _remove and _detach. The method should be
-        # do nothing after being called once so being called twice is not a
-        # concern. I should note that if
-        # `hoomd.operations.Operations._unschedule` is called this is
-        # invalidated, but as that is not public facing this should be fine.
-        try:
-            self._notify_disconnect()
-        except hoomd.error.SimulationDefinitionError as err:
-            raise err
-        finally:
-            self._simulation = None
-
-    @property
-    def _added(self):
-        return self._simulation is not None
 
     def _apply_param_dict(self):
         self._param_dict._attach(self._cpp_obj)
