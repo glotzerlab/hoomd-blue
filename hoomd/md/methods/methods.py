@@ -904,7 +904,7 @@ class Langevin(Method):
 
         self._extend_typeparam([gamma, gamma_r])
 
-    def _attach_hook(self, simulation):
+    def _attach_hook(self):
         """Langevin uses RNGs. Warn the user if they did not set the seed."""
         self._simulation._warn_if_seed_unset()
         sim = self._simulation
@@ -1080,7 +1080,7 @@ class Brownian(Method):
                                                              len_keys=1))
         self._extend_typeparam([gamma, gamma_r])
 
-    def _attach_hook(self, simulation):
+    def _attach_hook(self):
         """Brownian uses RNGs. Warn the user if they did not set the seed."""
         self._simulation._warn_if_seed_unset()
         sim = self._simulation
@@ -1281,7 +1281,7 @@ class OverdampedViscous(Method):
                                                              len_keys=1))
         self._extend_typeparam([gamma, gamma_r])
 
-    def _attach_hook(self, simulation):
+    def _attach_hook(self):
         """Class uses RNGs. Warn the user if they did not set the seed."""
         self._simulation._warn_if_seed_unset()
         sim = self._simulation
