@@ -350,45 +350,55 @@ class ALJ(AnisotropicPair):
 
     Set `r_cut <hoomd.md.pair.Pair.r_cut>` for each pair of particle types so
     that `ALJ` can compute interactions for all possible relative placements
-    and orientations of the particles. The furthest apart two particles can be
-    while still interacting depends on the value of ``alpha`` (where :math:`R_i`
-    is the radius of the shape's minimal origin centered bounding sphere of the
-    particle with type :math:`i`):
+    and orientations of the particles. The farthest apart two particles can be
+    while still interacting depends on the value of ``alpha``.
+
+    In the following list, the first argument to the :math:`\max` function is
+    for the center-center interaction. The second argument is for the
+    contact-contact interaction, where :math:`R_i` is the radius of the
+    shape's minimal origin-centered bounding sphere of the particle with type
+    :math:`i`.
+
+    Let :math:`r_{min} = 2^{1/6}` be the position of the potential energy
+    minimum of the Lennard-Jones potential.
+
+    Let :math:`r_{cut}^{tradition} = 2.5` be the traditional value of
+    :math:`r_{cut}` used for L-J simulations of isotropic particles.
 
     * For alpha=0:
 
       .. math::
 
-        r_{\mathrm{cut},ij} = \max \left( \frac{2^\frac{1}{6}}{2}
-        (\sigma_i + \sigma_j), R_i + R_j + R_{\mathrm{rounding},i} +
-        R_{\mathrm{rounding},j} + \frac{2^\frac{1}{6}}{2}
+        r_{\mathrm{cut},ij} = \max \left( \frac{r_{min}}{2}
+        (\sigma_i + \sigma_j)\:, R_i + R_j + R_{\mathrm{rounding},i} +
+        R_{\mathrm{rounding},j} + \frac{r_{min}}{2}
         (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
 
     * For alpha=1:
 
       .. math::
 
-            r_{\mathrm{cut},ij} = \max \left( \frac{2.5}{2}
-            (\sigma_i + \sigma_j),  R_i + R_j  + R_{\mathrm{rounding},i} +
-            R_{\mathrm{rounding},j}+ \frac{2^\frac{1}{6}}{2}
+            r_{\mathrm{cut},ij} = \max \left( \frac{r_{cut}^{tradition}}{2}
+            (\sigma_i + \sigma_j)\:,  R_i + R_j  + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j}+ \frac{r_{min}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
 
     * For alpha=2:
 
       .. math::
 
-            r_{\mathrm{cut},ij} = \max \left( \frac{2^\frac{1}{6}}{2}
-            (\sigma_i + \sigma_j)),  R_i + R_j + R_{\mathrm{rounding},i} +
-            R_{\mathrm{rounding},j} + \frac{2.5}{2}
+            r_{\mathrm{cut},ij} = \max \left( \frac{r_{min}}{2}
+            (\sigma_i + \sigma_j))\:,  R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{r_{cut}^{tradition}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
 
     * For alpha=3:
 
       .. math::
 
-            r_{\mathrm{cut},ij} = \max \left( \frac{2.5}{2}
-            (\sigma_i + \sigma_j),  R_i + R_j + R_{\mathrm{rounding},i} +
-            R_{\mathrm{rounding},j} + \frac{2.5}{2}
+            r_{\mathrm{cut},ij} = \max \left( \frac{r_{cut}^{tradition}}{2}
+            (\sigma_i + \sigma_j)\:,  R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{r_{cut}^{tradition}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
 
     Note:
