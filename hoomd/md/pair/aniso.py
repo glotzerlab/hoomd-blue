@@ -299,7 +299,7 @@ class ALJ(AnisotropicPair):
     Like a standard LJ potential, each term has an independent cutoff beyond
     which it decays to zero. The behavior of these cutoffs is dependent on
     whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
-    (repulsive-only) behavior. This behavior is controlled using the ``alpha``
+    (repulsive-only) behavior. This behavior is controlled using the `alpha <params>`
     parameter, which can take on the following values:
 
     .. list-table:: Set alpha based on range of the center-center and contact-contact interactions.
