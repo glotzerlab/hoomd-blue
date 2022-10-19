@@ -296,11 +296,11 @@ class ALJ(AnisotropicPair):
     potential where the shift is anisotropic and depends on the extent of the
     shape in each direction.
 
-    Like a standard LJ potential, each term has an independent cutoff beyond
-    which it decays to zero. The behavior of these cutoffs is dependent on
-    whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
-    (repulsive-only) behavior. This behavior is controlled using the `alpha <params>`
-    parameter, which can take on the following values:
+    Each term has an independent cutoff at which the energy is set to zero.
+    The behavior of these cutoffs is dependent on whether a user requires LJ
+    or Weeks-Chandler-Anderson (WCA)-like (repulsive-only) behavior. This
+    behavior is controlled using the `alpha <params>` parameter, which can
+    take on the following values:
 
     .. list-table:: Set alpha based on range of the center-center and contact-contact interactions.
        :header-rows: 1
@@ -386,8 +386,6 @@ class ALJ(AnisotropicPair):
             (\sigma_i + \sigma_j)\:,  R_i + R_j + R_{\mathrm{rounding},i} +
             R_{\mathrm{rounding},j} + \frac{r_{cut}^{tradition}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
-
-
 
     Warning:
         Changing dimension in a simulation will invalidate this force and will
