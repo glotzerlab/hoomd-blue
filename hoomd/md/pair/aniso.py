@@ -316,6 +316,20 @@ class ALJ(AnisotropicPair):
     * 3:
       All interactions include attractive and repulsive components.
 
+    .. list-table:: Set alpha based on range of the center-center and contact-contact interactions.
+       :header-rows: 1
+       :stub-columns: 1
+
+       * -
+         - center-center repulsive only
+         - center-center full-range
+       * - contact-contact repulsive only
+         - alpha = 0
+         - alpha = 1
+       * - contact-contact full-range
+         - alpha = 2
+         - alpha = 3
+
     For polytopes, computing interactions using a single contact point leads to
     significant instabilities in the torques because the contact point can jump
     from one end of a face to another in an arbitrarily small time interval. To
