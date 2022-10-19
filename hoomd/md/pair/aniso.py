@@ -473,11 +473,11 @@ class ALJ(AnisotropicPair):
         * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
           not to include the attractive component of the interaction (see
           above for details).
-        * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
-          sphere diameter of the first type with ``sigma_i`` :math:`\beta_i`.
+        * ``contact_ratio_i`` (`float`, **optional**) - :math:`\beta_i`, the
+          ratio of the contact sphere diameter of the first type with ``sigma_i``.
           Defaults to 0.15.
-        * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
-          sphere diameter of the second type with ``sigma_j`` :math:`\beta_j`.
+        * ``contact_ratio_j`` (`float`, **optional**) - :math:`\beta_j`, the
+          ratio of the contact sphere diameter of the second type with ``sigma_j``.
           Defaults to 0.15.
         * ``average_simplices`` (`bool`, **optional**) - Whether to average over
           simplices. Defaults to ``True``. See class documentation for more
