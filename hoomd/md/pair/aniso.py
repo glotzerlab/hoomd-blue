@@ -244,14 +244,10 @@ class ALJ(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
-        mode (`str`, optional): the energy shifting mode, defaults to "none"
-          (ignored).
+        mode (`str`, optional): the energy shifting mode, defaults to "none".
+          Computes the same energy regardless of value passed.
 
           .. deprecated:: v3.1.0
-
-    Note:
-        `ALJ` accepts the ``mode`` parameter, but computes the same energy
-        regardless of the value of ``mode`` (starting with v3.0.0).
 
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
     described in `Ramasubramani, V.  et al. 2020`_, using the formula:
