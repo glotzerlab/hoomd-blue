@@ -108,22 +108,23 @@ public:
             Scalar jPi = modPj*modi/s.magdr;
             
             // torque on ith
-            torque_i.x = iPj*(s.dr.z*s.ei.y-s.dr.y*s.ei.z);
-            torque_i.y = iPj*(s.dr.x*s.ei.z-s.dr.z*s.ei.x);
-            torque_i.z = iPj*(s.dr.y*s.ei.x-s.dr.x*s.ei.y);
+            // TODO convert to quaternion math
+            torque_i.x = iPj*(s.dr.z*s.ei.y - s.dr.y*s.ei.z);
+            torque_i.y = iPj*(s.dr.x*s.ei.z - s.dr.z*s.ei.x);
+            torque_i.z = iPj*(s.dr.y*s.ei.x - s.dr.x*s.ei.y);
 
             // torque on jth - note sign is opposite ith!
-            torque_j.x = jPi*(s.dr.y*s.ej.z-s.dr.z*s.ej.y);
-            torque_j.y = jPi*(s.dr.z*s.ej.x-s.dr.x*s.ej.z);
-            torque_j.z = jPi*(s.dr.x*s.ej.y-s.dr.y*s.ej.x);
+            torque_j.x = jPi*(s.dr.y*s.ej.z - s.dr.z*s.ej.y);
+            torque_j.y = jPi*(s.dr.z*s.ej.x - s.dr.x*s.ej.z);
+            torque_j.z = jPi*(s.dr.x*s.ej.y - s.dr.y*s.ej.x);
 
             // compute force contribution
-            force.x = -(iPj*(-s.ei.x-s.doti*s.dr.x/s.magdr)
-                        +jPi*(s.ej.x-s.dotj*s.dr.x/s.magdr));
-            force.y = -(iPj*(-s.ei.y-s.doti*s.dr.y/s.magdr)
-                        +jPi*(s.ej.y-s.dotj*s.dr.y/s.magdr));
-            force.z = -(iPj*(-s.ei.z-s.doti*s.dr.z/s.magdr)
-                        +jPi*(s.ej.z-s.dotj*s.dr.z/s.magdr));
+            force.x = -(iPj*(-s.ei.x - s.doti*s.dr.x/s.magdr)
+                        + jPi*(s.ej.x - s.dotj*s.dr.x/s.magdr));
+            force.y = -(iPj*(-s.ei.y - s.doti*s.dr.y/s.magdr)
+                        + jPi*(s.ej.y - s.dotj*s.dr.y/s.magdr));
+            force.z = -(iPj*(-s.ei.z - s.doti*s.dr.z/s.magdr)
+                        + jPi*(s.ej.z - s.dotj*s.dr.z/s.magdr));
             
             return true;
         }
