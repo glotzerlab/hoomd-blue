@@ -249,6 +249,10 @@ class ALJ(AnisotropicPair):
 
           .. deprecated:: v3.1.0
 
+    Note:
+        `ALJ` accepts the ``mode`` parameter, but computes the same energy
+        regardless of the value of ``mode`` (starting with v3.0.0).
+
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
     described in `Ramasubramani, V.  et al. 2020`_, using the formula:
 
@@ -387,9 +391,62 @@ class ALJ(AnisotropicPair):
             R_{\mathrm{rounding},j} + \frac{r_{cut}^{tradition}}{2}
             (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
 
+
+
+    Warning:
+        Changing dimension in a simulation will invalidate this force and will
+        lead to error or unrealistic behavior.
+
+    .. py:attribute:: params
+
+        The ALJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) - base energy scale
+          :math:`\varepsilon` :math:`[energy]`.
+        * ``sigma_i`` (`float`, **required**) - the insphere diameter of the
+          first particle type, :math:`\sigma_i` :math:`[length]`.
+        * ``sigma_j`` (`float`, **required**) - the insphere diameter of the
+          second particle type, :math:`\sigma_j` :math:`[length]`.
+        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
+          not to include the attractive component of the interaction (see
+          above for details).
+        * ``contact_ratio_i`` (`float`, **optional**) - :math:`\beta_i`, the
+          ratio of the contact sphere diameter of the first type with ``sigma_i``.
+          Defaults to 0.15.
+        * ``contact_ratio_j`` (`float`, **optional**) - :math:`\beta_j`, the
+          ratio of the contact sphere diameter of the second type with ``sigma_j``.
+          Defaults to 0.15.
+        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
+          simplices. Defaults to ``True``. See class documentation for more
+          information.
+
+        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
+        ``particle_types``], `dict`]
+
     Note:
-        `ALJ` accepts the ``mode`` parameter, but computes the same energy
-        regardless of the value of ``mode`` (starting with v3.0.0).
+        While the evaluation of the potential is symmetric with respect to
+        the potential parameter labels ``i`` and ``j``, the parameters which
+        physically represent a specific particle type must appear in all sets
+        of pair parameters which include that particle type.
+
+    .. py:attribute:: shape
+
+        The shape of a given type. The dictionary has the following keys per
+        type:
+
+        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+          **required**) - The vertices of a convex polytope in 2 or 3
+          dimensions. The third dimension in 2D is ignored.
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
+          **required**) - The semimajor axes of a rounding ellipsoid
+          :math:`R_{\mathrm{rounding},i}`. If a single value is specified, the
+          rounding ellipsoid is a sphere. Defaults to (0.0, 0.0, 0.0).
+        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
+          polyhedron specified as a list of list of integers.  The indices
+          corresponding to the vertices must be ordered counterclockwise with
+          respect to the face normal vector pointing outward from the origin.
+
+        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
 
     Example::
 
@@ -455,61 +512,6 @@ class ALJ(AnisotropicPair):
                                       )
         alj.shape["A"] = dict(vertices=cube.vertices,
                               faces=cube.faces)
-
-    Warning:
-        Changing dimension in a simulation will invalidate this force and will
-        lead to error or unrealistic behavior.
-
-    .. py:attribute:: params
-
-        The ALJ potential parameters. The dictionary has the following keys:
-
-        * ``epsilon`` (`float`, **required**) - base energy scale
-          :math:`\varepsilon` :math:`[energy]`.
-        * ``sigma_i`` (`float`, **required**) - the insphere diameter of the
-          first particle type, :math:`\sigma_i` :math:`[length]`.
-        * ``sigma_j`` (`float`, **required**) - the insphere diameter of the
-          second particle type, :math:`\sigma_j` :math:`[length]`.
-        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
-          not to include the attractive component of the interaction (see
-          above for details).
-        * ``contact_ratio_i`` (`float`, **optional**) - :math:`\beta_i`, the
-          ratio of the contact sphere diameter of the first type with ``sigma_i``.
-          Defaults to 0.15.
-        * ``contact_ratio_j`` (`float`, **optional**) - :math:`\beta_j`, the
-          ratio of the contact sphere diameter of the second type with ``sigma_j``.
-          Defaults to 0.15.
-        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
-          simplices. Defaults to ``True``. See class documentation for more
-          information.
-
-        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
-        ``particle_types``], `dict`]
-
-    Note:
-        While the evaluation of the potential is symmetric with respect to
-        the potential parameter labels ``i`` and ``j``, the parameters which
-        physically represent a specific particle type must appear in all sets
-        of pair parameters which include that particle type.
-
-    .. py:attribute:: shape
-
-        The shape of a given type. The dictionary has the following keys per
-        type:
-
-        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
-          **required**) - The vertices of a convex polytope in 2 or 3
-          dimensions. The third dimension in 2D is ignored.
-        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
-          **required**) - The semimajor axes of a rounding ellipsoid
-          :math:`R_{\mathrm{rounding},i}`. If a single value is specified, the
-          rounding ellipsoid is a sphere. Defaults to (0.0, 0.0, 0.0).
-        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
-          polyhedron specified as a list of list of integers.  The indices
-          corresponding to the vertices must be ordered counterclockwise with
-          respect to the face normal vector pointing outward from the origin.
-
-        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
 
     """
 
