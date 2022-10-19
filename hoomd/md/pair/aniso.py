@@ -338,7 +338,8 @@ class ALJ(AnisotropicPair):
     that `ALJ` can compute interactions for all possible relative placements
     and orientations of the particles. The furthest apart two particles can be
     while still interacting depends on the value of ``alpha`` (where :math:`R_i`
-    is the circumsphere radius of the particle with type :math:`i`):
+    is the radius of the shape's minimal origin centered bounding sphere of the
+    particle with type :math:`i`):
 
     * For alpha=0:
 
