@@ -302,7 +302,8 @@ class ALJ(AnisotropicPair):
     behavior is controlled using the `alpha <params>` parameter, which can
     take on the following values:
 
-    .. list-table:: Set alpha based on range of the center-center and contact-contact interactions.
+    .. list-table:: Set alpha based on range of the center-center and
+       contact-contact interactions.
        :header-rows: 1
        :stub-columns: 1
 
@@ -331,9 +332,9 @@ class ALJ(AnisotropicPair):
     Important:
         The repulsive part of the contact interaction :math:`U_c(r_c)` prevents
         two `ALJ` particles from approaching closely, effectively rounding the
-        shape by a radius :math:`\sigma_c`. For this reason, the shape written by
-        `type_shapes` includes the rounding due to `rounding_radii <shape>` and that
-        due to :math:`\sigma_c`.
+        shape by a radius :math:`\sigma_c`. For this reason, the shape written
+        by `type_shapes` includes the rounding due to `rounding_radii <shape>`
+        and that due to :math:`\sigma_c`.
 
     .. rubric:: Choosing `r_cut <hoomd.md.pair.Pair.r_cut>`:
 
@@ -408,10 +409,12 @@ class ALJ(AnisotropicPair):
           not to include the attractive component of the interaction (see
           above for details).
         * ``contact_ratio_i`` (`float`, **optional**) - :math:`\beta_i`, the
-          ratio of the contact sphere diameter of the first type with ``sigma_i``.
+          ratio of the contact sphere diameter of the first type with
+        ``sigma_i``.
           Defaults to 0.15.
         * ``contact_ratio_j`` (`float`, **optional**) - :math:`\beta_j`, the
-          ratio of the contact sphere diameter of the second type with ``sigma_j``.
+          ratio of the contact sphere diameter of the second type with
+        ``sigma_j``.
           Defaults to 0.15.
         * ``average_simplices`` (`bool`, **optional**) - Whether to average over
           simplices. Defaults to ``True``. See class documentation for more
