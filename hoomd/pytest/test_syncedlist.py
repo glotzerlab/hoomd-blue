@@ -10,26 +10,19 @@ from hoomd.data.syncedlist import SyncedList
 
 class OpInt(int):
     """Used to test SyncedList where item equality checks are needed."""
+    _cpp_obj = False
 
-    def _attach(self):
-        self._cpp_obj = None
+    def _attach(self, simulation):
+        self._simulation = simulation
+        self._cpp_obj = True
+
+    def _detach(self):
+        self._simulation = None
+        self._cpp_obj = False
 
     @property
     def _attached(self):
-        return hasattr(self, '_cpp_obj')
-
-    def _detach(self):
-        del self._cpp_obj
-
-    def _add(self, simulation):
-        self._simulation = simulation
-
-    def _remove(self):
-        del self._simulation
-
-    @property
-    def _added(self):
-        return hasattr(self, '_simulation')
+        return self._cpp_obj
 
 
 class TestSyncedList(BaseListTest):
@@ -82,13 +75,11 @@ class TestSyncedList(BaseListTest):
     def final_check(self, test_list):
         if test_list._synced:
             if test_list._attach_members:
-                assert all(item._added for item in test_list)
                 assert all(item._attached for item in test_list)
             for item, synced_item in zip(test_list, self._synced_list):
                 assert self.is_equal(item, synced_item)
             assert self._synced_list is test_list._synced_list
         if not test_list._attach_members:
-            assert not any(getattr(item, "_added", False) for item in test_list)
             assert not any(
                 getattr(item, "_attached", False) for item in test_list)
 
@@ -127,8 +118,6 @@ class TestSyncedList(BaseListTest):
         empty_collection._register_item(op)
         assert op._attached == (empty_collection._synced
                                 and empty_collection._attach_members)
-        assert op._added == (empty_collection._attach_members
-                             and empty_collection._synced)
 
     def test_validate_or_error(self, empty_collection, item_cls):
         with pytest.raises(ValueError):

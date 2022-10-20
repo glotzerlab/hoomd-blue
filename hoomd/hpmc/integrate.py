@@ -392,22 +392,12 @@ class HPMCIntegrator(Integrator):
             typeparam_inter_matrix
         ])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
+    def _attach_hook(self):
+        """Initialize the reflected c++ class.
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-        if self._external_potential is not None:
-            self._external_potential._add(simulation)
-        if self._pair_potential is not None:
-            self._pair_potential._add(simulation)
-
-    def _attach_hook(self):
-        """Initialize the reflected c++ class."""
+        self._simulation._warn_if_seed_unset()
         sys_def = self._simulation.state._cpp_sys_def
         if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
@@ -423,11 +413,11 @@ class HPMCIntegrator(Integrator):
             self._cpp_cell = None
 
         if self._external_potential is not None:
-            self._external_potential._attach()
+            self._external_potential._attach(self._simulation)
             self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
 
         if self._pair_potential is not None:
-            self._pair_potential._attach()
+            self._pair_potential._attach(self._simulation)
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
         super()._attach_hook()
 
@@ -436,13 +426,6 @@ class HPMCIntegrator(Integrator):
             self._external_potential._detach()
         if self._pair_potential is not None:
             self._pair_potential._detach()
-
-    def _remove(self):
-        if self._external_potential is not None:
-            self._external_potential._remove()
-        if self._pair_potential is not None:
-            self._pair_potential._remove()
-        super()._remove()
 
     # TODO need to validate somewhere that quaternions are normalized
 
@@ -541,15 +524,11 @@ class HPMCIntegrator(Integrator):
         if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
             raise TypeError(
                 "Pair potentials should be an instance of CPPPotentialBase")
-        if self._added:
-            new_potential._add(self._simulation)
         if self._attached:
-            new_potential._attach()
+            new_potential._attach(self._simulation)
             self._cpp_obj.setPatchEnergy(new_potential._cpp_obj)
             if self._pair_potential is not None:
                 self._pair_potential._detach()
-        if self._added and self._pair_potential is not None:
-            self._pair_potential._remove()
         self._pair_potential = new_potential
 
     @property
@@ -568,15 +547,11 @@ class HPMCIntegrator(Integrator):
             msg = 'External potentials should be an instance of '
             msg += 'hoomd.hpmc.field.external.ExternalField.'
             raise TypeError(msg)
-        if self._added:
-            new_external_potential._add(self._simulation)
         if self._attached:
-            new_external_potential._attach()
+            new_external_potential._attach(self._simulation)
             self._cpp_obj.setExternalField(new_external_potential._cpp_obj)
             if self._external_potential is not None:
                 self._external_potential._detach()
-        if self._added and self._external_potential is not None:
-            self._external_potential._remove()
         self._external_potential = new_external_potential
 
 

@@ -185,16 +185,10 @@ class SyncedList(MutableSequence):
         if not self._attach_members:
             return
         if self._synced:
-            if not value._added:
-                value._add(self._simulation)
-                value._attach()
-                return
-            if value._simulation != self._simulation:
-                raise RuntimeError(
-                    f"Cannot place {value} into two simulations.")
-            value._attach()
+            value._attach(self._simulation)
+            return
         else:
-            if value._added:
+            if value._attached:
                 raise RuntimeError(
                     f"Cannot place {value} into two simulations.")
 
@@ -209,8 +203,6 @@ class SyncedList(MutableSequence):
             return
         if self._synced:
             value._detach()
-        if value._added:
-            value._remove()
 
     def _validate_or_error(self, value):
         """Complete error checking and processing of value."""

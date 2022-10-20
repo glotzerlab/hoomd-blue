@@ -18,10 +18,6 @@ class ExampleUpdater(operation.Updater):
         # initialize base class
         super().__init__(trigger)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation."""
-        super()._add(simulation)
-
     def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):

@@ -904,18 +904,9 @@ class Langevin(Method):
 
         self._extend_typeparam([gamma, gamma_r])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Langevin uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
     def _attach_hook(self):
-
+        """Langevin uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             my_class = _md.TwoStepLangevin
@@ -1089,18 +1080,9 @@ class Brownian(Method):
                                                              len_keys=1))
         self._extend_typeparam([gamma, gamma_r])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Brownian uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
     def _attach_hook(self):
-
+        """Brownian uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
@@ -1299,18 +1281,9 @@ class OverdampedViscous(Method):
                                                              len_keys=1))
         self._extend_typeparam([gamma, gamma_r])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        OverdampedViscous uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
     def _attach_hook(self):
-
+        """Class uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,

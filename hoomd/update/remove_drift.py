@@ -54,10 +54,6 @@ class RemoveDrift(Updater):
             }))
         self.reference_positions = reference_positions
 
-    def _add(self, simulation):
-        """Add the operation to a simulation."""
-        super()._add(simulation)
-
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             self._simulation.device._cpp_msg.warning(

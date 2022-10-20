@@ -174,15 +174,7 @@ class Coulomb(Force):
         self._pair_force = pair_force
 
     def _attach_hook(self):
-        if not self._nlist._added:
-            self._nlist._add(self._simulation)
-        else:
-            if self._simulation != self._nlist._simulation:
-                raise RuntimeError("{} object's neighbor list is used in a "
-                                   "different simulation.".format(type(self)))
-
-        if not self.nlist._attached:
-            self.nlist._attach()
+        self.nlist._attach(self._simulation)
 
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = hoomd.md._md.PPPMForceCompute

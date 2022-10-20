@@ -90,7 +90,7 @@ class Cylinder(Manifold):
         self._cpp_obj = _md.ManifoldZCylinder(
             self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Diamond(Manifold):
@@ -146,7 +146,7 @@ class Diamond(Manifold):
         self._cpp_obj = _md.ManifoldDiamond(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Ellipsoid(Manifold):
@@ -194,7 +194,7 @@ class Ellipsoid(Manifold):
             self.a, self.b, self.c,
             _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Gyroid(Manifold):
@@ -251,7 +251,7 @@ class Gyroid(Manifold):
         self._cpp_obj = _md.ManifoldGyroid(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Plane(Manifold):
@@ -279,7 +279,7 @@ class Plane(Manifold):
     def _attach_hook(self):
         self._cpp_obj = _md.ManifoldXYPlane(self.shift)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Primitive(Manifold):
@@ -333,7 +333,7 @@ class Primitive(Manifold):
         self._cpp_obj = _md.ManifoldPrimitive(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Sphere(Manifold):
@@ -371,4 +371,4 @@ class Sphere(Manifold):
         self._cpp_obj = _md.ManifoldSphere(
             self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
-        super()._attach()
+        super()._attach(self._simulation)
