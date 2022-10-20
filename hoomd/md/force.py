@@ -394,18 +394,9 @@ class Active(Force):
 
         self._extend_typeparam([active_force, active_torque])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Active forces use RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
     def _attach_hook(self):
-
+        # Active forces use RNGs. Warn the user if they did not set the seed.
+        self._simulation._warn_if_seed_unset()
         # Set C++ class
         self._set_cpp_obj()
 
@@ -520,7 +511,7 @@ class ActiveOnManifold(Active):
         sim = self._simulation
 
         if not self.manifold_constraint._attached:
-            self.manifold_constraint._attach()
+            self.manifold_constraint._attach(sim)
 
         base_class_str = 'ActiveForceConstraintCompute'
         base_class_str += self.manifold_constraint.__class__.__name__

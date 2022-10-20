@@ -90,35 +90,6 @@ class Triplet(Force):
             ParameterDict(nlist=hoomd.md.nlist.NeighborList))
         self.nlist = nlist
 
-    def _add(self, simulation):
-        super()._add(simulation)
-        self._add_nlist()
-
-    def _add_nlist(self):
-        nlist = self.nlist
-        deepcopy = False
-        if not isinstance(self._simulation, hoomd.Simulation):
-            if nlist._added:
-                deepcopy = True
-            else:
-                return
-        # We need to check if the force is added since if it is not then this is
-        # being called by a SyncedList object and a disagreement between the
-        # simulation and nlist._simulation is an error. If the force is added
-        # then the nlist is compatible. We cannot just check the nlist's _added
-        # property because _add is also called when the SyncedList is synced.
-        if deepcopy or nlist._added and nlist._simulation != self._simulation:
-            warnings.warn(
-                f"{self} object is creating a new equivalent neighbor list."
-                f" This is happending since the force is moving to a new "
-                f"simulation. Explicitly set the nlist to hide this warning.",
-                RuntimeWarning)
-            self.nlist = copy.deepcopy(nlist)
-        self.nlist._add(self._simulation)
-        # This is ideopotent, but we need to ensure that if we change
-        # neighbor list when not attached we handle correctly.
-        self._add_dependency(self.nlist)
-
     def _setattr_param(self, attr, value):
         if attr == "nlist":
             self._nlist_setter(value)
@@ -128,17 +99,17 @@ class Triplet(Force):
     def _nlist_setter(self, new_nlist):
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
-        old_nlist = self.nlist
         self._param_dict._dict["nlist"] = new_nlist
-        if self._added:
-            self._add_nlist()
-            old_nlist._remove_dependent(self)
 
     def _attach_hook(self):
-        if self._simulation != self.nlist._simulation:
-            raise RuntimeError("{} object's neighbor list is used in a "
-                               "different simulation.".format(type(self)))
-        self.nlist._attach()
+        if self.nlist._attached and self.nlist._simulation != self._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. Explicitly set the nlist to hide this warning.",
+                RuntimeWarning)
+            self.nlist = copy.deepcopy(self.nlist)
+        self.nlist._attach(self._simulation)
         self.nlist._cpp_obj.setStorageMode(_md.NeighborList.storageMode.full)
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)

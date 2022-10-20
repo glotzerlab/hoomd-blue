@@ -90,8 +90,6 @@ class Operations(Collection):
                 collection.
 
         Raises:
-            ValueError: If ``operation`` already belongs to this or another
-                `Operations` instance.
             TypeError: If ``operation`` is not of a valid type.
 
         Note:
@@ -101,11 +99,7 @@ class Operations(Collection):
             cannot be set to ``None`` using this function. Use
             ``operations.integrator = None`` explicitly for this.
         """
-        # calling _add is handled by the synced lists and integrator property.
         # we raise this error here to provide a more clear error message.
-        if operation._added:
-            raise ValueError("The provided operation has already been added "
-                             "to an Operations instance.")
         if isinstance(operation, Integrator):
             self.integrator = operation
         else:
@@ -182,8 +176,7 @@ class Operations(Collection):
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
         if not (self.integrator is None or self.integrator._attached):
-            self._integrator._add(self._simulation)
-            self.integrator._attach()
+            self.integrator._attach(sim)
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
         if not self.writers._synced:
@@ -240,21 +233,14 @@ class Operations(Collection):
             if not isinstance(op, Integrator):
                 raise TypeError("Cannot set integrator to a type not derived "
                                 "from hoomd.operation.Integrator")
-            if op._added:
-                raise RuntimeError("Integrator cannot be added to twice to "
-                                   "Operations collection.")
-            else:
-                op._add(self._simulation)
-
         old_ref = self.integrator
         self._integrator = op
         # Handle attaching and detaching integrators dealing with None values
         if self._scheduled:
             if op is not None:
-                op._attach()
-        if old_ref is not None:
-            old_ref._detach()
-            old_ref._remove()
+                op._attach(self._simulation)
+            if old_ref is not None:
+                old_ref._detach()
 
     @property
     def updaters(self):

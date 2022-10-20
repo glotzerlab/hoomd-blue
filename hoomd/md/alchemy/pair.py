@@ -175,7 +175,7 @@ class AlchemicalDOF(_HOOMDBaseObject):
         self.name = name
         self.typepair = typepair
         if self._force._attached:
-            self._attach()
+            self._attach(force._simulation)
         # store metadata
         param_dict = ParameterDict(mass=float,
                                    mu=float,
