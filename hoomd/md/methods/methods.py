@@ -1144,12 +1144,12 @@ class Berendsen(Method):
     .. attention::
         `Berendsen` does not integrate rotational degrees of freedom.
 
-        Examples::
+    Examples::
 
-            berendsen = hoomd.md.methods.Berendsen(
-                filter=hoomd.filter.All(), kT=0.2, tau=10.0)
-            integrator = hoomd.md.Integrator(
-                dt=0.001, methods=[berendsen], forces=[lj])
+        berendsen = hoomd.md.methods.Berendsen(
+            filter=hoomd.filter.All(), kT=0.2, tau=10.0)
+        integrator = hoomd.md.Integrator(
+            dt=0.001, methods=[berendsen], forces=[lj])
 
 
     Attributes:
