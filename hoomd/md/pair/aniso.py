@@ -410,11 +410,11 @@ class ALJ(AnisotropicPair):
           above for details).
         * ``contact_ratio_i`` (`float`, **optional**) - :math:`\beta_i`, the
           ratio of the contact sphere diameter of the first type with
-        ``sigma_i``.
+          ``sigma_i``.
           Defaults to 0.15.
         * ``contact_ratio_j`` (`float`, **optional**) - :math:`\beta_j`, the
           ratio of the contact sphere diameter of the second type with
-        ``sigma_j``.
+          ``sigma_j``.
           Defaults to 0.15.
         * ``average_simplices`` (`bool`, **optional**) - Whether to average over
           simplices. Defaults to ``True``. See class documentation for more
