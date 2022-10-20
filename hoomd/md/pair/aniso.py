@@ -281,7 +281,7 @@ class ALJ(AnisotropicPair):
     the average of :math:`\sigma_i` (`sigma_i <params>`) and :math:`\sigma_j`
     (`sigma_j <params>`). Lastly, `ALJ` uses the contact ratios :math:`\beta_i`
     (`contact_ratio_i <params>`) and :math:`\beta_j` (`contact_ratio_j
-    <params>`) to compute :math:`\sigma_c` as follows:
+    <params>`) to compute the contact sigma :math:`\sigma_c` as follows:
 
     .. math::
 
@@ -329,8 +329,11 @@ class ALJ(AnisotropicPair):
     to empty lists to create the ellipsoid).
 
     Important:
-        `ALJ` implicitly rounds the given shape by :math:`\sigma_c` via the WCA
-        or Lennard-Jones potential.
+        The repulsive part of the contact interaction :math:`U_c(r_c)` prevents
+        two `ALJ` particles from approaching closely, effectively rounding the
+        shape by a radius :math:`\sigma_c`. For this reason, the shape written by
+        `type_shapes` includes the rounding due to `rounding_radii <shape>` and that
+        due to :math:`\sigma_c`.
 
     .. rubric:: Choosing `r_cut <hoomd.md.pair.Pair.r_cut>`:
 
