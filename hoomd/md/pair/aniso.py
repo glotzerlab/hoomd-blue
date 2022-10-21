@@ -349,47 +349,52 @@ class ALJ(AnisotropicPair):
     shape's minimal origin-centered bounding sphere of the particle with type
     :math:`i`.
 
-    Let :math:`r_{min} = 2^{1/6}` be the position of the potential energy
-    minimum of the Lennard-Jones potential.
-
-    Let :math:`r_{cut}^{tradition} = 2.5` be the traditional value of
-    :math:`r_{cut}` used for L-J simulations of isotropic particles.
+    Let :math:`\lambda_{min} = 2^{1/6}` be the position of the potential energy
+    minimum of the Lennard-Jones potential and
+    :math:`\lambda_{cut}^{attractive}` be a larger value, such as 2.5 (typically
+    used in isotropic LJ systems).
 
     * For alpha=0:
 
       .. math::
 
-        r_{\mathrm{cut},ij} = \max \left( \frac{r_{min}}{2}
-        (\sigma_i + \sigma_j)\:, R_i + R_j + R_{\mathrm{rounding},i} +
-        R_{\mathrm{rounding},j} + \frac{r_{min}}{2}
-        (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+        r_{\mathrm{cut},ij} = \max \bigg( & \frac{\lambda_{min}}{2}
+        (\sigma_i + \sigma_j), \\
+        & R_i + R_j + R_{\mathrm{rounding},i} +
+        R_{\mathrm{rounding},j} + \frac{\lambda_{min}}{2}
+        (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
 
     * For alpha=1:
 
       .. math::
 
-            r_{\mathrm{cut},ij} = \max \left( \frac{r_{cut}^{tradition}}{2}
-            (\sigma_i + \sigma_j)\:,  R_i + R_j  + R_{\mathrm{rounding},i} +
-            R_{\mathrm{rounding},j}+ \frac{r_{min}}{2}
-            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+            r_{\mathrm{cut},ij} =
+            \max \bigg( & \frac{\lambda_{cut}^{attractive}}{2}
+            (\sigma_i + \sigma_j),  \\
+            & R_i + R_j  + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j}+ \frac{\lambda_{min}}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
 
     * For alpha=2:
 
       .. math::
 
-            r_{\mathrm{cut},ij} = \max \left( \frac{r_{min}}{2}
-            (\sigma_i + \sigma_j))\:,  R_i + R_j + R_{\mathrm{rounding},i} +
-            R_{\mathrm{rounding},j} + \frac{r_{cut}^{tradition}}{2}
-            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+            r_{\mathrm{cut},ij} = \max \bigg( & \frac{\lambda_{min}}{2}
+            (\sigma_i + \sigma_j)),  \\
+            & R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{\lambda_{cut}^{attractive}}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
 
     * For alpha=3:
 
       .. math::
 
-            r_{\mathrm{cut},ij} = \max \left( \frac{r_{cut}^{tradition}}{2}
-            (\sigma_i + \sigma_j)\:,  R_i + R_j + R_{\mathrm{rounding},i} +
-            R_{\mathrm{rounding},j} + \frac{r_{cut}^{tradition}}{2}
-            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \right)
+            r_{\mathrm{cut},ij} =
+            \max \bigg( & \frac{\lambda_{cut}^{attractive}}{2}
+            (\sigma_i + \sigma_j),  \\
+            & R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{\lambda_{cut}^{attractive}}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
 
     Warning:
         Changing dimension in a simulation will invalidate this force and will
