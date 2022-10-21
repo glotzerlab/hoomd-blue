@@ -7,6 +7,26 @@ Change Log
 v3.x
 ----
 
+v3.6.0 (2022-10-24)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+*Changed*
+
+* In ``hoomd.md.pair.aniso.ALJ``, ``shape.rounding_radii`` now defaults to (0.0, 0.0, 0.0).
+* Revise ``hoomd.md.pair.aniso.ALJ`` documentation.
+
+*Fixed*
+
+* Increase the performance of ``md.pair.Table`` on the CPU.
+* Improve accuracy of ``hoomd.hpmc.update.BoxMC`` when used with patch potentials.
+* Provide an accurate warning message when creating the state with many bond/angle/... types.
+* Add missing documentation for ``hoomd.md.methods.Berendsen``.
+* CVE-2007-4559
+
+*Deprecated*
+
 v3.5.0 (2022-09-14)
 ^^^^^^^^^^^^^^^^^^^
 

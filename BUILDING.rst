@@ -233,6 +233,7 @@ Other option changes take effect at any time:
 
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
+- ``ENABLE_LLVM`` - Enable run time code generation with LLVM.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
 - ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
@@ -258,6 +259,7 @@ Other option changes take effect at any time:
 
   - When set to ``on``, **HOOMD-blue** will use TBB to speed up calculations in some classes on
     multiple CPU cores.
+
 - ``PYTHON_SITE_INSTALL_DIR`` - Directory to install ``hoomd`` to relative to
   ``CMAKE_INSTALL_PREFIX``. Defaults to the ``site-packages`` directory used by the found Python
   executable.

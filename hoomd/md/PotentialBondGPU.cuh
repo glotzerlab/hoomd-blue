@@ -184,14 +184,14 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         dx = box.minImage(dx);
 
         // get the bond parameters (MEM TRANSFER: 8 bytes)
-        typename evaluator::param_type param;
+        const typename evaluator::param_type* param;
         if (enable_shared_cache)
             {
-            param = s_params[cur_bond_type];
+            param = s_params + cur_bond_type;
             }
         else
             {
-            param = d_params[cur_bond_type];
+            param = d_params + cur_bond_type;
             }
 
         Scalar rsq = dot(dx, dx);
@@ -200,7 +200,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         Scalar force_divr = Scalar(0.0);
         Scalar bond_eng = Scalar(0.0);
 
-        evaluator eval(rsq, param);
+        evaluator eval(rsq, *param);
 
         // get the bonded particle's diameter if needed
         if (evaluator::needsDiameter())
