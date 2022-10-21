@@ -10,12 +10,14 @@ v3.x
 v3.6.0 (2022-10-24)
 ^^^^^^^^^^^^^^^^^^^
 
-*Added*
-
 *Changed*
 
 * In ``hoomd.md.pair.aniso.ALJ``, ``shape.rounding_radii`` now defaults to (0.0, 0.0, 0.0).
 * Revise ``hoomd.md.pair.aniso.ALJ`` documentation.
+* ``hoomd.md.force.Force`` instances can now be added to the ``Operations`` list allowing users to
+  compute force, torque, energy, and virials of forces that are not included in the dynamics of
+  the system.
+* [developers]: Removed internal methods ``_remove`` and ``_add`` from the data model.
 
 *Fixed*
 
