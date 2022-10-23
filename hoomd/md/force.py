@@ -536,7 +536,7 @@ class ActiveOnManifold(Active):
                                  self.manifold_constraint._cpp_obj)
 
 
-class Cosntant(Force):
+class Constant(Force):
     r"""Constant force.
 
     Args:
