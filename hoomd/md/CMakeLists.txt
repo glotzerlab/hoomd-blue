@@ -14,6 +14,7 @@ set(_md_sources module-md.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
+                   ConstantForceCompute.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
                    EvaluatorWalls.cc
@@ -85,6 +86,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
+                ConstantForceCompute.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
                 CustomForceCompute.h
