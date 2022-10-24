@@ -104,7 +104,7 @@ Install prerequisites
   - hipCUB, included for NVIDIA GPU targets, but required as an
     external dependency when building for AMD GPUs
   - roctracer-dev
-  - Linux kernel >= 3.6.0
+  - Linux kernel >= 3.5.0
   - CMake >= 3.21
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
