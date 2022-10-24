@@ -3,6 +3,7 @@
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
+#include "TwoStepNVTBase.h"
 #include "hoomd/Variant.h"
 
 #ifndef __TWO_STEP_NVT_MTK_H__
@@ -38,7 +39,7 @@ namespace md
 
     \ingroup updaters
 */
-class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepNVTMTK : public virtual TwoStepNVTBase
     {
     public:
     //! Constructs the integration method and associates it with the system
@@ -50,18 +51,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     virtual ~TwoStepNVTMTK();
 
     //! Update the temperature
-    /*! \param T New temperature to set
-     */
-    virtual void setT(std::shared_ptr<Variant> T)
-        {
-        m_T = T;
-        }
 
-    /// Get the current temperature variant
-    std::shared_ptr<Variant> getT()
-        {
-        return m_T;
-        }
 
     //! Update the tau value
     /*! \param tau New time constant to set
@@ -83,12 +73,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         m_thermostat.xi = new_xi;
         }
 
-    //! Performs the first step of the integration
-    virtual void integrateStepOne(uint64_t timestep);
-
-    //! Performs the second step of the integration
-    virtual void integrateStepTwo(uint64_t timestep);
-
     //! Get needed pdata flags
     /*! in anisotropic mode, we need the rotational kinetic energy
      */
@@ -100,8 +84,18 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         return flags;
         }
 
+    virtual std::array<Scalar, 2> NVT_rescale_factor_one(uint64_t timestep)
+        {
+        return {TwoStepNVTMTK::m_exp_thermo_fac, exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot)};
+        }
+
+    virtual std::array<Scalar, 2> NVT_rescale_factor_two(uint64_t timestep)
+        {
+        return {TwoStepNVTMTK::m_exp_thermo_fac, exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot)};
+        }
+
     /// Randomize the thermostat variables
-    void thermalizeThermostatDOF(uint64_t timestep);
+    virtual void thermalizeThermostatDOF(uint64_t timestep);
 
     /// Get the translational thermostat degrees of freedom
     pybind11::tuple getTranslationalThermostatDOF();
@@ -127,19 +121,15 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         Scalar eta_rot = 0;
         };
 
-    std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
+    virtual void advanceThermostat(uint64_t timestep, bool broadcast = true);
 
     Scalar m_tau;                 //!< tau value for Nose-Hoover
-    std::shared_ptr<Variant> m_T; //!< Temperature set point
+    //!< Temperature set point
 
     Scalar m_exp_thermo_fac; //!< Thermostat rescaling factor
     Thermostat m_thermostat; //!< Thermostat degrees of freedom
 
     //! advance the thermostat
-    /*!\param timestep The time step
-     * \param broadcast True if we should broadcast the integrator variables via MPI
-     */
-    void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };
 
     } // end namespace md

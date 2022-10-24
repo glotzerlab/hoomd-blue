@@ -6,7 +6,6 @@
 */
 
 #include "TwoStepBerendsenGPU.h"
-#include "TwoStepBerendsenGPU.cuh"
 
 #include <functional>
 
@@ -27,99 +26,14 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
                                          std::shared_ptr<ComputeThermo> thermo,
                                          Scalar tau,
                                          std::shared_ptr<Variant> T)
-    : TwoStepBerendsen(sysdef, group, thermo, tau, T)
+    :  TwoStepNVTBase(sysdef, group, thermo, T), TwoStepBerendsen(sysdef, group, thermo, tau, T), TwoStepNVTBaseGPU(sysdef, group, thermo, T)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
         throw std::runtime_error("Cannot create BerendsenGPU on a CPU device.");
         }
-
-    m_block_size = 256;
     }
 
-/*! Perform the needed calculations to zero the system's velocity
-    \param timestep Current time step of the simulation
-*/
-void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
-    {
-    unsigned int group_size = m_group->getNumMembers();
-
-    // compute the current thermodynamic quantities and get the temperature
-    m_thermo->compute(timestep);
-    Scalar curr_T = m_thermo->getTranslationalTemperature();
-
-    // compute the value of lambda for the current timestep
-    Scalar lambda
-        = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
-
-    // access the particle data arrays for writing on the GPU
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
-                               access_location::device,
-                               access_mode::readwrite);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
-                               access_location::device,
-                               access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(),
-                                 access_location::device,
-                                 access_mode::read);
-    ArrayHandle<int3> d_image(m_pdata->getImages(),
-                              access_location::device,
-                              access_mode::readwrite);
-
-    BoxDim box = m_pdata->getBox();
-    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
-                                            access_location::device,
-                                            access_mode::read);
-
-    // perform the integration on the GPU
-    kernel::gpu_berendsen_step_one(d_pos.data,
-                                   d_vel.data,
-                                   d_accel.data,
-                                   d_image.data,
-                                   d_index_array.data,
-                                   group_size,
-                                   box,
-                                   m_block_size,
-                                   lambda,
-                                   m_deltaT);
-
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    }
-
-void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
-    {
-    unsigned int group_size = m_group->getNumMembers();
-
-    // get the net force
-    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-
-    // access the particle data arrays for use on the GPU
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
-                               access_location::device,
-                               access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(),
-                                 access_location::device,
-                                 access_mode::readwrite);
-
-    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
-                                            access_location::device,
-                                            access_mode::read);
-
-    // perform the second step of the integration on the GPU
-    kernel::gpu_berendsen_step_two(d_vel.data,
-                                   d_accel.data,
-                                   d_index_array.data,
-                                   group_size,
-                                   d_net_force.data,
-                                   m_block_size,
-                                   m_deltaT);
-
-    // check if an error occurred
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    }
 
 namespace detail
     {

@@ -15,7 +15,7 @@
 #endif
 
 #include <pybind11/pybind11.h>
-
+#include <hoomd/md/TwoStepNVTBaseGPU.h>
 #include "hoomd/Autotuner.h"
 
 namespace hoomd
@@ -33,7 +33,7 @@ namespace md
 
     \ingroup updaters
 */
-class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
+class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK, public TwoStepNVTBaseGPU
     {
     public:
     //! Constructs the integration method and associates it with the system
@@ -44,24 +44,6 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
                      std::shared_ptr<Variant> T);
     virtual ~TwoStepNVTMTKGPU() {};
 
-    //! Performs the first step of the integration
-    virtual void integrateStepOne(uint64_t timestep);
-
-    //! Performs the second step of the integration
-    virtual void integrateStepTwo(uint64_t timestep);
-
-    protected:
-    /// Autotuner for block size (step one kernel).
-    std::shared_ptr<Autotuner<1>> m_tuner_one;
-
-    /// Autotuner for block size (step two kernel).
-    std::shared_ptr<Autotuner<1>> m_tuner_two;
-
-    /// Autotuner_angular for block size (angular step one kernel).
-    std::shared_ptr<Autotuner<1>> m_tuner_angular_one;
-
-    /// Autotuner_angular for block size (angular step two kernel).
-    std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
     };
 
     } // end namespace md

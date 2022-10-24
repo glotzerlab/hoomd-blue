@@ -100,6 +100,7 @@ void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
 void export_ZeroMomentumUpdater(pybind11::module& m);
 void export_TwoStepNVE(pybind11::module& m);
+void export_TwoStepNVTBase(pybind11::module& m);
 void export_TwoStepNVTMTK(pybind11::module& m);
 void export_TwoStepLangevinBase(pybind11::module& m);
 void export_TwoStepLangevin(pybind11::module& m);
@@ -232,6 +233,7 @@ void export_PotentialPairDPDThermoDPDGPU(pybind11::module& m);
 void export_PotentialPairDPDThermoLJGPU(pybind11::module& m);
 
 void export_TwoStepNVEGPU(pybind11::module& m);
+void export_TwoStepNVTBaseGPU(pybind11::module& m);
 void export_TwoStepNVTMTKGPU(pybind11::module& m);
 void export_TwoStepLangevinGPU(pybind11::module& m);
 void export_TwoStepBDGPU(pybind11::module& m);
@@ -457,6 +459,7 @@ PYBIND11_MODULE(_md, m)
     export_IntegrationMethodTwoStep(m);
     export_ZeroMomentumUpdater(m);
     export_TwoStepNVE(m);
+    export_TwoStepNVTBase(m);
     export_TwoStepNVTMTK(m);
     export_TwoStepLangevinBase(m);
     export_TwoStepLangevin(m);
@@ -496,6 +499,7 @@ PYBIND11_MODULE(_md, m)
 
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
+    export_TwoStepNVTBaseGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);
     export_TwoStepBDGPU(m);

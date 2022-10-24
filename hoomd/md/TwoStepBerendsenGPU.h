@@ -15,14 +15,14 @@
 #endif
 
 #include <pybind11/pybind11.h>
-
+#include "TwoStepNVTBaseGPU.h"
 namespace hoomd
     {
 namespace md
     {
 /*! Implements the Berendsen thermostat on the GPU
  */
-class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
+class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen, public TwoStepNVTBaseGPU
     {
     public:
     //! Constructor
@@ -32,15 +32,6 @@ class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
                         Scalar tau,
                         std::shared_ptr<Variant> T);
     virtual ~TwoStepBerendsenGPU() {};
-
-    //! Performs the first step of the integration
-    virtual void integrateStepOne(uint64_t timestep);
-
-    //! Performs the second step of the integration
-    virtual void integrateStepTwo(uint64_t timestep);
-
-    protected:
-    unsigned int m_block_size; //!< Block size to launch on the GPU
     };
 
     } // end namespace md
