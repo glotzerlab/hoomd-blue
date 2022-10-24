@@ -14,12 +14,12 @@
 
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
-//#include "hoomd/md/AllPairPotentials.h"
+#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/AnisoPotentialPair.h"
 #include "hoomd/md/EvaluatorPairGB.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/NeighborListTree.h"
-#include <hoomd/filter/ParticleFilterAll.h>
+
 #include <math.h>
 
 using namespace std;
@@ -50,7 +50,7 @@ std::shared_ptr<TwoStepNVTMTK> base_class_nvt_creator(std::shared_ptr<SystemDefi
                                                       Scalar Q,
                                                       Scalar T)
     {
-    std::shared_ptr<VariantConstant> T_variant(new VariantConstant(T));
+    std::shared_ptr<VariantConst> T_variant(new VariantConst(T));
     return std::shared_ptr<TwoStepNVTMTK>(new TwoStepNVTMTK(sysdef, group, thermo, Q, T_variant));
     }
 
@@ -62,7 +62,7 @@ std::shared_ptr<TwoStepNVTMTK> gpu_nvt_creator(std::shared_ptr<SystemDefinition>
                                                Scalar Q,
                                                Scalar T)
     {
-    std::shared_ptr<VariantConstant> T_variant(new VariantConstant(T));
+    std::shared_ptr<VariantConst> T_variant(new VariantConst(T));
     return std::shared_ptr<TwoStepNVTMTK>(
         new TwoStepNVTMTKGPU(sysdef, group, thermo, Q, T_variant));
     }
@@ -77,13 +77,13 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    std::shared_ptr<ParticleFilter> selector_all_1(new ParticleFilterAll);
-        //new ParticleFilterTags(sysdef_1, 0, pdata_1->getNGlobal() - 1));
+    std::shared_ptr<ParticleFilter> selector_all_1(
+        new ParticleFilterTag(sysdef_1, 0, pdata_1->getNGlobal() - 1));
     std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
     Scalar r_cut = Scalar(3.0);
     Scalar r_buff = Scalar(0.8);
-    std::shared_ptr<NeighborListTree> nlist_1(new NeighborListTree(sysdef_1, r_buff));
+    std::shared_ptr<NeighborListTree> nlist_1(new NeighborListTree(sysdef_1, r_cut, r_buff));
     nlist_1->setRCutPair(0, 0, r_cut);
     nlist_1->setStorageMode(NeighborList::full);
     std::shared_ptr<PotentialPairLJ> fc_1
