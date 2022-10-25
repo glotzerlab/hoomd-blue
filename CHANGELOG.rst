@@ -7,7 +7,7 @@ Change Log
 v3.x
 ----
 
-v3.6.0 (2022-10-24)
+v3.6.0 (2022-10-25)
 ^^^^^^^^^^^^^^^^^^^
 
 *Changed*
@@ -26,8 +26,6 @@ v3.6.0 (2022-10-24)
 * Provide an accurate warning message when creating the state with many bond/angle/... types.
 * Add missing documentation for ``hoomd.md.methods.Berendsen``.
 * CVE-2007-4559
-
-*Deprecated*
 
 v3.5.0 (2022-09-14)
 ^^^^^^^^^^^^^^^^^^^
