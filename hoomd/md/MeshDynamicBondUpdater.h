@@ -48,6 +48,11 @@ class PYBIND11_EXPORT MeshDynamicBondUpdater : public Updater
     /// Destructor
     virtual ~MeshDynamicBondUpdater();
 
+    void setAllowSwitch(const std::string& type_name, pybind11::bool_ v);
+
+    /// Gets active torque vector for a given particle type
+    pybind11::bool_ getAllowSwitch(const std::string& type_name);
+
     /// Update box interpolation based on provided timestep
     virtual void update(uint64_t timestep);
 
@@ -65,6 +70,8 @@ class PYBIND11_EXPORT MeshDynamicBondUpdater : public Updater
     std::shared_ptr<Integrator> m_integrator; //!< Integrator that advances time in this System
     std::shared_ptr<MeshDefinition> m_mesh;   //!< Active force to call rotationalDiffusion on
     Scalar m_inv_T;
+    GlobalVector<bool> m_allowSwitch; //! check if bond wich features two particles of certain
+                                      //! particle types is allow to switch
     };
 
 namespace detail

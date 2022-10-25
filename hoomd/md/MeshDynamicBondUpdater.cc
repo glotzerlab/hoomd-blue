@@ -29,6 +29,16 @@ MeshDynamicBondUpdater::MeshDynamicBondUpdater(std::shared_ptr<SystemDefinition>
                                                Scalar T)
     : Updater(sysdef, trigger), m_integrator(integrator), m_mesh(mesh), m_inv_T(1.0 / T)
     {
+    GlobalVector<bool> tmp_allowSwitch(m_pdata->getNTypes(), m_exec_conf);
+
+    m_allowSwitch.swap(tmp_allowSwitch);
+    TAG_ALLOCATION(m_allowSwitch);
+
+    ArrayHandle<bool> h_allowSwitch(m_allowSwitch, access_location::host, access_mode::overwrite);
+
+    for (unsigned int i = 0; i < m_allowSwitch.size(); i++)
+        h_allowSwitch.data[i] = true;
+
     assert(m_pdata);
     assert(m_integrator);
     assert(m_mesh);
@@ -38,6 +48,32 @@ MeshDynamicBondUpdater::MeshDynamicBondUpdater(std::shared_ptr<SystemDefinition>
 MeshDynamicBondUpdater::~MeshDynamicBondUpdater()
     {
     m_exec_conf->msg->notice(5) << "Destroying MeshDynamicBondUpdater" << endl;
+    }
+
+void MeshDynamicBondUpdater::setAllowSwitch(const std::string& type_name, pybind11::bool_ v)
+    {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    // check for user errors
+    if (typ >= m_pdata->getNTypes())
+        {
+        throw std::invalid_argument("Type does not exist");
+        }
+
+    bool allowSwitch = pybind11::cast<bool>(v);
+
+    ArrayHandle<bool> h_allowSwitch(m_allowSwitch, access_location::host, access_mode::readwrite);
+    h_allowSwitch.data[typ] = allowSwitch;
+    }
+
+pybind11::bool_ MeshDynamicBondUpdater::getAllowSwitch(const std::string& type_name)
+    {
+    unsigned int typ = this->m_pdata->getTypeByName(type_name);
+
+    ArrayHandle<bool> h_allowSwitch(m_allowSwitch, access_location::host, access_mode::read);
+
+    bool allowSwitch = h_allowSwitch.data[typ];
+    return pybind11::bool_(allowSwitch);
     }
 
 /** Perform the needed calculations to update particle orientations
@@ -68,6 +104,10 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                                      access_location::host,
                                      access_mode::read);
 
+    ArrayHandle<bool> h_allowSwitch(m_allowSwitch, access_location::host, access_mode::read);
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh->getMeshBondData()->getN();
 
@@ -86,27 +126,33 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
         unsigned int tag_a = bond.tag[0];
         unsigned int tag_b = bond.tag[1];
 
-
-	bool already_used = false;
-	for(unsigned int j = 0; j < changed.size(); j++)
-	{
-		if( tag_a == changed[j] || tag_b == changed[j])
-		{
-			already_used = true;
-			break;
-		}
-
-	}
-
-	if(already_used) 
-		continue;
-
         unsigned int idx_a = h_rtag.data[tag_a];
         unsigned int idx_b = h_rtag.data[tag_b];
 
+        unsigned int type_a = __scalar_as_int(h_pos.data[idx_a].w);
+        unsigned int type_b = __scalar_as_int(h_pos.data[idx_b].w);
+
+        bool allow_a = h_allowSwitch.data[type_a];
+        bool allow_b = h_allowSwitch.data[type_b];
+
+        if (!allow_a && !allow_b)
+            continue;
+
+        bool already_used = false;
+        for (unsigned int j = 0; j < changed.size(); j++)
+            {
+            if (tag_a == changed[j] || tag_b == changed[j])
+                {
+                already_used = true;
+                break;
+                }
+            }
+
+        if (already_used)
+            continue;
+
         unsigned int tr_idx1 = bond.tag[2];
         unsigned int tr_idx2 = bond.tag[3];
-
 
         if (tr_idx1 == tr_idx2)
             continue;
@@ -148,18 +194,17 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             idx_d = h_rtag.data[tag_d];
             }
 
-	for(unsigned int j = 0; j < changed.size(); j++)
-	{
-		if( tag_c == changed[j] || tag_d == changed[j])
-		{
-			already_used = true;
-			break;
-		}
+        for (unsigned int j = 0; j < changed.size(); j++)
+            {
+            if (tag_c == changed[j] || tag_d == changed[j])
+                {
+                already_used = true;
+                break;
+                }
+            }
 
-	}
-
-	if(already_used) 
-		continue;
+        if (already_used)
+            continue;
 
         unsigned int type_id = h_typeval.data[i].type;
 
@@ -176,7 +221,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 energyDifference += force->energyDiff(idx_a, idx_b, idx_d, idx_c, type_id);
             }
 
-
         // Initialize the RNG
         RandomGenerator rng(hoomd::Seed(RNGIdentifier::MeshDynamicBondUpdater, timestep, seed),
                             hoomd::Counter(i));
@@ -188,10 +232,10 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             {
             changeDetected = true;
 
-	    changed.push_back(tag_a);
-	    changed.push_back(tag_b);
-	    changed.push_back(tag_c);
-	    changed.push_back(tag_d);
+            changed.push_back(tag_a);
+            changed.push_back(tag_b);
+            changed.push_back(tag_c);
+            changed.push_back(tag_d);
 
             typename MeshBond::members_t bond_n;
             typename MeshTriangle::members_t triangle1_n;
@@ -201,8 +245,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             bond_n.tag[1] = tag_d;
             bond_n.tag[2] = tr_idx1;
             bond_n.tag[3] = tr_idx2;
-
-
 
             h_bonds.data[i] = bond_n;
 
@@ -310,12 +352,11 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
             }
         }
 
-    if(changeDetected)
+    if (changeDetected)
         {
         m_mesh->getMeshBondData()->meshChanged();
         m_mesh->getMeshTriangleData()->meshChanged();
-	}
-
+        }
     }
 
 namespace detail
@@ -330,6 +371,8 @@ void export_MeshDynamicBondUpdater(pybind11::module& m)
                             std::shared_ptr<Integrator>,
                             std::shared_ptr<MeshDefinition>,
                             Scalar>())
+        .def("setAllowSwitch", &MeshDynamicBondUpdater::setAllowSwitch)
+        .def("getAllowSwitch", &MeshDynamicBondUpdater::getAllowSwitch)
         .def_property("kT", &MeshDynamicBondUpdater::getT, &MeshDynamicBondUpdater::setT);
     }
 
