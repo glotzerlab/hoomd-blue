@@ -54,7 +54,7 @@ class Angle(Force):
     def __init__(self):
         super().__init__()
 
-    def _attach(self):
+    def _attach_hook(self):
         # check that some angles are defined
         if self._simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
             self._simulation.device._cpp_msg.warning("No angles are defined.\n")
@@ -66,8 +66,6 @@ class Angle(Force):
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
-
-        super()._attach()
 
 
 class Harmonic(Angle):
@@ -202,7 +200,7 @@ class Table(Angle):
                 len_keys=1))
         self._add_typeparam(params)
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TableAngleForceCompute
@@ -210,5 +208,3 @@ class Table(Angle):
             cpp_cls = _md.TableAngleForceComputeGPU
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
-
-        Force._attach(self)

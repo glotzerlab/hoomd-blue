@@ -89,16 +89,6 @@ def test_setattr(full_op):
     assert full_op.param1 == 4.
 
 
-def test_adding(full_op):
-    assert not full_op._added
-    # need a non-None dummy simulation 1 works
-    full_op._add(1)
-    assert full_op._added
-    assert full_op._simulation == 1
-    full_op._remove()
-    assert full_op._simulation is None
-
-
 def test_apply_typeparam_dict(full_op):
     """Tests _apply_typeparam_dict and by necessity getattr."""
     full_op.type_param['A'] = dict(bar='world')
@@ -125,7 +115,7 @@ def test_apply_param_dict(full_op):
 def attached(full_op):
     cp = deepcopy(full_op)
     op = test_apply_param_dict(cp)
-    op._add(1)
+    op._simulation = 1
     return op
 
 

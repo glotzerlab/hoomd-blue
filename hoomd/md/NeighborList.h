@@ -344,7 +344,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
     void setSingleExclusion(std::string exclusion);
 
-    pybind11::tuple getExclusions();
+    pybind11::list getExclusions();
 
     bool getExclusionsSet()
         {

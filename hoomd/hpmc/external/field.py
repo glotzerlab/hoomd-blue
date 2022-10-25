@@ -104,7 +104,7 @@ class Harmonic(ExternalField):
         param_dict['symmetries'] = symmetries
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         cls = None
 
         integrator = self._simulation.operations.integrator
@@ -162,7 +162,7 @@ class Harmonic(ExternalField):
             self.k_rotational,
             self.symmetries,
         )
-        super()._attach()
+        super()._attach_hook()
 
     @log(requires_run=True)
     def energy(self):

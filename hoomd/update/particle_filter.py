@@ -83,14 +83,13 @@ class FilterUpdater(hoomd.operation.Updater):
         self._filters.clear()
         self._filters.extend(new_filters)
 
-    def _attach(self):
+    def _attach_hook(self):
         # We use a SyncedList internal API to allow for storing the state to
         # query groups from filters.
         self._filters._to_synced_list_conversion._attach(self._simulation)
         self._cpp_obj = hoomd._hoomd.ParticleFilterUpdater(
             self._simulation.state._cpp_sys_def, self.trigger)
         self._filters._sync(self._simulation, self._cpp_obj.groups)
-        super()._attach()
 
     def __eq__(self, other):
         """Return whether two objects are equivalent."""

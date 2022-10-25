@@ -44,14 +44,13 @@ class ThermodynamicQuantities(Compute):
         super().__init__()
         self._filter = filter
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             thermo_cls = _md.ComputeThermo
         else:
             thermo_cls = _md.ComputeThermoGPU
         group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def, group)
-        super()._attach()
 
     @log(requires_run=True)
     def kinetic_temperature(self):
@@ -351,7 +350,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         # initialize base class
         super().__init__()
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             thermoHMA_cls = _md.ComputeThermoHMA
         else:
@@ -359,7 +358,6 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = thermoHMA_cls(self._simulation.state._cpp_sys_def,
                                       group, self.kT, self.harmonic_pressure)
-        super()._attach()
 
     @log(requires_run=True)
     def potential_energy(self):

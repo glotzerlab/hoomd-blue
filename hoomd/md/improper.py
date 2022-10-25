@@ -53,7 +53,7 @@ class Improper(md.force.Force):
     def __init__(self):
         super().__init__()
 
-    def _attach(self):
+    def _attach_hook(self):
         # check that some impropers are defined
         if self._simulation.state._cpp_sys_def.getImproperData().getNGlobal(
         ) == 0:
@@ -67,7 +67,6 @@ class Improper(md.force.Force):
             cpp_class = getattr(hoomd.md._md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
-        super()._attach()
 
 
 class Harmonic(Improper):

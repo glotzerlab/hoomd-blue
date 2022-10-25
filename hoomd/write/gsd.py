@@ -169,7 +169,7 @@ class GSD(Writer):
 
         self._log = None if log is None else _GSDLogWriter(log)
 
-    def _attach(self):
+    def _attach_hook(self):
         # validate dynamic property
         categories = ['attribute', 'property', 'momentum', 'topology']
         dynamic_quantities = ['property']
@@ -192,7 +192,6 @@ class GSD(Writer):
         self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
         self._cpp_obj.log_writer = self.log
-        super()._attach()
 
     @staticmethod
     def write(state, filename, filter=All(), mode='wb', log=None):
