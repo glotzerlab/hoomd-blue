@@ -27,7 +27,8 @@ from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.data.typeconverter import OnlyTypes, to_type_converter
+import numpy as np
 
 
 class AnisotropicPair(Pair):
@@ -525,6 +526,13 @@ class JanusLJ(AnisotropicPair):
     """
     _cpp_class_name = "AnisoPotentialPairJanusLJ"
 
+    @staticmethod
+    def _check_0_pi(input):
+        if 0 <= input <= np.pi:
+            return input
+        else:
+            raise ValueError(f"Value {input} is not between 0 and pi")
+
     def __init__(self, nlist, default_r_cut=None, mode='none'):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
@@ -532,8 +540,9 @@ class JanusLJ(AnisotropicPair):
             TypeParameterDict(dict(
                 pair_params=dict(epsilon = float,
                                  sigma = float),
-                envel_params = dict(alpha = float,
-                                    omega= float)),
+                envelope_params = dict(alpha = OnlyTypes(float,
+                                                        postprocess = self._check_0_pi),
+                                       omega= float)),
                               len_keys=2))
         self._add_typeparam(params)
 

@@ -56,7 +56,7 @@ public:
 
         param_type(pybind11::dict params, bool managed)
             : pairP(params["pair_params"], managed),
-              envelP(params["envel_params"])
+              envelP(params["envelope_params"])
             {
             }
 
@@ -65,7 +65,7 @@ public:
                 pybind11::dict v;
 
                 v["pair_params"] = pairP.asDict();
-                v["envel_params"] = envelP.asDict();
+                v["envelope_params"] = envelP.asDict();
 
                 return v;
             }
@@ -178,7 +178,7 @@ public:
     //! Whether the pair potential needs particle tags.
     HOSTDEVICE static bool needsTags()
         {
-            return (pairEvaluator::needsTags() || directionalEnvelope::needsTags());
+            return false;
         }
 
     //! No modulated potential needs tags
