@@ -65,10 +65,10 @@ ConstantForceComputeGPU::ConstantForceComputeGPU(std::shared_ptr<SystemDefinitio
 void ConstantForceComputeGPU::setForces()
     {
     //  array handles
-    ArrayHandle<Scalar4> d_f_constVec(m_f_constantVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_f_constVec(m_f_constantVec, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
-    ArrayHandle<Scalar4> d_t_constVec(m_t_constantVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_t_constVec(m_t_constantVec, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -96,7 +96,7 @@ void ConstantForceComputeGPU::setForces()
                                                   d_f_constVec.data,
                                                   d_t_constVec.data,
                                                   N,
-                                                  m_tuner_force->getParam()[0]);
+                                                  m_tuner->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
