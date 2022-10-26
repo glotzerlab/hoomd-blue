@@ -103,8 +103,8 @@ public:
 #endif
     };
 
-    // Constructs the pair potential evaluator
-    /*
+    //! Constructs the pair potential evaluator
+    /*!
       \param _dr Displacement vector pointing from particle rj to ri
       \param _rcutsq Squared distance at which the potential is set to 0
       \param _quat_eye Quaternion of the ith particle
@@ -130,7 +130,7 @@ public:
         }
 
     //! Accept the optional diameter values
-    /*
+    /*!
       \param di Diameter of particle i
       \param dj Diameter of particle j
     */
@@ -143,14 +143,13 @@ public:
         }
 
     //! Whether pair potential requires charges
-    // TODO what does it mean "this function is pure virtual" ?
     DEVICE static bool needsCharge()
         {
             return (pairEvaluator::needsCharge() || directionalEnvelope::needsCharge());
         }
 
     //! Accept the optional charge values
-    /*
+    /*!
       \param qi Charge of particle i
       \param qj Charge of particle j
     */
@@ -169,7 +168,7 @@ public:
         }
 
     //! Accept the optional tags
-    /*
+    /*!
       \param tag_i Tag of particle i
       \param tag_j Tag of particle j
     */
@@ -240,7 +239,7 @@ public:
 
 #ifndef __HIPCC__
     //! Get the name of this potential
-    /*
+    /*!
       \returns The potential name.
     */
     static std::string getName()
