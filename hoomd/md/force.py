@@ -521,3 +521,83 @@ class ActiveOnManifold(Active):
             _md, base_class_str)(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj)
+
+
+class Constant(Force):
+    r"""Constant force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `Constant` computes an constant force and torque on all particles selected
+    by the filter:
+
+    Examples::
+
+        all = hoomd.filter.All()
+        constant = hoomd.md.force.Constant(
+            filter=hoomd.filter.All()
+            )
+        constant.constant_force['A','B'] = (1,0,0)
+        constant.constant_torque['A','B'] = (0,0,0)
+
+    Note:
+
+        The energy and virial associated with the constant force are 0.
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    .. py:attribute:: constant_force
+
+        Constant force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It is defined per particle type and stays
+        constant during the simulation.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+
+    .. py:attribute:: constant_torque
+
+        Constant torque vector in the global reference frame of the system
+        :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
+        particle type and stays constant during the simulation.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+    """
+
+    def __init__(self, filter):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        constant_force = TypeParameter(
+            "constant_force",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
+        )
+        constant_torque = TypeParameter(
+            "constant_torque",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
+        )
+
+        self._extend_typeparam([constant_force, constant_torque])
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.ConstantForceCompute
+        else:
+            my_class = _md.ConstantForceComputeGPU
+
+        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter))
