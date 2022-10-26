@@ -45,13 +45,13 @@ __global__ void gpu_compute_constant_force_set_forces_kernel(const unsigned int 
     Scalar4 posidx = __ldg(d_pos + idx);
     unsigned int type = __scalar_as_int(posidx.w);
 
-    Scalar4 fact = __ldg(d_f_const + type);
+    Scalar3 fconst = d_f_const[type];
 
-    vec3<Scalar> fi(fact.x, fact.y, fact.z);
+    vec3<Scalar> fi(fconst.x, fconst.y, fconst.z);
     d_force[idx] = vec_to_scalar4(fi, 0);
 
-    Scalar3 tact = __ldg(d_t_const + type);
-    vec3<Scalar> ti(tact.x, tact.y, tact.z);
+    Scalar3 tconst = d_t_const[type];
+    vec3<Scalar> ti(tconst.x, tconst.y, tconst.z);
     d_torque[idx] = vec_to_scalar4(ti, 0);
     }
 
