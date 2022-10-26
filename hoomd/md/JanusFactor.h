@@ -81,7 +81,7 @@ public:
 
     DEVICE inline Scalar Modulatori()
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(doti-params.cosalpha)) ); // TODO (progress) why no cos(alpha)?
+            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(doti-params.cosalpha)) );
         }
 
     DEVICE inline Scalar Modulatorj()
