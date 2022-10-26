@@ -71,12 +71,14 @@ public:
             ej = rotate(quat<Scalar>(qj), e);
 
             // compute distance
-            drsq = dr.x*dr.x+dr.y*dr.y+dr.z*dr.z;
+            drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
 
             // compute dot products
-            doti = -(dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr;
-            dotj =  (dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
+            doti = dot(dr, ei) / magdr;
+            // doti = -(dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr; // TODO why was this negative?
+            dotj = dot(dr, ej) / magdr;
+            // dotj =  (dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
         }
 
     DEVICE inline Scalar Modulatori()

@@ -10,6 +10,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
@@ -86,7 +87,7 @@ public:
       \param envelope Output parameter to write the amount of modulation of the isotropic part
       \param torque_i The torque exterted on the i^th particle.
       \param torque_j The torque exterted on the j^th particle.
-      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPairJanusSphere.
+      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPairJanusSphere. // TODO is that true?
       \return Always true
     */
     DEVICE bool evaluate(Scalar3& force,
@@ -108,15 +109,10 @@ public:
             Scalar jPi = modPj*modi/s.magdr;
             
             // torque on ith
-            // TODO convert to quaternion math
-            torque_i.x = iPj*(s.dr.z*s.ei.y - s.dr.y*s.ei.z);
-            torque_i.y = iPj*(s.dr.x*s.ei.z - s.dr.z*s.ei.x);
-            torque_i.z = iPj*(s.dr.y*s.ei.x - s.dr.x*s.ei.y);
+            torque_i = Scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
 
             // torque on jth - note sign is opposite ith!
-            torque_j.x = jPi*(s.dr.y*s.ej.z - s.dr.z*s.ej.y);
-            torque_j.y = jPi*(s.dr.z*s.ej.x - s.dr.x*s.ej.z);
-            torque_j.z = jPi*(s.dr.x*s.ej.y - s.dr.y*s.ej.x);
+            torque_j = Scalar3(jPi * cross(vec3<Scalar>(s.dr), vec3<Scalar>(s.ej)));
 
             // compute force contribution
             force.x = -(iPj*(-s.ei.x - s.doti*s.dr.x/s.magdr)
