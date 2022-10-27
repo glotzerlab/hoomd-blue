@@ -2,7 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepNVTMTKGPU.h"
-#include "TwoStepNPTMTKGPU.cuh"
+#include "TwoStepNPTBaseGPU.cuh"
 #include "TwoStepNVEGPU.cuh"
 
 #ifdef ENABLE_MPI

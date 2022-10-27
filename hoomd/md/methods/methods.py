@@ -755,6 +755,33 @@ class DisplacementCapped(NVE):
         # set defaults
         self._param_dict.update(param_dict)
 
+class NVTStochastic(Method):
+    def __init__(self, filter, kT):
+
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant)
+        param_dict.update(
+            dict(kT=kT,
+                 filter=filter))
+        # set defaults
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+
+        # initialize the reflected cpp class
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            my_class = _md.TwoStepNVTStochastic
+            thermo_cls = _md.ComputeThermo
+        else:
+            my_class = _md.TwoStepNVTStochasticGPU
+            thermo_cls = _md.ComputeThermoGPU
+
+        group = self._simulation.state._get_group(self.filter)
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+        thermo = thermo_cls(cpp_sys_def, group)
+        self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.kT)
+        super()._attach()
 
 class Langevin(Method):
     r"""Langevin dynamics.

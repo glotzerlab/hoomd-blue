@@ -22,12 +22,12 @@ namespace md
 namespace kernel
     {
 //! Kernel driver for the the first step of the computation
-hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
+hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                                 Scalar4* d_vel,
                                 const Scalar3* d_accel,
                                 unsigned int* d_group_members,
                                 const GPUPartition& gpu_partition,
-                                Scalar exp_thermo_fac,
+                                Scalar thermo_rescale,
                                 Scalar* mat_exp_v,
                                 Scalar* mat_exp_r,
                                 Scalar* mat_exp_r_int,
@@ -36,25 +36,25 @@ hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
                                 const unsigned int block_size);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
-hipError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
+hipError_t gpu_npt_rescale_wrap(const GPUPartition& gpu_partition,
                             Scalar4* d_pos,
                             int3* d_image,
                             const BoxDim& box,
                             const unsigned int block_size);
 
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-hipError_t gpu_npt_mtk_step_two(Scalar4* d_vel,
+hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
                                 Scalar3* d_accel,
                                 unsigned int* d_group_members,
                                 const GPUPartition& gpu_partition,
                                 Scalar4* d_net_force,
                                 Scalar* mat_exp_v,
                                 Scalar deltaT,
-                                Scalar exp_thermo_fac,
+                                Scalar thermo_rescale,
                                 const unsigned int block_size);
 
 //! Rescale all positions
-void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
+void gpu_npt_rescale_rescale(const GPUPartition& gpu_partition,
                          Scalar4* d_postype,
                          Scalar mat_exp_r_xx,
                          Scalar mat_exp_r_xy,

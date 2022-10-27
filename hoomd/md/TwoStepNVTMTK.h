@@ -19,9 +19,7 @@
 
 #include <pybind11/pybind11.h>
 
-namespace hoomd
-    {
-namespace md
+namespace hoomd::md
     {
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep
@@ -132,7 +130,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public virtual TwoStepNVTBase
     //! advance the thermostat
     };
 
-    } // end namespace md
     } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_H__

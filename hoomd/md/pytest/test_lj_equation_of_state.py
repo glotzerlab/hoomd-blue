@@ -20,7 +20,7 @@ statepoints = [
 @pytest.mark.parametrize(
     'T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,'
     'log_period, equilibration_steps, run_steps', statepoints)
-@pytest.mark.parametrize('method_name', ['Langevin', 'NVT', 'NPT'])
+@pytest.mark.parametrize('method_name', ['Langevin', 'NVT', 'NPT', 'NVTStochastic'])
 def test_lj_equation_of_state(
     T_star,
     rho_star,
@@ -70,7 +70,10 @@ def test_lj_equation_of_state(
                                       tau=0.1,
                                       S=mean_P_ref,
                                       tauS=0.5,
-                                      couple='xyz')
+                                      couple='xyz',
+                                      gamma = 10.0)
+    elif method_name == 'NVTStochastic':
+        method = hoomd.md.methods.NVTStochastic(filter=hoomd.filter.All(), kT = T_star)
     integrator.methods.append(method)
     sim.operations.integrator = integrator
 
@@ -120,7 +123,7 @@ def test_lj_equation_of_state(
 
     energy.assert_close(mean_U_ref, sigma_U_ref)
 
-    if method_name == 'NVT' or method_name == 'Langevin':
+    if method_name == 'NVT' or method_name == 'Langevin' or method_name == 'NVTStochastic':
         pressure.assert_close(mean_P_ref, sigma_P_ref)
 
     if method_name == 'NPT':

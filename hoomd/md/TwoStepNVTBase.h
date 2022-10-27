@@ -9,9 +9,7 @@
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Variant.h"
 #include <pybind11/pybind11.h>
-namespace hoomd
-    {
-namespace md
+namespace hoomd::md
     {
 
 class PYBIND11_EXPORT TwoStepNVTBase : public IntegrationMethodTwoStep
@@ -64,7 +62,6 @@ class PYBIND11_EXPORT TwoStepNVTBase : public IntegrationMethodTwoStep
     virtual void advanceThermostat(uint64_t timestep, bool broadcast = true){};
     };
 
-    } // namespace md
-    } // namespace hoomd
+    } // namespace hoomd::md
 
 #endif // HOOMD_TWOSTEPNVTBASE_H

@@ -51,6 +51,8 @@ set(_md_sources module-md.cc
                    TwoStepNVTMTK.cc
         TwoStepNVTBase.cc
         TwoStepNVTBaseGPU.cc
+        TwoStepNVTStochastic.cc
+        TwoStepNPTBase.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
@@ -197,6 +199,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
         TwoStepNVTBase.h
         TwoStepNVTBaseGPU.h
+        TwoStepNVTStochastic.h
+        TwoStepNPTBase.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
                 AlchemostatTwoStep.h
@@ -236,6 +240,8 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
         TwoStepNVTBaseGPU.cc
+        TwoStepNVTStochasticGPU.cc
+        TwoStepNPTBaseGPU.cc
                            TwoStepNVTMTKGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
@@ -269,11 +275,11 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepBDGPU.cu
         TwoStepLangevinGPU.cu
                       TwoStepRATTLELangevinGPU.cu
-                      TwoStepNPTMTKGPU.cu
+        TwoStepNPTBaseGPU.cu
         TwoStepNVTBaseGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
-                      ##TwoStepNVTMTKGPU.cu
+                      TwoStepNPTBaseGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       )
