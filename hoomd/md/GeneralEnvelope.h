@@ -109,10 +109,10 @@ public:
             Scalar jPi = modPj*modi/s.magdr;
             
             // torque on ith
-            torque_i = Scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
+            torque_i = vec_to_scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
 
             // torque on jth - note sign is opposite ith!
-            torque_j = Scalar3(jPi * cross(vec3<Scalar>(s.dr), vec3<Scalar>(s.ej)));
+            torque_j = vec_to_scalar3(jPi * cross(vec3<Scalar>(s.dr), vec3<Scalar>(s.ej)));
 
             // compute force contribution
             force.x = -(iPj*(-s.ei.x - s.doti*s.dr.x/s.magdr)

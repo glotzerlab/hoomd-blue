@@ -75,9 +75,9 @@ public:
             magdr = fast::sqrt(drsq);
 
             // compute dot products
-            doti = dot(dr, ei) / magdr;
+            doti = dot(vec3<Scalar>(dr), ei) / magdr; // cos(angle between dr and ei)
             // doti = -(dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr; // TODO why was this negative?
-            dotj = dot(dr, ej) / magdr;
+            dotj = dot(vec3<Scalar>(dr), ej) / magdr;
             // dotj =  (dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
         }
 
