@@ -250,86 +250,80 @@ void TwoStepNPTMTK::advanceBarostat(uint64_t timestep)
 
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0, 0.0, 0.0);
-    Scalar3 R_diag = make_scalar3(0., 0., 0.);
 
-    RandomGenerator rng(Seed(RNGIdentifier::LangevinPiston, timestep, m_sysdef->getSeed()), 0);
-    NormalDistribution<Scalar> noise;
-
-    switch (couple)
+    if (couple == couple_none)
         {
-    case couple_none:
         P_diag.x = P.xx;
-        R_diag.x = noise(rng);
         P_diag.y = P.yy;
-        R_diag.y = noise(rng);
         P_diag.z = P.zz;
-        R_diag.z = noise(rng);
-        break;
-    case couple_xy:
-        P_diag.x = P_diag.y = Scalar(1.0 / 2.0) * (P.xx + P.yy);
-        R_diag.x = R_diag.y = noise(rng);
+        }
+    else if (couple == couple_xy)
+        {
+        P_diag.x = Scalar(1.0 / 2.0) * (P.xx + P.yy);
+        P_diag.y = Scalar(1.0 / 2.0) * (P.xx + P.yy);
         P_diag.z = P.zz;
-        R_diag.z = noise(rng);
-        break;
-    case couple_xz:
-        P_diag.x = P_diag.z = Scalar(1.0 / 2.0) * (P.xx + P.zz);
-        R_diag.x = R_diag.z = noise(rng);
+        }
+    else if (couple == couple_xz)
+        {
+        P_diag.x = Scalar(1.0 / 2.0) * (P.xx + P.zz);
         P_diag.y = P.yy;
-        R_diag.y = noise(rng);
-        break;
-    case couple_yz:
+        P_diag.z = Scalar(1.0 / 2.0) * (P.xx + P.zz);
+        }
+    else if (couple == couple_yz)
+        {
         P_diag.x = P.xx;
-        R_diag.x = noise(rng);
-        P_diag.y = P_diag.z = Scalar(1.0 / 2.0) * (P.yy + P.zz);
-        R_diag.y = R_diag.z = noise(rng);
-        break;
-    case couple_xyz:
-        P_diag.x = P_diag.y = P_diag.z = Scalar(1.0 / 3.0) * (P.xx + P.yy + P.zz);
-        R_diag.x = R_diag.y = R_diag.z = noise(rng);
-        break;
-    default:
+        P_diag.y = Scalar(1.0 / 2.0) * (P.yy + P.zz);
+        P_diag.z = Scalar(1.0 / 2.0) * (P.yy + P.zz);
+        }
+    else if (couple == couple_xyz)
+        {
+        Scalar P_iso = Scalar(1.0 / 3.0) * (P.xx + P.yy + P.zz);
+        P_diag.x = P_diag.y = P_diag.z = P_iso;
+        }
+    else
+        {
         throw std::runtime_error("Invalid NPT coupling mode.");
         }
 
     // update barostat matrix
 
-    Scalar noise_exp_integrate = exp(-m_gamma * m_deltaT / Scalar(2.0));
-    Scalar coeff = sqrt((*m_T)(timestep) * (Scalar(1.0) - noise_exp_integrate * noise_exp_integrate) / W);
-
     if (m_flags & baro_x)
         {
-        m_barostat.nu_xx  = m_barostat.nu_xx * noise_exp_integrate + coeff * R_diag.x;
-        m_barostat.nu_xx += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.x - (*m_S[0])(timestep)) + mtk_term;
+        m_barostat.nu_xx
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.x - (*m_S[0])(timestep)) + mtk_term;
+        m_barostat.nu_xx -= m_gamma * m_barostat.nu_xx;
         }
 
     if (m_flags & baro_xy)
         {
-        m_barostat.nu_xy = m_barostat.nu_xy * noise_exp_integrate + coeff * noise(rng);
         m_barostat.nu_xy += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xy - (*m_S[5])(timestep));
+        m_barostat.nu_xy -= m_gamma * m_barostat.nu_xy;
         }
 
     if (m_flags & baro_xz)
         {
-        m_barostat.nu_xz = m_barostat.nu_xz * noise_exp_integrate + coeff * noise(rng);
         m_barostat.nu_xz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xz - (*m_S[4])(timestep));
+        m_barostat.nu_xz -= m_gamma * m_barostat.nu_xz;
         }
 
     if (m_flags & baro_y)
         {
-        m_barostat.nu_yy = m_barostat.nu_yy * noise_exp_integrate + coeff * R_diag.y;
-        m_barostat.nu_yy  += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.y - (*m_S[1])(timestep)) + mtk_term;
+        m_barostat.nu_yy
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.y - (*m_S[1])(timestep)) + mtk_term;
+        m_barostat.nu_yy -= m_gamma * m_barostat.nu_yy;
         }
 
     if (m_flags & baro_yz)
         {
-        m_barostat.nu_yz = m_barostat.nu_yz * noise_exp_integrate + coeff * noise(rng);
         m_barostat.nu_yz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.yz - (*m_S[3])(timestep));
+        m_barostat.nu_yz -= m_gamma * m_barostat.nu_yz;
         }
 
     if (m_flags & baro_z)
         {
-        m_barostat.nu_zz = m_barostat.nu_zz * noise_exp_integrate + coeff * R_diag.z;
-        m_barostat.nu_zz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.z - (*m_S[2])(timestep)) + mtk_term;
+        m_barostat.nu_zz
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.z - (*m_S[2])(timestep)) + mtk_term;
+        m_barostat.nu_zz -= m_gamma * m_barostat.nu_zz;
         }
 
     // store integrator variables

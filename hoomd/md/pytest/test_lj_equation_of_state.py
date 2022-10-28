@@ -20,7 +20,8 @@ statepoints = [
 @pytest.mark.parametrize(
     'T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,'
     'log_period, equilibration_steps, run_steps', statepoints)
-@pytest.mark.parametrize('method_name', ['Langevin', 'NVT', 'NPT', 'NVTStochastic'])
+#@pytest.mark.parametrize('method_name', ['Langevin', 'NVT', 'NPT', 'NVTStochastic', 'NPTLangevinPiston'])
+@pytest.mark.parametrize('method_name', ['NPTLangevinPiston'])
 def test_lj_equation_of_state(
     T_star,
     rho_star,
@@ -71,7 +72,15 @@ def test_lj_equation_of_state(
                                       S=mean_P_ref,
                                       tauS=0.5,
                                       couple='xyz',
-                                      gamma = 10.0)
+                                      gamma = 0.0)
+    elif method_name == 'NPTLangevinPiston':
+        method = hoomd.md.methods.NPTLangevinPiston(filter=hoomd.filter.All(),
+                                      kT=T_star,
+                                      tau=0.1,
+                                      S=mean_P_ref,
+                                      tauS=0.5,
+                                      couple='xyz',
+                                      gamma = 5.0)
     elif method_name == 'NVTStochastic':
         method = hoomd.md.methods.NVTStochastic(filter=hoomd.filter.All(), kT = T_star)
     integrator.methods.append(method)
