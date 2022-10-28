@@ -202,8 +202,6 @@ void TwoStepNPTBase::integrateStepOne(uint64_t timestep)
 
     unsigned int group_size = m_group->getNumMembers();
 
-    const auto&& rescaleFactors = NPT_thermo_rescale_factor_one(timestep);
-
     // update degrees of freedom for MTK term
     m_ndof = m_group->getTranslationalDOF();
 
@@ -212,7 +210,7 @@ void TwoStepNPTBase::integrateStepOne(uint64_t timestep)
 
     // Martyna-Tobias-Klein correction
     //Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-
+    const auto&& rescaleFactors = NPT_thermo_rescale_factor_one(timestep);
     // update the propagator matrix using current barostat momenta
     updatePropagator();
 
