@@ -1777,12 +1777,12 @@ pybind11::array_t<uint32_t> NeighborList::getLocalPairListPython(uint64_t timest
     auto* pair_list = new std::vector<vec2<uint32_t>>();
 
     pybind11::capsule delete_when_done(pair_list,
-                                     [](void* f)
-                                     {
-                                         auto data
-                                             = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
-                                         delete data;
-                                     });
+                                       [](void* f)
+                                       {
+                                           auto data
+                                               = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                           delete data;
+                                       });
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -1895,15 +1895,13 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
             {
             global_pair_list = (uint32_t*)malloc(sizeof(uint32_t) * total_elements);
             free_when_done = pybind11::capsule(global_pair_list,
-                                                [](void* f)
-                                                {
-                                                    auto data = reinterpret_cast<uint32_t*>(f);
-                                                    free(data);
-                                                });
+                                               [](void* f)
+                                               {
+                                                   auto data = reinterpret_cast<uint32_t*>(f);
+                                                   free(data);
+                                               });
             }
         shape[0] = total_elements / 2;
-
-        
 
         MPI_Gatherv(pair_list->data(),
                     n_elem,
@@ -1952,12 +1950,12 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
     auto* global_pair_list = pair_list;
 
     pybind11::capsule delete_when_done(pair_list,
-                                     [](void* f)
-                                     {
-                                         auto data
-                                             = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
-                                         delete data;
-                                     });
+                                       [](void* f)
+                                       {
+                                           auto data
+                                               = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                           delete data;
+                                       });
 
     unsigned long shape[] = {global_pair_list->size(), 2};
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};

@@ -564,10 +564,8 @@ def test_rank_local_pair_list(simulation_factory, lattice_snapshot_factory):
             total_counts = np.sum(counts)
             displacements = np.cumsum(counts) - counts[0]
             global_pairs_buffer = [
-                np.empty((total_counts // 2, 2), dtype=np.int32),
-                counts,
-                displacements,
-                MPI.UINT32_T
+                np.empty((total_counts // 2, 2), dtype=np.int32), counts,
+                displacements, MPI.UINT32_T
             ]
 
         comm.Gatherv(local_pairs, global_pairs_buffer, root=0)
