@@ -121,7 +121,9 @@ class NeighborList(Compute):
         if self._mesh is not None:
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
-        super()._attach()
+    def _detach_hook(self):
+        if self._mesh is not None:
+            self._mesh._detach_hook()
 
     @property
     def cpu_local_nlist_arrays(self):
@@ -156,7 +158,7 @@ class NeighborList(Compute):
 
     @property
     def local_pair_list(self):
-        """Local-pair-list property.
+        """Local pair-list property.
 
         TODO.
         """
@@ -191,6 +193,16 @@ class NeighborList(Compute):
         last call to `Simulation.run`.
         """
         return self._cpp_obj.num_builds
+
+    def _remove_dependent(self, obj):
+        super()._remove_dependent(obj)
+        if len(self._dependents) == 0:
+            if self._attached:
+                self._detach()
+                self._remove()
+                return
+            if self._added:
+                self._remove()
 
 
 class Cell(NeighborList):

@@ -425,80 +425,104 @@ TRUE_PAIR_LIST = set([frozenset(pair) for pair in _TRUE_PAIR_LIST])
 
 def test_global_pair_list(simulation_factory, lattice_snapshot_factory):
 
-    # start off with only the neighborlist
-    nlist = hoomd.md.nlist.Tree(buffer=0, default_r_cut=1.01)
+    # start off with only the neighborlist, stand alone compute test
+    nlist = hoomd.md.nlist.Tree(buffer=0, default_r_cut=0.0)
     sim: hoomd.Simulation = simulation_factory(lattice_snapshot_factory())
     sim.operations.computes.append(nlist)
 
     sim.run(0)
-    pair_list = nlist.pair_list
-    if sim.device.communicator.rank == 0:
-        pair_list = set([frozenset(pair) for pair in pair_list])
-        assert pair_list == TRUE_PAIR_LIST
-
-    # remove as stand alone compute and add force compute
-    sim.operations.computes.clear()
-    integrator = hoomd.md.Integrator(0.005)
-    lj = hoomd.md.pair.LJ(nlist, default_r_cut=1.1)
-    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
-    integrator.forces.append(lj)
-    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
-    sim.operations.integrator = integrator
-
-    sim.run(0)
-    pair_list = nlist.pair_list
-    if sim.device.communicator.rank == 0:
-        pair_list = set([frozenset(pair) for pair in pair_list])
-        assert pair_list == TRUE_PAIR_LIST
-
-    # modify cutoffs and check again
-    lj.r_cut[('A', 'A')] = 0.0
-    sim.run(0)
-    pair_list = nlist.pair_list
-    if sim.device.communicator.rank == 0:
-        pair_list = set([frozenset(pair) for pair in pair_list])
-        assert pair_list == TRUE_PAIR_LIST
-
-    nlist.r_cut[('A', 'A')] = 0.0
-    sim.run(0)
+    assert nlist._attached
     pair_list = nlist.pair_list
     if sim.device.communicator.rank == 0:
         pair_list = set([frozenset(pair) for pair in pair_list])
         assert pair_list == set()
 
+    # set r_cut
     nlist.r_cut[('A', 'A')] = 1.1
+    # BUG: with MPI and domain decomposition
+    # it appears an explicit `run` is required for the ghost layer to be updated
     sim.run(0)
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+
+    sim.operations.computes.clear()
+    assert not nlist._attached
+    with pytest.raises(hoomd.error.DataAccessError):
+        nlist.pair_list
+
+    # remove as stand alone compute and add force compute
+    sim.operations.computes.clear()
+    integrator = hoomd.md.Integrator(0.005)
+    lj = hoomd.md.pair.LJ(nlist, default_r_cut=0.0)
+    lj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.NVE(hoomd.filter.All()))
+    sim.operations.integrator = integrator
+
     pair_list = nlist.pair_list
     if sim.device.communicator.rank == 0:
         pair_list = set([frozenset(pair) for pair in pair_list])
         assert pair_list == TRUE_PAIR_LIST
 
-    # NOTE: this test fails
-    # re-add and remove nlist compute
-    # sim.operations.computes.append(nlist)
-    # sim.operations.computes.clear()
-    # sim.run(0)
-    # pair_list = nlist.pair_list
-    # if sim.device.communicator.rank == 0:
-    #     pair_list = set([frozenset(pair) for pair in pair_list])
-    #     assert pair_list == set()
+    # now relax nlist.r_cut
+    nlist.r_cut[('A', 'A')] = 0.0
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == set()
 
+    # now set lj.r_cut
     lj.r_cut[('A', 'A')] = 1.1
-    sim.run(0)
     pair_list = nlist.pair_list
     if sim.device.communicator.rank == 0:
         pair_list = set([frozenset(pair) for pair in pair_list])
         assert pair_list == TRUE_PAIR_LIST
 
-    # NOTE: this test fails
-    # add back nlist compute and remove force compute
-    # sim.operations.computes.append(nlist)
-    # sim.operations.integrator.forces.clear()
-    # sim.run(0)
-    # pair_list = nlist.pair_list
-    # if sim.device.communicator.rank == 0:
-    #     pair_list = set([frozenset(pair) for pair in pair_list])
-    #     assert pair_list == TRUE_PAIR_LIST
+    # zero lj.r_cut again
+    lj.r_cut[('A', 'A')] = 0.0
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == set()
+
+    # set nlist.r_cut again
+    nlist.r_cut[('A', 'A')] = 1.1
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == TRUE_PAIR_LIST
+
+    # re-add nlist and remove force compute
+    nlist.r_cut[('A', 'A')] = 0.0
+    sim.operations.computes.append(nlist)
+    sim.operations.integrator.forces.clear()
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == set()
+
+    # setting lj.r_cut should not change the pair list since it is not attached
+    lj.r_cut[('A', 'A')] = 1.1
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == set()
+
+    # remove stand alone nlist compute, nlist should no longer be connected to
+    # the simulation
+    sim.operations.computes.clear()
+    assert not nlist._attached
+    with pytest.raises(hoomd.error.DataAccessError):
+        nlist.pair_list
+
+    # add back nlist compute and set nlist.r_cut
+    nlist.r_cut[('A', 'A')] = 1.1
+    sim.operations.computes.append(nlist)
+    pair_list = nlist.pair_list
+    if sim.device.communicator.rank == 0:
+        pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == TRUE_PAIR_LIST
 
 
 def test_rank_local_pair_list(simulation_factory, lattice_snapshot_factory):
@@ -521,25 +545,38 @@ def test_rank_local_pair_list(simulation_factory, lattice_snapshot_factory):
 
     if MPI4PY_IMPORTED:
 
-        tag_pair_list = np.array(tag_pair_list)
+        tag_pair_list = np.array(tag_pair_list, dtype=np.int32)
 
         comm = MPI.COMM_WORLD
         size = comm.Get_size()
         rank = comm.Get_rank()
 
-        sendbuf = np.int32(len(tag_pair_list))
-        recvbuf = None
+        local_count = np.int32(len(tag_pair_list) * 2)
+        counts = None
         if rank == 0:
-            recvbuf = np.empty(size, dtype=np.int32)
-        comm.Gather(sendbuf, recvbuf, root=0)
+            counts = np.empty(size, dtype=np.int32)
+        comm.Gather(local_count, counts, root=0)
 
-        # sendbuf2 = tag_pair_list
-        # recvbuf2 = None
+        local_pairs = tag_pair_list
+        global_pairs_buffer = None
 
-        # if rank == 0:
-        #     recvbuf2 =
+        if rank == 0:
+            total_counts = np.sum(counts)
+            displacements = np.cumsum(counts) - counts[0]
+            global_pairs_buffer = [
+                np.empty((total_counts // 2, 2), dtype=np.int32),
+                counts,
+                displacements,
+                MPI.UINT32_T
+            ]
 
-        # comm.Gatherv()
+        comm.Gatherv(local_pairs, global_pairs_buffer, root=0)
+
+        if rank == 0:
+            global_pairs = global_pairs_buffer[0]
+            global_pair_set = set([frozenset(list(p)) for p in global_pairs])
+
+            assert global_pair_set == TRUE_PAIR_LIST
 
 
 def test_rank_local_nlist_arrays(simulation_factory, lattice_snapshot_factory):
@@ -549,14 +586,11 @@ def test_rank_local_nlist_arrays(simulation_factory, lattice_snapshot_factory):
     sim.operations.computes.append(nlist)
 
     sim.run(0)
-    local_pair_list = nlist.local_pair_list
 
     with nlist.cpu_local_nlist_arrays as data:
-        k = 0
-        for i, (head, nn) in enumerate(zip(data.head_list, data.n_neigh)):
-            for j_idx in range(head, head + nn):
-                j = data.nlist[j_idx]
-                pair = local_pair_list[k]
-                assert i == pair[0]
-                assert j == pair[1]
-                k += 1
+        with sim.state.cpu_local_snapshot as snap_data:
+            tags = snap_data.particles.tag_with_ghost
+            for i, (head, nn) in enumerate(zip(data.head_list, data.n_neigh)):
+                for j_idx in range(head, head + nn):
+                    j = data.nlist[j_idx]
+                    assert frozenset(tags[i], tags[j]) in TRUE_PAIR_LIST
