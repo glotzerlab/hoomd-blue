@@ -54,12 +54,12 @@ _gpu_nlist_access_docs = """
 Access HOOMD-Blue neighbor list data buffers on the GPU.
 
 Attributes:
-    head_list ((N_particles,) `hoomd.data.array` of ``int``):
-        Local force data. :math:`[\\mathrm{force}]`
-    n_neigh ((N_particles,) `hoomd.data.array` of ``int``):
-        Local potential energy data. :math:`[\\mathrm{energy}]`
-    nlist ((N_particles, 3) `hoomd.data.array` of ``int``):
-        Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
+    head_list ((N_particles,) `hoomd.data.array` of ``unsigned long``):
+        Local head list.
+    n_neigh ((N_particles,) `hoomd.data.array` of ``unsigned int``):
+        Number of neighbors.
+    nlist ((...) `hoomd.data.array` of ``unsigned int``):
+        Raw neighbor list data.
 """
 
 NeighborListLocalAccessGPU.__doc__ = _gpu_nlist_access_docs

@@ -32,12 +32,12 @@ class NeighborListLocalAccess(_NeighborListLocalAccessBase):
     """Access HOOMD-Blue neighbor list data buffers on the CPU.
 
     Attributes:
-        head_list ((N_particles,) `hoomd.data.array` of ``int``):
-            Local force data. :math:`[\\mathrm{force}]`
-        n_neigh ((N_particles,) `hoomd.data.array` of ``int``):
-            Local potential energy data. :math:`[\\mathrm{energy}]`
-        nlist (() `hoomd.data.array` of ``int``):
-            Local torque data. :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
+        head_list ((N_particles,) `hoomd.data.array` of ``unsigned long``):
+            Local head list.
+        n_neigh ((N_particles,) `hoomd.data.array` of ``unsigned int``):
+            Number of neighbors.
+        nlist ((...) `hoomd.data.array` of ``unsigned int``):
+            Raw neighbor list data.
     """
 
     _cpp_cls = _md.LocalNeighborListDataHost

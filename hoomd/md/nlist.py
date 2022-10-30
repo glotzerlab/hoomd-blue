@@ -134,7 +134,7 @@ class NeighborList(Compute):
         is MPI rank-local.
 
         The `hoomd.md.data.NeighborListLocalAccess` object exposes the three
-        arrays necessary to efficently iterate over the neighbor list.
+        arrays to efficently iterate over the neighbor list.
 
         Note:
             The local arrays are read only.
@@ -146,7 +146,7 @@ class NeighborList(Compute):
                 for i, (head, nn) in enumerate(nlist_iter):
                     for j_idx in range(head, head + nn):
                         j = arrays.nlist[j_idx]
-                        # do something with i and j
+                        # i and j are "neighbor" indices
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("cpu_local_nlist_arrays")
@@ -161,22 +161,23 @@ class NeighborList(Compute):
         """hoomd.md.data.NeighborListLocalAccessGPU: Expose nlist arrays on \
         the GPU.
 
-        Provides direct acces to the neighbor list arrays on the gpu. All data
+        Provides direct access to the neighbor list arrays on the gpu. All data
         is MPI rank-local.
 
         The `hoomd.md.data.NeighborListLocalAccessGPU` object exposes the three
-        arrays necessary to efficently iterate over the neighbor list.
+        arrays to efficently iterate over the neighbor list.
 
         Note:
             The local arrays are read only.
 
         See Also:
-            `cpu_local_nlist_arrays` for an example of how to use the local
+            `cpu_local_nlist_arrays` for an example of how the arrays are
+            accessed
 
         Examples::
 
             with self.gpu_local_nlist_arrays as arrays:
-                # use cupy or interface to use the arrays
+                # use cupy, Numba CUDA, or another interface to use the arrays
 
         Note:
             GPU local nlist data is not available if the chosen device for the
@@ -198,8 +199,7 @@ class NeighborList(Compute):
         """(*N_pairs*, 2) `numpy.ndarray` of `numpy.uint32`: Local pair list.
 
         Note:
-            The local pair list returns rank-local *indices*, not tags.
-
+            The local pair list returns rank-local *indices*, not particle tags.
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("local_pair_list")
@@ -210,11 +210,11 @@ class NeighborList(Compute):
         """(*N_pairs*, 2) `numpy.ndarray` of `numpy.uint32`: Global pair list.
 
         Note:
-            The pair list returns *tag*, not indices.
+            The pair list returns particle *tag*, not rank-local indices.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
-            `energies` is `None` on ranks >= 1.
+            `pair_list` is `None` on ranks >= 1.
         """
         if not self._attached:
             raise hoomd.error.DataAccessError("pair_list")
