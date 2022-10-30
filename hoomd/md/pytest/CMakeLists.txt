@@ -1,6 +1,7 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
     aniso_forces_and_energies.json
+    true_pair_list.json
     test_active.py
     test_active_rotational_diffusion.py
     test_alchemostat.py
