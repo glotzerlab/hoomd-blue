@@ -238,6 +238,7 @@ def test_global_pair_list(simulation_factory, lattice_snapshot_factory):
     pair_list = nlist.pair_list
     if sim.device.communicator.rank == 0:
         pair_list = set([frozenset(pair) for pair in pair_list])
+        assert pair_list == TRUE_PAIR_LIST
 
     sim.operations.computes.clear()
     assert not nlist._attached
