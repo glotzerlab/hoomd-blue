@@ -195,8 +195,7 @@ class NeighborList(Compute):
 
     @property
     def local_pair_list(self):
-        """(*N_pairs*, 2) `numpy.ndarray` of `numpy.uint32`: Rank-local pair \
-        list.
+        """(*N_pairs*, 2) `numpy.ndarray` of `numpy.uint32`: Local pair list.
 
         Note:
             The local pair list returns rank-local *indices*, not tags.
