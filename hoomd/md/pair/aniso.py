@@ -244,8 +244,8 @@ class ALJ(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
-        mode (`str`, optional): the energy shifting mode, defaults to "none"
-          (ignored).
+        mode (`str`, optional): the energy shifting mode, defaults to "none".
+          Computes the same energy regardless of value passed.
 
           .. deprecated:: v3.1.0
 
@@ -281,7 +281,7 @@ class ALJ(AnisotropicPair):
     the average of :math:`\sigma_i` (`sigma_i <params>`) and :math:`\sigma_j`
     (`sigma_j <params>`). Lastly, `ALJ` uses the contact ratios :math:`\beta_i`
     (`contact_ratio_i <params>`) and :math:`\beta_j` (`contact_ratio_j
-    <params>`) to compute :math:`\sigma_c` as follows:
+    <params>`) to compute the contact sigma :math:`\sigma_c` as follows:
 
     .. math::
 
@@ -296,25 +296,26 @@ class ALJ(AnisotropicPair):
     potential where the shift is anisotropic and depends on the extent of the
     shape in each direction.
 
-    Like a standard LJ potential, each term has an independent cutoff beyond
-    which it decays to zero. The behavior of these cutoffs is dependent on
-    whether a user requires LJ or Weeks-Chandler-Anderson (WCA)-like
-    (repulsive-only) behavior. This behavior is controlled using the ``alpha``
-    parameter, which can take on the following values:
+    Each term has an independent cutoff at which the energy is set to zero.
+    The behavior of these cutoffs is dependent on whether a user requires LJ
+    or Weeks-Chandler-Anderson (WCA)-like (repulsive-only) behavior. This
+    behavior is controlled using the `alpha <params>` parameter, which can
+    take on the following values:
 
-    * 0:
-      All interactions are WCA (no attraction).
+    .. list-table:: Set alpha based on range of the center-center and
+       contact-contact interactions.
+       :header-rows: 1
+       :stub-columns: 1
 
-    * 1:
-      Center-center interactions include attraction,
-      contact-contact interactions are solely repulsive.
-
-    * 2:
-      Center-center interactions are solely repulsive,
-      contact-contact interactions include attraction.
-
-    * 3:
-      All interactions include attractive and repulsive components.
+       * -
+         - center-center repulsive only
+         - center-center full-range
+       * - contact-contact repulsive only
+         - alpha = 0
+         - alpha = 1
+       * - contact-contact full-range
+         - alpha = 2
+         - alpha = 3
 
     For polytopes, computing interactions using a single contact point leads to
     significant instabilities in the torques because the contact point can jump
@@ -328,9 +329,129 @@ class ALJ(AnisotropicPair):
     only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
     to empty lists to create the ellipsoid).
 
+    Important:
+        The repulsive part of the contact interaction :math:`U_c(r_c)` prevents
+        two `ALJ` particles from approaching closely, effectively rounding the
+        shape by a radius :math:`\sigma_c`. For this reason, the shape written
+        by `type_shapes` includes the rounding due to `rounding_radii <shape>`
+        and that due to :math:`\sigma_c`.
+
+    .. rubric:: Choosing `r_cut <hoomd.md.pair.Pair.r_cut>`:
+
+    Set `r_cut <hoomd.md.pair.Pair.r_cut>` for each pair of particle types so
+    that `ALJ` can compute interactions for all possible relative placements
+    and orientations of the particles. The farthest apart two particles can be
+    while still interacting depends on the value of ``alpha``.
+
+    In the following list, the first argument to the :math:`\max` function is
+    for the center-center interaction. The second argument is for the
+    contact-contact interaction, where :math:`R_i` is the radius of the
+    shape's minimal origin-centered bounding sphere of the particle with type
+    :math:`i`.
+
+    Let :math:`\lambda_{min} = 2^{1/6}` be the position of the potential energy
+    minimum of the Lennard-Jones potential and
+    :math:`\lambda_{cut}^{attractive}` be a larger value, such as 2.5 (typically
+    used in isotropic LJ systems).
+
+    * For alpha=0:
+
+      .. math::
+
+        r_{\mathrm{cut},ij} = \max \bigg( & \frac{\lambda_{min}}{2}
+        (\sigma_i + \sigma_j), \\
+        & R_i + R_j + R_{\mathrm{rounding},i} +
+        R_{\mathrm{rounding},j} + \frac{\lambda_{min}}{2}
+        (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+
+    * For alpha=1:
+
+      .. math::
+
+            r_{\mathrm{cut},ij} =
+            \max \bigg( & \frac{\lambda_{cut}^{attractive}}{2}
+            (\sigma_i + \sigma_j),  \\
+            & R_i + R_j  + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j}+ \frac{\lambda_{min}}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+
+    * For alpha=2:
+
+      .. math::
+
+            r_{\mathrm{cut},ij} = \max \bigg( & \frac{\lambda_{min}}{2}
+            (\sigma_i + \sigma_j)),  \\
+            & R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{\lambda_{cut}^{attractive}}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+
+    * For alpha=3:
+
+      .. math::
+
+            r_{\mathrm{cut},ij} =
+            \max \bigg( & \frac{\lambda_{cut}^{attractive}}{2}
+            (\sigma_i + \sigma_j),  \\
+            & R_i + R_j + R_{\mathrm{rounding},i} +
+            R_{\mathrm{rounding},j} + \frac{\lambda_{cut}^{attractive}}{2}
+            (\beta_i \cdot \sigma_i + \beta_j \cdot \sigma_j) \bigg)
+
+    Warning:
+        Changing dimension in a simulation will invalidate this force and will
+        lead to error or unrealistic behavior.
+
+    .. py:attribute:: params
+
+        The ALJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) - base energy scale
+          :math:`\varepsilon` :math:`[energy]`.
+        * ``sigma_i`` (`float`, **required**) - the insphere diameter of the
+          first particle type, :math:`\sigma_i` :math:`[length]`.
+        * ``sigma_j`` (`float`, **required**) - the insphere diameter of the
+          second particle type, :math:`\sigma_j` :math:`[length]`.
+        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
+          not to include the attractive component of the interaction (see
+          above for details).
+        * ``contact_ratio_i`` (`float`, **optional**) - :math:`\beta_i`, the
+          ratio of the contact sphere diameter of the first type with
+          ``sigma_i``.
+          Defaults to 0.15.
+        * ``contact_ratio_j`` (`float`, **optional**) - :math:`\beta_j`, the
+          ratio of the contact sphere diameter of the second type with
+          ``sigma_j``.
+          Defaults to 0.15.
+        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
+          simplices. Defaults to ``True``. See class documentation for more
+          information.
+
+        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
+        ``particle_types``], `dict`]
+
     Note:
-        `ALJ` accepts the ``mode`` parameter, but computes the same energy
-        regardless of the value of ``mode`` (starting with v3.0.0).
+        While the evaluation of the potential is symmetric with respect to
+        the potential parameter labels ``i`` and ``j``, the parameters which
+        physically represent a specific particle type must appear in all sets
+        of pair parameters which include that particle type.
+
+    .. py:attribute:: shape
+
+        The shape of a given type. The dictionary has the following keys per
+        type:
+
+        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+          **required**) - The vertices of a convex polytope in 2 or 3
+          dimensions. The third dimension in 2D is ignored.
+        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
+          **required**) - The semimajor axes of a rounding ellipsoid
+          :math:`R_{\mathrm{rounding},i}`. If a single value is specified, the
+          rounding ellipsoid is a sphere. Defaults to (0.0, 0.0, 0.0).
+        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
+          polyhedron specified as a list of list of integers.  The indices
+          corresponding to the vertices must be ordered counterclockwise with
+          respect to the face normal vector pointing outward from the origin.
+
+        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
 
     Example::
 
@@ -365,8 +486,7 @@ class ALJ(AnisotropicPair):
                                       alpha=1,
                                       )
         alj.shape["A"] = dict(vertices=cube_verts,
-                              faces=cube_faces,
-                              rounding_radii=1)
+                              faces=cube_faces)
 
     The following example shows how to easily get the faces, with vertex indices
     properly ordered, for a shape with known vertices by using the
@@ -396,60 +516,7 @@ class ALJ(AnisotropicPair):
                                       alpha=1,
                                       )
         alj.shape["A"] = dict(vertices=cube.vertices,
-                              faces=cube.faces,
-                              rounding_radii=1)
-
-    Warning:
-        Changing dimension in a simulation will invalidate this force and will
-        lead to error or unrealistic behavior.
-
-    .. py:attribute:: params
-
-        The ALJ potential parameters. The dictionary has the following keys:
-
-        * ``epsilon`` (`float`, **required**) - base energy scale
-          :math:`\varepsilon` :math:`[energy]`.
-        * ``sigma_i`` (`float`, **required**) - the insphere diameter of the
-          first particle type, :math:`[length]`.
-        * ``sigma_j`` (`float`, **required**) - the insphere diameter of the
-          second particle type, :math:`[length]`.
-        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
-          not to include the attractive component of the interaction (see
-          above for details).
-        * ``contact_ratio_i`` (`float`, **optional**) - the ratio of the contact
-          sphere diameter of the first type with ``sigma_i``. Defaults to 0.15.
-        * ``contact_ratio_j`` (`float`, **optional**) - the ratio of the contact
-          sphere diameter of the second type with ``sigma_j``. Defaults to 0.15.
-        * ``average_simplices`` (`bool`, **optional**) - Whether to average over
-          simplices. Defaults to ``True``. See class documentation for more
-          information.
-
-        Type: `hoomd.data.typeparam.TypeParameter` [`tuple` [``particle_types``,
-        ``particle_types``], `dict`]
-
-    Note:
-        While the evaluation of the potential is symmetric with respect to
-        the potential parameter labels ``i`` and ``j``, the parameters which
-        physically represent a specific particle type must appear in all sets
-        of pair parameters which include that particle type.
-
-    .. py:attribute:: shape
-
-        The shape of a given type. The dictionary has the following keys per
-        type:
-
-        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
-          **required**) - The vertices of a convex polytope in 2 or 3
-          dimensions. The third dimension in 2D is ignored.
-        * ``rounding_radii`` (`tuple` [`float`, `float`, `float`] or `float`,
-          **required**) - The semimajor axes of a rounding ellipsoid. If a
-          single value is specified, the rounding ellipsoid is a sphere.
-        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
-          polyhedron specified as a list of list of integers.  The indices
-          corresponding to the vertices must be ordered counterclockwise with
-          respect to the face normal vector pointing outward from the origin.
-
-        Type: `hoomd.data.typeparam.TypeParameter` [``particle_types``, `dict`]
+                              faces=cube.faces)
 
     """
 
@@ -477,7 +544,8 @@ class ALJ(AnisotropicPair):
                               rounding_radii=OnlyIf(
                                   to_type_converter((float, float, float)),
                                   preprocess=self._to_three_tuple),
-                              len_keys=1))
+                              len_keys=1,
+                              _defaults={'rounding_radii', (0.0, 0.0, 0.0)}))
 
         self._extend_typeparam((params, shape))
 
