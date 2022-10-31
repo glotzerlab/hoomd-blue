@@ -507,15 +507,21 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_pdata->getNGhosts();
         }
 
-    // Python API for accessing nlist neighbors
+    /// Get the local pair list from Python
     pybind11::array_t<uint32_t> getLocalPairListPython(uint64_t timestep);
+    
+    /// Get the global pair list from Python
     pybind11::object getPairListPython(uint64_t timestep);
+    
     /// Validate that types are within Ntypes
     void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
-    //! Set the rcut for a single type pair
+    
+    /// Set the rcut for a single type pair
     virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+    
     /// Get the r_cut for a single type pair
     Scalar getRCut(pybind11::tuple types);
+    
     /// Set the rcut for a single type pair using a tuple of strings
     virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
 
