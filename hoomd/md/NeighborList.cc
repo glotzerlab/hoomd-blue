@@ -456,7 +456,6 @@ void NeighborList::updateRList()
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_rcut_base(m_rcut_base, access_location::host, access_mode::overwrite);
 
-    // memset(h_r_cut.data, 0, sizeof(Scalar) * m_r_cut.getNumElements());
     for (unsigned int i = 0; i < m_r_cut.getNumElements(); i++)
         {
         h_r_cut.data[i] = h_rcut_base.data[i];
