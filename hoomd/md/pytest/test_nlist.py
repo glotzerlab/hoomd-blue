@@ -232,9 +232,6 @@ def test_global_pair_list(simulation_factory, lattice_snapshot_factory):
 
     # set r_cut
     nlist.r_cut[('A', 'A')] = 1.1
-    # BUG: with MPI and domain decomposition
-    # it appears an explicit `run` is required for the ghost layer to be updated
-    sim.run(0)
     pair_list = nlist.pair_list
     if sim.device.communicator.rank == 0:
         pair_list = set([frozenset(pair) for pair in pair_list])
