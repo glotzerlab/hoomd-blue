@@ -2052,10 +2052,6 @@ void export_NeighborList(pybind11::module& m)
         .def("setRCut", &NeighborList::setRCutPython)
         .def("getRCut", &NeighborList::getRCut);
 
-    pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
-        .value("half", NeighborList::storageMode::half)
-        .value("full", NeighborList::storageMode::full)
-        .export_values();
     };
 
 void export_LocalNeighborListDataHost(pybind11::module& m)
