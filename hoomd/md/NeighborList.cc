@@ -1791,11 +1791,11 @@ pybind11::array_t<uint32_t> NeighborList::getLocalPairListPython(uint64_t timest
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        const size_t myHead = h_head_list.data[i];
+        const size_t my_head = h_head_list.data[i];
         const unsigned int size = h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
-            const unsigned int j = h_nlist.data[myHead + k];
+            const unsigned int j = h_nlist.data[my_head + k];
             // if j is not a ghost, only accept it if i < j
             if (!third_law && j < m_pdata->getN() && i > j)
                 continue;
