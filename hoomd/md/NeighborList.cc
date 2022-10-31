@@ -1847,7 +1847,7 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
             }
         }
 
-    // pair_list->shrink_to_fit();
+    pair_list->shrink_to_fit();
 
 #ifdef ENABLE_MPI
 
