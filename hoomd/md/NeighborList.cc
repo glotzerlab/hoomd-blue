@@ -1820,7 +1820,6 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
     bool third_law = getStorageMode() == NeighborList::half;
 
 #ifdef ENABLE_MPI
-    // if we are not the root processor, return None
     bool root = m_exec_conf->isRoot();
 #endif
 
