@@ -304,7 +304,7 @@ class Cell(NeighborList):
                  check_dist=True,
                  deterministic=False,
                  mesh=None,
-                 default_r_cut=None):
+                 default_r_cut=0.0):
 
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
                          mesh, default_r_cut)
