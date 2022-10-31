@@ -535,12 +535,11 @@ class Constant(Force):
 
     Examples::
 
-        all = hoomd.filter.All()
         constant = hoomd.md.force.Constant(
             filter=hoomd.filter.All()
             )
-        constant.constant_force['A','B'] = (1,0,0)
-        constant.constant_torque['A','B'] = (0,0,0)
+        constant.constant_force['A'] = (1,0,0)
+        constant.constant_torque['A'] = (0,0,0)
 
     Note:
 

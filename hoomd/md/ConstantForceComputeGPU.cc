@@ -33,31 +33,6 @@ ConstantForceComputeGPU::ConstantForceComputeGPU(std::shared_ptr<SystemDefinitio
                                    m_exec_conf,
                                    "constant_force"));
     m_autotuners.push_back(m_tuner);
-
-    // unsigned int N = m_pdata->getNGlobal();
-    // unsigned int group_size = m_group->getNumMembersGlobal();
-    unsigned int type = m_pdata->getNTypes();
-    GlobalVector<Scalar3> tmp_f_constantVec(type, m_exec_conf);
-    GlobalVector<Scalar3> tmp_t_constantVec(type, m_exec_conf);
-
-        {
-        ArrayHandle<Scalar3> old_f_constantVec(m_f_constantVec, access_location::host);
-        ArrayHandle<Scalar3> old_t_constantVec(m_t_constantVec, access_location::host);
-
-        ArrayHandle<Scalar3> f_constantVec(tmp_f_constantVec, access_location::host);
-        ArrayHandle<Scalar3> t_constantVec(tmp_t_constantVec, access_location::host);
-
-        // for each type of the particles in the group
-        for (unsigned int i = 0; i < type; i++)
-            {
-            f_constantVec.data[i] = old_f_constantVec.data[i];
-
-            t_constantVec.data[i] = old_t_constantVec.data[i];
-            }
-        }
-
-    m_f_constantVec.swap(tmp_f_constantVec);
-    m_t_constantVec.swap(tmp_t_constantVec);
     }
 
 /*! This function sets appropriate active forces and torques on all active particles.
@@ -65,10 +40,14 @@ ConstantForceComputeGPU::ConstantForceComputeGPU(std::shared_ptr<SystemDefinitio
 void ConstantForceComputeGPU::setForces()
     {
     //  array handles
-    ArrayHandle<Scalar3> d_f_constVec(m_f_constantVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_constant_force(m_constant_force,
+                                          access_location::device,
+                                          access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
 
-    ArrayHandle<Scalar3> d_t_constVec(m_t_constantVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_constant_torque(m_constant_torque,
+                                           access_location::device,
+                                           access_mode::read);
     ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -78,8 +57,8 @@ void ConstantForceComputeGPU::setForces()
 
     // sanity check
     assert(d_force.data != NULL);
-    assert(d_f_constVec.data != NULL);
-    assert(d_t_constVec.data != NULL);
+    assert(d_constant_force.data != NULL);
+    assert(d_constant_torque.data != NULL);
     assert(d_pos.data != NULL);
     assert(d_index_array.data != NULL);
     unsigned int group_size = m_group->getNumMembers();
@@ -93,8 +72,8 @@ void ConstantForceComputeGPU::setForces()
                                                   d_force.data,
                                                   d_torque.data,
                                                   d_pos.data,
-                                                  d_f_constVec.data,
-                                                  d_t_constVec.data,
+                                                  d_constant_force.data,
+                                                  d_constant_torque.data,
                                                   N,
                                                   m_tuner->getParam()[0]);
 

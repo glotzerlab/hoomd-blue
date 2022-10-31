@@ -33,8 +33,8 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
 
     constant.constant_force['A'] = (0.5, 0.0, 0.0)
     assert constant.constant_force['A'] == (0.5, 0.0, 0.0)
-    constant.constant_force['A'] = (0.0, 0.0, 1.0)
-    assert constant.constant_force['A'] == (0.0, 0.0, 1.0)
+    constant.constant_torque['A'] = (0.0, 0.0, 1.0)
+    assert constant.constant_torque['A'] == (0.0, 0.0, 1.0)
 
 
 def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
