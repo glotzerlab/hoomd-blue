@@ -1927,6 +1927,7 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
         }
     else
         {
+        // Simulation is not domain decomposed.
         global_pair_list = (uint32_t*)pair_list->data();
         shape[0] = pair_list->size();
         free_when_done
