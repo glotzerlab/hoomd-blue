@@ -210,10 +210,8 @@ def test_logging():
             },
         })
 
-
-path = Path(__file__).parent / "true_pair_list.json"
-_TRUE_PAIR_LIST = json.load(path.open())
-TRUE_PAIR_LIST = set([frozenset(pair) for pair in _TRUE_PAIR_LIST])
+_path = Path(__file__).parent / "true_pair_list.json"
+TRUE_PAIR_LIST = set([frozenset(pair) for pair in json.load(_path.open())])
 
 
 def test_global_pair_list(simulation_factory, lattice_snapshot_factory):
