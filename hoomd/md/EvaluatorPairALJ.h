@@ -474,6 +474,12 @@ template<unsigned int ndim> class EvaluatorPairALJ
         return false;
         }
 
+    //! Whether the pair potential needs particle angular momentum
+    HOSTDEVICE static bool needsAngularMomentum()
+        {
+        return false;
+        }
+
     /// Whether the potential implements the energy_shift parameter
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {

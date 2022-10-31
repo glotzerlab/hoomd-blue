@@ -527,6 +527,10 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                                        access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::read);
+
     // force arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
@@ -557,10 +561,17 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
             // access diameter and charge (if needed)
             Scalar di = Scalar(0.0);
             Scalar qi = Scalar(0.0);
+            vec3<Scalar> ai;
             if (aniso_evaluator::needsDiameter())
                 di = h_diameter.data[i];
             if (aniso_evaluator::needsCharge())
                 qi = h_charge.data[i];
+            if (aniso_evaluator::needsAngularMomentum())
+                {
+                quat<Scalar> p(h_angmom.data[i]);
+                quat<Scalar> q(quat_i);
+                ai = (Scalar(1. / 2.) * conj(q) * p).v;
+                }
 
             // initialize current particle force, torque, potential energy, and virial to 0
             Scalar fxi = Scalar(0.0);
@@ -598,10 +609,17 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 // access diameter and charge (if needed)
                 Scalar dj = Scalar(0.0);
                 Scalar qj = Scalar(0.0);
+                vec3<Scalar> aj;
                 if (aniso_evaluator::needsDiameter())
                     dj = h_diameter.data[j];
                 if (aniso_evaluator::needsCharge())
                     qj = h_charge.data[j];
+                if (aniso_evaluator::needsAngularMomentum())
+                    {
+                    quat<Scalar> p(h_angmom.data[j]);
+                    quat<Scalar> q(quat_j);
+                    aj = (Scalar(1. / 2.) * conj(q) * p).v;
+                    }
 
                 // apply periodic boundary conditions
                 dx = box.minImage(dx);
