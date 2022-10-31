@@ -368,6 +368,10 @@ void NeighborList::compute(uint64_t timestep)
     if (m_rcut_changed)
         {
         updateRList();
+        if (m_sysdef->isDomainDecomposed())
+            {
+            m_comm->communicate(timestep);
+            }
         }
 
     // skip if we shouldn't compute this step
