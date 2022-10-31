@@ -206,6 +206,12 @@ class EvaluatorPairGB
     */
     HOSTDEVICE void setCharge(Scalar qi, Scalar qj) { }
 
+    //! Accept the optional charge values
+    /*! \param ai Angular momentum of particle i
+        \param aj Angular momentum of particle j
+    */
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, vec3<Scalar> aj) { }
+
     //! Evaluate the force and energy
     /*! \param force Output parameter to write the computed force.
         \param pair_eng Output parameter to write the computed pair energy.
