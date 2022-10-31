@@ -10,6 +10,7 @@ from hoomd.conftest import operation_pickling_check
 import pytest
 import math
 
+# TODO: Remove this test after it is implemented in hoomd-validation
 # from test_sphere_eos.py for hoomd-2.9
 # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.1002.aic10233
 _phi_p_ref = [(0.29054, 0.1), (0.91912, 0.2), (2.2768, 0.3), (5.29102, 0.4),

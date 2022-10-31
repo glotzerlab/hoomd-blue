@@ -10,6 +10,7 @@ import hoomd.conftest
 from hoomd import md
 
 
+# TODO: Remove this test after it is implemented in hoomd-validation
 @pytest.mark.validate
 def test_conservation(simulation_factory, lattice_snapshot_factory):
     # For test, use a unit area hexagon.
