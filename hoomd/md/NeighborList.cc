@@ -1940,9 +1940,9 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
 
     if (root)
         {
-        return pybind11::array_t(shape,            // shape
-                                 stride,           // stride
-                                 global_pair_list, // data pointer
+        return pybind11::array_t(shape,
+                                 stride,
+                                 global_pair_list,
                                  free_when_done);
         }
     else
