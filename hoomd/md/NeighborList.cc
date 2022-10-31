@@ -368,10 +368,12 @@ void NeighborList::compute(uint64_t timestep)
     if (m_rcut_changed)
         {
         updateRList();
+#ifdef ENABLE_MPI
         if (m_sysdef->isDomainDecomposed())
             {
             m_comm->communicate(timestep);
             }
+#endif
         }
 
     // skip if we shouldn't compute this step
