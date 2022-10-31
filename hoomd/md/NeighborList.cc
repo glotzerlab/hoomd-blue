@@ -1847,7 +1847,7 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
 
 #ifdef ENABLE_MPI
 
-    uint32_t* global_pair_list;
+    uint32_t* global_pair_list = nullptr;
     pybind11::capsule free_when_done;
     unsigned long shape[] = {0, 2}; // first index needs to be set later
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
