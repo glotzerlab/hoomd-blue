@@ -530,8 +530,8 @@ class Constant(Force):
         filter (`hoomd.filter`): Subset of particles on which to
             apply constant forces.
 
-    `Constant` computes an constant force and torque on all particles selected
-    by the filter:
+    `Constant` applies a type dependent constant force and torque on all
+    particles selected by the filter:
 
     Examples::
 
