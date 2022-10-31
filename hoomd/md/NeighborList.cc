@@ -1977,7 +1977,7 @@ void NeighborList::validateTypes(unsigned int typ1, unsigned int typ2, std::stri
     auto n_types = this->m_pdata->getNTypes();
     if (typ1 >= n_types || typ2 >= n_types)
         {
-        throw std::runtime_error("Error in" + action + " for pair potential. Invalid type");
+        throw std::runtime_error("Error in" + action + " for NeighborList. Invalid type");
         }
     }
 
