@@ -1834,11 +1834,11 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         unsigned int tag_i = h_tags.data[i];
-        const size_t myHead = h_head_list.data[i];
+        const size_t my_head = h_head_list.data[i];
         const unsigned int size = h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
             {
-            const unsigned int j = h_nlist.data[myHead + k];
+            const unsigned int j = h_nlist.data[my_head + k];
             const unsigned int tag_j = h_tags.data[j];
             if ((!third_law || j >= m_pdata->getN()) && tag_i > tag_j)
                 continue;
