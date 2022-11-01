@@ -14,8 +14,6 @@ import hoomd
 import atexit
 import os
 import numpy
-import math
-import warnings
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
