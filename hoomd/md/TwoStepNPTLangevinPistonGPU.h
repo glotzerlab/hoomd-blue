@@ -6,10 +6,10 @@
 #define HOOMD_TWOSTEPNPTLANGEVINPISTONGPU_H
 
 #include "TwoStepNPTLangevinPiston.h"
-#include "TwoStepNPTBaseGPU.h"
+#include "TwoStepNPTMTTKBaseGPU.h"
 
 namespace hoomd::md{
-class TwoStepNPTLangevinPistonGPU : public TwoStepNPTLangevinPiston, public TwoStepNPTBaseGPU
+class TwoStepNPTLangevinPistonGPU : public TwoStepNPTLangevinPiston, public TwoStepNPTMTTKBaseGPU
     {
     public:
     TwoStepNPTLangevinPistonGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -23,10 +23,10 @@ class TwoStepNPTLangevinPistonGPU : public TwoStepNPTLangevinPiston, public TwoS
                                 const std::string& couple,
                                 const std::vector<bool>& flags,
                                 const bool nph = false) :
-          TwoStepNPTBase(sysdef, group, thermo_half_step, thermo_full_step, T, S, couple, flags, nph),
+          TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph),
           TwoStepNPTMTK(sysdef, group, thermo_half_step, thermo_full_step, tau, tauS, T, S, couple, flags, nph),
           TwoStepNPTLangevinPiston(sysdef, group, thermo_half_step, thermo_full_step, tau, tauS, T, S, couple, flags, nph),
-          TwoStepNPTBaseGPU(sysdef, group, thermo_half_step, thermo_full_step, T, S, couple, flags, nph)
+          TwoStepNPTMTTKBaseGPU(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph)
         {}
     };
 

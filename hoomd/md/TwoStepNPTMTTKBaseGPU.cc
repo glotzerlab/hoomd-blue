@@ -2,23 +2,24 @@
 // Created by girard01 on 10/27/22.
 //
 
-#include "TwoStepNPTBaseGPU.h"
-#include "TwoStepNPTBaseGPU.cuh"
+#include "TwoStepNPTMTTKBaseGPU.cuh"
+#include "TwoStepNPTMTTKBaseGPU.h"
 #include "TwoStepNVEGPU.cuh"
 
 namespace hoomd::md
     {
 
-TwoStepNPTBaseGPU::TwoStepNPTBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
+TwoStepNPTMTTKBaseGPU::TwoStepNPTMTTKBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<ParticleGroup> group,
                                      std::shared_ptr<ComputeThermo> thermo_half_step,
                                      std::shared_ptr<ComputeThermo> thermo_full_step,
+                                             Scalar tauS,
                                      std::shared_ptr<Variant> T,
                                      const std::vector<std::shared_ptr<Variant>>& S,
                                      const std::string& couple,
                                      const std::vector<bool>& flags,
                                      const bool nph) :
-      TwoStepNPTBase(sysdef, group, thermo_half_step, thermo_full_step, T, S, couple, flags, nph)
+      TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph)
     {
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                        m_exec_conf,
@@ -56,7 +57,7 @@ TwoStepNPTBaseGPU::TwoStepNPTBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    Nose-Hoover thermostat and Anderson barostat
 */
-void TwoStepNPTBaseGPU::integrateStepOne(uint64_t timestep)
+void TwoStepNPTMTTKBaseGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -271,7 +272,7 @@ void TwoStepNPTBaseGPU::integrateStepOne(uint64_t timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNPTBaseGPU::integrateStepTwo(uint64_t timestep)
+void TwoStepNPTMTTKBaseGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
@@ -363,9 +364,9 @@ void TwoStepNPTBaseGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail{
 void export_TwoStepNPTBaseGPU(pybind11::module& m){
-    pybind11::class_<TwoStepNPTBaseGPU, TwoStepNPTBase, std::shared_ptr<TwoStepNPTBaseGPU>>(m, "TwoStepNPTBaseGPU")
+    pybind11::class_<TwoStepNPTMTTKBaseGPU, TwoStepNPTMTTKBase, std::shared_ptr<TwoStepNPTMTTKBaseGPU>>(m, "TwoStepNPTMTTKBaseGPU")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, std::shared_ptr<Variant>,
+                            std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar, std::shared_ptr<Variant>,
                             std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, bool>());
     }
     }

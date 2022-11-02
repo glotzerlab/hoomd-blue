@@ -24,7 +24,7 @@ class TwoStepNPTLangevinPiston : public virtual TwoStepNPTMTK
                              const std::string& couple,
                              const std::vector<bool>& flags,
                              const bool nph = false)
-        : TwoStepNPTBase(sysdef, group, thermo_half_step, thermo_full_step, T, S, couple, flags, nph),
+        : TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph),
           TwoStepNPTMTK(sysdef, group, thermo_half_step, thermo_full_step, tau, tauS, T, S, couple, flags, nph){}
     protected:
     virtual void advanceBarostat(uint64_t);

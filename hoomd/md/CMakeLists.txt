@@ -52,7 +52,7 @@ set(_md_sources module-md.cc
         TwoStepNVTBase.cc
 
         TwoStepNVTStochastic.cc
-        TwoStepNPTBase.cc
+        TwoStepNPTMTTKBase.cc
         TwoStepNPTLangevinPiston.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
@@ -201,9 +201,11 @@ set(_md_headers ActiveForceComputeGPU.h
         TwoStepNVTBase.h
         TwoStepNVTBaseGPU.h
         TwoStepNVTStochastic.h
-        TwoStepNPTBase.h
+        TwoStepNPTMTTKBase.h
         TwoStepNPTLangevinPiston.h
         TwoStepNPTLangevinPistonGPU.h
+        TwoStepNPTBussiLangevinPiston.h
+        TwoStepNPTBussiLangevinPistonGPU.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
                 AlchemostatTwoStep.h
@@ -244,8 +246,10 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNVEGPU.cc
         TwoStepNVTBaseGPU.cc
         TwoStepNVTStochasticGPU.cc
-        TwoStepNPTBaseGPU.cc
+        TwoStepNPTMTTKBaseGPU.cc
         TwoStepNPTLangevinPistonGPU.cc
+        TwoStepNPTBussiLangevinPiston.cc
+        TwoStepNPTBussiLangevinPistonGPU.cc
                            TwoStepNVTMTKGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
@@ -279,11 +283,11 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepBDGPU.cu
         TwoStepLangevinGPU.cu
                       TwoStepRATTLELangevinGPU.cu
-        TwoStepNPTBaseGPU.cu
+        TwoStepNPTMTTKBaseGPU.cu
         TwoStepNVTBaseGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
-                      TwoStepNPTBaseGPU.cu
+        TwoStepNPTMTTKBaseGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       )

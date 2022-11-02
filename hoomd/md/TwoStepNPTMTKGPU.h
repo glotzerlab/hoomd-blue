@@ -2,8 +2,8 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermo.h"
-#include "TwoStepNPTBaseGPU.h"
 #include "TwoStepNPTMTK.h"
+#include "TwoStepNPTMTTKBaseGPU.h"
 #include "hoomd/Autotuner.h"
 #include "hoomd/Variant.h"
 
@@ -29,7 +29,7 @@ namespace hoomd::md
  *
     \ingroup updaters
 */
-class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK, public TwoStepNPTBaseGPU
+class PYBIND11_EXPORT TwoStepNPTMTKGPU : public virtual TwoStepNPTMTK, public virtual TwoStepNPTMTTKBaseGPU
     {
     public:
     //! Constructs the integration method and associates it with the system

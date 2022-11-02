@@ -6,7 +6,8 @@
 
 namespace hoomd::md::detail{
 void export_TwoStepNPTLangevinPistonGPU(pybind11::module& m){
-    pybind11::class_<TwoStepNPTLangevinPistonGPU, TwoStepNPTLangevinPiston, TwoStepNPTBaseGPU, std::shared_ptr<TwoStepNPTLangevinPistonGPU>>(m, "TwoStepNPTLangevinPistonGPU")
+    pybind11::class_<TwoStepNPTLangevinPistonGPU, TwoStepNPTLangevinPiston,
+                     TwoStepNPTMTTKBaseGPU, std::shared_ptr<TwoStepNPTLangevinPistonGPU>>(m, "TwoStepNPTLangevinPistonGPU")
     .def(pybind11::init<std::shared_ptr<SystemDefinition> ,
                             std::shared_ptr<ParticleGroup> ,
                             std::shared_ptr<ComputeThermo> ,

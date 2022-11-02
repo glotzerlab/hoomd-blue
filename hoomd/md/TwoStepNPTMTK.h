@@ -3,7 +3,7 @@
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
-#include "TwoStepNPTBase.h"
+#include "TwoStepNPTMTTKBase.h"
 #include "hoomd/Variant.h"
 
 #ifndef __TWO_STEP_NPT_MTK_H__
@@ -41,7 +41,7 @@ namespace md
     \cite Yu2010
     \ingroup updaters
 */
-class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTBase
+class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTMTTKBase
     {
     public:
     /*! Flags to indicate which degrees of freedom of the simulation box should be put under
@@ -67,7 +67,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTBase
     //! Update the tau value
     /*! \param tau New time constant to set
      */
-    virtual void setTau(Scalar tau)
+    void setTau(Scalar tau)
         {
         m_tau = tau;
         }
@@ -78,25 +78,10 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTBase
         return m_tau;
         }
 
-
-    //! Update the nuP value
-    /*! \param tauS New pressure constant to set
-     */
-    virtual void setTauS(Scalar tauS)
-        {
-        m_tauS = tauS;
-        }
-
     //! Set an optional damping factor for the box degrees of freedom
     void setGamma(Scalar gamma)
         {
         m_gamma = gamma;
-        }
-
-    // Get tauS
-    virtual Scalar getTauS()
-        {
-        return m_tauS;
         }
 
     // Get gamma
@@ -123,13 +108,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTBase
 
     Scalar getThermostatEnergy(uint64_t timestep);
 
-    /// Get the barostat degrees of freedom
-    pybind11::tuple getBarostatDOF();
-
-    /// Set the barostat degrees of freedom
-    void setBarostatDOF(pybind11::tuple v);
-
-    Scalar getBarostatEnergy(uint64_t timestep);
 
     protected:
     /// Thermostat variables
@@ -141,35 +119,21 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTBase
         Scalar eta_rot = 0;
         };
 
-    /// Barostat variables
-    struct Barostat
-        {
-        Scalar nu_xx;
-        Scalar nu_xy;
-        Scalar nu_xz;
-        Scalar nu_yy;
-        Scalar nu_yz;
-        Scalar nu_zz;
-        };
-
     std::array<Scalar, 2> NPT_thermo_rescale_factor_one(uint64_t timestep) override;
     std::array<Scalar, 2> NPT_thermo_rescale_factor_two(uint64_t timestep) override;
 
     //Scalar m_ndof;          //!< Number of degrees of freedom from ComputeThermo
     Scalar m_tau;                 //!< tau value for Nose-Hoover
-    Scalar m_tauS;                //!< tauS value for the barostat
     Scalar m_gamma; //!< Optional damping factor for box degrees of freedom
-
     Thermostat m_thermostat; //!< thermostat degrees of freedom
-    Barostat m_barostat;     //!< barostat degrees of freedom
+
 
     //! Helper function to advance the barostat parameters
     virtual void advanceBarostat(uint64_t timestep);
 
-
     virtual void advanceThermostat(uint64_t timestep);
 
-    void updatePropagator() override;
+   // void updatePropagator() override;
     };
 
     } // end namespace md

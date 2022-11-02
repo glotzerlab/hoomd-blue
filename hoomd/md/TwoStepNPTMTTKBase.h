@@ -2,8 +2,8 @@
 // Created by girard01 on 10/26/22.
 //
 
-#ifndef HOOMD_TWOSTEPNPTBASE_H
-#define HOOMD_TWOSTEPNPTBASE_H
+#ifndef HOOMD_TWOSTEPNPTMTTKBASE_H
+#define HOOMD_TWOSTEPNPTMTTKBASE_H
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
@@ -16,14 +16,14 @@
 namespace hoomd::md
     {
 
-class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
     {
     public:
-
-    TwoStepNPTBase(std::shared_ptr<SystemDefinition> sysdef,
+    TwoStepNPTMTTKBase(std::shared_ptr<SystemDefinition> sysdef,
                    std::shared_ptr<ParticleGroup> group,
                    std::shared_ptr<ComputeThermo> thermo_half_step,
                    std::shared_ptr<ComputeThermo> thermo_full_step,
+                   Scalar tauS,
                    std::shared_ptr<Variant> T,
                    const std::vector<std::shared_ptr<Variant>>& S,
                    const std::string& couple,
@@ -50,6 +50,22 @@ class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
         };
 
 
+    /// Barostat variables
+    struct Barostat
+        {
+        Scalar nu_xx;
+        Scalar nu_xy;
+        Scalar nu_xz;
+        Scalar nu_yy;
+        Scalar nu_yz;
+        Scalar nu_zz;
+        };
+    // Get tauS
+    virtual Scalar getTauS()
+        {
+        return m_tauS;
+        }
+
     //! Update the stress components
     /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
      */
@@ -58,14 +74,27 @@ class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
         m_S = S;
         }
 
+
+    //! Velocity rescaling factors used in step one
+    /*! For the base class, this should return values used in nph integration, so that derived class
+     * can overload only one of the two rescaling method if needs be
+     * @param timestep
+     * @return rescaling factors
+     */
     virtual std::array<Scalar, 2> NPT_thermo_rescale_factor_one(uint64_t timestep)
         {
-        return {Scalar(1.0), Scalar(1.0)};
+        Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * mtk * m_deltaT);
+        Scalar exp_thermo_fac_rot = exp(-(mtk) * m_deltaT / Scalar(2.0));
+        return { exp_thermo_fac, exp_thermo_fac_rot };
         }
 
     virtual std::array<Scalar, 2> NPT_thermo_rescale_factor_two(uint64_t timestep)
         {
-        return {Scalar(1.0), Scalar(1.0)};
+        Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * mtk * m_deltaT);
+        Scalar exp_thermo_fac_rot = exp(-mtk * m_deltaT / Scalar(2.0));
+        return {exp_thermo_fac, exp_thermo_fac_rot};
         }
 
     std::shared_ptr<Variant> getT()
@@ -73,6 +102,7 @@ class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
         return m_T;
         }
 
+    void thermalizeBarostatDOF(uint64_t timestep);
 
     /*! \param T New temperature to set
      */
@@ -122,7 +152,13 @@ class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
         {
         return m_S;
         }
-
+    //! Update the nuP value
+    /*! \param tauS New pressure constant to set
+     */
+    void setTauS(Scalar tauS)
+        {
+        m_tauS = tauS;
+        }
     //! declaration for setting the parameter couple
     void setCouple(const std::string& value);
 
@@ -137,10 +173,20 @@ class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
         m_rescale_all = rescale_all;
         }
 
+    /// Get the barostat degrees of freedom
+    pybind11::tuple getBarostatDOF();
+
+    /// Set the barostat degrees of freedom
+    void setBarostatDOF(pybind11::tuple v);
+
+    Scalar getBarostatEnergy(uint64_t timestep);
+
     protected:
+    Barostat m_barostat;     //!< barostat degrees of freedom
+
     std::vector<std::shared_ptr<Variant>>  m_S;    //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
     Scalar m_V; //!< Current volume
-
+    Scalar m_tauS;                //!< tauS value for the barostat
     Scalar m_ndof;
     couplingMode m_couple;     //!< Coupling of diagonal elements
     unsigned int m_flags;      //!< Coupling flags for barostat
@@ -152,13 +198,13 @@ class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
     bool m_rescale_all; //!< If true, rescale all particles in the system irrespective of group
 
     //! Helper function to update the propagator elements
-    virtual void updatePropagator(){};
+    void updatePropagator();
 
     //! Get the relevant couplings for the active box degrees of freedom
     couplingMode getRelevantCouplings();
 
     //! Helper function to advance the barostat parameters
-    virtual void advanceBarostat(uint64_t timestep){};
+    virtual void advanceBarostat(uint64_t timestep);
 
     std::shared_ptr<Variant> m_T;
 
@@ -171,4 +217,4 @@ class PYBIND11_EXPORT TwoStepNPTBase : public IntegrationMethodTwoStep
 
     } // namespace hoomd
 
-#endif // HOOMD_TWOSTEPNPTBASE_H
+#endif // HOOMD_TWOSTEPNPTMTTKBASE_H

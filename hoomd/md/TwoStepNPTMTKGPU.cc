@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepNPTMTKGPU.h"
-#include "TwoStepNPTBaseGPU.cuh"
+#include "TwoStepNPTMTTKBaseGPU.cuh"
 
-#include "TwoStepNPTBase.h"
+#include "TwoStepNPTMTTKBase.h"
 #include "TwoStepNVEGPU.cuh"
 
 #ifdef ENABLE_MPI
@@ -43,9 +43,9 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                                    const std::vector<bool>& flags,
                                    const bool nph)
 
-    : TwoStepNPTBase(sysdef, group, thermo_group, thermo_group_t, T, S, couple, flags, nph),
+    : TwoStepNPTMTTKBase(sysdef, group, thermo_group, thermo_group_t, tauS, T, S, couple, flags, nph),
       TwoStepNPTMTK(sysdef,group,thermo_group,thermo_group_t,tau,tauS,T,S,couple,flags,nph),
-      TwoStepNPTBaseGPU(sysdef, group, thermo_group, thermo_group_t, T, S, couple, flags, nph)
+      TwoStepNPTMTTKBaseGPU(sysdef, group, thermo_group, thermo_group_t, tauS, T, S, couple, flags, nph)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {

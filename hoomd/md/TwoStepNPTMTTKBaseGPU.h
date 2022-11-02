@@ -2,19 +2,20 @@
 // Created by girard01 on 10/27/22.
 //
 
-#ifndef HOOMD_TWOSTEPNPTBASEGPU_H
-#define HOOMD_TWOSTEPNPTBASEGPU_H
+#ifndef HOOMD_TWOSTEPNPTMTTKBASEGPU_H
+#define HOOMD_TWOSTEPNPTMTTKBASEGPU_H
 
-#include "TwoStepNPTBase.h"
+#include "TwoStepNPTMTTKBase.h"
 namespace hoomd::md
     {
-class TwoStepNPTBaseGPU : public virtual TwoStepNPTBase
+class TwoStepNPTMTTKBaseGPU : public virtual TwoStepNPTMTTKBase
     {
     public:
-    TwoStepNPTBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
+    TwoStepNPTMTTKBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<ParticleGroup> group,
                       std::shared_ptr<ComputeThermo> thermo_half_step,
                       std::shared_ptr<ComputeThermo> thermo_full_step,
+                          Scalar tauS,
                       std::shared_ptr<Variant> T,
                       const std::vector<std::shared_ptr<Variant>>& S,
                       const std::string& couple,
@@ -27,7 +28,10 @@ class TwoStepNPTBaseGPU : public virtual TwoStepNPTBase
     //! Performs the second step of the integration
     virtual void integrateStepTwo(uint64_t timestep);
 
+
     protected:
+
+
     std::shared_ptr<Autotuner<1>> m_tuner_one;     //!< Autotuner for block size (step one kernel)
     std::shared_ptr<Autotuner<1>> m_tuner_two;     //!< Autotuner for block size (step two kernel)
     std::shared_ptr<Autotuner<1>> m_tuner_wrap;    //!< Autotuner for wrapping particle positions
@@ -38,4 +42,4 @@ class TwoStepNPTBaseGPU : public virtual TwoStepNPTBase
     };
 
     }
-#endif // HOOMD_TWOSTEPNPTBASEGPU_H
+#endif // HOOMD_TWOSTEPNPTMTTKBASEGPU_H
