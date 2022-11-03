@@ -52,6 +52,7 @@ struct a_pair_args_t
                   const Scalar* _d_charge,
                   const Scalar4* _d_orientation,
                   const unsigned int* _d_tag,
+                  const Scalar4* _d_angmom,
                   const BoxDim& _box,
                   const unsigned int* _d_n_neigh,
                   const unsigned int* _d_nlist,
@@ -84,6 +85,7 @@ struct a_pair_args_t
     const Scalar* d_charge;       //!< particle charges
     const Scalar4* d_orientation; //!< particle orientation to compute forces over
     const unsigned int* d_tag;    //!< particle tags to compute forces over
+    const Scalar4* d_angmom;      //!< particle angular momentum to compute forces over
     const BoxDim box;             //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
@@ -117,6 +119,7 @@ struct a_pair_args_t
     \param d_charge particle charges
     \param d_orientation Quaternion data on the GPU to calculate forces on
     \param d_tag Tag data on the GPU to calculate forces on
+    \param d_angmom Angular momentum data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -155,6 +158,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const Scalar* d_charge,
                                      const Scalar4* d_orientation,
                                      const unsigned int* d_tag,
+                                     const Scalar4* d_angmom,
                                      const BoxDim box,
                                      const unsigned int* d_n_neigh,
                                      const unsigned int* d_nlist,
@@ -258,6 +262,14 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
+        vec3<Scalar> ai;
+        if (evaluator::needsAngularMomentum())
+            {
+            quat<scalar> p(__ldg(d_angmom + idx));
+            quat<scalar> q(quati);
+            ai = (scalar(1. / 2.) * conj(q) * p).v;
+            }
+
         size_t my_head = d_head_list[idx];
         unsigned int cur_j = 0;
 
@@ -288,6 +300,14 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 Scalar qj = Scalar(0);
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
+
+                vec3<Scalar> aj;
+                if (evaluator::needsAngularMomentum())
+                    {
+                    quat<scalar> p(__ldg(d_angmom + cur_j));
+                    quat<scalar> q(quatj);
+                    aj = (scalar(1. / 2.) * conj(q) * p).v;
+                    }
 
                 // calculate dr (with periodic boundary conditions)
                 Scalar3 dx = posi - posj;
@@ -327,6 +347,8 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                   &(s_shape_params[__scalar_as_int(postypej.w)]));
                 if (evaluator::needsTags())
                     eval.setTags(__ldg(d_tag + idx), __ldg(d_tag + cur_j));
+                if (evaluator::needsAngularMomentum())
+                    eval.setAngularMomentum(ai, aj);
 
                 // call evaluator
                 eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
@@ -496,6 +518,7 @@ struct AnisoPairForceComputeKernel
                 pair_args.d_charge,
                 pair_args.d_orientation,
                 pair_args.d_tag,
+                pair_args.d_angmom,
                 pair_args.box,
                 pair_args.d_n_neigh,
                 pair_args.d_nlist,

@@ -127,6 +127,10 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
                                     access_location::device,
                                     access_mode::read);
 
+    ArrayHandle<Scalar4> d_angmom(this->m_pdata->getAngularMomentumArray(),
+                                  access_location::device,
+                                  access_mode::read);
+
     BoxDim box = this->m_pdata->getBox();
 
     // access parameters
@@ -160,6 +164,7 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
                               d_charge.data,
                               d_orientation.data,
                               d_tag.data,
+                              d_angmom.data,
                               box,
                               d_n_neigh.data,
                               d_nlist.data,

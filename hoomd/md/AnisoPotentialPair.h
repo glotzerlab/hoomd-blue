@@ -616,9 +616,9 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     qj = h_charge.data[j];
                 if (aniso_evaluator::needsAngularMomentum())
                     {
-                    quat<Scalar> p(h_angmom.data[j]);
-                    quat<Scalar> q(quat_j);
-                    aj = (Scalar(1. / 2.) * conj(q) * p).v;
+                    quat<scalar> p(h_angmom.data[j]);
+                    quat<scalar> q(quat_j);
+                    aj = (scalar(1. / 2.) * conj(q) * p).v;
                     }
 
                 // apply periodic boundary conditions
