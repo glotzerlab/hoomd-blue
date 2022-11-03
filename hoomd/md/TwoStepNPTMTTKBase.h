@@ -182,7 +182,7 @@ class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
     Scalar getBarostatEnergy(uint64_t timestep);
 
     protected:
-    Barostat m_barostat;     //!< barostat degrees of freedom
+    Barostat m_barostat{};     //!< barostat degrees of freedom
 
     std::vector<std::shared_ptr<Variant>>  m_S;    //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
     Scalar m_V; //!< Current volume
