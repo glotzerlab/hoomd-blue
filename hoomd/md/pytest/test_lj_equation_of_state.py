@@ -20,8 +20,7 @@ statepoints = [
 @pytest.mark.parametrize(
     'T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,'
     'log_period, equilibration_steps, run_steps', statepoints)
-#@pytest.mark.parametrize('method_name', ['Langevin', 'NVT', 'NPT', 'NVTStochastic', 'NPTLangevinPiston'])
-@pytest.mark.parametrize('method_name', ['NPTLangevinPiston'])
+@pytest.mark.parametrize('method_name', ['Langevin', 'NVT', 'NPT', 'NVTStochastic', 'NPTLangevinPiston', 'NPTBussiLangevinPiston'])
 def test_lj_equation_of_state(
     T_star,
     rho_star,
@@ -81,6 +80,12 @@ def test_lj_equation_of_state(
                                       tauS=0.5,
                                       couple='xyz',
                                       gamma = 5.0)
+    elif method_name == 'NPTBussiLangevinPiston':
+        method = hoomd.md.methods.NPTBussiLangevinPiston(filter=hoomd.filter.All(),
+                                                    kT=T_star,
+                                                    S=mean_P_ref,
+                                                    tauS=0.5,
+                                                    couple='xyz')
     elif method_name == 'NVTStochastic':
         method = hoomd.md.methods.NVTStochastic(filter=hoomd.filter.All(), kT = T_star)
     integrator.methods.append(method)
@@ -91,8 +96,10 @@ def test_lj_equation_of_state(
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=T_star)
     if method_name == 'NVT':
         method.thermalize_thermostat_dof()
-    elif method_name == 'NPT':
+    elif method_name == 'NPT' or method_name == 'NPTLangevinPiston':
         method.thermalize_thermostat_and_barostat_dof()
+    elif method_name == 'NPTBussiLangevinPiston':
+        method.thermalize_barostat_dof()
     sim.run(equilibration_steps)
 
     # log energy and pressure
