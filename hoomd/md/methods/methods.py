@@ -292,10 +292,10 @@ class NPH(Method):
     def _attach(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = _md.TwoStepNPTMTTKBase
+            cpp_cls = _md.TwoStepNPTMTK
             thermo_cls = _md.ComputeThermo
         else:
-            cpp_cls = _md.TwoStepNPTMTTKBaseGPU
+            cpp_cls = _md.TwoStepNPTMTKGPU
             thermo_cls = _md.ComputeThermoGPU
 
         cpp_sys_def = self._simulation.state._cpp_sys_def
@@ -307,7 +307,7 @@ class NPH(Method):
 
         self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
                                 thermo_full_step, self.tauS, self.kT,
-                                self.S, self.couple, self.box_dof, True)
+                                self.S, self.couple, self.box_dof, True, self.gamma)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -322,7 +322,7 @@ class NPH(Method):
         else:
             return (value, value, value, 0, 0, 0)
 
-    def thermalize_barostat_dof(self):
+    def thermalize_thermostat_and_barostat_dof(self):
         r"""Set the barostat momentum to random values.
 
         `thermalize_barostat_dof` sets a random value for the
@@ -342,7 +342,7 @@ class NPH(Method):
                                "thermalize_thermostat_and_barostat_dof")
 
         self._simulation._warn_if_seed_unset()
-        self._cpp_obj.thermalizeBarostatDOF(self._simulation.timestep)
+        self._cpp_obj.thermalizeThermostatAndBarostatDOF(self._simulation.timestep)
 
     @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):
