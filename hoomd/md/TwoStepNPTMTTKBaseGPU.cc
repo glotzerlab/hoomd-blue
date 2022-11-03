@@ -278,7 +278,7 @@ void TwoStepNPTMTTKBaseGPU::integrateStepTwo(uint64_t timestep)
 
     // Martyna-Tobias-Klein correction
     //Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-    const auto&& rescalingFactors = NPT_thermo_rescale_factor_one(timestep);
+    const auto&& rescalingFactors = NPT_thermo_rescale_factor_two(timestep);
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                    access_location::device,
