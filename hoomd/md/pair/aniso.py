@@ -238,6 +238,48 @@ class GayBerne(AnisotropicPair):
         return super()._return_type_shapes()
 
 
+class RotationalCoupling(AnisotropicPair):
+    r"""Rotational coupling anisotropic pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+
+    `RotationalCoupling` computes an hydrodynamic anisotropic pair force on
+    every particle in the simulation state that couples to the angular momenta
+    of the pair. This version of the force is based on lubrication theory.
+
+    Example::
+
+        nl = nlist.Cell()
+        rotational_coupling = md.pair.aniso.RotationalCoupling(nlist=nl,
+                              default_r_cut=2.5)
+        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45, tau=0.5)
+        rotational_coupling.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
+
+    .. py:attribute:: params
+
+        The Gay-Berne potential parameters. The dictionary has the following
+        keys:
+
+        * ``kappa`` (`float`, **required**) - :math:`\varepsilon`
+          :math:`[\mathrm{energy}]`
+        * ``tau`` (`float`, **required**) - :math:`\ell_\perp`
+          :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+    _cpp_class_name = "AnisoPotentialPairRotationalCoupling"
+
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(kappa=float, tau=float, len_keys=2))
+        self._add_typeparam(params)
+
+
 class ALJ(AnisotropicPair):
     r"""Anistropic LJ force.
 
