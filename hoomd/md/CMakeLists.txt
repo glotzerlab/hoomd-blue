@@ -8,6 +8,7 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairALJ3.cc
                    AnisoPotentialPairDipole.cc
                    AnisoPotentialPairGB.cc
+                   AnisoPotentialPairRotationalCoupling.cc
                    AlchemyData.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
@@ -106,6 +107,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
+                EvaluatorPairRotationalCoupling.h
                 EvaluatorPairExpandedLJ.h
                 EvaluatorPairTable.h
                 EvaluatorPairTWF.h
@@ -207,6 +209,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            AnisoPotentialPairALJ3GPU.cc
                            AnisoPotentialPairDipoleGPU.cc
                            AnisoPotentialPairGBGPU.cc
+                           AnisoPotentialPairRotationalCouplingGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
@@ -242,6 +245,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
+                      AnisoPotentialPairRotationalCouplingGPUKernel.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
                       BondTablePotentialGPU.cu
