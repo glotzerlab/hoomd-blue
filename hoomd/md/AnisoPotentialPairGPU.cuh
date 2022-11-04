@@ -265,9 +265,9 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         vec3<Scalar> ai;
         if (evaluator::needsAngularMomentum())
             {
-            quat<scalar> p(__ldg(d_angmom + idx));
-            quat<scalar> q(quati);
-            ai = (scalar(1. / 2.) * conj(q) * p).v;
+            quat<Scalar> p(__ldg(d_angmom + idx));
+            quat<Scalar> q(quati);
+            ai = (Scalar(1. / 2.) * conj(q) * p).v;
             }
 
         size_t my_head = d_head_list[idx];
@@ -304,9 +304,9 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 vec3<Scalar> aj;
                 if (evaluator::needsAngularMomentum())
                     {
-                    quat<scalar> p(__ldg(d_angmom + cur_j));
-                    quat<scalar> q(quatj);
-                    aj = (scalar(1. / 2.) * conj(q) * p).v;
+                    quat<Scalar> p(__ldg(d_angmom + cur_j));
+                    quat<Scalar> q(quatj);
+                    aj = (Scalar(1. / 2.) * conj(q) * p).v;
                     }
 
                 // calculate dr (with periodic boundary conditions)
