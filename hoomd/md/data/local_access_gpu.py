@@ -49,9 +49,18 @@ Attributes:
 """
 
 ForceLocalAccessGPU.__doc__ = _gpu_force_access_docs
-# TODO fix docs
 _gpu_nlist_access_docs = """
 Access HOOMD-Blue neighbor list data buffers on the GPU.
+
+The internal `NeighborList` implementation of HOOMD is comprised of
+essentially three array buffers. The buffers are:
+* ``'nlist'``: Ragged array of neighbor of neighbor data.
+* ``'head_list'``: Indexes for particles to read from the neighbor list.
+* ``'n_neigh'``: Number of neighbors for each particle.
+
+The neighbor indices of particle :math:`i` are stored in the slice
+``nlist[head_list[i]:head_list[i]+n_neigh[i]]``. The result of access
+outside of these bounds is undefined.
 
 Attributes:
     head_list ((N_particles,) `hoomd.data.array` of ``unsigned long``):
@@ -60,6 +69,10 @@ Attributes:
         Number of neighbors.
     nlist ((...) `hoomd.data.array` of ``unsigned int``):
         Raw neighbor list data.
+    storage_mode (``str``):
+        Storage mode of the neighbor list.
+    third_law (``bool``):
+        Convenience property to check if storage_mode is 'half'.
 """
 
 NeighborListLocalAccessGPU.__doc__ = _gpu_nlist_access_docs

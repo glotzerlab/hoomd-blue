@@ -1781,6 +1781,16 @@ pybind11::array_t<uint32_t> NeighborList::getLocalPairListPython(uint64_t timest
 
     auto* pair_list = new std::vector<vec2<uint32_t>>();
 
+    // We can get an upper bound for the number of pairs by accumulating n_neigh,
+    // but without explicitly checking tags we cannot be sure of the number of duplicates
+    size_t max_n_elem = 0;
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        max_n_elem += h_n_neigh.data[i];
+        }
+
+    pair_list->reserve(max_n_elem);
+
     pybind11::capsule delete_when_done(pair_list,
                                        [](void* f)
                                        {
@@ -1803,6 +1813,8 @@ pybind11::array_t<uint32_t> NeighborList::getLocalPairListPython(uint64_t timest
             pair_list->push_back(vec2(i, j));
             }
         }
+
+    pair_list->shrink_to_fit();
 
     unsigned long shape[] = {pair_list->size(), 2};
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
@@ -1829,9 +1841,18 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
 
     ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
 
-    auto* pair_list = new std::vector<vec2<uint32_t>>();
+    // We can get an upper bound for the number of pairs by accumulating n_neigh,
+    // but without explicitly checking tags we cannot be sure of the number of duplicates
+    size_t max_n_elem = 0;
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        max_n_elem += h_n_neigh.data[i];
+        }
 
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
+    auto* pair_list = new std::vector<vec2<uint32_t>>();
+    pair_list->reserve(max_n_elem);
+
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         unsigned int tag_i = h_tags.data[i];
         const size_t my_head = h_head_list.data[i];
@@ -1852,59 +1873,59 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
 #ifdef ENABLE_MPI
 
     uint32_t* global_pair_list = nullptr;
-    pybind11::capsule free_when_done;
+    pybind11::capsule delete_when_done;
     unsigned long shape[] = {0, 2}; // first index needs to be set later
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
 
     if (m_sysdef->isDomainDecomposed())
         {
-        auto n_elem = 2 * (int)pair_list->size();
-        std::vector<int>* global_n_elem;
+        max_n_elem = pair_list->size();
+        // Throw error if n_elem does not fit into an int
+        if (max_n_elem > std::numeric_limits<int>::max() / 2)
+            throw std::runtime_error("The pair list is too large to be communicated with MPI. \
+                                        For the time being, please use the rank local pair list.");
+        auto n_elem = static_cast<int>(2 * max_n_elem);
+        std::vector<int> global_n_elem;
         void* recvbuf = nullptr;
         if (root)
             {
-            global_n_elem = new std::vector<int>();
-            for (unsigned int i = 0; i < m_exec_conf->getNRanks(); i++)
-                {
-                global_n_elem->push_back(0);
-                }
-            recvbuf = global_n_elem->data();
+            global_n_elem = std::vector<int>(m_exec_conf->getNRanks(), 0);
+            recvbuf = global_n_elem.data();
             }
 
         // Use a gather command to get the number of pairs on each processor
         MPI_Gather(&n_elem, 1, MPI_INT, recvbuf, 1, MPI_INT, 0, m_exec_conf->getMPICommunicator());
 
         // Allocate array to hold the offsets
-        std::vector<int>* offsets;
+        std::vector<int> offsets;
         int* recvcount = nullptr;
         int* displs = nullptr;
-        int total_elements = 0;
+        long total_elements = 0;
         if (root)
             {
-            offsets = new std::vector<int>();
-            offsets->reserve(m_exec_conf->getNRanks());
-            offsets->push_back(0);
-            total_elements = global_n_elem->data()[0];
-            for (unsigned int i = 1; i < m_exec_conf->getNRanks(); i++)
-                {
-                offsets->push_back(offsets->data()[i - 1] + global_n_elem->data()[i - 1]);
-                total_elements += global_n_elem->data()[i];
-                }
-            recvcount = global_n_elem->data();
-            displs = offsets->data();
+            offsets = std::vector<int>(m_exec_conf->getNRanks(), 0);
+            total_elements = std::accumulate(global_n_elem.begin(), global_n_elem.end(), 0);
+            std::partial_sum(global_n_elem.begin(), global_n_elem.end() - 1, offsets.begin() + 1);
+            recvcount = global_n_elem.data();
+            displs = offsets.data();
             }
+
+        if (total_elements > std::numeric_limits<int>::max())
+            throw std::runtime_error("The pair list is too large to be communicated with MPI. \
+                                      For the time being, please use the rank local pair list.");
 
         // Use a gatherv command to produce the global_pair_list
         if (root)
             {
-            global_pair_list = (uint32_t*)malloc(sizeof(uint32_t) * total_elements);
-            free_when_done = pybind11::capsule(global_pair_list,
-                                               [](void* f)
-                                               {
-                                                   auto data = reinterpret_cast<uint32_t*>(f);
-                                                   free(data);
-                                               });
+            global_pair_list = new unsigned int[total_elements];
+            delete_when_done = pybind11::capsule(global_pair_list,
+                                                 [](void* f)
+                                                 {
+                                                     auto data = reinterpret_cast<uint32_t*>(f);
+                                                     delete[] data;
+                                                 });
             }
+
         shape[0] = total_elements / 2;
 
         MPI_Gatherv(pair_list->data(),
@@ -1919,18 +1940,13 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
 
         // cleanup allocations
         delete pair_list;
-        if (root)
-            {
-            delete global_n_elem;
-            delete offsets;
-            }
         }
     else
         {
         // Simulation is not domain decomposed.
-        global_pair_list = (uint32_t*)pair_list->data();
+        global_pair_list = reinterpret_cast<uint32_t*>(pair_list->data());
         shape[0] = pair_list->size();
-        free_when_done
+        delete_when_done
             = pybind11::capsule(pair_list,
                                 [](void* f)
                                 {
@@ -1941,15 +1957,9 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
 
     if (root)
         {
-        return pybind11::array_t(shape,
-                                 stride,
-                                 global_pair_list,
-                                 free_when_done);
+        return pybind11::array_t(shape, stride, global_pair_list, delete_when_done);
         }
-    else
-        {
-        return pybind11::none();
-        }
+    return pybind11::none();
 
 #else
     auto* global_pair_list = pair_list;
@@ -1965,9 +1975,9 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
     unsigned long shape[] = {global_pair_list->size(), 2};
     unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
 
-    return pybind11::array_t(shape,                               // shape
-                             stride,                              // stride
-                             (uint32_t*)global_pair_list->data(), // data pointer
+    return pybind11::array_t(shape,
+                             stride,
+                             reinterpret_cast<uint32_t*>(global_pair_list->data()),
                              delete_when_done);
 #endif
     }
@@ -2048,10 +2058,14 @@ void export_NeighborList(pybind11::module& m)
         .def_property_readonly("num_builds", &NeighborList::getNumUpdates)
         .def("getLocalPairList", &NeighborList::getLocalPairListPython)
         .def("getPairList", &NeighborList::getPairListPython)
-        .def("getStorageMode", &NeighborList::getStorageMode)
         .def("setRCut", &NeighborList::setRCutPython)
-        .def("getRCut", &NeighborList::getRCut);
+        .def("getRCut", &NeighborList::getRCut)
+        .def("compute", &NeighborList::compute);
 
+    pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
+        .value("half", NeighborList::storageMode::half)
+        .value("full", NeighborList::storageMode::full)
+        .export_values();
     };
 
 void export_LocalNeighborListDataHost(pybind11::module& m)

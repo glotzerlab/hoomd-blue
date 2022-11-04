@@ -51,6 +51,14 @@ class _NeighborListLocalAccessBase(hoomd.data.local_access._LocalAccess):
         'nlist': 'getNList'
     }
 
+    @property
+    def storage_mode(self):
+        return self._cpp_obj.getStorageMode()
+
+    @property
+    def third_law(self):
+        return self._cpp_obj.isThirdLaw()
+
     def __init__(self, nlist_obj):
         super().__init__()
         self._nlist_obj = nlist_obj

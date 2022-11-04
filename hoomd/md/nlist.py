@@ -36,6 +36,21 @@ Note:
     `NeighborList.buffer` between the two extremes that provides the best
     performance.
 
+.. rubric:: Base distance cutoff
+
+The `NeighborList.r_cut` attribute can be used to set the base cutoff distance
+for neighbor list queries. The actual cutoff distance is always the maximum
+:math:`r_{\mathrm{cut},i,j}` of the base cutoff and associated pair potentials.
+
+Note:
+    This attribute is particularly useful for implementing custom pair forces in
+    Python.
+
+Attention:
+    Users should only set this attribute when utilizing the accessor APIs,
+    `pair_list`, `local_pair_list`, `cpu_local_nlist_arrays`, or
+    `gpu_local_nlist_arrays`.
+
 .. rubric:: Exclusions
 
 Neighbor lists nominally include all particles within the chosen cutoff
@@ -72,9 +87,11 @@ from hoomd.operation import Compute
 class NeighborList(Compute):
     r"""Base class neighbor list.
 
-    Note:
-        `NeighborList` is the base class for all neighbor lists. Users should
-        not instantiate this class directly.
+    `NeighborList` is the base class for all neighbor lists.
+
+    Warning:
+        Users should not instantiate this class directly. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     Attributes:
         buffer (float): Buffer width :math:`[\mathrm{length}]`.
@@ -84,6 +101,17 @@ class NeighborList(Compute):
             list.
         check_dist (bool): Flag to enable / disable distance checking.
         mesh (Mesh): mesh data structure (optional)
+        default_r_cut (float): Default cutoff distance :math:`[\mathrm{length}]`
+            (optional).
+
+    .. py:attribute:: r_cut
+
+        Base cutoff radius for neighbor list queries.
+        :math:`[\mathrm{length}]`. *Optional*: defaults to the value
+        ``default_r_cut`` specified on construction.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `float`])
     """
 
     def __init__(self, buffer, exclusions, rebuild_check_delay, check_dist,
@@ -99,10 +127,7 @@ class NeighborList(Compute):
         tp_r_cut = TypeParameter(
             'r_cut', 'particle_types',
             TypeParameterDict(nonnegative_real, len_keys=2))
-        if default_r_cut is None:
-            tp_r_cut.default = 0.0
-        else:
-            tp_r_cut.default = default_r_cut
+        tp_r_cut.default = default_r_cut
         self._add_typeparam(tp_r_cut)
 
         # default exclusions
@@ -133,8 +158,8 @@ class NeighborList(Compute):
         Provides direct acces to the neighbor list arrays on the cpu. All data
         is MPI rank-local.
 
-        The `hoomd.md.data.NeighborListLocalAccess` object exposes the three
-        arrays to efficently iterate over the neighbor list.
+        The `hoomd.md.data.NeighborListLocalAccess` object exposes the internal
+        data representation to efficently iterate over the neighbor list.
 
         Note:
             The local arrays are read only.
@@ -154,6 +179,7 @@ class NeighborList(Compute):
             raise RuntimeError("Cannot enter cpu_local_nlist_arrays context "
                                "manager inside another local_nlist_arrays "
                                "context manager")
+        self._cpp_obj.compute(self._simulation.timestep)
         return hoomd.md.data.NeighborListLocalAccess(self)
 
     @property
@@ -164,20 +190,75 @@ class NeighborList(Compute):
         Provides direct access to the neighbor list arrays on the gpu. All data
         is MPI rank-local.
 
-        The `hoomd.md.data.NeighborListLocalAccessGPU` object exposes the three
-        arrays to efficently iterate over the neighbor list.
+        The `hoomd.md.data.NeighborListLocalAccessGPU` object exposes the
+        internal data representation to efficently iterate over the neighbor
+        list.
 
         Note:
             The local arrays are read only.
 
         See Also:
-            `cpu_local_nlist_arrays` for an example of how the arrays are
-            accessed
+            `cpu_local_nlist_arrays`
 
         Examples::
 
-            with self.gpu_local_nlist_arrays as arrays:
-                # use cupy, Numba CUDA, or another interface to use the arrays
+            get_local_pairs = cupy.RawKernel(r'''
+            extern "C" __global__
+            void get_local_pairs(
+                    const unsigned int N,
+                    const unsigned long* heads,
+                    const unsigned int* nns,
+                    const unsigned int* nlist,
+                    const unsigned int* tags,
+                    const unsigned long* offsets,
+                    unsigned long* pairs) {
+                unsigned int i = (unsigned int)
+                    (blockDim.x * blockIdx.x + threadIdx.x);
+                if (i >= N)
+                    return;
+                uint2* pair = (uint2*)pairs;
+                unsigned long head = heads[i];
+                unsigned int nn = nns[i];
+                unsigned long offset = offsets[i];
+                unsigned int tag_i = tags[i];
+                for (unsigned int idx = 0; idx < nn; idx++) {
+                    unsigned int j = nlist[head + idx];
+                    pair[offset + idx] = make_uint2(tag_i, tags[j]);
+                }
+            }
+            ''', 'get_local_pairs')
+
+            with nlist.gpu_local_nlist_arrays as data:
+                with sim.state.gpu_local_snapshot as snap_data:
+                    tags = snap_data.particles.tag_with_ghost
+                    tags = tags._coerce_to_ndarray()
+
+                    head_list = data.head_list._coerce_to_ndarray()
+                    n_neigh = data.n_neigh._coerce_to_ndarray()
+                    raw_nlist = data.nlist._coerce_to_ndarray()
+
+                    N = int(head_list.size)
+                    n_pairs = int(cupy.sum(n_neigh))
+                    offsets = cupy.cumsum(n_neigh.astype(cupy.uint64)
+                    offsets -= n_neigh[0]
+                    device_local_pairs = cupy.zeros(
+                        (n_pairs, 2),
+                        dtype=cupy.uint32)
+
+                    block = 256
+                    n_grid = (N + 255) // 256
+                    get_local_pairs(
+                        (n_grid,),
+                        (block,),
+                        (
+                            N,
+                            head_list,
+                            n_neigh,
+                            raw_nlist,
+                            tags,
+                            offsets,
+                            device_local_pairs
+                        ))
 
         Note:
             GPU local nlist data is not available if the chosen device for the
@@ -192,6 +273,7 @@ class NeighborList(Compute):
             raise RuntimeError(
                 "Cannot enter gpu_local_nlist_arrays context manager inside "
                 "another local_nlist_arrays context manager")
+        self._cpp_obj.compute(self._simulation.timestep)
         return hoomd.md.data.NeighborListLocalAccessGPU(self)
 
     @property
@@ -254,6 +336,7 @@ class Cell(NeighborList):
         mesh (Mesh): When a mesh object is passed, the neighbor list uses the
             mesh to determine the bond exclusions in addition to all other
             set exclusions.
+        default_r_cut
 
     `Cell` finds neighboring particles using a fixed width cell list, allowing
     for *O(kN)* construction of the neighbor list where *k* is the number of

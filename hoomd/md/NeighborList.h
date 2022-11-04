@@ -509,19 +509,19 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
     /// Get the local pair list from Python
     pybind11::array_t<uint32_t> getLocalPairListPython(uint64_t timestep);
-    
+
     /// Get the global pair list from Python
     pybind11::object getPairListPython(uint64_t timestep);
-    
+
     /// Validate that types are within Ntypes
     void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
-    
+
     /// Set the rcut for a single type pair
     virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
-    
+
     /// Get the r_cut for a single type pair
     Scalar getRCut(pybind11::tuple types);
-    
+
     /// Set the rcut for a single type pair using a tuple of strings
     virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
 
@@ -731,6 +731,8 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
 
     Output getHeadList(GhostDataFlag flag)
         {
+        if (flag != GhostDataFlag::standard)
+            throw std::runtime_error("'getHeadList' does not support ghost data access.");
         return this->template getBuffer<size_t, unsigned long>(m_head_list_handle,
                                                                &NeighborList::getHeadList,
                                                                flag,
@@ -740,6 +742,8 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
 
     Output getNNeigh(GhostDataFlag flag)
         {
+        if (flag != GhostDataFlag::standard)
+            throw std::runtime_error("'getNNeigh' does not support ghost data access.");
         return this->template getBuffer<unsigned int, unsigned int>(m_n_neigh_handle,
                                                                     &NeighborList::getNNeighArray,
                                                                     flag,
@@ -747,8 +751,11 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
                                                                     0);
         }
 
+    // GhostDataFlag is ignored by this method, but required by the python interface
     Output getNList(GhostDataFlag flag)
         {
+        if (flag != GhostDataFlag::standard)
+            throw std::runtime_error("'getNList' does not support ghost data access.");
         auto size = (unsigned int)this->m_data.getNListArray().getNumElements();
         return this->template getBufferExplicitSize<unsigned int, unsigned int>(
             m_nlist_handle,
@@ -756,6 +763,16 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
             false,
             size,
             0);
+        }
+
+    NeighborList::storageMode getStorageMode()
+        {
+        return this->m_data.getStorageMode();
+        }
+
+    bool isThirdLaw()
+        {
+        return this->m_data.getStorageMode() == NeighborList::storageMode::half;
         }
 
     protected:
@@ -784,6 +801,8 @@ template<class Output> void export_LocalNeighborListData(pybind11::module& m, st
         .def("getNList", &LocalNeighborListData<Output>::getNList)
         .def("getHeadList", &LocalNeighborListData<Output>::getHeadList)
         .def("getNNeigh", &LocalNeighborListData<Output>::getNNeigh)
+        .def("getStorageMode", &LocalNeighborListData<Output>::getStorageMode)
+        .def("isThirdLaw", &LocalNeighborListData<Output>::isThirdLaw)
         .def("enter", &LocalNeighborListData<Output>::enter)
         .def("exit", &LocalNeighborListData<Output>::exit);
     };
