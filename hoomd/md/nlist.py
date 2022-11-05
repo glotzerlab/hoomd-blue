@@ -292,7 +292,7 @@ class NeighborList(Compute):
         """(*N_pairs*, 2) `numpy.ndarray` of `numpy.uint32`: Global pair list.
 
         Note:
-            The pair list returns particle *tag*, not rank-local indices.
+            The pair list returns particle *tags*, not rank-local indices.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
