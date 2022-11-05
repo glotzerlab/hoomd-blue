@@ -765,7 +765,7 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
             0);
         }
 
-    bool isThirdLaw()
+    bool isHalfNlist()
         {
         return this->m_data.getStorageMode() == NeighborList::storageMode::half;
         }
@@ -796,7 +796,7 @@ template<class Output> void export_LocalNeighborListData(pybind11::module& m, st
         .def("getNList", &LocalNeighborListData<Output>::getNList)
         .def("getHeadList", &LocalNeighborListData<Output>::getHeadList)
         .def("getNNeigh", &LocalNeighborListData<Output>::getNNeigh)
-        .def("isThirdLaw", &LocalNeighborListData<Output>::isThirdLaw)
+        .def("isHalfNlist", &LocalNeighborListData<Output>::isHalfNlist)
         .def("enter", &LocalNeighborListData<Output>::enter)
         .def("exit", &LocalNeighborListData<Output>::exit);
     };

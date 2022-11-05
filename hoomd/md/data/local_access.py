@@ -52,12 +52,8 @@ class _NeighborListLocalAccessBase(hoomd.data.local_access._LocalAccess):
     }
 
     @property
-    def storage_mode(self):
-        return self._cpp_obj.getStorageMode()
-
-    @property
-    def third_law(self):
-        return self._cpp_obj.isThirdLaw()
+    def half_nlist(self):
+        return self._cpp_obj.isHalfNlist()
 
     def __init__(self, nlist_obj):
         super().__init__()

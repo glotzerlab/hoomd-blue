@@ -40,7 +40,10 @@ class NeighborListLocalAccess(_NeighborListLocalAccessBase):
 
     The neighbor indices of particle :math:`i` are stored in the slice
     ``nlist[head_list[i]:head_list[i]+n_neigh[i]]``. The result of access
-    outside of these bounds is undefined.
+    outside of these bounds is undefined. The `half_nlist` property is used to
+    query whether the neighbor list stores a single copy for each pair (True),
+    or two copies for each pair (False). Under MPI, pairs that cross domains
+    are stored twice, once in each domain rank.
 
     Attributes:
         head_list ((N_particles,) `hoomd.data.array` of ``unsigned long``):
@@ -49,7 +52,7 @@ class NeighborListLocalAccess(_NeighborListLocalAccessBase):
             Number of neighbors.
         nlist ((...) `hoomd.data.array` of ``unsigned int``):
             Raw neighbor list data.
-        third_law (``bool``):
+        half_nlist (``bool``):
             Convenience property to check if the storage mode is 'half'.
     """
 

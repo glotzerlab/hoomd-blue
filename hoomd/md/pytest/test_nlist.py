@@ -405,9 +405,9 @@ def _check_local_pairs_with_mpi(tag_pair_list, broadcast=False):
         return comm.bcast(global_pairs, root=0)
 
 
-def _check_local_pair_counts(sim, global_pairs, third_law=True):
+def _check_local_pair_counts(sim, global_pairs, half_nlist=True):
 
-    if third_law:
+    if half_nlist:
         local_count = 1
     else:
         local_count = 2
@@ -472,7 +472,7 @@ def test_cpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory,
     with nlist.cpu_local_nlist_arrays as data:
         with sim.state.cpu_local_snapshot as snap_data:
 
-            third_law = data.third_law
+            half_nlist = data.half_nlist
 
             tags = snap_data.particles.tag_with_ghost
             for i, (head, nn) in enumerate(zip(data.head_list, data.n_neigh)):
@@ -487,7 +487,7 @@ def test_cpu_local_nlist_arrays(simulation_factory, lattice_snapshot_factory,
         global_pairs = _check_local_pairs_with_mpi(tag_pair_list,
                                                    broadcast=True)
 
-        _check_local_pair_counts(sim, global_pairs, third_law)
+        _check_local_pair_counts(sim, global_pairs, half_nlist)
 
 
 @pytest.mark.parametrize("setup", pair_setup_funcs)
@@ -540,7 +540,7 @@ void get_local_pairs(
         with sim.state.gpu_local_snapshot as snap_data:
             tags = snap_data.particles.tag_with_ghost._coerce_to_ndarray()
 
-            third_law = data.third_law
+            half_nlist = data.half_nlist
 
             head_list = data.head_list._coerce_to_ndarray()
             n_neigh = data.n_neigh._coerce_to_ndarray()
@@ -566,4 +566,4 @@ void get_local_pairs(
     if full and MPI4PY_IMPORTED:
         global_pairs = _check_local_pairs_with_mpi(local_pairs, broadcast=True)
 
-        _check_local_pair_counts(sim, global_pairs, third_law)
+        _check_local_pair_counts(sim, global_pairs, half_nlist)
