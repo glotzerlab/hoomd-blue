@@ -287,7 +287,7 @@ class NPH(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
@@ -308,7 +308,7 @@ class NPH(Method):
                                 self.S, self.couple, self.box_dof, True, self.gamma)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
     @staticmethod
     def _preprocess_stress(value):
@@ -581,7 +581,7 @@ class NPT(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
@@ -602,7 +602,7 @@ class NPT(Method):
                                 self.S, self.couple, self.box_dof, False)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
     def _preprocess_stress(self, value):
         if isinstance(value, Sequence):
@@ -1351,7 +1351,7 @@ class NVTStochastic(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -1365,7 +1365,7 @@ class NVTStochastic(Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group)
         self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.kT)
-        super()._attach()
+        super()._attach_hook()
 
 class Langevin(Method):
     r"""Langevin dynamics.
