@@ -39,7 +39,7 @@ TwoStepNVTStochastic::TwoStepNVTStochastic(std::shared_ptr<SystemDefinition> sys
 
     namespace detail{
         void export_TwoStepNVTStochastic(pybind11::module& m){
-            pybind11::class_<TwoStepNVTStochastic, TwoStepNVTBase, std::shared_ptr<TwoStepNVTStochastic>>(m, "TwoStepNVTStochastic")
+            pybind11::class_<TwoStepNVTStochastic, TwoStepNVTBase, std::shared_ptr<TwoStepNVTStochastic>>(m, "TwoStepNVTStochastic", pybind11::multiple_inheritance())
             .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<ComputeThermo>, std::shared_ptr<Variant>>());
             }
         }

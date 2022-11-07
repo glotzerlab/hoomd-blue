@@ -201,7 +201,8 @@ void export_TwoStepNVTMTK(pybind11::module& m)
     {
     pybind11::class_<TwoStepNVTMTK, TwoStepNVTBase, std::shared_ptr<TwoStepNVTMTK>>(
         m,
-        "TwoStepNVTMTK")
+        "TwoStepNVTMTK",
+        pybind11::multiple_inheritance())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,

@@ -124,7 +124,7 @@ void TwoStepNPTLangevinPiston::advanceBarostat(uint64_t timestep)
 
 namespace detail{
 void export_TwoStepNPTLangevinPiston(pybind11::module& m){
-    pybind11::class_<TwoStepNPTLangevinPiston, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTLangevinPiston>>(m, "TwoStepNPTLangevinPiston")
+    pybind11::class_<TwoStepNPTLangevinPiston, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTLangevinPiston>>(m, "TwoStepNPTLangevinPiston", pybind11::multiple_inheritance())
         .def(pybind11::init<std::shared_ptr<SystemDefinition> ,
                             std::shared_ptr<ParticleGroup> ,
                             std::shared_ptr<ComputeThermo> ,

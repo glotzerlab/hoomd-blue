@@ -19,6 +19,9 @@ class PYBIND11_EXPORT TwoStepNVTBase : public IntegrationMethodTwoStep
                    std::shared_ptr<ParticleGroup> group,
                    std::shared_ptr<ComputeThermo> thermo,
                    std::shared_ptr<Variant> T) : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_T(T) {}
+
+    virtual ~TwoStepNVTBase() {}
+
     /// Get the current temperature variant
     std::shared_ptr<Variant> getT()
         {

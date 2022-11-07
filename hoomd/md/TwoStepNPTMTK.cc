@@ -320,7 +320,7 @@ namespace detail
 void export_TwoStepNPTMTK(pybind11::module& m)
     {
     pybind11::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
-        twostepnptmtk(m, "TwoStepNPTMTK");
+        twostepnptmtk(m, "TwoStepNPTMTK", pybind11::multiple_inheritance());
     twostepnptmtk
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,

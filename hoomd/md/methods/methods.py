@@ -304,8 +304,8 @@ class NPH(Method):
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
-                                thermo_full_step, self.tauS, self.kT,
-                                self.S, self.couple, self.box_dof, True, self.gamma)
+                                thermo_full_step, 1.0, self.tauS, self.kT,
+                                self.S, self.couple, self.box_dof, True)
 
         # Attach param_dict and typeparam_dict
         super()._attach_hook()
