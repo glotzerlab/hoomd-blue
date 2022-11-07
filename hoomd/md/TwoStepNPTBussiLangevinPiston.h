@@ -33,6 +33,12 @@ class TwoStepNPTBussiLangevinPiston : public virtual TwoStepNPTMTTKBase{
             const auto ntdof = m_thermo_half_step->getTranslationalDOF();
             const auto nrdof = m_thermo_half_step->getRotationalDOF();
 
+            if((ntdof != 0 && m_thermo_half_step->getTranslationalKineticEnergy() == 0) ||
+                (nrdof != 0 && m_thermo_half_step->getRotationalKineticEnergy() == 0))
+                {
+                throw std::runtime_error("Bussi thermostat requires non-zero initial temperatures");
+                }
+
             RandomGenerator rng(
                 Seed(RNGIdentifier::StochasticVRescale, timestep, m_sysdef->getSeed()),
                 0);

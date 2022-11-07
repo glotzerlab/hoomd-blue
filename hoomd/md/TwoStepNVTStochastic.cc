@@ -20,7 +20,11 @@ TwoStepNVTStochastic::TwoStepNVTStochastic(std::shared_ptr<SystemDefinition> sys
 
         const auto ntdof = m_thermo->getTranslationalDOF();
         const auto nrdof = m_thermo->getRotationalDOF();
-
+        if((ntdof != 0 && m_thermo->getTranslationalKineticEnergy() == 0) ||
+            (nrdof != 0 && m_thermo->getRotationalKineticEnergy() == 0))
+            {
+            throw std::runtime_error("Bussi thermostat requires non-zero initial temperatures");
+            }
         RandomGenerator rng(Seed(RNGIdentifier::StochasticVRescale, timestep,m_sysdef->getSeed()), 0);
 
         const auto set_T = (*m_T)(timestep);
