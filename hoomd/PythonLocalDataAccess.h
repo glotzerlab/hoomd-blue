@@ -334,9 +334,70 @@ template<class Output, class Data> class LocalDataAccess
                             true);
         }
 
+    /// Convert Global/GPUArray or vector into an Ouput object for Python
+    /** This function is for arrays that have sizes which cannot be inferred
+     *  from local or global particle information. An example is the internal
+     *  neighbor list buffer which scales with the number of neighbor pairs.
+     *
+     *  Template parameters:
+     *  T: the value stored in the by the internal array (i.e. the template
+     *  parameter of the ArrayHandle)
+     *  S: the exposed type of data to Python
+     *  U: the templated array class returned by the parameter
+     *  get_array_func. It is templated off of T (which means that if
+     *  U=GlobalArray then the full type is GlobalArray<T>)
+     *
+     *  Arguments:
+     *  handle: a reference to the unique_ptr that holds the ArrayHandle.
+     *  get_array_func: the method of m_data to use to access the array.
+     *  bufferWriteable: Whether this buffer should be read-only or not. If false,
+     *  the exposed buffer is read-only.
+     *  size: the size of the primary dimension
+     *  second_dimension_size: the size of the second dimension (defaults to
+     *  0)
+     *  offset: the offset in bytes from the start of the array to the
+     *  start of the exposed array in Python (defaults to no offset).
+     *  strides: the strides in bytes of the array (defaults to sizeof(T) or
+     *  {sizeof(S), sizeof(T)} depending on dimension).
+     */
+    template<class T, class S, template<class> class U = GlobalArray>
+    Output getBufferExplicitSize(std::unique_ptr<ArrayHandle<T>>& handle,
+                                 const U<T>& (Data::*get_array_func)() const,
+                                 bool bufferWriteable,
+                                 unsigned int size,
+                                 unsigned int second_dimension_size = 0,
+                                 ssize_t offset = 0,
+                                 std::vector<ssize_t> strides = {})
+        {
+        checkManager();
+
+        bool read_only = !bufferWriteable;
+
+        updateHandle(handle, get_array_func, read_only);
+
+        T* _data = handle.get()->data;
+
+        S* data = (S*)(((char*)_data) + offset);
+
+        std::vector<ssize_t> shape {size, second_dimension_size};
+        if (strides.size() == 0 && second_dimension_size == 0)
+            {
+            shape.pop_back();
+            strides = std::vector<ssize_t>({sizeof(T)});
+            }
+        else if (strides.size() == 0 && second_dimension_size != 0)
+            {
+            strides = std::vector<ssize_t>({sizeof(T), sizeof(S)});
+            }
+        return Output::make(data, shape, strides, read_only);
+        }
+
     // clear should remove any references to ArrayHandle objects so the
     // handle can be released for other objects.
     virtual void clear() = 0;
+
+    /// object to access array data from
+    Data& m_data;
 
     private:
     /// Ensure that arrays are not accessed outside context manager.
@@ -362,8 +423,6 @@ template<class Output, class Data> class LocalDataAccess
             }
         }
 
-    /// object to access array data from
-    Data& m_data;
     /// flag for being inside Python context manager
     bool m_in_manager;
     };
