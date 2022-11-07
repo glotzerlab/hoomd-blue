@@ -66,7 +66,7 @@ namespace detail
     {
 void export_TwoStepNPTMTKGPU(pybind11::module& m)
     {
-    pybind11::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU>>(
+    pybind11::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, TwoStepNPTMTTKBaseGPU, std::shared_ptr<TwoStepNPTMTKGPU>>(
         m,
         "TwoStepNPTMTKGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,

@@ -22,9 +22,9 @@ class TwoStepNPTBussiLangevinPistonGPU : public TwoStepNPTBussiLangevinPiston, p
                                      const std::string& couple,
                                      const std::vector<bool>& flags,
                                      const bool nph = false):
+            TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph),
             TwoStepNPTBussiLangevinPiston(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph),
-            TwoStepNPTMTTKBaseGPU(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph),
-            TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph)
+            TwoStepNPTMTTKBaseGPU(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph)
             {}
 
     };

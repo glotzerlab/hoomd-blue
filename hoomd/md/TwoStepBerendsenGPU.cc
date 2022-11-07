@@ -39,7 +39,7 @@ namespace detail
     {
 void export_BerendsenGPU(pybind11::module& m)
     {
-    pybind11::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU>>(
+    pybind11::class_<TwoStepBerendsenGPU, TwoStepBerendsen, TwoStepNVTBaseGPU, std::shared_ptr<TwoStepBerendsenGPU>>(
         m,
         "TwoStepBerendsenGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
