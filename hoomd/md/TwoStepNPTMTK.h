@@ -62,7 +62,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTMTTKBase
                   const std::vector<bool>& flags,
                   const bool nph = false);
 
-    virtual ~TwoStepNPTMTK();
+    ~TwoStepNPTMTK() override;
 
     //! Update the tau value
     /*! \param tau New time constant to set
@@ -129,9 +129,9 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTMTTKBase
 
 
     //! Helper function to advance the barostat parameters
-    virtual void advanceBarostat(uint64_t timestep);
+    void advanceBarostat(uint64_t timestep) override;
 
-    virtual void advanceThermostat(uint64_t timestep);
+    void advanceThermostat(uint64_t timestep) override;
 
    // void updatePropagator() override;
     };
