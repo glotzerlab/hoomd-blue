@@ -85,7 +85,7 @@ jobs:
       shell: bash
 
     - name: Checkout
-      uses: actions/checkout@v3.0.2
+      uses: actions/checkout@v3.1.0
       with:
         path: code
         submodules: true
@@ -192,7 +192,7 @@ jobs:
       shell: bash
 
     - name: Download install
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v3.0.1
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -250,7 +250,7 @@ jobs:
       shell: bash
 
     - name: Download build
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v3.0.1
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
@@ -295,7 +295,7 @@ jobs:
       shell: bash
 
     - name: Download install
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v3.0.1
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -351,7 +351,7 @@ jobs:
       shell: bash
 
     - name: Checkout
-      uses: actions/checkout@v3.0.2
+      uses: actions/checkout@v3.1.0
       with:
         path: code
         submodules: true
@@ -467,7 +467,7 @@ jobs:
       shell: bash
 
     - name: Download install
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v3.0.1
       with:
         name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
@@ -534,7 +534,7 @@ jobs:
       shell: bash
 
     - name: Download build
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v3.0.1
       with:
         name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build

@@ -67,9 +67,9 @@ class CPPExternalPotential(ExternalField):
         Your code *must* return a value.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.5.0/hoomd/VectorMath.h
+            v3.6.0/hoomd/VectorMath.h
     .. _BoxDim.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.5.0/hoomd/BoxDim.h
+            v3.6.0/hoomd/BoxDim.h
 
     Example:
         .. code-block:: python
@@ -135,7 +135,7 @@ class CPPExternalPotential(ExternalField):
                         """
         return cpp_function
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator_pairs = {
             integrate.Sphere:
                 _jit.ExternalFieldJITSphere,
@@ -178,7 +178,7 @@ class CPPExternalPotential(ExternalField):
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self._simulation.device._cpp_exec_conf,
                                 cpu_code, cpu_include_options)
-        super()._attach()
+        super()._attach_hook()
 
     @log(requires_run=True)
     def energy(self):

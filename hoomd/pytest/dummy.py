@@ -80,7 +80,7 @@ class DummyOperation(Operation):
         self.id = self._current_obj_number
         self.__class__._current_obj_number += 1
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = DummyCppObj()
 
     def __eq__(self, other):

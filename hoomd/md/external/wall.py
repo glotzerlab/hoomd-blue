@@ -184,7 +184,7 @@ class WallPotential(force.Force):
         self._walls = None
         self.walls = hoomd.wall._WallsMetaList(walls, _to_md_cpp_wall)
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
@@ -201,7 +201,6 @@ class WallPotential(force.Force):
                 _ArrayViewWrapper(
                     _WallArrayViewFactory(self._cpp_obj, hoomd.wall.Plane)),
         })
-        super()._attach()
 
     @property
     def walls(self):

@@ -7,6 +7,26 @@ Change Log
 v3.x
 ----
 
+v3.6.0 (2022-10-25)
+^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* In ``hoomd.md.pair.aniso.ALJ``, ``shape.rounding_radii`` now defaults to (0.0, 0.0, 0.0).
+* Revise ``hoomd.md.pair.aniso.ALJ`` documentation.
+* ``hoomd.md.force.Force`` instances can now be added to the ``Operations`` list allowing users to
+  compute force, torque, energy, and virials of forces that are not included in the dynamics of
+  the system.
+* [developers]: Removed internal methods ``_remove`` and ``_add`` from the data model.
+
+*Fixed*
+
+* Increase the performance of ``md.pair.Table`` on the CPU.
+* Improve accuracy of ``hoomd.hpmc.update.BoxMC`` when used with patch potentials.
+* Provide an accurate warning message when creating the state with many bond/angle/... types.
+* Add missing documentation for ``hoomd.md.methods.Berendsen``.
+* CVE-2007-4559
+
 v3.5.0 (2022-09-14)
 ^^^^^^^^^^^^^^^^^^^
 

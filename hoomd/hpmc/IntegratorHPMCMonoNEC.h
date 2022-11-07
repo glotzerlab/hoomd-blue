@@ -136,7 +136,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
     inline double getPressure()
         {
         return (1 + count_pressurevirial / count_movelength) * this->m_pdata->getN()
-               / this->m_pdata->getBox().getVolume();
+               / this->m_pdata->getBox().getVolume(this->m_sysdef->getNDimensions() == 2);
         }
 
     //! Get the current counter values for NEC

@@ -39,7 +39,7 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
             wrapped `hoomd.custom.Action` is run.
     """
 
-    _override_setattr = {'_action', "_export_dict"}
+    _override_setattr = {'_action', "_export_dict", "_simulation"}
 
     @abstractmethod
     def _cpp_class_name(self):
@@ -75,23 +75,15 @@ class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
             return
         object.__setattr__(self, attr, value)
 
-    def _attach(self):
-        """Attach to a `hoomd.Simulation`.
-
-        Args:
-            simulation (hoomd.Simulation): The simulation the operation operates
-                on.
-        """
+    def _attach_hook(self):
+        """Create the C++ custom operation."""
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
             self._simulation.state._cpp_sys_def, self.trigger, self._action)
-
-        super()._attach()
         self._action.attach(self._simulation)
 
-    def _detach(self):
+    def _detach_hook(self):
         """Detaching from a `hoomd.Simulation`."""
         self._action.detach()
-        super()._detach()
 
     def act(self, timestep):
         """Perform the action of the custom action if attached.
