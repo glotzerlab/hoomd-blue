@@ -49,12 +49,12 @@ TwoStepNPTMTTKBase::TwoStepNPTMTTKBase(std::shared_ptr<SystemDefinition> sysdef,
       IntegrationMethodTwoStep(sysdef, group),
       m_thermo_half_step(thermo_half_step),
       m_thermo_full_step(thermo_full_step),
-      m_tauS(tauS),
-      m_T(T),
       m_S(S),
-      m_nph(nph),
+      m_tauS(tauS),
       m_ndof(0),
-      m_rescale_all(false)
+      m_nph(nph),
+      m_rescale_all(false),
+      m_T(T)
     {
 
     if (m_flags == 0)
