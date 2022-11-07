@@ -43,6 +43,12 @@ std::array<Scalar, 2> TwoStepBerendsen::NVT_rescale_factor_one(uint64_t timestep
     Scalar current_translation_T = m_thermo->getTranslationalTemperature();
     Scalar current_rotational_T = m_thermo->getRotationalTemperature();
 
+    if((m_thermo->getTranslationalDOF() != 0 && m_thermo->getTranslationalKineticEnergy() == 0) ||
+        (m_thermo->getRotationalDOF() != 0 && m_thermo->getRotationalKineticEnergy() == 0))
+        {
+        throw std::runtime_error("Bussi thermostat requires non-zero initial temperatures");
+        }
+
     Scalar lambda_T = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / current_translation_T - Scalar(1.0)));
     Scalar lambda_R = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / current_rotational_T - Scalar(1.0)));
 
