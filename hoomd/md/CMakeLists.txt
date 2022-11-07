@@ -54,6 +54,7 @@ set(_md_sources module-md.cc
         TwoStepNVTStochastic.cc
         TwoStepNPTMTTKBase.cc
         TwoStepNPTLangevinPiston.cc
+        TwoStepNPTBussiLangevinPiston.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
@@ -248,7 +249,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
         TwoStepNVTStochasticGPU.cc
         TwoStepNPTMTTKBaseGPU.cc
         TwoStepNPTLangevinPistonGPU.cc
-        TwoStepNPTBussiLangevinPiston.cc
         TwoStepNPTBussiLangevinPistonGPU.cc
                            TwoStepNVTMTKGPU.cc
                            MuellerPlatheFlowGPU.cc
