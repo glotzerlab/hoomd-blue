@@ -133,7 +133,11 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public virtual TwoStepNPTMTTKBase
 
     void advanceThermostat(uint64_t timestep) override;
 
-   // void updatePropagator() override;
+#ifdef ENABLE_MPI
+    void broadcastThermostat() override{
+        MPI_Bcast(&m_thermostat, 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        }
+#endif
     };
 
     } // end namespace md

@@ -212,7 +212,9 @@ class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
      * \param broadcast True if we should broadcast the integrator variables via MPI
      */
     virtual void advanceThermostat(uint64_t timestep){};
-
+#ifdef ENABLE_MPI
+    virtual void broadcastThermostat(){}
+#endif
     };
 
     } // namespace hoomd
