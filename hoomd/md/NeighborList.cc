@@ -1883,7 +1883,7 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
         // Throw error if n_elem does not fit into an int
         if (max_n_elem > std::numeric_limits<int>::max() / 2)
             throw std::runtime_error("The pair list is too large to be communicated with MPI. \
-                                        For the time being, please use the rank local pair list.");
+                                        Please use the rank local pair list.");
         auto n_elem = static_cast<int>(2 * max_n_elem);
         std::vector<int> global_n_elem;
         void* recvbuf = nullptr;
@@ -1912,7 +1912,7 @@ pybind11::object NeighborList::getPairListPython(uint64_t timestep)
 
         if (total_elements > std::numeric_limits<int>::max())
             throw std::runtime_error("The pair list is too large to be communicated with MPI. \
-                                      For the time being, please use the rank local pair list.");
+                                      Please use the rank local pair list.");
 
         // Use a gatherv command to produce the global_pair_list
         if (root)

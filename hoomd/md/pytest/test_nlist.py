@@ -388,8 +388,7 @@ def _check_local_pairs_with_mpi(tag_pair_list, broadcast=False):
     if rank == 0:
         total_counts = int(np.sum(counts))
         displacements = np.zeros(size, dtype=np.uint32)
-        for i in range(1, size):
-            displacements[i] = displacements[i - 1] + counts[i - 1]
+        displacements[1:] = displacements[:-1] + counts[:-1]
         array = np.empty((total_counts // 2, 2), dtype=np.uint32)
         global_pairs_buffer = [array, counts, displacements, MPI.UINT32_T]
 
