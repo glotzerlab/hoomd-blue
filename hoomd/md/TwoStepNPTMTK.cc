@@ -319,7 +319,7 @@ namespace detail
     {
 void export_TwoStepNPTMTK(pybind11::module& m)
     {
-    pybind11::class_<TwoStepNPTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTK>>
+    pybind11::class_<TwoStepNPTMTK, TwoStepNPTMTTKBase, std::shared_ptr<TwoStepNPTMTK>>
         twostepnptmtk(m, "TwoStepNPTMTK", pybind11::multiple_inheritance());
     twostepnptmtk
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
@@ -335,7 +335,7 @@ void export_TwoStepNPTMTK(pybind11::module& m)
                             const bool>())
 
         .def_property("gamma", &TwoStepNPTMTK::getGamma, &TwoStepNPTMTK::setGamma)
-        .def_property("tauS", &TwoStepNPTMTK::getTau, &TwoStepNPTMTK::setTau)
+        .def_property("tau", &TwoStepNPTMTK::getTau, &TwoStepNPTMTK::setTau)
         .def("thermalizeThermostatAndBarostatDOF",
              &TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF)
         .def_property("translational_thermostat_dof",
