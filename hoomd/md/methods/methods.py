@@ -320,7 +320,7 @@ class NPH(Method):
         else:
             return (value, value, value, 0, 0, 0)
 
-    def thermalize_thermostat_and_barostat_dof(self):
+    def thermalize_barostat_dof(self):
         r"""Set the barostat momentum to random values.
 
         `thermalize_barostat_dof` sets a random value for the
