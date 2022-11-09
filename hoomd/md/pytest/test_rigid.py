@@ -30,8 +30,6 @@ def valid_body_definition():
             [0, 1, 1 / (2**(1. / 2.))],
         ],
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
-        "charges": [0.0, 1.0, 2.0, 3.5],
-        "diameters": [1.0, 1.5, 0.5, 1.0]
     }
 
 
@@ -41,8 +39,6 @@ def test_body_setting(valid_body_definition):
         "positions": [[(1, 2)], [(1.0, 4.0, "foo")], 1.0, "hello"],
         "orientations": [[(1, 2, 3)], [(1.0, 4.0, 5.0, "foo")], [1.0], 1.0,
                          "foo"],
-        "charges": [0.0, ["foo"]],
-        "diameters": [1.0, "foo", ["foo"]]
     }
 
     rigid = md.constrain.Rigid()
@@ -67,7 +63,7 @@ def test_body_setting(valid_body_definition):
         current_body_definition[key] = valid_body_definition[key]
 
 
-def check_bodies(snapshot, definition):
+def check_bodies(snapshot, definition, charges=None):
     """Non-general assumes a snapshot from two_particle_snapshot_factory.
 
     This is just to prevent duplication of code from test_create_bodies and
@@ -82,9 +78,10 @@ def check_bodies(snapshot, definition):
     assert all(snapshot.particles.body[6:] == 1)
 
     # check charges
-    for i in range(4):
-        assert snapshot.particles.charge[i + 2] == definition["charges"][i]
-        assert snapshot.particles.charge[i + 6] == definition["charges"][i]
+    if charges is not None:
+        for i in range(4):
+            assert snapshot.particles.charge[i + 2] == charges[i]
+            assert snapshot.particles.charge[i + 6] == charges[i]
 
     # check diameters
     for i in range(4):
@@ -135,10 +132,11 @@ def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
         initial_snapshot.particles.types = ["A", "B"]
     sim = simulation_factory(initial_snapshot)
 
-    rigid.create_bodies(sim.state)
+    charges = [1.0, 2.0, 3.0, 4.0]
+    rigid.create_bodies(sim.state, charges={"A": charges})
     snapshot = sim.state.get_snapshot()
     if snapshot.communicator.rank == 0:
-        check_bodies(snapshot, valid_body_definition)
+        check_bodies(snapshot, valid_body_definition, charges)
 
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005, rigid=rigid)
     # Ensure validate bodies passes
@@ -246,12 +244,13 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     sim = simulation_factory(initial_snapshot)
     sim.seed = 5
 
-    rigid.create_bodies(sim.state)
+    charges = [1.0, 2.0, 3.0, 4.0]
+    rigid.create_bodies(sim.state, charges={"A": charges})
     sim.operations += integrator
     sim.run(5)
     snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:
-        check_bodies(snapshot, valid_body_definition)
+        check_bodies(snapshot, valid_body_definition, charges)
 
     autotuned_kernel_parameter_check(instance=rigid,
                                      activate=lambda: sim.run(1))
