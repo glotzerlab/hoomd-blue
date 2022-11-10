@@ -83,11 +83,6 @@ def check_bodies(snapshot, definition, charges=None):
             assert snapshot.particles.charge[i + 2] == charges[i]
             assert snapshot.particles.charge[i + 6] == charges[i]
 
-    # check diameters
-    for i in range(4):
-        assert snapshot.particles.diameter[i + 2] == definition["diameters"][i]
-        assert snapshot.particles.diameter[i + 6] == definition["diameters"][i]
-
     particle_one = (snapshot.particles.position[0],
                     snapshot.particles.orientation[0])
     particle_two = (snapshot.particles.position[1],
