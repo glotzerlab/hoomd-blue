@@ -8,7 +8,9 @@ import hoomd
 from hoomd.error import SimulationDefinitionError
 from hoomd.operation import Updater
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
+from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.logging import log
 
 
@@ -249,14 +251,20 @@ class MeshDynamicalBonding(Updater):
 
         self._param_dict.update(param_dict)
 
+        allow_switch = TypeParameter("allow_switch",
+                                     type_kind="particle_types",
+                                     param_dict=TypeParameterDict(True,
+                                                                  len_keys=1))
+
+        self._extend_typeparam([allow_switch])
+
         self._mesh = mesh
 
     def _attach(self):
         # create the c++ mirror class
 
         self._cpp_obj = _md.MeshDynamicBondUpdater(
-            self._simulation.state._cpp_sys_def,
-            self.trigger,
+            self._simulation.state._cpp_sys_def, self.trigger,
             self._simulation.operations.integrator._cpp_obj,
             self._mesh._cpp_obj, self.kT)
         super()._attach()
