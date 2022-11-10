@@ -536,7 +536,7 @@ class ActiveOnManifold(Active):
                                  self.manifold_constraint._cpp_obj)
 
 
-class Cosntant(Force):
+class Constant(Force):
     r"""Constant force.
 
     Args:
@@ -549,11 +549,11 @@ class Cosntant(Force):
     Examples::
 
         all = hoomd.filter.All()
-        active = hoomd.md.force.Constant(
+        constant = hoomd.md.force.Constant(
             filter=hoomd.filter.All()
             )
-        active.active_force['A','B'] = (0,0,-1)
-        active.active_torque['A','B'] = (0,0,0)
+        constant.constant_force['A','B'] = (0,0,-1)
+        constant.constant_torque['A','B'] = (0,0,0)
 
     Note:
 
