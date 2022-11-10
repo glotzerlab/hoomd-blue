@@ -2,8 +2,8 @@
 // Created by girard01 on 10/26/22.
 //
 
-#ifndef HOOMD_TWOSTEPNPTMTTKBASE_H
-#define HOOMD_TWOSTEPNPTMTTKBASE_H
+#ifndef HOOMD_TWOSTEPCONSTANTPRESSURE_H
+#define HOOMD_TWOSTEPCONSTANTPRESSURE_H
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
@@ -17,19 +17,19 @@
 namespace hoomd::md
     {
 
-class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     {
     public:
-    TwoStepNPTMTTKBase(std::shared_ptr<SystemDefinition> sysdef,
-                   std::shared_ptr<ParticleGroup> group,
-                   std::shared_ptr<ComputeThermo> thermo_half_step,
-                   std::shared_ptr<ComputeThermo> thermo_full_step,
-                   Scalar tauS,
-                   const std::vector<std::shared_ptr<Variant>>& S,
-                   const std::string& couple,
-                   const std::vector<bool>& flags,
-                   std::shared_ptr<Thermostat> thermostat,
-                   Scalar gamma);
+    TwoStepConstantPressure(std::shared_ptr<SystemDefinition> sysdef,
+                            std::shared_ptr<ParticleGroup> group,
+                            std::shared_ptr<ComputeThermo> thermo_half_step,
+                            std::shared_ptr<ComputeThermo> thermo_full_step,
+                            Scalar tauS,
+                            const std::vector<std::shared_ptr<Variant>>& S,
+                            const std::string& couple,
+                            const std::vector<bool>& flags,
+                            std::shared_ptr<Thermostat> thermostat,
+                            Scalar gamma);
 
     //! Specify possible couplings between the diagonal elements of the pressure tensor
     enum couplingMode
@@ -185,4 +185,4 @@ class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
 
     } // namespace hoomd
 
-#endif // HOOMD_TWOSTEPNPTMTTKBASE_H
+#endif // HOOMD_TWOSTEPCONSTANTPRESSURE_H

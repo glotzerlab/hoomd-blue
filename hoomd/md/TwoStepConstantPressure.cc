@@ -2,7 +2,7 @@
 // Created by girard01 on 10/26/22.
 //
 
-#include "TwoStepNPTMTTKBase.h"
+#include "TwoStepConstantPressure.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/VectorMath.h"
@@ -35,16 +35,16 @@ const Scalar h_coeff[] = {Scalar(1.0 / 3.0),
                           Scalar(2.0 / 10395.0),
                           Scalar(-1382.0 / 58046625.0)};
 
-TwoStepNPTMTTKBase::TwoStepNPTMTTKBase(std::shared_ptr<SystemDefinition> sysdef,
-                               std::shared_ptr<ParticleGroup> group,
-                               std::shared_ptr<ComputeThermo> thermo_half_step,
-                               std::shared_ptr<ComputeThermo> thermo_full_step,
-                               Scalar tauS,
-                               const std::vector<std::shared_ptr<Variant>>& S,
-                               const std::string& couple,
-                               const std::vector<bool>& flags,
-                               std::shared_ptr<Thermostat> thermostat,
-                               Scalar gamma) :
+TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinition> sysdef,
+                                                 std::shared_ptr<ParticleGroup> group,
+                                                 std::shared_ptr<ComputeThermo> thermo_half_step,
+                                                 std::shared_ptr<ComputeThermo> thermo_full_step,
+                                                 Scalar tauS,
+                                                 const std::vector<std::shared_ptr<Variant>>& S,
+                                                 const std::string& couple,
+                                                 const std::vector<bool>& flags,
+                                                 std::shared_ptr<Thermostat> thermostat,
+                                                 Scalar gamma) :
       IntegrationMethodTwoStep(sysdef, group),
       m_thermo_half_step(thermo_half_step),
       m_thermo_full_step(thermo_full_step),
@@ -66,7 +66,7 @@ TwoStepNPTMTTKBase::TwoStepNPTMTTKBase(std::shared_ptr<SystemDefinition> sysdef,
     m_V = m_pdata->getGlobalBox().getVolume(is_two_dimensions); // volume
     }
 
-void TwoStepNPTMTTKBase::setCouple(const std::string& value)
+void TwoStepConstantPressure::setCouple(const std::string& value)
     {
     bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
 
@@ -114,7 +114,7 @@ void TwoStepNPTMTTKBase::setCouple(const std::string& value)
         }
     }
 
-std::string TwoStepNPTMTTKBase::getCouple()
+std::string TwoStepConstantPressure::getCouple()
     {
     std::string couple;
 
@@ -138,7 +138,7 @@ std::string TwoStepNPTMTTKBase::getCouple()
     return couple;
     }
 
-TwoStepNPTMTTKBase::couplingMode TwoStepNPTMTTKBase::getRelevantCouplings()
+TwoStepConstantPressure::couplingMode TwoStepConstantPressure::getRelevantCouplings()
     {
     couplingMode couple = m_couple;
     // disable irrelevant couplings
@@ -179,7 +179,7 @@ TwoStepNPTMTTKBase::couplingMode TwoStepNPTMTTKBase::getRelevantCouplings()
     }
 
 // Set Flags from 6 element boolean tuple named box_df to integer flag
-void TwoStepNPTMTTKBase::setFlags(const std::vector<bool>& value)
+void TwoStepConstantPressure::setFlags(const std::vector<bool>& value)
     {
     bool is_three_dimensions = m_sysdef->getNDimensions() == 3;
     int flags = 0;
@@ -199,7 +199,7 @@ void TwoStepNPTMTTKBase::setFlags(const std::vector<bool>& value)
     }
 
 // Get Flags from integer flag to 6 element boolean tuple
-std::vector<bool> TwoStepNPTMTTKBase::getFlags()
+std::vector<bool> TwoStepConstantPressure::getFlags()
     {
     std::vector<bool> result;
     result.push_back(m_flags & baro_x);
@@ -215,7 +215,7 @@ std::vector<bool> TwoStepNPTMTTKBase::getFlags()
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    Martyna-Tobias-Klein barostat and thermostat
 */
-void TwoStepNPTMTTKBase::integrateStepOne(uint64_t timestep)
+void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -518,9 +518,9 @@ void TwoStepNPTMTTKBase::integrateStepOne(uint64_t timestep)
 #endif
     }
 
-void TwoStepNPTMTTKBase::thermalizeBarostatDOF(uint64_t timestep)
+void TwoStepConstantPressure::thermalizeBarostatDOF(uint64_t timestep)
     {
-    m_exec_conf->msg->notice(6) << "TwoStepNPTMTTKBase randomizing barostat DOF"  << std::endl;
+    m_exec_conf->msg->notice(6) << "TwoStepConstantPressure randomizing barostat DOF"  << std::endl;
 
     unsigned int instance_id = 0;
     if (m_group->getNumMembersGlobal() > 0)
@@ -605,7 +605,7 @@ void TwoStepNPTMTTKBase::thermalizeBarostatDOF(uint64_t timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNPTMTTKBase::integrateStepTwo(uint64_t timestep)
+void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
         // Rescaling factors, including Martyna-Tobias-Klein correction
@@ -727,7 +727,7 @@ void TwoStepNPTMTTKBase::integrateStepTwo(uint64_t timestep)
     }
 
 
-pybind11::tuple TwoStepNPTMTTKBase::getBarostatDOF()
+pybind11::tuple TwoStepConstantPressure::getBarostatDOF()
     {
     return pybind11::make_tuple(m_barostat.nu_xx,
                                 m_barostat.nu_xy,
@@ -737,7 +737,7 @@ pybind11::tuple TwoStepNPTMTTKBase::getBarostatDOF()
                                 m_barostat.nu_zz);
     }
 
-void TwoStepNPTMTTKBase::setBarostatDOF(pybind11::tuple v)
+void TwoStepConstantPressure::setBarostatDOF(pybind11::tuple v)
     {
     if (pybind11::len(v) != 6)
         {
@@ -751,7 +751,7 @@ void TwoStepNPTMTTKBase::setBarostatDOF(pybind11::tuple v)
     m_barostat.nu_zz = v[5].cast<Scalar>();
     }
 
-Scalar TwoStepNPTMTTKBase::getBarostatEnergy(uint64_t timestep)
+Scalar TwoStepConstantPressure::getBarostatEnergy(uint64_t timestep)
     {
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d) * m_thermostat->getTemperature(timestep) * m_tauS * m_tauS;
@@ -768,7 +768,7 @@ Scalar TwoStepNPTMTTKBase::getBarostatEnergy(uint64_t timestep)
     return barostat_energy;
     }
 
-void TwoStepNPTMTTKBase::updatePropagator()
+void TwoStepConstantPressure::updatePropagator()
     {
     // calculate some factors needed for the update matrix
     Scalar3 v_fac = make_scalar3(-Scalar(1.0 / 4.0) * m_barostat.nu_xx,
@@ -891,7 +891,7 @@ void TwoStepNPTMTTKBase::updatePropagator()
     m_mat_exp_r_int[5] = m_deltaT * exp_r_fac.z * f_r.z;                    // zz
     }
 
-void TwoStepNPTMTTKBase::advanceBarostat(uint64_t timestep)
+void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     {
 
     // compute thermodynamic properties at full time step
@@ -1009,20 +1009,20 @@ void TwoStepNPTMTTKBase::advanceBarostat(uint64_t timestep)
 
 namespace detail{
 void export_TwoStepNPTBase(pybind11::module& m){
-    pybind11::class_<TwoStepNPTMTTKBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTTKBase>>(m, "TwoStepNPTMTTKBase")
+    pybind11::class_<TwoStepConstantPressure, IntegrationMethodTwoStep, std::shared_ptr<TwoStepConstantPressure>>(m, "TwoStepConstantPressure")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
         std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar,
             std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, std::shared_ptr<Thermostat>, Scalar>())
-        .def_property("tauS", &TwoStepNPTMTTKBase::getTauS, &TwoStepNPTMTTKBase::setTauS)
-        .def_property("S", &TwoStepNPTMTTKBase::getS, &TwoStepNPTMTTKBase::setS)
-        .def_property("couple", &TwoStepNPTMTTKBase::getCouple, &TwoStepNPTMTTKBase::setCouple)
-        .def_property("box_dof", &TwoStepNPTMTTKBase::getFlags, &TwoStepNPTMTTKBase::setFlags)
-        .def_property("rescale_all", &TwoStepNPTMTTKBase::getRescaleAll, &TwoStepNPTMTTKBase::setRescaleAll)
+        .def_property("tauS", &TwoStepConstantPressure::getTauS, &TwoStepConstantPressure::setTauS)
+        .def_property("S", &TwoStepConstantPressure::getS, &TwoStepConstantPressure::setS)
+        .def_property("couple", &TwoStepConstantPressure::getCouple, &TwoStepConstantPressure::setCouple)
+        .def_property("box_dof", &TwoStepConstantPressure::getFlags, &TwoStepConstantPressure::setFlags)
+        .def_property("rescale_all", &TwoStepConstantPressure::getRescaleAll, &TwoStepConstantPressure::setRescaleAll)
         .def_property("barostat_dof",
-                      &TwoStepNPTMTTKBase::getBarostatDOF,
-                      &TwoStepNPTMTTKBase::setBarostatDOF)
-        .def("getBarostatEnergy", &TwoStepNPTMTTKBase::getBarostatEnergy)
-        .def("thermalizeBarostatDOF", &TwoStepNPTMTTKBase::thermalizeBarostatDOF);
+                      &TwoStepConstantPressure::getBarostatDOF,
+                      &TwoStepConstantPressure::setBarostatDOF)
+        .def("getBarostatEnergy", &TwoStepConstantPressure::getBarostatEnergy)
+        .def("thermalizeBarostatDOF", &TwoStepConstantPressure::thermalizeBarostatDOF);
     }
     }
 

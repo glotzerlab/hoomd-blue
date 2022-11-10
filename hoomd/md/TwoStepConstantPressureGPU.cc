@@ -2,24 +2,24 @@
 // Created by girard01 on 10/27/22.
 //
 
-#include "TwoStepNPTMTTKBaseGPU.cuh"
-#include "TwoStepNPTMTTKBaseGPU.h"
+#include "TwoStepConstantPressureGPU.cuh"
+#include "TwoStepConstantPressureGPU.h"
 #include "TwoStepNVEGPU.cuh"
 
 namespace hoomd::md
     {
 
-TwoStepNPTMTTKBaseGPU::TwoStepNPTMTTKBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                     std::shared_ptr<ParticleGroup> group,
-                                     std::shared_ptr<ComputeThermo> thermo_half_step,
-                                     std::shared_ptr<ComputeThermo> thermo_full_step,
-                                     Scalar tauS,
-                                     const std::vector<std::shared_ptr<Variant>>& S,
-                                     const std::string& couple,
-                                     const std::vector<bool>& flags,
-                                     std::shared_ptr<Thermostat> thermostat,
-                                     Scalar gamma) :
-      TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS,  S, couple, flags, thermostat, gamma)
+TwoStepConstantPressureGPU::TwoStepConstantPressureGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                       std::shared_ptr<ParticleGroup> group,
+                                                       std::shared_ptr<ComputeThermo> thermo_half_step,
+                                                       std::shared_ptr<ComputeThermo> thermo_full_step,
+                                                       Scalar tauS,
+                                                       const std::vector<std::shared_ptr<Variant>>& S,
+                                                       const std::string& couple,
+                                                       const std::vector<bool>& flags,
+                                                       std::shared_ptr<Thermostat> thermostat,
+                                                       Scalar gamma) :
+        TwoStepConstantPressure(sysdef, group, thermo_half_step, thermo_full_step, tauS, S, couple, flags, thermostat, gamma)
     {
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                        m_exec_conf,
@@ -57,7 +57,7 @@ TwoStepNPTMTTKBaseGPU::TwoStepNPTMTTKBaseGPU(std::shared_ptr<SystemDefinition> s
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    Nose-Hoover thermostat and Anderson barostat
 */
-void TwoStepNPTMTTKBaseGPU::integrateStepOne(uint64_t timestep)
+void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -272,7 +272,7 @@ void TwoStepNPTMTTKBaseGPU::integrateStepOne(uint64_t timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNPTMTTKBaseGPU::integrateStepTwo(uint64_t timestep)
+void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
@@ -365,7 +365,7 @@ void TwoStepNPTMTTKBaseGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail{
 void export_TwoStepNPTBaseGPU(pybind11::module& m){
-    pybind11::class_<TwoStepNPTMTTKBaseGPU, TwoStepNPTMTTKBase, std::shared_ptr<TwoStepNPTMTTKBaseGPU>>(m, "TwoStepNPTMTTKBaseGPU")
+    pybind11::class_<TwoStepConstantPressureGPU, TwoStepConstantPressure, std::shared_ptr<TwoStepConstantPressureGPU>>(m, "TwoStepConstantPressureGPU")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar,
                             std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, std::shared_ptr<Thermostat>, Scalar>());
