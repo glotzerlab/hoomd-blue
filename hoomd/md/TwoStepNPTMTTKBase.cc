@@ -39,22 +39,21 @@ TwoStepNPTMTTKBase::TwoStepNPTMTTKBase(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<ParticleGroup> group,
                                std::shared_ptr<ComputeThermo> thermo_half_step,
                                std::shared_ptr<ComputeThermo> thermo_full_step,
-                                       Scalar tauS,
-                                       std::shared_ptr<Variant> T,
-
+                               Scalar tauS,
                                const std::vector<std::shared_ptr<Variant>>& S,
                                const std::string& couple,
                                const std::vector<bool>& flags,
-                               const bool nph) :
+                               std::shared_ptr<Thermostat> thermostat,
+                               Scalar gamma) :
       IntegrationMethodTwoStep(sysdef, group),
       m_thermo_half_step(thermo_half_step),
       m_thermo_full_step(thermo_full_step),
       m_S(S),
       m_tauS(tauS),
       m_ndof(0),
-      m_nph(nph),
-      m_rescale_all(false),
-      m_T(T)
+      m_gamma(gamma),
+      m_thermostat(thermostat),
+      m_rescale_all(false)
     {
 
     if (m_flags == 0)
@@ -236,9 +235,13 @@ void TwoStepNPTMTTKBase::integrateStepOne(uint64_t timestep)
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     advanceBarostat(timestep);
 
-    // Martyna-Tobias-Klein correction
-    //Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-    const auto&& rescaleFactors = NPT_thermo_rescale_factor_one(timestep);
+    // Rescaling factors, including Martyna-Tobias-Klein correction
+    Scalar mtk =exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
+    const auto& rf = m_thermostat->RescalingFactors_one(timestep, m_deltaT);
+    const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
+
+
+    //NPT_thermo_rescale_factor_one(timestep);
     // update the propagator matrix using current barostat momenta
     updatePropagator();
 
@@ -498,18 +501,18 @@ void TwoStepNPTMTTKBase::integrateStepOne(uint64_t timestep)
             }
         }
 
-    if (!m_nph)
-        {
-        // propagate thermostat variables forward
-        advanceThermostat(timestep);
-        }
+
+    // propagate thermostat variables forward
+    m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+    //advanceThermostat(timestep);
+
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
         //MPI_Bcast(&m_thermostat, 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        broadcastThermostat();
+        m_thermostat->broadcastThermostat(m_exec_conf->getMPICommunicator());
         MPI_Bcast(&m_barostat, 6, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
@@ -605,7 +608,11 @@ void TwoStepNPTMTTKBase::thermalizeBarostatDOF(uint64_t timestep)
 void TwoStepNPTMTTKBase::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    const auto&& rescaleFactors = NPT_thermo_rescale_factor_two(timestep);
+        // Rescaling factors, including Martyna-Tobias-Klein correction
+        Scalar mtk =exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
+        const auto& rf = m_thermostat->RescalingFactors_two(timestep, m_deltaT);
+        const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
+
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
@@ -747,8 +754,7 @@ void TwoStepNPTMTTKBase::setBarostatDOF(pybind11::tuple v)
 Scalar TwoStepNPTMTTKBase::getBarostatEnergy(uint64_t timestep)
     {
     unsigned int d = m_sysdef->getNDimensions();
-    Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d) * (*m_T)(timestep)*m_tauS
-               * m_tauS;
+    Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d) * m_thermostat->getTemperature(timestep) * m_tauS * m_tauS;
 
     Scalar barostat_energy
         = W
@@ -908,7 +914,7 @@ void TwoStepNPTMTTKBase::advanceBarostat(uint64_t timestep)
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
-    Scalar W = (Scalar)(m_ndof + d) / (Scalar)d * (*m_T)(timestep)*m_tauS * m_tauS;
+    Scalar W = (Scalar)(m_ndof + d) / (Scalar)d * m_thermostat->getTemperature(timestep) * m_tauS * m_tauS;
     Scalar mtk_term = Scalar(2.0) * m_thermo_full_step->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0 / 2.0) * m_deltaT / (Scalar)m_ndof / W;
 
@@ -916,61 +922,87 @@ void TwoStepNPTMTTKBase::advanceBarostat(uint64_t timestep)
 
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0, 0.0, 0.0);
+    Scalar3 R_diag = make_scalar3(0., 0., 0.);
+
+    unsigned int instance_id = 0;
+    if (m_group->getNumMembersGlobal() > 0)
+        instance_id = m_group->getMemberTag(0);
+
+    RandomGenerator rng(Seed(RNGIdentifier::LangevinPiston, timestep, m_sysdef->getSeed()), instance_id);
+    NormalDistribution<Scalar> noise;
     switch (couple)
-        {
-    case couple_none:
-        P_diag.x = P.xx;
-        P_diag.y = P.yy;
-        P_diag.z = P.zz;
-        break;
-    case couple_xy:
-        P_diag.x = P_diag.y = Scalar(1.0 / 2.0) * (P.xx + P.yy);
-        P_diag.z = P.zz;
-        break;
-    case couple_xz:
-        P_diag.x = P_diag.z = Scalar(1.0 / 2.0) * (P.xx + P.zz);
-        P_diag.y = P.yy;
-        break;
-    case couple_yz:
-        P_diag.x = P.xx;
-        P_diag.y = P_diag.z = Scalar(1.0 / 2.0) * (P.yy + P.zz);
-        break;
-    case couple_xyz:
-        P_diag.x = P_diag.y = P_diag.z = Scalar(1.0 / 3.0) * (P.xx + P.yy + P.zz);
-        break;
-    default:
-        throw std::runtime_error("Invalid NPT coupling mode.");
-        }
+    {
+        case couple_none:
+            P_diag.x = P.xx;
+            R_diag.x = noise(rng);
+            P_diag.y = P.yy;
+            R_diag.y = noise(rng);
+            P_diag.z = P.zz;
+            R_diag.z = noise(rng);
+            break;
+        case couple_xy:
+            P_diag.x = P_diag.y = Scalar(1.0 / 2.0) * (P.xx + P.yy);
+            R_diag.x = R_diag.y = noise(rng);
+            P_diag.z = P.zz;
+            R_diag.z = noise(rng);
+            break;
+        case couple_xz:
+            P_diag.x = P_diag.z = Scalar(1.0 / 2.0) * (P.xx + P.zz);
+            R_diag.x = R_diag.z = noise(rng);
+            P_diag.y = P.yy;
+            R_diag.y = noise(rng);
+            break;
+        case couple_yz:
+            P_diag.x = P.xx;
+            R_diag.x = noise(rng);
+            P_diag.y = P_diag.z = Scalar(1.0 / 2.0) * (P.yy + P.zz);
+            R_diag.y = R_diag.z = noise(rng);
+            break;
+        case couple_xyz:
+            P_diag.x = P_diag.y = P_diag.z = Scalar(1.0 / 3.0) * (P.xx + P.yy + P.zz);
+            R_diag.x = R_diag.y = R_diag.z = noise(rng);
+            break;
+        default:
+            throw std::runtime_error("Invalid NPT coupling mode.");
+    }
 
     // update barostat matrix
-
+    Scalar noise_exp_integrate = exp(-m_gamma * m_deltaT / Scalar(2.0));
+    Scalar coeff = sqrt(m_thermostat->getTemperature(timestep) * (Scalar(1.0) - noise_exp_integrate * noise_exp_integrate) / W);
     if (m_flags & baro_x)
         {
+        m_barostat.nu_xx  = m_barostat.nu_xx * noise_exp_integrate + coeff * R_diag.x;
         m_barostat.nu_xx += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.x - (*m_S[0])(timestep)) + mtk_term;
         }
 
     if (m_flags & baro_xy)
         {
+            m_barostat.nu_xy = m_barostat.nu_xy * noise_exp_integrate + coeff * noise(rng);
         m_barostat.nu_xy += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xy - (*m_S[5])(timestep));
         }
 
     if (m_flags & baro_xz)
         {
+
+            m_barostat.nu_xz = m_barostat.nu_xz * noise_exp_integrate + coeff * noise(rng);
         m_barostat.nu_xz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xz - (*m_S[4])(timestep));
         }
 
     if (m_flags & baro_y)
         {
+            m_barostat.nu_yy = m_barostat.nu_yy * noise_exp_integrate + coeff * R_diag.y;
         m_barostat.nu_yy += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.y - (*m_S[1])(timestep)) + mtk_term;
         }
 
     if (m_flags & baro_yz)
         {
+            m_barostat.nu_yz = m_barostat.nu_yz * noise_exp_integrate + coeff * noise(rng);
         m_barostat.nu_yz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.yz - (*m_S[3])(timestep));
         }
 
     if (m_flags & baro_z)
         {
+            m_barostat.nu_zz = m_barostat.nu_zz * noise_exp_integrate + coeff * R_diag.z;
         m_barostat.nu_zz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.z - (*m_S[2])(timestep)) + mtk_term;
         }
     }
@@ -979,10 +1011,9 @@ namespace detail{
 void export_TwoStepNPTBase(pybind11::module& m){
     pybind11::class_<TwoStepNPTMTTKBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNPTMTTKBase>>(m, "TwoStepNPTMTTKBase")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
-        std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar, std::shared_ptr<Variant>,
-            std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, bool>())
+        std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar,
+            std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, std::shared_ptr<Thermostat>, Scalar>())
         .def_property("tauS", &TwoStepNPTMTTKBase::getTauS, &TwoStepNPTMTTKBase::setTauS)
-        .def_property("kT", &TwoStepNPTMTTKBase::getT, &TwoStepNPTMTTKBase::setT)
         .def_property("S", &TwoStepNPTMTTKBase::getS, &TwoStepNPTMTTKBase::setS)
         .def_property("couple", &TwoStepNPTMTTKBase::getCouple, &TwoStepNPTMTTKBase::setCouple)
         .def_property("box_dof", &TwoStepNPTMTTKBase::getFlags, &TwoStepNPTMTTKBase::setFlags)

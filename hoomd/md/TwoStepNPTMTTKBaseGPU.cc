@@ -13,13 +13,13 @@ TwoStepNPTMTTKBaseGPU::TwoStepNPTMTTKBaseGPU(std::shared_ptr<SystemDefinition> s
                                      std::shared_ptr<ParticleGroup> group,
                                      std::shared_ptr<ComputeThermo> thermo_half_step,
                                      std::shared_ptr<ComputeThermo> thermo_full_step,
-                                             Scalar tauS,
-                                     std::shared_ptr<Variant> T,
+                                     Scalar tauS,
                                      const std::vector<std::shared_ptr<Variant>>& S,
                                      const std::string& couple,
                                      const std::vector<bool>& flags,
-                                     const bool nph) :
-      TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS, T, S, couple, flags, nph)
+                                     std::shared_ptr<Thermostat> thermostat,
+                                     Scalar gamma) :
+      TwoStepNPTMTTKBase(sysdef, group, thermo_half_step, thermo_full_step, tauS,  S, couple, flags, thermostat, gamma)
     {
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                        m_exec_conf,
@@ -70,7 +70,10 @@ void TwoStepNPTMTTKBaseGPU::integrateStepOne(uint64_t timestep)
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     advanceBarostat(timestep);
 
-    const auto&& rescalingFactors = NPT_thermo_rescale_factor_one(timestep);
+        // Martyna-Tobias-Klein correction
+        Scalar mtk = exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
+        const auto rf = m_thermostat->RescalingFactors_one(timestep, m_deltaT);
+        std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
 
     // Martyna-Tobias-Klein correction
     //Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
@@ -253,17 +256,13 @@ void TwoStepNPTMTTKBaseGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->endMultiGPU();
         }
 
-    if (!m_nph)
-        {
-        // propagate thermostat variables forward
-        advanceThermostat(timestep);
-        }
+    m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
-        broadcastThermostat();
+        m_thermostat->broadcastThermostat(m_exec_conf->getMPICommunicator());
         //MPI_Bcast(&m_thermostat, 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&m_barostat, 6, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
@@ -278,8 +277,9 @@ void TwoStepNPTMTTKBaseGPU::integrateStepTwo(uint64_t timestep)
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // Martyna-Tobias-Klein correction
-    //Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-    const auto&& rescalingFactors = NPT_thermo_rescale_factor_two(timestep);
+    Scalar mtk = exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
+    const auto rf = m_thermostat->RescalingFactors_two(timestep, m_deltaT);
+    std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                    access_location::device,
@@ -367,8 +367,8 @@ namespace detail{
 void export_TwoStepNPTBaseGPU(pybind11::module& m){
     pybind11::class_<TwoStepNPTMTTKBaseGPU, TwoStepNPTMTTKBase, std::shared_ptr<TwoStepNPTMTTKBaseGPU>>(m, "TwoStepNPTMTTKBaseGPU")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar, std::shared_ptr<Variant>,
-                            std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, bool>());
+                            std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar,
+                            std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, std::shared_ptr<Thermostat>, Scalar>());
     }
     }
 

@@ -16,11 +16,11 @@ class TwoStepNPTMTTKBaseGPU : public virtual TwoStepNPTMTTKBase
                       std::shared_ptr<ComputeThermo> thermo_half_step,
                       std::shared_ptr<ComputeThermo> thermo_full_step,
                           Scalar tauS,
-                      std::shared_ptr<Variant> T,
                       const std::vector<std::shared_ptr<Variant>>& S,
                       const std::string& couple,
                       const std::vector<bool>& flags,
-                      const bool nph = false);
+                      std::shared_ptr<Thermostat> thermostat,
+                      Scalar gamma);
 
     //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);

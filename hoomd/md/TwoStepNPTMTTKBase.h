@@ -10,6 +10,7 @@
 //#include "TwoStepNVTBase.h"
 
 #include "hoomd/Variant.h"
+#include "Thermostat.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -24,11 +25,11 @@ class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
                    std::shared_ptr<ComputeThermo> thermo_half_step,
                    std::shared_ptr<ComputeThermo> thermo_full_step,
                    Scalar tauS,
-                   std::shared_ptr<Variant> T,
                    const std::vector<std::shared_ptr<Variant>>& S,
                    const std::string& couple,
                    const std::vector<bool>& flags,
-                   const bool nph = false);
+                   std::shared_ptr<Thermostat> thermostat,
+                   Scalar gamma);
 
     //! Specify possible couplings between the diagonal elements of the pressure tensor
     enum couplingMode
@@ -74,42 +75,7 @@ class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
         m_S = S;
         }
 
-
-    //! Velocity rescaling factors used in step one
-    /*! For the base class, this should return values used in nph integration, so that derived class
-     * can overload only one of the two rescaling method if needs be
-     * @param timestep
-     * @return rescaling factors
-     */
-    virtual std::array<Scalar, 2> NPT_thermo_rescale_factor_one(uint64_t timestep)
-        {
-        Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * mtk * m_deltaT);
-        Scalar exp_thermo_fac_rot = exp(-(mtk) * m_deltaT / Scalar(2.0));
-        return { exp_thermo_fac, exp_thermo_fac_rot };
-        }
-
-    virtual std::array<Scalar, 2> NPT_thermo_rescale_factor_two(uint64_t timestep)
-        {
-        Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * mtk * m_deltaT);
-        Scalar exp_thermo_fac_rot = exp(-mtk * m_deltaT / Scalar(2.0));
-        return {exp_thermo_fac, exp_thermo_fac_rot};
-        }
-
-    std::shared_ptr<Variant> getT()
-        {
-        return m_T;
-        }
-
     void thermalizeBarostatDOF(uint64_t timestep);
-
-    /*! \param T New temperature to set
-     */
-    virtual void setT(std::shared_ptr<Variant> T)
-        {
-        m_T = T;
-        }
 
     std::shared_ptr<ComputeThermo>  m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t
     std::shared_ptr<ComputeThermo>  m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
@@ -190,10 +156,12 @@ class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
     Scalar m_ndof;
     couplingMode m_couple;     //!< Coupling of diagonal elements
     unsigned int m_flags;      //!< Coupling flags for barostat
-    bool m_nph;                //!< True if integrating without thermostat
+    //bool m_nph;                //!< True if integrating without thermostat
     Scalar m_mat_exp_v[6];     //!< Matrix exponential for velocity update (upper triangular)
     Scalar m_mat_exp_r[6];     //!< Matrix exponential for position update (upper triangular)
     Scalar m_mat_exp_r_int[6]; //!< Integrated matrix exp. for velocity update (upper triangular)
+    Scalar m_gamma;
+    std::shared_ptr<Thermostat> m_thermostat;
 
     bool m_rescale_all; //!< If true, rescale all particles in the system irrespective of group
 
@@ -206,15 +174,13 @@ class PYBIND11_EXPORT TwoStepNPTMTTKBase : public IntegrationMethodTwoStep
     //! Helper function to advance the barostat parameters
     virtual void advanceBarostat(uint64_t timestep);
 
-    std::shared_ptr<Variant> m_T;
+    //std::shared_ptr<Variant> m_T;
 
     /*!\param timestep The time step
      * \param broadcast True if we should broadcast the integrator variables via MPI
      */
-    virtual void advanceThermostat(uint64_t timestep){};
-#ifdef ENABLE_MPI
-    virtual void broadcastThermostat(){}
-#endif
+    //virtual void advanceThermostat(uint64_t timestep){};
+
     };
 
     } // namespace hoomd
