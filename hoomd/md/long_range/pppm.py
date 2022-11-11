@@ -157,6 +157,8 @@ class Coulomb(Force):
           :math:`\\mathrm{[length^{-1}]}`.
     """
 
+    _cpp_data_method = "getParticleData"
+
     def __init__(self, nlist, resolution, order, r_cut, alpha, pair_force):
         super().__init__()
         self._nlist = hoomd.data.typeconverter.OnlyTypes(

@@ -55,6 +55,8 @@ class SpecialPair(Force):
         for `isinstance` or `issubclass` checks.
     """
 
+    _cpp_data_method = "getPairData"
+
     def __init__(self):
         super().__init__()
 

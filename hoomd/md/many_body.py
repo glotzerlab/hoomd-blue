@@ -78,6 +78,8 @@ class Triplet(Force):
         this potential on the GPU with MPI will result in an error.
     """
 
+    _cpp_data_method = "getParticleData"
+
     def __init__(self, nlist, default_r_cut=None):
         super().__init__()
         r_cut_param = TypeParameter(

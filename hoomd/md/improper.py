@@ -50,6 +50,8 @@ class Improper(md.force.Force):
         for `isinstance` or `issubclass` checks.
     """
 
+    _cpp_data_method = "getImproperData"
+
     def __init__(self):
         super().__init__()
 

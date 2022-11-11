@@ -56,6 +56,8 @@ class Pair(force.Force):
         Type: `hoomd.md.nlist.NeighborList`
     """
 
+    _cpp_data_method = "getParticleData"
+
     # The accepted modes for the potential. Should be reset by subclasses with
     # restricted modes.
     _accepted_modes = ("none", "shift", "xplor")
