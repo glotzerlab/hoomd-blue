@@ -1180,12 +1180,16 @@ typedef BondedGroupData<2, Bond, name_pair_data> PairData;
  *  GroupData: The realized class from the BondGroupData template.
  */
 template<class Output, class GroupData>
-class LocalGroupData : public LocalDataAccess<Output, GroupData>
+class LocalGroupData : public SnapshotLocalDataAccess<Output, GroupData>
     {
     public:
     LocalGroupData(GroupData& data)
-        : LocalDataAccess<Output, GroupData>(data), m_tags_handle(nullptr), m_rtags_handle(nullptr),
-          m_members_handle(nullptr), m_typeval_handle(nullptr)
+        : SnapshotLocalDataAccess<Output, GroupData>(data,
+                                                     data.getN(),
+                                                     data.getNGhosts(),
+                                                     data.getNGlobal()),
+          m_tags_handle(nullptr), m_rtags_handle(nullptr), m_members_handle(nullptr),
+          m_typeval_handle(nullptr)
         {
         }
 
@@ -1193,22 +1197,24 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
 
     Output getTags(GhostDataFlag flag)
         {
-        return this->template getBuffer<unsigned int, unsigned int, GPUVector>(m_tags_handle,
-                                                                               &GroupData::getTags,
-                                                                               flag,
-                                                                               true);
+        return this->template getLocalBuffer<unsigned int, unsigned int, GPUVector>(
+            m_tags_handle,
+            &GroupData::getTags,
+            flag,
+            true);
         }
 
     Output getRTags()
         {
         return this->template getGlobalBuffer<unsigned int, GPUVector>(m_rtags_handle,
-                                                                       &GroupData::getRTags);
+                                                                       &GroupData::getRTags,
+                                                                       false);
         }
 
     Output getTypeVal(GhostDataFlag flag)
         {
         // This forces resolution at compile time for the returned types
-        return this->template getBuffer<
+        return this->template getLocalBuffer<
             typeval_t,
             typename std::conditional<GroupData::typemap_val, unsigned int, Scalar>::type,
             GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag, true);
@@ -1216,12 +1222,13 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
 
     Output getMembers(GhostDataFlag flag)
         {
-        return this->template getBuffer<typename GroupData::members_t, unsigned int, GPUVector>(
-            m_members_handle,
-            &GroupData::getMembersArray,
-            flag,
-            true,
-            GroupData::size);
+        return this
+            ->template getLocalBuffer<typename GroupData::members_t, unsigned int, GPUVector>(
+                m_members_handle,
+                &GroupData::getMembersArray,
+                flag,
+                true,
+                GroupData::size);
         }
 
     protected:
