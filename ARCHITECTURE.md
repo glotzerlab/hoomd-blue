@@ -261,8 +261,7 @@ two objects. The class is inherited by `_HOOMDBaseObject` to handle dependent
 relationships between operations in Python. The class defines *dependents* and
 *dependencies* of an object whose removal from a simulation (detaching) can be
 handled by overwriting specific methods defined in `_DependencyRelation` in
-`hoomd/operation.py`. See the interface of neighbor lists to pair potentials as
-an example of this in `hoomd/md/nlist.py` and `hoomd/md/pair/pair.py`.
+`hoomd/operation.py`.
 
 #### `_HOOMDGetSetAttrBase`
 
@@ -462,6 +461,14 @@ object then any necessary changes should be made (if the constructor is used
 then any new arguments to constructor must have defaults via semantic
 versioning and no changes should be needed to support pickling). The removal of
 internal attributes should not cause problems as well.
+
+## Zero Copy Buffer Access
+
+HOOMD allows for C++ classes to expose their GPU and CPU data buffers directly
+in Python using the `__cuda_array_interface__` and `__array_interface__`. This
+behavior is controlled using the `hoomd.data.local_access._LocalAcces` class in
+Python and the classes found in `hoomd/PythonLocalDataAccess.h`. See these files
+for more details. For example implementations look at `hoomd/ParticleData.h`.
 
 ## Directory structure
 
