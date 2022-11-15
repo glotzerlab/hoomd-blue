@@ -325,15 +325,15 @@ enum class GhostDataFlag
  *  (for particles bonds, etc.).
  */
 template<class Output, class Data>
-class SnapshotLocalDataAccess : public LocalDataAccess<Output, Data>
+class PerGroupLocalDataAccess : public LocalDataAccess<Output, Data>
     {
     public:
-    inline SnapshotLocalDataAccess(Data& data, ssize_t n, ssize_t n_ghosts, ssize_t n_global)
+    inline PerGroupLocalDataAccess(Data& data, ssize_t n, ssize_t n_ghosts, ssize_t n_global)
         : LocalDataAccess<Output, Data>(data), m_n(n), m_n_ghosts(n_ghosts), m_n_global(n_global)
         {
         }
 
-    virtual ~SnapshotLocalDataAccess() = default;
+    virtual ~PerGroupLocalDataAccess() = default;
 
     protected:
     /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.

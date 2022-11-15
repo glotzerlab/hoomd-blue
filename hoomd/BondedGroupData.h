@@ -1180,11 +1180,11 @@ typedef BondedGroupData<2, Bond, name_pair_data> PairData;
  *  GroupData: The realized class from the BondGroupData template.
  */
 template<class Output, class GroupData>
-class LocalGroupData : public SnapshotLocalDataAccess<Output, GroupData>
+class LocalGroupData : public PerGroupLocalDataAccess<Output, GroupData>
     {
     public:
     LocalGroupData(GroupData& data)
-        : SnapshotLocalDataAccess<Output, GroupData>(data,
+        : PerGroupLocalDataAccess<Output, GroupData>(data,
                                                      data.getN(),
                                                      data.getNGhosts(),
                                                      data.getNGlobal()),

@@ -1428,11 +1428,11 @@ class PYBIND11_EXPORT ParticleData
  *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)
  */
 template<class Output>
-class PYBIND11_EXPORT LocalParticleData : public SnapshotLocalDataAccess<Output, ParticleData>
+class PYBIND11_EXPORT LocalParticleData : public PerGroupLocalDataAccess<Output, ParticleData>
     {
     public:
     LocalParticleData(ParticleData& data)
-        : SnapshotLocalDataAccess<Output, ParticleData>(data,
+        : PerGroupLocalDataAccess<Output, ParticleData>(data,
                                                         data.getN(),
                                                         data.getNGhosts(),
                                                         data.getNGlobal()),
