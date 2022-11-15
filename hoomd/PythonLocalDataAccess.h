@@ -275,9 +275,6 @@ template<class Output, class Data> class LocalDataAccess
     // handle can be released for other objects.
     virtual void clear() = 0;
 
-    /// object to access array data from
-    Data& m_data;
-
     /// Ensure that arrays are not accessed outside context manager.
     inline void checkManager()
         {
@@ -301,6 +298,8 @@ template<class Output, class Data> class LocalDataAccess
             }
         }
 
+    /// object to access array data from
+    Data& m_data;
     /// flag for being inside Python context manager
     bool m_in_manager;
     };
