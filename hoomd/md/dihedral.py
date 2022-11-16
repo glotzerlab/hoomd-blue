@@ -48,7 +48,6 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd
 
 import numpy
-import math
 
 
 class Dihedral(Force):
@@ -80,10 +79,10 @@ class Dihedral(Force):
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
 
 
-class Harmonic(Dihedral):
-    r"""Harmonic dihedral force.
+class Periodic(Dihedral):
+    r"""Periodic dihedral force.
 
-    `Harmonic` computes forces, virials, and energies on all dihedrals in the
+    `Periodic` computes forces, virials, and energies on all dihedrals in the
     simulation state with:
 
     .. math::
@@ -119,10 +118,13 @@ class Harmonic(Dihedral):
         self._add_typeparam(params)
 
 
-def _table_eval(theta, V, T, width):
-    dth = (2 * math.pi) / float(width - 1)
-    i = int(round((theta + math.pi) / dth))
-    return (V[i], T[i])
+class Harmonic(Periodic):
+    """Periodic dihedral force.
+
+    .. deprecated:: v3.4.0
+        Use `Periodic`.
+    """
+    pass
 
 
 class Table(Dihedral):
