@@ -770,11 +770,15 @@ class Langevin(Method):
             \mathrm{length}^{-1} \cdot \mathrm{time}^{-1}]`.
             Defaults to None.
 
-        tally_reservoir_energy (bool): If true, the energy exchange
-            between the thermal reservoir and the particles is tracked. Total
-            energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities.
+        tally_reservoir_energy (bool): When True, track the energy exchange
+            between the thermal reservoir and the particles.
             Defaults to False :math:`[\mathrm{energy}]`.
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `Langevin` integrates particles forward in time according to the
     Langevin equations of motion.
@@ -866,21 +870,28 @@ class Langevin(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`. Defaults to None.
 
+        tally_reservoir_energy (bool): When True, track the energy exchange
+            between the thermal reservoir and the particles.
+            :math:`[\mathrm{energy}]`.
+
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero
+            coefficient for each particle type. Used when `alpha` is `None`.
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero
-            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
-
+            The rotational drag coefficient tensor for each particle type
+            :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, kT, alpha=None, tally_reservoir_energy=False):
+    def __init__(
+            self,
+            filter,
+            kT,
+            alpha=None,
+            tally_reservoir_energy=False,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -895,11 +906,12 @@ class Langevin(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1))
+                              param_dict=TypeParameterDict(default_gamma,
+                                                           len_keys=1))
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.),
+                                param_dict=TypeParameterDict(default_gamma_r,
                                                              len_keys=1))
 
         self._extend_typeparam([gamma, gamma_r])
@@ -919,6 +931,14 @@ class Langevin(Method):
         # Attach param_dict and typeparam_dict
         super()._attach_hook()
 
+    @hoomd.logging.log(requires_run=True)
+    def reservoir_energy(self):
+        """Energy absorbed by the reservoir :math:`[\\mathrm{energy}]`.
+
+        Set `tally_reservoir_energy` to `True` to track the reservoir energy.
+        """
+        return self._cpp_obj.reservoir_energy
+
 
 class Brownian(Method):
     r"""Brownian dynamics.
@@ -935,6 +955,12 @@ class Brownian(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
             Defaults to ``None``
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics or the
@@ -1044,20 +1070,22 @@ class Brownian(Method):
             \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero
+            coefficient for each particle type. Used when `alpha` is `None`.
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero
-            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
-            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
+        gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
+            The rotational drag coefficient tensor for each particle type
+            :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, kT, alpha=None):
+    def __init__(
+            self,
+            filter,
+            kT,
+            alpha=None,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -1072,11 +1100,12 @@ class Brownian(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1))
+                              param_dict=TypeParameterDict(default_gamma,
+                                                           len_keys=1))
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.),
+                                param_dict=TypeParameterDict(default_gamma_r,
                                                              len_keys=1))
         self._extend_typeparam([gamma, gamma_r])
 
@@ -1187,6 +1216,12 @@ class OverdampedViscous(Method):
             \cdot \mathrm{time}^{-1}]`.
             Defaults to ``None``
 
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
+
     `OverdampedViscous` integrates particles forward in time following
     Newtonian dynamics in the overdamped limit where there is no inertial term.
     (in the limit that the mass :math:`m` and moment of inertia :math:`I` go to
@@ -1246,20 +1281,21 @@ class OverdampedViscous(Method):
             \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero
+            coefficient for each particle type. Used when `alpha` is `None`.
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero
-            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
-            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
+        gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
+            The rotational drag coefficient tensor for each particle type
+            :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, alpha=None):
+    def __init__(
+            self,
+            filter,
+            alpha=None,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -1273,11 +1309,12 @@ class OverdampedViscous(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1))
+                              param_dict=TypeParameterDict(default_gamma,
+                                                           len_keys=1))
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.),
+                                param_dict=TypeParameterDict(default_gamma_r,
                                                              len_keys=1))
         self._extend_typeparam([gamma, gamma_r])
 
