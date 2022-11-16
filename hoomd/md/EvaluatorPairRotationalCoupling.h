@@ -127,7 +127,7 @@ class EvaluatorPairRotationalCoupling
                                                Scalar4& _quat_j,
                                                Scalar _rcutsq,
                                                const param_type& _params)
-        : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0},
+        : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},
           diameter(0), kappa(_params.kappa), tau(_params.tau)
         {
         }
@@ -202,6 +202,13 @@ class EvaluatorPairRotationalCoupling
     HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, vec3<Scalar> aj)
         {
         ang_mom = ai + aj;
+
+        if (ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z < 1e-5)
+            am = false;
+        else
+            am = true;
+        std::cout << "Read ang_mom " << ai.x << " " << ai.y << " " << ai.z << std::endl;
+        std::cout << "Read ang_mom " << aj.x << " " << aj.y << " " << aj.z << std::endl;
         }
 
     //! Evaluate the force and energy
@@ -220,26 +227,42 @@ class EvaluatorPairRotationalCoupling
                              Scalar3& torque_i,
                              Scalar3& torque_j)
         {
-        vec3<Scalar> rvec(dr);
-        Scalar rsq = dot(rvec, rvec);
+        if (am)
+            {
+            vec3<Scalar> rvec(dr);
+            Scalar rsq = dot(rvec, rvec);
 
-        if (rsq > rcutsq)
-            return false;
+            if (rsq > rcutsq)
+                return false;
 
-        Scalar rinv = fast::rsqrt(rsq);
+            Scalar rinv = fast::rsqrt(rsq);
 
-        Scalar d = 1.0 / rinv - diameter;
-        Scalar dcut = fast::sqrt(rcutsq) - diameter;
+            Scalar d = 1.0 / rinv - diameter;
+            Scalar dcut = fast::sqrt(rcutsq) - diameter;
 
-        dcut = Scalar(1.0) / dcut;
-        Scalar prefactor = fast::log(dcut * d);
+            dcut = Scalar(1.0) / dcut;
+            Scalar prefactor = fast::log(dcut * d);
 
-        vec3<Scalar> f = kappa * prefactor * cross(rvec, ang_mom) * rinv;
-        vec3<Scalar> t = -kappa * prefactor * ang_mom;
+            vec3<Scalar> f = kappa * prefactor * cross(rvec, ang_mom) * rinv;
+            vec3<Scalar> t = -kappa * prefactor * ang_mom;
 
-        force = vec_to_scalar3(f);
-        torque_i = vec_to_scalar3(t);
-        torque_j = -vec_to_scalar3(t);
+            std::cout << "Ang_mom "
+                      << ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z
+                      << std::endl;
+            std::cout << "Force " << f.x << " " << f.y << " " << f.z << std::endl;
+            std::cout << "torque " << t.x << " " << t.y << " " << t.z << std::endl;
+
+            force = vec_to_scalar3(f);
+            torque_i = vec_to_scalar3(t);
+            torque_j = vec_to_scalar3(t);
+            }
+        else
+            {
+            force = make_scalar3(0, 0, 0);
+            torque_i = make_scalar3(0, 0, 0);
+            torque_j = make_scalar3(0, 0, 0);
+            }
+
         pair_eng = 0;
         return true;
         }
@@ -274,7 +297,8 @@ class EvaluatorPairRotationalCoupling
     Scalar rcutsq;          //!< Stored rcutsq from the constructor
     Scalar4 quat_i, quat_j; //!< Stored quaternion of ith and jth particle from constructor
     vec3<Scalar> ang_mom;   /// Sum of angular momentum for ith and jth particle
-    Scalar diameter;        /// average diameter of the particle pair
+    bool am;
+    Scalar diameter; /// average diameter of the particle pair
     Scalar kappa;
     Scalar tau;
     // const param_type &params;   //!< The pair potential parameters
