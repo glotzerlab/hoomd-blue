@@ -348,6 +348,12 @@ template<> inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
     {
     std::ostringstream shapedef;
     auto& verts = poly.verts;
+
+    if (verts.N == 0)
+        {
+        throw std::runtime_error("Shape definition not supported for 0-vertex polygon.");
+        }
+
     shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius
              << ", \"vertices\": [";
     for (unsigned int i = 0; i < verts.N - 1; i++)
