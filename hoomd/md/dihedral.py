@@ -121,7 +121,7 @@ class Periodic(Dihedral):
 class Harmonic(Periodic):
     """Periodic dihedral force.
 
-    .. deprecated:: v3.4.0
+    .. deprecated:: v3.7.0
         Use `Periodic`.
     """
     pass
