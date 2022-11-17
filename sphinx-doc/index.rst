@@ -51,6 +51,8 @@ Resources
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:
   Scripts to evaluate the performance of HOOMD-blue simulations.
+- `HOOMD-blue validation tests <https://github.com/glotzerlab/hoomd-validation>`_:
+  Scripts to validate that HOOMD-blue performs accurate simulations.
 
 Related tools
 =============
