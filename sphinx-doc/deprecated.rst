@@ -27,3 +27,6 @@ v3.x
    * - ``hoomd.device.GPU.memory_traceback`` parameter
      - n/a: ``memory_traceback`` has no effect since v3.0.0.
      - v3.4.0
+   * - ``hoomd.md.dihedral.Harmonic``
+     - ``hoomd.md.dihedral.Periodic`` - new name.
+     - v3.7.0
