@@ -207,8 +207,6 @@ class EvaluatorPairRotationalCoupling
             am = false;
         else
             am = true;
-        std::cout << "Read ang_mom " << ai.x << " " << ai.y << " " << ai.z << std::endl;
-        std::cout << "Read ang_mom " << aj.x << " " << aj.y << " " << aj.z << std::endl;
         }
 
     //! Evaluate the force and energy
@@ -244,13 +242,14 @@ class EvaluatorPairRotationalCoupling
             Scalar prefactor = fast::log(dcut * d);
 
             vec3<Scalar> f = kappa * prefactor * cross(rvec, ang_mom) * rinv;
-            vec3<Scalar> t = -kappa * prefactor * ang_mom;
+            vec3<Scalar> t = tau * prefactor * ang_mom;
 
-            std::cout << "Ang_mom "
-                      << ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z
-                      << std::endl;
-            std::cout << "Force " << f.x << " " << f.y << " " << f.z << std::endl;
-            std::cout << "torque " << t.x << " " << t.y << " " << t.z << std::endl;
+            // std::cout << "Ang_mom "
+            //           << ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z
+            //          << " " << d
+            //          << std::endl;
+            // std::cout << "Force " << f.x << " " << f.y << " " << f.z << std::endl;
+            // std::cout << "torque " << t.x << " " << t.y << " " << t.z << std::endl;
 
             force = vec_to_scalar3(f);
             torque_i = vec_to_scalar3(t);
