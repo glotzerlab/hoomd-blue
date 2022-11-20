@@ -68,7 +68,7 @@ struct a_pair_args_t
                   bool _update_shape_param)
         : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch),
           N(_N), n_max(_n_max), d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge),
-          d_orientation(_d_orientation), d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh),
+          d_orientation(_d_orientation), d_tag(_d_tag), d_angmom(_d_angmom), box(_box), d_n_neigh(_d_n_neigh),
           d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes),
           block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
@@ -262,13 +262,14 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
-        vec3<Scalar> ai;
+        vec3<Scalar> ai(0,0,0);
         if (evaluator::needsAngularMomentum())
             {
             quat<Scalar> p(__ldg(d_angmom + idx));
             quat<Scalar> q(quati);
             ai = (Scalar(1. / 2.) * conj(q) * p).v;
             }
+
 
         size_t my_head = d_head_list[idx];
         unsigned int cur_j = 0;
@@ -301,7 +302,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
 
-                vec3<Scalar> aj;
+                vec3<Scalar> aj(0,0,0);
                 if (evaluator::needsAngularMomentum())
                     {
                     quat<Scalar> p(__ldg(d_angmom + cur_j));

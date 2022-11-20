@@ -244,13 +244,6 @@ class EvaluatorPairRotationalCoupling
             vec3<Scalar> f = kappa * prefactor * cross(rvec, ang_mom) * rinv;
             vec3<Scalar> t = tau * prefactor * ang_mom;
 
-            // std::cout << "Ang_mom "
-            //           << ang_mom.x * ang_mom.x + ang_mom.y * ang_mom.y + ang_mom.z * ang_mom.z
-            //          << " " << d
-            //          << std::endl;
-            // std::cout << "Force " << f.x << " " << f.y << " " << f.z << std::endl;
-            // std::cout << "torque " << t.x << " " << t.y << " " << t.z << std::endl;
-
             force = vec_to_scalar3(f);
             torque_i = vec_to_scalar3(t);
             torque_j = vec_to_scalar3(t);
