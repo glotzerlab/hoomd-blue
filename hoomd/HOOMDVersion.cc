@@ -29,13 +29,16 @@ std::string BuildInfo::getCompileFlags()
     o << "] (" << hip_major << "." << hip_minor << ") ";
 #endif
 
-#ifdef SINGLE_PRECISION
-    o << "SINGLE ";
+#if HOOMD_LONGREAL_SIZE == 32
+    o << "SINGLE";
 #else
-    o << "DOUBLE ";
-#ifdef ENABLE_HPMC_MIXED_PRECISION
-    o << "HPMC_MIXED ";
+    o << "DOUBLE";
 #endif
+
+#if HOOMD_SHORTREAL_SIZE == 32
+    o << "[SINGLE] ";
+#else
+    o << "[DOUBLE] ";
 #endif
 
 #ifdef ENABLE_MPI
@@ -171,13 +174,7 @@ std::string BuildInfo::getInstallDir()
 
 std::pair<unsigned int, unsigned int> BuildInfo::getFloatingPointPrecision()
     {
-#if defined(SINGLE_PRECISION)
-    return std::make_pair(32, 32);
-#elif !defined(SINGLE_PRECISION) && defined(ENABLE_HPMC_MIXED_PRECISION)
-    return std::make_pair(64, 32);
-#elif !defined(SINGLE_PRECISION) && !defined(ENABLE_HPMC_MIXED_PRECISION)
-    return std::make_pair(64, 64);
-#endif
+    return std::make_pair(HOOMD_LONGREAL_SIZE, HOOMD_SHORTREAL_SIZE);
     }
 
     } // namespace hoomd

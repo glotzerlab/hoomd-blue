@@ -23,7 +23,7 @@ namespace hoomd
     {
 namespace hpmc
     {
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 
 // in single precision, OverlapReal is always float
 //! Typedef'd real for use in local overlap checks

@@ -171,7 +171,7 @@ class SupportFuncConvexPolygon
         if (verts.N > 0)
             {
 #if !defined(__HIPCC__) && defined(__AVX__) \
-    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+    && (HOOMD_LONGREAL_SIZE == 32 || defined(ENABLE_HPMC_MIXED_PRECISION))
             // process dot products with AVX 8 at a time on the CPU when working with more than 4
             // verts
             __m256 nx_v = _mm256_broadcast_ss(&n.x);
@@ -221,7 +221,7 @@ class SupportFuncConvexPolygon
                 }
 
 #elif !defined(__HIPCC__) && defined(__SSE__) \
-    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+    && (HOOMD_LONGREAL_SIZE == 32 || defined(ENABLE_HPMC_MIXED_PRECISION))
             // process dot products with SSE 4 at a time on the CPU
             __m128 nx_v = _mm_load_ps1(&n.x);
             __m128 ny_v = _mm_load_ps1(&n.y);

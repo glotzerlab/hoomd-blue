@@ -66,7 +66,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, q);
     OverlapReal d;
 
-#if defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION)
+#if HOOMD_LONGREAL_SIZE == 32 || defined(ENABLE_HPMC_MIXED_PRECISION)
     // precision tolerance for single-precision floats near 1.0
     const OverlapReal precision_tol = OverlapReal(5e-7);
 

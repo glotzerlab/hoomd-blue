@@ -83,7 +83,10 @@ endif()
 
 #################################
 ## Build options
-option(SINGLE_PRECISION "Use single precision math" OFF)
+set(HOOMD_SHORTREAL_SIZE "32" CACHE STRING "Size of the ShortReal type in bits.")
+SET_PROPERTY(CACHE HOOMD_SHORTREAL_SIZE PROPERTY STRINGS "32" "64")
+set(HOOMD_LONGREAL_SIZE "64" CACHE STRING "Size of the LongReal type in bits.")
+SET_PROPERTY(CACHE HOOMD_LONGREAL_SIZE PROPERTY STRINGS "32" "64")
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
 set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
@@ -93,7 +96,7 @@ option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC"
 
 # Components
 option(BUILD_MD "Build the md package" on)
-if (NOT SINGLE_PRECISION)
+if (HOOMD_LONGREAL_SIZE STREQUAL "64")
 option(BUILD_HPMC "Build the hpmc package" on)
 else ()
 option(BUILD_HPMC "Build the hpmc package" off)

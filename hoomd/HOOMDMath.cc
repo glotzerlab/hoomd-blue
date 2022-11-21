@@ -18,7 +18,6 @@ void export_hoomd_math_functions(pybind11::module& m)
 // see http://stackoverflow.com/questions/13177573/how-to-expose-aligned-class-with-boost-python
 
 // these clumsy property lambdas are necessary to make pybind11 interoperate with HIP vector types
-#ifdef SINGLE_PRECISION
     pybind11::class_<double2, std::shared_ptr<double2>>(m, "double2")
         .def(pybind11::init<>())
         .def_property(
@@ -61,7 +60,7 @@ void export_hoomd_math_functions(pybind11::module& m)
             "w",
             [](const double4& s) { return (double)s.w; },
             [](double4& s, double v) { s.w = v; });
-#else
+
     pybind11::class_<float2, std::shared_ptr<float2>>(m, "float2")
         .def(pybind11::init<>())
         .def_property(
@@ -104,50 +103,6 @@ void export_hoomd_math_functions(pybind11::module& m)
             "w",
             [](const float4& s) { return (float)s.w; },
             [](float4& s, float v) { s.w = v; });
-#endif
-
-    pybind11::class_<Scalar2, std::shared_ptr<Scalar2>>(m, "Scalar2")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const Scalar2& s) { return (Scalar)s.x; },
-            [](Scalar2& s, Scalar v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const Scalar2& s) { return (Scalar)s.y; },
-            [](Scalar2& s, Scalar v) { s.y = v; });
-    pybind11::class_<Scalar3, std::shared_ptr<Scalar3>>(m, "Scalar3")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const Scalar3& s) { return (Scalar)s.x; },
-            [](Scalar3& s, Scalar v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const Scalar3& s) { return (Scalar)s.y; },
-            [](Scalar3& s, Scalar v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const Scalar3& s) { return (Scalar)s.z; },
-            [](Scalar3& s, Scalar v) { s.z = v; });
-    pybind11::class_<Scalar4, std::shared_ptr<Scalar4>>(m, "Scalar4")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const Scalar4& s) { return (Scalar)s.x; },
-            [](Scalar4& s, Scalar v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const Scalar4& s) { return (Scalar)s.y; },
-            [](Scalar4& s, Scalar v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const Scalar4& s) { return (Scalar)s.z; },
-            [](Scalar4& s, Scalar v) { s.z = v; })
-        .def_property(
-            "w",
-            [](const Scalar4& s) { return (Scalar)s.w; },
-            [](Scalar4& s, Scalar v) { s.w = v; });
 
     pybind11::class_<uint2, std::shared_ptr<uint2>>(m, "uint2")
         .def(pybind11::init<>())

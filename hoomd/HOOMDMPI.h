@@ -156,7 +156,7 @@ inline void load(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A>& unorde
 
 namespace hoomd
     {
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 //! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
 const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;
