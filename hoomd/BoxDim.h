@@ -303,11 +303,12 @@ struct
         {
         vec3<Real> w = v;
         vec3<Real> L(getL());
+        vec3<Real> Linv(m_Linv);
 
 #ifdef __HIPCC__
         if (m_periodic.z)
             {
-            Real img = slow::rint(w.z * m_Linv.z);
+            Real img = slow::rint(w.z * Linv.z);
             w.z -= L.z * img;
             w.y -= L.z * m_yz * img;
             w.x -= L.z * m_xz * img;
@@ -315,14 +316,14 @@ struct
 
         if (m_periodic.y)
             {
-            Real img = slow::rint(w.y * m_Linv.y);
+            Real img = slow::rint(w.y * Linv.y);
             w.y -= L.y * img;
             w.x -= L.y * m_xy * img;
             }
 
         if (m_periodic.x)
             {
-            w.x -= L.x * slow::rint(w.x * m_Linv.x);
+            w.x -= L.x * slow::rint(w.x * Linv.x);
             }
 #else
         // on the cpu, branches are faster than calling rint
