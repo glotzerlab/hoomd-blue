@@ -45,7 +45,7 @@ def _equivalent_data_structures(reference, struct_2):
             _equivalent_data_structures(value_1, value_2)
             for value_1, value_2 in zip(reference, struct_2))
     if isinstance(reference, Number):
-        return math.isclose(reference, struct_2)
+        return math.isclose(reference, struct_2, rel_tol=1e-5)
 
 
 def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
@@ -811,7 +811,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     # When 0 < r_on < r_ij < r_cut
     energies = sim.operations.integrator.forces[0].energies
     if energies is not None:
-        assert math.isclose(sum(energies), E_r * S_r(distance, r_cut, r_on))
+        assert math.isclose(sum(energies), E_r * S_r(distance, r_cut, r_on), rel_tol=1e-5)
 
     # When 0 < r_ij < r_on < r_cut
     lj_xplor.r_on[('A', 'A')] = distance * 1.2
@@ -833,7 +833,7 @@ def _calculate_force(sim):
 
     Finds the negative derivative of energy divided by inter-particle distance
     """
-    dr = 1e-6
+    dr = 5e-5
 
     snap = sim.state.get_snapshot()
     if snap.communicator.rank == 0:
@@ -912,10 +912,10 @@ def test_force_energy_relationship(simulation_factory,
         if sim_forces is not None:
             np.testing.assert_allclose(calculated_forces[0],
                                        sim_forces[0],
-                                       rtol=1e-05)
+                                       rtol=1e-2)
             np.testing.assert_allclose(calculated_forces[1],
                                        sim_forces[1],
-                                       rtol=1e-05)
+                                       rtol=1e-2)
 
 
 def _forces_and_energies():
