@@ -731,8 +731,8 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
                 }
 
             // compute the force and potential energy
-            Scalar force_divr = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
+            ShortReal force_divr = ShortReal(0.0);
+            ShortReal pair_eng = ShortReal(0.0);
             evaluator eval(rsq, rcutsq, param);
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, dj);
@@ -983,8 +983,8 @@ inline void PotentialPair<evaluator>::computeEnergyBetweenSets(InputIterator fir
                 }
 
             // compute the force and potential energy
-            Scalar force_divr = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
+            ShortReal force_divr = ShortReal(0.0);
+            ShortReal pair_eng = ShortReal(0.0);
             evaluator eval(rsq, rcutsq, param);
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, dj);

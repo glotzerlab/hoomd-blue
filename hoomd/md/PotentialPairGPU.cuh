@@ -125,7 +125,7 @@ struct pair_args_t
     \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangular(typei,
    typej) to access the unique value for that type pair. These values are all cached into shared
    memory for quick access, so a dynamic amount of shared memory must be allocated for this kernel
-   launch. The amount is (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) *
+   launch. The amount is (2*sizeof(ShortReal) + sizeof(typename evaluator::param_type)) *
    typpair_idx.getNumElements()
 
     Certain options are controlled via template parameters to avoid the performance hit when they
@@ -224,13 +224,13 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
     idx += offset;
 
     // initialize the force to 0
-    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-    Scalar virialxx = Scalar(0.0);
-    Scalar virialxy = Scalar(0.0);
-    Scalar virialxz = Scalar(0.0);
-    Scalar virialyy = Scalar(0.0);
-    Scalar virialyz = Scalar(0.0);
-    Scalar virialzz = Scalar(0.0);
+    ShortReal4 force = make_float4(ShortReal(0.0), ShortReal(0.0), ShortReal(0.0), ShortReal(0.0));
+    ShortReal virialxx = ShortReal(0.0);
+    ShortReal virialxy = ShortReal(0.0);
+    ShortReal virialxz = ShortReal(0.0);
+    ShortReal virialyy = ShortReal(0.0);
+    ShortReal virialyz = ShortReal(0.0);
+    ShortReal virialzz = ShortReal(0.0);
 
     if (active)
         {
@@ -324,8 +324,8 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                     }
 
                 // evaluate the potential
-                Scalar force_divr = Scalar(0.0);
-                Scalar pair_eng = Scalar(0.0);
+                ShortReal force_divr = ShortReal(0.0);
+                ShortReal pair_eng = ShortReal(0.0);
 
                 evaluator eval(rsq, rcutsq, *param);
                 if (evaluator::needsDiameter())
@@ -340,20 +340,20 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                     if (rsq >= ronsq && rsq < rcutsq)
                         {
                         // Implement XPLOR smoothing
-                        Scalar old_pair_eng = pair_eng;
-                        Scalar old_force_divr = force_divr;
+                        ShortReal old_pair_eng = pair_eng;
+                        ShortReal old_force_divr = force_divr;
 
                         // calculate 1.0 / (xplor denominator)
-                        Scalar xplor_denom_inv
-                            = Scalar(1.0)
+                        ShortReal xplor_denom_inv
+                            = ShortReal(1.0)
                               / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
 
-                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
-                                   * (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq)
+                        ShortReal rsq_minus_r_cut_sq = rsq - rcutsq;
+                        ShortReal s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq
+                                   * (rcutsq + ShortReal(2.0) * rsq - ShortReal(3.0) * ronsq)
                                    * xplor_denom_inv;
-                        Scalar ds_dr_divr
-                            = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+                        ShortReal ds_dr_divr
+                            = ShortReal(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
 
                         // make modifications to the old pair energy and force
                         pair_eng = old_pair_eng * s;
@@ -361,34 +361,33 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                         }
                     }
 
-                vec3<LongReal> dx_long(dx_short);
                 // calculate the virial
                 if (compute_virial)
                     {
                     Scalar force_div2r = Scalar(0.5) * force_divr;
-                    virialxx += dx_long.x * dx_long.x * force_div2r;
-                    virialxy += dx_long.x * dx_long.y * force_div2r;
-                    virialxz += dx_long.x * dx_long.z * force_div2r;
-                    virialyy += dx_long.y * dx_long.y * force_div2r;
-                    virialyz += dx_long.y * dx_long.z * force_div2r;
-                    virialzz += dx_long.z * dx_long.z * force_div2r;
+                    virialxx += dx_short.x * dx_short.x * force_div2r;
+                    virialxy += dx_short.x * dx_short.y * force_div2r;
+                    virialxz += dx_short.x * dx_short.z * force_div2r;
+                    virialyy += dx_short.y * dx_short.y * force_div2r;
+                    virialyz += dx_short.y * dx_short.z * force_div2r;
+                    virialzz += dx_short.z * dx_short.z * force_div2r;
                     }
 
                 // add up the force vector components
-                force.x += dx_long.x * force_divr;
-                force.y += dx_long.y * force_divr;
-                force.z += dx_long.z * force_divr;
+                force.x += dx_short.x * force_divr;
+                force.y += dx_short.y * force_divr;
+                force.z += dx_short.z * force_divr;
 
                 force.w += pair_eng;
                 }
             }
 
         // potential energy per particle must be halved
-        force.w *= Scalar(0.5);
+        force.w *= ShortReal(0.5);
         }
 
     // reduce force over threads in cta
-    hoomd::detail::WarpReduce<Scalar, tpp> reducer;
+    hoomd::detail::WarpReduce<ShortReal, tpp> reducer;
     force.x = reducer.Sum(force.x);
     force.y = reducer.Sum(force.y);
     force.z = reducer.Sum(force.z);
@@ -396,7 +395,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
 
     // now that the force calculation is complete, write out the result
     if (active && threadIdx.x % tpp == 0)
-        d_force[idx] = force;
+        d_force[idx] = make_scalar4(force.x, force.y, force.z, force.w);
 
     if (compute_virial)
         {
@@ -466,7 +465,7 @@ struct PairForceComputeKernel
 
             Index2D typpair_idx(pair_args.ntypes);
             size_t param_shared_bytes
-                = (2 * sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                = (2 * sizeof(ShortReal) + sizeof(typename evaluator::param_type))
                   * typpair_idx.getNumElements();
 
             unsigned int max_block_size;

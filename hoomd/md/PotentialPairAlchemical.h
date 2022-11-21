@@ -411,8 +411,8 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
                 }
 
             // compute the force and potential energy
-            Scalar force_divr = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
+            ShortReal force_divr = ShortReal(0.0);
+            ShortReal pair_eng = ShortReal(0.0);
             evaluator eval(rsq, rcutsq, param);
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, dj);

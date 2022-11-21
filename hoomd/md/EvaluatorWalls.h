@@ -180,8 +180,8 @@ template<class evaluator> class EvaluatorWalls
         Scalar rsq = dot(drv, drv);
 
         // compute the force and potential energy
-        Scalar force_divr = Scalar(0.0);
-        Scalar pair_eng = Scalar(0.0);
+        ShortReal force_divr = ShortReal(0.0);
+        ShortReal pair_eng = ShortReal(0.0);
         evaluator eval(rsq, m_params.rcutsq, m_params.params);
         if (evaluator::needsDiameter())
             eval.setDiameter(di, Scalar(0.0));
@@ -199,8 +199,8 @@ template<class evaluator> class EvaluatorWalls
             if (!std::isfinite(force_divr))
 #endif
                 {
-                force_divr = Scalar(0.0);
-                pair_eng = Scalar(0.0);
+                force_divr = ShortReal(0.0);
+                pair_eng = ShortReal(0.0);
                 }
             // add the force and potential energy to the particle i
             F += drv * force_divr;
@@ -216,8 +216,8 @@ template<class evaluator> class EvaluatorWalls
                                        const Scalar r)
         {
         // compute the force and potential energy
-        Scalar force_divr = Scalar(0.0);
-        Scalar pair_eng = Scalar(0.0);
+        ShortReal force_divr = ShortReal(0.0);
+        ShortReal pair_eng = ShortReal(0.0);
 
         evaluator eval(rextrapsq, m_params.rcutsq, m_params.params);
         if (evaluator::needsDiameter())
@@ -238,8 +238,8 @@ template<class evaluator> class EvaluatorWalls
             if (!std::isfinite(force_divr))
 #endif
                 {
-                force_divr = Scalar(0.0);
-                pair_eng = Scalar(0.0);
+                force_divr = ShortReal(0.0);
+                pair_eng = ShortReal(0.0);
                 }
             F += drv * force_divr;
             energy += pair_eng;

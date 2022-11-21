@@ -310,15 +310,15 @@ struct
             {
             Real img = slow::rint(w.z * Linv.z);
             w.z -= L.z * img;
-            w.y -= L.z * m_yz * img;
-            w.x -= L.z * m_xz * img;
+            w.y -= L.z * Real(m_yz) * img;
+            w.x -= L.z * Real(m_xz) * img;
             }
 
         if (m_periodic.y)
             {
             Real img = slow::rint(w.y * Linv.y);
             w.y -= L.y * img;
-            w.x -= L.y * m_xy * img;
+            w.x -= L.y * Real(m_xy) * img;
             }
 
         if (m_periodic.x)
