@@ -278,14 +278,13 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                     qj = __ldg(d_charge + cur_j);
 
                 // calculate dr (with periodic boundary conditions)
-                Scalar3 dx = posi - posj;
+                vec3<ShortReal> dx(posi - posj);
 
                 // apply periodic boundary conditions
-                vec3<ShortReal> dx_short(dx);
-                dx_short = box.minImage(dx_short);
+                dx = box.minImage(dx);
 
                 // calculate r squared
-                ShortReal rsq = dot(dx_short, dx_short);
+                ShortReal rsq = dot(dx, dx);
 
                 // access the per type pair parameters
                 unsigned int typpair
@@ -365,18 +364,18 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 if (compute_virial)
                     {
                     Scalar force_div2r = Scalar(0.5) * force_divr;
-                    virialxx += dx_short.x * dx_short.x * force_div2r;
-                    virialxy += dx_short.x * dx_short.y * force_div2r;
-                    virialxz += dx_short.x * dx_short.z * force_div2r;
-                    virialyy += dx_short.y * dx_short.y * force_div2r;
-                    virialyz += dx_short.y * dx_short.z * force_div2r;
-                    virialzz += dx_short.z * dx_short.z * force_div2r;
+                    virialxx += dx.x * dx.x * force_div2r;
+                    virialxy += dx.x * dx.y * force_div2r;
+                    virialxz += dx.x * dx.z * force_div2r;
+                    virialyy += dx.y * dx.y * force_div2r;
+                    virialyz += dx.y * dx.z * force_div2r;
+                    virialzz += dx.z * dx.z * force_div2r;
                     }
 
                 // add up the force vector components
-                force.x += dx_short.x * force_divr;
-                force.y += dx_short.y * force_divr;
-                force.z += dx_short.z * force_divr;
+                force.x += dx.x * force_divr;
+                force.y += dx.y * force_divr;
+                force.z += dx.z * force_divr;
 
                 force.w += pair_eng;
                 }
