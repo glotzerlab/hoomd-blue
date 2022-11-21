@@ -324,16 +324,15 @@ enum class GhostDataFlag
  *  object of type Output of a MPI local, MPI local with ghosts, or global size
  *  (for particles bonds, etc.).
  */
-template<class Output, class Data>
-class PerGroupLocalDataAccess : public LocalDataAccess<Output, Data>
+template<class Output, class Data> class GhostLocalDataAccess : public LocalDataAccess<Output, Data>
     {
     public:
-    inline PerGroupLocalDataAccess(Data& data, ssize_t n, ssize_t n_ghosts, ssize_t n_global)
+    inline GhostLocalDataAccess(Data& data, ssize_t n, ssize_t n_ghosts, ssize_t n_global)
         : LocalDataAccess<Output, Data>(data), m_n(n), m_n_ghosts(n_ghosts), m_n_global(n_global)
         {
         }
 
-    virtual ~PerGroupLocalDataAccess() = default;
+    virtual ~GhostLocalDataAccess() = default;
 
     protected:
     /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.

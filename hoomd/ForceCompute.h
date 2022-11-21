@@ -237,13 +237,12 @@ class PYBIND11_EXPORT ForceCompute : public Compute
  *
  * */
 template<class Output>
-class PYBIND11_EXPORT LocalForceComputeData : public PerGroupLocalDataAccess<Output, ForceCompute>
+class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output, ForceCompute>
     {
     public:
     LocalForceComputeData(ForceCompute& data, ssize_t N, ssize_t N_ghost, ssize_t N_global)
-        : PerGroupLocalDataAccess<Output, ForceCompute>(data, N, N_ghost, N_global),
-          m_force_handle(), m_torque_handle(), m_virial_handle(),
-          m_virial_pitch(data.getVirialArray().getPitch()),
+        : GhostLocalDataAccess<Output, ForceCompute>(data, N, N_ghost, N_global), m_force_handle(),
+          m_torque_handle(), m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch()),
           m_buffers_writeable(data.getLocalBuffersWriteable())
         {
         }
