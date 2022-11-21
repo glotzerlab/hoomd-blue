@@ -240,9 +240,13 @@ template<class Output>
 class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output, ForceCompute>
     {
     public:
-    LocalForceComputeData(ForceCompute& data, ssize_t N, ssize_t N_ghost, ssize_t N_global)
-        : GhostLocalDataAccess<Output, ForceCompute>(data, N, N_ghost, N_global), m_force_handle(),
-          m_torque_handle(), m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch()),
+    LocalForceComputeData(ForceCompute& data, ParticleData& pdata)
+        : GhostLocalDataAccess<Output, ForceCompute>(data,
+                                                     pdata.getN(),
+                                                     pdata.getNGhosts(),
+                                                     pdata.getNGlobal()),
+          m_force_handle(), m_torque_handle(), m_virial_handle(),
+          m_virial_pitch(data.getVirialArray().getPitch()),
           m_buffers_writeable(data.getLocalBuffersWriteable())
         {
         }
@@ -323,7 +327,7 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
     pybind11::class_<LocalForceComputeData<Output>, std::shared_ptr<LocalForceComputeData<Output>>>(
         m,
         name.c_str())
-        .def(pybind11::init<ForceCompute&, ssize_t, ssize_t, ssize_t>())
+        .def(pybind11::init<ForceCompute&, ParticleData&>())
         .def("getForce", &LocalForceComputeData<Output>::getForce)
         .def("getPotentialEnergy", &LocalForceComputeData<Output>::getPotentialEnergy)
         .def("getTorque", &LocalForceComputeData<Output>::getTorque)

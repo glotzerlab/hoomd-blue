@@ -64,10 +64,6 @@ class Force(Compute):
         for `isinstance` or `issubclass` checks.
     """
 
-    # Which method to call on pybind11 exposed SystemDefinition to get correct
-    # numbers (e.g. getN) for the force. Must be overwritten by other classes.
-    _cpp_data_method = ""
-
     def __init__(self):
         self._in_context_manager = False
 
@@ -180,14 +176,9 @@ class Force(Compute):
             raise RuntimeError("Cannot enter cpu_local_force_arrays context "
                                "manager inside another local_force_arrays "
                                "context manager")
-        if self._cpp_data_method == "":
-            raise RuntimeError(
-                "Force object cannot access the C++ buffers because "
-                "_cpp_data_method is not specified. Please file an issue on "
-                "GitHub to report this bug.")
         if not self._attached:
             raise hoomd.error.DataAccessError("cpu_local_force_arrays")
-        return hoomd.md.data.ForceLocalAccess(self, self._simulation.state)
+        return hoomd.md.data.ForceLocalAccessCPU(self, self._simulation.state)
 
     @property
     def gpu_local_force_arrays(self):
@@ -223,11 +214,6 @@ class Force(Compute):
             raise RuntimeError(
                 "Cannot enter gpu_local_force_arrays context manager inside "
                 "another local_force_arrays context manager")
-        if self._cpp_data_method == "":
-            raise RuntimeError(
-                "Force object cannot access the C++ buffers because "
-                "_cpp_data_method is not specified. Please file an issue on "
-                "GitHub to report this bug.")
         if not self._attached:
             raise hoomd.error.DataAccessError("gpu_local_force_arrays")
         return hoomd.md.data.ForceLocalAccessGPU(self, self._simulation.state)
@@ -302,8 +288,6 @@ class Custom(Force):
         `Custom` zeros the force, torque, energy, and virial arrays before
         calling the user-provided `set_forces`.
     """
-
-    _cpp_data_method = "getParticleData"
 
     def __init__(self, aniso=False):
         super().__init__()
@@ -392,8 +376,6 @@ class Active(Force):
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
     """
-
-    _cpp_data_method = "getParticleData"
 
     def __init__(self, filter):
         super().__init__()
