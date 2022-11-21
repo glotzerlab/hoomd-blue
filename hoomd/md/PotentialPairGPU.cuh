@@ -170,11 +170,11 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
     // shared arrays for per type pair parameters
     HIP_DYNAMIC_SHARED(char, s_data)
     typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
-    Scalar* s_rcutsq
-        = (Scalar*)(&s_data[num_typ_parameters * sizeof(typename evaluator::param_type)]);
-    Scalar* s_ronsq
-        = (Scalar*)(&s_data[num_typ_parameters
-                            * (sizeof(typename evaluator::param_type) + sizeof(Scalar))]);
+    ShortReal* s_rcutsq
+        = (ShortReal*)(&s_data[num_typ_parameters * sizeof(typename evaluator::param_type)]);
+    ShortReal* s_ronsq
+        = (ShortReal*)(&s_data[num_typ_parameters
+                            * (sizeof(typename evaluator::param_type) + sizeof(ShortReal))]);
     auto s_extra = reinterpret_cast<char*>(s_ronsq + num_typ_parameters);
 
     if (enable_shared_cache)
@@ -289,9 +289,9 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 // access the per type pair parameters
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-                Scalar rcutsq;
+                ShortReal rcutsq;
                 const typename evaluator::param_type* param = nullptr;
-                Scalar ronsq = Scalar(0.0);
+                ShortReal ronsq = ShortReal(0.0);
 
                 if (enable_shared_cache)
                     {
