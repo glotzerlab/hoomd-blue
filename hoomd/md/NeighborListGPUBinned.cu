@@ -89,7 +89,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
     HIP_DYNAMIC_SHARED(unsigned char, s_data)
 
     // pointer for the r_listsq data
-    Scalar* s_r_list = (Scalar*)(&s_data[0]);
+    ShortReal* s_r_list = (ShortReal*)(&s_data[0]);
 
     if (enable_shared_cache)
         {
@@ -98,10 +98,10 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
             {
             if (cur_offset + threadIdx.x < num_typ_parameters)
                 {
-                Scalar r_cut = d_r_cut[cur_offset + threadIdx.x];
+                ShortReal r_cut = d_r_cut[cur_offset + threadIdx.x];
                 // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
                 s_r_list[cur_offset + threadIdx.x]
-                    = (r_cut > Scalar(0.0)) ? r_cut + r_buff : Scalar(-1.0);
+                    = (r_cut > ShortReal(0.0)) ? r_cut + ShortReal(r_buff) : Scalar(-1.0);
                 }
             }
         __syncthreads();
@@ -225,17 +225,18 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
             unsigned int neigh_type = __scalar_as_int(cur_tdb.x);
 
             // Only do the hard work if the particle should be included by r_cut(i,j)
-            Scalar r_list;
+            ShortReal r_list;
 
+            // TODO: Make enable_shared_cache a template parameter to improve performance
             if (enable_shared_cache)
                 {
                 r_list = s_r_list[typpair_idx(my_type, neigh_type)];
                 }
             else
                 {
-                Scalar r_cut = d_r_cut[typpair_idx(my_type, neigh_type)];
-                // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
-                r_list = (r_cut > Scalar(0.0)) ? r_cut + r_buff : Scalar(-1.0);
+                // ShortReal r_cut = ShortReal(d_r_cut[typpair_idx(my_type, neigh_type)]);
+                // // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
+                // r_list = (r_cut > ShortReal(0.0)) ? r_cut + ShortReal(r_buff) : ShortReal(-1.0);
                 }
 
             if (r_list > Scalar(0.0))
@@ -247,7 +248,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                 int cur_neigh = __scalar_as_int(cur_xyzf.w);
 
                 // compute the distance between the two particles
-                Scalar3 dx = my_pos - neigh_pos;
+                vec3<ShortReal> dx(my_pos - neigh_pos);
 
                 // wrap the periodic boundary conditions
                 dx = box.minImage(dx);
@@ -260,13 +261,13 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                 if (filter_body && my_body != 0xffffffff)
                     excluded = excluded | (my_body == neigh_body);
 
-                Scalar sqshift = Scalar(0.0);
+                ShortReal sqshift = Scalar(0.0);
                 if (diameter_shift)
                     {
-                    const Scalar delta = (my_diam + neigh_diam) * Scalar(0.5) - Scalar(1.0);
+                    const ShortReal delta = (my_diam + neigh_diam) * ShortReal(0.5) - ShortReal(1.0);
                     // r^2 < (r_list + delta)^2
                     // r^2 < r_listsq + delta^2 + 2*r_list*delta
-                    sqshift = (delta + Scalar(2.0) * r_list) * delta;
+                    sqshift = (delta + ShortReal(2.0) * r_list) * delta;
                     }
 
                 // store result in shared memory
@@ -358,7 +359,7 @@ inline void launcher(unsigned int* d_nlist,
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
-    unsigned int shared_size = (unsigned int)(sizeof(Scalar) * typpair_idx.getNumElements());
+    unsigned int shared_size = (unsigned int)(sizeof(ShortReal) * typpair_idx.getNumElements());
 
     bool enable_shared = true;
 
