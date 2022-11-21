@@ -108,8 +108,8 @@ class EvaluatorPairLJ
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar sigma_6;
-        Scalar epsilon_x_4;
+        ShortReal sigma_6;
+        ShortReal epsilon_x_4;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -128,11 +128,11 @@ class EvaluatorPairLJ
 
         param_type(pybind11::dict v, bool managed = false)
             {
-            auto sigma(v["sigma"].cast<Scalar>());
-            auto epsilon(v["epsilon"].cast<Scalar>());
+            auto sigma(v["sigma"].cast<ShortReal>());
+            auto epsilon(v["epsilon"].cast<ShortReal>());
 
             sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
-            epsilon_x_4 = Scalar(4.0) * epsilon;
+            epsilon_x_4 = ShortReal(4.0) * epsilon;
 
             // parameters used in implementation
             // lj1 = 4.0 * epsilon * pow(sigma, 12.0);
@@ -143,10 +143,10 @@ class EvaluatorPairLJ
             }
 
         // this constructor facilitates unit testing
-        param_type(Scalar sigma, Scalar epsilon, bool managed = false)
+        param_type(ShortReal sigma, ShortReal epsilon, bool managed = false)
             {
             sigma_6 = sigma * sigma * sigma * sigma * sigma * sigma;
-            epsilon_x_4 = Scalar(4.0) * epsilon;
+            epsilon_x_4 = ShortReal(4.0) * epsilon;
             }
 
         pybind11::dict asDict()
@@ -158,7 +158,7 @@ class EvaluatorPairLJ
             }
 #endif
         }
-#if HOOMD_LONGREAL_SIZE == 32
+#if HOOMD_SHORTREAL_SIZE == 32
         __attribute__((aligned(8)));
 #else
         __attribute__((aligned(16)));
@@ -169,7 +169,7 @@ class EvaluatorPairLJ
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+    DEVICE EvaluatorPairLJ(ShortReal _rsq, ShortReal _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
           lj2(_params.epsilon_x_4 * _params.sigma_6)
         {
@@ -213,16 +213,16 @@ class EvaluatorPairLJ
         // compute the force divided by r in force_divr
         if (rsq < rcutsq && lj1 != 0)
             {
-            Scalar r2inv = Scalar(1.0) / rsq;
-            Scalar r6inv = r2inv * r2inv * r2inv;
-            force_divr = r2inv * r6inv * (Scalar(12.0) * lj1 * r6inv - Scalar(6.0) * lj2);
+            ShortReal r2inv = ShortReal(1.0) / rsq;
+            ShortReal r6inv = r2inv * r2inv * r2inv;
+            force_divr = r2inv * r6inv * (ShortReal(12.0) * lj1 * r6inv - ShortReal(6.0) * lj2);
 
             pair_eng = r6inv * (lj1 * r6inv - lj2);
 
             if (energy_shift)
                 {
-                Scalar rcut2inv = Scalar(1.0) / rcutsq;
-                Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+                ShortReal rcut2inv = ShortReal(1.0) / rcutsq;
+                ShortReal rcut6inv = rcut2inv * rcut2inv * rcut2inv;
                 pair_eng -= rcut6inv * (lj1 * rcut6inv - lj2);
                 }
             return true;
@@ -231,11 +231,11 @@ class EvaluatorPairLJ
             return false;
         }
 
-    DEVICE Scalar evalPressureLRCIntegral()
+    DEVICE ShortReal evalPressureLRCIntegral()
         {
         if (rcutsq == 0)
             {
-            return Scalar(0.0);
+            return ShortReal(0.0);
             }
         // lj1 = 4.0 * epsilon * pow(sigma,12.0)
         // lj2 = 4.0 * epsilon * pow(sigma,6.0);
@@ -244,16 +244,16 @@ class EvaluatorPairLJ
         // which evaluates to
         // 4 \varepsilon \sigma^{12} (\frac{4}{3 r_{c}^{9}}) - ...
         // 4 \varepsilon \sigma^{6} (\frac{2}{r_{c}^{3}})
-        Scalar rcut3inv = Scalar(1.0) / pow(rcutsq, 1.5);
-        Scalar rcut9inv = rcut3inv * rcut3inv * rcut3inv;
-        return lj1 * Scalar(4.0) / Scalar(3.0) * rcut9inv - lj2 * Scalar(2.0) * rcut3inv;
+        ShortReal rcut3inv = ShortReal(1.0) / slow::pow(rcutsq, ShortReal(1.5));
+        ShortReal rcut9inv = rcut3inv * rcut3inv * rcut3inv;
+        return lj1 * ShortReal(4.0) / ShortReal(3.0) * rcut9inv - lj2 * ShortReal(2.0) * rcut3inv;
         }
 
-    DEVICE Scalar evalEnergyLRCIntegral()
+    DEVICE ShortReal evalEnergyLRCIntegral()
         {
         if (rcutsq == 0)
             {
-            return Scalar(0.0);
+            return ShortReal(0.0);
             }
         // Note that lj1 and lj2 are defined above.
         // lj1 = 4.0 * epsilon * pow(sigma,12.0)
@@ -263,9 +263,9 @@ class EvaluatorPairLJ
         // which evaluates to
         // 4 \varepsilon \sigma^{12} (\frac{1}{9 r_{c}^{9}}) - ...
         // 4 \varepsilon \sigma^{6} (\frac{1}{3 r_{c}^{3}})
-        Scalar rcut3inv = Scalar(1.0) / pow(rcutsq, 1.5);
-        Scalar rcut9inv = rcut3inv * rcut3inv * rcut3inv;
-        return lj1 / Scalar(9.0) * rcut9inv - lj2 / Scalar(3.0) * rcut3inv;
+        ShortReal rcut3inv = ShortReal(1.0) / slow::pow(rcutsq, ShortReal(1.5));
+        ShortReal rcut9inv = rcut3inv * rcut3inv * rcut3inv;
+        return lj1 / ShortReal(9.0) * rcut9inv - lj2 / ShortReal(3.0) * rcut3inv;
         }
 
 #ifndef __HIPCC__
@@ -284,10 +284,10 @@ class EvaluatorPairLJ
 #endif
 
     protected:
-    Scalar rsq;    //!< Stored rsq from the constructor
-    Scalar rcutsq; //!< Stored rcutsq from the constructor
-    Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
-    Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
+    ShortReal rsq;    //!< Stored rsq from the constructor
+    ShortReal rcutsq; //!< Stored rcutsq from the constructor
+    ShortReal lj1;    //!< lj1 parameter extracted from the params passed to the constructor
+    ShortReal lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
 
     } // end namespace md
