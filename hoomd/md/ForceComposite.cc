@@ -528,6 +528,7 @@ void ForceComposite::createRigidBodies(
     bool remove_existing_bodies = false;
     unsigned int n_constituent_particles = 0;
     unsigned int n_free_bodies = 0;
+    if (m_exec_conf->getRank() == 0)
         {
         // We restrict the scope of h_body_len to ensure if we remove_existing_bodies or in any way
         // reallocated m_body_len to a new memory location that we will be forced to reaquire the
@@ -610,6 +611,7 @@ void ForceComposite::createRigidBodies(
                 snap.type[constituent_particle_tag]
                     = h_body_type.data[m_body_idx(body_type, current_body_index)];
                 snap.body[constituent_particle_tag] = particle_tag;
+                snap.pos[constituent_particle_tag] = snap.pos[particle_tag];
                 if (!charges.empty())
                     {
                     snap.charge[constituent_particle_tag]
