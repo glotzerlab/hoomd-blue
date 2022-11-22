@@ -906,8 +906,9 @@ class Langevin(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(default_gamma,
+                              param_dict=TypeParameterDict(float,
                                                            len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
@@ -1100,8 +1101,9 @@ class Brownian(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(default_gamma,
+                              param_dict=TypeParameterDict(float,
                                                            len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
@@ -1309,8 +1311,9 @@ class OverdampedViscous(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(default_gamma,
+                              param_dict=TypeParameterDict(float,
                                                            len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
