@@ -8,9 +8,7 @@
 #include <sstream>
 #include <string.h>
 
-#ifndef __HIPCC__
 #include <pybind11/stl.h>
-#endif
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
