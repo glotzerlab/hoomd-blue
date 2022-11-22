@@ -906,14 +906,15 @@ class Langevin(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(float,
-                                                           len_keys=1))
+                              param_dict=TypeParameterDict(float, len_keys=1))
         gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict(default_gamma_r,
-                                                             len_keys=1))
+                                param_dict=TypeParameterDict(
+                                    (float, float, float), len_keys=1))
+
+        gamma_r.default = default_gamma_r
 
         self._extend_typeparam([gamma, gamma_r])
 
@@ -1101,14 +1102,15 @@ class Brownian(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(float,
-                                                           len_keys=1))
+                              param_dict=TypeParameterDict(float, len_keys=1))
         gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict(default_gamma_r,
-                                                             len_keys=1))
+                                param_dict=TypeParameterDict(
+                                    (float, float, float), len_keys=1))
+
+        gamma_r.default = default_gamma_r
         self._extend_typeparam([gamma, gamma_r])
 
     def _attach_hook(self):
@@ -1311,14 +1313,15 @@ class OverdampedViscous(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(float,
-                                                           len_keys=1))
+                              param_dict=TypeParameterDict(float, len_keys=1))
         gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict(default_gamma_r,
-                                                             len_keys=1))
+                                param_dict=TypeParameterDict(
+                                    (float, float, float), len_keys=1))
+
+        gamma_r.default = default_gamma_r
         self._extend_typeparam([gamma, gamma_r])
 
     def _attach_hook(self):
