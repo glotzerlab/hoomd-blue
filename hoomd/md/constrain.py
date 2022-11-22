@@ -301,9 +301,9 @@ class Rigid(Constraint):
 
         Args:
             state (hoomd.State): The state in which to create rigid bodies.
-            charges (dict[str, list[float]], optional): The charges for each of the
-                constituent particles, defaults to ``None``. If ``None``, all
-                charges are zero. The keys should be the central particles.
+            charges (dict[str, list[float]], optional): The charges for each of
+                the constituent particles, defaults to ``None``. If ``None``,
+                all charges are zero. The keys should be the central particles.
 
         `create_bodies` removes any existing constituent particles and adds new
         ones based on the body definitions in `body`. It overwrites all existing
