@@ -1597,7 +1597,7 @@ class PYBIND11_EXPORT LocalParticleData : public GhostLocalDataAccess<Output, Pa
             true,
             6,
             0,
-            std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
+            std::vector<size_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
         }
 
     Output getNetEnergy(GhostDataFlag flag)

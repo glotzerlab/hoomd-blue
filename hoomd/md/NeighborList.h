@@ -721,7 +721,7 @@ template<class Output>
 class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, NeighborList>
     {
     public:
-    LocalNeighborListData(NeighborList& data, ssize_t N_particles)
+    LocalNeighborListData(NeighborList& data, size_t N_particles)
         : LocalDataAccess<Output, NeighborList>(data), m_nlist_handle(), m_head_list_handle(),
           m_n_neigh_handle(), m_N_particles(N_particles)
         {
@@ -752,7 +752,7 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
     Output getNList()
         {
         auto shape
-            = std::vector {static_cast<ssize_t>(this->m_data.getNListArray().getNumElements())};
+            = std::vector {static_cast<size_t>(this->m_data.getNListArray().getNumElements())};
         return this->template getBuffer<unsigned int, unsigned int>(m_nlist_handle,
                                                                     &NeighborList::getNListArray,
                                                                     shape,
@@ -776,7 +776,7 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
     std::unique_ptr<ArrayHandle<unsigned int>> m_nlist_handle;
     std::unique_ptr<ArrayHandle<size_t>> m_head_list_handle;
     std::unique_ptr<ArrayHandle<unsigned int>> m_n_neigh_handle;
-    ssize_t m_N_particles;
+    size_t m_N_particles;
     };
 
 namespace detail

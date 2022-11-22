@@ -27,14 +27,14 @@ struct HOOMDBuffer
     {
     void* m_data;
     std::string m_typestr;
-    std::vector<ssize_t> m_shape;
-    std::vector<ssize_t> m_strides;
+    std::vector<size_t> m_shape;
+    std::vector<size_t> m_strides;
     bool m_read_only;
 
     HOOMDBuffer(void* data,
                 std::string typestr,
-                std::vector<ssize_t> shape,
-                std::vector<ssize_t> strides,
+                std::vector<size_t> shape,
+                std::vector<size_t> strides,
                 bool read_only)
         : m_data(data), m_typestr(typestr), m_shape(shape), m_strides(strides),
           m_read_only(read_only)
@@ -58,16 +58,16 @@ struct HOOMDBuffer
 struct HOOMDHostBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::host;
-    ssize_t m_itemsize;
-    ssize_t m_dimensions;
+    size_t m_itemsize;
+    size_t m_dimensions;
 
     HOOMDHostBuffer(void* data,
                     std::string typestr,
-                    std::vector<ssize_t> shape,
-                    std::vector<ssize_t> strides,
+                    std::vector<size_t> shape,
+                    std::vector<size_t> strides,
                     bool read_only,
-                    ssize_t itemsize,
-                    ssize_t dimensions)
+                    size_t itemsize,
+                    size_t dimensions)
         : HOOMDBuffer(data, typestr, shape, strides, read_only), m_itemsize(itemsize),
           m_dimensions(dimensions)
         {
@@ -75,7 +75,7 @@ struct HOOMDHostBuffer : public HOOMDBuffer
 
     template<class T>
     static HOOMDHostBuffer
-    make(T* data, std::vector<ssize_t> shape, std::vector<ssize_t> strides, bool read_only)
+    make(T* data, std::vector<size_t> shape, std::vector<size_t> strides, bool read_only)
         {
         return HOOMDHostBuffer(data,
                                pybind11::format_descriptor<T>::format(),
@@ -92,8 +92,8 @@ struct HOOMDHostBuffer : public HOOMDBuffer
                                      m_itemsize,
                                      m_typestr,
                                      m_dimensions,
-                                     std::vector<ssize_t>(m_shape),
-                                     std::vector<ssize_t>(m_strides));
+                                     std::vector<size_t>(m_shape),
+                                     std::vector<size_t>(m_strides));
         }
     };
 
@@ -108,8 +108,8 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
 
     HOOMDDeviceBuffer(void* data,
                       std::string typestr,
-                      std::vector<ssize_t> shape,
-                      std::vector<ssize_t> strides,
+                      std::vector<size_t> shape,
+                      std::vector<size_t> strides,
                       bool read_only)
         : HOOMDBuffer(data, typestr, shape, strides, read_only)
         {
@@ -117,7 +117,7 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
 
     template<class T>
     static HOOMDDeviceBuffer
-    make(T* data, std::vector<ssize_t> shape, std::vector<ssize_t> strides, bool read_only)
+    make(T* data, std::vector<size_t> shape, std::vector<size_t> strides, bool read_only)
         {
         return HOOMDDeviceBuffer(data,
                                  pybind11::format_descriptor<T>::format(),
@@ -242,10 +242,10 @@ template<class Output, class Data> class LocalDataAccess
     template<class T, class S, template<class> class U = GlobalArray>
     Output getBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
                      const U<T>& (Data::*get_array_func)() const,
-                     const std::vector<ssize_t>& shape,
+                     const std::vector<size_t>& shape,
                      bool bufferWriteable = true,
-                     ssize_t offset = 0,
-                     std::vector<ssize_t> strides = {})
+                     size_t offset = 0,
+                     std::vector<size_t> strides = {})
         {
         checkManager();
 
@@ -258,11 +258,11 @@ template<class Output, class Data> class LocalDataAccess
 
         if (strides.size() == 0 && shape.size() == 1)
             {
-            strides = std::vector<ssize_t>({sizeof(T)});
+            strides = std::vector<size_t>({sizeof(T)});
             }
         else if (strides.size() == 0 && shape.size() == 2)
             {
-            strides = std::vector<ssize_t>({sizeof(T), sizeof(S)});
+            strides = std::vector<size_t>({sizeof(T), sizeof(S)});
             }
         if (strides.size() != shape.size())
             {
@@ -327,7 +327,7 @@ enum class GhostDataFlag
 template<class Output, class Data> class GhostLocalDataAccess : public LocalDataAccess<Output, Data>
     {
     public:
-    inline GhostLocalDataAccess(Data& data, ssize_t n, ssize_t n_ghosts, ssize_t n_global)
+    inline GhostLocalDataAccess(Data& data, size_t n, size_t n_ghosts, size_t n_global)
         : LocalDataAccess<Output, Data>(data), m_n(n), m_n_ghosts(n_ghosts), m_n_global(n_global)
         {
         }
@@ -373,8 +373,8 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
                           GhostDataFlag flag,
                           bool bufferWriteable,
                           unsigned int second_dimension_size = 0,
-                          ssize_t offset = 0,
-                          std::vector<ssize_t> strides = {})
+                          size_t offset = 0,
+                          std::vector<size_t> strides = {})
         {
         if (flag != GhostDataFlag::standard)
             {
@@ -393,7 +393,7 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
             size = m_n_ghosts;
             }
 
-        std::vector<ssize_t> shape {size, second_dimension_size};
+        std::vector<size_t> shape {size, second_dimension_size};
         if (second_dimension_size == 0)
             {
             shape.pop_back();
@@ -434,10 +434,10 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
                            const U<T>& (Data::*get_array_func)() const,
                            bool bufferWriteable,
                            unsigned int second_dimension_size = 0,
-                           ssize_t offset = 0,
-                           std::vector<ssize_t> strides = {})
+                           size_t offset = 0,
+                           std::vector<size_t> strides = {})
         {
-        std::vector<ssize_t> shape {m_n_global, second_dimension_size};
+        std::vector<size_t> shape {m_n_global, second_dimension_size};
         if (second_dimension_size == 0)
             {
             shape.pop_back();
@@ -452,9 +452,9 @@ template<class Output, class Data> class GhostLocalDataAccess : public LocalData
         }
 
     private:
-    ssize_t m_n;
-    ssize_t m_n_ghosts;
-    ssize_t m_n_global;
+    size_t m_n;
+    size_t m_n_ghosts;
+    size_t m_n_global;
     };
 
 namespace detail

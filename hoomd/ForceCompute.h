@@ -293,8 +293,8 @@ class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output
             m_buffers_writeable,
             6,
             0,
-            std::vector<ssize_t>(
-                {sizeof(Scalar), static_cast<ssize_t>(m_virial_pitch * sizeof(Scalar))}));
+            std::vector<size_t>(
+                {sizeof(Scalar), static_cast<size_t>(m_virial_pitch * sizeof(Scalar))}));
         }
 
     protected:
