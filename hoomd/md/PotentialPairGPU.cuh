@@ -363,7 +363,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 // calculate the virial
                 if (compute_virial)
                     {
-                    Scalar force_div2r = Scalar(0.5) * force_divr;
+                    ShortReal force_div2r = Scalar(0.5) * force_divr;
                     virialxx += dx.x * dx.x * force_div2r;
                     virialxy += dx.x * dx.y * force_div2r;
                     virialxz += dx.x * dx.z * force_div2r;
