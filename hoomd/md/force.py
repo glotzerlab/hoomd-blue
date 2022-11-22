@@ -178,7 +178,7 @@ class Force(Compute):
                                "context manager")
         if not self._attached:
             raise hoomd.error.DataAccessError("cpu_local_force_arrays")
-        return hoomd.md.data.ForceLocalAccessCPU(self, self._simulation.state)
+        return hoomd.md.data.ForceLocalAccess(self, self._simulation.state)
 
     @property
     def gpu_local_force_arrays(self):

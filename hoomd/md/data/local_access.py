@@ -26,7 +26,7 @@ class _ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
         super().__init__()
         self._force_obj = force_obj
         self._cpp_obj = self._cpp_cls(force_obj._cpp_obj,
-                                      state._cpp_obj.getParticleData())
+                                      state._cpp_sys_def.getParticleData())
 
     def __enter__(self):
         self._force_obj._in_context_manager = True
