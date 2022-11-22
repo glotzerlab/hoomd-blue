@@ -2,8 +2,8 @@
 // Created by girard01 on 10/24/22.
 //
 
-#include "TwoStepNVTBaseGPU.h"
-#include "TwoStepNVTBaseGPU.cuh"
+#include "TwoStepConstantVolumeGPU.h"
+#include "TwoStepConstantVolumeGPU.cuh"
 #include "TwoStepNVEGPU.cuh"
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -13,10 +13,10 @@
 namespace hoomd::md
     {
 
-TwoStepNVTBaseGPU::TwoStepNVTBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
-                  std::shared_ptr<ParticleGroup> group,
-                  std::shared_ptr<ComputeThermo> thermo,
-                  std::shared_ptr<Variant> T) : TwoStepNVTBase(sysdef, group, thermo, T){
+TwoStepConstantVolumeGPU::TwoStepConstantVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                   std::shared_ptr<ParticleGroup> group,
+                                                   std::shared_ptr<ComputeThermo> thermo,
+                                                   std::shared_ptr<Thermostat> thermostat) : TwoStepConstantVolume(sysdef, group, thermo, thermostat){
     if (!m_exec_conf->isCUDAEnabled())
         {
         throw std::runtime_error("Cannot create TwoStepNVTMTKGPU on a CPU device.");
@@ -47,7 +47,7 @@ TwoStepNVTBaseGPU::TwoStepNVTBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    Nose-Hoover method
 */
-void TwoStepNVTBaseGPU::integrateStepOne(uint64_t timestep)
+void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -55,7 +55,7 @@ void TwoStepNVTBaseGPU::integrateStepOne(uint64_t timestep)
         }
 
     unsigned int group_size = m_group->getNumMembers();
-    const auto&& rescalingFactors = this->NVT_rescale_factor_one(timestep);
+    const auto&& rescalingFactors = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
         {
         // access all the needed data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
@@ -139,14 +139,14 @@ void TwoStepNVTBaseGPU::integrateStepOne(uint64_t timestep)
         }
 
     // advance thermostat
-    advanceThermostat(timestep, false);
+    m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
     }
 
 
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepNVTBaseGPU::integrateStepTwo(uint64_t timestep)
+void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -155,7 +155,8 @@ void TwoStepNVTBaseGPU::integrateStepTwo(uint64_t timestep)
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                             access_location::device,
                                             access_mode::read);
-    const auto&& rescalingFactors = this->NVT_rescale_factor_two(timestep);
+    const auto&& rescalingFactors = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
+
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                    access_location::device,
@@ -222,19 +223,18 @@ void TwoStepNVTBaseGPU::integrateStepTwo(uint64_t timestep)
         m_exec_conf->endMultiGPU();
         }
     }
-
     }
 
 
 namespace hoomd::md::detail{
-void export_TwoStepNVTBaseGPU(pybind11::module& m)
+void export_TwoStepConstantVolumeGPU(pybind11::module& m)
     {
-    pybind11::class_<TwoStepNVTBaseGPU, TwoStepNVTBase, std::shared_ptr<TwoStepNVTBaseGPU>>(
+    pybind11::class_<TwoStepConstantVolumeGPU, TwoStepConstantVolume, std::shared_ptr<TwoStepConstantVolumeGPU>>(
         m,
-        "TwoStepNVTBaseGPU")
+        "TwoStepConstantVolumeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
-                            std::shared_ptr<Variant>>());
+                            std::shared_ptr<Thermostat>>());
     }
     }

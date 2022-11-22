@@ -2,23 +2,24 @@
 // Created by girard01 on 10/24/22.
 //
 
-#ifndef HOOMD_TWOSTEPNVTBASEGPU_H
-#define HOOMD_TWOSTEPNVTBASEGPU_H
+#ifndef HOOMD_TWOSTEPCONSTANTVOLUMEGPU_H
+#define HOOMD_TWOSTEPCONSTANTVOLUMEGPU_H
 
-#include "TwoStepNVTBase.h"
+#include "TwoStepConstantVolume.h"
+#include "Thermostat.h"
 #include <hoomd/Autotuner.h>
 
 namespace hoomd::md
         {
-    class PYBIND11_EXPORT TwoStepNVTBaseGPU : public virtual TwoStepNVTBase
+    class PYBIND11_EXPORT TwoStepConstantVolumeGPU : public TwoStepConstantVolume
         {
         public:
-            TwoStepNVTBaseGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          std::shared_ptr<ParticleGroup> group,
-                          std::shared_ptr<ComputeThermo> thermo,
-                          std::shared_ptr<Variant> T);
+            TwoStepConstantVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<ParticleGroup> group,
+                                     std::shared_ptr<ComputeThermo> thermo,
+                                     std::shared_ptr<Thermostat> thermostat);
 
-            virtual ~TwoStepNVTBaseGPU(){}
+            virtual ~TwoStepConstantVolumeGPU(){}
 
             //! Performs the first step of the integration
             virtual void integrateStepOne(uint64_t timestep);
@@ -40,4 +41,4 @@ namespace hoomd::md
             std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
         };
         }
-#endif // HOOMD_TWOSTEPNVTBASEGPU_H
+#endif // HOOMD_TWOSTEPCONSTANTVOLUMEGPU_H

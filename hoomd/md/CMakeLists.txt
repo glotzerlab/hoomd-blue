@@ -43,14 +43,10 @@ set(_md_sources module-md.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TwoStepBD.cc
-                   TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
                    TwoStepLangevin.cc
-                   TwoStepNVE.cc
-                   TwoStepNVTMTK.cc
-        TwoStepNVTBase.cc
+        TwoStepConstantVolume.cc
 
-        TwoStepNVTStochastic.cc
         TwoStepConstantPressure.cc
         Thermostat.cc
                    TwoStepNVTAlchemy.cc
@@ -182,8 +178,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLEBDGPU.cuh
                 TwoStepBD.h
                 TwoStepRATTLEBD.h
-                TwoStepBerendsenGPU.h
-                TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
                 TwoStepRATTLELangevinGPU.h
@@ -193,14 +187,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLENVEGPU.h
                 TwoStepRATTLENVEGPU.cuh
                 TwoStepRATTLENVE.h
-                TwoStepNVEGPU.h
-                TwoStepNVE.h
-        TwoStepNVTBase.h
-        TwoStepNVTBaseGPU.h
-        TwoStepNVTStochastic.h
+        TwoStepConstantVolume.h
+        TwoStepConstantVolumeGPU.h
         TwoStepConstantPressure.h
-                TwoStepNVTMTKGPU.h
-                TwoStepNVTMTK.h
                 AlchemostatTwoStep.h
                 TwoStepNVTAlchemy.h
                 WallData.h
@@ -233,13 +222,11 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TwoStepBDGPU.cc
-                           TwoStepBerendsenGPU.cc
                            TwoStepLangevinGPU.cc
-                           TwoStepNVEGPU.cc
-        TwoStepNVTBaseGPU.cc
-        TwoStepNVTStochasticGPU.cc
+        TwoStepConstantVolumeGPU.cc
+
         TwoStepConstantPressureGPU.cc
-                           TwoStepNVTMTKGPU.cc
+
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
                            )
@@ -273,10 +260,9 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
         TwoStepLangevinGPU.cu
                       TwoStepRATTLELangevinGPU.cu
         TwoStepConstantPressureGPU.cu
-        TwoStepNVTBaseGPU.cu
+        TwoStepConstantVolumeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
-        TwoStepConstantPressureGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       )

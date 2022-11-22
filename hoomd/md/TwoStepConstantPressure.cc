@@ -64,6 +64,7 @@ TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinitio
 
     bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
     m_V = m_pdata->getGlobalBox().getVolume(is_two_dimensions); // volume
+    m_thermostat->attach(m_group, m_thermo_half_step, m_sysdef->getSeed()); // attach thermostat
     }
 
 void TwoStepConstantPressure::setCouple(const std::string& value)
@@ -237,7 +238,7 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
 
     // Rescaling factors, including Martyna-Tobias-Klein correction
     Scalar mtk =exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
-    const auto& rf = m_thermostat->RescalingFactors_one(timestep, m_deltaT);
+    const auto& rf = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
     const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
 
 
@@ -610,7 +611,7 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
         // Rescaling factors, including Martyna-Tobias-Klein correction
         Scalar mtk =exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
-        const auto& rf = m_thermostat->RescalingFactors_two(timestep, m_deltaT);
+        const auto& rf = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
         const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
 
 
@@ -1008,7 +1009,7 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     }
 
 namespace detail{
-void export_TwoStepNPTBase(pybind11::module& m){
+void export_TwoStepConstantPressure(pybind11::module& m){
     pybind11::class_<TwoStepConstantPressure, IntegrationMethodTwoStep, std::shared_ptr<TwoStepConstantPressure>>(m, "TwoStepConstantPressure")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
         std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar,
@@ -1022,7 +1023,8 @@ void export_TwoStepNPTBase(pybind11::module& m){
                       &TwoStepConstantPressure::getBarostatDOF,
                       &TwoStepConstantPressure::setBarostatDOF)
         .def("getBarostatEnergy", &TwoStepConstantPressure::getBarostatEnergy)
-        .def("thermalizeBarostatDOF", &TwoStepConstantPressure::thermalizeBarostatDOF);
+        .def("thermalizeBarostatDOF", &TwoStepConstantPressure::thermalizeBarostatDOF)
+            .def("setThermostat", &TwoStepConstantPressure::setThermostat);
     }
     }
 

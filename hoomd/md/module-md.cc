@@ -103,16 +103,13 @@ void export_ZeroMomentumUpdater(pybind11::module& m);
 void export_Thermostat(pybind11::module& m);
 void export_MTTKThermostat(pybind11::module& m);
 void export_BussiThermostat(pybind11::module& m);
+void export_BerendsenThermostat(pybind11::module& m);
 
-void export_TwoStepNVE(pybind11::module& m);
-void export_TwoStepNVTBase(pybind11::module& m);
-void export_TwoStepNVTMTK(pybind11::module& m);
-void export_TwoStepNVTStochastic(pybind11::module& m);
+void export_TwoStepConstantVolume(pybind11::module& m);
 void export_TwoStepLangevinBase(pybind11::module& m);
 void export_TwoStepLangevin(pybind11::module& m);
 void export_TwoStepBD(pybind11::module& m);
-void export_TwoStepNPTBase(pybind11::module& m);
-void export_Berendsen(pybind11::module& m);
+void export_TwoStepConstantPressure(pybind11::module& m);
 void export_TwoStepNVTAlchemy(pybind11::module& m);
 void export_FIREEnergyMinimizer(pybind11::module& m);
 void export_MuellerPlatheFlow(pybind11::module& m);
@@ -238,14 +235,10 @@ void export_PotentialExternalWallMorseGPU(pybind11::module& m);
 void export_PotentialPairDPDThermoDPDGPU(pybind11::module& m);
 void export_PotentialPairDPDThermoLJGPU(pybind11::module& m);
 
-void export_TwoStepNVEGPU(pybind11::module& m);
-void export_TwoStepNVTBaseGPU(pybind11::module& m);
-void export_TwoStepNVTMTKGPU(pybind11::module& m);
-void export_TwoStepNVTStochasticGPU(pybind11::module& m);
+void export_TwoStepConstantVolumeGPU(pybind11::module& m);
 void export_TwoStepLangevinGPU(pybind11::module& m);
 void export_TwoStepBDGPU(pybind11::module& m);
-void export_TwoStepNPTBaseGPU(pybind11::module& m);
-void export_BerendsenGPU(pybind11::module& m);
+void export_TwoStepConstantPressureGPU(pybind11::module& m);
 void export_FIREEnergyMinimizerGPU(pybind11::module& m);
 void export_MuellerPlatheFlowGPU(pybind11::module& m);
 
@@ -465,19 +458,16 @@ PYBIND11_MODULE(_md, m)
     export_Thermostat(m);
     export_MTTKThermostat(m);
     export_BussiThermostat(m);
+    export_BerendsenThermostat(m);
 
     export_IntegratorTwoStep(m);
     export_IntegrationMethodTwoStep(m);
     export_ZeroMomentumUpdater(m);
-    export_TwoStepNVE(m);
-    export_TwoStepNVTBase(m);
-    export_TwoStepNVTMTK(m);
-    export_TwoStepNVTStochastic(m);
+    export_TwoStepConstantVolume(m);
     export_TwoStepLangevinBase(m);
     export_TwoStepLangevin(m);
     export_TwoStepBD(m);
-    export_TwoStepNPTBase(m);
-    export_Berendsen(m);
+    export_TwoStepConstantPressure(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
     export_AlchemostatTwoStep(m);
@@ -510,14 +500,10 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVESphere(m);
 
 #ifdef ENABLE_HIP
-    export_TwoStepNVEGPU(m);
-    export_TwoStepNVTBaseGPU(m);
-    export_TwoStepNVTMTKGPU(m);
-    export_TwoStepNVTStochasticGPU(m);
+    export_TwoStepConstantVolumeGPU(m);
     export_TwoStepLangevinGPU(m);
     export_TwoStepBDGPU(m);
-    export_TwoStepNPTBaseGPU(m);
-    export_BerendsenGPU(m);
+    export_TwoStepConstantPressureGPU(m);
     export_FIREEnergyMinimizerGPU(m);
     export_MuellerPlatheFlowGPU(m);
 

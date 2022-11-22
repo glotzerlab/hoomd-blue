@@ -2,23 +2,20 @@
 // Created by girard01 on 10/21/22.
 //
 
-#include "TwoStepNVTBase.h"
-#include "TwoStepNVTMTK.h"
-#include "hoomd/RNGIdentifiers.h"
-#include "hoomd/RandomNumbers.h"
+#include "TwoStepConstantVolume.h"
 #include "hoomd/VectorMath.h"
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    velocity verlet method.
 */
-void hoomd::md::TwoStepNVTBase::integrateStepOne(uint64_t timestep)
+void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
         throw std::runtime_error("Empty integration group.");
         }
 
-    auto rescaling_factors = NVT_rescale_factor_one(timestep);
+    auto rescaling_factors = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
 
     unsigned int group_size = m_group->getNumMembers();
 
@@ -205,15 +202,15 @@ void hoomd::md::TwoStepNVTBase::integrateStepOne(uint64_t timestep)
         }
 
     // get temperature and advance thermostat
-    advanceThermostat(timestep);
+    m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
     } /*! \param timestep Current time step
          \post particle velocities are moved forward to timestep+1
      */
-    void hoomd::md::TwoStepNVTBase::integrateStepTwo(uint64_t timestep)
+    void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
         {
         unsigned int group_size = m_group->getNumMembers();
 
-        auto rescaling_factors = NVT_rescale_factor_two(timestep);
+        auto rescaling_factors = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
 
         const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
@@ -315,15 +312,14 @@ void hoomd::md::TwoStepNVTBase::integrateStepOne(uint64_t timestep)
 
 
 namespace hoomd::md::detail{
-void export_TwoStepNVTBase(pybind11::module& m){
-    pybind11::class_<TwoStepNVTBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTBase>>(
+void export_TwoStepConstantVolume(pybind11::module& m){
+    pybind11::class_<TwoStepConstantVolume, IntegrationMethodTwoStep, std::shared_ptr<TwoStepConstantVolume>>(
         m,
-        "TwoStepNVTBase")
+        "TwoStepConstantVolume")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
-                            std::shared_ptr<Variant>>())
-        .def("setT", &TwoStepNVTMTK::setT)
-        .def_property("kT", &TwoStepNVTBase::getT, &TwoStepNVTBase::setT);
+                            std::shared_ptr<Thermostat>>())
+                            .def("setThermostat", &TwoStepConstantVolume::setThermostat);
     }
     };

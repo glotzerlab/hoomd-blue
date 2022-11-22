@@ -72,7 +72,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
 
         // Martyna-Tobias-Klein correction
         Scalar mtk = exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
-        const auto rf = m_thermostat->RescalingFactors_one(timestep, m_deltaT);
+        const auto rf = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
         std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
 
     // Martyna-Tobias-Klein correction
@@ -278,7 +278,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
 
     // Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
-    const auto rf = m_thermostat->RescalingFactors_two(timestep, m_deltaT);
+    const auto rf = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
     std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
@@ -364,7 +364,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
     }
 
 namespace detail{
-void export_TwoStepNPTBaseGPU(pybind11::module& m){
+void export_TwoStepConstantPressureGPU(pybind11::module& m){
     pybind11::class_<TwoStepConstantPressureGPU, TwoStepConstantPressure, std::shared_ptr<TwoStepConstantPressureGPU>>(m, "TwoStepConstantPressureGPU")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar,

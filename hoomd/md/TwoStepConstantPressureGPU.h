@@ -8,7 +8,7 @@
 #include "TwoStepConstantPressure.h"
 namespace hoomd::md
     {
-class TwoStepConstantPressureGPU : public virtual TwoStepConstantPressure
+class TwoStepConstantPressureGPU : public TwoStepConstantPressure
     {
     public:
     TwoStepConstantPressureGPU(std::shared_ptr<SystemDefinition> sysdef,
