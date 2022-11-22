@@ -88,7 +88,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
     //! Create rigid body constituent particles
     virtual void
-    createRigidBodies(const std::unordered_map<unsigned int, std::vector<float>> charges);
+    createRigidBodies(const std::unordered_map<unsigned int, std::vector<Scalar>> charges);
 
     /// Construct from a Python dictionary
     void setBody(std::string typ, pybind11::object v)

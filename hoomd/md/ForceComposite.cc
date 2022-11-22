@@ -491,11 +491,11 @@ void ForceComposite::pyCreateRigidBodies(pybind11::dict charges)
     {
     if (pybind11::len(charges) == 0)
         {
-        createRigidBodies(std::unordered_map<unsigned int, std::vector<float>>());
+        createRigidBodies(std::unordered_map<unsigned int, std::vector<Scalar>>());
         return;
         }
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-    std::unordered_map<unsigned int, std::vector<float>> charges_map;
+    std::unordered_map<unsigned int, std::vector<Scalar>> charges_map;
     for (const auto& item : charges)
         {
         const auto type = m_pdata->getTypeByName(item.first.cast<std::string>());
@@ -508,10 +508,10 @@ void ForceComposite::pyCreateRigidBodies(pybind11::dict charges)
             {
             throw std::runtime_error("Charges provided not consistent with rigid body size.");
             }
-        std::vector<float> charges_vector;
+        std::vector<Scalar> charges_vector;
         for (auto& charge : charges_list)
             {
-            charges_vector.emplace_back(charge.cast<float>());
+            charges_vector.emplace_back(charge.cast<Scalar>());
             }
         charges_map.insert({type, charges_vector});
         }
@@ -519,7 +519,7 @@ void ForceComposite::pyCreateRigidBodies(pybind11::dict charges)
     }
 
 void ForceComposite::createRigidBodies(
-    const std::unordered_map<unsigned int, std::vector<float>> charges)
+    const std::unordered_map<unsigned int, std::vector<Scalar>> charges)
     {
     SnapshotParticleData<Scalar> snap;
 
