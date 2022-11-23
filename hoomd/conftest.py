@@ -14,8 +14,6 @@ import hoomd
 import atexit
 import os
 import numpy
-import math
-import warnings
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
@@ -548,108 +546,6 @@ def autotuned_kernel_parameter_check(instance, activate, all_optional=False):
         instance.kernel_parameters = initial_kernel_parameters
         activate()
         assert instance.kernel_parameters == initial_kernel_parameters
-
-
-class BlockAverage:
-    """Block average method for estimating standard deviation of the mean.
-
-    Args:
-        data: List of values
-    """
-
-    def __init__(self, data):
-        # round down to the nearest power of 2
-        N = 2**int(math.log(len(data)) / math.log(2))
-        if N != len(data):
-            warnings.warn(
-                "Ignoring some data. Data array should be a power of 2.")
-
-        block_sizes = []
-        block_mean = []
-        block_variance = []
-
-        # take means of blocks and the mean/variance of all blocks, growing
-        # blocks by factors of 2
-        block_size = 1
-        while block_size <= N // 8:
-            num_blocks = N // block_size
-            block_data = numpy.zeros(num_blocks)
-
-            for i in range(0, num_blocks):
-                start = i * block_size
-                end = start + block_size
-                block_data[i] = numpy.mean(data[start:end])
-
-            block_mean.append(numpy.mean(block_data))
-            block_variance.append(numpy.var(block_data) / (num_blocks - 1))
-
-            block_sizes.append(block_size)
-            block_size *= 2
-
-        self._block_mean = numpy.array(block_mean)
-        self._block_variance = numpy.array(block_variance)
-        self._block_sizes = numpy.array(block_sizes)
-        self.data = numpy.array(data)
-
-        # check for a plateau in the relative error before the last data point
-        block_relative_error = numpy.sqrt(self._block_variance) / numpy.fabs(
-            self._block_mean)
-        relative_error_derivative = (numpy.diff(block_relative_error)
-                                     / numpy.diff(self._block_sizes))
-        if numpy.all(relative_error_derivative > 0):
-            warnings.warn("Block averaging failed to plateau, run longer")
-
-    def get_hierarchical_errors(self):
-        """Get details on the hierarchical errors."""
-        return (self._block_sizes, self._block_mean, self._block_variance)
-
-    @property
-    def standard_deviation(self):
-        """float: The error estimate on the mean."""
-        if numpy.all(self.data == self.data[0]):
-            return 0
-
-        return numpy.sqrt(numpy.max(self._block_variance))
-
-    @property
-    def mean(self):
-        """float: The mean."""
-        return self._block_mean[-1]
-
-    @property
-    def relative_error(self):
-        """float: The relative error."""
-        return self.standard_deviation / numpy.fabs(self.mean)
-
-    def assert_close(self,
-                     reference_mean,
-                     reference_deviation,
-                     z=6,
-                     max_relative_error=0.02):
-        """Assert that the distribution is constent with a given reference.
-
-        Also assert that the relative error of the distribution is small.
-        Otherwise, test runs with massive fluctuations would likely lead to
-        passing tests.
-
-        Args:
-            reference_mean: Known good mean value
-            reference_deviation: Standard deviation of the known good value
-            z: Number of standard deviations
-            max_relative_error: Maximum relative error to allow
-        """
-        sample_mean = self.mean
-        sample_deviation = self.standard_deviation
-
-        assert sample_deviation / sample_mean <= max_relative_error
-
-        # compare if 0 is within the confidence interval around the difference
-        # of the means
-        deviation_diff = ((sample_deviation**2
-                           + reference_deviation**2)**(1 / 2.))
-        mean_diff = math.fabs(sample_mean - reference_mean)
-        deviation_allowed = z * deviation_diff
-        assert mean_diff <= deviation_allowed
 
 
 class ListWriter(hoomd.custom.Action):
