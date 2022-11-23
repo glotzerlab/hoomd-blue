@@ -3,6 +3,7 @@
 
 import hoomd
 from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
+import numpy
 
 
 def test_attributes():
@@ -18,9 +19,12 @@ def test_attributes():
 
 
 def test_attach(simulation_factory, two_particle_snapshot_factory):
-    constant = hoomd.md.force.Constant(filter=hoomd.filter.All())
+    constant = hoomd.md.force.Constant(filter=hoomd.filter.Type(['A']))
 
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(particle_types=['A', 'B'],
+                                      dimensions=3,
+                                      d=8))
     integrator = hoomd.md.Integrator(.05)
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
@@ -35,6 +39,13 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
     assert constant.constant_force['A'] == (0.5, 0.0, 0.0)
     constant.constant_torque['A'] = (0.0, 0.0, 1.0)
     assert constant.constant_torque['A'] == (0.0, 0.0, 1.0)
+
+    sim.run(1)
+
+    assert numpy.array_equal(constant.forces,
+                             [[0.5, 0.0, 0.0], [0.0, 0.0, 0.0]])
+    assert numpy.array_equal(constant.torques,
+                             [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0]])
 
 
 def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
