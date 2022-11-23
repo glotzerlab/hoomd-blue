@@ -531,7 +531,8 @@ class Constant(Force):
             apply constant forces.
 
     `Constant` applies a type dependent constant force and torque on all
-    particles selected by the filter:
+    particles selected by the filter. `Constant` sets the force and torque
+    to  ``(0,0,0)`` for particles not selected by the filter.
 
     Examples::
 
