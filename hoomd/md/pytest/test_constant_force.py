@@ -44,9 +44,9 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
 
     if sim.device.communicator.rank == 0:
         assert numpy.array_equal(constant.forces,
-                                 [[0.5, 0.0, 0.0], [0.0, 0.0, 0.0]])
+                                 [[0.5, 0.0, 0.0], [0.5, 0.0, 0.0]])
         assert numpy.array_equal(constant.torques,
-                                 [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0]])
+                                 [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
 
 
 def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
