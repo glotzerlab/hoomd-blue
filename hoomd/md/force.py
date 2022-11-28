@@ -553,8 +553,8 @@ class Constant(Force):
     .. py:attribute:: constant_force
 
         Constant force vector in the global reference frame of the system
-        :math:`[\mathrm{force}]`.  It is defined per particle type and stays
-        constant during the simulation.
+        :math:`[\mathrm{force}]`.  It is defined per particle type and 
+        defaults to (0.0, 0.0, 0.0) for all types.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
@@ -563,7 +563,7 @@ class Constant(Force):
 
         Constant torque vector in the global reference frame of the system
         :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
-        particle type and stays constant during the simulation.
+        particle type and defaults to (0.0, 0.0, 0.0) for all types.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
