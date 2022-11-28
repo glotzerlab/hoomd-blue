@@ -51,10 +51,13 @@ def test_attach_and_filter(simulation_factory, two_particle_snapshot_factory):
 
     sim.run(1)
 
+    forces = constant.forces
+    torques = constant.torques
+
     if sim.device.communicator.rank == 0:
-        numpy.testing.assert_array_equal(constant.forces,
+        numpy.testing.assert_array_equal(forces,
                                          [[0.0, 0.0, 0.0], [0.5, 0.0, 0.0]])
-        numpy.testing.assert_array_equal(constant.torques,
+        numpy.testing.assert_array_equal(torques,
                                          [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
 
 
@@ -84,10 +87,13 @@ def test_types(simulation_factory, two_particle_snapshot_factory):
 
     sim.run(1)
 
+    forces = constant.forces
+    torques = constant.torques
+
     if sim.device.communicator.rank == 0:
-        numpy.testing.assert_array_equal(constant.forces,
+        numpy.testing.assert_array_equal(forces,
                                          [[0.0, 0.125, 5.0], [0.5, 0.0, 0.0]])
-        numpy.testing.assert_array_equal(constant.torques,
+        numpy.testing.assert_array_equal(torques,
                                          [[4.0, -6.0, 0.5], [0.0, 0.0, 1.0]])
 
 
