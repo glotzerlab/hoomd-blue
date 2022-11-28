@@ -658,6 +658,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
                                             Index2D body_indexer,
                                             const Scalar3* d_body_pos,
                                             const Scalar4* d_body_orientation,
+                                            const unsigned int* d_body_types,
                                             const unsigned int* d_body_len,
                                             const unsigned int* d_molecule_order,
                                             const unsigned int* d_molecule_len,
@@ -737,7 +738,10 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int type = __scalar_as_int(d_postype[idx].w);
 
     d_postype[idx]
-        = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, __int_as_scalar(type));
+        = make_scalar4(updated_pos.x,
+                       updated_pos.y,
+                       updated_pos.z,
+                       __int_as_scalar(d_body_types[body_indexer(body_type, idx_in_body)]));
     d_orientation[idx] = quat_to_scalar4(updated_orientation);
     d_image[idx] = img + imgi;
     }
@@ -750,6 +754,7 @@ void gpu_update_composite(unsigned int N,
                           const unsigned int* d_lookup_center,
                           const Scalar3* d_body_pos,
                           const Scalar4* d_body_orientation,
+                          const unsigned int* d_body_types,
                           const unsigned int* d_body_len,
                           const unsigned int* d_molecule_order,
                           const unsigned int* d_molecule_len,
@@ -800,6 +805,7 @@ void gpu_update_composite(unsigned int N,
                            body_indexer,
                            d_body_pos,
                            d_body_orientation,
+                           d_body_types,
                            d_body_len,
                            d_molecule_order,
                            d_molecule_len,
