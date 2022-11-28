@@ -31,7 +31,7 @@ public:
             }
 
         param_type(pybind11::dict params)
-            : cosalpha( fast::cos(params["alpha"].cast<Scalar>()) ), // TODO implement bound checking
+            : cosalpha( fast::cos(params["alpha"].cast<Scalar>()) ),
               omega(params["omega"].cast<Scalar>())
             {
             }

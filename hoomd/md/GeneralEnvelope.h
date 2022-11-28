@@ -29,10 +29,10 @@ namespace md
     {
 
 /*
-  This creates JanusEnvelope, which is used to modulate a pair potential.
+  The GeneralEnvelope creates the pair potential modulator.
 */
 template <typename AngleDependence> // thing that we modulate the potential by
-class GeneralEnvelope // TODO fix this word
+class GeneralEnvelope
 {
 public:
     typedef typename AngleDependence::param_type param_type;
@@ -87,7 +87,7 @@ public:
       \param envelope Output parameter to write the amount of modulation of the isotropic part
       \param torque_i The torque exterted on the i^th particle.
       \param torque_j The torque exterted on the j^th particle.
-      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPairJanusSphere. // TODO is that true?
+      \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPair from the PairModulator.
       \return Always true
     */
     DEVICE bool evaluate(Scalar3& force,
