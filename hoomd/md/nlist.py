@@ -180,7 +180,8 @@ class NeighborList(Compute):
                                "manager inside another local_nlist_arrays "
                                "context manager")
         self._cpp_obj.compute(self._simulation.timestep)
-        return hoomd.md.data.NeighborListLocalAccess(self)
+        return hoomd.md.data.NeighborListLocalAccess(self,
+                                                     self._simulation.state)
 
     @property
     def gpu_local_nlist_arrays(self):
@@ -274,7 +275,8 @@ class NeighborList(Compute):
                 "Cannot enter gpu_local_nlist_arrays context manager inside "
                 "another local_nlist_arrays context manager")
         self._cpp_obj.compute(self._simulation.timestep)
-        return hoomd.md.data.NeighborListLocalAccessGPU(self)
+        return hoomd.md.data.NeighborListLocalAccessGPU(self,
+                                                        self._simulation.state)
 
     @property
     def local_pair_list(self):
