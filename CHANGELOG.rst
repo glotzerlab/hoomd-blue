@@ -7,8 +7,28 @@ Change Log
 v3.x
 ----
 
-v3.5.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.6.0 (2022-10-25)
+^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* In ``hoomd.md.pair.aniso.ALJ``, ``shape.rounding_radii`` now defaults to (0.0, 0.0, 0.0).
+* Revise ``hoomd.md.pair.aniso.ALJ`` documentation.
+* ``hoomd.md.force.Force`` instances can now be added to the ``Operations`` list allowing users to
+  compute force, torque, energy, and virials of forces that are not included in the dynamics of
+  the system.
+* [developers]: Removed internal methods ``_remove`` and ``_add`` from the data model.
+
+*Fixed*
+
+* Increase the performance of ``md.pair.Table`` on the CPU.
+* Improve accuracy of ``hoomd.hpmc.update.BoxMC`` when used with patch potentials.
+* Provide an accurate warning message when creating the state with many bond/angle/... types.
+* Add missing documentation for ``hoomd.md.methods.Berendsen``.
+* CVE-2007-4559
+
+v3.5.0 (2022-09-14)
+^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -20,7 +40,6 @@ v3.5.0 (not yet released)
 *Changed*
 
 * Raise an error when initializing with duplicate types.
-* ``hpmc.compute.SDF`` now computes pressures of systems of concave particles.
 * ``hpmc.compute.SDF`` now computes pressures of systems with patch interactions.
 * Raise descriptive error messages when the shared memory request exceeds that available on the GPU.
 
@@ -30,6 +49,8 @@ v3.5.0 (not yet released)
 * Memory allocation errors in C++ now result in ``MemoryError`` exceptions in Python.
 * Add missing ``Autotuned.h`` header file.
 * External components build correctly when ``ENABLE_MPI=on`` or ``ENABLE_GPU=on``.
+* Type parameter validation when items contain ``numpy.ndarray`` elements.
+* Compile with CUDA 12.0.
 
 *Deprecated*
 

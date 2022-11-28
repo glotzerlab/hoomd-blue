@@ -368,7 +368,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
 
                 // get parameters for this type pair
                 unsigned int typpair_idx = m_typpair_idx(typei, typej);
-                param_type param = h_params.data[typpair_idx];
+                const param_type& param = h_params.data[typpair_idx];
                 Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
                 // evaluate the base repulsive and attractive terms
@@ -421,7 +421,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                         {
                         // access the index of neighbor k
                         unsigned int kk = h_nlist.data[head_i + k];
-                        assert(kk < m_pdata->getN());
+                        assert(kk < m_pdata->getN() + m_pdata->getNGhosts());
 
                         // access the position and type of neighbor k
                         Scalar3 posk
@@ -640,7 +640,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
 
                     // get parameters for this type pair
                     unsigned int typpair_idx = m_typpair_idx(typei, typej);
-                    param_type param = h_params.data[typpair_idx];
+                    const param_type& param = h_params.data[typpair_idx];
                     Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
                     // evaluate the scalar per-neighbor contribution
@@ -652,7 +652,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                 for (unsigned int typ_b = 0; typ_b < ntypes; ++typ_b)
                     {
                     unsigned int typpair_idx = m_typpair_idx(typei, typ_b);
-                    param_type param = h_params.data[typpair_idx];
+                    const param_type& param = h_params.data[typpair_idx];
                     Scalar rcutsq = h_rcutsq.data[typpair_idx];
                     evaluator eval(Scalar(0.0), rcutsq, param);
                     Scalar energy(0.0);
@@ -688,7 +688,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
 
                 // get parameters for this type pair
                 unsigned int typpair_idx = m_typpair_idx(typei, typej);
-                param_type param = h_params.data[typpair_idx];
+                const param_type& param = h_params.data[typpair_idx];
                 Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
                 // evaluate the base repulsive and attractive terms
@@ -714,7 +714,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                             {
                             // access the index of neighbor k
                             unsigned int kk = h_nlist.data[head_i + k];
-                            assert(kk < m_pdata->getN());
+                            assert(kk < m_pdata->getN() + m_pdata->getNGhosts());
 
                             // access the position and type of neighbor k
                             Scalar3 posk = make_scalar3(h_pos.data[kk].x,
@@ -725,7 +725,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
 
                             // access the type pair parameters for i and k
                             typpair_idx = m_typpair_idx(typei, typek);
-                            param_type temp_param = h_params.data[typpair_idx];
+                            const param_type& temp_param = h_params.data[typpair_idx];
 
                             evaluator temp_eval(rij_sq, rcutsq, temp_param);
                             bool temp_evaluated = temp_eval.areInteractive();
@@ -801,7 +801,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
                             {
                             // access the index of neighbor k
                             unsigned int kk = h_nlist.data[head_i + k];
-                            assert(kk < m_pdata->getN());
+                            assert(kk < m_pdata->getN() + m_pdata->getNGhosts());
 
                             // access the position and type of neighbor k
                             Scalar3 posk = make_scalar3(h_pos.data[kk].x,
@@ -812,7 +812,7 @@ template<class evaluator> void PotentialTersoff<evaluator>::computeForces(uint64
 
                             // access the type pair parameters for i and k
                             typpair_idx = m_typpair_idx(typei, typek);
-                            param_type temp_param = h_params.data[typpair_idx];
+                            const param_type& temp_param = h_params.data[typpair_idx];
 
                             evaluator temp_eval(rij_sq, rcutsq, temp_param);
                             bool temp_evaluated = temp_eval.areInteractive();

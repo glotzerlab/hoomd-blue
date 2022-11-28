@@ -128,7 +128,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
     sim.operations.integrator = integrator
 
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.0)
-    sim.run(100)
+    sim.run(10)
 
     snap = sim.state.get_snapshot()
 

@@ -123,42 +123,15 @@ class Pair(force.Force):
         # above and raise an error if they occur.
         return self._cpp_obj.computeEnergyBetweenSets(tags1, tags2)
 
-    def _add(self, simulation):
-        super()._add(simulation)
-        self._add_nlist()
-
-    def _add_nlist(self):
-        nlist = self.nlist
-        deepcopy = False
-        if not isinstance(self._simulation, hoomd.Simulation):
-            if nlist._added:
-                deepcopy = True
-            else:
-                return
-        # We need to check if the force is added since if it is not then this is
-        # being called by a SyncedList object and a disagreement between the
-        # simulation and nlist._simulation is an error. If the force is added
-        # then the nlist is compatible. We cannot just check the nlist's _added
-        # property because _add is also called when the SyncedList is synced.
-        if deepcopy or nlist._added and nlist._simulation != self._simulation:
+    def _attach_hook(self):
+        if self.nlist._attached and self._simulation != self.nlist._simulation:
             warnings.warn(
                 f"{self} object is creating a new equivalent neighbor list."
                 f" This is happending since the force is moving to a new "
                 f"simulation. Set a new nlist to suppress this warning.",
                 RuntimeWarning)
-            self.nlist = copy.deepcopy(nlist)
-        self.nlist._add(self._simulation)
-        # This is ideopotent, but we need to ensure that if we change
-        # neighbor list when not attached we handle correctly.
-        self._add_dependency(self.nlist)
-
-    def _attach(self):
-        # This should never happen, but leaving it in case the logic for adding
-        # missed some edge case.
-        if self._simulation != self.nlist._simulation:
-            raise RuntimeError("{} object's neighbor list is used in a "
-                               "different simulation.".format(type(self)))
-        self.nlist._attach()
+            self.nlist = copy.deepcopy(self.nlist)
+        self.nlist._attach(self._simulation)
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(self._ext_module, self._cpp_class_name)
             self.nlist._cpp_obj.setStorageMode(
@@ -170,7 +143,8 @@ class Pair(force.Force):
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
                             self.nlist._cpp_obj)
 
-        super()._attach()
+    def _detach_hook(self):
+        self.nlist._detach()
 
     def _setattr_param(self, attr, value):
         if attr == "nlist":
@@ -183,11 +157,7 @@ class Pair(force.Force):
             return
         if self._attached:
             raise RuntimeError("nlist cannot be set after scheduling.")
-        old_nlist = self.nlist
         self._param_dict._dict["nlist"] = new_nlist
-        if self._added:
-            self._add_nlist()
-            old_nlist._remove_dependent(self)
 
 
 class LJ(Pair):
@@ -747,15 +717,10 @@ class DPD(Pair):
         param_dict["kT"] = kT
         self._param_dict.update(param_dict)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        DPD uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
+    def _attach_hook(self):
+        """DPD uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
+        super()._attach_hook()
 
 
 class DPDConservative(Pair):
@@ -907,15 +872,10 @@ class DPDLJ(Pair):
 
         self.kT = kT
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        DPDLJ uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
+    def _attach_hook(self):
+        """DPDLJ uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
+        super()._attach_hook()
 
 
 class ForceShiftedLJ(Pair):

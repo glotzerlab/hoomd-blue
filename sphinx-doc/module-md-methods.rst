@@ -12,6 +12,7 @@ md.methods
     :nosignatures:
 
     Method
+    Berendsen
     Brownian
     DisplacementCapped
     Langevin
@@ -27,6 +28,7 @@ md.methods
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
     :members: Method,
+              Berendsen,
               Brownian,
               DisplacementCapped,
               Langevin,

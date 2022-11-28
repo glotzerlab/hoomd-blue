@@ -150,7 +150,7 @@ class WallPotential(ExternalField):
     def __init__(self, walls):
         self._walls = _HPMCWallsMetaList(self, walls, _to_hpmc_cpp_wall)
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             raise RuntimeError('HPMC walls are not supported on the GPU.')
         integrator = self._simulation.operations.integrator
@@ -169,7 +169,7 @@ class WallPotential(ExternalField):
             hoomd.wall.Cylinder: self._cpp_obj.CylinderWalls,
             hoomd.wall.Plane: self._cpp_obj.PlaneWalls,
         })
-        super()._attach()
+        super()._attach_hook()
 
     @property
     def walls(self):

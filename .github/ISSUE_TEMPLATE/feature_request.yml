@@ -18,14 +18,6 @@ body:
     attributes:
       label: Additional context
       description: What additional information is helpful to understand this request?
-  - type: dropdown
-    attributes:
-      label: Developer
-      description: Who should implement the new functionality?
-      multiple: false
-      options:
-        - I will submit a pull request that implements this feature.
-        - Would someone else please implement this?
   - type: markdown
     attributes:
       value: |

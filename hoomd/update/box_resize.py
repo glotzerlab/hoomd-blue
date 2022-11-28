@@ -115,12 +115,11 @@ class BoxResize(Updater):
         self._param_dict.update(params)
         super().__init__(trigger)
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
             self._simulation.state._cpp_sys_def, self.trigger,
             self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
-        super()._attach()
 
     def get_box(self, timestep):
         """Get the box for a given timestep.

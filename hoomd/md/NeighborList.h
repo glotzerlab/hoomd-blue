@@ -7,6 +7,7 @@
 #include "hoomd/GlobalArray.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/MeshDefinition.h"
+#include "hoomd/PythonLocalDataAccess.h"
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
@@ -302,19 +303,19 @@ class PYBIND11_EXPORT NeighborList : public Compute
     // @{
 
     //! Get the number of neighbors array
-    const GlobalArray<unsigned int>& getNNeighArray()
+    const GlobalArray<unsigned int>& getNNeighArray() const
         {
         return m_n_neigh;
         }
 
     //! Get the neighbor list
-    const GlobalArray<unsigned int>& getNListArray()
+    const GlobalArray<unsigned int>& getNListArray() const
         {
         return m_nlist;
         }
 
     //! Get the head list
-    const GlobalArray<size_t>& getHeadList()
+    const GlobalArray<size_t>& getHeadList() const
         {
         return m_head_list;
         }
@@ -344,7 +345,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
 
     void setSingleExclusion(std::string exclusion);
 
-    pybind11::tuple getExclusions();
+    pybind11::list getExclusions();
 
     bool getExclusionsSet()
         {
@@ -496,11 +497,40 @@ class PYBIND11_EXPORT NeighborList : public Compute
         return m_typpair_idx;
         }
 
+    unsigned int getN() const
+        {
+        return m_pdata->getN();
+        }
+
+    unsigned int getNGhosts() const
+        {
+        return m_pdata->getNGhosts();
+        }
+
+    /// Get the local pair list from Python
+    pybind11::array_t<uint32_t> getLocalPairListPython(uint64_t timestep);
+
+    /// Get the global pair list from Python
+    pybind11::object getPairListPython(uint64_t timestep);
+
+    /// Validate that types are within Ntypes
+    void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
+
+    /// Set the rcut for a single type pair
+    virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
+
+    /// Get the r_cut for a single type pair
+    Scalar getRCut(pybind11::tuple types);
+
+    /// Set the rcut for a single type pair using a tuple of strings
+    virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
+
     protected:
-    Index2D m_typpair_idx;          //!< Indexer for full type pair storage
-    GlobalArray<Scalar> m_r_cut;    //!< The potential cutoffs stored by pair type
-    GlobalArray<Scalar> m_r_listsq; //!< The neighborlist cutoff radius squared stored by pair type
-    GlobalArray<Scalar> m_rcut_max; //!< The maximum value of rcut per particle type
+    Index2D m_typpair_idx;           //!< Indexer for full type pair storage
+    GlobalArray<Scalar> m_r_cut;     //!< The potential cutoffs stored by pair type
+    GlobalArray<Scalar> m_r_listsq;  //!< The neighborlist cutoff radius squared stored by pair type
+    GlobalArray<Scalar> m_rcut_max;  //!< The maximum value of rcut per particle type
+    GlobalArray<Scalar> m_rcut_base; //!< The base rcut values
 
     /// List of r_cut matrices from neighborlist consumers
     std::vector<std::shared_ptr<GlobalArray<Scalar>>> m_consumer_r_cut;
@@ -580,10 +610,8 @@ class PYBIND11_EXPORT NeighborList : public Compute
     CommFlags getRequestedCommFlags(uint64_t timestep)
         {
         CommFlags flags(0);
-
-        // exclusions require ghost particle tags
-        if (m_exclusions_set)
-            flags[comm_flag::tag] = 1;
+        flags[comm_flag::position] = 1;
+        flags[comm_flag::tag] = 1;
 
         if (m_filter_body)
             flags[comm_flag::body] = 1;
@@ -687,6 +715,92 @@ class PYBIND11_EXPORT NeighborList : public Compute
     GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
 #endif
     };
+
+/// Make the local particle data available to python via zero-copy access.
+template<class Output>
+class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, NeighborList>
+    {
+    public:
+    LocalNeighborListData(NeighborList& data)
+        : LocalDataAccess<Output, NeighborList>(data), m_nlist_handle(), m_head_list_handle(),
+          m_n_neigh_handle()
+        {
+        }
+
+    virtual ~LocalNeighborListData() = default;
+
+    Output getHeadList(GhostDataFlag flag)
+        {
+        if (flag != GhostDataFlag::standard)
+            throw std::runtime_error("'getHeadList' does not support ghost data access.");
+        return this->template getBuffer<size_t, unsigned long>(m_head_list_handle,
+                                                               &NeighborList::getHeadList,
+                                                               flag,
+                                                               false,
+                                                               0);
+        }
+
+    Output getNNeigh(GhostDataFlag flag)
+        {
+        if (flag != GhostDataFlag::standard)
+            throw std::runtime_error("'getNNeigh' does not support ghost data access.");
+        return this->template getBuffer<unsigned int, unsigned int>(m_n_neigh_handle,
+                                                                    &NeighborList::getNNeighArray,
+                                                                    flag,
+                                                                    false,
+                                                                    0);
+        }
+
+    // GhostDataFlag is ignored by this method, but required by the python interface
+    Output getNList(GhostDataFlag flag)
+        {
+        if (flag != GhostDataFlag::standard)
+            throw std::runtime_error("'getNList' does not support ghost data access.");
+        auto size = (unsigned int)this->m_data.getNListArray().getNumElements();
+        return this->template getBufferExplicitSize<unsigned int, unsigned int>(
+            m_nlist_handle,
+            &NeighborList::getNListArray,
+            false,
+            size,
+            0);
+        }
+
+    bool isHalfNlist()
+        {
+        return this->m_data.getStorageMode() == NeighborList::storageMode::half;
+        }
+
+    protected:
+    void clear()
+        {
+        m_head_list_handle.reset(nullptr);
+        m_nlist_handle.reset(nullptr);
+        m_n_neigh_handle.reset(nullptr);
+        }
+
+    private:
+    std::unique_ptr<ArrayHandle<unsigned int>> m_nlist_handle;
+    std::unique_ptr<ArrayHandle<size_t>> m_head_list_handle;
+    std::unique_ptr<ArrayHandle<unsigned int>> m_n_neigh_handle;
+    };
+
+namespace detail
+    {
+
+template<class Output> void export_LocalNeighborListData(pybind11::module& m, std::string name)
+    {
+    pybind11::class_<LocalNeighborListData<Output>, std::shared_ptr<LocalNeighborListData<Output>>>(
+        m,
+        name.c_str())
+        .def(pybind11::init<NeighborList&>())
+        .def("getNList", &LocalNeighborListData<Output>::getNList)
+        .def("getHeadList", &LocalNeighborListData<Output>::getHeadList)
+        .def("getNNeigh", &LocalNeighborListData<Output>::getNNeigh)
+        .def("isHalfNlist", &LocalNeighborListData<Output>::isHalfNlist)
+        .def("enter", &LocalNeighborListData<Output>::enter)
+        .def("exit", &LocalNeighborListData<Output>::exit);
+    };
+    } // end namespace detail
 
     } // end namespace md
     } // end namespace hoomd

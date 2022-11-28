@@ -355,6 +355,8 @@ def check_setting(data, prop_dict, tags):
 
     Also tests error raising for read only arrays.
     """
+    if len(tags) == 0:
+        return
     # Test if test should be skipped or just return
     if isinstance(data, HOOMDGPUArray) and not CUPY_IMPORTED:
         pytest.skip("Not available for HOOMDGPUArray without CuPy.")

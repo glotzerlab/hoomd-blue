@@ -35,3 +35,36 @@ class _ForceLocalAccessBase(hoomd.data.local_access._LocalAccess):
     def __exit__(self, type, value, traceback):
         self._force_obj._in_context_manager = False
         self._exit()
+
+
+class _NeighborListLocalAccessBase(hoomd.data.local_access._LocalAccess):
+    __slots__ = ('_entered', '_accessed_fields', '_cpp_obj', '_nlist_obj')
+
+    @property
+    @abstractmethod
+    def _cpp_cls(self):
+        pass
+
+    _fields = {
+        'head_list': 'getHeadList',
+        'n_neigh': 'getNNeigh',
+        'nlist': 'getNList'
+    }
+
+    @property
+    def half_nlist(self):
+        return self._cpp_obj.isHalfNlist()
+
+    def __init__(self, nlist_obj):
+        super().__init__()
+        self._nlist_obj = nlist_obj
+        self._cpp_obj = self._cpp_cls(nlist_obj._cpp_obj)
+
+    def __enter__(self):
+        self._nlist_obj._in_context_manager = True
+        self._enter()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._nlist_obj._in_context_manager = False
+        self._exit()
