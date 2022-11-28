@@ -18,14 +18,18 @@ def test_attributes():
     assert constant.constant_force['A'] == (0.0, 0.0, 1.0)
 
 
-def test_attach(simulation_factory, two_particle_snapshot_factory):
+def test_attach_and_filter(simulation_factory, two_particle_snapshot_factory):
     constant = hoomd.md.force.Constant(filter=hoomd.filter.Type(['A']))
 
-    sim = simulation_factory(
-        two_particle_snapshot_factory(particle_types=['A', 'B'],
-                                      dimensions=3,
-                                      d=8))
-    integrator = hoomd.md.Integrator(.05)
+    snapshot = two_particle_snapshot_factory(particle_types=['A', 'B'],
+                                             dimensions=3,
+                                             d=8)
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.typeid[:] = [1, 0]
+
+    sim = simulation_factory(snapshot)
+
+    integrator = hoomd.md.Integrator(0.0)
     integrator.methods.append(
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
     integrator.forces.append(constant)
@@ -40,13 +44,51 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
     constant.constant_torque['A'] = (0.0, 0.0, 1.0)
     assert constant.constant_torque['A'] == (0.0, 0.0, 1.0)
 
+    constant.constant_force['B'] = (0.0, 0.125, 5.0)
+    assert constant.constant_force['B'] == (0.0, 0.125, 5.0)
+    constant.constant_torque['B'] = (4.0, -6.0, 0.5)
+    assert constant.constant_torque['B'] == (4.0, -6.0, 0.5)
+
     sim.run(1)
 
     if sim.device.communicator.rank == 0:
-        assert numpy.array_equal(constant.forces,
-                                 [[0.5, 0.0, 0.0], [0.5, 0.0, 0.0]])
-        assert numpy.array_equal(constant.torques,
-                                 [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+        numpy.testing.assert_array_equal(constant.forces,
+                                         [[0.0, 0.0, 0.0], [0.5, 0.0, 0.0]])
+        numpy.testing.assert_array_equal(constant.torques,
+                                         [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+
+
+def test_types(simulation_factory, two_particle_snapshot_factory):
+    constant = hoomd.md.force.Constant(filter=hoomd.filter.All())
+
+    snapshot = two_particle_snapshot_factory(particle_types=['A', 'B'],
+                                             dimensions=3,
+                                             d=8)
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.typeid[:] = [1, 0]
+
+    sim = simulation_factory(snapshot)
+
+    integrator = hoomd.md.Integrator(0.0)
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
+    integrator.forces.append(constant)
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    constant.constant_force['A'] = (0.5, 0.0, 0.0)
+    constant.constant_torque['A'] = (0.0, 0.0, 1.0)
+
+    constant.constant_force['B'] = (0.0, 0.125, 5.0)
+    constant.constant_torque['B'] = (4.0, -6.0, 0.5)
+
+    sim.run(1)
+
+    if sim.device.communicator.rank == 0:
+        numpy.testing.assert_array_equal(constant.forces,
+                                         [[0.0, 0.125, 5.0], [0.5, 0.0, 0.0]])
+        numpy.testing.assert_array_equal(constant.torques,
+                                         [[4.0, -6.0, 0.5], [0.0, 0.0, 1.0]])
 
 
 def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
