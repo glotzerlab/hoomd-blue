@@ -10,6 +10,7 @@ set(files __init__.py
     test_aniso_pair.py
     test_array_view.py
     test_constrain_distance.py
+    test_constant_force.py
     test_custom_force.py
     test_external.py
     test_filter_md.py
@@ -20,7 +21,6 @@ set(files __init__.py
     test_dihedral.py
     test_flags.py
     test_kernel_parameters.py
-    test_lj_equation_of_state.py
     test_potential.py
     test_pppm_coulomb.py
     test_manifolds.py
