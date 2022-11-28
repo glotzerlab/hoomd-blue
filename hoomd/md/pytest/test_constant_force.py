@@ -58,10 +58,14 @@ def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
         hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
     integrator.forces.append(constant)
     sim.operations.integrator = integrator
-    sim.run(1)
+    sim.run(0)
+
+    def activate_kernel():
+        constant.constant_force['A'] = (1.0, 2.0, 3.0)
+        sim.run(1)
 
     autotuned_kernel_parameter_check(instance=constant,
-                                     activate=lambda: sim.run(1))
+                                     activate=activate_kernel)
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
