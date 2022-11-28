@@ -553,7 +553,7 @@ class Constant(Force):
     .. py:attribute:: constant_force
 
         Constant force vector in the global reference frame of the system
-        :math:`[\mathrm{force}]`.  It is defined per particle type and 
+        :math:`[\mathrm{force}]`.  It is defined per particle type and
         defaults to (0.0, 0.0, 0.0) for all types.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
