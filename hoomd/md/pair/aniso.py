@@ -510,18 +510,60 @@ class ALJ(AnisotropicPair):
 
 
 class JanusLJ(AnisotropicPair):
-    r"""Janus Lennard-Jones pair force.
+    r"""Patchy Lennard-Jones pair force.
 
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 
-    `JanusPair` computes the TODO
+    .. py:attribute:: params
 
-    Defined in `Beltran-Villegas et. al.`_.
+        The JanusLJ potential params are a dictionary of dictionaries that
+        are passed to the `LJ evaluator <pair.LJ.params>` and to the
+        JanusEnvelope. The dictionary has the following keys:
+
+        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
+
+            * ``epsilon`` (`float`) -
+              energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+            * ``sigma`` (`float`) -
+              particle size :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``envelope_params`` (`dict`, **required**)
+
+            * ``alpha`` (`float`) - the patch half-angle :math:`\alpha`
+            * ``omega`` (`float`) - the patch steepness :math:`\omega`
+
+    `JanusLJ` computes the Lennard-Jones potential between particles with
+    spherical cap patches with an implementation based on
+    `Beltran-Villegas et. al.`_. With particle displacement vector
+    :math:`r_{ij}` and positive angles between respective particle direction and
+    the displacement vector :math:`\theta_i`, :math:`\theta_j` this potential
+    computes:
 
     .. _Beltran-Villegas et. al.: http://dx.doi.org/10.1039/C3SM53136H
+
+    .. math::
+
+        U(r, \theta_i, \theta_j) = f(\theta_i) f(\theta_j) U_{LJ}(r)
+
+    where :math:`f` is an orientation-dependent factor of the patchy spherical
+    cap half-angle :math:`\alpha` and patch steepness :math:`\omega`.
+
+    .. math::
+
+        f(\theta, \alpha, \omega) = \frac{1}{1 + \exp{\big ( -\omega (
+        \cos{\theta} - \cos{\alpha}) }\big ) }
+
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        lj_params = dict(epsilon = 1, sigma = 1)
+        janus_params = dict(alpha = np.pi/2, omega = 40)
+
+        januslj = hoomd.md.pair.aniso.JanusLJ(nlist = nl, default_r_cut = 3.0)
+        januslj.params[('A', 'A')] = dict(pair_params = lj_params,
+                                          envelope_params = janus_params)
 
     """
     _cpp_class_name = "AnisoPotentialPairJanusLJ"

@@ -15,6 +15,7 @@ md.pair.aniso
     AnisotropicPair
     Dipole
     GayBerne
+    JanusLJ
 
 .. rubric:: Details
 
@@ -25,4 +26,5 @@ md.pair.aniso
         AnisotropicPair,
         Dipole,
         GayBerne,
+        JanusLJ
     :show-inheritance:
