@@ -173,8 +173,7 @@ template<class Shape> class ComputeSDF : public Compute
     void countHistogramBinarySearch(uint64_t timestep);
     void countHistogramLinearSearch(uint64_t timestep);
 
-    //! Determine the s bin of a given particle pair
-    //! Only used for the binary search mode
+    //! Determine the s bin of a given particle pair; only used for the binary search
     size_t computeBin(const vec3<Scalar>& r_ij,
                       const quat<Scalar>& orientation_i,
                       const quat<Scalar>& orientation_j,
