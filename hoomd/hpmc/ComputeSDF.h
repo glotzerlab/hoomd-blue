@@ -148,7 +148,7 @@ template<class Shape> class ComputeSDF : public Compute
     virtual void compute(uint64_t timestep);
 
     //! Return an sdf
-    virtual pybind11::array_t<double> getSDF();
+    virtual pybind11::array_t<double> getSDFCompression();
     virtual pybind11::array_t<double> getSDFExpansion();
 
     protected:
@@ -281,7 +281,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     }
 
 // \return the sdf histogram
-template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
+template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDFCompression()
     {
 #ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
@@ -766,7 +766,7 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
                             double>())
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
-        .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF)
+        .def_property_readonly("sdf_compression", &ComputeSDF<Shape>::getSDFCompression)
         .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDFExpansion);
     }
 

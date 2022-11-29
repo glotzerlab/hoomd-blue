@@ -297,9 +297,10 @@ class SDF(Compute):
         super()._attach()
 
     @log(category='sequence', requires_run=True)
-    def sdf(self):
+    def sdf_compression(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
-        distribution function :math:`[\\mathrm{probability\\ density}]`.
+        distribution function for compression moves \
+        :math:`[\\mathrm{probability\\ density}]`.
 
         The :math:`x` at the center of bin :math:`k` is:
         :math:`x = k \\cdot \\delta x + \\delta x/2`.
@@ -309,19 +310,20 @@ class SDF(Compute):
             `sdf` is `None` on ranks >= 1.
         """
         self._cpp_obj.compute(self._simulation.timestep)
-        return self._cpp_obj.sdf
+        return self._cpp_obj.sdf_compression
 
     @log(category='sequence', requires_run=True)
     def sdf_expansion(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
-        distribution function :math:`[\\mathrm{probability\\ density}]`.
+        distribution function for the expansion moves \
+        :math:`[\\mathrm{probability\\ density}]`.
 
         The :math:`x` at the center of bin :math:`k` is:
-        :math:`x = k \\cdot \\delta x + \\delta x/2`.
+        :math:`x = -k \\cdot \\delta x - \\delta x/2`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
-            `sdf` is `None` on ranks >= 1.
+            `sdf_expansion` is `None` on ranks >= 1.
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf_expansion
