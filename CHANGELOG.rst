@@ -37,6 +37,8 @@ v3.7.0 (2022-11-29)
 *Deprecated*
 
 * ``hoomd.md.dihedral.Harmonic`` - use the functionally equivalent ``hoomd.md.dihedral.Periodic``.
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``.
+* ``diameters`` key in ``hoomd.md.constrain.Rigid.body``.
 
 v3.6.0 (2022-10-25)
 ^^^^^^^^^^^^^^^^^^^
