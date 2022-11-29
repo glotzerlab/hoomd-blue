@@ -365,10 +365,6 @@ void ForceComposite::validateRigidBodies()
         {
         // access body data
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_type(m_body_types,
-                                              access_location::host,
-                                              access_mode::read);
-
         typedef std::map<unsigned int, unsigned int> map_t;
         // This will count the length of all molecules (realized rigid bodies) in the system.
         map_t body_particle_count;
@@ -430,14 +426,6 @@ void ForceComposite::validateRigidBodies()
                     throw std::runtime_error(
                         "Error validating rigid bodies: Too many constituent particles for "
                         "rigid body.");
-                    }
-
-                if (h_body_type.data[m_body_idx(body_type, current_molecule_size)] != snap.type[i])
-                    {
-                    throw std::runtime_error(
-                        "Error validating rigid bodies: Constituent particle types must be "
-                        "consistent with the rigid body definition.  Rigid body definition "
-                        "is in order of particle tag.");
                     }
                 // increase molecule size by one as particle is validated
                 it->second++;
@@ -607,7 +595,7 @@ void ForceComposite::createRigidBodies(
                  ++current_body_index)
                 {
                 // Update constituent particle snapshot properties from default.
-                // Position and orientation are handled by updateCompositeParticles.
+                // Position, orientation, and types are handled by updateCompositeParticles.
                 snap.type[constituent_particle_tag]
                     = h_body_type.data[m_body_idx(body_type, current_body_index)];
                 snap.body[constituent_particle_tag] = particle_tag;
@@ -873,9 +861,9 @@ void ForceComposite::computeForces(uint64_t timestep)
         }
     }
 
-/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of
- * integration on the CPU based on the body center of mass and particle relative position in each
- * body frame.
+/* Set position, velocity, and type of constituent particles in rigid bodies in the 1st or second
+ * half of integration on the CPU based on the body center of mass and particle relative position in
+ * each body frame.
  */
 
 void ForceComposite::updateCompositeParticles(uint64_t timestep)
@@ -919,6 +907,7 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
     ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
                                             access_location::host,
                                             access_mode::read);
+    ArrayHandle<unsigned int> h_body_types(m_body_types, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
@@ -1016,10 +1005,11 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
         updated_pos = global_box.shift(updated_pos, negimgi);
 
-        h_postype.data[particle_index] = make_scalar4(updated_pos.x,
-                                                      updated_pos.y,
-                                                      updated_pos.z,
-                                                      h_postype.data[particle_index].w);
+        h_postype.data[particle_index]
+            = make_scalar4(updated_pos.x,
+                           updated_pos.y,
+                           updated_pos.z,
+                           __int_as_scalar(h_body_types.data[m_body_idx(type, idx_in_body)]));
         h_orientation.data[particle_index] = quat_to_scalar4(updated_orientation);
         h_image.data[particle_index] = img + imgi;
         }

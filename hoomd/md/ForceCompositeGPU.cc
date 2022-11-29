@@ -324,11 +324,14 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
                               access_location::device,
                               access_mode::readwrite);
 
-    // access body positions and orientations
+    // access body positions, orientations, and types
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation,
                                             access_location::device,
                                             access_mode::read);
+    ArrayHandle<unsigned int> d_body_types(m_body_types,
+                                           access_location::device,
+                                           access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
     // lookup table
@@ -352,6 +355,7 @@ void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
                                      d_lookup_center.data,
                                      d_body_pos.data,
                                      d_body_orientation.data,
+                                     d_body_types.data,
                                      d_body_len.data,
                                      d_molecule_order.data,
                                      d_molecule_len.data,
