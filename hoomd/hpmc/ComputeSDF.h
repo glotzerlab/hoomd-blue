@@ -149,7 +149,7 @@ template<class Shape> class ComputeSDF : public Compute
 
     //! Return an sdf
     virtual pybind11::array_t<double> getSDF();
-    virtual pybind11::array_t<double> getSDF_expansion();
+    virtual pybind11::array_t<double> getSDFExpansion();
 
     protected:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
@@ -280,7 +280,7 @@ template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
     }
 
 // \return the sdf histogram for expansion moves
-template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF_expansion()
+template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDFExpansion()
     {
 #ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
@@ -775,7 +775,7 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF)
-        .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDF_expansion);
+        .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDFExpansion);
     }
 
     } // end namespace detail
