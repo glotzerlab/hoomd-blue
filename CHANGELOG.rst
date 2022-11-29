@@ -7,6 +7,39 @@ Change Log
 v3.x
 ----
 
+v3.7.0 (2022-11-29)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``Neighborlist.r_cut`` sets the base cutoff radius for neighbor search - for use when the neighbor
+  list is used for analysis or custom Python code.
+* ``Neighborlist.cpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.gpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.local_pair_list`` provides the rank local pair list by index.
+* ``Neighborlist.pair_list`` provides the global pair list by tag on rank 0.
+* ``hoomd.md.dihedral.Periodic`` - a new name for the previous ``Harmonic`` potential.
+* ``default_gamma`` and ``default_gamma_r`` arguments to the ``hoomd.md.methods``: ``Brownian``,
+  ``Langevin``, and ``OverdampedViscous``.
+* ``reservoir_energy`` loggable in ``hoomd.md.methods.Langevin``.
+* ``hoomd.md.force.Constant`` applies constant forces and torques to particles.
+
+*Changed*
+
+* [plugin developers] Refactored the ``LocalDataAccess`` C++ classes to add flexibility.
+
+*Fixed*
+
+* ``hoomd.hpmc.nec`` integrators compute non-infinite virial pressures for 2D simulations.
+* Raise an exception when attempting to get the shape specification of shapes with 0 elements.
+* Box conversion error message now names ``hoomd.Box``.
+
+*Deprecated*
+
+* ``hoomd.md.dihedral.Harmonic`` - use the functionally equivalent ``hoomd.md.dihedral.Periodic``.
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``.
+* ``diameters`` key in ``hoomd.md.constrain.Rigid.body``.
+
 v3.6.0 (2022-10-25)
 ^^^^^^^^^^^^^^^^^^^
 

@@ -262,15 +262,25 @@ class Rigid(Constraint):
 
         - ``constituent_types`` (`list` [`str`]): List of types of constituent
           particles.
+
         - ``positions`` (`list` [`tuple` [`float`, `float`, `float`]]): List of
           relative positions of constituent particles.
+
         - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
           `float`]]): List of orientations (as quaternions) of constituent
           particles.
+
         - ``charges`` (`list` [`float`]): List of charges of constituent
           particles.
+
+          .. deprecated:: v3.7.0
+             ``charges`` will be removed in v4.
+
         - ``diameters`` (`list` [`float`]): List of diameters of constituent
           particles.
+
+          .. deprecated:: v3.7.0
+             ``diameters`` will be removed in v4.
 
         Of these, `Rigid` uses ``positions`` and ``orientation`` to set the
         constituent particle positions and orientations every time step.
