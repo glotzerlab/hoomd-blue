@@ -235,6 +235,13 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
         snapshot.validate();
         }
 
+    if (snapshot.type_mapping.size() >= 40)
+        {
+        m_exec_conf->msg->warning() << "Systems with many particle types perform poorly or result "
+                                       "in shared memory errors on the GPU."
+                                    << std::endl;
+        }
+
     // re-initialize data structures
     initialize();
 

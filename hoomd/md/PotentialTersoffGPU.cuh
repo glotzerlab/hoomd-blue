@@ -929,6 +929,12 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
                                + pair_args.ntypes * run_block_size * sizeof(Scalar);
                 }
 
+            if (shared_bytes > pair_args.devprop.sharedMemPerBlock)
+                {
+                throw std::runtime_error("Triplet potential parameters exceed the available shared "
+                                         "memory per block.");
+                }
+
             // zero the forces
             hipMemset(pair_args.d_force, 0, sizeof(Scalar4) * (pair_args.N + pair_args.Nghosts));
             hipMemset(pair_args.d_virial, 0, sizeof(Scalar) * pair_args.virial_pitch * 6);

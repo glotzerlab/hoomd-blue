@@ -301,7 +301,8 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
                                       m_filter_body,
                                       m_diameter_shift,
                                       threads_per_particle,
-                                      block_size);
+                                      block_size,
+                                      m_exec_conf->dev_prop);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -25,3 +25,4 @@ md.nlist
     :show-inheritance:
 
     .. autoclass:: NeighborList
+        :members:
