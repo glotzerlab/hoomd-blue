@@ -549,7 +549,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                             const vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
-                            if (m_mc->getPatchEnergy())
+                                                 // if (m_mc->getPatchEnergy())
                                 {
                                 u_ij_0 = m_mc->getPatchEnergy()->energy(
                                     r_ij,
@@ -562,131 +562,111 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                                     float(h_diameter.data[j]),
                                     float(h_charge.data[j]));
                                 }
-                            // do compressive and expansive perturbations in the same loop, keeping
-                            // track of which overlap checks we do not need to perform loop over
-                            // bins; only going up to min_bin-1 since we only want the _first_
-                            // overlap of particle i with its neighbors
-                            bool do_compression = true;
-                            bool do_expansion = true;
-                            for (size_t bin_to_sample = 0;
-                                 bin_to_sample < std::max(min_bin_compression, min_bin_expansion);
+
+                            // first do compressions
+                            for (size_t bin_to_sample = 0; bin_to_sample < min_bin_compression;
                                  bin_to_sample++)
                                 {
-                                if (bin_to_sample >= min_bin_compression)
-                                    {
-                                    do_compression = false;
-                                    }
-                                if (bin_to_sample >= min_bin_expansion)
-                                    {
-                                    do_expansion = false;
-                                    }
                                 const double scale_factor
                                     = m_dx * static_cast<double>(bin_to_sample + 1);
-                                const double expansion_scale_factor
-                                    = -m_dx * static_cast<double>(bin_to_sample + 1);
 
-                                // first check for any hard overlaps upon compression
+                                // check for hard overlaps
                                 // if there is one for a given scale value, there is no need to
                                 // check for any soft overlaps from m_mc.m_patch
-                                if (do_compression)
+                                bool hard_overlap = detail::test_scaled_overlap<Shape>(
+                                    r_ij,
+                                    quat<Scalar>(orientation_i),
+                                    quat<Scalar>(orientation_j),
+                                    params[__scalar_as_int(postype_i.w)],
+                                    params[__scalar_as_int(postype_j.w)],
+                                    scale_factor);
+                                if (hard_overlap)
                                     {
-                                    bool hard_overlap = detail::test_scaled_overlap<Shape>(
-                                        r_ij,
-                                        quat<Scalar>(orientation_i),
-                                        quat<Scalar>(orientation_j),
-                                        params[__scalar_as_int(postype_i.w)],
-                                        params[__scalar_as_int(postype_j.w)],
-                                        scale_factor);
-                                    if (hard_overlap)
+                                    hist_weight_ptl_i_compression = 1.0; // = 1-e^(-\infty)
+                                    min_bin_compression = bin_to_sample;
+                                    } // end if (hard_overlap)
+
+                                // if no hard overlap, check for a soft overlap if we have
+                                // patches
+                                if (!hard_overlap && m_mc->getPatchEnergy())
+                                    {
+                                    // compute the energy at this size of the perturbation and
+                                    // compare to the energy in the unperturbed state
+                                    const vec3<Scalar> r_ij_scaled
+                                        = r_ij * (Scalar(1.0) - scale_factor);
+                                    double u_ij_new = m_mc->getPatchEnergy()->energy(
+                                        r_ij_scaled,
+                                        typ_i,
+                                        quat<float>(shape_i.orientation),
+                                        float(h_diameter.data[i]),
+                                        float(h_charge.data[i]),
+                                        typ_j,
+                                        quat<float>(orientation_j),
+                                        float(h_diameter.data[j]),
+                                        float(h_charge.data[j]));
+                                    // if energy has changed, there is a new soft overlap
+                                    // add the appropriate weight to the appropriate bin of the
+                                    // histogram and break out of the loop over bins
+                                    if (u_ij_new != u_ij_0)
                                         {
-                                        // set hist weight and note no need to do compression checks
-                                        // for pair ij at any larger scale values
-                                        hist_weight_ptl_i_compression = 1.0; // = 1-e^(-\infty)
                                         min_bin_compression = bin_to_sample;
-                                        do_compression = false;
-                                        } // end if (hard_overlap)
+                                        hist_weight_ptl_i_compression
+                                            = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                        }
+                                    } // end if (!hard_overlap && m_mc->getPatchEnergy())
+                                }     // end loop over bins for compression
 
-                                    // if no hard overlap, check for a soft overlap if we have
-                                    // patches
-                                    if (!hard_overlap && m_mc->getPatchEnergy())
-                                        {
-                                        // compute the energy at this size of the perturbation and
-                                        // compare to the energy in the unperturbed state
-                                        const vec3<Scalar> r_ij_scaled
-                                            = r_ij * (Scalar(1.0) - scale_factor);
-                                        double u_ij_new = m_mc->getPatchEnergy()->energy(
-                                            r_ij_scaled,
-                                            typ_i,
-                                            quat<float>(shape_i.orientation),
-                                            float(h_diameter.data[i]),
-                                            float(h_charge.data[i]),
-                                            typ_j,
-                                            quat<float>(orientation_j),
-                                            float(h_diameter.data[j]),
-                                            float(h_charge.data[j]));
-                                        // if energy has changed, there is a new soft overlap
-                                        // add the appropriate weight to the appropriate bin of the
-                                        // histogram and break out of the loop over bins
-                                        if (u_ij_new != u_ij_0)
-                                            {
-                                            min_bin_compression = bin_to_sample;
-                                            hist_weight_ptl_i_compression
-                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
-                                            do_compression = false;
-                                            }
-                                        } // end if (m_mc->getPatchEnergy())
-                                    }     // end if (do_compression)
+                            // do expansions
+                            for (size_t bin_to_sample = 0; bin_to_sample < min_bin_expansion;
+                                 bin_to_sample++)
+                                {
+                                const double scale_factor
+                                    = -m_dx * static_cast<double>(bin_to_sample + 1);
 
-                                // do expansive perturbations by changing the sign of scale_factor
-                                if (do_expansion)
+                                // check for hard overlaps
+                                // if there is one for a given scale value, there is no need to
+                                // check for any soft overlaps from m_mc.m_patch
+                                bool hard_overlap = detail::test_scaled_overlap<Shape>(
+                                    r_ij,
+                                    quat<Scalar>(orientation_i),
+                                    quat<Scalar>(orientation_j),
+                                    params[__scalar_as_int(postype_i.w)],
+                                    params[__scalar_as_int(postype_j.w)],
+                                    scale_factor);
+                                if (hard_overlap)
                                     {
-                                    bool hard_overlap = detail::test_scaled_overlap<Shape>(
-                                        r_ij,
-                                        quat<Scalar>(orientation_i),
-                                        quat<Scalar>(orientation_j),
-                                        params[__scalar_as_int(postype_i.w)],
-                                        params[__scalar_as_int(postype_j.w)],
-                                        expansion_scale_factor);
-                                    if (hard_overlap)
-                                        {
-                                        // set hist weight and note no need to do expansion checks
-                                        // for pair ij at any larger scale values
-                                        hist_weight_ptl_i_expansion = 1.0; // = 1-e^(-\infty)
-                                        min_bin_expansion = bin_to_sample;
-                                        do_expansion = false;
-                                        } // end if (hard_overlap)
+                                    hist_weight_ptl_i_expansion = 1.0; // = 1-e^(-\infty)
+                                    min_bin_expansion = bin_to_sample;
+                                    } // end if (hard_overlap)
 
-                                    // if no hard overlap, check for a soft overlap if we have
-                                    // patches
-                                    if (!hard_overlap && m_mc->getPatchEnergy())
+                                // if no hard overlap, check for a soft overlap if necessary
+                                if (!hard_overlap && m_mc->getPatchEnergy())
+                                    {
+                                    // compute the energy at this size of the perturbation and
+                                    // compare to the energy in the unperturbed state
+                                    const vec3<Scalar> r_ij_scaled
+                                        = r_ij * (Scalar(1.0) - scale_factor);
+                                    double u_ij_new = m_mc->getPatchEnergy()->energy(
+                                        r_ij_scaled,
+                                        typ_i,
+                                        quat<float>(shape_i.orientation),
+                                        float(h_diameter.data[i]),
+                                        float(h_charge.data[i]),
+                                        typ_j,
+                                        quat<float>(orientation_j),
+                                        float(h_diameter.data[j]),
+                                        float(h_charge.data[j]));
+                                    // if energy has changed, there is a new soft overlap
+                                    // add the appropriate weight to the appropriate bin of the
+                                    // histogram and break out of the loop over bins
+                                    if (u_ij_new != u_ij_0)
                                         {
-                                        // compute the energy at this size of the perturbation and
-                                        // compare to the energy in the unperturbed state
-                                        const vec3<Scalar> r_ij_scaled
-                                            = r_ij * (Scalar(1.0) - expansion_scale_factor);
-                                        double u_ij_new = m_mc->getPatchEnergy()->energy(
-                                            r_ij_scaled,
-                                            typ_i,
-                                            quat<float>(shape_i.orientation),
-                                            float(h_diameter.data[i]),
-                                            float(h_charge.data[i]),
-                                            typ_j,
-                                            quat<float>(orientation_j),
-                                            float(h_diameter.data[j]),
-                                            float(h_charge.data[j]));
-                                        // if energy has changed, there is a new soft overlap
-                                        // add the appropriate weight to the appropriate bin of the
-                                        // histogram and break out of the loop over bins
-                                        if (u_ij_new != u_ij_0)
-                                            {
-                                            min_bin_expansion = bin_to_sample;
-                                            hist_weight_ptl_i_expansion
-                                                = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
-                                            do_expansion = false;
-                                            }
-                                        } // end if (m_mc->getPatchEnergy())
-                                    }     // end if (do_expansion)
-                                }         // end loop over histogram bins
+                                        min_bin_expansion = bin_to_sample;
+                                        hist_weight_ptl_i_expansion
+                                            = 1.0 - fast::exp(-(u_ij_new - u_ij_0));
+                                        }
+                                    } // end if (!hard_overlap && m_mc->getPatchEnergy())
+                                }     // end loop over histogram bins for expansions
                             }
                         }
                     }
