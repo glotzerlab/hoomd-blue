@@ -346,16 +346,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
                     break;
                     }
                 }
-            m_requiresExpansiveSDF = false;
-            for (unsigned int i=0; i < m_pdata->getNTypes(); i++)
-                {
-                Shape dummy(q, m_params[i]);
-                if (dummy.requiresExpansiveSDF())
-                    {
-                    m_requiresExpansiveSDF = true;
-                    break;
-                    }
-                }
 
             updateCellWidth(); // make sure the cell width is up-to-date and forces a rebuild of the AABB tree and image list
 
@@ -386,9 +376,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         //! Return true if anisotropic particles are present
         virtual bool hasOrientation() { return m_hasOrientation; }
-
-        //! Return true if expansive volume perturbations are required for ComputeSDF
-        virtual bool requiresExpansiveSDF() { return m_requiresExpansiveSDF; }
 
         //! Compute the energy due to patch interactions
         /*! \param timestep the current time step
@@ -459,7 +446,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_image_list_warning_issued;                    //!< True if the image list warning has been issued
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
         bool m_hasOrientation;                               //!< true if there are any orientable particles in the system
-        bool m_requiresExpansiveSDF;                         //!< true if expansive volume perturbations are required for ComputeSDF (nonconvex particles)
 
         std::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
         hoomd::detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
@@ -520,7 +506,6 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
               m_hasOrientation(true),
-              m_requiresExpansiveSDF(true),
               m_extra_image_width(0.0),
               m_fugacity(m_exec_conf),
               m_ntrial(m_exec_conf)

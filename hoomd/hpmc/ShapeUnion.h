@@ -389,24 +389,6 @@ template<class Shape> struct ShapeUnion
         return true;
         }
 
-    /// Check if this shape requires expansive volume perturbations for ComputeSDF
-    DEVICE bool requiresExpansiveSDF()
-        {
-        if (members.N == 1)
-            {
-            // if we have only one member in the center, return that shape's expansive sdf flag
-            const vec3<Scalar>& pos = members.mpos[0];
-            if (pos.x == Scalar(0.0) && pos.y == pos.x && pos.z == pos.x)
-                {
-                Shape s(quat<Scalar>(), members.mparams[0]);
-                return s.requiresExpansiveSDF();
-                }
-            }
-
-        // must assume expansive perturbations are required in the general case
-        return true;
-        }
-
     /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const
         {

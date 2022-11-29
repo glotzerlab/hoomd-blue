@@ -85,12 +85,6 @@ struct ShapeSpheropolyhedron
             }
         }
 
-    /// Check if this shape requires expansive volume perturbations for ComputeSDF
-    DEVICE bool requiresExpansiveSDF()
-        {
-        return false;
-        }
-
     //! Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const
         {

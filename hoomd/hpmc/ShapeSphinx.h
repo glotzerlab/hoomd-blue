@@ -215,12 +215,6 @@ struct ShapeSphinx
         return true;
         }
 
-    /// Check if this shape requires expansive volume perturbations for ComputeSDF
-    DEVICE bool requiresExpansiveSDF()
-        {
-        return true;
-        }
-
     /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {

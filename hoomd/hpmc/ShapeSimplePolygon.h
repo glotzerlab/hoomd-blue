@@ -60,12 +60,6 @@ struct ShapeSimplePolygon
         return true;
         }
 
-    /// Check if this shape requires expansive volume perturbations for ComputeSDF
-    DEVICE bool requiresExpansiveSDF()
-        {
-        return true;
-        }
-
     //! Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const
         {

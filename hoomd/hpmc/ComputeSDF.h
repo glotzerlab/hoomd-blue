@@ -156,6 +156,7 @@ template<class Shape> class ComputeSDF : public Compute
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
 
+    bool m_shape_requires_expansion_moves;  //!< If expansion moves are required
     std::vector<double> m_hist_compression; //!< Raw histogram data
     std::vector<double> m_sdf_compression;  //!< Computed SDF
     std::vector<double> m_hist_expansion;   //!< Raw histogram data
@@ -199,6 +200,18 @@ ComputeSDF<Shape>::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
     m_last_max_diam = max_diam;
     Scalar extra = xmax * max_diam;
     m_mc->setExtraGhostWidth(extra);
+
+    // default to requiring expansive moves then check if only compressions are required
+    m_shape_requires_expansion_moves = true;
+    if constexpr (std::is_same<Shape, ShapeSphere>() || std::is_same<Shape, ShapeConvexPolygon>()
+                  || std::is_same<Shape, ShapeConvexPolyhedron>()
+                  || std::is_same<Shape, ShapeEllipsoid>()
+                  || std::is_same<Shape, ShapeFacetedEllipsoid>()
+                  || std::is_same<Shape, ShapeSpheropolyhedron>()
+                  || std::is_same<Shape, ShapeSpheropolygon>())
+        {
+        m_shape_requires_expansion_moves = false;
+        }
     }
 
 template<class Shape> void ComputeSDF<Shape>::compute(uint64_t timestep)
@@ -334,7 +347,7 @@ template<class Shape> Scalar ComputeSDF<Shape>::getMaxInteractionDiameter()
 */
 template<class Shape> void ComputeSDF<Shape>::countHistogram(uint64_t timestep)
     {
-    if (m_mc->getPatchEnergy() || m_mc->requiresExpansiveSDF())
+    if (m_mc->getPatchEnergy() || m_shape_requires_expansion_moves)
         {
         countHistogramLinearSearch(timestep);
         }

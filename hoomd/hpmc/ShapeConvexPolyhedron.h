@@ -726,12 +726,6 @@ struct ShapeConvexPolyhedron
         return true;
         }
 
-    /// Check if this shape requires expansive volume perturbations for ComputeSDF
-    DEVICE bool requiresExpansiveSDF()
-        {
-        return false;
-        }
-
     /// Check if this shape should be ignored in the move statistics
     DEVICE bool ignoreStatistics() const
         {
