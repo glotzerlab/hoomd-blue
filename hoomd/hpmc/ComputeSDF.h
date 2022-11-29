@@ -156,10 +156,10 @@ template<class Shape> class ComputeSDF : public Compute
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
 
-    std::vector<double> m_hist;           //!< Raw histogram data
-    std::vector<double> m_sdf;            //!< Computed SDF
-    std::vector<double> m_hist_expansion; //!< Raw histogram data
-    std::vector<double> m_sdf_expansion;  //!< Computed SDF
+    std::vector<double> m_hist_compression; //!< Raw histogram data
+    std::vector<double> m_sdf_compression;  //!< Computed SDF
+    std::vector<double> m_hist_expansion;   //!< Raw histogram data
+    std::vector<double> m_sdf_expansion;    //!< Computed SDF
 
     //! Find the maximum particle separation beyond which all interactions are zero
     Scalar getMaxInteractionDiameter();
@@ -230,16 +230,16 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 
     countHistogram(timestep);
 
-    std::vector<double> hist_total(m_hist);
+    std::vector<double> hist_total(m_hist_compression);
     std::vector<double> hist_total_expansion(m_hist_expansion);
 
 // in MPI, total up all of the histogram bins from all nodes to the root node
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
-        MPI_Reduce(m_hist.data(),
+        MPI_Reduce(m_hist_compression.data(),
                    hist_total.data(),
-                   (unsigned int)m_hist.size(),
+                   (unsigned int)m_hist_compression.size(),
                    MPI_DOUBLE,
                    MPI_SUM,
                    0,
@@ -255,11 +255,11 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 #endif
 
     // compute the probability density
-    m_sdf.resize(m_hist.size());
+    m_sdf_compression.resize(m_hist_compression.size());
     m_sdf_expansion.resize(m_hist_expansion.size());
-    for (size_t i = 0; i < m_hist.size(); i++)
+    for (size_t i = 0; i < m_hist_compression.size(); i++)
         {
-        m_sdf[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
+        m_sdf_compression[i] = hist_total[i] / (m_pdata->getNGlobal() * m_dx);
         }
     for (size_t i = 0; i < m_hist_expansion.size(); i++)
         {
@@ -275,7 +275,7 @@ template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDF()
         return pybind11::none();
 #endif
 
-    return pybind11::array_t<double>(m_sdf.size(), m_sdf.data());
+    return pybind11::array_t<double>(m_sdf_compression.size(), m_sdf_compression.data());
     }
 
 // \return the sdf histogram for expansion moves
@@ -292,12 +292,12 @@ template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDFExpansi
 template<class Shape> void ComputeSDF<Shape>::zeroHistogram()
     {
     // resize the histogram
-    m_hist.resize((size_t)(m_xmax / m_dx));
+    m_hist_compression.resize((size_t)(m_xmax / m_dx));
     m_hist_expansion.resize((size_t)(m_xmax / m_dx));
     // Zero the histogram
-    for (size_t i = 0; i < m_hist.size(); i++)
+    for (size_t i = 0; i < m_hist_compression.size(); i++)
         {
-        m_hist[i] = 0.0;
+        m_hist_compression[i] = 0.0;
         m_hist_expansion[i] = 0.0;
         }
     }
@@ -367,7 +367,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        size_t min_bin = m_hist.size();
+        size_t min_bin = m_hist_compression.size();
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
@@ -432,9 +432,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramBinarySearch(uint64_
                     }
                 } // end loop over AABB nodes
             }     // end loop over images
-        if (min_bin < m_hist.size())
+        if (min_bin < m_hist_compression.size())
             {
-            m_hist[min_bin]++;
+            m_hist_compression[min_bin]++;
             }
         } // end loop over all particles
     }     // end countHistogramBinarySearch()
@@ -470,12 +470,12 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
     // For each of particle i's neighbors, we find the scaling that produces the first overlap.
     // For each neighbor, we do a brute force search from the scaling corresponding to bin 0
     // up to the minimum bin that we've already found for particle i.
-    // Then we add to m_hist[min_bin] the negative Mayer-function corresponding to the type
-    // of overlap corresponding to particle i's first overlap.
+    // Then we add to m_hist_compression[min_bin] the negative Mayer-function corresponding to the
+    // type of overlap corresponding to particle i's first overlap.
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        size_t min_bin_compression = m_hist.size();
-        size_t min_bin_expansion = m_hist.size();
+        size_t min_bin_compression = m_hist_compression.size();
+        size_t min_bin_expansion = m_hist_expansion.size();
         double hist_weight_ptl_i_compression = 2.0;
         double hist_weight_ptl_i_expansion = 2.0;
 
@@ -684,9 +684,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                     }
                 } // end loop over AABB nodes
             }     // end loop over images
-        if (min_bin_compression < m_hist.size() && hist_weight_ptl_i_compression <= 1.0)
+        if (min_bin_compression < m_hist_compression.size() && hist_weight_ptl_i_compression <= 1.0)
             {
-            m_hist[min_bin_compression] += hist_weight_ptl_i_compression;
+            m_hist_compression[min_bin_compression] += hist_weight_ptl_i_compression;
             }
         if (min_bin_expansion < m_hist_expansion.size() && hist_weight_ptl_i_expansion <= 1.0)
             {
@@ -718,7 +718,7 @@ size_t ComputeSDF<Shape>::computeBin(const vec3<Scalar>& r_ij,
                                      const typename Shape::param_type& params_j)
     {
     size_t L = 0;
-    size_t R = m_hist.size();
+    size_t R = m_hist_compression.size();
 
     // if the particles already overlap a the left boundary, return an out of range value
     if (detail::test_scaled_overlap<Shape>(r_ij,
@@ -736,7 +736,7 @@ size_t ComputeSDF<Shape>::computeBin(const vec3<Scalar>& r_ij,
                                             params_i,
                                             params_j,
                                             double(R) * m_dx))
-        return m_hist.size();
+        return m_hist_compression.size();
 
     // progressively narrow the search window by halves
     do
