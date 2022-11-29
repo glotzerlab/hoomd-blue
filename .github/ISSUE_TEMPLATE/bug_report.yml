@@ -62,7 +62,7 @@ body:
     attributes:
       label: HOOMD-blue version
       description: What version of HOOMD-blue are you using?
-      placeholder: 3.6.0
+      placeholder: 3.7.0
     validations:
       required: true
   - type: markdown
