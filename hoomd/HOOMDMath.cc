@@ -14,10 +14,11 @@ namespace detail
     {
 void export_hoomd_math_functions(pybind11::module& m)
     {
-// The use of shared_ptr's for exporting CUDA vector types is a workaround
-// see http://stackoverflow.com/questions/13177573/how-to-expose-aligned-class-with-boost-python
+    // The use of shared_ptr's for exporting CUDA vector types is a workaround
+    // see http://stackoverflow.com/questions/13177573/how-to-expose-aligned-class-with-boost-python
 
-// these clumsy property lambdas are necessary to make pybind11 interoperate with HIP vector types
+    // these clumsy property lambdas are necessary to make pybind11 interoperate with HIP vector
+    // types
     pybind11::class_<double2, std::shared_ptr<double2>>(m, "double2")
         .def(pybind11::init<>())
         .def_property(
