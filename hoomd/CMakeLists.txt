@@ -317,10 +317,6 @@ if (ENABLE_MPI)
     target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal::cereal)
 endif()
 
-if (ENABLE_HPMC_MIXED_PRECISION)
-    target_compile_definitions(_hoomd PUBLIC ENABLE_HPMC_MIXED_PRECISION)
-endif()
-
 if (APPLE)
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "@loader_path")
 else()

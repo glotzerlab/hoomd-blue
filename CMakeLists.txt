@@ -92,8 +92,6 @@ SET(ENABLE_HIP ${ENABLE_GPU})
 set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
 option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
 
-option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
-
 # Components
 option(BUILD_MD "Build the md package" on)
 if (HOOMD_LONGREAL_SIZE STREQUAL "64")

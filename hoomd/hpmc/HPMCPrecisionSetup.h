@@ -23,31 +23,9 @@ namespace hoomd
     {
 namespace hpmc
     {
-#if HOOMD_LONGREAL_SIZE == 32
-
-// in single precision, OverlapReal is always float
-//! Typedef'd real for use in local overlap checks
-typedef float OverlapReal;
-//! Typedef'd real3 for use in the local overlap checks
-typedef float3 OverlapReal3;
-typedef float4 OverlapReal4;
-
-#else
-
-// in double precision, mixed mode enables floats for OverlapReal, otherwise it is double
-#ifdef ENABLE_HPMC_MIXED_PRECISION
-typedef float OverlapReal;
-typedef float3 OverlapReal3;
-typedef float4 OverlapReal4;
-
-#else
-typedef double OverlapReal;
-typedef double3 OverlapReal3;
-typedef double4 OverlapReal4;
-
-#endif
-
-#endif
+typedef ShortReal OverlapReal;
+typedef ShortReal3 OverlapReal3;
+typedef ShortReal4 OverlapReal4;
 
 //! Helper function to create OverlapReal3's from python
 DEVICE inline OverlapReal3 make_overlapreal3(OverlapReal x, OverlapReal y, OverlapReal z)

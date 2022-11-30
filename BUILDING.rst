@@ -250,8 +250,6 @@ Other option changes take effect at any time:
     single precision. **NOT RECOMMENDED**, HOOMD-blue fails validation tests when
     ``HOOMD_LONGREAL_SIZE == HOOMD_SHORTREAL_SIZE == 32``.
 
-- ``ENABLE_HPMC_MIXED_PRECISION`` - Controls mixed precision in the ``hpmc`` component. When on,
-  single precision is forced in expensive shape overlap checks.
 - ``ENABLE_MPI`` - Enable multi-processor/GPU simulations using MPI.
 
   - When set to ``on``, multi-processor/multi-GPU simulations are supported.
