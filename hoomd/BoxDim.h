@@ -298,32 +298,30 @@ struct
         \return a vector that is the minimum image vector of \a v, obeying the periodic settings
         \note \a v must not extend more than 1 image beyond the box
     */
-    template <class Real>
-    HOSTDEVICE vec3<Real> minImage(const vec3<Real>& v) const
+    HOSTDEVICE Scalar3 minImage(const Scalar3& v) const
         {
-        vec3<Real> w = v;
-        vec3<Real> L(getL());
-        vec3<Real> Linv(m_Linv);
+        Scalar3 w = v;
+        Scalar3 L = getL();
 
 #ifdef __HIPCC__
         if (m_periodic.z)
             {
-            Real img = slow::rint(w.z * Linv.z);
+            Scalar img = slow::rint(w.z * m_Linv.z);
             w.z -= L.z * img;
-            w.y -= L.z * Real(m_yz) * img;
-            w.x -= L.z * Real(m_xz) * img;
+            w.y -= L.z * m_yz * img;
+            w.x -= L.z * m_xz * img;
             }
 
         if (m_periodic.y)
             {
-            Real img = slow::rint(w.y * Linv.y);
+            Scalar img = slow::rint(w.y * m_Linv.y);
             w.y -= L.y * img;
-            w.x -= L.y * Real(m_xy) * img;
+            w.x -= L.y * m_xy * img;
             }
 
         if (m_periodic.x)
             {
-            w.x -= L.x * slow::rint(w.x * Linv.x);
+            w.x -= L.x * slow::rint(w.x * m_Linv.x);
             }
 #else
         // on the cpu, branches are faster than calling rint
@@ -377,10 +375,10 @@ struct
         return w;
         }
 
-    //! Minimum image using Scalar3
-    HOSTDEVICE Scalar3 minImage(const Scalar3& v) const
+    //! Minimum image using vec3s
+    HOSTDEVICE vec3<Scalar> minImage(const vec3<Scalar>& v) const
         {
-        return vec_to_scalar3(minImage(vec3<Scalar>(v)));
+        return vec3<Scalar>(minImage(vec_to_scalar3(v)));
         }
 
     //! Wrap a vector back into the box

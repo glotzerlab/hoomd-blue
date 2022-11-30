@@ -133,7 +133,7 @@ class EvaluatorPairEwald
 
         \return True if they are evaluated or false if they are not because we are beyond the cutoff
     */
-    DEVICE bool evalForceAndEnergy(ShortReal& force_divr, ShortReal& pair_eng, bool energy_shift)
+    DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
         if (rsq < rcutsq && qiqj != 0)
             {

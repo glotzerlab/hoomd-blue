@@ -161,7 +161,7 @@ class EvaluatorPairTable
         range.
     */
     DEVICE bool
-    evalForceAndEnergy(ShortReal& force_divr, ShortReal& pair_eng, const bool energy_shift) const
+    evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, const bool energy_shift) const
         {
         unsigned int width = V_table.size();
 
