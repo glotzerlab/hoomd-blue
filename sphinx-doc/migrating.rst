@@ -16,11 +16,16 @@ Compiling
 ^^^^^^^^^
 
 * HOOMD v4 no longer builds on macOS with ``ENABLE_GPU=on``.
+* Use the CMake options ``HOOMD_LONGREAL_SIZE`` and ``HOOMD_SHORTREAL_SIZE`` to control the floating
+  point precision of the calculations. These replace the ``SINGLE_PRECISION`` and
+  ``HPMC_MIXED_PRECISION`` options from v3.
 
 Components
 ^^^^^^^^^^
 
 * Remove ``fix_cudart_rpath(_${COMPONENT_NAME})`` from your components ``CMakeLists.txt``
+* Use ``LongReal`` and ``ShortReal`` types in new code. ``Scalar`` will be removed in a future
+  release (v5 or later).
 
 Migrating to HOOMD v3
 ---------------------
