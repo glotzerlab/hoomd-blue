@@ -20,8 +20,8 @@ unit_test_configurations:
 validate_configurations:
 - config: "[clang14_py311, mpi, tbb, llvm]"
 - config: "[gcc12_py311]"
-- config: "[cuda117_gcc11_py310, mpi, llvm]"
-- config: "[cuda117_gcc11_py310]"
+- config: "[cuda118_gcc11_py310, mpi, llvm]"
+- config: "[cuda118_gcc11_py310]"
 
 # Configurations to build and test only rarely, such as just before a release.
 # There should be no overlap between this list and `unit_test_configurations`
