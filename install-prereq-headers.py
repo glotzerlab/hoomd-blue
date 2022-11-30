@@ -217,20 +217,20 @@ if __name__ == "__main__":
 
             if not pybind:
                 install_cmake_package(
-                    'https://github.com/pybind/pybind11/archive/v2.6.0.tar.gz',
+                    'https://github.com/pybind/pybind11/archive/v2.10.1.tar.gz',
                     cmake_options=[
                         '-DPYBIND11_INSTALL=on', '-DPYBIND11_TEST=off'
                     ])
 
             if not cereal:
                 install_cmake_package(
-                    'https://github.com/USCiLab/cereal/archive/v1.3.0.tar.gz',
+                    'https://github.com/USCiLab/cereal/archive/v1.3.2.tar.gz',
                     cmake_options=['-DJUST_INSTALL_CEREAL=on'])
 
             if not eigen:
                 install_cmake_package(
-                    'https://gitlab.com/libeigen/eigen/-/archive/3.3.8/'
-                    'eigen-3.3.8.tar.gz',
+                    'https://gitlab.com/libeigen/eigen/-/archive/3.4.0/'
+                    'eigen-3.4.0.tar.gz',
                     cmake_options=[
                         '-DBUILD_TESTING=off', '-DEIGEN_TEST_NOQT=on'
                     ])
