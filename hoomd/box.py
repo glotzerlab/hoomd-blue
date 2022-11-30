@@ -297,7 +297,7 @@ class Box:
                 if not len(box) in [2, 3, 6]:
                     raise ValueError(
                         "List-like objects must have length 2, 3, or 6 to be "
-                        "converted to freud.box.Box.")
+                        "converted to hoomd.Box.")
                 # Handle list-like
                 Lx = box[0]
                 Ly = box[1]

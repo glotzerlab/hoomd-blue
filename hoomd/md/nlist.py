@@ -36,6 +36,21 @@ Note:
     `NeighborList.buffer` between the two extremes that provides the best
     performance.
 
+.. rubric:: Base distance cutoff
+
+The `NeighborList.r_cut` attribute can be used to set the base cutoff distance
+for neighbor list queries. The actual cutoff distance is always the maximum
+:math:`r_{\mathrm{cut},i,j}` of the base cutoff and associated pair potentials.
+
+Note:
+    This attribute is particularly useful for implementing custom pair forces in
+    Python.
+
+Attention:
+    Users should only set this attribute when utilizing the accessor APIs,
+    `pair_list`, `local_pair_list`, `cpu_local_nlist_arrays`, or
+    `gpu_local_nlist_arrays`.
+
 .. rubric:: Exclusions
 
 Neighbor lists nominally include all particles within the chosen cutoff
@@ -58,21 +73,25 @@ of exclusions. The valid exclusion types are:
   (j,k), and (k,m).
 """
 
+import hoomd
+from hoomd.md import _md
 import hoomd.device
-from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
+from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes, nonnegative_real
 from hoomd.logging import log
 from hoomd.mesh import Mesh
-from hoomd.md import _md
-from hoomd.operation import AutotunedObject
+from hoomd.operation import Compute
 
 
-class NeighborList(AutotunedObject):
+class NeighborList(Compute):
     r"""Base class neighbor list.
 
-    Note:
-        `NeighborList` is the base class for all neighbor lists. Users should
-        not instantiate this class directly.
+    `NeighborList` is the base class for all neighbor lists.
+
+    Warning:
+        Users should not instantiate this class directly. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     Attributes:
         buffer (float): Buffer width :math:`[\mathrm{length}]`.
@@ -82,10 +101,21 @@ class NeighborList(AutotunedObject):
             list.
         check_dist (bool): Flag to enable / disable distance checking.
         mesh (Mesh): mesh data structure (optional)
+        default_r_cut (float): Default cutoff distance :math:`[\mathrm{length}]`
+            (optional).
+
+    .. py:attribute:: r_cut
+
+        Base cutoff radius for neighbor list queries.
+        :math:`[\mathrm{length}]`. *Optional*: defaults to the value
+        ``default_r_cut`` specified on construction.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `float`])
     """
 
     def __init__(self, buffer, exclusions, rebuild_check_delay, check_dist,
-                 mesh):
+                 mesh, default_r_cut):
 
         validate_exclusions = OnlyFrom([
             'bond', 'angle', 'constraint', 'dihedral', 'special_pair', 'body',
@@ -93,6 +123,12 @@ class NeighborList(AutotunedObject):
         ])
 
         validate_mesh = OnlyTypes(Mesh, allow_none=True)
+
+        tp_r_cut = TypeParameter(
+            'r_cut', 'particle_types',
+            TypeParameterDict(nonnegative_real, len_keys=2))
+        tp_r_cut.default = default_r_cut
+        self._add_typeparam(tp_r_cut)
 
         # default exclusions
         params = ParameterDict(exclusions=[validate_exclusions],
@@ -104,9 +140,169 @@ class NeighborList(AutotunedObject):
 
         self._mesh = validate_mesh(mesh)
 
+        self._in_context_manager = False
+
     def _attach_hook(self):
         if self._mesh is not None:
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
+
+    def _detach_hook(self):
+        if self._mesh is not None:
+            self._mesh._detach_hook()
+
+    @property
+    def cpu_local_nlist_arrays(self):
+        """hoomd.md.data.NeighborListLocalAccess: Expose nlist arrays on the \
+        CPU.
+
+        Provides direct acces to the neighbor list arrays on the cpu. All data
+        is MPI rank-local.
+
+        The `hoomd.md.data.NeighborListLocalAccess` object exposes the internal
+        data representation to efficently iterate over the neighbor list.
+
+        Note:
+            The local arrays are read only.
+
+        Examples::
+
+            with self.cpu_local_nlist_arrays as arrays:
+                nlist_iter = zip(arrays.head_list, arrays.n_neigh)
+                for i, (head, nn) in enumerate(nlist_iter):
+                    for j_idx in range(head, head + nn):
+                        j = arrays.nlist[j_idx]
+                        # i and j are "neighbor" indices
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("cpu_local_nlist_arrays")
+        if self._in_context_manager:
+            raise RuntimeError("Cannot enter cpu_local_nlist_arrays context "
+                               "manager inside another local_nlist_arrays "
+                               "context manager")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return hoomd.md.data.NeighborListLocalAccess(self,
+                                                     self._simulation.state)
+
+    @property
+    def gpu_local_nlist_arrays(self):
+        """hoomd.md.data.NeighborListLocalAccessGPU: Expose nlist arrays on \
+        the GPU.
+
+        Provides direct access to the neighbor list arrays on the gpu. All data
+        is MPI rank-local.
+
+        The `hoomd.md.data.NeighborListLocalAccessGPU` object exposes the
+        internal data representation to efficently iterate over the neighbor
+        list.
+
+        Note:
+            The local arrays are read only.
+
+        See Also:
+            `cpu_local_nlist_arrays`
+
+        Examples::
+
+            get_local_pairs = cupy.RawKernel(r'''
+            extern "C" __global__
+            void get_local_pairs(
+                    const unsigned int N,
+                    const unsigned long* heads,
+                    const unsigned int* nns,
+                    const unsigned int* nlist,
+                    const unsigned int* tags,
+                    const unsigned long* offsets,
+                    unsigned long* pairs) {
+                unsigned int i = (unsigned int)
+                    (blockDim.x * blockIdx.x + threadIdx.x);
+                if (i >= N)
+                    return;
+                uint2* pair = (uint2*)pairs;
+                unsigned long head = heads[i];
+                unsigned int nn = nns[i];
+                unsigned long offset = offsets[i];
+                unsigned int tag_i = tags[i];
+                for (unsigned int idx = 0; idx < nn; idx++) {
+                    unsigned int j = nlist[head + idx];
+                    pair[offset + idx] = make_uint2(tag_i, tags[j]);
+                }
+            }
+            ''', 'get_local_pairs')
+
+            with nlist.gpu_local_nlist_arrays as data:
+                with sim.state.gpu_local_snapshot as snap_data:
+                    tags = snap_data.particles.tag_with_ghost
+                    tags = tags._coerce_to_ndarray()
+
+                    head_list = data.head_list._coerce_to_ndarray()
+                    n_neigh = data.n_neigh._coerce_to_ndarray()
+                    raw_nlist = data.nlist._coerce_to_ndarray()
+
+                    N = int(head_list.size)
+                    n_pairs = int(cupy.sum(n_neigh))
+                    offsets = cupy.cumsum(n_neigh.astype(cupy.uint64)
+                    offsets -= n_neigh[0]
+                    device_local_pairs = cupy.zeros(
+                        (n_pairs, 2),
+                        dtype=cupy.uint32)
+
+                    block = 256
+                    n_grid = (N + 255) // 256
+                    get_local_pairs(
+                        (n_grid,),
+                        (block,),
+                        (
+                            N,
+                            head_list,
+                            n_neigh,
+                            raw_nlist,
+                            tags,
+                            offsets,
+                            device_local_pairs
+                        ))
+
+        Note:
+            GPU local nlist data is not available if the chosen device for the
+            simulation is `hoomd.device.CPU`.
+        """
+        if not isinstance(self._simulation.device, hoomd.device.GPU):
+            raise RuntimeError(
+                "Cannot access gpu_local_nlist_arrays without a GPU device")
+        if not self._attached:
+            raise hoomd.error.DataAccessError("gpu_local_nlist_arrays")
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter gpu_local_nlist_arrays context manager inside "
+                "another local_nlist_arrays context manager")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return hoomd.md.data.NeighborListLocalAccessGPU(self,
+                                                        self._simulation.state)
+
+    @property
+    def local_pair_list(self):
+        """(*N_pairs*, 2) `numpy.ndarray` of `numpy.uint32`: Local pair list.
+
+        Note:
+            The local pair list returns rank-local *indices*, not particle tags.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("local_pair_list")
+        return self._cpp_obj.getLocalPairList(self._simulation.timestep)
+
+    @property
+    def pair_list(self):
+        """(*N_pairs*, 2) `numpy.ndarray` of `numpy.uint32`: Global pair list.
+
+        Note:
+            The pair list returns particle *tags*, not rank-local indices.
+
+        Attention:
+            In MPI parallel execution, the array is available on rank 0 only.
+            `pair_list` is `None` on ranks >= 1.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("pair_list")
+        return self._cpp_obj.getPairList(self._simulation.timestep)
 
     @log(requires_run=True)
     def shortest_rebuild(self):
@@ -142,6 +338,7 @@ class Cell(NeighborList):
         mesh (Mesh): When a mesh object is passed, the neighbor list uses the
             mesh to determine the bond exclusions in addition to all other
             set exclusions.
+        default_r_cut
 
     `Cell` finds neighboring particles using a fixed width cell list, allowing
     for *O(kN)* construction of the neighbor list where *k* is the number of
@@ -181,10 +378,11 @@ class Cell(NeighborList):
                  rebuild_check_delay=1,
                  check_dist=True,
                  deterministic=False,
-                 mesh=None):
+                 mesh=None,
+                 default_r_cut=0.0):
 
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh)
+                         mesh, default_r_cut)
 
         self._param_dict.update(
             ParameterDict(deterministic=bool(deterministic)))
@@ -288,10 +486,11 @@ class Stencil(NeighborList):
                  rebuild_check_delay=1,
                  check_dist=True,
                  deterministic=False,
-                 mesh=None):
+                 mesh=None,
+                 default_r_cut=0.0):
 
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh)
+                         mesh, default_r_cut)
 
         params = ParameterDict(deterministic=bool(deterministic),
                                cell_width=float(cell_width))
@@ -360,10 +559,11 @@ class Tree(NeighborList):
                  exclusions=('bond',),
                  rebuild_check_delay=1,
                  check_dist=True,
-                 mesh=None):
+                 mesh=None,
+                 default_r_cut=0.0):
 
         super().__init__(buffer, exclusions, rebuild_check_delay, check_dist,
-                         mesh)
+                         mesh, default_r_cut)
 
     def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):

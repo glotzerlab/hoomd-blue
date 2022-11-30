@@ -14,6 +14,7 @@ set(_md_sources module-md.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
+                   ConstantForceCompute.cc
                    CosineSqAngleForceCompute.cc
                    CustomForceCompute.cc
                    EvaluatorWalls.cc
@@ -77,6 +78,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
+	        ConstantForceComputeGPU.h
+                ConstantForceCompute.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
                 CustomForceCompute.h
@@ -214,6 +217,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
+                           ConstantForceComputeGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
                            ForceDistanceConstraintGPU.cc
@@ -248,6 +252,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairRotationalCouplingGPUKernel.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
+                      ConstantForceComputeGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
                       FIREEnergyMinimizerGPU.cu
