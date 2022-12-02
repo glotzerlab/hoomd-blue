@@ -54,7 +54,7 @@ class ConstantEnergy(Thermostat):
         super().__init__(1.0)
 
     def _attach_hook(self):
-        self._cpp_obj = _md.Thermostat(1.0)
+        self._cpp_obj = _md.Thermostat(self.kT)
 
 class MTTKThermostat(Thermostat):
     def __init__(self, kT, tau):
@@ -214,6 +214,22 @@ class ConstantVolume(Method):
         thermo = thermo_cls(cpp_sys_def, group)
         self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.thermostat._cpp_obj)
         super()._attach_hook()
+
+    def _setattr_param(self, attr, value):
+        if attr == "thermostat":
+            self._thermostat_setter(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _thermostat_setter(self, new_thermostat):
+        if new_thermostat is self.thermostat:
+            return
+        if self._attached:
+            if new_thermostat._attached and new_thermostat._simulation != self._simulation:
+                new_thermostat = copy.deepcopy(self.thermostat)
+            new_thermostat._attach(self._simulation)
+            self._cpp_obj.setThermostat(new_thermostat._cpp_obj)
+        self._param_dict._dict["thermostat"] = new_thermostat
 
 
 class ConstantPressure(Method):
@@ -495,6 +511,22 @@ class ConstantPressure(Method):
         """Energy the barostat contributes to the Hamiltonian \
         :math:`[\\mathrm{energy}]`."""
         return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+
+    def _setattr_param(self, attr, value):
+        if attr == "thermostat":
+            self._thermostat_setter(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _thermostat_setter(self, new_thermostat):
+        if new_thermostat is self.thermostat:
+            return
+        if self._attached:
+            if new_thermostat._attached and new_thermostat._simulation != self._simulation:
+                new_thermostat = copy.deepcopy(self.thermostat)
+            new_thermostat._attach(self._simulation)
+            self._cpp_obj.setThermostat(new_thermostat._cpp_obj)
+        self._param_dict._dict["thermostat"] = new_thermostat
 
 
 class DisplacementCapped(ConstantVolume):
