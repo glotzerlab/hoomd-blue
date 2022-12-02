@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods."""
+import copy
 
 from hoomd.md import _md
 import hoomd
@@ -33,7 +34,6 @@ class Method(AutotunedObject):
 
 class Thermostat(_HOOMDBaseObject):
     def __init__(self, kT):
-        self.requiresSeed = False
         param_dict = ParameterDict(kT=Variant)
         param_dict["kT"] = kT
         self._param_dict.update(param_dict)
@@ -44,6 +44,32 @@ class Thermostat(_HOOMDBaseObject):
         """Energy the thermostat contributes to the Hamiltonian \
         :math:`[\\mathrm{energy}]`."""
         return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+
+    def _attach_hook(self):
+        pass
+
+
+class ConstantEnergy(Thermostat):
+    def __init__(self):
+        super().__init__(1.0)
+
+    def _attach_hook(self):
+        self._cpp_obj = _md.Thermostat(1.0)
+
+class MTTKThermostat(Thermostat):
+    def __init__(self, kT, tau):
+        super(MTTKThermostat, self).__init__(kT)
+        param_dict = ParameterDict(tau=float(tau),
+                                   translational_thermostat_dof=(float, float),
+                                   rotational_thermostat_dof=(float, float))
+        param_dict.update(
+            dict(translational_thermostat_dof=(0, 0),
+                 rotational_thermostat_dof=(0, 0))
+        )
+        self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
+        self._cpp_obj = _md.MTTKThermostat(self.kT, self.tau)
 
     def thermalize_thermostat_dof(self):
         r"""Set the thermostat momenta to random values.
@@ -60,42 +86,28 @@ class Thermostat(_HOOMDBaseObject):
 
         .. seealso:: `State.thermalize_particle_momenta`
         """
-        if not self._attached:
-            raise RuntimeError("Call Simulation.run(0) before thermalize_thermostat_dof")
-
+        if not self.is_attached:
+            raise StandardError("Call run(0) before attempting to thermalize the MTTK thermostat")
         self._simulation._warn_if_seed_unset()
-        self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
-
-class ConstantEnergy(Thermostat):
-    def __init__(self):
-        super().__init__(1.0)
-        self._cpp_obj = _md.Thermostat(1.0)
-
-class MTTKThermostat(Thermostat):
-    def __init__(self, kT, tau):
-        super(MTTKThermostat, self).__init__(kT)
-        param_dict = ParameterDict(tau=float(tau),
-                                   translational_thermostat_dof=(float, float),
-                                   rotational_thermostat_dof=(float, float))
-        param_dict.update(
-            dict(translational_thermostat_dof=(0, 0),
-                 rotational_thermostat_dof=(0, 0))
-        )
-        self._param_dict.update(param_dict)
-        self._cpp_obj = _md.MTTKThermostat(self.kT, self.tau)
+        self._cpp_obj.thermalizeThermostat(self._simulation.timestep)
 
 
 class BussiThermostat(Thermostat):
     def __init__(self, kT):
         super(BussiThermostat, self).__init__(kT)
+
+    def _attach_hook(self):
         self._cpp_obj = _md.BussiThermostat(self.kT)
 
-class BerendsenTermostat(Thermostat):
+
+class BerendsenThermostat(Thermostat):
     def __init__(self, kT, tau):
-        super(BerendsenTermostat, self).__init__(kT)
+        super(BerendsenThermostat, self).__init__(kT)
         param_dict = ParameterDict(tau=float(tau))
         param_dict["tau"] = tau
         self._param_dict.update(param_dict)
+
+    def _attach_hook(self):
         self._cpp_obj = _md.BerendsenThermostat(self.kT, self.tau)
 
 
@@ -184,7 +196,10 @@ class ConstantVolume(Method):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        if self.thermostat.requiresSeed:
+        if self.thermostat._attached and self.thermostat._simulation != self._simulation:
+            self.thermostat = copy.deepcopy(self.thermostat)
+        self.thermostat._attach(self._simulation)
+        if self.thermostat._cpp_obj.requiresSeed():
             self._simulation._warn_if_seed_unset()
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -414,7 +429,10 @@ class ConstantPressure(Method):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        if self.thermostat.requiresSeed:
+        if self.thermostat._attached and self.thermostat._simulation != self._simulation:
+            self.thermostat = copy.deepcopy(self.thermostat)
+        self.thermostat._attach(self._simulation)
+        if self.thermostat._cpp_obj.requiresSeed():
             self._simulation._warn_if_seed_unset()
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):

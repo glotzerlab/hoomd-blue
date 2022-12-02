@@ -63,6 +63,10 @@ namespace hoomd::md {
             m_thermo = nullptr;
         }
 
+        bool attached() const{
+            return is_attached;
+        }
+
         virtual bool requiresSeed(){
             return false;
         }

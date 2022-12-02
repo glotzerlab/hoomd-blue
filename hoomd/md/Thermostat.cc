@@ -9,7 +9,9 @@ namespace hoomd::md::detail{
         .def(pybind11::init<std::shared_ptr<Variant>>())
         .def_property("kT", &Thermostat::getT, &Thermostat::setT)
         .def("getThermostatEnergy", &Thermostat::getThermostatEnergy)
-        .def("thermalizeThermostat", &Thermostat::thermalizeThermostat);
+        .def("thermalizeThermostat", &Thermostat::thermalizeThermostat)
+        .def("is_attached", &Thermostat::attached)
+        .def("requiresSeed", &Thermostat::requiresSeed);
     }
 
     void export_MTTKThermostat(pybind11::module& m){
