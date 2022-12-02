@@ -33,11 +33,25 @@ void GPUEvalFactory::compileGPU(const std::string& code,
                                 const unsigned int compute_arch)
     {
 #if __HIP_PLATFORM_NVCC__
+    #if HOOMD_LONGREAL_SIZE == 32
+    std::string longreal_size_str("32");
+    #else
+    std::string longreal_size_str("64");
+    #endif
+
+    #if HOOMD_SHORTREAL_SIZE == 32
+    std::string shortreal_size_str("32");
+    #else
+    std::string shortreal_size_str("64");
+    #endif
+
     std::vector<std::string> compile_options = {
         "--gpu-architecture=compute_" + std::to_string(compute_arch),
         "--relocatable-device-code=true",
         "--std=c++14",
         "-DHOOMD_LLVMJIT_BUILD",
+        "-DHOOMD_LONGREAL_SIZE="+longreal_size_str,
+        "-DHOOMD_SHORTREAL_SIZE="+shortreal_size_str,
         "-D__HIPCC__",
         "-D__HIP_DEVICE_COMPILE__",
         "-D__HIP_PLATFORM_NVCC__",

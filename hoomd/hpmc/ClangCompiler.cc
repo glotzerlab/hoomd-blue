@@ -109,6 +109,21 @@ std::unique_ptr<llvm::Module> ClangCompiler::compileCode(const std::string& code
     std::vector<std::string> clang_args;
     clang_args.push_back("-D");
     clang_args.push_back("HOOMD_LLVMJIT_BUILD");
+
+    clang_args.push_back("-D");
+    #if HOOMD_LONGREAL_SIZE == 32
+    clang_args.push_back("HOOMD_LONGREAL_SIZE=32");
+    #else
+    clang_args.push_back("HOOMD_LONGREAL_SIZE=64");
+    #endif
+
+    clang_args.push_back("-D");
+    #if HOOMD_SHORTREAL_SIZE == 32
+    clang_args.push_back("HOOMD_SHORTREAL_SIZE=32");
+    #else
+    clang_args.push_back("HOOMD_SHORTREAL_SIZE=64");
+    #endif
+
     clang_args.push_back("--std=c++14");
     // prevent the driver from creating empty output files in /tmp
     clang_args.push_back("-S");
