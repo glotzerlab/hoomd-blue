@@ -111,7 +111,25 @@ class BerendsenThermostat(Thermostat):
         self._cpp_obj = _md.BerendsenThermostat(self.kT, self.tau)
 
 
-class ConstantVolume(Method):
+class Thermostatted(Method):
+    def _setattr_param(self, attr, value):
+        if attr == "thermostat":
+            self._thermostat_setter(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _thermostat_setter(self, new_thermostat):
+        if new_thermostat is self.thermostat:
+            return
+        if self._attached:
+            if new_thermostat._attached and new_thermostat._simulation != self._simulation:
+                new_thermostat = copy.deepcopy(self.thermostat)
+            new_thermostat._attach(self._simulation)
+            self._cpp_obj.setThermostat(new_thermostat._cpp_obj)
+        self._param_dict._dict["thermostat"] = new_thermostat
+
+
+class ConstantVolume(Thermostatted):
     r"""Constant volume, constant temperature dynamics.
 
     Args:
@@ -215,24 +233,10 @@ class ConstantVolume(Method):
         self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.thermostat._cpp_obj)
         super()._attach_hook()
 
-    def _setattr_param(self, attr, value):
-        if attr == "thermostat":
-            self._thermostat_setter(value)
-            return
-        super()._setattr_param(attr, value)
-
-    def _thermostat_setter(self, new_thermostat):
-        if new_thermostat is self.thermostat:
-            return
-        if self._attached:
-            if new_thermostat._attached and new_thermostat._simulation != self._simulation:
-                new_thermostat = copy.deepcopy(self.thermostat)
-            new_thermostat._attach(self._simulation)
-            self._cpp_obj.setThermostat(new_thermostat._cpp_obj)
-        self._param_dict._dict["thermostat"] = new_thermostat
 
 
-class ConstantPressure(Method):
+
+class ConstantPressure(Thermostatted):
     """Constant pressure dynamics.
 
     Args:
@@ -511,22 +515,6 @@ class ConstantPressure(Method):
         """Energy the barostat contributes to the Hamiltonian \
         :math:`[\\mathrm{energy}]`."""
         return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
-
-    def _setattr_param(self, attr, value):
-        if attr == "thermostat":
-            self._thermostat_setter(value)
-            return
-        super()._setattr_param(attr, value)
-
-    def _thermostat_setter(self, new_thermostat):
-        if new_thermostat is self.thermostat:
-            return
-        if self._attached:
-            if new_thermostat._attached and new_thermostat._simulation != self._simulation:
-                new_thermostat = copy.deepcopy(self.thermostat)
-            new_thermostat._attach(self._simulation)
-            self._cpp_obj.setThermostat(new_thermostat._cpp_obj)
-        self._param_dict._dict["thermostat"] = new_thermostat
 
 
 class DisplacementCapped(ConstantVolume):
