@@ -74,11 +74,9 @@ public:
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
 
-            // compute dot products
-            doti = dot(vec3<Scalar>(dr), ei) / magdr; // cos(angle between dr and ei)
-            // doti = -(dr.x*ei.x+dr.y*ei.y+dr.z*ei.z)/magdr; // TODO why was this negative?
+            // cos(angle between dr and pointing vector)
+            doti = -dot(vec3<Scalar>(dr), ei) / magdr; // negative because dr = dx = pi - pj
             dotj = dot(vec3<Scalar>(dr), ej) / magdr;
-            // dotj =  (dr.x*ej.x+dr.y*ej.y+dr.z*ej.z)/magdr;
         }
 
     DEVICE inline Scalar Modulatori()
