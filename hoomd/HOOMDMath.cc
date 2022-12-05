@@ -64,6 +64,21 @@ void export_hoomd_math_functions(pybind11::module& m)
             [](const int3& s) { return (int)s.z; },
             [](int3& s, int v) { s.z = v; });
 
+    pybind11::class_<uint3, std::shared_ptr<uint3>>(m, "uint3")
+        .def(pybind11::init<>())
+        .def_property(
+            "x",
+            [](const uint3& s) { return (int)s.x; },
+            [](uint3& s, int v) { s.x = v; })
+        .def_property(
+            "y",
+            [](const uint3& s) { return (int)s.y; },
+            [](uint3& s, int v) { s.y = v; })
+        .def_property(
+            "z",
+            [](const uint3& s) { return (int)s.z; },
+            [](uint3& s, int v) { s.z = v; });
+
     pybind11::class_<char3, std::shared_ptr<char3>>(m, "char3")
         .def(pybind11::init<>())
         .def_property(
@@ -82,6 +97,19 @@ void export_hoomd_math_functions(pybind11::module& m)
     m.def("make_scalar3", &make_scalar3);
     m.def("make_int3", &make_int3);
     m.def("make_char3", &make_char3);
+
+    // entries from VectorMath.h
+    pybind11::class_<vec3<float>, std::shared_ptr<vec3<float>>>(m, "vec3_float")
+        .def(pybind11::init<float, float, float>())
+        .def_readwrite("x", &vec3<float>::x)
+        .def_readwrite("y", &vec3<float>::y)
+        .def_readwrite("z", &vec3<float>::z);
+
+    pybind11::class_<vec3<double>, std::shared_ptr<vec3<double>>>(m, "vec3_double")
+        .def(pybind11::init<double, double, double>())
+        .def_readwrite("x", &vec3<double>::x)
+        .def_readwrite("y", &vec3<double>::y)
+        .def_readwrite("z", &vec3<double>::z);
     }
 
     } // end namespace detail
