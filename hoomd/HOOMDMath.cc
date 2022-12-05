@@ -19,16 +19,6 @@ void export_hoomd_math_functions(pybind11::module& m)
 
     // these clumsy property lambdas are necessary to make pybind11 interoperate with HIP vector
     // types
-    pybind11::class_<double2, std::shared_ptr<double2>>(m, "double2")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const double2& s) { return (double)s.x; },
-            [](double2& s, double v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const double2& s) { return (double)s.y; },
-            [](double2& s, double v) { s.y = v; });
     pybind11::class_<double3, std::shared_ptr<double3>>(m, "double3")
         .def(pybind11::init<>())
         .def_property(
@@ -43,35 +33,7 @@ void export_hoomd_math_functions(pybind11::module& m)
             "z",
             [](const double3& s) { return (double)s.z; },
             [](double3& s, double v) { s.z = v; });
-    pybind11::class_<double4, std::shared_ptr<double4>>(m, "double4")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const double4& s) { return (double)s.x; },
-            [](double4& s, double v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const double4& s) { return (double)s.y; },
-            [](double4& s, double v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const double4& s) { return (double)s.z; },
-            [](double4& s, double v) { s.z = v; })
-        .def_property(
-            "w",
-            [](const double4& s) { return (double)s.w; },
-            [](double4& s, double v) { s.w = v; });
 
-    pybind11::class_<float2, std::shared_ptr<float2>>(m, "float2")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const float2& s) { return (float)s.x; },
-            [](float2& s, float v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const float2& s) { return (float)s.y; },
-            [](float2& s, float v) { s.y = v; });
     pybind11::class_<float3, std::shared_ptr<float3>>(m, "float3")
         .def(pybind11::init<>())
         .def_property(
@@ -86,78 +48,7 @@ void export_hoomd_math_functions(pybind11::module& m)
             "z",
             [](const float3& s) { return (float)s.z; },
             [](float3& s, float v) { s.z = v; });
-    pybind11::class_<float4, std::shared_ptr<float4>>(m, "float4")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const float4& s) { return (float)s.x; },
-            [](float4& s, float v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const float4& s) { return (float)s.y; },
-            [](float4& s, float v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const float4& s) { return (float)s.z; },
-            [](float4& s, float v) { s.z = v; })
-        .def_property(
-            "w",
-            [](const float4& s) { return (float)s.w; },
-            [](float4& s, float v) { s.w = v; });
 
-    pybind11::class_<uint2, std::shared_ptr<uint2>>(m, "uint2")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const uint2& s) { return (unsigned int)s.x; },
-            [](uint2& s, unsigned int v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const uint2& s) { return (unsigned int)s.y; },
-            [](uint2& s, unsigned int v) { s.y = v; });
-    pybind11::class_<uint3, std::shared_ptr<uint3>>(m, "uint3")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const uint3& s) { return (unsigned int)s.x; },
-            [](uint3& s, unsigned int v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const uint3& s) { return (unsigned int)s.y; },
-            [](uint3& s, unsigned int v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const uint3& s) { return (unsigned int)s.z; },
-            [](uint3& s, unsigned int v) { s.z = v; });
-    pybind11::class_<uint4, std::shared_ptr<uint4>>(m, "uint4")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const uint4& s) { return (unsigned int)s.x; },
-            [](uint4& s, unsigned int v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const uint4& s) { return (unsigned int)s.y; },
-            [](uint4& s, unsigned int v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const uint4& s) { return (unsigned int)s.z; },
-            [](uint4& s, unsigned int v) { s.z = v; })
-        .def_property(
-            "w",
-            [](const uint4& s) { return (unsigned int)s.w; },
-            [](uint4& s, unsigned int v) { s.w = v; });
-
-    pybind11::class_<int2, std::shared_ptr<int2>>(m, "int2")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const int2& s) { return (int)s.x; },
-            [](int2& s, int v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const int2& s) { return (int)s.y; },
-            [](int2& s, int v) { s.y = v; });
     pybind11::class_<int3, std::shared_ptr<int3>>(m, "int3")
         .def(pybind11::init<>())
         .def_property(
@@ -172,24 +63,6 @@ void export_hoomd_math_functions(pybind11::module& m)
             "z",
             [](const int3& s) { return (int)s.z; },
             [](int3& s, int v) { s.z = v; });
-    pybind11::class_<int4, std::shared_ptr<int4>>(m, "int4")
-        .def(pybind11::init<>())
-        .def_property(
-            "x",
-            [](const int4& s) { return (int)s.x; },
-            [](int4& s, int v) { s.x = v; })
-        .def_property(
-            "y",
-            [](const int4& s) { return (int)s.y; },
-            [](int4& s, int v) { s.y = v; })
-        .def_property(
-            "z",
-            [](const int4& s) { return (int)s.z; },
-            [](int4& s, int v) { s.z = v; })
-        .def_property(
-            "w",
-            [](const int4& s) { return (int)s.w; },
-            [](int4& s, int v) { s.w = v; });
 
     pybind11::class_<char3, std::shared_ptr<char3>>(m, "char3")
         .def(pybind11::init<>())
@@ -206,36 +79,9 @@ void export_hoomd_math_functions(pybind11::module& m)
             [](const char3& s) { return (char)s.z; },
             [](char3& s, char v) { s.z = v; });
 
-    m.def("make_scalar2", &make_scalar2);
     m.def("make_scalar3", &make_scalar3);
-    m.def("make_scalar4", &make_scalar4);
-    m.def("make_uint2", &make_uint2);
-    m.def("make_uint3", &make_uint3);
-    m.def("make_uint4", &make_uint4);
-    m.def("make_int2", &make_int2);
     m.def("make_int3", &make_int3);
-    m.def("make_int4", &make_int4);
     m.def("make_char3", &make_char3);
-    m.def("int_as_scalar", &__int_as_scalar);
-
-    // entries from VectorMath.h
-    pybind11::class_<vec3<float>, std::shared_ptr<vec3<float>>>(m, "vec3_float")
-        .def(pybind11::init<float, float, float>())
-        .def_readwrite("x", &vec3<float>::x)
-        .def_readwrite("y", &vec3<float>::y)
-        .def_readwrite("z", &vec3<float>::z);
-
-    pybind11::class_<vec3<double>, std::shared_ptr<vec3<double>>>(m, "vec3_double")
-        .def(pybind11::init<double, double, double>())
-        .def_readwrite("x", &vec3<double>::x)
-        .def_readwrite("y", &vec3<double>::y)
-        .def_readwrite("z", &vec3<double>::z);
-
-    pybind11::class_<quat<float>, std::shared_ptr<quat<float>>>(m, "quat_float")
-        .def(pybind11::init<float, const vec3<float>&>())
-        .def_readwrite("s", &quat<float>::s)
-        .def_readwrite("v", &quat<float>::v)
-        .def_static("fromAxisAngle", &quat<float>::fromAxisAngle);
     }
 
     } // end namespace detail
