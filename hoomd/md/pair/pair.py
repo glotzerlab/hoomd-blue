@@ -1812,3 +1812,56 @@ class LJGauss(Pair):
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, r0=float, len_keys=2))
         self._add_typeparam(params)
+
+
+class DipoleInterface(Pair):
+    r"""Lennard-Jones-Gauss pair potential.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
+    simulation state:
+
+    .. math::
+        U(r) = 1\ [\mathrm{energy}] \cdot \left[
+                 \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
+                 2\  \left(\frac{1 [\mathrm{length}]}{r} \right)^{6} \right] -
+            \epsilon
+            \exp \left[- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}} \right]
+
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r0`` (`float`, **required**) -
+          Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
+
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        ljg = pair.LJGauss(nl)
+        ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6)
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+
+    .. versionadded:: 3.1.0
+    """
+    _cpp_class_name = "PotentialPairDipoleInterface"
+
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(A=float, len_keys=2))
+        self._add_typeparam(params)

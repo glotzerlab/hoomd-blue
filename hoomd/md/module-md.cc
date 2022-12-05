@@ -44,6 +44,7 @@ void export_wall_field(pybind11::module& m);
 void export_LocalNeighborListDataHost(pybind11::module& m);
 
 void export_PotentialPairBuckingham(pybind11::module& m);
+void export_PotentialPairDipoleInterface(pybind11::module& m);
 void export_PotentialPairLJ(pybind11::module& m);
 void export_PotentialPairLJ1208(pybind11::module& m);
 void export_PotentialPairLJ0804(pybind11::module& m);
@@ -181,6 +182,7 @@ void export_PPPMForceComputeGPU(pybind11::module& m);
 void export_LocalNeighborListDataGPU(pybind11::module& m);
 
 void export_PotentialPairBuckinghamGPU(pybind11::module& m);
+void export_PotentialPairDipoleInterfaceGPU(pybind11::module& m);
 void export_PotentialPairLJGPU(pybind11::module& m);
 void export_PotentialPairLJ1208GPU(pybind11::module& m);
 void export_PotentialPairLJ0804GPU(pybind11::module& m);
@@ -306,6 +308,7 @@ PYBIND11_MODULE(_md, m)
     export_BondTablePotential(m);
 
     export_PotentialPairBuckingham(m);
+    export_PotentialPairDipoleInterface(m);
     export_PotentialPairLJ(m);
     export_PotentialPairLJ1208(m);
     export_PotentialPairLJ0804(m);
@@ -387,6 +390,7 @@ PYBIND11_MODULE(_md, m)
     export_LocalNeighborListDataGPU(m);
 
     export_PotentialPairBuckinghamGPU(m);
+    export_PotentialPairDipoleInterfaceGPU(m);
     export_PotentialPairLJGPU(m);
     export_PotentialPairLJ1208GPU(m);
     export_PotentialPairLJ0804GPU(m);
