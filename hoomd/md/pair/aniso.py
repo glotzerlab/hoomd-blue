@@ -27,7 +27,7 @@ from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyTypes, to_type_converter
+from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 import numpy as np
 
 
@@ -591,7 +591,8 @@ class JanusLJ(AnisotropicPair):
         are passed to the `LJ evaluator <pair.LJ.params>` and to the
         JanusEnvelope. The dictionary has the following keys:
 
-        * ``pair_params`` (`dict`, **required**) - passed to `md.pair.LJ.params`.
+        * ``pair_params`` (`dict`, **required**) - passed to
+          `md.pair.LJ.params`.
 
             * ``epsilon`` (`float`) -
               energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
@@ -647,15 +648,12 @@ class JanusLJ(AnisotropicPair):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(dict(
-                pair_params=dict(epsilon = float,
-                                 sigma = float),
-                envelope_params = dict(alpha = OnlyTypes(float,
-                                                        postprocess = self._check_0_pi),
-                                       omega= float)),
+            TypeParameterDict(dict(pair_params=dict(epsilon=float, sigma=float),
+                                   envelope_params=dict(alpha=OnlyTypes(
+                                       float, postprocess=self._check_0_pi),
+                                                        omega=float)),
                               len_keys=2))
         self._add_typeparam(params)
-
 
     @log(category="object")
     def type_shapes(self):
@@ -669,4 +667,3 @@ class JanusLJ(AnisotropicPair):
             A list of dictionaries, one for each particle type in the system.
         """
         return super()._return_type_shapes()
-
