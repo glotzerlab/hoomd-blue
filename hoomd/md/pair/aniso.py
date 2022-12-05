@@ -648,12 +648,15 @@ class JanusLJ(AnisotropicPair):
         super().__init__(nlist, default_r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(dict(pair_params=dict(epsilon=float, sigma=float),
-                                   envelope_params=dict(alpha=OnlyTypes(
-                                       float, postprocess=self._check_0_pi),
-                                                        omega=float)),
+            TypeParameterDict(dict(
+                pair_params=dict(epsilon = float,
+                                 sigma = float),
+                envelope_params = dict(alpha = OnlyTypes(float,
+                                                        postprocess = self._check_0_pi),
+                                       omega= float)),
                               len_keys=2))
         self._add_typeparam(params)
+
 
     @log(category="object")
     def type_shapes(self):
