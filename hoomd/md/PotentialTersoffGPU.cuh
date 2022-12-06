@@ -84,7 +84,7 @@ struct tersoff_args_t
 
 #ifdef __HIPCC__
 
-#if !defined(SINGLE_PRECISION)
+#if HOOMD_LONGREAL_SIZE == 64
 
 #if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers

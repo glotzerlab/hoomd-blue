@@ -306,7 +306,7 @@ struct
 #ifdef __HIPCC__
         if (m_periodic.z)
             {
-            Scalar img = rint(w.z * m_Linv.z);
+            Scalar img = slow::rint(w.z * m_Linv.z);
             w.z -= L.z * img;
             w.y -= L.z * m_yz * img;
             w.x -= L.z * m_xz * img;
@@ -314,14 +314,14 @@ struct
 
         if (m_periodic.y)
             {
-            Scalar img = rint(w.y * m_Linv.y);
+            Scalar img = slow::rint(w.y * m_Linv.y);
             w.y -= L.y * img;
             w.x -= L.y * m_xy * img;
             }
 
         if (m_periodic.x)
             {
-            w.x -= L.x * rint(w.x * m_Linv.x);
+            w.x -= L.x * slow::rint(w.x * m_Linv.x);
             }
 #else
         // on the cpu, branches are faster than calling rint
