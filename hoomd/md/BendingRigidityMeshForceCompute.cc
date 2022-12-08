@@ -360,71 +360,7 @@ Scalar BendingRigidityMeshForceCompute::energyDiff(unsigned int idx_a,
                                                    unsigned int idx_d,
                                                    unsigned int type_id)
     {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-    const BoxDim& box = m_pdata->getGlobalBox();
-
-    // calculate d\vec{r}
-    Scalar3 dab;
-    dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
-    dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
-    dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
-
-    Scalar3 dac;
-    dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
-    dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
-    dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
-
-    Scalar3 dad;
-    dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
-    dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
-    dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
-
-    Scalar3 dcb;
-    dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
-    dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
-    dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
-
-    Scalar3 dcd;
-    dcd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
-    dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
-    dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
-
-    // apply minimum image conventions to all 3 vectors
-    dab = box.minImage(dab);
-    dac = box.minImage(dac);
-    dad = box.minImage(dad);
-    dcb = box.minImage(dcb);
-    dcd = box.minImage(dcd);
-
-    Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-    Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-    Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
-    Scalar rsqcb = dcb.x * dcb.x + dcb.y * dcb.y + dcb.z * dcb.z;
-    Scalar rsqcd = dcd.x * dcd.x + dcd.y * dcd.y + dcd.z * dcd.z;
-
-    Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dac.z * dac.z;
-    Scalar rabrad = dab.x * dad.x + dab.y * dad.y + dad.z * dad.z;
-    Scalar racrad = dac.x * dad.x + dac.y * dad.y + dad.z * dad.z;
-
-    Scalar racrcb = dac.x * dcb.x + dac.y * dcb.y + dac.z * dcb.z;
-    Scalar rcdrac = dcd.x * dac.x + dcd.y * dac.y + dcd.z * dac.z;
-    Scalar rcdrcb = dcd.x * dcb.x + dcd.y * dcb.y + dcd.z * dcb.z;
-
-    Scalar numerator_old = rsqab * racrad - rabrac * rabrad;
-    Scalar numerator_new = rsqcd * racrcb + rcdrac * rcdrcb;
-
-    Scalar inv_d_old
-        = fast::rsqrt((rsqab * rsqac - rabrac * rabrac) * (rsqab * rsqad - rabrac * rabrad));
-
-    Scalar inv_d_new
-        = fast::rsqrt((rsqcd * rsqac - rcdrac * rcdrac) * (rsqcd * rsqcb - rcdrcb * rcdrcb));
-
-    Scalar cosinus_old = numerator_old * inv_d_old;
-
-    Scalar cosinus_new = numerator_new * inv_d_new;
-
-    return m_K[0] * (cosinus_new - cosinus_old);
+    return 0;
     }
 
 namespace detail
