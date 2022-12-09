@@ -47,7 +47,9 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
                                             BoxDim box,
                                             Scalar rescale_factor,
                                             Scalar deltaT,
-                                            unsigned int offset)
+                                            unsigned int offset,
+                                            bool limit = false,
+                                            Scalar maximum_displacement = Scalar(0.))
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -69,6 +71,12 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
 
         // velocity rescale
         vel *= rescale_factor;
+
+        if(limit){
+            Scalar displacement = sqrtf(dot(vel, vel));
+            if(displacement * deltaT > maximum_displacement)
+                vel = vel * maximum_displacement / displacement * deltaT;
+        }
 
         pos += vel * deltaT;
 
@@ -106,7 +114,9 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                 unsigned int block_size,
                                 Scalar rescale_factor,
                                 Scalar deltaT,
-                                const GPUPartition& gpu_partition)
+                                const GPUPartition& gpu_partition,
+                                bool use_limit,
+                                Scalar maximum_displacement)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -141,7 +151,9 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                            box,
                            rescale_factor,
                            deltaT,
-                           range.first);
+                           range.first,
+                           use_limit,
+                           maximum_displacement);
         }
 
     return hipSuccess;

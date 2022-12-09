@@ -78,6 +78,8 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
 
 
 
+        auto limits = getKernelLimitValues(timestep);
+
         m_exec_conf->beginMultiGPU();
 
         // perform the update on the GPU
@@ -92,7 +94,9 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                          m_tuner_one->getParam()[0],
                                          rescalingFactors[0], // m_exp_thermo_fac,
                                          m_deltaT,
-                                         m_group->getGPUPartition());
+                                         m_group->getGPUPartition(),
+                                         limits.first,
+                                         limits.second);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

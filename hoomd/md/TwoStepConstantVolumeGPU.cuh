@@ -26,7 +26,9 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                 unsigned int block_size,
                                 Scalar rescale_factor,
                                 Scalar deltaT,
-                                const GPUPartition& gpu_partition);
+                                const GPUPartition& gpu_partition,
+                                bool limit = false,
+                                Scalar limit_displacement = Scalar(0.));
 
 //! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
 hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,

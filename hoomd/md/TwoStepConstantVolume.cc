@@ -45,7 +45,13 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
 
             // rescale velocity
             v *= rescaling_factors[0];
-
+            if(m_limit){
+                auto maximum_displacement = m_limit->operator()(timestep);
+                auto len = sqrt(dot(v,v)) * m_deltaT;
+                if(len > maximum_displacement){
+                    v = v / len * maximum_displacement / m_deltaT;
+                }
+            }
             pos += m_deltaT * v;
 
             // store updated variables

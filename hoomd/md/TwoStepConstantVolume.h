@@ -34,11 +34,24 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
         m_thermostat = thermostat;
     }
 
+    void setLimit(std::shared_ptr<Variant>& limit){
+        m_limit = limit;
+    }
+
+    [[nodiscard]] auto getLimit() const{
+        return m_limit;
+    }
+
+    auto getKernelLimitValues(uint64_t timestep){
+        auto use_limit = static_cast<bool>(m_limit);
+        Scalar maximum_displacement = use_limit ? m_limit->operator()(timestep) : 0.0;
+        return std::make_pair(use_limit, maximum_displacement);
+    }
 
     protected:
     std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
     std::shared_ptr<Thermostat> m_thermostat;
-
+    std::shared_ptr<Variant> m_limit;
     };
 
     } // namespace hoomd::md
