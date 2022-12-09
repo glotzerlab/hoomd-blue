@@ -353,7 +353,7 @@ class ConstantPressure(Thermostatted):
         super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
-                                   thermostat=Thermostat,
+                                   thermostat=OnlyTypes(Thermostat, allow_none=True),
                                    S=OnlyIf(to_type_converter((Variant,) * 6),
                                             preprocess=self._preprocess_stress),
                                    tauS=float(tauS),
