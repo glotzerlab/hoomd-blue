@@ -20,7 +20,6 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
                           std::shared_ptr<ComputeThermo> thermo,
                           std::shared_ptr<Thermostat> thermostat) : IntegrationMethodTwoStep(sysdef, group),
                           m_thermo(thermo), m_thermostat(thermostat) {
-        m_thermostat->attach(m_group, m_thermo, m_sysdef->getSeed()); // attach thermostat
     }
 
     virtual ~TwoStepConstantVolume() {}
@@ -32,10 +31,6 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
     virtual void integrateStepTwo(uint64_t timestep);
 
     void setThermostat(std::shared_ptr<Thermostat> thermostat){
-        // attach before resetting m_thermostat in case it throws
-        thermostat->attach(m_group, m_thermo, m_sysdef->getSeed());
-        // detach old thermostat
-        m_thermostat->detach();
         m_thermostat = thermostat;
     }
 

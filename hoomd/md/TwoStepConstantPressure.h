@@ -146,9 +146,6 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     Scalar getBarostatEnergy(uint64_t timestep);
 
     void setThermostat(std::shared_ptr<Thermostat> thermostat){
-        // attach before resetting m_thermostat in case it throws
-        thermostat->attach(m_group, m_thermo_half_step, m_sysdef->getSeed());
-        m_thermostat->detach();
         m_thermostat = thermostat;
     }
 

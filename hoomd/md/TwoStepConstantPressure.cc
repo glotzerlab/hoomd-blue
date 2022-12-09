@@ -64,7 +64,6 @@ TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinitio
 
     bool is_two_dimensions = m_sysdef->getNDimensions() == 2;
     m_V = m_pdata->getGlobalBox().getVolume(is_two_dimensions); // volume
-    m_thermostat->attach(m_group, m_thermo_half_step, m_sysdef->getSeed()); // attach thermostat
     }
 
 void TwoStepConstantPressure::setCouple(const std::string& value)
@@ -512,8 +511,6 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
-        //MPI_Bcast(&m_thermostat, 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        m_thermostat->broadcastThermostat(m_exec_conf->getMPICommunicator());
         MPI_Bcast(&m_barostat, 6, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
@@ -929,7 +926,7 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     if (m_group->getNumMembersGlobal() > 0)
         instance_id = m_group->getMemberTag(0);
 
-    RandomGenerator rng(Seed(RNGIdentifier::LangevinPiston, timestep, m_sysdef->getSeed()), instance_id);
+    RandomGenerator rng(Seed(RNGIdentifier::ConstantPressure, timestep, m_sysdef->getSeed()), instance_id);
     NormalDistribution<Scalar> noise;
     switch (couple)
     {
