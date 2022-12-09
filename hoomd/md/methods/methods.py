@@ -14,7 +14,7 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 from hoomd.filter import ParticleFilter
 from hoomd.variant import Variant
 from collections.abc import Sequence
-
+from .thermostats import (Thermostat, ConstantEnergy)
 
 class Method(AutotunedObject):
     """Base class integration method.
@@ -32,86 +32,11 @@ class Method(AutotunedObject):
         self._simulation.state.update_group_dof()
 
 
-class Thermostat(_HOOMDBaseObject):
-    def __init__(self, kT):
-        param_dict = ParameterDict(kT=Variant)
-        param_dict["kT"] = kT
-        self._param_dict.update(param_dict)
-        self._cpp_obj = None
-
-    @hoomd.logging.log(requires_run=True)
-    def thermostat_energy(self):
-        """Energy the thermostat contributes to the Hamiltonian \
-        :math:`[\\mathrm{energy}]`."""
-        return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
-
-    def _attach_hook(self):
-        pass
-
-
-class ConstantEnergy(Thermostat):
-    def __init__(self):
-        super().__init__(1.0)
-
-    def _attach_hook(self):
-        self._cpp_obj = _md.Thermostat(self.kT)
-
-class MTTKThermostat(Thermostat):
-    def __init__(self, kT, tau):
-        super(MTTKThermostat, self).__init__(kT)
-        param_dict = ParameterDict(tau=float(tau),
-                                   translational_thermostat_dof=(float, float),
-                                   rotational_thermostat_dof=(float, float))
-        param_dict.update(
-            dict(translational_thermostat_dof=(0, 0),
-                 rotational_thermostat_dof=(0, 0))
-        )
-        self._param_dict.update(param_dict)
-
-    def _attach_hook(self):
-        self._cpp_obj = _md.MTTKThermostat(self.kT, self.tau)
-
-    def thermalize_thermostat_dof(self):
-        r"""Set the thermostat momenta to random values.
-
-        `thermalize_thermostat_dof` sets a random value for the momentum
-        :math:`\xi`. When `Integrator.integrate_rotational_dof` is `True`, it
-        also sets a random value for the rotational thermostat momentum
-        :math:`\xi_{\mathrm{rot}}`. Call `thermalize_thermostat_dof` to set a
-        new random state for the thermostat.
-
-        .. important::
-            You must call `Simulation.run` before `thermalize_thermostat_dof`.
-            Call ``run(steps=0)`` to prepare a newly created `hoomd.Simulation`.
-
-        .. seealso:: `State.thermalize_particle_momenta`
-        """
-        if not self.is_attached:
-            raise StandardError("Call run(0) before attempting to thermalize the MTTK thermostat")
-        self._simulation._warn_if_seed_unset()
-        self._cpp_obj.thermalizeThermostat(self._simulation.timestep)
-
-
-class BussiThermostat(Thermostat):
-    def __init__(self, kT):
-        super(BussiThermostat, self).__init__(kT)
-
-    def _attach_hook(self):
-        self._cpp_obj = _md.BussiThermostat(self.kT)
-
-
-class BerendsenThermostat(Thermostat):
-    def __init__(self, kT, tau):
-        super(BerendsenThermostat, self).__init__(kT)
-        param_dict = ParameterDict(tau=float(tau))
-        param_dict["tau"] = tau
-        self._param_dict.update(param_dict)
-
-    def _attach_hook(self):
-        self._cpp_obj = _md.BerendsenThermostat(self.kT, self.tau)
-
-
 class Thermostatted(Method):
+    def __init__(self):
+        self._thermostat_group = None
+        self._thermostat_thermoCompute = None
+
     def _setattr_param(self, attr, value):
         if attr == "thermostat":
             self._thermostat_setter(value)
@@ -121,11 +46,16 @@ class Thermostatted(Method):
     def _thermostat_setter(self, new_thermostat):
         if new_thermostat is self.thermostat:
             return
+        if new_thermostat is None:
+            thermostat = ConstantEnergy()
+        elif new_thermostat._attached:
+            raise RuntimeError("Trying to set a thermostat that is already attached")
+        else:
+            thermostat = new_thermostat
         if self._attached:
-            if new_thermostat._attached and new_thermostat._simulation != self._simulation:
-                new_thermostat = copy.deepcopy(self.thermostat)
-            new_thermostat._attach(self._simulation)
-            self._cpp_obj.setThermostat(new_thermostat._cpp_obj)
+            thermostat._setGroupThermo(self._thermostat_group, self._thermostat_thermoCompute)
+            thermostat._attach(self._simulation)
+            self._cpp_obj.setThermostat(thermostat._cpp_obj)
         self._param_dict._dict["thermostat"] = new_thermostat
 
 
@@ -196,29 +126,18 @@ class ConstantVolume(Thermostatted):
     """
 
     def __init__(self, filter, thermostat=None):
-
+        super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
-                                   thermostat=Thermostat,
-                                   translational_thermostat_dof=(float, float),
-                                   rotational_thermostat_dof=(float, float))
-        if thermostat is None:
-            thermostat = ConstantEnergy()
+                                   thermostat=OnlyTypes(Thermostat, allow_none=True))
         param_dict.update(
             dict(filter=filter,
-                 translational_thermostat_dof=(0, 0),
-                 rotational_thermostat_dof=(0, 0),
                  thermostat=thermostat))
         # set defaults
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        if self.thermostat._attached and self.thermostat._simulation != self._simulation:
-            self.thermostat = copy.deepcopy(self.thermostat)
-        self.thermostat._attach(self._simulation)
-        if self.thermostat._cpp_obj.requiresSeed():
-            self._simulation._warn_if_seed_unset()
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             my_class = _md.TwoStepConstantVolume
@@ -230,10 +149,21 @@ class ConstantVolume(Thermostatted):
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group)
-        self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.thermostat._cpp_obj)
+
+        self._thermostat_group = group
+        self._thermostat_thermoCompute = thermo
+
+        if self.thermostat is None:
+            thermostat = ConstantEnergy()
+        else:
+            if self.thermostat._attached:
+                raise RuntimeError("Trying to attach a thermostat that is already attached")
+            self.thermostat._setGroupThermo(group, thermo)
+            thermostat = self.thermostat
+        thermostat._attach(self._simulation)
+
+        self._cpp_obj = my_class(cpp_sys_def, group, thermo, thermostat._cpp_obj)
         super()._attach_hook()
-
-
 
 
 class ConstantPressure(Thermostatted):
@@ -420,7 +350,7 @@ class ConstantPressure(Thermostatted):
                  box_dof=[True, True, True, False, False, False],
                  rescale_all=False,
                  gamma=0.0):
-
+        super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    thermostat=Thermostat,
@@ -449,11 +379,6 @@ class ConstantPressure(Thermostatted):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        if self.thermostat._attached and self.thermostat._simulation != self._simulation:
-            self.thermostat = copy.deepcopy(self.thermostat)
-        self.thermostat._attach(self._simulation)
-        if self.thermostat._cpp_obj.requiresSeed():
-            self._simulation._warn_if_seed_unset()
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepConstantPressure
@@ -466,8 +391,19 @@ class ConstantPressure(Thermostatted):
         thermo_group = self._simulation.state._get_group(self.filter)
 
         thermo_half_step = thermo_cls(cpp_sys_def, thermo_group)
-
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
+
+        self._thermostat_group = thermo_group
+        self._thermostat_thermoCompute = thermo_half_step
+
+        if self.thermostat is None:
+            thermostat = ConstantEnergy()
+        else:
+            if self.thermostat._attached:
+                raise RuntimeError("Trying to attach a thermostat that is already attached")
+            self.thermostat._setGroupThermo(thermo_group, thermo_half_step)
+            thermostat = self.thermostat
+        thermostat._attach(self._simulation)
 
         self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
                                 thermo_full_step,  self.tauS,
