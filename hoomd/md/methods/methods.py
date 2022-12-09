@@ -2,11 +2,9 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods."""
-import copy
 
 from hoomd.md import _md
 import hoomd
-from hoomd.operation import _HOOMDBaseObject
 from hoomd.operation import AutotunedObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
@@ -33,6 +31,13 @@ class Method(AutotunedObject):
 
 
 class Thermostatted(Method):
+    """ Base class for thermostatted integrators
+
+    Provides a common interface
+
+    Note:
+        Users should use the subclasses and not instantiate `Thermostatted` directly
+    """
     def __init__(self):
         self._thermostat_group = None
         self._thermostat_thermoCompute = None
