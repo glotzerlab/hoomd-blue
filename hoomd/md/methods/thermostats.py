@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
@@ -94,3 +97,4 @@ class Berendsen(Thermostat):
 
     def _attach_hook(self):
         self._cpp_obj = _md.BerendsenThermostat(self.kT, self._group, self._computeThermo, self.tau, self._simulation.state._cpp_sys_def)
+    
