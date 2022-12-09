@@ -16,8 +16,8 @@
 namespace hoomd::md {
     class Thermostat {
     public:
-        Thermostat(std::shared_ptr<Variant> T) :
-        m_T(T)
+        Thermostat(std::shared_ptr<Variant> T, std::shared_ptr<ParticleGroup> group, std::shared_ptr<ComputeThermo> thermo, std::shared_ptr<SystemDefinition> sysdef) :
+        m_T(T), m_group(group), m_thermo(thermo), m_sysdef(sysdef)
         {}
 
         virtual ~Thermostat() {}
@@ -32,7 +32,7 @@ namespace hoomd::md {
 
         virtual void advanceThermostat(uint64_t timestep, Scalar deltaT, bool aniso) {}
 
-        virtual void thermalizeThermostat() {}
+        virtual void thermalizeThermostat(uint64_t timestep) {}
 
         virtual Scalar getThermostatEnergy(uint64_t timestep) {return Scalar(0.0);}
 
@@ -48,48 +48,19 @@ namespace hoomd::md {
             return (*m_T)(timestep);
         }
 
-        void attach(std::shared_ptr<ParticleGroup> group, std::shared_ptr<ComputeThermo> thermo, uint16_t seed){
-            if(is_attached)
-                throw std::runtime_error("Thermostats can only be attached to a single integrator");
-            setSeed(seed);
-            is_attached = true;
-            m_group = group;
-            m_thermo = thermo;
-        }
-
-        void detach(){
-            is_attached = false;
-            m_group = nullptr;
-            m_thermo = nullptr;
-        }
-
-        bool attached() const{
-            return is_attached;
-        }
-
-        virtual bool requiresSeed(){
-            return false;
-        }
-
-        virtual void setSeed(uint16_t seed){}
-
-#ifdef ENABLE_MPI
-        virtual void broadcastThermostat(MPI_Comm){}
-#endif
-
     protected:
-        bool is_attached = false;
         std::shared_ptr<ParticleGroup> m_group;
         std::shared_ptr<ComputeThermo> m_thermo;
         std::shared_ptr<Variant> m_T;
+        std::shared_ptr<SystemDefinition> m_sysdef;
     };
 
 
     class MTTKThermostat : public Thermostat{
     public:
-        MTTKThermostat(std::shared_ptr<Variant> T,
+        MTTKThermostat(std::shared_ptr<Variant> T, std::shared_ptr<ParticleGroup> group, std::shared_ptr<ComputeThermo> thermo, std::shared_ptr<SystemDefinition> sysdef,
                        Scalar tau) :
-                Thermostat(T), m_tau(tau) {}
+                Thermostat(T, group, thermo, sysdef), m_tau(tau) {}
 
 
         struct state{
@@ -185,11 +156,60 @@ namespace hoomd::md {
 
         void setTau(Scalar tau){m_tau = tau;}
 
+        void thermalizeThermostat(uint64_t timestep) override{
+            auto exec_conf = m_sysdef->getParticleData()->getExecConf();
+            exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
+
+            Scalar g = m_group->getTranslationalDOF();
+            Scalar sigmasq_t = Scalar(1.0) / ((Scalar)g * m_tau * m_tau);
+
+            bool root = exec_conf->getRank() == 0;
+
+            unsigned int instance_id = 0;
+            if (m_group->getNumMembersGlobal() > 0)
+                instance_id = m_group->getMemberTag(0);
+
+            hoomd::RandomGenerator rng(
+                    hoomd::Seed(hoomd::RNGIdentifier::MTTKThermostat, timestep, m_sysdef->getSeed()),
+                    hoomd::Counter(instance_id));
+
+            if (root)
+            {
+                // draw a random Gaussian thermostat variable on rank 0
+                m_state.xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
+            }
+
 #ifdef ENABLE_MPI
-    void broadcastThermostat(MPI_Comm comm) override{
-        MPI_Bcast(&m_state, 4, MPI_HOOMD_SCALAR, 0, comm);
-        }
+            if (m_sysdef->isDomainDecomposed())
+            {
+                // broadcast integrator variables from rank 0 to other processors
+                MPI_Bcast(&m_state.xi, 1, MPI_HOOMD_SCALAR, 0, exec_conf->getMPICommunicator());
+            }
 #endif
+
+            if (m_group->getRotationalDOF() > 0)
+            {
+                // update thermostat for rotational DOF
+                Scalar sigmasq_r = Scalar(1.0) / ((Scalar)m_group->getRotationalDOF() * m_tau * m_tau);
+
+                if (root)
+                {
+                    m_state.xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
+                }
+
+#ifdef ENABLE_MPI
+                if (m_sysdef->isDomainDecomposed())
+                {
+                    // broadcast integrator variables from rank 0 to other processors
+                    MPI_Bcast(&m_state.xi_rot,
+                              1,
+                              MPI_HOOMD_SCALAR,
+                              0,
+                              exec_conf->getMPICommunicator());
+                }
+#endif
+            }
+        }
 
     protected:
         Scalar m_tau = 0;
@@ -198,7 +218,7 @@ namespace hoomd::md {
 
     class BussiThermostat : public Thermostat{
     public:
-        BussiThermostat(std::shared_ptr<Variant> T) : Thermostat(T) {}
+        BussiThermostat(std::shared_ptr<Variant> T, std::shared_ptr<ParticleGroup> group, std::shared_ptr<ComputeThermo> thermo, std::shared_ptr<SystemDefinition> sysdef) : Thermostat(T, group, thermo, sysdef) {}
 
         std::array<Scalar, 2> getRescalingFactorsOne(uint64_t timestep, Scalar deltaT) override{
             m_thermo->compute(timestep);
@@ -213,7 +233,7 @@ namespace hoomd::md {
             unsigned int instance_id = 0;
             if (m_group->getNumMembersGlobal() > 0)
                 instance_id = m_group->getMemberTag(0);
-            RandomGenerator rng(Seed(RNGIdentifier::StochasticVRescale, timestep, m_seed), instance_id);
+            RandomGenerator rng(Seed(RNGIdentifier::BussiThermostat, timestep, m_sysdef->getSeed()), instance_id);
 
             const auto set_T = (*m_T)(timestep);
             GammaDistribution<double> gamma_translation(ntdof / 2.0, set_T);
@@ -224,23 +244,12 @@ namespace hoomd::md {
                     std::sqrt(gamma_rotation(rng) / m_thermo->getRotationalKineticEnergy())
             };
         }
-
-        bool requiresSeed() override{
-            return true;
-        }
-
-        void setSeed(uint16_t seed) override{
-            m_seed = seed;
-        }
-
-    protected:
-        uint16_t m_seed;
     };
 
     class BerendsenThermostat : public Thermostat{
     public:
-        BerendsenThermostat(std::shared_ptr<Variant> T, Scalar tau) :
-                Thermostat(T), m_tau(tau) {}
+        BerendsenThermostat(std::shared_ptr<Variant> T, std::shared_ptr<ParticleGroup> group, std::shared_ptr<ComputeThermo> thermo, std::shared_ptr<SystemDefinition> sysdef, Scalar tau) :
+                Thermostat(T, group, thermo, sysdef), m_tau(tau) {}
         std::array<Scalar, 2> getRescalingFactorsOne(uint64_t timestep, hoomd::Scalar deltaT) override{
             m_thermo->compute(timestep);
             Scalar current_translation_T = m_thermo->getTranslationalTemperature();
