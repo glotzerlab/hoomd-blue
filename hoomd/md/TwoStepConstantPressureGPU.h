@@ -1,6 +1,6 @@
-//
-// Created by girard01 on 10/27/22.
-//
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 
 #ifndef HOOMD_TWOSTEPCONSTANTPRESSUREGPU_H
 #define HOOMD_TWOSTEPCONSTANTPRESSUREGPU_H

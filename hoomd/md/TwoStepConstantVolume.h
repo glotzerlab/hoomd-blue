@@ -1,6 +1,5 @@
-//
-// Created by girard01 on 10/21/22.
-//
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef HOOMD_TWOSTEPCONSTANTVOLUME_H
 #define HOOMD_TWOSTEPCONSTANTVOLUME_H

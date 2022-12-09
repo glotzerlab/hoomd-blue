@@ -1,6 +1,6 @@
-//
-// Created by girard01 on 10/24/22.
-//
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 
 #include "TwoStepConstantVolumeGPU.h"
 #include "TwoStepConstantVolumeGPU.cuh"
