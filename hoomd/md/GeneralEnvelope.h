@@ -105,12 +105,14 @@ public:
             envelope = modi*modj;
 
             // intermediate calculations
-            Scalar iPj = modPi*modj/s.magdr;
+            Scalar iPj = modPi*modj/s.magdr; // TODO: make variable name more descriptive and check if these are correct.
             Scalar jPi = modPj*modi/s.magdr;
             
             // torque on ith
             torque_i = vec_to_scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
-
+            // The component of a2x, a2y, a2z ends up zero because the orientation is tied to the a1 direction.
+            // Same for the a3 part.
+            
             // torque on jth - note sign is opposite ith!
             torque_j = vec_to_scalar3(jPi * cross(vec3<Scalar>(s.dr), vec3<Scalar>(s.ej)));
 
