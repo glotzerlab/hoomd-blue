@@ -39,3 +39,36 @@ class Helfrich(MeshPotential):
         self._add_typeparam(params)
 
         super().__init__(mesh)
+
+
+class BendingRigidity(MeshPotential):
+    r"""Bending potential.
+
+    :py:class:`BendingRigidity` specifies a bending energy applied to
+    all particles within the mesh.
+
+    Args:
+        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
+
+    Attributes:
+        parameter (TypeParameter[dict]):
+            The parameter of the bending energy for the defined mesh.
+            As the mesh can only have one type a type name does not have
+            to be stated. The dictionary has the following keys:
+
+            * ``k`` (`float`, **required**) - bending stiffness
+              :math:`[\mathrm{energy}]`
+
+    Examples::
+
+        bending_potential = mesh.bond.BendingRigidity(mesh)
+        bending_potential.parameter = dict(k=10.0)
+    """
+    _cpp_class_name = "BendingRigidityMeshForceCompute"
+
+    def __init__(self, mesh):
+        params = TypeParameter("params", "types",
+                               TypeParameterDict(k=float, len_keys=1))
+        self._add_typeparam(params)
+
+        super().__init__(mesh)
