@@ -31,12 +31,13 @@ class Method(AutotunedObject):
 
 
 class Thermostatted(Method):
-    """ Base class for thermostatted integrators
+    """Base class for thermostatted integrators.
 
-    Provides a common interface
+    Provides a common interface for all methods using thermostats
 
     Note:
-        Users should use the subclasses and not instantiate `Thermostatted` directly
+        Users should use the subclasses and not instantiate `Thermostatted`
+        directly
     """
     def __init__(self):
         self._thermostat_group = None
@@ -54,11 +55,13 @@ class Thermostatted(Method):
         if new_thermostat is None:
             thermostat = ConstantEnergy()
         elif new_thermostat._attached:
-            raise RuntimeError("Trying to set a thermostat that is already attached")
+            raise RuntimeError("Trying to set a thermostat that is "
+                               "already attached")
         else:
             thermostat = new_thermostat
         if self._attached:
-            thermostat._setGroupThermo(self._thermostat_group, self._thermostat_thermoCompute)
+            thermostat._setGroupThermo(self._thermostat_group,
+                                       self._thermostat_thermoCompute)
             thermostat._attach(self._simulation)
             self._cpp_obj.setThermostat(thermostat._cpp_obj)
         self._param_dict._dict["thermostat"] = new_thermostat
@@ -71,11 +74,9 @@ class ConstantVolume(Thermostatted):
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
 
-        kT (hoomd.variant.variant_like): Temperature set point
-            for the Nosé-Hoover thermostat :math:`[\mathrm{energy}]`.
-
-        tau (float): Coupling constant for the Nosé-Hoover thermostat
-            :math:`[\mathrm{time}]`.
+        thermostat (hoomd.md.methods.thermostats.Thermostat): thermostat used to
+            control temperature. Setting this to ``None`` produces NVE dynamics.
+            Defaults to ``None``
 
     `NVT` integrates integrates translational and rotational degrees of freedom
     in the canonical ensemble using the Nosé-Hoover thermostat. The thermostat
@@ -93,18 +94,6 @@ class ConstantVolume(Thermostatted):
     Tobias, M. L. Klein 1994 <http://dx.doi.org/10.1063/1.467468>`_ and `J.
     Cao, G. J. Martyna 1996 <http://dx.doi.org/10.1063/1.470959>`_.
 
-    Note:
-        The coupling constant `tau` should be set within a
-        reasonable range to avoid abrupt fluctuations in the kinetic temperature
-        and to avoid long time to equilibration. The recommended value for most
-        systems is :math:`\tau = 100 \delta t`.
-
-    Important:
-        Ensure that your initial condition includes non-zero particle velocities
-        and angular momenta (when appropriate). The coupling between the
-        thermostat and the velocities and angular momenta occurs via
-        multiplication, so `NVT` cannot convert a zero velocity into a non-zero
-        one except through particle collisions.
 
     Examples::
 
@@ -115,19 +104,8 @@ class ConstantVolume(Thermostatted):
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
 
-        kT (hoomd.variant.Variant): Temperature set point
-            for the Nosé-Hoover thermostat :math:`[\mathrm{energy}]`.
-
-        tau (float): Coupling constant for the Nosé-Hoover thermostat
-            :math:`[\mathrm{time}]`.
-
-        translational_thermostat_dof (tuple[float, float]): Additional degrees
-            of freedom for the translational thermostat (:math:`\xi`,
-            :math:`\eta`)
-
-        rotational_thermostat_dof (tuple[float, float]): Additional degrees
-            of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
-            :math:`\eta_\mathrm{rot}`)
+        thermostat (hoomd.md.methods.thermostats.Thermostat): Temperature
+            control for the integrator
     """
 
     def __init__(self, filter, thermostat=None):
@@ -135,7 +113,8 @@ class ConstantVolume(Thermostatted):
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
-                                   thermostat=OnlyTypes(Thermostat, allow_none=True))
+                                   thermostat=OnlyTypes(Thermostat,
+                                                        allow_none=True))
         param_dict.update(
             dict(filter=filter,
                  thermostat=thermostat))
@@ -162,7 +141,8 @@ class ConstantVolume(Thermostatted):
             thermostat = ConstantEnergy()
         else:
             if self.thermostat._attached:
-                raise RuntimeError("Trying to attach a thermostat that is already attached")
+                raise RuntimeError("Trying to attach a thermostat that is "
+                                   "already attached")
             self.thermostat._setGroupThermo(group, thermo)
             thermostat = self.thermostat
         thermostat._attach(self._simulation)
@@ -178,8 +158,8 @@ class ConstantPressure(Thermostatted):
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
 
-        thermostat (hoomd.md.Thermostat): Thermostat used to control temperature.
-            Constant energy dynamics result in NPH integration. Defaults to NPH
+        thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat used to
+            control temperature. Setting this to ``None`` yields NPH integration
 
         S (tuple[hoomd.variant.variant_like, ...] or \
                 hoomd.variant.variant_like): Stress components set point for the
@@ -315,7 +295,8 @@ class ConstantPressure(Thermostatted):
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
             this method.
 
-        thermostat (hoomd.md.Thermostat): Temperature control for the integrator.
+        thermostat (hoomd.md.methods.thermostats.Thermostat): Temperature
+            control for the integrator.
 
         S (tuple[hoomd.variant.Variant,...]): Stress components set point for
             the barostat.
@@ -358,7 +339,8 @@ class ConstantPressure(Thermostatted):
         super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
-                                   thermostat=OnlyTypes(Thermostat, allow_none=True),
+                                   thermostat=OnlyTypes(Thermostat,
+                                                        allow_none=True),
                                    S=OnlyIf(to_type_converter((Variant,) * 6),
                                             preprocess=self._preprocess_stress),
                                    tauS=float(tauS),
@@ -405,14 +387,16 @@ class ConstantPressure(Thermostatted):
             thermostat = ConstantEnergy()
         else:
             if self.thermostat._attached:
-                raise RuntimeError("Trying to attach a thermostat that is already attached")
+                raise RuntimeError("Trying to attach a thermostat that is "
+                                   "already attached")
             self.thermostat._setGroupThermo(thermo_group, thermo_half_step)
             thermostat = self.thermostat
         thermostat._attach(self._simulation)
 
         self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
                                 thermo_full_step,  self.tauS,
-                                self.S, self.couple, self.box_dof, self.thermostat._cpp_obj, self.gamma)
+                                self.S, self.couple, self.box_dof,
+                                self.thermostat._cpp_obj, self.gamma)
 
         # Attach param_dict and typeparam_dict
         super()._attach_hook()
