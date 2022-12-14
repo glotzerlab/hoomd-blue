@@ -10,8 +10,10 @@ of motion to a subset of particles.
 .. rubric:: Integration methods with constraints
 
 For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`
+
+Thermostatted methods require usage of a thermostat, see `hoomd.md.methods.thermostats`
 """
 
 from . import rattle
-from .methods import (Method, Langevin, Brownian, ConstantVolume, ConstantPressure, DisplacementCapped, OverdampedViscous)
+from .methods import (Method, Langevin, Brownian, Thermostatted, ConstantVolume, ConstantPressure, DisplacementCapped, OverdampedViscous)
 from .thermostats import (Thermostat, Bussi, Berendsen)

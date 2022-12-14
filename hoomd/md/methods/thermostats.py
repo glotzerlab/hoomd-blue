@@ -17,6 +17,7 @@ class Thermostat(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `Thermostat`
         directly.
     """
+
     def __init__(self, kT):
         param_dict = ParameterDict(kT=Variant)
         param_dict["kT"] = kT
@@ -39,7 +40,7 @@ class ConstantEnergy(Thermostat):
 
 
 class MTTK(Thermostat):
-    """Nosé-Hoover thermostat
+    r"""Nosé-Hoover thermostat
 
     Produces themperature control through a Nosé-Hoover thermostat
 
@@ -48,7 +49,7 @@ class MTTK(Thermostat):
             for the thermostat :math:`[\mathrm{energy}]`.
 
         tau (float): Coupling constant for the thermostat
-            :math:`[\\mathrm{time}]`
+            :math:`[\mathrm{time}]`
 
     The translational thermostat has a momentum :math:`\xi` and position
     :math:`\eta`. The rotational thermostat has momentum
@@ -60,7 +61,7 @@ class MTTK(Thermostat):
         Ensure that your initial condition includes non-zero particle velocities
         and angular momenta (when appropriate). The coupling between the
         thermostat and the velocities and angular momenta occurs via
-        multiplication, so `NVT` cannot convert a zero velocity into a non-zero
+        multiplication, so `MTTK` cannot convert a zero velocity into a non-zero
         one except through particle collisions.
 
     Attributes:
@@ -68,7 +69,7 @@ class MTTK(Thermostat):
             for the thermostat :math:`[\mathrm{energy}]`.
 
         tau (float): Coupling constant for the thermostat
-            :math:`[\\mathrm{time}]`
+            :math:`[\mathrm{time}]`
 
         translational_thermostat_dof (tuple[float, float]): Additional degrees
             of freedom for the translational thermostat (:math:`\xi`,
@@ -77,7 +78,9 @@ class MTTK(Thermostat):
         rotational_thermostat_dof (tuple[float, float]): Additional degrees
             of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
             :math:`\eta_\mathrm{rot}`)
+
     """
+
     def __init__(self, kT, tau):
         super().__init__(kT)
         param_dict = ParameterDict(tau=float(tau),
@@ -121,7 +124,7 @@ class MTTK(Thermostat):
 
 
 class Bussi(Thermostat):
-    """Bussi-Donadio-Parrinello thermostat
+    r"""Bussi-Donadio-Parrinello thermostat
 
     Args:
         kT (hoomd.variant.variant_like): Temperature set point
@@ -129,17 +132,20 @@ class Bussi(Thermostat):
 
     Provides temperature control by rescaling the velocity by a factor taken
     from the canonical velocity distribution. On each timestep, velocities are
-    rescaled by a factor :math:`{\alpha}=\sqrt{K_t / K}`, where :math:`K` is the
+    rescaled by a factor :math:`\alpha=\sqrt{K_t / K}`, where :math:`K` is the
     current kinetic energy, and :math:`K_t` is taken from
+
     .. math::
         P(K_t) \propto K_t^{N_f/2 - 1} \exp(-K_t / kT)
+
     where :math:`N_f` is the number of degrees of freedom thermalized
 
-    Args:
+    Attributes:
         kT (hoomd.variant.variant_like): Temperature set point
             for the thermostat :math:`[\mathrm{energy}]`.
 
     """
+
     def __init__(self, kT):
         super().__init__(kT)
 
@@ -151,19 +157,21 @@ class Bussi(Thermostat):
 
 
 class Berendsen(Thermostat):
-    """Berendsen thermostat
+    r"""Berendsen thermostat
 
     Args:
-        kT (hoomd.variant.variant_like): Temperature of the simulation.
-            :math:`[energy]`
+        kT (hoomd.variant.variant_like): Temperature of the
+            simulation. :math:`[\mathrm{energy}]`
 
-        tau (float): Time constant of thermostat. :math:`[time]`
+        tau (float): Time constant of thermostat. :math:`[\mathrm{time}]`
 
-     `Berendsen` rescales the velocities of all particles on each time step. The
+    `Berendsen` rescales the velocities of all particles on each time step. The
     rescaling is performed so that the difference in the current temperature
     from the set point decays exponentially:
     `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
+
     .. math::
+
         \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
 
     .. attention::
@@ -176,6 +184,7 @@ class Berendsen(Thermostat):
         tau (float): Time constant of thermostat. :math:`[time]`
 
     """
+
     def __init__(self, kT, tau):
         super().__init__(kT)
         param_dict = ParameterDict(tau=float)

@@ -31,7 +31,7 @@ class Method(AutotunedObject):
 
 
 class Thermostatted(Method):
-    """Base class for thermostatted integrators.
+    r"""Base class for thermostatted integrators.
 
     Provides a common interface for all methods using thermostats
 
@@ -188,21 +188,18 @@ class ConstantPressure(Thermostatted):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `NPT` integrates integrates translational and rotational degrees of freedom
-    in the Isothermal-isobaric ensemble.  The thermostat and barostat are
-    introduced as additional degrees of freedom in the Hamiltonian that couple
-    with the particle velocities and angular momenta and the box parameters.
+    `ConstantPressure` integrates integrates translational and rotational
+    degrees of freedom at constant pressure. The barostat is introduced as
+    additional degrees of freedom in the Hamiltonian that couple with box
+    parameters. Using a thermostat yields an isobaric-isothermal ensemble,
+    whereas its absence yields an isoenthalpic-isobaric ensemble.
 
-    The translational thermostat has a momentum :math:`\\xi` and position
-    :math:`\\eta`. The rotational thermostat has momentum
-    :math:`\\xi_{\\mathrm{rot}}` and position :math:`\\eta_\\mathrm{rot}`. The
-    barostat tensor is :math:`\\nu_{\\mathrm{ij}}`. Access these quantities
-    using `translational_thermostat_dof`, `rotational_thermostat_dof`, and
-    `barostat_dof`.
+    The barostat tensor is :math:`\\nu_{\\mathrm{ij}}`. Access these quantities
+    using `barostat_dof`.
 
-    By default, `NPT` performs integration in a cubic box under hydrostatic
-    pressure by simultaneously rescaling the lengths *Lx*, *Ly* and *Lz* of the
-    simulation box. Set the integration mode to change this default.
+    By default, `ConstantPressure` performs integration in a cubic box under
+    hydrostatic pressure by simultaneously rescaling the lengths *Lx*, *Ly* and <
+    *Lz* of the simulation box. Set the integration mode to change this default.
 
     The integration mode is defined by a set of couplings and by specifying
     the box degrees of freedom that are put under barostat control. Couplings
@@ -244,10 +241,10 @@ class ConstantPressure(Thermostatted):
     - Specifying no couplings and all degrees of freedom amounts to a fully
       deformable triclinic unit cell
 
-    `NPT` numerically integrates the equations of motion using the symplectic
-    Martyna-Tobias-Klein equations of motion for NPT. For optimal stability, the
-    update equations leave the phase-space measure invariant and are manifestly
-    time-reversible.
+    `ConstantPressure` numerically integrates the equations of motion using the
+    symplectic Martyna-Tobias-Klein equations of motion. For optimal stability,
+    the update equations leave the phase-space measure invariant and are
+    manifestly time-reversible.
 
     See Also:
         * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
@@ -258,36 +255,26 @@ class ConstantPressure(Thermostatted):
           <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
 
     Note:
-        The coupling constant `tau` should be set within a
-        reasonable range to avoid abrupt fluctuations in the kinetic temperature
-        and to avoid long time to equilibration. The recommended value for most
-        systems is :math:`\\tau = 100 \\delta t`.
-
-    Note:
         The barostat coupling constant `tauS` should be set within a reasonable
         range to avoid abrupt fluctuations in the box volume and to avoid long
         time to equilibration. The recommend value for most systems is
         :math:`\\tau_S = 1000 \\delta t`.
 
-    Important:
-        Ensure that your initial condition includes non-zero particle velocities
-        and angular momenta (when appropriate). The coupling between the
-        thermostat and the velocities and angular momenta occurs via
-        multiplication, so `NPT` cannot convert a zero velocity into a non-zero
-        one except through particle collisions.
-
     Examples::
 
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
+        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="xyz")
+        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
+        tauS = 1.2, S=2.0, couple="xyz",
+        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
         # orthorhombic symmetry
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
+        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="none")
         # tetragonal symmetry
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
+        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="xy")
         # triclinic symmetry
-        npt = hoomd.md.methods.NPT(filter=hoomd.filter.All(), tau=1.0, kT=0.65,
+        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="none", rescale_all=True)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
@@ -413,23 +400,23 @@ class ConstantPressure(Thermostatted):
     def thermalize_barostat_dof(self):
         r"""Set the thermostat and barostat momenta to random values.
 
-        `thermalize_thermostat_and_barostat_dof` sets a random value for the
+        `thermalize_barostat_dof` sets a random value for the
         momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
         `Integrator.integrate_rotational_dof` is `True`, it also sets a random
         value for the rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`.
-        Call `thermalize_thermostat_and_barostat_dof` to set a new random state
+        Call `thermalize_barostat_dof` to set a new random state
         for the thermostat and barostat.
 
         .. important::
             You must call `Simulation.run` before
-            `thermalize_thermostat_and_barostat_dof`. Call ``run(steps=0)`` to
+            `thermalize_barostat_dof`. Call ``run(steps=0)`` to
             prepare a newly created `hoomd.Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
         """
         if not self._attached:
             raise RuntimeError("Call Simulation.run(0) before"
-                               "thermalize_thermostat_and_barostat_dof")
+                               "thermalize_barostat_dof")
 
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeBarostatDOF(
