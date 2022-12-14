@@ -244,7 +244,8 @@ class FIRE(_DynamicIntegrator):
         self._methods.clear()
 
         methods_list = syncedlist.SyncedList(
-            OnlyTypes((hoomd.md.methods.NVE, hoomd.md.methods.NPH,
+            OnlyTypes((hoomd.md.methods.ConstantVolume,
+                       hoomd.md.methods.ConstantPressure,
                        hoomd.md.methods.rattle.NVE)),
             syncedlist._PartialGetAttr("_cpp_obj"),
             iterable=methods)
