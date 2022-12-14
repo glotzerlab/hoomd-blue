@@ -24,5 +24,3 @@ md.methods.thermostats
               MTTK,
               Bussi,
               Berendsen
-
-

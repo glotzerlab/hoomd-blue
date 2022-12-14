@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-
 #include "TwoStepConstantVolume.h"
 #include "hoomd/VectorMath.h"
 /*! \param timestep Current time step
@@ -45,13 +44,15 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
 
             // rescale velocity
             v *= rescaling_factors[0];
-            if(m_limit){
+            if (m_limit)
+                {
                 auto maximum_displacement = m_limit->operator()(timestep);
-                auto len = sqrt(dot(v,v)) * m_deltaT;
-                if(len > maximum_displacement){
+                auto len = sqrt(dot(v, v)) * m_deltaT;
+                if (len > maximum_displacement)
+                    {
                     v = v / len * maximum_displacement / m_deltaT;
+                    }
                 }
-            }
             pos += m_deltaT * v;
 
             // store updated variables
@@ -85,7 +86,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
     if (m_aniso)
         {
         // thermostat factor
-        //Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot);
+        // Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot);
 
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,
@@ -131,7 +132,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
             p += m_deltaT * q * t;
 
             // apply thermostat
-            p = p * rescaling_factors[1]; //exp_fac;
+            p = p * rescaling_factors[1]; // exp_fac;
 
             quat<Scalar> p1, p2, p3; // permutated quaternions
             quat<Scalar> q1, q2, q3;
@@ -212,121 +213,124 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
     } /*! \param timestep Current time step
          \post particle velocities are moved forward to timestep+1
      */
-    void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
+void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
+    {
+    unsigned int group_size = m_group->getNumMembers();
+
+    auto rescaling_factors = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
+
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::readwrite);
+
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+
+    // perform second half step of Nose-Hoover integration
+
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        unsigned int group_size = m_group->getNumMembers();
+        unsigned int j = m_group->getMemberIndex(group_idx);
 
-        auto rescaling_factors = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
+        // load velocity
+        Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+        Scalar3 accel = h_accel.data[j];
+        Scalar3 net_force
+            = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
 
-        const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+        // first, calculate acceleration from the net force
+        Scalar m = h_vel.data[j].w;
+        Scalar minv = Scalar(1.0) / m;
+        accel = net_force * minv;
 
-        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
-                                   access_location::host,
-                                   access_mode::readwrite);
-        ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
-                                     access_location::host,
-                                     access_mode::readwrite);
+        // rescale velocity
+        v *= rescaling_factors[0]; // TwoStepNVTMTK::m_exp_thermo_fac;
 
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+        // update velocity
+        v += Scalar(1.0 / 2.0) * m_deltaT * accel;
 
-        // perform second half step of Nose-Hoover integration
+        // store velocity
+        h_vel.data[j].x = v.x;
+        h_vel.data[j].y = v.y;
+        h_vel.data[j].z = v.z;
+
+        // store acceleration
+        h_accel.data[j] = accel;
+        }
+
+    if (m_aniso)
+        {
+        // Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot);
+
+        // angular degrees of freedom
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                      access_location::host,
+                                      access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),
+                                          access_location::host,
+                                          access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
 
-            // load velocity
-            Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-            Scalar3 accel = h_accel.data[j];
-            Scalar3 net_force
-                = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
 
-            // first, calculate acceleration from the net force
-            Scalar m = h_vel.data[j].w;
-            Scalar minv = Scalar(1.0) / m;
-            accel = net_force * minv;
+            // rotate torque into principal frame
+            t = rotate(conj(q), t);
 
-            // rescale velocity
-            v *= rescaling_factors[0];//TwoStepNVTMTK::m_exp_thermo_fac;
+            // check for zero moment of inertia
+            bool x_zero, y_zero, z_zero;
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
-            // update velocity
-            v += Scalar(1.0 / 2.0) * m_deltaT * accel;
+            // ignore torque component along an axis for which the moment of inertia zero
+            if (x_zero)
+                t.x = 0;
+            if (y_zero)
+                t.y = 0;
+            if (z_zero)
+                t.z = 0;
 
-            // store velocity
-            h_vel.data[j].x = v.x;
-            h_vel.data[j].y = v.y;
-            h_vel.data[j].z = v.z;
+            // apply thermostat
+            p = p * rescaling_factors[1]; // exp_fac;
 
-            // store acceleration
-            h_accel.data[j] = accel;
-            }
+            // advance p(t+deltaT/2)->p(t+deltaT)
+            p += m_deltaT * q * t;
 
-        if (m_aniso)
-            {
-            //Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot);
-
-            // angular degrees of freedom
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
-                                               access_location::host,
-                                               access_mode::read);
-            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
-                                          access_location::host,
-                                          access_mode::readwrite);
-            ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),
-                                              access_location::host,
-                                              access_mode::read);
-            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
-                                           access_location::host,
-                                           access_mode::read);
-
-            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-                {
-                unsigned int j = m_group->getMemberIndex(group_idx);
-
-                quat<Scalar> q(h_orientation.data[j]);
-                quat<Scalar> p(h_angmom.data[j]);
-                vec3<Scalar> t(h_net_torque.data[j]);
-                vec3<Scalar> I(h_inertia.data[j]);
-
-                // rotate torque into principal frame
-                t = rotate(conj(q), t);
-
-                // check for zero moment of inertia
-                bool x_zero, y_zero, z_zero;
-                x_zero = (I.x == 0);
-                y_zero = (I.y == 0);
-                z_zero = (I.z == 0);
-
-                // ignore torque component along an axis for which the moment of inertia zero
-                if (x_zero)
-                    t.x = 0;
-                if (y_zero)
-                    t.y = 0;
-                if (z_zero)
-                    t.z = 0;
-
-                // apply thermostat
-                p = p * rescaling_factors[1]; //exp_fac;
-
-                // advance p(t+deltaT/2)->p(t+deltaT)
-                p += m_deltaT * q * t;
-
-                h_angmom.data[j] = quat_to_scalar4(p);
-                }
+            h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
+    }
 
-
-namespace hoomd::md::detail{
-void export_TwoStepConstantVolume(pybind11::module& m){
-    pybind11::class_<TwoStepConstantVolume, IntegrationMethodTwoStep, std::shared_ptr<TwoStepConstantVolume>>(
-        m,
-        "TwoStepConstantVolume")
+namespace hoomd::md::detail
+    {
+void export_TwoStepConstantVolume(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepConstantVolume,
+                     IntegrationMethodTwoStep,
+                     std::shared_ptr<TwoStepConstantVolume>>(m, "TwoStepConstantVolume")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<Thermostat>>())
-                            .def("setThermostat", &TwoStepConstantVolume::setThermostat)
-                            .def_property("maximum_displacement", &TwoStepConstantVolume::getLimit, &TwoStepConstantVolume::setLimit);
+        .def("setThermostat", &TwoStepConstantVolume::setThermostat)
+        .def_property("maximum_displacement",
+                      &TwoStepConstantVolume::getLimit,
+                      &TwoStepConstantVolume::setLimit);
     }
-    };
+    }; // namespace hoomd::md::detail

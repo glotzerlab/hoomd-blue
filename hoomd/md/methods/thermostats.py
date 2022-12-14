@@ -31,12 +31,14 @@ class Thermostat(_HOOMDBaseObject):
 
 
 class ConstantEnergy(Thermostat):
+
     def __init__(self):
         super().__init__(1.0)
         self._param_dict.pop('kT', None)
 
     def _attach_hook(self):
-        self._cpp_obj = _md.Thermostat(hoomd.variant.Constant(1.0), None, None, None)
+        self._cpp_obj = _md.Thermostat(hoomd.variant.Constant(1.0), None, None,
+                                       None)
 
 
 class MTTK(Thermostat):
@@ -88,8 +90,7 @@ class MTTK(Thermostat):
                                    rotational_thermostat_dof=(float, float))
         param_dict.update(
             dict(translational_thermostat_dof=(0, 0),
-                 rotational_thermostat_dof=(0, 0))
-        )
+                 rotational_thermostat_dof=(0, 0)))
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
@@ -118,7 +119,9 @@ class MTTK(Thermostat):
         .. seealso:: `State.thermalize_particle_momenta`
         """
         if not self.is_attached:
-            raise StandardError("Call run(0) before attempting to thermalize the MTTK thermostat")
+            raise StandardError(
+                "Call run(0) before attempting to thermalize the MTTK thermostat"
+            )
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostat(self._simulation.timestep)
 
@@ -192,4 +195,6 @@ class Berendsen(Thermostat):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _md.BerendsenThermostat(self.kT, self._group, self._computeThermo, self.tau, self._simulation.state._cpp_sys_def)
+        self._cpp_obj = _md.BerendsenThermostat(
+            self.kT, self._group, self._computeThermo, self.tau,
+            self._simulation.state._cpp_sys_def)

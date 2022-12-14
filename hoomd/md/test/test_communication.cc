@@ -2970,11 +2970,15 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     std::shared_ptr<ComputeThermo> thermo_1(new ComputeThermo(sysdef_1, group_all_1));
     std::shared_ptr<ComputeThermo> thermo_2(new ComputeThermo(sysdef_2, group_all_2));
 
-    std::shared_ptr<Thermostat> tstat_1(new Thermostat(std::make_shared<VariantConstant>(1.0), group_all_1, thermo_1, sysdef_1));
-    std::shared_ptr<Thermostat> tstat_2(new Thermostat(std::make_shared<VariantConstant>(1.0), group_all_2, thermo_2, sysdef_2));
+    std::shared_ptr<Thermostat> tstat_1(
+        new Thermostat(std::make_shared<VariantConstant>(1.0), group_all_1, thermo_1, sysdef_1));
+    std::shared_ptr<Thermostat> tstat_2(
+        new Thermostat(std::make_shared<VariantConstant>(1.0), group_all_2, thermo_2, sysdef_2));
 
-    std::shared_ptr<TwoStepConstantVolume> two_step_nve_1(new TwoStepConstantVolume(sysdef_1, group_all_1, thermo_1, tstat_1));
-    std::shared_ptr<TwoStepConstantVolume> two_step_nve_2(new TwoStepConstantVolume(sysdef_2, group_all_2, thermo_2, tstat_2));
+    std::shared_ptr<TwoStepConstantVolume> two_step_nve_1(
+        new TwoStepConstantVolume(sysdef_1, group_all_1, thermo_1, tstat_1));
+    std::shared_ptr<TwoStepConstantVolume> two_step_nve_2(
+        new TwoStepConstantVolume(sysdef_2, group_all_2, thermo_2, tstat_2));
 
     Scalar deltaT = 0.001;
     std::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));

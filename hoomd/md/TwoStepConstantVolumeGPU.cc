@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-
 #include "TwoStepConstantVolumeGPU.h"
 #include "TwoStepConstantVolumeGPU.cuh"
 #include "TwoStepNVEGPU.cuh"
@@ -16,7 +15,9 @@ namespace hoomd::md
 TwoStepConstantVolumeGPU::TwoStepConstantVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group,
                                                    std::shared_ptr<ComputeThermo> thermo,
-                                                   std::shared_ptr<Thermostat> thermostat) : TwoStepConstantVolume(sysdef, group, thermo, thermostat){
+                                                   std::shared_ptr<Thermostat> thermostat)
+    : TwoStepConstantVolume(sysdef, group, thermo, thermostat)
+    {
     if (!m_exec_conf->isCUDAEnabled())
         {
         throw std::runtime_error("Cannot create TwoStepNVTMTKGPU on a CPU device.");
@@ -75,8 +76,6 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
         ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                                 access_location::device,
                                                 access_mode::read);
-
-
 
         auto limits = getKernelLimitValues(timestep);
 
@@ -146,7 +145,6 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
     m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
     }
 
-
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
@@ -207,8 +205,6 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
                                        access_location::device,
                                        access_mode::read);
 
-
-
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
         kernel::gpu_nve_angular_step_two(d_orientation.data,
@@ -227,18 +223,18 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
         m_exec_conf->endMultiGPU();
         }
     }
-    }
+    } // namespace hoomd::md
 
-
-namespace hoomd::md::detail{
+namespace hoomd::md::detail
+    {
 void export_TwoStepConstantVolumeGPU(pybind11::module& m)
     {
-    pybind11::class_<TwoStepConstantVolumeGPU, TwoStepConstantVolume, std::shared_ptr<TwoStepConstantVolumeGPU>>(
-        m,
-        "TwoStepConstantVolumeGPU")
+    pybind11::class_<TwoStepConstantVolumeGPU,
+                     TwoStepConstantVolume,
+                     std::shared_ptr<TwoStepConstantVolumeGPU>>(m, "TwoStepConstantVolumeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<Thermostat>>());
     }
-    }
+    } // namespace hoomd::md::detail
