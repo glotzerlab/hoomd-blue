@@ -17,7 +17,7 @@ namespace hoomd::md {
     class Thermostat {
     public:
         Thermostat(std::shared_ptr<Variant> T, std::shared_ptr<ParticleGroup> group, std::shared_ptr<ComputeThermo> thermo, std::shared_ptr<SystemDefinition> sysdef) :
-        m_T(T), m_group(group), m_thermo(thermo), m_sysdef(sysdef)
+        m_group(group), m_thermo(thermo), m_T(T), m_sysdef(sysdef)
         {}
 
         virtual ~Thermostat() {}
