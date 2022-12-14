@@ -45,13 +45,13 @@ TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinitio
                                                  std::shared_ptr<Thermostat> thermostat,
                                                  Scalar gamma) :
       IntegrationMethodTwoStep(sysdef, group),
-      m_thermo_half_step(thermo_half_step),
-      m_thermo_full_step(thermo_full_step),
       m_S(S),
       m_tauS(tauS),
       m_ndof(0),
       m_gamma(gamma),
       m_thermostat(thermostat),
+      m_thermo_half_step(thermo_half_step),
+      m_thermo_full_step(thermo_full_step),
       m_rescale_all(false)
     {
 
