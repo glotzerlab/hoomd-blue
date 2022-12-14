@@ -524,7 +524,7 @@ void TwoStepConstantPressure::thermalizeBarostatDOF(uint64_t timestep)
         instance_id = m_group->getMemberTag(0);
 
     hoomd::RandomGenerator rng(
-        hoomd::Seed(hoomd::RNGIdentifier::TwoStepNPTMTTKBase, timestep, m_sysdef->getSeed()),
+        hoomd::Seed(hoomd::RNGIdentifier::TwoStepNPTThermalizeBarostat, timestep, m_sysdef->getSeed()),
         hoomd::Counter(instance_id));
 
     bool master = m_exec_conf->getRank() == 0;

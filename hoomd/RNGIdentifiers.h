@@ -50,8 +50,8 @@ struct RNGIdentifier
     static const uint8_t TwoStepBD = 24;
     static const uint8_t TwoStepLangevin = 25;
     static const uint8_t TwoStepLangevinAngular = 26;
-    static const uint8_t TwoStepNPTMTK = 27;
-    static const uint8_t TwoStepNVTMTK = 28;
+    static const uint8_t TwoStepNPTThermalizeBarostat = 27;
+    static const uint8_t TwoStepNVTMTK = 28; // unused
     static const uint8_t ATCollisionMethod = 29;
     static const uint8_t CollisionMethod = 30;
     static const uint8_t SRDCollisionMethod = 31;
