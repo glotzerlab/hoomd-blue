@@ -1,7 +1,6 @@
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
-    test_berendsen_integrator
     test_bondtable_bond_force
     test_external_periodic
     test_fire_energy_minimizer
