@@ -194,73 +194,44 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
         dac = box.minImage(dac);
         dad = box.minImage(dad);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
+        Scalar3 z1;
+        z1.x = dab.y * dac.z - dab.z * dac.y;
+        z1.y = dab.z * dac.x - dab.x * dac.z;
+        z1.z = dab.x * dac.y - dab.y * dac.x;
+
+        Scalar3 z2;
+        z2.x = dad.y * dab.z - dad.z * dab.y;
+        z2.y = dad.z * dab.x - dad.x * dab.z;
+        z2.z = dad.x * dab.y - dad.y * dab.x;
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
-        Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
-        Scalar rqab = rsqab * rsqab;
-        Scalar rcab = fast::sqrt(rsqab) * rsqab;
-        Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
-        Scalar rsqad = dad.x * dad.x + dad.y * dad.y + dad.z * dad.z;
+        Scalar n1 = fast::rsqrt(z1.x * z1.x + z1.y * z1.y + z1.z * z1.z);
+        Scalar n2 = fast::rsqrt(z2.x * z2.x + z2.y * z2.y + z2.z * z2.z);
+        Scalar z1z2 = z1.x * z2.x + z1.y * z2.y + z1.z * z2.z;
 
-        Scalar rabrac = dab.x * dac.x + dab.y * dac.y + dac.z * dac.z;
-        Scalar rabracsq = rabrac * rabrac;
-        Scalar rabrad = dab.x * dad.x + dab.y * dad.y + dad.z * dad.z;
-        Scalar rabradsq = rabrad * rabrad;
-        Scalar racrad = dac.x * dad.x + dac.y * dad.y + dad.z * dad.z;
+        Scalar cosinus = z1z2 * n1 * n2;
 
-        Scalar numerator = rsqab * racrad - rabrac * rabrad;
-
-        Scalar3 numerator_ab = 2 * racrad * dab - rabrac * dad - rabrad * dac;
-        Scalar3 numerator_ac = rsqab * dad - rabrad * dab;
-        Scalar3 numerator_ad = rsqab * dac - rabrac * dab;
-
-        Scalar inv_d = fast::rsqrt(rsqac * rsqad * rqab - rabracsq * rsqab * rsqad
-                                   - rabradsq * rsqab * rsqac + rabracsq * rabradsq);
-        Scalar inv_d3 = inv_d * inv_d * inv_d;
-
-        Scalar3 denominator_ab
-            = dab * (2 * rsqac * rsqad * rcab - rabracsq * rsqad - rabradsq * rsqac)
-              + dac * (rabrac * rabradsq - rabrac * rsqab * rsqad)
-              + dad * (rabracsq * rabrad - rabrad * rsqab * rsqac);
-        denominator_ab = -denominator_ab * inv_d3;
-        Scalar3 denominator_ac = (rsqad * rqab - rabradsq * rsqab) * dac
-                                 + (rabrac * rabradsq - rabrac * rsqab * rsqad) * dab;
-        denominator_ac = -denominator_ac * inv_d3;
-        Scalar3 denominator_ad = (rsqac * rqab - rabracsq * rsqab) * dad
-                                 + (rabrad * rabracsq - rabrad * rsqab * rsqac) * dab;
-        denominator_ad = -denominator_ad * inv_d3;
-
-        Scalar cosinus = numerator * inv_d;
-
-        Scalar3 cosinus_ab, cosinus_ac, cosinus_ad;
-
-        cosinus_ab.x = numerator_ab.x * inv_d + numerator * denominator_ab.x;
-        cosinus_ab.y = numerator_ab.y * inv_d + numerator * denominator_ab.y;
-        cosinus_ab.z = numerator_ab.z * inv_d + numerator * denominator_ab.z;
-
-        cosinus_ac.x = numerator_ac.x * inv_d + numerator * denominator_ac.x;
-        cosinus_ac.y = numerator_ac.y * inv_d + numerator * denominator_ac.y;
-        cosinus_ac.z = numerator_ac.z * inv_d + numerator * denominator_ac.z;
-
-        cosinus_ad.x = numerator_ad.x * inv_d + numerator * denominator_ad.x;
-        cosinus_ad.y = numerator_ad.y * inv_d + numerator * denominator_ad.y;
-        cosinus_ad.z = numerator_ad.z * inv_d + numerator * denominator_ad.z;
+        Scalar3 A1 = n1 * n2 * z2 - cosinus * n1 * n1 * z1;
+        Scalar3 A2 = n1 * n2 * z1 - cosinus * n2 * n2 * z2;
 
         Scalar3 Fab, Fac, Fad;
+        Fab.x = -A1.y * dac.z + A1.z * dac.y + A2.y * dad.z - A2.z * dad.y;
+        Fab.y = A1.x * dac.z - A1.z * dac.x - A2.x * dad.z + A2.z * dad.x;
+        Fab.z = -A1.x * dac.y + A1.y * dac.x + A2.x * dad.y - A2.y * dad.x;
 
-        Fab.x = m_K[0] * cosinus_ab.x;
-        Fab.y = m_K[0] * cosinus_ab.y;
-        Fab.z = m_K[0] * cosinus_ab.z;
+        Fac.x = A1.y * dab.z - A1.z * dab.y;
+        Fac.y = -A1.x * dab.z + A1.z * dab.x;
+        Fac.z = A1.x * dab.y - A1.y * dab.x;
 
-        Fac.x = m_K[0] * cosinus_ac.x;
-        Fac.y = m_K[0] * cosinus_ac.y;
-        Fac.z = m_K[0] * cosinus_ac.z;
+        Fad.x = -A2.y * dab.z + A2.z * dab.y;
+        Fad.y = A2.x * dab.z - A2.z * dab.x;
+        Fad.z = -A2.x * dab.y + A2.y * dab.x;
 
-        Fad.x = m_K[0] * cosinus_ad.x;
-        Fad.y = m_K[0] * cosinus_ad.y;
-        Fad.z = m_K[0] * cosinus_ad.z;
+        Fab = m_K[0] * Fab;
+
+        Fac = m_K[0] * Fac;
+
+        Fad = m_K[0] * Fad;
 
         if (compute_virial)
             {
@@ -286,7 +257,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].y += (Fab.y + Fac.y + Fad.y);
             h_force.data[idx_a].z += (Fab.z + Fac.z + Fad.z);
             h_force.data[idx_a].w
-                = m_K[0] * 0.25 * (1 + cosinus); // the missing minus sign comes from the fact that
+                = m_K[0] * 0.25 * (1 - cosinus); // the missing minus sign comes from the fact that
                                                  // we have to compare the normal directions
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += rigidity_virial[j];
@@ -307,7 +278,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fab.x;
             h_force.data[idx_b].y -= Fab.y;
             h_force.data[idx_b].z -= Fab.z;
-            h_force.data[idx_b].w = m_K[0] * 0.25 * (1 + cosinus);
+            h_force.data[idx_b].w = m_K[0] * 0.25 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += rigidity_virial[j];
             }
@@ -327,7 +298,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x -= Fac.x;
             h_force.data[idx_c].y -= Fac.y;
             h_force.data[idx_c].z -= Fac.z;
-            h_force.data[idx_c].w = m_K[0] * 0.25 * (1 + cosinus);
+            h_force.data[idx_c].w = m_K[0] * 0.25 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += rigidity_virial[j];
             }
@@ -347,7 +318,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_d].x -= Fad.x;
             h_force.data[idx_d].y -= Fad.y;
             h_force.data[idx_d].z -= Fad.z;
-            h_force.data[idx_d].w = m_K[0] * 0.25 * (1 + cosinus);
+            h_force.data[idx_d].w = m_K[0] * 0.25 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_d] += rigidity_virial[j];
             }
