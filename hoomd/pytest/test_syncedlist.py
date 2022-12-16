@@ -55,7 +55,9 @@ class TestSyncedList(BaseListTest):
         else:
 
             def generate(n):
-                return [OpInt(self.rng.integers(100_000_000)) for _ in range(n)]
+                return [
+                    OpInt(self.generator.int(100_000_000)) for _ in range(n)
+                ]
 
             return generate
 
