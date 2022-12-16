@@ -60,8 +60,8 @@ class Thermostatted(Method):
         else:
             thermostat = new_thermostat
         if self._attached:
-            thermostat._setGroupThermo(self._thermostat_group,
-                                       self._thermostat_thermoCompute)
+            thermostat._set_group_thermo(self._thermostat_group,
+                                         self._thermostat_thermoCompute)
             thermostat._attach(self._simulation)
             self._cpp_obj.setThermostat(thermostat._cpp_obj)
         self._param_dict._dict["thermostat"] = new_thermostat
@@ -78,7 +78,7 @@ class ConstantVolume(Thermostatted):
             control temperature. Setting this to ``None`` produces NVE dynamics.
             Defaults to ``None``
 
-    `NVT` integrates integrates translational and rotational degrees of freedom
+    `ConstantVolume` integrates translational and rotational degrees of freedom
     in the canonical ensemble using the Nosé-Hoover thermostat. The thermostat
     is introduced as additional degrees of freedom in the Hamiltonian that
     couple with the velocities and angular momenta of the particles.
@@ -97,8 +97,12 @@ class ConstantVolume(Thermostatted):
 
     Examples::
 
-        nvt=hoomd.md.methods.NVT(filter=hoomd.filter.All(), kT=1.0, tau=0.5)
+        nve=hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+
+        mttk=hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+        nvt=hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
+                                            thermostat=mttk)
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
@@ -143,7 +147,7 @@ class ConstantVolume(Thermostatted):
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
                                    "already attached")
-            self.thermostat._setGroupThermo(group, thermo)
+            self.thermostat._set_group_thermo(group, thermo)
             thermostat = self.thermostat
         thermostat._attach(self._simulation)
 
@@ -188,7 +192,7 @@ class ConstantPressure(Thermostatted):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `ConstantPressure` integrates integrates translational and rotational
+    `ConstantPressure` integrates translational and rotational
     degrees of freedom at constant pressure. The barostat is introduced as
     additional degrees of freedom in the Hamiltonian that couple with box
     parameters. Using a thermostat yields an isobaric-isothermal ensemble,
@@ -198,7 +202,7 @@ class ConstantPressure(Thermostatted):
     using `barostat_dof`.
 
     By default, `ConstantPressure` performs integration in a cubic box under
-    hydrostatic pressure by simultaneously rescaling the lengths *Lx*, *Ly* and <
+    hydrostatic pressure by simultaneously rescaling the lengths *Lx*, *Ly* and
     *Lz* of the simulation box. Set the integration mode to change this default.
 
     The integration mode is defined by a set of couplings and by specifying
@@ -376,7 +380,7 @@ class ConstantPressure(Thermostatted):
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
                                    "already attached")
-            self.thermostat._setGroupThermo(thermo_group, thermo_half_step)
+            self.thermostat._set_group_thermo(thermo_group, thermo_half_step)
             thermostat = self.thermostat
         thermostat._attach(self._simulation)
 

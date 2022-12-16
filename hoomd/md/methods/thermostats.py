@@ -1,6 +1,8 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+"""Thermostats for thermostatted integrators."""
+
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
@@ -9,7 +11,7 @@ from hoomd.variant import Variant
 
 
 class Thermostat(_HOOMDBaseObject):
-    """ Base thermostat object class
+    """Base thermostat object class.
 
     Provides common methods for thermostat objects
 
@@ -25,22 +27,29 @@ class Thermostat(_HOOMDBaseObject):
         self._group = None
         self._computeThermo = None
 
-    def _setGroupThermo(self, group, thermo):
+    def _set_group_thermo(self, group, thermo):
         self._group = group
         self._computeThermo = thermo
 
 
 class ConstantEnergy(Thermostat):
+    """Provides an interface to base c++ thermostat.
+
+    Note:
+        Users should not use this object but rather set thermostat
+        to `None` in thermostatted objects
+    """
     def __init__(self):
         super().__init__(1.0)
         self._param_dict.pop('kT', None)
 
     def _attach_hook(self):
-        self._cpp_obj = _md.Thermostat(hoomd.variant.Constant(1.0), None, None, None)
+        self._cpp_obj = _md.Thermostat(hoomd.variant.Constant(1.0), None, None,
+                                       None)
 
 
 class MTTK(Thermostat):
-    r"""Nosé-Hoover thermostat
+    r"""Nosé-Hoover thermostat.
 
     Produces themperature control through a Nosé-Hoover thermostat
 
@@ -118,13 +127,14 @@ class MTTK(Thermostat):
         .. seealso:: `State.thermalize_particle_momenta`
         """
         if not self.is_attached:
-            raise StandardError("Call run(0) before attempting to thermalize the MTTK thermostat")
+            raise RuntimeError("Call run(0) before attempting to "
+                               "thermalize the MTTK thermostat")
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostat(self._simulation.timestep)
 
 
 class Bussi(Thermostat):
-    r"""Bussi-Donadio-Parrinello thermostat
+    r"""Bussi-Donadio-Parrinello thermostat.
 
     Args:
         kT (hoomd.variant.variant_like): Temperature set point
@@ -157,7 +167,7 @@ class Bussi(Thermostat):
 
 
 class Berendsen(Thermostat):
-    r"""Berendsen thermostat
+    r"""Berendsen thermostat.
 
     Args:
         kT (hoomd.variant.variant_like): Temperature of the

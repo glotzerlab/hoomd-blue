@@ -11,7 +11,8 @@ of motion to a subset of particles.
 
 For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`
 
-Thermostatted methods require usage of a thermostat, see `hoomd.md.methods.thermostats`
+Thermostatted methods require usage of a thermostat, see
+`hoomd.md.methods.thermostats`
 """
 
 from . import rattle

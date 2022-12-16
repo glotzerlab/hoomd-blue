@@ -76,7 +76,8 @@ lj.r_cut[('A', 'A')] = 2.5
 
 integrator = hoomd.md.Integrator(dt=0.005)
 integrator.forces.append(lj)
-nvt = hoomd.md.methods.NVT(kT=1.5, filter=hoomd.filter.All(), tau=1.0)
+bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(), thermostat=bussi)
 integrator.methods.append(nvt)
 
 gpu = hoomd.device.GPU()

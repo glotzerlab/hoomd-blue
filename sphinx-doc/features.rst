@@ -27,7 +27,7 @@ At runtime, `hoomd.version.hpmc_built` indicates whether the build supports HPMC
 Molecular dynamics
 ------------------
 
-HOOMD-blue can perform molecular dynamics simulations (`md`) with NVE, NVT, NPT, NPH, Langevin,
+HOOMD-blue can perform molecular dynamics simulations (`md`) with ConstantVolume, ConstantPressure, Langevin,
 Brownian, overdamped viscous integration methods (`md.methods`), and energy minimization
 (`md.minimize`). Unless otherwise stated in the documentation, all integration methods integrate
 both translational and rotational degrees of freedom. Some integration methods support manifold
