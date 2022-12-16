@@ -94,7 +94,7 @@ class EvaluatorPairGB
 
 #endif
         }
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
         __attribute__((aligned(8)));
 #else
         __attribute__((aligned(16)));

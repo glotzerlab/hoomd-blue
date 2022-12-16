@@ -23,7 +23,7 @@
     \param inside Determines which half space is evaluated.
 */
 
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 #define ALIGN_SCALAR 4
 #else
 #define ALIGN_SCALAR 8

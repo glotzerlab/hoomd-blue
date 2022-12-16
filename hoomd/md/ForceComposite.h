@@ -62,9 +62,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     virtual void setParam(unsigned int body_typeid,
                           std::vector<unsigned int>& type,
                           std::vector<Scalar3>& pos,
-                          std::vector<Scalar4>& orientation,
-                          std::vector<Scalar>& charge,
-                          std::vector<Scalar>& diameter);
+                          std::vector<Scalar4>& orientation);
 
     //! Returns true because we compute the torque on the central particle
     virtual bool isAnisotropic()
@@ -86,7 +84,11 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     virtual void validateRigidBodies();
 
     //! Create rigid body constituent particles
-    virtual void createRigidBodies();
+    void pyCreateRigidBodies(pybind11::dict charges);
+
+    //! Create rigid body constituent particles
+    virtual void
+    createRigidBodies(const std::unordered_map<unsigned int, std::vector<Scalar>> charges);
 
     /// Construct from a Python dictionary
     void setBody(std::string typ, pybind11::object v)
@@ -98,11 +100,9 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         pybind11::list types = v["constituent_types"];
         pybind11::list positions = v["positions"];
         pybind11::list orientations = v["orientations"];
-        pybind11::list charges = v["charges"];
-        pybind11::list diameters = v["diameters"];
         auto N = pybind11::len(positions);
         // Ensure proper list lengths
-        for (const auto& list : {types, orientations, charges, diameters})
+        for (const auto& list : {types, orientations})
             {
             if (pybind11::len(list) != N)
                 {
@@ -113,8 +113,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         // extract the data from the python lists
         std::vector<Scalar3> pos_vector;
         std::vector<Scalar4> orientation_vector;
-        std::vector<Scalar> charge_vector;
-        std::vector<Scalar> diameter_vector;
         std::vector<unsigned int> type_vector;
 
         for (size_t i(0); i < N; ++i)
@@ -130,17 +128,10 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
                                                          orientation_i[2].cast<Scalar>(),
                                                          orientation_i[3].cast<Scalar>()));
 
-            charge_vector.emplace_back(charges[i].cast<Scalar>());
-            diameter_vector.emplace_back(diameters[i].cast<Scalar>());
             type_vector.emplace_back(m_pdata->getTypeByName(types[i].cast<std::string>()));
             }
 
-        setParam(m_pdata->getTypeByName(typ),
-                 type_vector,
-                 pos_vector,
-                 orientation_vector,
-                 charge_vector,
-                 diameter_vector);
+        setParam(m_pdata->getTypeByName(typ), type_vector, pos_vector, orientation_vector);
         }
 
     /// Convert parameters to a python dictionary
@@ -166,8 +157,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         pybind11::list positions;
         pybind11::list orientations;
         pybind11::list types;
-        pybind11::list charges;
-        pybind11::list diameters;
 
         for (unsigned int i = 0; i < N; i++)
             {
@@ -181,15 +170,11 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
                                      static_cast<Scalar>(h_body_orientation.data[index].z),
                                      static_cast<Scalar>(h_body_orientation.data[index].w)));
             types.append(m_pdata->getNameByType(h_body_types.data[index]));
-            charges.append(m_body_charge[body_type_id][i]);
-            diameters.append(m_body_diameter[body_type_id][i]);
             }
         pybind11::dict v;
         v["constituent_types"] = types;
         v["positions"] = positions;
         v["orientations"] = orientations;
-        v["charges"] = charges;
-        v["diameters"] = diameters;
         return std::move(v);
         }
 
@@ -202,9 +187,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     GlobalArray<Scalar4> m_body_orientation; //!< Constituent particle orientations per type id (2D)
     GlobalArray<unsigned int> m_body_len;    //!< Length of body per type id
 
-    std::vector<std::vector<Scalar>> m_body_charge;   //!< Constituent particle charges
-    std::vector<std::vector<Scalar>> m_body_diameter; //!< Constituent particle diameters
-    Index2D m_body_idx;                               //!< Indexer for body parameters
+    Index2D m_body_idx; //!< Indexer for body parameters
 
     std::vector<Scalar> m_d_max;       //!< Maximum body diameter per constituent particle type
     std::vector<bool> m_d_max_changed; //!< True if maximum body diameter changed (per type)

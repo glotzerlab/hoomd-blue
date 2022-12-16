@@ -602,8 +602,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
                 CHECK_CUDA_ERROR();
             }
 
-#if defined(ENABLE_MPI_CUDA) && 0
-#else
         // fill host send buffers on host
         unsigned int my_rank = m_exec_conf->getRank();
 
@@ -684,7 +682,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
                 h_end.data[i] = (unsigned int)(std::distance(send_map.begin(), upper));
                 }
             }
-#endif
 
         /*
          * communicate rank information (phase 1)
@@ -768,25 +765,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
             ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-#ifdef ENABLE_MPI_CUDA
-            ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf,
-                                                             access_location::device,
-                                                             access_mode::read);
-            ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf,
-                                                             access_location::device,
-                                                             access_mode::overwrite);
-
-            // MPI library may use non-zero stream
-            hipDeviceSynchronize();
-#else
             ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf,
                                                              access_location::host,
                                                              access_mode::read);
             ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf,
                                                              access_location::host,
                                                              access_mode::overwrite);
-#endif
 
             std::vector<MPI_Request> reqs;
             MPI_Request req;
@@ -990,8 +974,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
         m_gdata->removeGroups(m_gdata->getN() - new_ngroups);
         assert(m_gdata->getN() == new_ngroups);
 
-#if defined(ENABLE_MPI_CUDA) && 0
-#else
         // fill host send buffers on host
         typedef std::multimap<unsigned int, group_element_t> group_map_t;
         group_map_t group_send_map;
@@ -1059,7 +1041,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
                 h_end.data[i] = (unsigned int)std::distance(group_send_map.begin(), upper);
                 }
             }
-#endif
 
         /*
          * communicate groups (phase 2)
@@ -1140,16 +1121,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
             ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-#if defined(ENABLE_MPI_CUDA) && 0
-#else
             ArrayHandle<group_element_t> groups_sendbuf_handle(m_groups_sendbuf,
                                                                access_location::host,
                                                                access_mode::read);
             ArrayHandle<group_element_t> groups_recvbuf_handle(m_groups_recvbuf,
                                                                access_location::host,
                                                                access_mode::overwrite);
-#endif
 
             std::vector<MPI_Request> reqs;
             MPI_Request req;
@@ -1196,8 +1173,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
             }
 
         unsigned int n_recv_unique = 0;
-#if defined(ENABLE_MPI_CUDA) && 0
-#else
             {
             ArrayHandle<group_element_t> h_groups_recvbuf(m_groups_recvbuf,
                                                           access_location::host,
@@ -1225,7 +1200,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data, inMesh>::migrateGroups(bo
                 h_groups_in.data[n_recv_unique++] = it->second;
             assert(n_recv_unique == recv_map.size());
             }
-#endif
 
         unsigned int old_ngroups = m_gdata->getN();
 
@@ -1995,23 +1969,12 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors,
                                                          access_location::host,
                                                          access_mode::read);
-
-#if defined(ENABLE_MPI_CUDA)
-            ArrayHandle<detail::pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
-                                                                  access_location::device,
-                                                                  access_mode::read);
-            ArrayHandle<detail::pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
-                                                                  access_location::device,
-                                                                  access_mode::overwrite);
-#else
             ArrayHandle<detail::pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf,
                                                                   access_location::host,
                                                                   access_mode::read);
             ArrayHandle<detail::pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf,
                                                                   access_location::host,
                                                                   access_mode::overwrite);
-#endif
-
             std::vector<MPI_Request> reqs;
             MPI_Request req;
 
@@ -2028,13 +1991,8 @@ void CommunicatorGPU::migrateParticles()
                 if (n_send_ptls[ineigh])
                     {
                     MPI_Isend(gpu_sendbuf_handle.data + h_begin.data[ineigh],
-#ifndef ENABLE_MPI_CUDA
                               n_send_ptls[ineigh],
                               m_mpi_pdata_element,
-#else
-                              n_send_ptls[ineigh] * sizeof(detail::pdata_element),
-                              MPI_BYTE,
-#endif
                               neighbor,
                               1,
                               m_mpi_comm,
@@ -2046,13 +2004,8 @@ void CommunicatorGPU::migrateParticles()
                 if (n_recv_ptls[ineigh])
                     {
                     MPI_Irecv(gpu_recvbuf_handle.data + offs[ineigh],
-#ifndef ENABLE_MPI_CUDA
                               n_recv_ptls[ineigh],
                               m_mpi_pdata_element,
-#else
-                              n_recv_ptls[ineigh] * sizeof(detail::pdata_element),
-                              MPI_BYTE,
-#endif
                               neighbor,
                               1,
                               m_mpi_comm,
@@ -2543,63 +2496,6 @@ void CommunicatorGPU::exchangeGhosts()
 
             {
             unsigned int offs = 0;
-#ifdef ENABLE_MPI_CUDA
-            // recv buffers, write directly into particle data arrays
-            offs = first_idx;
-            ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_pdata->getTags(),
-                                                               access_location::device,
-                                                               access_mode::readwrite);
-            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pdata->getPositions(),
-                                                          access_location::device,
-                                                          access_mode::readwrite);
-            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_pdata->getVelocities(),
-                                                          access_location::device,
-                                                          access_mode::readwrite);
-            ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_pdata->getCharges(),
-                                                            access_location::device,
-                                                            access_mode::readwrite);
-            ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_pdata->getDiameters(),
-                                                              access_location::device,
-                                                              access_mode::readwrite);
-            ArrayHandle<unsigned int> body_ghost_recvbuf_handle(m_pdata->getBodies(),
-                                                                access_location::device,
-                                                                access_mode::readwrite);
-            ArrayHandle<int3> image_ghost_recvbuf_handle(m_pdata->getImages(),
-                                                         access_location::device,
-                                                         access_mode::readwrite);
-            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_pdata->getOrientationArray(),
-                                                                  access_location::device,
-                                                                  access_mode::readwrite);
-
-            // send buffers
-            ArrayHandle<unsigned int> tag_ghost_sendbuf_handle(m_tag_ghost_sendbuf,
-                                                               access_location::device,
-                                                               access_mode::read);
-            ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf,
-                                                          access_location::device,
-                                                          access_mode::read);
-            ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf,
-                                                          access_location::device,
-                                                          access_mode::read);
-            ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf,
-                                                            access_location::device,
-                                                            access_mode::read);
-            ArrayHandle<unsigned int> body_ghost_sendbuf_handle(m_body_ghost_sendbuf,
-                                                                access_location::device,
-                                                                access_mode::read);
-            ArrayHandle<int3> image_ghost_sendbuf_handle(m_image_ghost_sendbuf,
-                                                         access_location::device,
-                                                         access_mode::read);
-            ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf,
-                                                              access_location::device,
-                                                              access_mode::read);
-            ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf,
-                                                                  access_location::device,
-                                                                  access_mode::read);
-
-            // MPI library may use non-zero stream
-            hipDeviceSynchronize();
-#else
             // recv buffers
             ArrayHandleAsync<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf,
                                                                     access_location::host,
@@ -2653,7 +2549,6 @@ void CommunicatorGPU::exchangeGhosts()
 
             // lump together into one synchronization call
             hipDeviceSynchronize();
-#endif
 
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors,
                                                          access_location::host,
@@ -2925,11 +2820,6 @@ void CommunicatorGPU::exchangeGhosts()
             std::vector<MPI_Status> stats(reqs.size());
             MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
             } // end ArrayHandle scope
-
-#ifdef ENABLE_MPI_CUDA
-        // MPI library may use non-zero stream
-        hipDeviceSynchronize();
-#else
             // only unpack in non-CUDA MPI builds
             {
             // access receive buffers
@@ -3013,8 +2903,6 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-#endif
-
         if (flags[comm_flag::tag])
             {
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(),
@@ -3137,41 +3025,7 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
 
             {
             unsigned int offs = 0;
-// access particle data
-#ifdef ENABLE_MPI_CUDA
-            offs = first_idx;
-            // recv buffers, directly write into particle data arrays
-            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pdata->getPositions(),
-                                                          access_location::device,
-                                                          access_mode::readwrite);
-            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_pdata->getVelocities(),
-                                                          access_location::device,
-                                                          access_mode::readwrite);
-            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_pdata->getOrientationArray(),
-                                                                  access_location::device,
-                                                                  access_mode::readwrite);
-
-            // send buffers
-            ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf,
-                                                          access_location::device,
-                                                          access_mode::read);
-            ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf,
-                                                          access_location::device,
-                                                          access_mode::read);
-            ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf,
-                                                                  access_location::device,
-                                                                  access_mode::read);
-
-            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors,
-                                                         access_location::host,
-                                                         access_mode::read);
-            ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin,
-                                                    access_location::host,
-                                                    access_mode::read);
-
-            // MPI library may use non-zero stream
-            hipDeviceSynchronize();
-#else
+            // access particle data
             // recv buffers
             ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf,
                                                           access_location::host,
@@ -3204,7 +3058,6 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
             // lump together into one synchronization call
             hipEventRecord(m_event);
             hipEventSynchronize(m_event);
-#endif
 
             // access send buffers
             m_reqs.clear();
@@ -3328,7 +3181,6 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
 
         if (!m_comm_pending)
             {
-#ifndef ENABLE_MPI_CUDA
                 // only unpack in non-CUDA MPI builds
                 {
                 // access receive buffers
@@ -3382,7 +3234,6 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }
-#endif
             }
         } // end main communication loop
     }
@@ -3401,10 +3252,6 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
         std::vector<MPI_Status> stats(m_reqs.size());
         MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
 
-#ifdef ENABLE_MPI_CUDA
-        // MPI library may use non-zero stream
-        hipDeviceSynchronize();
-#else
         // only unpack in non-CUDA-MPI builds
         assert(m_num_stages == 1);
         unsigned int stage = 0;
@@ -3463,7 +3310,6 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-#endif
         }
     }
 

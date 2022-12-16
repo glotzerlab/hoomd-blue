@@ -134,8 +134,6 @@ if (ENABLE_HIP)
     target_link_libraries(_mpcd PUBLIC CUDA::cudadevrt)
 endif (ENABLE_HIP)
 
-fix_cudart_rpath(_mpcd)
-
 # install the library
 install(TARGETS _mpcd EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/mpcd

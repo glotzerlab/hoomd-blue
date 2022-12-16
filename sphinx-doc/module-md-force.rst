@@ -12,9 +12,10 @@ md.force
     :nosignatures:
 
     Force
-    Custom
     Active
     ActiveOnManifold
+    Constant
+    Custom
 
 .. rubric:: Details
 
@@ -22,9 +23,6 @@ md.force
     :synopsis: Apply forces to particles.
 
     .. autoclass:: Force
-        :members:
-
-    .. autoclass:: Custom
         :members:
 
     .. autoclass:: Active
@@ -35,3 +33,9 @@ md.force
     .. autoclass:: ActiveOnManifold
         :show-inheritance:
         :members: create_diffusion_updater
+
+    .. autoclass:: Constant
+        :members:
+
+    .. autoclass:: Custom
+        :members:

@@ -59,8 +59,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     endif()
     target_link_libraries(${CUR_TEST} _md ${additional_link_options} ${PYTHON_LIBRARIES})
 
-    fix_cudart_rpath(${CUR_TEST})
-
 endforeach (CUR_TEST)
 
 # add non-MPI tests to test list first

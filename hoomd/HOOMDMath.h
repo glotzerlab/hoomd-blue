@@ -54,8 +54,7 @@ typedef float2 hipfftComplex;
 typedef double2 hipfftDoubleComplex;
 #endif
 
-// Handle both single and double precision through a define
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 //! Floating point type (single precision)
 typedef float Scalar;
 //! Floating point type with x,y elements (single precision)
@@ -64,7 +63,13 @@ typedef float2 Scalar2;
 typedef float3 Scalar3;
 //! Floating point type with x,y,z,w elements (single precision)
 typedef float4 Scalar4;
-#else
+
+typedef float LongReal;
+typedef float2 LongReal2;
+typedef float3 LongReal3;
+typedef float4 LongReal4;
+
+#elif HOOMD_LONGREAL_SIZE == 64
 //! Floating point type (double precision)
 typedef double Scalar;
 //! Floating point type with x,y elements (double precision)
@@ -73,6 +78,28 @@ typedef double2 Scalar2;
 typedef double3 Scalar3;
 //! Floating point type with x,y,z,w elements (double precision)
 typedef double4 Scalar4;
+
+typedef double LongReal;
+typedef double2 LongReal2;
+typedef double3 LongReal3;
+typedef double4 LongReal4;
+
+#else
+#error HOOMD_LONGREAL_SIZE must be 32 or 64.
+#endif
+
+#if HOOMD_SHORTREAL_SIZE == 32
+typedef float ShortReal;
+typedef float2 ShortReal2;
+typedef float3 ShortReal3;
+typedef float4 ShortReal4;
+#elif HOOMD_SHORTREAL_SIZE == 64
+typedef double ShortReal;
+typedef double2 ShortReal2;
+typedef double3 ShortReal3;
+typedef double4 ShortReal4;
+#else
+#error HOOMD_SHORTREAL_SIZE must be 32 or 64.
 #endif
 
 //! make a scalar2 value
@@ -226,7 +253,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-#if defined(__HIP_DEVICE_COMPILE_) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_NVCC__)
     return ::rsqrt(x);
 #else
     return 1.0 / ::sqrt(x);

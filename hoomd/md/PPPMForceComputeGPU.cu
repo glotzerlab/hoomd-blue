@@ -5,7 +5,7 @@
 #include "hoomd/TextureTools.h"
 
 // __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 #define __scalar2int_rd __float2int_rd
 #else
 #define __scalar2int_rd __double2int_rd

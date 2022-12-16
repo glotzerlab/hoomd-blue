@@ -27,14 +27,14 @@ struct HOOMDBuffer
     {
     void* m_data;
     std::string m_typestr;
-    std::vector<ssize_t> m_shape;
-    std::vector<ssize_t> m_strides;
+    std::vector<size_t> m_shape;
+    std::vector<size_t> m_strides;
     bool m_read_only;
 
     HOOMDBuffer(void* data,
                 std::string typestr,
-                std::vector<ssize_t> shape,
-                std::vector<ssize_t> strides,
+                std::vector<size_t> shape,
+                std::vector<size_t> strides,
                 bool read_only)
         : m_data(data), m_typestr(typestr), m_shape(shape), m_strides(strides),
           m_read_only(read_only)
@@ -58,16 +58,16 @@ struct HOOMDBuffer
 struct HOOMDHostBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::host;
-    ssize_t m_itemsize;
-    ssize_t m_dimensions;
+    size_t m_itemsize;
+    size_t m_dimensions;
 
     HOOMDHostBuffer(void* data,
                     std::string typestr,
-                    std::vector<ssize_t> shape,
-                    std::vector<ssize_t> strides,
+                    std::vector<size_t> shape,
+                    std::vector<size_t> strides,
                     bool read_only,
-                    ssize_t itemsize,
-                    ssize_t dimensions)
+                    size_t itemsize,
+                    size_t dimensions)
         : HOOMDBuffer(data, typestr, shape, strides, read_only), m_itemsize(itemsize),
           m_dimensions(dimensions)
         {
@@ -75,7 +75,7 @@ struct HOOMDHostBuffer : public HOOMDBuffer
 
     template<class T>
     static HOOMDHostBuffer
-    make(T* data, std::vector<ssize_t> shape, std::vector<ssize_t> strides, bool read_only)
+    make(T* data, std::vector<size_t> shape, std::vector<size_t> strides, bool read_only)
         {
         return HOOMDHostBuffer(data,
                                pybind11::format_descriptor<T>::format(),
@@ -92,8 +92,8 @@ struct HOOMDHostBuffer : public HOOMDBuffer
                                      m_itemsize,
                                      m_typestr,
                                      m_dimensions,
-                                     std::vector<ssize_t>(m_shape),
-                                     std::vector<ssize_t>(m_strides));
+                                     std::vector<size_t>(m_shape),
+                                     std::vector<size_t>(m_strides));
         }
     };
 
@@ -108,8 +108,8 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
 
     HOOMDDeviceBuffer(void* data,
                       std::string typestr,
-                      std::vector<ssize_t> shape,
-                      std::vector<ssize_t> strides,
+                      std::vector<size_t> shape,
+                      std::vector<size_t> strides,
                       bool read_only)
         : HOOMDBuffer(data, typestr, shape, strides, read_only)
         {
@@ -117,7 +117,7 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
 
     template<class T>
     static HOOMDDeviceBuffer
-    make(T* data, std::vector<ssize_t> shape, std::vector<ssize_t> strides, bool read_only)
+    make(T* data, std::vector<size_t> shape, std::vector<size_t> strides, bool read_only)
         {
         return HOOMDDeviceBuffer(data,
                                  pybind11::format_descriptor<T>::format(),
@@ -165,32 +165,29 @@ struct HOOMDDeviceBuffer : public HOOMDBuffer
     };
 #endif
 
-enum class GhostDataFlag
-    {
-    standard,
-    ghost,
-    both
-    };
-
-/// Base class for accessing Global or GPU arrays/vectors in Python.
-/** Template Parameters:
+///
+/** @brief Base class for accessing Global or GPU arrays/vectors in Python.
+ *
+ *  Template Parameters:
  *  Output - the output buffer class for the class should be HOOMDDeviceBuffer
  *  or HOOMDHostBuffer
  *  Data - the class of the object we wish to expose data from
  *
- *  This class only allows access when the m_in_manager flag is true. The flag
- *  should only be changed when entering or exiting a Python context manager.
- *  The design of Python access is to restrict access to within a context
- *  manager to prevent invalid reads/writes in Python (and SEGFAULTS).
+ *  This class only allows access when the m_in_manager flag is true. The flag should only be
+ *  changed when entering or exiting a Python context manager. The design of Python access is to
+ *  restrict access to within a context manager to prevent invalid reads/writes in Python (and
+ *  SEGFAULTS).
  *
- *  The main methods of LocalDataAccess are getBuffer and getGlobalBuffer which
- *  provide a way to automatically convert an Global/GPUArray into an object of
- *  type Output. All classes that expose arrays in Python should use these
- *  classes.
+ *  The main methods of LocalDataAccess is getBuffer provide a way to automatically convert an
+ *  Global/GPUArray into an object of type Output.
  *
- *  This class stores ArrayHandles using a unique pointer to prevent a resource
- *  from being dropped before the object is destroyed. This can be simplified if
- *  a move constructor for ArrayHandle is created.
+ *  This class stores ArrayHandles using a unique pointer to prevent a resource from being dropped
+ *  before the object is destroyed. This can be simplified if a move constructor for ArrayHandle is
+ *  created.
+ *
+ *  For classes that expose per-particle,bond,... data see SnapshotLocalDataAccess.
+ *  Use this class when no such data is required or when the logic is
+ *  superfluous see hoomd/md/NeighborList.h for an example.
  */
 template<class Output, class Data> class LocalDataAccess
     {
@@ -217,8 +214,130 @@ template<class Output, class Data> class LocalDataAccess
         }
 
     protected:
-    /// Convert Global/GPUArray or vector into an Ouput object for Python
-    /** This function is for arrays that are of a size less than or equal to
+    /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.
+     *
+     * This function is for general N dimensional arrays. For dimensions greater
+     * than 2 strides must be explictly specified.
+     *
+     *  Template parameters:
+     *  T: the value stored in the by the internal array (i.e. the template
+     *  parameter of the ArrayHandle)
+     *  S: the exposed type of data to Python
+     *  U: the templated array class returned by the parameter
+     *  get_array_func. It is templated off of T (which means that if
+     *  U=GlobalArray then the full type is GlobalArray<T>)
+     *
+     *  Arguments:
+     *  handle: a reference to the unique_ptr that holds the ArrayHandle.
+     *  get_array_func: the method of m_data to use to access the array.
+     *  shape: the shape of the underlying array to expose.
+     *  bufferWriteable: Whether this buffer should be read-only or not. If false, the exposed
+     *  buffer is read-only. If true, the buffer is writeable only if the ghost data flag is
+     *  standard.
+     *  offset: the offset in bytes from the start of the array to the start of the exposed array in
+     *  Python (defaults to no offset).
+     *  strides: the strides in bytes of the array (defaults to sizeof(T) or {sizeof(S), sizeof(T)}
+     *  depending on dimension).
+     */
+    template<class T, class S, template<class> class U = GlobalArray>
+    Output getBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
+                     const U<T>& (Data::*get_array_func)() const,
+                     const std::vector<size_t>& shape,
+                     bool bufferWriteable = true,
+                     size_t offset = 0,
+                     std::vector<size_t> strides = {})
+        {
+        checkManager();
+
+        bool read_only = !bufferWriteable;
+        updateHandle(handle, get_array_func, read_only);
+
+        T* _data = handle.get()->data;
+
+        S* data = (S*)(((char*)_data) + offset);
+
+        if (strides.size() == 0 && shape.size() == 1)
+            {
+            strides = std::vector<size_t>({sizeof(T)});
+            }
+        else if (strides.size() == 0 && shape.size() == 2)
+            {
+            strides = std::vector<size_t>({sizeof(T), sizeof(S)});
+            }
+        if (strides.size() != shape.size())
+            {
+            throw std::runtime_error("Provides stride and shape do not match.");
+            }
+        return Output::make(data, shape, strides, read_only);
+        }
+
+    // clear should remove any references to ArrayHandle objects so the
+    // handle can be released for other objects.
+    virtual void clear() = 0;
+
+    /// Ensure that arrays are not accessed outside context manager.
+    inline void checkManager()
+        {
+        if (!m_in_manager)
+            {
+            throw std::runtime_error("Cannot access arrays outside context manager.");
+            }
+        }
+
+    /// Helper function to acquire array handle if not already acquired.
+    template<class T, template<class> class U>
+    void updateHandle(std::unique_ptr<ArrayHandle<T>>& handle,
+                      const U<T>& (Data::*get_array_func)() const,
+                      bool read_only)
+        {
+        if (!handle)
+            {
+            auto mode = read_only ? access_mode::read : access_mode::readwrite;
+            handle = std::move(std::unique_ptr<ArrayHandle<T>>(
+                new ArrayHandle<T>((m_data.*get_array_func)(), Output::device, mode)));
+            }
+        }
+
+    /// object to access array data from
+    Data& m_data;
+    /// flag for being inside Python context manager
+    bool m_in_manager;
+    };
+
+enum class GhostDataFlag
+    {
+    standard,
+    ghost,
+    both
+    };
+
+///
+/** @brief Base class for accessing per-* Global or GPU arrays/vectors in Python.
+ *
+ *  Template Parameters:
+ *  Output - the output buffer class for the class should be HOOMDDeviceBuffer
+ *  or HOOMDHostBuffer
+ *  Data - the class of the object we wish to expose data from
+ *
+ *  The main methods of LocalDataAccess are getLocalBuffer and getGlobalBuffer
+ *  which provide a way to automatically convert an Global/GPUArray into an
+ *  object of type Output of a MPI local, MPI local with ghosts, or global size
+ *  (for particles bonds, etc.).
+ */
+template<class Output, class Data> class GhostLocalDataAccess : public LocalDataAccess<Output, Data>
+    {
+    public:
+    inline GhostLocalDataAccess(Data& data, size_t n, size_t n_ghosts, size_t n_global)
+        : LocalDataAccess<Output, Data>(data), m_n(n), m_n_ghosts(n_ghosts), m_n_global(n_global)
+        {
+        }
+
+    virtual ~GhostLocalDataAccess() = default;
+
+    protected:
+    /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.
+     *
+     *  This function is for arrays that are of a size less than or equal to
      *  their global size. An example is particle positions. On each MPI
      *  rank or GPU, the number of positions a ranks knows about (including
      *  ghost particles) is less than or equal to the number of total
@@ -249,55 +368,48 @@ template<class Output, class Data> class LocalDataAccess
      *  {sizeof(S), sizeof(T)} depending on dimension).
      */
     template<class T, class S, template<class> class U = GlobalArray>
-    Output getBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
-                     const U<T>& (Data::*get_array_func)() const,
-                     GhostDataFlag flag,
-                     bool bufferWriteable,
-                     unsigned int second_dimension_size = 0,
-                     ssize_t offset = 0,
-                     std::vector<ssize_t> strides = {})
+    Output getLocalBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
+                          const U<T>& (Data::*get_array_func)() const,
+                          GhostDataFlag flag,
+                          bool bufferWriteable,
+                          unsigned int second_dimension_size = 0,
+                          size_t offset = 0,
+                          std::vector<size_t> strides = {})
         {
-        checkManager();
-
-        bool read_only = !bufferWriteable;
-        if (flag != GhostDataFlag::standard && read_only == false)
+        if (flag != GhostDataFlag::standard)
             {
-            read_only = false;
+            bufferWriteable = false;
             }
 
-        updateHandle(handle, get_array_func, read_only);
-
-        auto N = m_data.getN();
-        auto ghostN = m_data.getNGhosts();
-        auto size = N;
-        T* _data = handle.get()->data;
+        auto size = m_n;
 
         if (flag == GhostDataFlag::both)
             {
-            size += ghostN;
+            size += m_n_ghosts;
             }
         else if (flag == GhostDataFlag::ghost)
             {
-            _data += N;
-            size = ghostN;
+            offset += m_n * sizeof(T);
+            size = m_n_ghosts;
             }
-        S* data = (S*)(((char*)_data) + offset);
 
-        std::vector<ssize_t> shape {size, second_dimension_size};
-        if (strides.size() == 0 && second_dimension_size == 0)
+        std::vector<size_t> shape {size, second_dimension_size};
+        if (second_dimension_size == 0)
             {
             shape.pop_back();
-            strides = std::vector<ssize_t>({sizeof(T)});
             }
-        else if (strides.size() == 0 && second_dimension_size != 0)
-            {
-            strides = std::vector<ssize_t>({sizeof(T), sizeof(S)});
-            }
-        return Output::make(data, shape, strides, read_only);
+
+        return this->template getBuffer<T, S, U>(handle,
+                                                 get_array_func,
+                                                 shape,
+                                                 bufferWriteable,
+                                                 offset,
+                                                 strides);
         }
 
-    /// Convert Global/GPUArray or vector into an Ouput object for Python
-    /** This function is for arrays that are of a size equal to their global
+    /** @brief Convert Global/GPUArray or vector into an Ouput object for Python.
+     *
+     *  This function is for arrays that are of a size equal to their global
      *  size. An example is the reverse tag index. On each MPI rank or GPU,
      *  the size of the particle reverse tag index is equal to the entire
      *  number of particles in the system.  For arrays that are the sized
@@ -320,52 +432,29 @@ template<class Output, class Data> class LocalDataAccess
     template<class T, template<class> class U = GlobalArray>
     Output getGlobalBuffer(std::unique_ptr<ArrayHandle<T>>& handle,
                            const U<T>& (Data::*get_array_func)() const,
-                           bool read_only = true)
+                           bool bufferWriteable,
+                           unsigned int second_dimension_size = 0,
+                           size_t offset = 0,
+                           std::vector<size_t> strides = {})
         {
-        checkManager();
-        updateHandle(handle, get_array_func, read_only);
+        std::vector<size_t> shape {m_n_global, second_dimension_size};
+        if (second_dimension_size == 0)
+            {
+            shape.pop_back();
+            }
 
-        auto size = m_data.getNGlobal();
-        unsigned int* data = handle.get()->data;
-
-        return Output::make(data,
-                            std::vector<ssize_t>({size}),
-                            std::vector<ssize_t>({sizeof(T)}),
-                            true);
+        return this->template getBuffer<T, T, U>(handle,
+                                                 get_array_func,
+                                                 shape,
+                                                 bufferWriteable,
+                                                 offset,
+                                                 strides);
         }
-
-    // clear should remove any references to ArrayHandle objects so the
-    // handle can be released for other objects.
-    virtual void clear() = 0;
 
     private:
-    /// Ensure that arrays are not accessed outside context manager.
-    inline void checkManager()
-        {
-        if (!m_in_manager)
-            {
-            throw std::runtime_error("Cannot access arrays outside context manager.");
-            }
-        }
-
-    /// Helper function to acquire array handle if not already acquired.
-    template<class T, template<class> class U>
-    void updateHandle(std::unique_ptr<ArrayHandle<T>>& handle,
-                      const U<T>& (Data::*get_array_func)() const,
-                      bool read_only)
-        {
-        if (!handle)
-            {
-            auto mode = read_only ? access_mode::read : access_mode::readwrite;
-            handle = std::move(std::unique_ptr<ArrayHandle<T>>(
-                new ArrayHandle<T>((m_data.*get_array_func)(), Output::device, mode)));
-            }
-        }
-
-    /// object to access array data from
-    Data& m_data;
-    /// flag for being inside Python context manager
-    bool m_in_manager;
+    size_t m_n;
+    size_t m_n_ghosts;
+    size_t m_n_global;
     };
 
 namespace detail

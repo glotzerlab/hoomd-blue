@@ -853,7 +853,7 @@ void LBVHWrapper::build(const Scalar4* points,
                         hipStream_t stream,
                         unsigned int block_size)
     {
-#ifndef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 64
     float3 lof = make_float3(double2float_rd(lo.x), double2float_rd(lo.y), double2float_rd(lo.z));
     float3 hif = make_float3(double2float_ru(hi.x), double2float_ru(hi.y), double2float_ru(hi.z));
 #else
