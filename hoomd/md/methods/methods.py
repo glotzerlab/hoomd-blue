@@ -14,6 +14,7 @@ from hoomd.variant import Variant
 from collections.abc import Sequence
 from .thermostats import (Thermostat, ConstantEnergy)
 
+
 class Method(AutotunedObject):
     """Base class integration method.
 
@@ -39,6 +40,7 @@ class Thermostatted(Method):
         Users should use the subclasses and not instantiate `Thermostatted`
         directly
     """
+
     def __init__(self):
         self._thermostat_group = None
         self._thermostat_thermoCompute = None
@@ -119,9 +121,7 @@ class ConstantVolume(Thermostatted):
                                    kT=Variant,
                                    thermostat=OnlyTypes(Thermostat,
                                                         allow_none=True))
-        param_dict.update(
-            dict(filter=filter,
-                 thermostat=thermostat))
+        param_dict.update(dict(filter=filter, thermostat=thermostat))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -151,7 +151,8 @@ class ConstantVolume(Thermostatted):
             thermostat = self.thermostat
         thermostat._attach(self._simulation)
 
-        self._cpp_obj = my_class(cpp_sys_def, group, thermo, thermostat._cpp_obj)
+        self._cpp_obj = my_class(cpp_sys_def, group, thermo,
+                                 thermostat._cpp_obj)
         super()._attach_hook()
 
 
@@ -385,8 +386,8 @@ class ConstantPressure(Thermostatted):
         thermostat._attach(self._simulation)
 
         self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
-                                thermo_full_step,  self.tauS,
-                                self.S, self.couple, self.box_dof,
+                                thermo_full_step, self.tauS, self.S,
+                                self.couple, self.box_dof,
                                 self.thermostat._cpp_obj, self.gamma)
 
         # Attach param_dict and typeparam_dict
@@ -423,8 +424,7 @@ class ConstantPressure(Thermostatted):
                                "thermalize_barostat_dof")
 
         self._simulation._warn_if_seed_unset()
-        self._cpp_obj.thermalizeBarostatDOF(
-            self._simulation.timestep)
+        self._cpp_obj.thermalizeBarostatDOF(self._simulation.timestep)
 
     @hoomd.logging.log(requires_run=True)
     def barostat_energy(self):

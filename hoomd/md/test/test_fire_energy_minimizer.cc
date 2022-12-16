@@ -32,8 +32,8 @@ using namespace hoomd::md;
 
 typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 
-#include "hoomd/test/upp11_config.h"
 #include "hoomd/md/TwoStepConstantVolumeGPU.h"
+#include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN();
 
@@ -41,8 +41,9 @@ HOOMD_UP_MAIN();
 typedef std::function<std::shared_ptr<FIREEnergyMinimizer>(std::shared_ptr<SystemDefinition> sysdef,
                                                            Scalar dT)>
     fire_creator;
-typedef std::function<std::shared_ptr<TwoStepConstantVolume>(std::shared_ptr<SystemDefinition> sysdef,
-                                                  std::shared_ptr<ParticleGroup> group)>
+typedef std::function<std::shared_ptr<TwoStepConstantVolume>(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group)>
     nve_creator;
 
 //! FIREEnergyMinimizer creator
@@ -53,22 +54,31 @@ base_class_fire_creator(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
     }
 
 //! TwoStepNVE factory for the unit tests
-std::shared_ptr<TwoStepConstantVolume> base_class_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
-                                                   std::shared_ptr<ParticleGroup> group)
+std::shared_ptr<TwoStepConstantVolume>
+base_class_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group)
     {
     auto thermo = std::make_shared<ComputeThermo>(sysdef, group);
-    auto tstat = std::make_shared<Thermostat>(std::make_shared<VariantConstant>(1.), group, thermo, sysdef);
-    return std::shared_ptr<TwoStepConstantVolume>(new TwoStepConstantVolume(sysdef, group, thermo, tstat));
+    auto tstat = std::make_shared<Thermostat>(std::make_shared<VariantConstant>(1.),
+                                              group,
+                                              thermo,
+                                              sysdef);
+    return std::shared_ptr<TwoStepConstantVolume>(
+        new TwoStepConstantVolume(sysdef, group, thermo, tstat));
     }
 
 #ifdef ENABLE_HIP
 //! TwoStepNVEGPU factory for the unit tests
 std::shared_ptr<TwoStepConstantVolume> gpu_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
-                                            std::shared_ptr<ParticleGroup> group)
+                                                       std::shared_ptr<ParticleGroup> group)
     {
     auto thermo = std::make_shared<ComputeThermoGPU>(sysdef, group);
-        auto tstat = std::make_shared<Thermostat>(std::make_shared<VariantConstant>(1.), group, thermo, sysdef);
-    return std::shared_ptr<TwoStepConstantVolume>(new TwoStepConstantVolumeGPU(sysdef, group, thermo, tstat));
+    auto tstat = std::make_shared<Thermostat>(std::make_shared<VariantConstant>(1.),
+                                              group,
+                                              thermo,
+                                              sysdef);
+    return std::shared_ptr<TwoStepConstantVolume>(
+        new TwoStepConstantVolumeGPU(sysdef, group, thermo, tstat));
     }
 
 //! FIREEnergyMinimizerGPU creator

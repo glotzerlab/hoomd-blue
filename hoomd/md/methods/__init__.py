@@ -16,5 +16,6 @@ Thermostatted methods require usage of a thermostat, see
 """
 
 from . import rattle
-from .methods import (Method, Langevin, Brownian, Thermostatted, ConstantVolume, ConstantPressure, DisplacementCapped, OverdampedViscous)
+from .methods import (Method, Langevin, Brownian, Thermostatted, ConstantVolume,
+                      ConstantPressure, DisplacementCapped, OverdampedViscous)
 from .thermostats import (Thermostat, Bussi, Berendsen)

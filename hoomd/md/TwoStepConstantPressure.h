@@ -8,8 +8,8 @@
 #include "IntegrationMethodTwoStep.h"
 //#include "TwoStepConstantVolume.h"
 
-#include "hoomd/Variant.h"
 #include "Thermostat.h"
+#include "hoomd/Variant.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -49,7 +49,6 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
         baro_yz = 32
         };
 
-
     /// Barostat variables
     struct Barostat
         {
@@ -75,8 +74,6 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
         }
 
     void thermalizeBarostatDOF(uint64_t timestep);
-
-
 
     // declaration get function of couple
     std::string getCouple();
@@ -145,16 +142,18 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
 
     Scalar getBarostatEnergy(uint64_t timestep);
 
-    void setThermostat(std::shared_ptr<Thermostat> thermostat){
+    void setThermostat(std::shared_ptr<Thermostat> thermostat)
+        {
         m_thermostat = thermostat;
-    }
+        }
 
     protected:
-    Barostat m_barostat{};     //!< barostat degrees of freedom
+    Barostat m_barostat {}; //!< barostat degrees of freedom
 
-    std::vector<std::shared_ptr<Variant>>  m_S;    //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
-    Scalar m_V; //!< Current volume
-    Scalar m_tauS;                //!< tauS value for the barostat
+    std::vector<std::shared_ptr<Variant>>
+        m_S;       //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
+    Scalar m_V;    //!< Current volume
+    Scalar m_tauS; //!< tauS value for the barostat
     Scalar m_ndof;
     couplingMode m_couple;     //!< Coupling of diagonal elements
     unsigned int m_flags;      //!< Coupling flags for barostat
@@ -163,9 +162,11 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     Scalar m_mat_exp_r_int[6]; //!< Integrated matrix exp. for velocity update (upper triangular)
     Scalar m_gamma;
     std::shared_ptr<Thermostat> m_thermostat;
-    std::shared_ptr<ComputeThermo>  m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t
-    std::shared_ptr<ComputeThermo>  m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
-    bool m_rescale_all; //!< If true, rescale all particles in the system irrespective of group
+    std::shared_ptr<ComputeThermo>
+        m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t
+    std::shared_ptr<ComputeThermo>
+        m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
+    bool m_rescale_all;     //!< If true, rescale all particles in the system irrespective of group
 
     //! Helper function to update the propagator elements
     void updatePropagator();
@@ -175,9 +176,8 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
 
     //! Helper function to advance the barostat parameters
     virtual void advanceBarostat(uint64_t timestep);
-
     };
 
-    } // namespace hoomd
+    } // namespace hoomd::md
 
 #endif // HOOMD_TWOSTEPCONSTANTPRESSURE_H

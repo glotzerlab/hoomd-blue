@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-
 #include "TwoStepConstantPressureGPU.cuh"
 #include "TwoStepConstantPressureGPU.h"
 #include "TwoStepNVEGPU.cuh"
@@ -9,17 +8,27 @@
 namespace hoomd::md
     {
 
-TwoStepConstantPressureGPU::TwoStepConstantPressureGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                       std::shared_ptr<ParticleGroup> group,
-                                                       std::shared_ptr<ComputeThermo> thermo_half_step,
-                                                       std::shared_ptr<ComputeThermo> thermo_full_step,
-                                                       Scalar tauS,
-                                                       const std::vector<std::shared_ptr<Variant>>& S,
-                                                       const std::string& couple,
-                                                       const std::vector<bool>& flags,
-                                                       std::shared_ptr<Thermostat> thermostat,
-                                                       Scalar gamma) :
-        TwoStepConstantPressure(sysdef, group, thermo_half_step, thermo_full_step, tauS, S, couple, flags, thermostat, gamma)
+TwoStepConstantPressureGPU::TwoStepConstantPressureGPU(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group,
+    std::shared_ptr<ComputeThermo> thermo_half_step,
+    std::shared_ptr<ComputeThermo> thermo_full_step,
+    Scalar tauS,
+    const std::vector<std::shared_ptr<Variant>>& S,
+    const std::string& couple,
+    const std::vector<bool>& flags,
+    std::shared_ptr<Thermostat> thermostat,
+    Scalar gamma)
+    : TwoStepConstantPressure(sysdef,
+                              group,
+                              thermo_half_step,
+                              thermo_full_step,
+                              tauS,
+                              S,
+                              couple,
+                              flags,
+                              thermostat,
+                              gamma)
     {
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                        m_exec_conf,
@@ -70,13 +79,14 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     advanceBarostat(timestep);
 
-        // Martyna-Tobias-Klein correction
-        Scalar mtk = exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
-        const auto rf = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
-        std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
+    // Martyna-Tobias-Klein correction
+    Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
+    const auto rf = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
+    std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
 
     // Martyna-Tobias-Klein correction
-    //Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
+    // Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
 
     // update the propagator matrix using current barostat momenta
     updatePropagator();
@@ -164,7 +174,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        //Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
+        // Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform the particle update on the GPU
         m_exec_conf->beginMultiGPU();
@@ -235,7 +245,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        //Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
+        // Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
@@ -247,7 +257,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getGPUPartition(),
                                          m_deltaT,
-                                         rescalingFactors[1],//exp_thermo_fac_rot,
+                                         rescalingFactors[1], // exp_thermo_fac_rot,
                                          m_tuner_angular_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -275,7 +285,8 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // Martyna-Tobias-Klein correction
-    Scalar mtk = exp(-Scalar(1.0/2.0) * m_deltaT * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
+    Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
     const auto rf = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
     std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
         {
@@ -292,7 +303,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        //Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
+        // Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform second half step of NPT integration (update velocities and accelerations)
         m_exec_conf->beginMultiGPU();
@@ -305,7 +316,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                          d_net_force.data,
                                          m_mat_exp_v,
                                          m_deltaT,
-                                         rescalingFactors[0],//exp_thermo_fac,
+                                         rescalingFactors[0], // exp_thermo_fac,
                                          m_tuner_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -335,7 +346,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        //Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
+        // Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
@@ -347,7 +358,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getGPUPartition(),
                                          m_deltaT,
-                                         rescalingFactors[1],//exp_thermo_fac_rot,
+                                         rescalingFactors[1], // exp_thermo_fac_rot,
                                          m_tuner_angular_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -361,13 +372,24 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
     advanceBarostat(timestep + 1);
     }
 
-namespace detail{
-void export_TwoStepConstantPressureGPU(pybind11::module& m){
-    pybind11::class_<TwoStepConstantPressureGPU, TwoStepConstantPressure, std::shared_ptr<TwoStepConstantPressureGPU>>(m, "TwoStepConstantPressureGPU")
-    .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>, std::shared_ptr<ComputeThermo>, Scalar,
-                            std::vector<std::shared_ptr<Variant>>, std::string, std::vector<bool>, std::shared_ptr<Thermostat>, Scalar>());
+namespace detail
+    {
+void export_TwoStepConstantPressureGPU(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepConstantPressureGPU,
+                     TwoStepConstantPressure,
+                     std::shared_ptr<TwoStepConstantPressureGPU>>(m, "TwoStepConstantPressureGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::vector<std::shared_ptr<Variant>>,
+                            std::string,
+                            std::vector<bool>,
+                            std::shared_ptr<Thermostat>,
+                            Scalar>());
     }
-    }
+    } // namespace detail
 
-    }
+    } // namespace hoomd::md
