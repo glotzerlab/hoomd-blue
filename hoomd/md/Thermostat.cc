@@ -25,10 +25,10 @@ void export_MTTKThermostat(pybind11::module& m)
                             std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<SystemDefinition>,
                             Scalar>())
-        .def_property("translationalDOF",
+        .def_property("translational_thermostat_dof",
                       &MTTKThermostat::getTranslationalDOF,
                       &MTTKThermostat::setTranslationalDOF)
-        .def_property("rotationalDOF",
+        .def_property("rotational_thermostat_dof",
                       &MTTKThermostat::getRotationalDOF,
                       &MTTKThermostat::setRotationalDOF)
         .def_property("tau", &MTTKThermostat::getTau, &MTTKThermostat::setTau);

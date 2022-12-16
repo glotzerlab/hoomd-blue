@@ -1,7 +1,11 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Thermostats for thermostatted integrators."""
+"""Provide classes for thermostatting simulations.
+
+Classes are for use with `hoomd.md.methods.ConstantVolume` and
+`hoomd.md.methods.ConstantPressure`.
+"""
 
 from hoomd.md import _md
 import hoomd
@@ -13,32 +17,27 @@ from hoomd.variant import Variant
 class Thermostat(_HOOMDBaseObject):
     """Base thermostat object class.
 
-    Provides common methods for thermostat objects
-
     Note:
         Users should use the subclasses and not instantiate `Thermostat`
         directly.
     """
+    _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + ("_thermo",)
+    _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {
+        "_thermo",
+    }
 
     def __init__(self, kT):
         param_dict = ParameterDict(kT=Variant)
         param_dict["kT"] = kT
         self._param_dict.update(param_dict)
-        self._group = None
-        self._computeThermo = None
 
-    def _set_group_thermo(self, group, thermo):
-        self._group = group
-        self._computeThermo = thermo
+    def _set_thermo(self, filter, thermo):
+        self._filter = filter
+        self._thermo = thermo
 
 
 class ConstantEnergy(Thermostat):
-    """Provides an interface to base c++ thermostat.
-
-    Note:
-        Users should not use this object but rather set thermostat
-        to `None` in thermostatted objects
-    """
+    """Provides a constant energy option for ensembles enabling NVE/NPH."""
 
     def __init__(self):
         super().__init__(1.0)
@@ -50,13 +49,13 @@ class ConstantEnergy(Thermostat):
 
 
 class MTTK(Thermostat):
-    r"""Nosé-Hoover thermostat.
+    r"""The Nosé-Hoover thermostat.
 
-    Produces themperature control through a Nosé-Hoover thermostat
+    Produces themperature control through a Nosé-Hoover thermostat.
 
     Args:
-        kT (hoomd.variant.variant_like): Temperature set point
-            for the thermostat :math:`[\mathrm{energy}]`.
+        kT (hoomd.variant.variant_like): Temperature set point for the
+            thermostat :math:`[\mathrm{energy}]`.
 
         tau (float): Coupling constant for the thermostat
             :math:`[\mathrm{time}]`
@@ -75,8 +74,8 @@ class MTTK(Thermostat):
         one except through particle collisions.
 
     Attributes:
-        kT (hoomd.variant.variant_like): Temperature set point
-            for the thermostat :math:`[\mathrm{energy}]`.
+        kT (hoomd.variant.variant_like): Temperature set point for the
+            thermostat :math:`[\mathrm{energy}]`.
 
         tau (float): Coupling constant for the thermostat
             :math:`[\mathrm{time}]`
@@ -102,8 +101,10 @@ class MTTK(Thermostat):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
-        self._cpp_obj = _md.MTTKThermostat(self.kT, self._group,
-                                           self._computeThermo, self.tau)
+        group = self._simulation.state._get_group(self._filter)
+        self._cpp_obj = _md.MTTKThermostat(self.kT, group, self._thermo,
+                                           self._simulation.state._cpp_sys_def,
+                                           self.tau)
 
     @hoomd.logging.log(requires_run=True)
     def thermostat_energy(self):
@@ -126,19 +127,20 @@ class MTTK(Thermostat):
 
         .. seealso:: `State.thermalize_particle_momenta`
         """
-        if not self.is_attached:
-            raise RuntimeError("Call run(0) before attempting to "
-                               "thermalize the MTTK thermostat")
+        if not self._attached:
+            raise RuntimeError(
+                "Call Simulation.run(0) before attempting to thermalize the "
+                "MTTK thermostat.")
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostat(self._simulation.timestep)
 
 
 class Bussi(Thermostat):
-    r"""Bussi-Donadio-Parrinello thermostat.
+    r"""The Bussi-Donadio-Parrinello thermostat.
 
     Args:
-        kT (hoomd.variant.variant_like): Temperature set point
-            for the thermostat :math:`[\mathrm{energy}]`.
+        kT (hoomd.variant.variant_like): Temperature set point for the
+            thermostat :math:`[\mathrm{energy}]`.
 
     Provides temperature control by rescaling the velocity by a factor taken
     from the canonical velocity distribution. On each timestep, velocities are
@@ -148,7 +150,7 @@ class Bussi(Thermostat):
     .. math::
         P(K_t) \propto K_t^{N_f/2 - 1} \exp(-K_t / kT)
 
-    where :math:`N_f` is the number of degrees of freedom thermalized
+    where :math:`N_f` is the number of degrees of freedom thermalized.
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point
@@ -160,18 +162,18 @@ class Bussi(Thermostat):
         super().__init__(kT)
 
     def _attach_hook(self):
-        self._cpp_obj = _md.BussiThermostat(self.kT, self._group,
-                                            self._computeThermo,
+        group = self._simulation.state._get_group(self._filter)
+        self._cpp_obj = _md.BussiThermostat(self.kT, group, self._thermo,
                                             self._simulation.state._cpp_sys_def)
         self._simulation._warn_if_seed_unset()
 
 
 class Berendsen(Thermostat):
-    r"""Berendsen thermostat.
+    r"""The Berendsen thermostat.
 
     Args:
-        kT (hoomd.variant.variant_like): Temperature of the
-            simulation. :math:`[\mathrm{energy}]`
+        kT (hoomd.variant.variant_like): Temperature of the simulation.
+            :math:`[\mathrm{energy}]`
 
         tau (float): Time constant of thermostat. :math:`[\mathrm{time}]`
 
@@ -202,6 +204,7 @@ class Berendsen(Thermostat):
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
+        group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = _md.BerendsenThermostat(
-            self.kT, self._group, self._computeThermo, self.tau,
-            self._simulation.state._cpp_sys_def)
+            self.kT, group, self._thermo, self._simulation.state._cpp_sys_def,
+            self.tau)

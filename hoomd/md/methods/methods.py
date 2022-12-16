@@ -40,10 +40,10 @@ class Thermostatted(Method):
         Users should use the subclasses and not instantiate `Thermostatted`
         directly
     """
-
-    def __init__(self):
-        self._thermostat_group = None
-        self._thermostat_thermoCompute = None
+    _remove_for_pickling = AutotunedObject._remove_for_pickling + ("_thermo",)
+    _skip_for_equality = AutotunedObject._skip_for_equality | {
+        "_thermo",
+    }
 
     def _setattr_param(self, attr, value):
         if attr == "thermostat":
@@ -62,23 +62,22 @@ class Thermostatted(Method):
         else:
             thermostat = new_thermostat
         if self._attached:
-            thermostat._set_group_thermo(self._thermostat_group,
-                                         self._thermostat_thermoCompute)
+            thermostat._set_thermo(self.filter, self._thermo)
             thermostat._attach(self._simulation)
             self._cpp_obj.setThermostat(thermostat._cpp_obj)
-        self._param_dict._dict["thermostat"] = new_thermostat
+        self._param_dict._dict["thermostat"] = thermostat
 
 
 class ConstantVolume(Thermostatted):
     r"""Constant volume, constant temperature dynamics.
 
     Args:
-        filter (hoomd.filter.filter_like): Subset of particles on which to apply
-            this method.
+        filter (hoomd.filter.filter_like): Subset of particles on which to
+            apply this method.
 
-        thermostat (hoomd.md.methods.thermostats.Thermostat): thermostat used to
-            control temperature. Setting this to ``None`` produces NVE dynamics.
-            Defaults to ``None``
+        thermostat (hoomd.md.methods.thermostats.Thermostat): thermostat use do
+            to control temperature. Setting this to ``None`` produces NVE
+            dynamics. Defaults to ``None``
 
     `ConstantVolume` integrates translational and rotational degrees of freedom
     in the canonical ensemble using the Nosé-Hoover thermostat. The thermostat
@@ -128,31 +127,26 @@ class ConstantVolume(Thermostatted):
     def _attach_hook(self):
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            my_class = _md.TwoStepConstantVolume
+            cls = _md.TwoStepConstantVolume
             thermo_cls = _md.ComputeThermo
         else:
-            my_class = _md.TwoStepConstantVolumeGPU
+            cls = _md.TwoStepConstantVolumeGPU
             thermo_cls = _md.ComputeThermoGPU
 
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        thermo = thermo_cls(cpp_sys_def, group)
-
-        self._thermostat_group = group
-        self._thermostat_thermoCompute = thermo
+        self._thermo = thermo_cls(cpp_sys_def, group)
 
         if self.thermostat is None:
-            thermostat = ConstantEnergy()
+            self.thermostat = ConstantEnergy()
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
                                    "already attached")
-            self.thermostat._set_group_thermo(group, thermo)
-            thermostat = self.thermostat
-        thermostat._attach(self._simulation)
-
-        self._cpp_obj = my_class(cpp_sys_def, group, thermo,
-                                 thermostat._cpp_obj)
+            self.thermostat._set_thermo(self.filter, self._thermo)
+        self.thermostat._attach(self._simulation)
+        self._cpp_obj = cls(cpp_sys_def, group, self._thermo,
+                            self.thermostat._cpp_obj)
         super()._attach_hook()
 
 
@@ -204,7 +198,8 @@ class ConstantPressure(Thermostatted):
 
     By default, `ConstantPressure` performs integration in a cubic box under
     hydrostatic pressure by simultaneously rescaling the lengths *Lx*, *Ly* and
-    *Lz* of the simulation box. Set the integration mode to change this default.
+    *Lz* of the simulation box. Set the integration mode to change this
+    default.
 
     The integration mode is defined by a set of couplings and by specifying
     the box degrees of freedom that are put under barostat control. Couplings
@@ -369,23 +364,20 @@ class ConstantPressure(Thermostatted):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state._get_group(self.filter)
 
-        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group)
+        # Only save the half step thermo
+        self._thermo = thermo_cls(cpp_sys_def, thermo_group)
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
-        self._thermostat_group = thermo_group
-        self._thermostat_thermoCompute = thermo_half_step
-
         if self.thermostat is None:
-            thermostat = ConstantEnergy()
+            self.thermostat = ConstantEnergy()
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
                                    "already attached")
-            self.thermostat._set_group_thermo(thermo_group, thermo_half_step)
-            thermostat = self.thermostat
-        thermostat._attach(self._simulation)
+            self.thermostat._set_thermo(self.filter, self._thermo)
+        self.thermostat._attach(self._simulation)
 
-        self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
+        self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
                                 thermo_full_step, self.tauS, self.S,
                                 self.couple, self.box_dof,
                                 self.thermostat._cpp_obj, self.gamma)
@@ -636,12 +628,12 @@ class Langevin(Method):
         self._simulation._warn_if_seed_unset()
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
-            my_class = _md.TwoStepLangevin
+            cls = _md.TwoStepLangevin
         else:
-            my_class = _md.TwoStepLangevinGPU
+            cls = _md.TwoStepLangevinGPU
 
-        self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter), self.kT)
+        self._cpp_obj = cls(sim.state._cpp_sys_def,
+                            sim.state._get_group(self.filter), self.kT)
 
         # Attach param_dict and typeparam_dict
         super()._attach_hook()
