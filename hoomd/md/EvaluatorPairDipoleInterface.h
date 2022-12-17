@@ -143,11 +143,18 @@ class EvaluatorPairDipoleInterface
         // compute the force divided by r in force_divr
         if (rsq < rcutsq && A != 0)
             {
-            Scalar rinv = fast::rsqrt(rsq);
             Scalar r2inv = Scalar(1.0) / rsq;
+            Scalar rinv = fast::sqrt(r2inv);
 
-            force_divr = 3 * A * r2inv * r2inv;
+            force_divr = 3 * A * r2inv * r2inv * rinv;
             pair_eng = A * r2inv * rinv;
+
+            if (energy_shift)
+                {
+                Scalar rcut2inv = Scalar(1.0) / rcutsq;
+                Scalar rcutinv = fast::sqrt(rcut2inv);
+                pair_eng -= rcutinv * rcut2inv * A;
+                }
 
             return true;
             }
