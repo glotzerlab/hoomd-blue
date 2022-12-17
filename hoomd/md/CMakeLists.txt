@@ -93,6 +93,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
+		EvaluatorPairDipoleInterface.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
                 EvaluatorPairDPDThermoDPD.h
@@ -523,6 +524,7 @@ set(_pair_evaluators Buckingham
                      Mie
                      ReactionField
                      DLVO
+		     DipoleInterface
                      Fourier
                      OPP
                      TWF
