@@ -270,6 +270,7 @@ void ActiveForceCompute::rotationalDiffusion(Scalar rotational_diffusion, uint64
                 quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
+                quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
                 h_orientation.data[idx] = quat_to_scalar4(quati);
                 // In 2D, the only meaningful torque vector is out of plane and should not change
                 }
@@ -293,6 +294,7 @@ void ActiveForceCompute::rotationalDiffusion(Scalar rotational_diffusion, uint64
                 quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
+                quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
                 h_orientation.data[idx] = quat_to_scalar4(quati);
                 }
             }
