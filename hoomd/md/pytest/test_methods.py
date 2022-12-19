@@ -18,10 +18,8 @@ class MethodDefinition(ClassDefinition):
                  constructor_spec,
                  attribute_spec=None,
                  generator=None,
-                 rattle_cls=None,
                  requires_thermostat=False):
         super().__init__(cls, constructor_spec, attribute_spec, generator)
-        self.rattle_cls = rattle_cls
         self.requires_thermostat = requires_thermostat
 
         def default_thermostat():
@@ -70,18 +68,15 @@ _method_definitions = (
         "alpha": Either(float, None),
         "tally_reservoir_energy": bool
     },
-                     generator=generator,
-                     rattle_cls=hoomd.md.methods.rattle.Langevin),
+                     generator=generator),
     MethodDefinition(hoomd.md.methods.Brownian, {
         "kT": hoomd.variant.Variant,
         "alpha": Either(float, None)
     },
-                     generator=generator,
-                     rattle_cls=hoomd.md.methods.rattle.Brownian),
+                     generator=generator),
     MethodDefinition(hoomd.md.methods.OverdampedViscous,
                      {"alpha": Either(float, None)},
-                     generator=generator,
-                     rattle_cls=hoomd.md.methods.rattle.OverdampedViscous),
+                     generator=generator),
 )
 
 
@@ -148,10 +143,7 @@ class TestThermostats:
 
     @pytest.mark.parametrize("n", range(10))
     def test_attributes(self, thermostat_definition, n):
-        """Test the construction and setting of attributes.
-
-        Purposely manually tests the filter and thermostat attributes.
-        """
+        """Test the construction and setting of attributes."""
         constructor_args = thermostat_definition.generate_init_args()
         thermostat = thermostat_definition.cls(**constructor_args)
         check_instance_attrs(thermostat, constructor_args)
@@ -413,7 +405,7 @@ class TestMethods:
             })
 
 
-@pytest.fixture(scope="module", params=range(7))
+@pytest.fixture(scope="function", params=range(7))
 def manifold(request):
     return (
         hoomd.md.manifold.Cylinder(r=5),
@@ -426,78 +418,113 @@ def manifold(request):
     )[request.param]
 
 
+class RattleDefinition(ClassDefinition):
+
+    def __init__(self,
+                 cls,
+                 constructor_spec,
+                 attribute_spec=None,
+                 generator=None):
+        super().__init__(cls, constructor_spec, attribute_spec, generator)
+        self.default_manifold = lambda: hoomd.md.manifold.Sphere(5)
+        self.default_filter = hoomd.filter.All()
+
+    def generate_init_args(self):
+        kwargs = super().generate_init_args()
+        kwargs["filter"] = self.default_filter
+        kwargs["manifold_constraint"] = self.default_manifold()
+        return kwargs
+
+    def generate_all_attr_change(self):
+        change_attrs = super().generate_all_attr_change()
+        change_attrs["filter"] = hoomd.filter.Type(["A"])
+        change_attrs["manifold_constraint"] = hoomd.md.manifold.Plane()
+        return change_attrs
+
+
+_rattle_definitions = (
+    RattleDefinition(hoomd.md.methods.rattle.NVE, {"tolerance": float},
+                     generator=generator),
+    RattleDefinition(hoomd.md.methods.rattle.DisplacementCapped, {
+        "maximum_displacement": hoomd.variant.Variant,
+        "tolerance": float
+    },
+                     generator=generator),
+    RattleDefinition(hoomd.md.methods.rattle.Langevin, {
+        "kT": hoomd.variant.Variant,
+        "alpha": Either(float, None),
+        "tally_reservoir_energy": bool,
+        "tolerance": float
+    },
+                     generator=generator),
+    RattleDefinition(hoomd.md.methods.rattle.Brownian, {
+        "kT": hoomd.variant.Variant,
+        "alpha": Either(float, None),
+        "tolerance": float
+    },
+                     generator=generator),
+    RattleDefinition(hoomd.md.methods.rattle.OverdampedViscous, {
+        "alpha": Either(float, None),
+        "tolerance": float
+    },
+                     generator=generator),
+)
+
+
+@pytest.fixture(scope="module",
+                params=_rattle_definitions,
+                ids=lambda x: x.cls.__name__)
+def rattle_definition(request):
+    return request.param
+
+
 class TestRattle:
 
-    @pytest.mark.skip("rattle not yet ported.")
-    def test_rattle_attributes(self, method_definition, manifolds):
-        if method_definition.rattle_method is None:
-            pytest.skip("RATTLE method is not implemented for this method")
-
-        all_ = hoomd.filter.All()
-        constructor_args = method_definition.generate_init_args()
-        method = method_definition.rattle_method(**constructor_args,
-                                                 filter=all_,
-                                                 manifold_constraint=manifold)
-        assert method.manifold_constraint == manifold
-        assert method.tolerance == 1e-6
+    def test_rattle_attributes(self, rattle_definition, manifold):
+        constructor_args = rattle_definition.generate_init_args()
+        constructor_args["manifold_constraint"] = manifold
+        method = rattle_definition.cls(**constructor_args)
         check_instance_attrs(method, constructor_args)
 
-        sphere = hoomd.md.manifold.Sphere(r=10)
+        change_attrs = rattle_definition.generate_all_attr_change()
+        new_manifold = change_attrs.pop("manifold_constraint")
         with pytest.raises(AttributeError):
-            method.manifold_constraint = sphere
+            method.manifold_constraint = new_manifold
         assert method.manifold_constraint == manifold
 
         method.tolerance = 1e-5
         assert method.tolerance == 1e-5
-        check_instance_attrs(method,
-                             method_definition.generate_all_attr_change(), True)
+        check_instance_attrs(method, change_attrs, True)
 
-    @pytest.mark.skip("rattle not yet ported.")
     def test_rattle_attributes_attached(self, simulation_factory,
                                         two_particle_snapshot_factory,
-                                        method_definition, manifold):
+                                        rattle_definition, manifold):
 
-        if method_definition.rattle_method is None:
-            pytest.skip("RATTLE integrator is not implemented for this method")
-
-        all_ = hoomd.filter.All()
-        constructor_args = method_definition.generate_init_args()
-        method = method_definition.rattle_method(**constructor_args,
-                                                 filter=all_,
-                                                 manifold_constraint=manifold)
+        constructor_args = rattle_definition.generate_init_args()
+        constructor_args["manifold_constraint"] = manifold
+        method = rattle_definition.cls(**constructor_args)
 
         sim = simulation_factory(two_particle_snapshot_factory())
         sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
         sim.run(0)
 
-        assert method.filter is all_
-        assert method.manifold_constraint == manifold
-        assert method.tolerance == 1e-6
+        constructor_args["tolerance"] == 1e-6
         check_instance_attrs(method, constructor_args)
 
-        type_A = hoomd.filter.Type(['A'])
+        change_attrs = rattle_definition.generate_all_attr_change()
+        filter_ = change_attrs.pop("filter")
         with pytest.raises(AttributeError):
             # filter cannot be set after scheduling
-            method.filter = type_A
+            method.filter = filter_
 
-        sphere = hoomd.md.manifold.Sphere(r=10)
+        new_manifold = change_attrs.pop("manifold_constraint")
         with pytest.raises(AttributeError):
-            # manifold cannot be set after scheduling
-            method.manifold_constraint = sphere
+            method.manifold_constraint = new_manifold
         assert method.manifold_constraint == manifold
+        check_instance_attrs(method, change_attrs, True)
 
-        method.tolerance = 1e-5
-        assert method.tolerance == 1e-5
-
-        check_instance_attrs(method,
-                             method_definition.generate_all_attr_change(), True)
-
-    @pytest.mark.skip("rattle not yet ported.")
     def test_rattle_switch_methods(self, simulation_factory,
                                    two_particle_snapshot_factory):
-        if method_definition.rattle_method is None:
-            pytest.skip("RATTLE integrator is not implemented for this method")
-
         sim = simulation_factory(two_particle_snapshot_factory())
 
         all_ = hoomd.filter.All()
