@@ -336,7 +336,7 @@ class SDF(Compute):
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
-            `sdf` is `None` on ranks >= 1.
+            `sdf_compression` is `None` on ranks >= 1.
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf_compression
