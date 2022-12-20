@@ -36,18 +36,6 @@ class Thermostat(_HOOMDBaseObject):
         self._thermo = thermo
 
 
-class ConstantEnergy(Thermostat):
-    """Provides a constant energy option for ensembles enabling NVE/NPH."""
-
-    def __init__(self):
-        super().__init__(1.0)
-        self._param_dict.pop('kT', None)
-
-    def _attach_hook(self):
-        self._cpp_obj = _md.Thermostat(hoomd.variant.Constant(1.0), None, None,
-                                       None)
-
-
 class MTTK(Thermostat):
     r"""The Nosé-Hoover thermostat.
 

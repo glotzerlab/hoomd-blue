@@ -231,7 +231,7 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
     // Rescaling factors, including Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
                      * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
-    const auto& rf = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
+    const auto& rf = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT) : std::array<Scalar, 2>{1., 1.};
     const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
 
     // NPT_thermo_rescale_factor_one(timestep);
@@ -306,9 +306,6 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
                                    access_mode::readwrite);
 
         // precompute loop invariant quantity
-        // Scalar xi_trans = m_thermostat.xi;
-        // Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
-
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
@@ -371,9 +368,6 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
     // time-reversal symmetric integration scheme of Miller et al., extended by thermostat
     if (m_aniso)
         {
-        // precompute loop invariant quantity
-        // const Scalar xi_rot = m_thermostat.xi_rot;
-        // Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,
@@ -495,7 +489,8 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
         }
 
     // propagate thermostat variables forward
-    m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+    if(m_thermostat)
+        m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
     // advanceThermostat(timestep);
 
 #ifdef ENABLE_MPI
@@ -601,7 +596,7 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
     // Rescaling factors, including Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
                      * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof);
-    const auto& rf = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
+    const auto& rf = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT) : std::array<Scalar, 2>{1., 1.};
     const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
@@ -615,10 +610,6 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
                                      access_mode::readwrite);
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-        // precompute loop invariant quantity
-        // Scalar xi_trans = m_thermostat.xi;
-        // Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-        // Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
 
         // perform second half step of NPT integration
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
@@ -671,8 +662,6 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
                                            access_mode::read);
 
             // precompute loop invariant quantity
-            // const Scalar xi_rot = m_thermostat.xi_rot;
-            // Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
             // apply rotational (NO_SQUISH) equations of motion
             for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
@@ -744,7 +733,7 @@ Scalar TwoStepConstantPressure::getBarostatEnergy(uint64_t timestep)
     {
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d)
-               * m_thermostat->getTemperature(timestep) * m_tauS * m_tauS;
+               * (m_thermostat ? m_thermostat->getTemperature(timestep) : Scalar(1.0)) * m_tauS * m_tauS;
 
     Scalar barostat_energy
         = W
@@ -903,7 +892,7 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
-    Scalar W = (Scalar)(m_ndof + d) / (Scalar)d * m_thermostat->getTemperature(timestep) * m_tauS
+    Scalar W = (Scalar)(m_ndof + d) / (Scalar)d * (m_thermostat ? m_thermostat->getTemperature(timestep) : Scalar(1.0)) * m_tauS
                * m_tauS;
     Scalar mtk_term = Scalar(2.0) * m_thermo_full_step->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0 / 2.0) * m_deltaT / (Scalar)m_ndof / W;
@@ -959,7 +948,7 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
 
     // update barostat matrix
     Scalar noise_exp_integrate = exp(-m_gamma * m_deltaT / Scalar(2.0));
-    Scalar coeff = sqrt(m_thermostat->getTemperature(timestep)
+    Scalar coeff = sqrt((m_thermostat ? m_thermostat->getTemperature(timestep) : Scalar(1.0))
                         * (Scalar(1.0) - noise_exp_integrate * noise_exp_integrate) / W);
     if (m_flags & baro_x)
         {

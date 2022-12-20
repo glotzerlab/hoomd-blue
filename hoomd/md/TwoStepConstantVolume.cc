@@ -14,7 +14,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
         throw std::runtime_error("Empty integration group.");
         }
 
-    auto rescaling_factors = m_thermostat->getRescalingFactorsOne(timestep, m_deltaT);
+    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT):std::array<Scalar, 2>{1., 1.};
 
     unsigned int group_size = m_group->getNumMembers();
 
@@ -209,7 +209,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
         }
 
     // get temperature and advance thermostat
-    m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+    if(m_thermostat)
+        m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
     } /*! \param timestep Current time step
          \post particle velocities are moved forward to timestep+1
      */
@@ -217,7 +218,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    auto rescaling_factors = m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT);
+    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT) : std::array<Scalar, 2>{1., 1.};
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
@@ -264,8 +265,6 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
 
     if (m_aniso)
         {
-        // Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot);
-
         // angular degrees of freedom
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,

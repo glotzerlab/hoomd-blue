@@ -12,7 +12,7 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 from hoomd.filter import ParticleFilter
 from hoomd.variant import Variant
 from collections.abc import Sequence
-from .thermostats import (Thermostat, ConstantEnergy)
+from .thermostats import Thermostat
 
 
 class Method(AutotunedObject):
@@ -54,18 +54,21 @@ class Thermostatted(Method):
     def _thermostat_setter(self, new_thermostat):
         if new_thermostat is self.thermostat:
             return
+
         if new_thermostat is None:
-            thermostat = ConstantEnergy()
-        elif new_thermostat._attached:
+            if self._attached:
+                self._cpp_obj.setThermostat(None)
+            self._param_dict._dict["thermostat"] = None
+            return
+
+        if new_thermostat._attached:
             raise RuntimeError("Trying to set a thermostat that is "
                                "already attached")
-        else:
-            thermostat = new_thermostat
         if self._attached:
-            thermostat._set_thermo(self.filter, self._thermo)
-            thermostat._attach(self._simulation)
-            self._cpp_obj.setThermostat(thermostat._cpp_obj)
-        self._param_dict._dict["thermostat"] = thermostat
+            new_thermostat._set_thermo(self.filter, self._thermo)
+            new_thermostat._attach(self._simulation)
+            self._cpp_obj.setThermostat(new_thermostat._cpp_obj)
+        self._param_dict._dict["thermostat"] = new_thermostat
 
 
 class ConstantVolume(Thermostatted):
@@ -138,15 +141,16 @@ class ConstantVolume(Thermostatted):
         self._thermo = thermo_cls(cpp_sys_def, group)
 
         if self.thermostat is None:
-            self.thermostat = ConstantEnergy()
+            self._cpp_obj = cls(cpp_sys_def, group, self._thermo,
+                                None)
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
                                    "already attached")
             self.thermostat._set_thermo(self.filter, self._thermo)
-        self.thermostat._attach(self._simulation)
-        self._cpp_obj = cls(cpp_sys_def, group, self._thermo,
-                            self.thermostat._cpp_obj)
+            self.thermostat._attach(self._simulation)
+            self._cpp_obj = cls(cpp_sys_def, group, self._thermo,
+                                self.thermostat._cpp_obj)
         super()._attach_hook()
 
 
@@ -369,15 +373,18 @@ class ConstantPressure(Thermostatted):
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         if self.thermostat is None:
-            self.thermostat = ConstantEnergy()
+            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
+                                    thermo_full_step, self.tauS, self.S,
+                                    self.couple, self.box_dof,
+                                    None, self.gamma)
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
                                    "already attached")
             self.thermostat._set_thermo(self.filter, self._thermo)
-        self.thermostat._attach(self._simulation)
+            self.thermostat._attach(self._simulation)
 
-        self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
+            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
                                 thermo_full_step, self.tauS, self.S,
                                 self.couple, self.box_dof,
                                 self.thermostat._cpp_obj, self.gamma)
