@@ -357,6 +357,28 @@ class SDF(Compute):
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf_expansion
 
+    @log(category='sequence', requires_run=False)
+    def x_compression(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): The x \
+        values at the center of each bin corresponding to the scale \
+        distribution function for the compressive perturbations \
+        :math:`[\\mathrm{length}]`."""
+        n_fit = int(numpy.ceil(self.xmax / self.dx))
+        x = numpy.arange(0, n_fit, 1) * self.dx
+        x += self.dx / 2
+        return -x[::-1]
+
+    @log(category='sequence', requires_run=False)
+    def x_expansion(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): The x \
+        values at the center of each bin corresponding to the scale \
+        distribution function for the expansion moves \
+        :math:`[\\mathrm{length}]`."""
+        n_fit = int(numpy.ceil(self.xmax / self.dx))
+        x = numpy.arange(0, n_fit, 1) * self.dx
+        x += self.dx / 2
+        return x
+
     @log(requires_run=True)
     def betaP(self):  # noqa: N802 - allow function name
         """float: Beta times pressure in NVT simulations \
