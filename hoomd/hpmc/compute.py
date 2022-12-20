@@ -154,7 +154,15 @@ class SDF(Compute):
 
     See Also:
          `Anderson 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_
-         describes the theory relating `SDF` to the system pressure.
+         describes the theory relating `SDF` to the system pressure and its
+         implementation in HOOMD-blue. `Eppenga and Frenkel 1984
+         <https://doi.org/10.1080/00268978400101951>`_ present a derivation
+         relating the scale distribution function to the system pressure for
+         hard, convex particles. `Allen 2006
+         <https://doi.org/10.1063/1.2202352>`_ describes the theory for
+         calculating the pressure in systems with discontinuous potential energy
+         functions. The expansive perturbations are based on theory described in
+         `de Miguel and Jackson <https://doi.org/10.1063/1.2363381>`_.
 
     .. rubric:: Implementation
 
