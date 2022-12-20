@@ -682,7 +682,7 @@ class Generator:
         """Return an appropriately structured dict."""
         return {k: self(inner_spec) for k, inner_spec in spec.items()}
 
-    def none(self, spec):
+    def none(self):
         """Return ``None``."""
         return None
 
@@ -696,7 +696,7 @@ class Generator:
         max_ = self.max_float if max_ is None else max_
         return max_ * (self.rng.random() - 0.5)
 
-    def bool(self, spec):
+    def bool(self):
         """Return a random Boolean."""
         return bool(self.int(2))
 
