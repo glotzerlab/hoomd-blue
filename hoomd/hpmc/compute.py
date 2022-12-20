@@ -138,18 +138,19 @@ class FreeVolume(Compute):
 
 
 class SDF(Compute):
-    r"""Compute the scale distribution function.
+    r"""Compute the scale distribution function via volume perturbations.
 
     Args:
         xmax (float): Maximum *x* value at the right hand side of the rightmost
             bin :math:`[\mathrm{length}]`.
         dx (float): Bin width :math:`[\mathrm{length}]`.
 
-    `SDF` computes the proability distribution :math:`s(x)` of particles
-    overlapping as a function of separation. It estimates :math:`s(x)`
-    numerically by computing a histogram with
-    :math:`\lfloor x_\mathrm{max}/ \delta x \rfloor` bins of width `dx`
-    (:math:`\delta x`).
+    `SDF` computes the proability distributions :math:`s_{\mathrm{comp}}(x)` and
+    :math:`s_{\mathrm{exp}}(x)` of particles overlapping as a function of
+    separation for compressive and expansive perturbations, respectively. It
+    estimates :math:`s_{\mathrm{exp}}(x)` and :math:`s_{\mathrm{exp}}(x)`
+    numerically by computing histograms with :math:`\lfloor x_\mathrm{max}/
+    \delta x \rfloor` bins of width `dx` (:math:`\delta x`).
 
     See Also:
          `Anderson 2016 <https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_
@@ -157,11 +158,20 @@ class SDF(Compute):
 
     .. rubric:: Implementation
 
+    `SDF` constructs two histograms, one for compressive volume perturbations
+    and one for expansive volume perturbations. These histograms represent
+    :math:`s_{\mathrm{comp}}(x)` and :math:`s_{\mathrm{expansive}}(x)`. The
+    following discussion applies to compressive volume perturbations and the
+    computation of :math:`s_{\mathrm{comp}}(x)`; the computation of
+    :math:`s_{\mathrm{exp}}(x)` proceeds similarly as noted throughout the
+    description.
+
     For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
     separation vector by the factor :math:`(1-x)` and finds the smallest
-    positive value of :math:`x` leading to either an overlap of the particle
-    shapes (a "hard overlap") or a discontinuous change in the pair energy
-    :math:`U_{\mathrm{pair},ij}` (a "soft overlap"):
+    magnitude positive (negative for expansive perturbations) value of :math:`x`
+    leading to either an overlap of the particle shapes (a "hard overlap") or a
+    discontinuous change in the pair energy :math:`U_{\mathrm{pair},ij}` (a
+    "soft overlap"):
 
     .. math::
 
@@ -182,11 +192,13 @@ class SDF(Compute):
             \} &
 
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
-    `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle
-    :math:`i`, and :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a
-    vector that translates by periodic box images.
+    `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle :math:`i`, and
+    :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
+    translates by periodic box images. For expansive perturbations, :math:`\min
+    \to \max` and :math:`x \in \mathbb{R}_{> 0} \to x \in \mathbb{R}_{< 0}`.
 
-    :math:`x_i` is the minimum value of :math:`x_{ij}` for a single particle:
+    :math:`x_i` is the minimum (maximum for expansive perturbations) value of
+    :math:`x_{ij}` for a single particle:
 
     .. math::
 
@@ -195,31 +207,46 @@ class SDF(Compute):
 
     where the set of box images includes all image vectors necessary to find
     overlaps between particles in the primary image with particles in periodic
-    images.
+    images, and :math:`\min \to \max` for expansive perturbations.
 
-    `SDF` adds a single count to the histogram for each particle :math:`i`,
+    `SDF` adds a single count to each histogram for each particle :math:`i`,
     weighted by a factor that is a function of the change in energy upon
     overlap:
 
     .. math::
 
-        s(x + \delta x/2) = \frac{1}{N_\mathrm{particles} \cdot \delta x}
-            \sum_{i=0}^{N_\mathrm{particles}-1}
+        s_{\mathrm{comp}}(x + \delta x/2) = \frac{1}{N_\mathrm{particles}
+            \cdot \delta x} \sum_{i=0}^{N_\mathrm{particles}-1}
             [x \le x_i < x + \delta x] \cdot (1 - \exp(-\beta \Delta U_{i}))
 
     where :math:`\Delta U_{i}` is the change in energy associated with the first
     overlap involving particle :math:`i` (:math:`\infty` for hard overlaps), the
-    square brackets denote the Iverson bracket, and :math:`s(x + \delta x/2)`
-    is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x < x_\mathrm{max}, x = k
-    \cdot \delta x, k \in \mathbb{Z}^* \}`.
+    square brackets denote the Iverson bracket, and :math:`s_{\mathrm{comp}}(x +
+    \delta x/2)` is evaluated for :math:`\{ x \in \mathbb{R}, 0 \le x <
+    x_\mathrm{max}, x = k \cdot \delta x, k \in \mathbb{Z}^* \}` for compressive
+    perturbations. For expansive perturbations,
+
+    .. math::
+
+        s_{\mathrm{exp}}(x - \delta x/2) = \frac{1}{N_\mathrm{particles}
+            \cdot \delta x}
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            [x \ge x_i > x + \delta x] \cdot (1 - \exp(-\beta \Delta U_{i}))
+
+    where :math:`s_{\mathrm{exp}}(x - \delta x/2)` is evaluated for :math:`\{ x
+    \in \mathbb{R}, 0 \ge x > -|x_\mathrm{max}|, x = k \cdot \delta x, k \in
+    \mathbb{Z}^* \}`.
 
     .. rubric:: Pressure
 
-    The extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related
-    to the pressure :math:`P`:
+    The pressure :math:`P` is related to the extrapolations of
+    :math:`s_{\mathrm{comp}}` and :math:`s_{\mathrm{comp}}` to :math:`x = 0` to
+    evaluate the appropriate one-sided limits :math:`s_{\mathrm{com}}(0+)` and
+    :math:`s_{\mathrm{exp}}(0-)`:
 
     .. math::
-        \beta P = \rho \left(1 + \frac{s(0+)}{2d} \right)
+        \beta P = \rho \left(
+            1 + \frac{s_{\mathrm{comp}}(0+) - s_{\mathrm{exp}}(0-)}{2d} \right)
 
     where :math:`d` is the dimensionality of the system, :math:`\rho` is the
     number density, and :math:`\beta = \frac{1}{kT}`. This measurement of the
