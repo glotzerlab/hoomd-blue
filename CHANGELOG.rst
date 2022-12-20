@@ -7,6 +7,59 @@ Change Log
 v3.x
 ----
 
+v3.7.0 (2022-11-29)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``Neighborlist.r_cut`` sets the base cutoff radius for neighbor search - for use when the neighbor
+  list is used for analysis or custom Python code.
+* ``Neighborlist.cpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.gpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.local_pair_list`` provides the rank local pair list by index.
+* ``Neighborlist.pair_list`` provides the global pair list by tag on rank 0.
+* ``hoomd.md.dihedral.Periodic`` - a new name for the previous ``Harmonic`` potential.
+* ``default_gamma`` and ``default_gamma_r`` arguments to the ``hoomd.md.methods``: ``Brownian``,
+  ``Langevin``, and ``OverdampedViscous``.
+* ``reservoir_energy`` loggable in ``hoomd.md.methods.Langevin``.
+* ``hoomd.md.force.Constant`` applies constant forces and torques to particles.
+
+*Changed*
+
+* [plugin developers] Refactored the ``LocalDataAccess`` C++ classes to add flexibility.
+
+*Fixed*
+
+* ``hoomd.hpmc.nec`` integrators compute non-infinite virial pressures for 2D simulations.
+* Raise an exception when attempting to get the shape specification of shapes with 0 elements.
+* Box conversion error message now names ``hoomd.Box``.
+
+*Deprecated*
+
+* ``hoomd.md.dihedral.Harmonic`` - use the functionally equivalent ``hoomd.md.dihedral.Periodic``.
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``.
+* ``diameters`` key in ``hoomd.md.constrain.Rigid.body``.
+
+v3.6.0 (2022-10-25)
+^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* In ``hoomd.md.pair.aniso.ALJ``, ``shape.rounding_radii`` now defaults to (0.0, 0.0, 0.0).
+* Revise ``hoomd.md.pair.aniso.ALJ`` documentation.
+* ``hoomd.md.force.Force`` instances can now be added to the ``Operations`` list allowing users to
+  compute force, torque, energy, and virials of forces that are not included in the dynamics of
+  the system.
+* [developers]: Removed internal methods ``_remove`` and ``_add`` from the data model.
+
+*Fixed*
+
+* Increase the performance of ``md.pair.Table`` on the CPU.
+* Improve accuracy of ``hoomd.hpmc.update.BoxMC`` when used with patch potentials.
+* Provide an accurate warning message when creating the state with many bond/angle/... types.
+* Add missing documentation for ``hoomd.md.methods.Berendsen``.
+* CVE-2007-4559
+
 v3.5.0 (2022-09-14)
 ^^^^^^^^^^^^^^^^^^^
 

@@ -392,7 +392,7 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
 
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            auto param = m_params[typpair_idx];
+            const auto& param = m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
             Scalar ronsq = Scalar(0.0);
             if (m_shift_mode == xplor)

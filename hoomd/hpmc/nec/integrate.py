@@ -72,9 +72,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
                 "update_fraction has to be between 0 and 1. (got {})".format(
                     value))
 
-    def _attach(self):
-        super()._attach()
-
     @property
     def nec_counters(self):
         """Trial move counters.

@@ -13,6 +13,7 @@ md.dihedral
 
     Dihedral
     Harmonic
+    Periodic
     OPLS
     Table
 
@@ -23,5 +24,6 @@ md.dihedral
     :show-inheritance:
     :members: Dihedral,
               Harmonic,
+              Periodic,
               OPLS,
               Table

@@ -65,11 +65,10 @@ class ParticleSorter(Tuner):
         except TypeError:
             raise ValueError("Expected positive integer.")
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'SFCPackTunerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'SFCPackTuner')
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.trigger)
-        super()._attach()

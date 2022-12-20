@@ -27,3 +27,18 @@ v3.x
    * - ``hoomd.device.GPU.memory_traceback`` parameter
      - n/a: ``memory_traceback`` has no effect since v3.0.0.
      - v3.4.0
+   * - ``hoomd.md.dihedral.Harmonic``
+     - `hoomd.md.dihedral.Periodic` - new name.
+     - v3.7.0
+   * - ``ENABLE_MPI_CUDA`` CMake option
+     - n/a
+     - v3.7.0
+   * - ``fix_cudart_rpath`` CMake macro
+     - n/a
+     - v3.7.0
+   * - ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
+     - Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in system state.
+     - v3.7.0
+   * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
+     - Set diameters in system state.
+     - v3.7.0

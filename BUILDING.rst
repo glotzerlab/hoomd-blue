@@ -145,7 +145,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.5.0.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.7.0.tar.gz`_.
 
 .. seealso::
 
@@ -158,7 +158,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-v3.5.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.5.0/hoomd-v3.5.0.tar.gz
+.. _Download hoomd-v3.7.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.7.0/hoomd-v3.7.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/
@@ -233,6 +233,7 @@ Other option changes take effect at any time:
 
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
+- ``ENABLE_LLVM`` - Enable run time code generation with LLVM.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
 - ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
@@ -258,6 +259,7 @@ Other option changes take effect at any time:
 
   - When set to ``on``, **HOOMD-blue** will use TBB to speed up calculations in some classes on
     multiple CPU cores.
+
 - ``PYTHON_SITE_INSTALL_DIR`` - Directory to install ``hoomd`` to relative to
   ``CMAKE_INSTALL_PREFIX``. Defaults to the ``site-packages`` directory used by the found Python
   executable.

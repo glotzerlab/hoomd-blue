@@ -194,7 +194,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
 
             // get parameters for this type pair
             unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
-            param_type param = this->m_params[typpair_idx];
+            const param_type& param = this->m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
             // design specifies that energies are shifted if

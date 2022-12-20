@@ -108,7 +108,7 @@ class FreeVolume(Compute):
                  num_samples=num_samples))
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")
@@ -127,8 +127,6 @@ class FreeVolume(Compute):
         cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj, cl)
-
-        super()._attach()
 
     @log(requires_run=True)
     def free_volume(self):
@@ -277,7 +275,7 @@ class SDF(Compute):
         )
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")
@@ -293,8 +291,6 @@ class SDF(Compute):
             self.xmax,
             self.dx,
         )
-
-        super()._attach()
 
     @log(category='sequence', requires_run=True)
     def sdf_compression(self):

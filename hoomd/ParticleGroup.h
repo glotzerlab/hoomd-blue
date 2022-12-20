@@ -320,7 +320,7 @@ class PYBIND11_EXPORT ParticleGroup
                                                       access_location::host,
                                                       access_mode::read);
         return pybind11::array_t<unsigned int, pybind11::array::c_style>(
-            static_cast<ssize_t>(m_member_tags.getNumElements()),
+            static_cast<size_t>(m_member_tags.getNumElements()),
             h_member_tags.data);
         }
 

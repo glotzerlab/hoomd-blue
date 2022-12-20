@@ -226,7 +226,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                            Scalar xz,
                                            Scalar yz,
                                            uint64_t timestep,
-                                           Scalar deltaE,
+                                           double delta_beta_H,
                                            hoomd::RandomGenerator& rng)
     {
     // Make a backup copy of position data
@@ -242,11 +242,12 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         }
 
     BoxDim curBox = m_pdata->getGlobalBox();
+    double delta_U_pair = 0;
 
     if (m_mc->getPatchEnergy())
         {
         // energy of old configuration
-        deltaE -= m_mc->computePatchEnergy(timestep);
+        delta_U_pair -= m_mc->computePatchEnergy(timestep);
         }
 
     // Attempt box resize and check for overlaps
@@ -259,9 +260,10 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
 
     if (allowed && m_mc->getPatchEnergy())
         {
-        deltaE += m_mc->computePatchEnergy(timestep);
+        delta_U_pair += m_mc->computePatchEnergy(timestep);
         }
 
+    double delta_U_external = 0;
     if (allowed && m_mc->getExternalField())
         {
         ArrayHandle<Scalar4> h_pos_backup(m_pos_backup,
@@ -269,14 +271,12 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           access_mode::readwrite);
         Scalar ext_energy
             = m_mc->getExternalField()->calculateDeltaE(timestep, h_pos_backup.data, NULL, curBox);
-        // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians
-        // and exponentiate only once...
-        deltaE += ext_energy;
+        delta_U_external = ext_energy;
         }
 
     double p = hoomd::detail::generate_canonical<double>(rng);
 
-    if (allowed && p < fast::exp(-deltaE))
+    if (allowed && p < exp(-delta_beta_H) * exp(-delta_U_pair) * exp(-delta_U_external))
         {
         return true;
         }
@@ -488,7 +488,7 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
         dV = Vnew - Vold;
 
         // Calculate Boltzmann factor
-        double dBetaH = P * dV - Nglobal * log(Vnew / Vold);
+        double delta_beta_H = P * dV - Nglobal * log(Vnew / Vold);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -498,7 +498,7 @@ void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[1],
                                        newShear[2],
                                        timestep,
-                                       dBetaH,
+                                       delta_beta_H,
                                        rng);
 
         if (accept)
@@ -571,7 +571,7 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     else
         {
         // Calculate Boltzmann factor
-        double dBetaH = P * (new_V - V) - (Nglobal + 1) * log(new_V / V);
+        double delta_beta_H = P * (new_V - V) - (Nglobal + 1) * log(new_V / V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -581,7 +581,7 @@ void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[1],
                                        newShear[2],
                                        timestep,
-                                       dBetaH,
+                                       delta_beta_H,
                                        rng);
 
         if (accept)
@@ -658,7 +658,7 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
             Vnew *= newL[2];
             }
         // Calculate Boltzmann factor
-        double dBetaH = P * dV - Nglobal * log(Vnew / V);
+        double delta_beta_H = P * dV - Nglobal * log(Vnew / V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -668,7 +668,7 @@ void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
                                        newShear[1],
                                        newShear[2],
                                        timestep,
-                                       dBetaH,
+                                       delta_beta_H,
                                        rng);
 
         if (accept)

@@ -28,12 +28,11 @@ class Alchemostat(Method):
         if alchemical_dof is not None:
             self._alchemical_dof.extend(alchemical_dof)
 
-    def _attach(self):
-        super()._attach()
+    def _attach_hook(self):
         self._alchemical_dof._sync(self._simulation,
                                    self._cpp_obj.alchemical_dof)
 
-    def _detach(self):
+    def _detach_hook(self):
         self._alchemical_dof._unsync()
 
     @property
@@ -101,9 +100,9 @@ class NVT(Alchemostat):
         self._param_dict.update(param_dict)
         super().__init__(alchemical_dof)
 
-    def _attach(self):
+    def _attach_hook(self):
         cpp_class = hoomd.md._md.TwoStepNVTAlchemy
         cpp_sys_def = self._simulation.state._cpp_sys_def
         self._cpp_obj = cpp_class(cpp_sys_def, self.period, self.alchemical_kT)
         self._cpp_obj.setNextAlchemicalTimestep(self._simulation.timestep)
-        super()._attach()
+        super()._attach_hook()

@@ -201,6 +201,10 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
     std::ostringstream shapedef;
     auto& verts = spoly.verts;
     unsigned int nverts = verts.N;
+    if (nverts == 0)
+        {
+        throw std::runtime_error("Shape definition not supported for 0-vertex spheropolyhedra.");
+        }
     if (nverts == 1)
         {
         shapedef << "{\"type\": \"Sphere\", "
