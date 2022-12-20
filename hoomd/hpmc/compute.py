@@ -263,12 +263,6 @@ class SDF(Compute):
     smaller ``xmax``. Check that :math:`\sum_k s(x_k) \cdot dx \approx 0.5`.
 
     Warning:
-        `SDF` only considers negative volume perturbations, and therefore does
-        not compute the correct pressure in simulations where positive volume
-        perturbations may change the system's potential energy, e.g., systems of
-        concave particles or with non-monotonic enthalpic interactions.
-
-    Warning:
         Because SDF samples pair configurations at discrete separations, the
         computed pressure is correct only for potentials with constant values
         and step discontinuities, e.g., square well potentials.
