@@ -549,7 +549,7 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
                             const vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                             double u_ij_0 = 0.0; // energy of pair interaction in unperturbed state
-                                                 // if (m_mc->getPatchEnergy())
+                            if (m_mc->getPatchEnergy())
                                 {
                                 u_ij_0 = m_mc->getPatchEnergy()->energy(
                                     r_ij,
