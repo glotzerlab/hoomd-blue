@@ -382,31 +382,27 @@ class SDF(Compute):
         box = self._simulation.state.box
         N = self._simulation.state.N_particles
         rho = N / box.volume
-        if numpy.isnan(self.sdf).all() and numpy.isnan(
-                self.sdf_expansion).all():
-            return None
-        if not numpy.isnan(self.sdf).all():
-            # get the values to fit
-            sdf_fit = self.sdf[0:n_fit]
-            # construct the x coordinates
-            x_fit = numpy.arange(0, self.xmax, self.dx)
-            x_fit += self.dx / 2
-            # perform the fit and extrapolation
-            p = numpy.polyfit(x_fit, sdf_fit, 5)
-            p0_compression = numpy.polyval(p, 0.0)
-            compression_contribution = rho * p0_compression / (2
-                                                               * box.dimensions)
-        if not numpy.isnan(self.sdf_expansion).all():
-            # get the values to fit
-            # reverse the sdf so that it starts at 0 and goes negative
-            sdf_fit_expansion = self.sdf_expansion[0:n_fit][::-1]
-            # construct the x coordinates
-            x_fit = numpy.arange(0, self.xmax, self.dx)
-            x_fit += self.dx / 2
-            # also reverse the x-coordinates
-            x_fit = -x_fit[::-1]
-            # perform the fit and extrapolation
-            p = numpy.polyfit(x_fit, sdf_fit_expansion, 5)
-            p0_expansion = numpy.polyval(p, 0.0)
-            expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
+        x_fit = numpy.arange(0, n_fit, 1) * self.dx
+        x_fit += self.dx / 2
+
+        # compressive contribution
+        # get the values to fit
+        sdf_fit = self.sdf[0:n_fit]
+        # construct the x coordinates
+        # perform the fit and extrapolation
+        p = numpy.polyfit(x_fit, sdf_fit, 5)
+        p0_compression = numpy.polyval(p, 0.0)
+        compression_contribution = rho * p0_compression / (2 * box.dimensions)
+
+        # expansive contribution
+        # reverse the x-coordinates
+        x_fit_expansion = -x_fit[::-1]
+        # also reverse the sdf so that it starts at the bin for x = 0 and goes
+        # negative
+        sdf_fit_expansion = self.sdf_expansion[0:n_fit][::-1]
+        # perform the fit and extrapolation
+        p = numpy.polyfit(x_fit_expansion, sdf_fit_expansion, 5)
+        p0_expansion = numpy.polyval(p, 0.0)
+        expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
+
         return rho + compression_contribution + expansion_contribution
