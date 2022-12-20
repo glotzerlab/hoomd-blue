@@ -293,6 +293,18 @@ class SDF(Compute):
         )
 
     @log(category='sequence', requires_run=True)
+    def sdf(self):
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
+        distribution function for compression moves \
+        :math:`[\\mathrm{probability\\ density}]`.
+
+        .. deprecated:: v3.8.0
+            Use `sdf_compression`.
+        """
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.sdf_compression
+
+    @log(category='sequence', requires_run=True)
     def sdf_compression(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
         distribution function for compression moves \

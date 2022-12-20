@@ -42,3 +42,6 @@ v3.x
    * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
      - Set diameters in system state.
      - v3.7.0
+   * - ``sdf`` property of `hoomd.hpmc.compute.SDF`
+     - ``sdf_compression`` property
+     - v3.8.0
