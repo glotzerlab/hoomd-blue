@@ -148,7 +148,7 @@ class SDF(Compute):
     `SDF` computes the proability distributions :math:`s_{\mathrm{comp}}(x)` and
     :math:`s_{\mathrm{exp}}(x)` of particles overlapping as a function of
     separation for compressive and expansive perturbations, respectively. It
-    estimates :math:`s_{\mathrm{exp}}(x)` and :math:`s_{\mathrm{exp}}(x)`
+    estimates :math:`s_{\mathrm{comp}}(x)` and :math:`s_{\mathrm{exp}}(x)`
     numerically by computing histograms with :math:`\lfloor x_\mathrm{max}/
     \delta x \rfloor` bins of width `dx` (:math:`\delta x`).
 
@@ -160,7 +160,7 @@ class SDF(Compute):
 
     `SDF` constructs two histograms, one for compressive volume perturbations
     and one for expansive volume perturbations. These histograms represent
-    :math:`s_{\mathrm{comp}}(x)` and :math:`s_{\mathrm{expansive}}(x)`. The
+    :math:`s_{\mathrm{comp}}(x)` and :math:`s_{\mathrm{exp}}(x)`. The
     following discussion applies to compressive volume perturbations and the
     computation of :math:`s_{\mathrm{comp}}(x)`; the computation of
     :math:`s_{\mathrm{exp}}(x)` proceeds similarly as noted throughout the
@@ -231,17 +231,17 @@ class SDF(Compute):
         s_{\mathrm{exp}}(x - \delta x/2) = \frac{1}{N_\mathrm{particles}
             \cdot \delta x}
             \sum_{i=0}^{N_\mathrm{particles}-1}
-            [x \ge x_i > x + \delta x] \cdot (1 - \exp(-\beta \Delta U_{i}))
+            [x - \delta x \le x_i < x] \cdot (1 - \exp(-\beta \Delta U_{i}))
 
     where :math:`s_{\mathrm{exp}}(x - \delta x/2)` is evaluated for :math:`\{ x
-    \in \mathbb{R}, 0 \ge x > -|x_\mathrm{max}|, x = k \cdot \delta x, k \in
+    \in \mathbb{R}, -|x_\mathrm{max}| < x \le 0, x = -k \cdot \delta x, k \in
     \mathbb{Z}^* \}`.
 
     .. rubric:: Pressure
 
     The pressure :math:`P` is related to the extrapolations of
-    :math:`s_{\mathrm{comp}}` and :math:`s_{\mathrm{comp}}` to :math:`x = 0` to
-    evaluate the appropriate one-sided limits :math:`s_{\mathrm{com}}(0+)` and
+    :math:`s_{\mathrm{comp}}` and :math:`s_{\mathrm{exp}}` to :math:`x = 0` to
+    evaluate the appropriate one-sided limits :math:`s_{\mathrm{comp}}(0+)` and
     :math:`s_{\mathrm{exp}}(0-)`:
 
     .. math::
