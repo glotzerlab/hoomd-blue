@@ -145,8 +145,8 @@ class SDF(Compute):
             bin :math:`[\mathrm{length}]`.
         dx (float): Bin width :math:`[\mathrm{length}]`.
 
-    `SDF` computes the proability distributions :math:`s_{\mathrm{comp}}(x)` and
-    :math:`s_{\mathrm{exp}}(x)` of particles overlapping as a function of
+    `SDF` computes the probability distributions :math:`s_{\mathrm{comp}}(x)`
+    and :math:`s_{\mathrm{exp}}(x)` of particles overlapping as a function of
     separation for compressive and expansive perturbations, respectively. It
     estimates :math:`s_{\mathrm{comp}}(x)` and :math:`s_{\mathrm{exp}}(x)`
     numerically by computing histograms with :math:`\lfloor x_\mathrm{max}/
@@ -175,11 +175,12 @@ class SDF(Compute):
     description.
 
     For each pair of particles :math:`i` and :math:`j` `SDF` scales the particle
-    separation vector by the factor :math:`(1-x)` and finds the smallest
-    magnitude positive (negative for expansive perturbations) value of :math:`x`
-    leading to either an overlap of the particle shapes (a "hard overlap") or a
-    discontinuous change in the pair energy :math:`U_{\mathrm{pair},ij}` (a
-    "soft overlap"):
+    separation vector by the factor :math:`(1 \pm x)` (:math:`+` for expansive
+    perturbations, :math:`-` for compressive perturbations) and finds the
+    smallest positive value of :math:`x` leading to either an overlap of the
+    particle shapes (a "hard overlap") or a discontinuous change in the pair
+    energy :math:`U_{\mathrm{pair},ij}` (a "soft overlap"). For compressive
+    perturbations:
 
     .. math::
 
@@ -202,11 +203,29 @@ class SDF(Compute):
     where :math:`\mathrm{overlap}` is the shape overlap function defined in
     `hoomd.hpmc.integrate`, :math:`S_i` is the shape of particle :math:`i`, and
     :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
-    translates by periodic box images. For expansive perturbations, :math:`\min
-    \to \max` and :math:`x \in \mathbb{R}_{> 0} \to x \in \mathbb{R}_{< 0}`.
+    translates by periodic box images. For expansive perturbations,
+
+    .. math::
+
+        x_{ij}(\vec{A}) = \max \{ & x \in \mathbb{R}_{< 0} : \\
+           & \mathrm{overlap}\left(
+                S_i(\mathbf{q}_i),
+                S_j(\mathbf{q}_j, (1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})))
+            \right) \ne \emptyset
+            \\
+            &\lor \\
+            & U_{\mathrm{pair},ij}((1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j)
+                \ne
+            U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j) \\
+            \} &
+
 
     :math:`x_i` is the minimum (maximum for expansive perturbations) value of
-    :math:`x_{ij}` for a single particle:
+    :math:`x_{ij}` for a single particle. For compressive perturbations:
 
     .. math::
 
@@ -215,11 +234,16 @@ class SDF(Compute):
 
     where the set of box images includes all image vectors necessary to find
     overlaps between particles in the primary image with particles in periodic
-    images, and :math:`\min \to \max` for expansive perturbations.
+    images. For expansive perturbations:
+
+    .. math::
+
+        x_i = \max \{ x_{ij} : \vec{A} \in B_\mathrm{images},
+                     j \in [0,N_\mathrm{particles}) \}
 
     `SDF` adds a single count to each histogram for each particle :math:`i`,
     weighted by a factor that is a function of the change in energy upon
-    overlap:
+    overlap. For compressive perturbations:
 
     .. math::
 
@@ -261,7 +285,7 @@ class SDF(Compute):
     pressure is inherently noisy due to the nature of the sampling. Average
     `betaP` over many timesteps to obtain accurate results.
 
-    Assuming particle diameters are ~1, these paramater values typically
+    Assuming particle diameters are ~1, these parameter values typically
     achieve good results:
 
       * ``xmax = 0.02``
