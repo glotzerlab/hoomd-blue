@@ -44,20 +44,16 @@ class TestArrayViewPython(conftest.BaseListTest):
         return generate
 
     def _generate_sphere(self):
-        return _md.SphereWall(self.float(),
-                              (self.float(), self.float(), self.float()),
-                              self.bool(), self.bool())
+        args = (float, (float,) * 3, bool, bool)
+        return _md.SphereWall(*self.generator(args))
 
     def _generate_cylinder(self):
-        return _md.CylinderWall(self.float(),
-                                (self.float(), self.float(), self.float()),
-                                (self.float(), self.float(), self.float()),
-                                self.bool(), self.bool())
+        args = (float, (float,) * 3, (float,) * 3, bool, bool)
+        return _md.CylinderWall(*self.generator(args))
 
     def _generate_plane(self):
-        return _md.PlaneWall((self.float(), self.float(), self.float()),
-                             (self.float(), self.float(), self.float()),
-                             self.bool())
+        args = ((float,) * 3, (float,) * 3, bool)
+        return _md.PlaneWall(*self.generator(args))
 
     def test_contains(self, populated_collection, generate_plain_collection):
         """Contains does not work for array views."""

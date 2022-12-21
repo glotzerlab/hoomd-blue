@@ -25,27 +25,24 @@ class TestWallMetaList(conftest.BaseListTest):
         return hoomd.wall._WallsMetaList()
 
     def generate_wall(self):
-        origin = (self.float(), self.float(), self.float())
-        open = self.bool()
-        random_type = self.int(3)
+        kwargs = {"origin": (float, float, float), "open": bool}
+        random_type = self.generator.int(3)
         if random_type == 0:
-            return hoomd.wall.Sphere(radius=self.float(),
-                                     origin=origin,
-                                     open=open,
-                                     inside=self.bool())
+            kwargs.update({"radius": float, "inside": bool})
+            return hoomd.wall.Sphere(**self.generator(kwargs))
         elif random_type == 1:
-            return hoomd.wall.Cylinder(radius=self.float(),
-                                       origin=origin,
-                                       axis=(self.float(), self.float(),
-                                             self.float()),
-                                       inside=self.bool(),
-                                       open=open)
-        normal = np.array((self.float(), self.float(), self.float()))
+            kwargs.update({
+                "radius": float,
+                "axis": (float,) * 3,
+                "inside": bool
+            })
+            return hoomd.wall.Cylinder(**self.generator(kwargs))
+        normal = self.generator.ndarray((3,))
         vector_norm = np.linalg.norm(normal)
         if vector_norm == 0:
             assert "Generated invalid normal."
         normal /= vector_norm
-        return hoomd.wall.Plane(origin=origin, normal=normal, open=open)
+        return hoomd.wall.Plane(normal=normal, **self.generator(kwargs))
 
     def is_equal(self, a, b):
         return a == b
