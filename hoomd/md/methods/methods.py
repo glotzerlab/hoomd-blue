@@ -120,7 +120,6 @@ class ConstantVolume(Thermostatted):
         super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
-                                   kT=Variant,
                                    thermostat=OnlyTypes(Thermostat,
                                                         allow_none=True))
         param_dict.update(dict(filter=filter, thermostat=thermostat))
