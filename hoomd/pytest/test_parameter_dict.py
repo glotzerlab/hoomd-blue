@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 import hoomd
-from hoomd.conftest import BaseMappingTest, pickling_check
+from hoomd.conftest import BaseMappingTest, Options, pickling_check
 from hoomd.data.collections import _HOOMDSyncedCollection
 from hoomd.data.parameterdicts import ParameterDict
 
@@ -44,6 +44,7 @@ class TestParameterDict(BaseMappingTest):
 
     @pytest.fixture(autouse=True)
     def spec(self, n):
+        self._n = n
         if n == 1:
             spec = {
                 "int": int,
@@ -65,32 +66,19 @@ class TestParameterDict(BaseMappingTest):
         return spec
 
     def filter(self):
-        return self.rng.choice([
-            hoomd.filter.All(),
-            hoomd.filter.Type(("A", "B")),
-            hoomd.filter.Tags([1, 2, 25])
-        ])
+        return self.generator(
+            Options(hoomd.filter.All(), hoomd.filter.Type(("A", "B")),
+                    hoomd.filter.Tags([1, 2, 25])))
 
     def _generate_value(self):
-        # n == 1
-        if "int" in self._spec:
-            return {
-                "int": self.int(),
-                "list[int]": [self.int() for _ in range(self.int(10))],
-                "(float, str)": (self.float(), self.str())
-            }
-        # n == 2
-        elif "dict" in self._spec:
-            return {"dict": {"str": self.str()}, "filter": self.filter()}
-        # n == 3
+        if self._n == 2:
+            filter_ = self._spec.pop("filter")
+            value = self.generator(self._spec)
+            value["filter"] = self.filter()
+            self._spec["filter"] = filter_
         else:
-            return {
-                "(float, float, float)": tuple(self.float() for _ in range(3)),
-                "list[dict[str, int]]": [{
-                    k: self.int() for k in ("bar", "foo")
-                } for _ in range(self.int(10))],
-                "(float, str)": (self.float(), self.str())
-            }
+            value = self.generator(self._spec)
+        return value
 
     @pytest.fixture
     def generate_plain_collection(self):
@@ -124,7 +112,7 @@ class TestParameterDict(BaseMappingTest):
         value = self._generate_value()
         keys = list(value)
         if request.param:
-            key = self.rng.choice(keys)
+            key = self.generator.rng.choice(keys)
             return key, value[key]
         key = next(filter(lambda x: x not in keys, self.random_keys()))
         return key, value
