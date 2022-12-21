@@ -342,8 +342,6 @@ class ConstantPressure(Thermostatted):
                                    gamma=float(gamma),
                                    barostat_dof=(float, float, float, float,
                                                  float, float))
-        if thermostat is None:
-            thermostat = ConstantEnergy()
         param_dict.update(
             dict(filter=filter,
                  thermostat=thermostat,
