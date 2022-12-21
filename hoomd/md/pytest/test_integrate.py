@@ -31,7 +31,7 @@ def integrator_elements():
     lj.params[("A", "A")] = {"epsilon": 1.0, "sigma": 1.0}
     gauss.params[("A", "A")] = {"epsilon": 1.0, "sigma": 1.0}
     return {
-        "methods": [md.methods.NVE(hoomd.filter.All())],
+        "methods": [md.methods.ConstantVolume(hoomd.filter.All())],
         "forces": [lj, gauss],
         "constraints": [md.constrain.Distance()]
     }

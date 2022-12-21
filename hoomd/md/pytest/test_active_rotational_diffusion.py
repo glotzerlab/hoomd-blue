@@ -82,7 +82,7 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
     def sim_constructor(active_force=None, rd_updater=None):
         sim = simulation_factory(two_particle_snapshot_factory())
         if isinstance(active_force, hoomd.md.force.Active):
-            method = hoomd.md.methods.NVE(hoomd.filter.All())
+            method = hoomd.md.methods.ConstantVolume(hoomd.filter.All())
         else:
             method = hoomd.md.methods.rattle.NVE(hoomd.filter.All(),
                                                  hoomd.md.manifold.Plane(0.1))

@@ -1023,7 +1023,7 @@ def test_force_energy_accuracy(simulation_factory,
 def populate_sim(sim):
     """Add an integrator for the following tests."""
     sim.operations.integrator = md.Integrator(
-        dt=0.005, methods=[md.methods.NVE(hoomd.filter.All())])
+        dt=0.005, methods=[md.methods.ConstantVolume(hoomd.filter.All())])
     return sim
 
 

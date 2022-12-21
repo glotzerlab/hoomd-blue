@@ -72,7 +72,7 @@ def test_attach_detach(simulation_factory,
     # attached
     sim = simulation_factory(two_charged_particle_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.forces.extend([ewald, coulomb])
     sim.operations.integrator = integrator
@@ -108,7 +108,7 @@ def test_kernel_parameters(simulation_factory,
 
     sim = simulation_factory(two_charged_particle_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.forces.extend([ewald, coulomb])
     sim.operations.integrator = integrator
@@ -130,7 +130,7 @@ def test_pickling(simulation_factory, two_charged_particle_snapshot_factory):
     # attached
     sim = simulation_factory(two_charged_particle_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.forces.extend([ewald, coulomb])
     sim.operations.integrator = integrator
@@ -151,7 +151,7 @@ def test_pppm_energy(simulation_factory, two_charged_particle_snapshot_factory):
 
     sim = simulation_factory(two_charged_particle_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.forces.extend([ewald, coulomb])
     sim.operations.integrator = integrator

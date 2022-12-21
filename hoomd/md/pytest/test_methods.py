@@ -371,6 +371,7 @@ class TestMethods:
         method = method_definition.cls(**constructor_args)
         integrator = hoomd.md.Integrator(0.05, methods=[method])
         sim.operations.integrator = integrator
+        sim.state.thermalize_particle_momenta(hoomd.filter.All(), 1.0)
         sim.run(0)
         autotuned_kernel_parameter_check(instance=method,
                                          activate=lambda: sim.run(1))
