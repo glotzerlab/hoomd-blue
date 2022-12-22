@@ -52,6 +52,20 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
         return std::make_pair(use_limit, maximum_displacement);
         }
 
+    //! Get needed pdata flags
+    /*! in anisotropic mode, we need the rotational kinetic energy
+     */
+    virtual PDataFlags getRequestedPDataFlags()
+        {
+        PDataFlags flags;
+        std::cout << "m_aniso=" << m_aniso << std::endl;
+        if (m_aniso)
+            {
+            flags[pdata_flag::rotational_kinetic_energy] = 1;
+            }
+        return flags;
+        }
+
     protected:
     std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
     std::shared_ptr<Thermostat> m_thermostat;
