@@ -158,12 +158,11 @@ def test_system_rotational_dof(simulation_factory, device):
     sim.operations.add(thermo)
 
     integrator = hoomd.md.Integrator(dt=0.0001, integrate_rotational_dof=True)
-    integrator.aniso = True
     thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
     integrator.methods.append(hoomd.md.methods.ConstantVolume(filt, thermostat))
     sim.operations.integrator = integrator
 
-    sim.run(1)
+    sim.run(0)
 
     _assert_thermo_properties(thermo,
                               3,
