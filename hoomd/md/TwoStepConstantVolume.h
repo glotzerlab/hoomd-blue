@@ -58,7 +58,6 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
     virtual PDataFlags getRequestedPDataFlags()
         {
         PDataFlags flags;
-        std::cout << "m_aniso=" << m_aniso << std::endl;
         if (m_aniso)
             {
             flags[pdata_flag::rotational_kinetic_energy] = 1;
