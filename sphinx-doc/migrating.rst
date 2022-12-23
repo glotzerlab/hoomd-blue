@@ -7,15 +7,55 @@ Migrating to the latest version
 Migrating to HOOMD v4
 ---------------------
 
-Removed functionality
-^^^^^^^^^^^^^^^^^^^^^
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-HOOMD v4 removes functionality deprecated in v3.x releases.
+For some functionalities, you will need to update your scripts to use a new API:
+
+.. list-table::
+   :header-rows: 1
+
+   * - v3 Feature
+     - Replace with
+   * - ``hoomd.md.dihedral.Harmonic``
+     - `hoomd.md.dihedral.Periodic` - new name.
+   * - ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
+     - Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in
+       system state.
+   * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
+     - Set diameters in system state.
+   * ``hoomd.md.methods.NVE``
+     - `hoomd.md.methods.ConstantVolume` with ``thermostat=None``.
+   * ``hoomd.md.methods.NVT``
+     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` or thermostat.
+   * ``hoomd.md.methods.Berendsen``
+     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.Berendsen` thermostat.
+   * ``hoomd.md.methods.NPH``
+     - `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
+   * ``hoomd.md.methods.NPT``
+     - `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK`` thermostat.
+
+Removed functionalities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+HOOMD-blue v4 removes functionalities deprecated in v3.x releases:
+
+.. list-table::
+   :header-rows: 1
+
+   * - v3 Feature
+     - Replace with
+   * - ``hoomd.md.pair.aniso.ALJ.mode`` parameter
+     - n/a: ``mode`` has no effect since v3.0.0.
+   * - ``hoomd.md.pair.aniso.Dipole.mode`` parameter
+     - n/a: ``mode`` has no effect since v3.0.0.
+   * - ``hoomd.device.GPU.memory_traceback`` parameter
+     - n/a: ``memory_traceback`` has no effect since v3.0.0.
 
 Compiling
 ^^^^^^^^^
 
-* HOOMD v4 no longer builds on macOS with ``ENABLE_GPU=on``.
+* HOOMD-blue v4 no longer builds on macOS with ``ENABLE_GPU=on``.
 * Use the CMake options ``HOOMD_LONGREAL_SIZE`` and ``HOOMD_SHORTREAL_SIZE`` to control the floating
   point precision of the calculations. These replace the ``SINGLE_PRECISION`` and
   ``HPMC_MIXED_PRECISION`` options from v3.
