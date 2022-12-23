@@ -11,10 +11,10 @@ md.methods.thermostats
 .. autosummary::
     :nosignatures:
 
-    Thermostat
-    MTTK
-    Bussi
     Berendsen
+    Bussi
+    MTTK
+    Thermostat
 
 .. rubric:: Details
 

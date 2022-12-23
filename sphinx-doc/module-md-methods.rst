@@ -11,15 +11,14 @@ md.methods
 .. autosummary::
     :nosignatures:
 
-    Method
-    Thermostatted
-    ConstantVolume
-    ConstantPressure
     Brownian
+    ConstantPressure
+    ConstantVolume
     DisplacementCapped
     Langevin
+    Method
     OverdampedViscous
-
+    Thermostatted
 
 .. rubric:: Details
 
