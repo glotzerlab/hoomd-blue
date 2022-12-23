@@ -24,15 +24,15 @@ For some functionalities, you will need to update your scripts to use a new API:
        system state.
    * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
      - Set diameters in system state.
-   * ``hoomd.md.methods.NVE``
+   * - ``hoomd.md.methods.NVE``
      - `hoomd.md.methods.ConstantVolume` with ``thermostat=None``.
-   * ``hoomd.md.methods.NVT``
+   * - ``hoomd.md.methods.NVT``
      - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` or thermostat.
-   * ``hoomd.md.methods.Berendsen``
+   * - ``hoomd.md.methods.Berendsen``
      - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.Berendsen` thermostat.
-   * ``hoomd.md.methods.NPH``
+   * - ``hoomd.md.methods.NPH``
      - `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
-   * ``hoomd.md.methods.NPT``
+   * - ``hoomd.md.methods.NPT``
      - `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK`` thermostat.
 
 Removed functionalities
