@@ -33,7 +33,7 @@ For some functionalities, you will need to update your scripts to use a new API:
    * - ``hoomd.md.methods.NPH``
      - `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
    * - ``hoomd.md.methods.NPT``
-     - `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK`` thermostat.
+     - `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
 
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
