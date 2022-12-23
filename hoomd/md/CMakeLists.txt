@@ -46,10 +46,9 @@ set(_md_sources module-md.cc
                    TwoStepBD.cc
                    TwoStepLangevinBase.cc
                    TwoStepLangevin.cc
-        TwoStepConstantVolume.cc
-
-        TwoStepConstantPressure.cc
-        Thermostat.cc
+                   TwoStepConstantVolume.cc
+                   TwoStepConstantPressure.cc
+                   Thermostat.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
@@ -77,7 +76,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
-	        ConstantForceComputeGPU.h
+                ConstantForceComputeGPU.h
                 ConstantForceCompute.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
@@ -190,9 +189,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLENVEGPU.h
                 TwoStepRATTLENVEGPU.cuh
                 TwoStepRATTLENVE.h
-        TwoStepConstantVolume.h
-        TwoStepConstantVolumeGPU.h
-        TwoStepConstantPressure.h
+                TwoStepConstantVolume.h
+                TwoStepConstantVolumeGPU.h
+                TwoStepConstantPressure.h
                 AlchemostatTwoStep.h
                 TwoStepNVTAlchemy.h
                 WallData.h
@@ -227,10 +226,8 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepLangevinGPU.cc
-        TwoStepConstantVolumeGPU.cc
-
-        TwoStepConstantPressureGPU.cc
-
+                           TwoStepConstantVolumeGPU.cc
+                           TwoStepConstantPressureGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
                            )
@@ -262,10 +259,10 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TwoStepBDGPU.cu
-        TwoStepLangevinGPU.cu
+                      TwoStepLangevinGPU.cu
                       TwoStepRATTLELangevinGPU.cu
-        TwoStepConstantPressureGPU.cu
-        TwoStepConstantVolumeGPU.cu
+                      TwoStepConstantPressureGPU.cu
+                      TwoStepConstantVolumeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
                       MuellerPlatheFlowGPU.cu
