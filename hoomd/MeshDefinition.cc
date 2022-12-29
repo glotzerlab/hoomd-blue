@@ -25,7 +25,7 @@ MeshDefinition::MeshDefinition(std::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_meshbond_data(std::shared_ptr<MeshBondData>(
                             new MeshBondData(m_sysdef->getParticleData(), 1))),
       m_meshtriangle_data(
-          std::shared_ptr<MeshTriangleData>(new MeshTriangleData(m_sysdef->getParticleData(), 1)))
+          std::shared_ptr<TriangleData>(new TriangleData(m_sysdef->getParticleData(), 1)))
 
     {
     }
@@ -76,8 +76,8 @@ void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles)
         triangle_data.groups[i] = triangle_new;
         }
 
-    m_meshtriangle_data = std::shared_ptr<MeshTriangleData>(
-        new MeshTriangleData(m_sysdef->getParticleData(), triangle_data));
+    m_meshtriangle_data = std::shared_ptr<TriangleData>(
+        new TriangleData(m_sysdef->getParticleData(), triangle_data));
     m_meshbond_data = std::shared_ptr<MeshBondData>(
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
     }

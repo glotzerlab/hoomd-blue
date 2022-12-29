@@ -5,9 +5,9 @@
     \brief Defines implementation of MeshGroupData
  */
 
-#include "MeshGroupData.h"
 #include "BondedGroupData.h"
 #include "Index1D.h"
+#include "MeshGroupData.h"
 #include "ParticleData.h"
 
 #include <pybind11/numpy.h>
