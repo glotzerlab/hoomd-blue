@@ -40,15 +40,16 @@ template<int group_size> struct bond_args_t
                 const BoxDim& _box,
                 const group_storage<group_size>* _d_gpu_bondlist,
                 const Index2D& _gpu_table_indexer,
+                const unsigned int* _d_gpu_bond_pos,
                 const unsigned int* _d_gpu_n_bonds,
                 const unsigned int _n_bond_types,
                 const unsigned int _block_size,
                 const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
-          d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer),
-          d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size),
-          devprop(_devprop) {};
+          d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer), 
+	  d_gpu_bond_pos(_d_gpu_bond_pos), d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), 
+	  block_size(_block_size), devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -61,6 +62,7 @@ template<int group_size> struct bond_args_t
     const BoxDim box;          //!< Simulation box in GPU format
     const group_storage<group_size>* d_gpu_bondlist; //!< List of bonds stored on the GPU
     const Index2D& gpu_table_indexer;                //!< Indexer of 2D bond list
+    const unsigned int* d_gpu_bond_pos;              //!< List of pos id of bonds stored on the GPU (needed for mesh bond)
     const unsigned int* d_gpu_n_bonds;               //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;                 //!< Number of bond types in the simulation
     const unsigned int block_size;                   //!< Block size to execute
@@ -83,6 +85,7 @@ template<int group_size> struct bond_args_t
     \param box Box dimensions used to implement periodic boundary conditions
     \param blist List of bonds stored on the GPU
     \param pitch Pitch of 2D bond list
+    \param bpos_list List of positions in bonds stored on the GPU
     \param n_bonds_list List of numbers of bonds stored on the GPU
     \param n_bond_type number of bond types
     \param d_params Parameters for the potential, stored per bond type
@@ -105,6 +108,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                const BoxDim box,
                                                const group_storage<group_size>* blist,
                                                const Index2D blist_idx,
+                                               const unsigned int* bpos_list,
                                                const unsigned int* n_bonds_list,
                                                const unsigned int n_bond_type,
                                                const typename evaluator::param_type* d_params,
@@ -168,6 +172,10 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     // loop over neighbors
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
+        int cur_bond_pos = bpos_list[blist_idx(idx, bond_idx)];
+
+	if (cur_bond_pos > 1) continue;
+
         group_storage<group_size> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
@@ -309,6 +317,7 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                            bond_args.box,
                            bond_args.d_gpu_bondlist,
                            bond_args.gpu_table_indexer,
+                           bond_args.d_gpu_bond_pos,
                            bond_args.d_gpu_n_bonds,
                            bond_args.n_bond_types,
                            d_params,
@@ -331,6 +340,7 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
                            bond_args.box,
                            bond_args.d_gpu_bondlist,
                            bond_args.gpu_table_indexer,
+                           bond_args.d_gpu_bond_pos,
                            bond_args.d_gpu_n_bonds,
                            bond_args.n_bond_types,
                            d_params,
