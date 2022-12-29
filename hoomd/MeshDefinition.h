@@ -82,7 +82,7 @@ class PYBIND11_EXPORT MeshDefinition
 #endif
 
     //! Access the mesh triangle data defined for the simulation
-    std::shared_ptr<MeshTriangleData> getMeshTriangleData()
+    std::shared_ptr<TriangleData> getMeshTriangleData()
         {
         return m_meshtriangle_data;
         }
@@ -114,8 +114,8 @@ class PYBIND11_EXPORT MeshDefinition
     private:
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
-    std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
-    std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
+    std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
+    std::shared_ptr<TriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
 
 #ifdef ENABLE_MPI
     /// The system communicator
