@@ -40,20 +40,25 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Cannot create TwoStepNVTMTKGPU on a CPU device.");
         }
 
-    // initialize autotuner
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        valid_params.push_back(block_size);
-
-    m_tuner_one.reset(
-        new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
-    m_tuner_two.reset(
-        new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two", this->m_exec_conf));
-    m_tuner_angular_one.reset(
-        new Autotuner(valid_params, 5, 100000, "nvt_mtk_angular_one", this->m_exec_conf));
-    m_tuner_angular_two.reset(
-        new Autotuner(valid_params, 5, 100000, "nvt_mtk_angular_two", this->m_exec_conf));
+    // Initialize autotuners.
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "nvt_mtk_step_one"));
+    m_tuner_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "nvt_mtk_step_two"));
+    m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "nvt_mtk_angular_one",
+                                               5,
+                                               true));
+    m_tuner_angular_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "nvt_mtk_angular_two",
+                                               5,
+                                               true));
+    m_autotuners.insert(m_autotuners.end(),
+                        {m_tuner_one, m_tuner_two, m_tuner_angular_one, m_tuner_angular_two});
     }
 
 /*! \param timestep Current time step
@@ -100,7 +105,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
                                      d_index_array.data,
                                      group_size,
                                      box,
-                                     m_tuner_one->getParam(),
+                                     m_tuner_one->getParam()[0],
                                      m_exp_thermo_fac,
                                      m_deltaT,
                                      m_group->getGPUPartition());
@@ -143,7 +148,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          exp_fac,
-                                         m_tuner_angular_one->getParam());
+                                         m_tuner_angular_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -186,7 +191,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
                                      d_index_array.data,
                                      group_size,
                                      d_net_force.data,
-                                     m_tuner_two->getParam(),
+                                     m_tuner_two->getParam()[0],
                                      m_deltaT,
                                      m_exp_thermo_fac,
                                      m_group->getGPUPartition());
@@ -226,7 +231,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          exp_fac,
-                                         m_tuner_angular_two->getParam());
+                                         m_tuner_angular_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

@@ -32,21 +32,6 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
                          std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                          std::shared_ptr<Variant> T);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        mpcd::ATCollisionMethod::setAutotunerParams(enable, period);
-
-        m_tuner_draw->setPeriod(period);
-        m_tuner_draw->setEnabled(enable);
-        m_tuner_apply->setPeriod(period);
-        m_tuner_apply->setEnabled(enable);
-        }
-
     protected:
     //! Draw velocities for particles in each cell on the GPU
     virtual void drawVelocities(uint64_t timestep);
@@ -55,8 +40,8 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     virtual void applyVelocities();
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_draw;  //!< Tuner for drawing random velocities
-    std::unique_ptr<Autotuner> m_tuner_apply; //!< Tuner for applying random velocities
+    std::shared_ptr<Autotuner<1>> m_tuner_draw;  //!< Tuner for drawing random velocities
+    std::shared_ptr<Autotuner<1>> m_tuner_apply; //!< Tuner for applying random velocities
     };
 
 namespace detail

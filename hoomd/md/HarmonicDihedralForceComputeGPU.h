@@ -39,24 +39,13 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
     //! Destructor
     ~HarmonicDihedralForceComputeGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        HarmonicDihedralForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     //! Set the parameters
     virtual void
     setParams(unsigned int type, Scalar K, Scalar sign, int multiplicity, Scalar phi_0);
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
-    GPUArray<Scalar4> m_params;         //!< Parameters stored on the GPU (k,sign,m)
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
+    GPUArray<Scalar4> m_params;            //!< Parameters stored on the GPU (k,sign,m)
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

@@ -12,23 +12,27 @@ from hoomd.logging import log
 class Volume(MeshPotential):
     r"""Volume conservation potential.
 
-    :py:class:`Volume` specifies a volume constrainton the whole mesh
-    surface.
+    :py:class:`Volume` specifies a volume constraint on the whole mesh
+    surface:
+
+    .. math::
+
+        U(r) = k \frac{( V(r) - V_0 )^2}{2 \cdot V_0}
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
     Attributes:
         parameter (TypeParameter[dict]):
-            The parameter of the harmonic bonds for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+            The parameter of the volume constraint for the defined mesh.
+            A type name does not have to be stated as the mesh can only
+            have one type. The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
-              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
+              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-3}]`
 
-            * ``V0`` (`float`, **required**) - rest length
-              :math:`[\mathrm{length}]`
+            * ``V0`` (`float`, **required**) - target volume
+              :math:`[\mathrm{length}^{3}]`
 
     Examples::
 

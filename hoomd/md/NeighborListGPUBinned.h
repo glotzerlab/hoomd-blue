@@ -46,23 +46,6 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         NeighborListGPU::notifyRCutMatrixChange();
         }
 
-    //! Set the autotuner period
-    void setTuningParam(unsigned int param)
-        {
-        m_param = param;
-        }
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        NeighborListGPU::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period / 10);
-        m_tuner->setEnabled(enable);
-        }
-
     /// Make the neighborlist deterministic
     void setDeterministic(bool deterministic)
         {
@@ -87,16 +70,31 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         return m_cl->getNmax();
         }
 
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        NeighborListGPU::startAutotuning();
+
+        // Start autotuning the cell list.
+        m_cl->startAutotuning();
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = NeighborListGPU::isAutotuningComplete();
+        result = result && m_cl->isAutotuningComplete();
+        return result;
+        }
+
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
-    unsigned int m_block_size;      //!< Block size to execute on the GPU
-    unsigned int m_param;           //!< Kernel tuning parameter
     bool m_use_index;               //!< True for indirect lookup of particle data via index
 
     /// Track when the cell size needs to be updated
     bool m_update_cell_size = true;
 
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+    std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size and threads per particle
 
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);

@@ -7,7 +7,8 @@ import pytest
 import hoomd
 import hoomd.md as md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 
 import itertools
 
@@ -202,11 +203,12 @@ def test_sphere(simulation, cls, params):
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
 def test_cylinder(simulation, cls, params):
     """Test that particles stay within the pipe defined by a cylinder wall."""
+    n = np.array([1, 1, 1])
     radius = 5
     wall_pot = cls([
         hoomd.wall.Cylinder(radius=radius,
                             origin=(0, 0, 0),
-                            axis=(0, 0, 1),
+                            axis=n,
                             inside=True)
     ])
     simulation.operations.integrator.forces.append(wall_pot)
@@ -214,8 +216,9 @@ def test_cylinder(simulation, cls, params):
     for _ in range(10):
         simulation.run(10)
         with simulation.state.cpu_local_snapshot as snap:
-            assert np.all(
-                np.linalg.norm(snap.particles.position[:, :2], axis=1) < radius)
+            for i in range(len(snap.particles.position)):
+                r = snap.particles.position[i]
+                assert np.linalg.norm(r - (np.dot(r, n) * n)) < radius
 
 
 @pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
@@ -266,6 +269,18 @@ def test_r_extrap(simulation, cls, params):
                              itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
+
+
+@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
+def test_kernel_parameters(simulation, cls, params):
+    wall_pot = cls(WallGenerator.generate_n(2))
+    simulation.operations.integrator.forces.append(wall_pot)
+    wall_pot.params["A"] = params
+
+    simulation.run(0)
+
+    autotuned_kernel_parameter_check(instance=wall_pot,
+                                     activate=lambda: simulation.run(1))
 
 
 # Pickle Testing

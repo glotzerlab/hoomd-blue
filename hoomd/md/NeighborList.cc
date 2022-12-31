@@ -90,6 +90,23 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_bu
         }
 #endif
 
+    // holds the base rcut on a per type basis
+    GlobalArray<Scalar> rcut_base(m_typpair_idx.getNumElements(), m_exec_conf);
+    m_rcut_base.swap(rcut_base);
+    TAG_ALLOCATION(m_rcut_base);
+
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_rcut_base.get(),
+                      m_rcut_base.getNumElements() * sizeof(Scalar),
+                      cudaMemAdviseSetReadMostly,
+                      0);
+        CHECK_CUDA_ERROR();
+        }
+#endif
+
     // allocate the r_listsq array which accelerates CPU calculations
     GlobalArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_r_listsq.swap(r_listsq);
@@ -351,6 +368,12 @@ void NeighborList::compute(uint64_t timestep)
     if (m_rcut_changed)
         {
         updateRList();
+#ifdef ENABLE_MPI
+        if (m_sysdef->isDomainDecomposed())
+            {
+            m_comm->communicate(timestep);
+            }
+#endif
         }
 
     // skip if we shouldn't compute this step
@@ -412,42 +435,6 @@ void NeighborList::compute(uint64_t timestep)
         }
     }
 
-/*! \param num_iters Number of iterations to average for the benchmark
-    \returns Milliseconds of execution time per calculation
-
-    Calls buildNlist repeatedly to benchmark the neighbor list.
-*/
-double NeighborList::benchmark(unsigned int num_iters)
-    {
-    ClockSource t;
-    // warm up run
-    forceUpdate();
-    compute(0);
-    buildNlist(0);
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        hipDeviceSynchronize();
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    // benchmark
-    uint64_t start_time = t.getTime();
-    for (unsigned int i = 0; i < num_iters; i++)
-        buildNlist(0);
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        hipDeviceSynchronize();
-#endif
-    uint64_t total_time_ns = t.getTime() - start_time;
-
-    // convert the run time to milliseconds
-    return double(total_time_ns) / 1e6 / double(num_iters);
-    }
-
 /*! \param r_buff New buffer radius to set
     \note Changing the buffer radius does NOT immediately update the neighborlist.
             The new buffer will take effect when compute is called for the next timestep.
@@ -467,8 +454,12 @@ void NeighborList::updateRList()
     {
     // overwrite the new r_cut matrix
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_rcut_base(m_rcut_base, access_location::host, access_mode::overwrite);
 
-    memset(h_r_cut.data, 0, sizeof(Scalar) * m_r_cut.getNumElements());
+    for (unsigned int i = 0; i < m_r_cut.getNumElements(); i++)
+        {
+        h_r_cut.data[i] = h_rcut_base.data[i];
+        }
 
     // first: loop over the consumer r_cut matrices and take their max in h_r_cut
     for (unsigned int matrix = 0; matrix < m_consumer_r_cut.size(); matrix++)
@@ -781,14 +772,14 @@ void NeighborList::setSingleExclusion(std::string exclusion)
         }
     }
 
-pybind11::tuple NeighborList::getExclusions()
+pybind11::list NeighborList::getExclusions()
     {
     auto exclusions = pybind11::list();
     for (auto exclusion : m_exclusions)
         {
         exclusions.append(exclusion);
         }
-    return (pybind11::tuple)exclusions;
+    return exclusions;
     }
 
 /*! \post Gather some statistics about exclusions usage.
@@ -1778,6 +1769,263 @@ void NeighborList::updateMemoryMapping()
     }
 #endif
 
+pybind11::array_t<uint32_t> NeighborList::getLocalPairListPython(uint64_t timestep)
+    {
+    compute(timestep);
+
+    bool third_law = getStorageMode() == NeighborList::half;
+
+    ArrayHandle<unsigned int> h_n_neigh(getNNeighArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(getNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(getHeadList(), access_location::host, access_mode::read);
+
+    auto* pair_list = new std::vector<vec2<uint32_t>>();
+
+    // We can get an upper bound for the number of pairs by accumulating n_neigh,
+    // but without explicitly checking tags we cannot be sure of the number of duplicates
+    size_t max_n_elem = 0;
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        max_n_elem += h_n_neigh.data[i];
+        }
+
+    pair_list->reserve(max_n_elem);
+
+    pybind11::capsule delete_when_done(pair_list,
+                                       [](void* f)
+                                       {
+                                           auto data
+                                               = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                           delete data;
+                                       });
+
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        const size_t my_head = h_head_list.data[i];
+        const unsigned int size = h_n_neigh.data[i];
+        for (unsigned int k = 0; k < size; k++)
+            {
+            const unsigned int j = h_nlist.data[my_head + k];
+            // if j is not a ghost, only accept it if i < j
+            if (!third_law && j < m_pdata->getN() && i > j)
+                continue;
+
+            pair_list->push_back(vec2(i, j));
+            }
+        }
+
+    pair_list->shrink_to_fit();
+
+    unsigned long shape[] = {pair_list->size(), 2};
+    unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
+
+    return pybind11::array_t(shape,                        // shape
+                             stride,                       // stride
+                             (uint32_t*)pair_list->data(), // data pointer
+                             delete_when_done);
+    }
+
+pybind11::object NeighborList::getPairListPython(uint64_t timestep)
+    {
+    compute(timestep);
+
+    bool third_law = getStorageMode() == NeighborList::half;
+
+#ifdef ENABLE_MPI
+    bool root = m_exec_conf->isRoot();
+#endif
+
+    ArrayHandle<unsigned int> h_n_neigh(getNNeighArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(getNListArray(), access_location::host, access_mode::read);
+    ArrayHandle<size_t> h_head_list(getHeadList(), access_location::host, access_mode::read);
+
+    ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
+
+    // We can get an upper bound for the number of pairs by accumulating n_neigh,
+    // but without explicitly checking tags we cannot be sure of the number of duplicates
+    size_t max_n_elem = 0;
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        max_n_elem += h_n_neigh.data[i];
+        }
+
+    auto* pair_list = new std::vector<vec2<uint32_t>>();
+    pair_list->reserve(max_n_elem);
+
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        unsigned int tag_i = h_tags.data[i];
+        const size_t my_head = h_head_list.data[i];
+        const unsigned int size = h_n_neigh.data[i];
+        for (unsigned int k = 0; k < size; k++)
+            {
+            const unsigned int j = h_nlist.data[my_head + k];
+            const unsigned int tag_j = h_tags.data[j];
+            if ((!third_law || j >= m_pdata->getN()) && tag_i > tag_j)
+                continue;
+
+            pair_list->push_back(vec2(tag_i, tag_j));
+            }
+        }
+
+    pair_list->shrink_to_fit();
+
+#ifdef ENABLE_MPI
+
+    uint32_t* global_pair_list = nullptr;
+    pybind11::capsule delete_when_done;
+    unsigned long shape[] = {0, 2}; // first index needs to be set later
+    unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
+
+    if (m_sysdef->isDomainDecomposed())
+        {
+        max_n_elem = pair_list->size();
+        // Throw error if n_elem does not fit into an int
+        if (max_n_elem > std::numeric_limits<int>::max() / 2)
+            throw std::runtime_error("The pair list is too large to be communicated with MPI. \
+                                        Please use the rank local pair list.");
+        auto n_elem = static_cast<int>(2 * max_n_elem);
+        std::vector<int> global_n_elem;
+        void* recvbuf = nullptr;
+        if (root)
+            {
+            global_n_elem = std::vector<int>(m_exec_conf->getNRanks(), 0);
+            recvbuf = global_n_elem.data();
+            }
+
+        // Use a gather command to get the number of pairs on each processor
+        MPI_Gather(&n_elem, 1, MPI_INT, recvbuf, 1, MPI_INT, 0, m_exec_conf->getMPICommunicator());
+
+        // Allocate array to hold the offsets
+        std::vector<int> offsets;
+        int* recvcount = nullptr;
+        int* displs = nullptr;
+        long total_elements = 0;
+        if (root)
+            {
+            offsets = std::vector<int>(m_exec_conf->getNRanks(), 0);
+            total_elements = std::accumulate(global_n_elem.begin(), global_n_elem.end(), 0);
+            std::partial_sum(global_n_elem.begin(), global_n_elem.end() - 1, offsets.begin() + 1);
+            recvcount = global_n_elem.data();
+            displs = offsets.data();
+            }
+
+        if (total_elements > std::numeric_limits<int>::max())
+            throw std::runtime_error("The pair list is too large to be communicated with MPI. \
+                                      Please use the rank local pair list.");
+
+        // Use a gatherv command to produce the global_pair_list
+        if (root)
+            {
+            global_pair_list = new unsigned int[total_elements];
+            delete_when_done = pybind11::capsule(global_pair_list,
+                                                 [](void* f)
+                                                 {
+                                                     auto data = reinterpret_cast<uint32_t*>(f);
+                                                     delete[] data;
+                                                 });
+            }
+
+        shape[0] = total_elements / 2;
+
+        MPI_Gatherv(pair_list->data(),
+                    n_elem,
+                    MPI_UINT32_T,
+                    global_pair_list,
+                    recvcount,
+                    displs,
+                    MPI_UINT32_T,
+                    0,
+                    m_exec_conf->getMPICommunicator());
+
+        // cleanup allocations
+        delete pair_list;
+        }
+    else
+        {
+        // Simulation is not domain decomposed.
+        global_pair_list = reinterpret_cast<uint32_t*>(pair_list->data());
+        shape[0] = pair_list->size();
+        delete_when_done
+            = pybind11::capsule(pair_list,
+                                [](void* f)
+                                {
+                                    auto data = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                    delete data;
+                                });
+        }
+
+    if (root)
+        {
+        return pybind11::array_t(shape, stride, global_pair_list, delete_when_done);
+        }
+    return pybind11::none();
+
+#else
+    auto* global_pair_list = pair_list;
+
+    pybind11::capsule delete_when_done(pair_list,
+                                       [](void* f)
+                                       {
+                                           auto data
+                                               = reinterpret_cast<std::vector<vec2<uint32_t>>*>(f);
+                                           delete data;
+                                       });
+
+    unsigned long shape[] = {global_pair_list->size(), 2};
+    unsigned long stride[] = {2 * sizeof(uint32_t), sizeof(uint32_t)};
+
+    return pybind11::array_t(shape,
+                             stride,
+                             reinterpret_cast<uint32_t*>(global_pair_list->data()),
+                             delete_when_done);
+#endif
+    }
+
+void NeighborList::validateTypes(unsigned int typ1, unsigned int typ2, std::string action)
+    {
+    auto n_types = this->m_pdata->getNTypes();
+    if (typ1 >= n_types || typ2 >= n_types)
+        {
+        throw std::runtime_error("Error in" + action + " for NeighborList. Invalid type");
+        }
+    }
+
+/*! \param typ1 First type index in the pair
+    \param typ2 Second type index in the pair
+    \param rcut Cutoff radius to set
+    \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is
+   automatically set.
+*/
+void NeighborList::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
+    {
+    validateTypes(typ1, typ2, "setting rcut_base");
+        {
+        // store r_cut unmodified for so the neighbor list knows what particles to include
+        ArrayHandle<Scalar> h_rcut_base(m_rcut_base, access_location::host, access_mode::readwrite);
+        h_rcut_base.data[m_typpair_idx(typ1, typ2)] = rcut;
+        h_rcut_base.data[m_typpair_idx(typ2, typ1)] = rcut;
+        }
+
+    notifyRCutMatrixChange();
+    }
+
+void NeighborList::setRCutPython(pybind11::tuple types, Scalar r_cut)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    setRcut(typ1, typ2, r_cut);
+    }
+
+Scalar NeighborList::getRCut(pybind11::tuple types)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "getting rcut_base.");
+    ArrayHandle<Scalar> h_rcut_base(m_rcut_base, access_location::host, access_mode::read);
+    return h_rcut_base.data[m_typpair_idx(typ1, typ2)];
+    }
+
 namespace detail
     {
 void export_NeighborList(pybind11::module& m)
@@ -1807,13 +2055,30 @@ void export_NeighborList(pybind11::module& m)
         .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
         .def("getNumUpdates", &NeighborList::getNumUpdates)
         .def("getNumExclusions", &NeighborList::getNumExclusions)
-        .def_property_readonly("num_builds", &NeighborList::getNumUpdates);
+        .def_property_readonly("num_builds", &NeighborList::getNumUpdates)
+        .def("getLocalPairList", &NeighborList::getLocalPairListPython)
+        .def("getPairList", &NeighborList::getPairListPython)
+        .def("setRCut", &NeighborList::setRCutPython)
+        .def("getRCut", &NeighborList::getRCut)
+        .def("compute", &NeighborList::compute);
 
     pybind11::enum_<NeighborList::storageMode>(nlist, "storageMode")
         .value("half", NeighborList::storageMode::half)
         .value("full", NeighborList::storageMode::full)
         .export_values();
-    }
+    };
+
+void export_LocalNeighborListDataHost(pybind11::module& m)
+    {
+    export_LocalNeighborListData<HOOMDHostBuffer>(m, "LocalNeighborListDataHost");
+    };
+
+#if ENABLE_HIP
+void export_LocalNeighborListDataGPU(pybind11::module& m)
+    {
+    export_LocalNeighborListData<HOOMDDeviceBuffer>(m, "LocalNeighborListDataDevice");
+    };
+#endif
 
     } // end namespace detail
     } // end namespace md

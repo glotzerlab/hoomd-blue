@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a new HOOMD-blue feature
+labels: ['enhancement']
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: What new capability would you like in HOOMD-blue?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: How should this capability be implemented? What might the user API look like?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: What additional information is helpful to understand this request?
+  - type: markdown
+    attributes:
+      value: |
+        We would welcome your contribution!
+
+        If you plan to implement this functionality, the HOOMD-blue developers will discuss the
+        proposed design and API with you **before** you begin work.

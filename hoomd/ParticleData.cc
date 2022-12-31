@@ -983,14 +983,20 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                                           bool ignore_bodies)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
+    if (snapshot.type_mapping.size() >= 40)
+        {
+        m_exec_conf->msg->warning() << "Systems with many particle types perform poorly or result "
+                                       "in shared memory errors on the GPU."
+                                    << std::endl;
+        }
 
     // remove all ghost particles
     removeAllGhostParticles();
 
     // check that all fields in the snapshot have correct length
-    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+    if (m_exec_conf->getRank() == 0)
         {
-        throw std::runtime_error("Invalid particle data in snapshot.");
+        snapshot.validate();
         }
 
     // clear set of active tags
@@ -2872,16 +2878,25 @@ template<class Real> void SnapshotParticleData<Real>::insert(unsigned int i, uns
     is_accel_set = false;
     }
 
-template<class Real> bool SnapshotParticleData<Real>::validate() const
+template<class Real> void SnapshotParticleData<Real>::validate() const
     {
     // Check if all other fields are of equal length==size
     if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size
         || mass.size() != size || charge.size() != size || diameter.size() != size
         || image.size() != size || body.size() != size || orientation.size() != size
         || angmom.size() != size || inertia.size() != size)
-        return false;
+        {
+        throw std::runtime_error("All array sizes must match.");
+        }
 
-    return true;
+    // Check that the user provided unique type names.
+    std::vector<std::string> types_copy = type_mapping;
+    std::sort(types_copy.begin(), types_copy.end());
+    auto last = std::unique(types_copy.begin(), types_copy.end());
+    if (static_cast<size_t>(last - types_copy.begin()) != type_mapping.size())
+        {
+        throw std::runtime_error("Type names must be unique.");
+        }
     }
 
 #ifdef ENABLE_MPI

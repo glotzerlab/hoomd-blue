@@ -4,7 +4,8 @@
 import hoomd
 from hoomd import md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 import pytest
 import numpy
 
@@ -12,6 +13,27 @@ import itertools
 # Test parameters include the class, class keyword arguments, bond params,
 # force, and energy.
 dihedral_test_parameters = [
+    (
+        hoomd.md.dihedral.Periodic,
+        dict(),
+        dict(k=3.0, d=-1, n=2, phi0=numpy.pi / 2),
+        0,
+        3,
+    ),
+    (
+        hoomd.md.dihedral.Periodic,
+        dict(),
+        dict(k=10.0, d=1, n=1, phi0=numpy.pi / 4),
+        5.0,
+        5.0,
+    ),
+    (
+        hoomd.md.dihedral.Periodic,
+        dict(),
+        dict(k=5.0, d=1, n=3, phi0=numpy.pi / 6),
+        1.9411,
+        0.0852,
+    ),
     (
         hoomd.md.dihedral.Harmonic,
         dict(),
@@ -176,12 +198,33 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
                                       atol=1e-5)
 
 
+@pytest.mark.parametrize('dihedral_cls, dihedral_args, params, force, energy',
+                         dihedral_test_parameters)
+def test_kernel_parameters(dihedral_snapshot_factory, simulation_factory,
+                           dihedral_cls, dihedral_args, params, force, energy):
+    phi_deg = 45
+    snapshot = dihedral_snapshot_factory(phi_deg=phi_deg)
+    sim = simulation_factory(snapshot)
+
+    potential = dihedral_cls(**dihedral_args)
+    potential.params['A-A-A-A'] = params
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=potential,
+                                     activate=lambda: sim.run(1))
+
+
 # Test Logging
-@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
-                         zip((md.dihedral.Dihedral, md.dihedral.Harmonic,
-                              md.dihedral.Table, md.dihedral.OPLS),
-                             itertools.repeat(('md', 'dihedral')),
-                             itertools.repeat(expected_loggable_params)))
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((md.dihedral.Dihedral, md.dihedral.Harmonic, md.dihedral.Periodic,
+         md.dihedral.Table, md.dihedral.OPLS),
+        itertools.repeat(('md', 'dihedral')),
+        itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 

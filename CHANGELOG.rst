@@ -7,6 +7,122 @@ Change Log
 v3.x
 ----
 
+v3.7.0 (2022-11-29)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``Neighborlist.r_cut`` sets the base cutoff radius for neighbor search - for use when the neighbor
+  list is used for analysis or custom Python code.
+* ``Neighborlist.cpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.gpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.local_pair_list`` provides the rank local pair list by index.
+* ``Neighborlist.pair_list`` provides the global pair list by tag on rank 0.
+* ``hoomd.md.dihedral.Periodic`` - a new name for the previous ``Harmonic`` potential.
+* ``default_gamma`` and ``default_gamma_r`` arguments to the ``hoomd.md.methods``: ``Brownian``,
+  ``Langevin``, and ``OverdampedViscous``.
+* ``reservoir_energy`` loggable in ``hoomd.md.methods.Langevin``.
+* ``hoomd.md.force.Constant`` applies constant forces and torques to particles.
+
+*Changed*
+
+* [plugin developers] Refactored the ``LocalDataAccess`` C++ classes to add flexibility.
+
+*Fixed*
+
+* ``hoomd.hpmc.nec`` integrators compute non-infinite virial pressures for 2D simulations.
+* Raise an exception when attempting to get the shape specification of shapes with 0 elements.
+* Box conversion error message now names ``hoomd.Box``.
+
+*Deprecated*
+
+* ``hoomd.md.dihedral.Harmonic`` - use the functionally equivalent ``hoomd.md.dihedral.Periodic``.
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``.
+* ``diameters`` key in ``hoomd.md.constrain.Rigid.body``.
+
+v3.6.0 (2022-10-25)
+^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* In ``hoomd.md.pair.aniso.ALJ``, ``shape.rounding_radii`` now defaults to (0.0, 0.0, 0.0).
+* Revise ``hoomd.md.pair.aniso.ALJ`` documentation.
+* ``hoomd.md.force.Force`` instances can now be added to the ``Operations`` list allowing users to
+  compute force, torque, energy, and virials of forces that are not included in the dynamics of
+  the system.
+* [developers]: Removed internal methods ``_remove`` and ``_add`` from the data model.
+
+*Fixed*
+
+* Increase the performance of ``md.pair.Table`` on the CPU.
+* Improve accuracy of ``hoomd.hpmc.update.BoxMC`` when used with patch potentials.
+* Provide an accurate warning message when creating the state with many bond/angle/... types.
+* Add missing documentation for ``hoomd.md.methods.Berendsen``.
+* CVE-2007-4559
+
+v3.5.0 (2022-09-14)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Example plugin that demonstrates how to add a MD pair potential.
+* Support a large number of particle and bond types (subject to available GPU memory and user
+  patience) for the ``Cell`` neighbor list, MD pair potentials, MD bond potentials, Brownian, and
+  Langevin integration methods.
+
+*Changed*
+
+* Raise an error when initializing with duplicate types.
+* ``hpmc.compute.SDF`` now computes pressures of systems with patch interactions.
+* Raise descriptive error messages when the shared memory request exceeds that available on the GPU.
+
+*Fixed*
+
+* Include all ``Neighborlist`` attributes in the documentation.
+* Memory allocation errors in C++ now result in ``MemoryError`` exceptions in Python.
+* Add missing ``Autotuned.h`` header file.
+* External components build correctly when ``ENABLE_MPI=on`` or ``ENABLE_GPU=on``.
+* Type parameter validation when items contain ``numpy.ndarray`` elements.
+* Compile with CUDA 12.0.
+
+*Deprecated*
+
+* ``Device.memory_traceback`` attribute. This attribute has no effect.
+
+
+v3.4.0 (2022-08-15)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The new HOOMD-blue logo is now available in the documentation.
+* ``hoomd.md.methods.DisplacementCapped`` class for relaxing configurations with overlaps.
+* ``hoomd.md.methods.rattle.DisplacementCapped`` class for relaxing configurations with overlaps.
+* ``hoomd.device.Device.notice`` - print user-defined messages to the configured message output
+  stream.
+* Tutorial: Modelling Rigid Bodies.
+* ``AutotunedObject`` class that provides an interface to read and write tuned kernel parameters,
+  query whether tuning is complete, and start tuning again at the object level.
+* ``is_tuning_complete`` method to ``Operations``. Check whether kernel parameter tuning is complete
+  for all operations.
+* ``tune_kernel_parameters`` methods to ``Operations`` and many other classes. Start tuning kernel
+  parameters in all operations.
+* ``hoomd.md.HalfStepHook`` - extensible hook class called between step 1 and 2 of MD integration.
+* ``hoomd.md.Integrator.half_step_hook`` - property to get/set the half step hook.
+
+
+*Fixed*
+
+* Active forces on manifolds now attach to the ``Simulation`` correctly.
+* ``hoomd.update.FilterUpdater`` now accepts ``hoomd.filter.CustomFilter`` subclasses.
+* Correct error message is given when a sequence like parameter is not given to a type parameter.
+* Fix non-axis-aligned Cylinder walls in MD.
+* ``hoomd.md.constrain.Constraint`` now has ``hoomd.md.force.Force`` as a base class.
+* Provide a warning instead of an error when passing an out of range seed to the ``Simulation``
+  constructor.
+* Compile with current versions of HIP and ROCm.
+* Compilation errors with CUDA >=11.8.
+
 v3.3.0 (2022-07-08)
 ^^^^^^^^^^^^^^^^^^^
 

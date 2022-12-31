@@ -37,14 +37,29 @@ namespace kernel
 //! Temporary holder struct to limit the number of arguments passed to gpu_rattle_bd_step_one()
 struct rattle_bd_step_one_args
     {
+    rattle_bd_step_one_args(Scalar* _d_gamma,
+                            size_t _n_types,
+                            bool _use_alpha,
+                            Scalar _alpha,
+                            Scalar _T,
+                            Scalar _tolerance,
+                            uint64_t _timestep,
+                            uint16_t _seed,
+                            const hipDeviceProp_t& _devprop)
+        : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha), alpha(_alpha), T(_T),
+          tolerance(_tolerance), timestep(_timestep), seed(_seed), devprop(_devprop)
+        {
+        }
+
     Scalar* d_gamma; //!< Device array listing per-type gammas
     size_t n_types;  //!< Number of types in \a d_gamma
     bool use_alpha;  //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;    //!< Scale factor to convert diameter to alpha
     Scalar T;        //!< Current temperature
     Scalar tolerance;
-    uint64_t timestep; //!< Current timestep
-    uint16_t seed;     //!< User chosen random number seed
+    uint64_t timestep;              //!< Current timestep
+    uint16_t seed;                  //!< User chosen random number seed
+    const hipDeviceProp_t& devprop; //!< Device properties.
     };
 
 template<class Manifold>
@@ -386,12 +401,20 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
         dim3 grid((nwork / run_block_size) + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
+        const auto shared_bytes
+            = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
+
+        if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
+            {
+            throw std::runtime_error("Brownian gamma parameters exceed the available shared "
+                                     "memory per block.");
+            }
+
         // run the kernel
         hipLaunchKernelGGL((gpu_rattle_brownian_step_one_kernel<Manifold>),
                            dim3(grid),
                            dim3(threads),
-                           (unsigned int)(sizeof(Scalar) * rattle_bd_args.n_types
-                                          + sizeof(Scalar3) * rattle_bd_args.n_types),
+                           shared_bytes,
                            0,
                            d_pos,
                            d_image,
@@ -640,12 +663,20 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
         dim3 grid((nwork / run_block_size) + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
+        const auto shared_bytes
+            = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
+
+        if (shared_bytes > rattle_bd_args.devprop.sharedMemPerBlock)
+            {
+            throw std::runtime_error("Brownian gamma parameters exceed the available shared "
+                                     "memory per block.");
+            }
+
         // run the kernel
         hipLaunchKernelGGL((gpu_include_rattle_force_bd_kernel<Manifold>),
                            dim3(grid),
                            dim3(threads),
-                           (unsigned int)(sizeof(Scalar) * rattle_bd_args.n_types
-                                          + sizeof(Scalar3) * rattle_bd_args.n_types),
+                           shared_bytes,
                            0,
                            d_pos,
                            d_net_force,

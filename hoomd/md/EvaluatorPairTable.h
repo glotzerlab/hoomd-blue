@@ -231,12 +231,12 @@ class EvaluatorPairTable
 #endif
 
     protected:
-    Scalar rsq;                   //!< distance squared
-    Scalar rcutsq;                //!< the potential cuttoff distance squared
-    size_t width;                 //!< the distance between table indices
-    Scalar rmin;                  //!< the distance of the first index of the table potential
-    ManagedArray<Scalar> V_table; //!< the tabulated energy
-    ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
+    Scalar rsq;                          //!< distance squared
+    Scalar rcutsq;                       //!< the potential cuttoff distance squared
+    size_t width;                        //!< the distance between table indices
+    Scalar rmin;                         //!< the distance of the first index of the table potential
+    const ManagedArray<Scalar>& V_table; //!< the tabulated energy
+    const ManagedArray<Scalar>& F_table; //!< the tabulated force specifically - (dV / dr)
     };
 
     } // end namespace md

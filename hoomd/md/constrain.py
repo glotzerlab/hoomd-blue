@@ -23,11 +23,11 @@ from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.md.force import Force
 import hoomd
-from hoomd.operation import _HOOMDBaseObject
 
 
-class Constraint(_HOOMDBaseObject):
+class Constraint(Force):
     """Constraint force base class.
 
     `Constraint` is the base class for all constraint forces.
@@ -37,7 +37,7 @@ class Constraint(_HOOMDBaseObject):
         for `isinstance` or `issubclass` checks.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
@@ -45,8 +45,6 @@ class Constraint(_HOOMDBaseObject):
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
-
-        super()._attach()
 
 
 class Distance(Constraint):
@@ -120,14 +118,19 @@ class Rigid(Constraint):
     the rigid body (constituent particle mass is ignored).
 
     The central particle is at the center of mass of the rigid body and the
-    orientation quaternion defines the rotation from the body space into the
-    simulation box. Body space refers to a rigid body viewed in a particular
-    reference frame. In body space, the center of mass of the body is at
-    :math:`(0,0,0)` and the moment of inertia is diagonal. You specify the
-    constituent particles to `Rigid` for each type of body in body coordinates.
-    Then, `Rigid` takes control of those particles, and sets their position and
-    orientation in the simulation box relative to the position and orientation
-    of the central particle:
+    particle's orientation quaternion defines the rotation from the body space
+    into the simulation box. Body space refers to a rigid body viewed in a
+    particular reference frame. In body space, the center of mass of the body is
+    at :math:`(0,0,0)` and the moment of inertia is diagonal.
+
+    .. rubric:: Constituent particles
+
+    Select one or more particle types in the simulation to use as the central
+    particles. For each rigid body particle type, ou specify the constituent
+    particle position and orientations in body coordinates (see `body`). Then,
+    `Rigid` takes control of the constituent particles and sets their position
+    and orientation in the simulation box relative to the position and
+    orientation of the central particle:
 
     .. math::
 
@@ -140,16 +143,43 @@ class Rigid(Constraint):
     :math:`\vec{r}_{c,\mathrm{body}}` and :math:`\mathbf{q}_{c,\mathrm{body}}`
     are the position and orientation of that particle in body coordinates, and
     :math:`\vec{r}_b` and :math:`\mathbf{q}_b` are the position and orientation
-    of the central particle of that rigid body. In the simulation state, the
-    ``body`` particle property defines the particle tag of the central particle:
-    ``b = body[c]``. In setting the ``body`` array, central particles should be
-    set to their tag :math:`b_i = t_i`, constituent particles to their central
-    particle's tag :math:`b_i = t_{center}`, and free particles :math:`b_i = -1`
+    of the central particle of that rigid body. `Rigid` also sets the
+    constituent particle image consistent with the image of the central particle
+    and the location of the constituent particle wrapped back into the
+    box. `Rigid` does not modify the constituent particle type ids, charge,
+    or diameter.
+
+    Warning:
+        `Rigid` **overwrites** the constituent particle positions and
+        orientations. To change the position and orientation of a body, set the
+        desired position and orientation of the central particle and call
+        `run(0) <Simulation.run>` to trigger `Rigid` to update the particles.
+
+    In the simulation state, the ``body`` particle property defines the particle
+    tag of the central particle: ``b = body[c]``. In setting the ``body`` array,
+    set central particles to their tag :math:`b_i = t_i`, constituent particles
+    to their central particle's tag :math:`b_i = t_{center}`, and free particles
+    to -1: :math:`b_i = -1`. Free particles are particles that are not part of
+    a rigid body.
+
+    The central particle of a rigid body must have a tag smaller than all of its
+    constituent particles. Constituent particles follow in monotonically
+    increasing tag order, corresponding to the order they are defined in the
+    argument to `Rigid` initialization. The central and constituent particles do
+    not need to be contiguous.
+
+    Tip:
+        To create constituent particles, initialize a simulation state
+        containing only central particles (but both rigid body and constituent
+        particle types). Then call `create_bodies` to add all the constituent
+        particles to the state.
+
+    .. rubric:: Net force and torque
 
     `Rigid` transfers forces, energies, and torques from constituent particles
     to the central particle and adds them to those from the interaction on the
-    central particle itself. The molecular integration methods use these forces
-    and torques to integrate the equations of motion of the central particles
+    central particle itself. The integration methods use these forces and
+    torques to integrate the equations of motion of the central particles
     (representing the whole rigid body) forward in time.
 
     .. math::
@@ -163,32 +193,6 @@ class Rigid(Constraint):
     `Rigid` also computes the corrected virial accounting for the effective
     constraint force (see `Glaser 2020
     <https://dx.doi.org/10.1016/j.commatsci.2019.109430>`_).
-
-    .. rubric:: Defining bodies
-
-    `Rigid` accepts one local body definition per body type. The type of a body
-    is the particle type of the central particle in that body. In this way, each
-    particle of type *R* in the system configuration defines a body of type *R*.
-
-    As a convenience, you do not need to create placeholder entries for all of
-    the constituent particles in your initial configuration. You can specify
-    only the positions and orientations of all the central particles, then call
-    `create_bodies` to create all constituent particles.
-
-    Warning:
-        Place constituent particle placeholders in the simulation state when
-        there are bonds between particles. `create_bodies` changes particle
-        tags.
-
-    In the simulation state, the central particle of a rigid body must have a
-    lower tag than all of its constituent particles. Constituent particles
-    follow in monotonically increasing tag order, corresponding to the order
-    they are defined in the argument to `Rigid` initialization. The central and
-    constituent particles do not need to be contiguous. Additionally, you must
-    set the ``body`` field for each of the particles in the rigid body to the
-    tag of the central particle (for both the central and constituent
-    particles). Set ``body`` to -1 for particles that do not belong to a rigid
-    body (i.e. free bodies).
 
     .. rubric:: Integrating bodies
 
@@ -206,7 +210,6 @@ class Rigid(Constraint):
         langevin = hoomd.md.methods.Langevin(
             filter=rigid_centers_and_free_filter, kT=1.0)
 
-
     .. rubric:: Thermodynamic quantities of bodies
 
     `hoomd.md.compute.ThermodynamicQuantities` computes thermodynamic quantities
@@ -216,18 +219,13 @@ class Rigid(Constraint):
 
     .. rubric:: Continuing simulations with rigid bodies.
 
-    To continue a simulation, use `hoomd.write.GSD` to write the system state to
-    a file. GSD stores all of the particle data fields needed to reconstruct the
-    state of the system, including the body tag, angular momentum, and
-    orientation of the body. Continuing from a gsd file is equivalent to
-    manually placing constituent particles. You must specify the same local body
-    space environment to `body` as you did in the earlier simulation.
-
-    To set constituent particle types and coordinates for a rigid body use the
-    `body` attribute.
-
-    .. caution::
-        The constituent particle type(s) must exist in the simulation state.
+    To continue a simulation, write the simulation state to a file with
+    `hoomd.write.GSD` and initialize the new `Simulation <hoomd.Simulation>`
+    using `create_state_from_gsd <Simulation.create_state_from_gsd>`. GSD stores
+    all the particle data fields needed to reconstruct the state of the system,
+    including the body, angular momentum, and orientation of the body. You must
+    specify the same local body space environment to `body` as you did in the
+    earlier simulation - GSD does not store this information.
 
     Example::
 
@@ -264,15 +262,31 @@ class Rigid(Constraint):
 
         - ``constituent_types`` (`list` [`str`]): List of types of constituent
           particles.
+
         - ``positions`` (`list` [`tuple` [`float`, `float`, `float`]]): List of
           relative positions of constituent particles.
+
         - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
           `float`]]): List of orientations (as quaternions) of constituent
           particles.
+
         - ``charges`` (`list` [`float`]): List of charges of constituent
           particles.
+
+          .. deprecated:: v3.7.0
+             ``charges`` will be removed in v4.
+
         - ``diameters`` (`list` [`float`]): List of diameters of constituent
           particles.
+
+          .. deprecated:: v3.7.0
+             ``diameters`` will be removed in v4.
+
+        Of these, `Rigid` uses ``positions`` and ``orientation`` to set the
+        constituent particle positions and orientations every time step.
+        `create_bodies` uses ``constituent_types``, ``charges``, and
+        ``diameters`` to populate those particle properties when creating
+        constituent particles.
 
         Type: `TypeParameter` [``particle_type``, `dict`]
     """
@@ -307,25 +321,13 @@ class Rigid(Constraint):
         if self._attached:
             raise RuntimeError(
                 "Cannot call create_bodies after running simulation.")
-        # Attach and store information for detaching after calling
-        # createRigidBodies
-        old_sim = None
-        if self._added:
-            old_sim = self._simulation
-        self._add(state._simulation)
-        super()._attach()
-
+        super()._attach(state._simulation)
         self._cpp_obj.createRigidBodies()
-
         # Restore previous state
         self._detach()
-        if old_sim is not None:
-            self._simulation = old_sim
-        else:
-            self._remove()
 
-    def _attach(self):
-        super()._attach()
+    def _attach_hook(self):
+        super()._attach_hook()
         # Need to ensure body tags and molecule sizes are correct and that the
         # positions and orientations are accurate before integration.
         self._cpp_obj.validateRigidBodies()

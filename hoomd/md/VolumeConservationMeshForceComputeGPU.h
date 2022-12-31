@@ -36,17 +36,6 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
     VolumeConservationMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                           std::shared_ptr<MeshDefinition> meshdef);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        VolumeConservationMeshForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar V0);
 
@@ -54,7 +43,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceComputeGPU
     unsigned int m_block_size; //!< block size for partial sum memory
     unsigned int m_num_blocks;       //!< number of memory blocks reserved for partial sum memory
 
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size of force loop
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
     GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
     GPUArray<Scalar2> m_params;          //!< Parameters stored on the GPU
 

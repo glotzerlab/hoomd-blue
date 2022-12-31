@@ -189,13 +189,29 @@ class BondedGroupData
         //! Validate the snapshot
         /* \returns true if number of elements in snapshot is consistent
          */
-        bool validate() const
+        void validate() const
             {
             if (has_type_mapping && groups.size() != type_id.size())
-                return false;
+                {
+                throw std::runtime_error("All array sizes must match.");
+                }
+
             if (!has_type_mapping && groups.size() != val.size())
-                return false;
-            return true;
+                {
+                throw std::runtime_error("All array sizes must match.");
+                }
+
+            // Check that the user provided unique type names.
+            if (has_type_mapping)
+                {
+                std::vector<std::string> types_copy = type_mapping;
+                std::sort(types_copy.begin(), types_copy.end());
+                auto last = std::unique(types_copy.begin(), types_copy.end());
+                if (static_cast<size_t>(last - types_copy.begin()) != type_mapping.size())
+                    {
+                    throw std::runtime_error("Type names must be unique.");
+                    }
+                }
             }
 
         //! Replicate this snapshot
@@ -1164,12 +1180,16 @@ typedef BondedGroupData<2, Bond, name_pair_data> PairData;
  *  GroupData: The realized class from the BondGroupData template.
  */
 template<class Output, class GroupData>
-class LocalGroupData : public LocalDataAccess<Output, GroupData>
+class LocalGroupData : public GhostLocalDataAccess<Output, GroupData>
     {
     public:
     LocalGroupData(GroupData& data)
-        : LocalDataAccess<Output, GroupData>(data), m_tags_handle(nullptr), m_rtags_handle(nullptr),
-          m_members_handle(nullptr), m_typeval_handle(nullptr)
+        : GhostLocalDataAccess<Output, GroupData>(data,
+                                                  data.getN(),
+                                                  data.getNGhosts(),
+                                                  data.getNGlobal()),
+          m_tags_handle(nullptr), m_rtags_handle(nullptr), m_members_handle(nullptr),
+          m_typeval_handle(nullptr)
         {
         }
 
@@ -1177,22 +1197,24 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
 
     Output getTags(GhostDataFlag flag)
         {
-        return this->template getBuffer<unsigned int, unsigned int, GPUVector>(m_tags_handle,
-                                                                               &GroupData::getTags,
-                                                                               flag,
-                                                                               true);
+        return this->template getLocalBuffer<unsigned int, unsigned int, GPUVector>(
+            m_tags_handle,
+            &GroupData::getTags,
+            flag,
+            true);
         }
 
     Output getRTags()
         {
         return this->template getGlobalBuffer<unsigned int, GPUVector>(m_rtags_handle,
-                                                                       &GroupData::getRTags);
+                                                                       &GroupData::getRTags,
+                                                                       false);
         }
 
     Output getTypeVal(GhostDataFlag flag)
         {
         // This forces resolution at compile time for the returned types
-        return this->template getBuffer<
+        return this->template getLocalBuffer<
             typeval_t,
             typename std::conditional<GroupData::typemap_val, unsigned int, Scalar>::type,
             GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag, true);
@@ -1200,12 +1222,13 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
 
     Output getMembers(GhostDataFlag flag)
         {
-        return this->template getBuffer<typename GroupData::members_t, unsigned int, GPUVector>(
-            m_members_handle,
-            &GroupData::getMembersArray,
-            flag,
-            true,
-            GroupData::size);
+        return this
+            ->template getLocalBuffer<typename GroupData::members_t, unsigned int, GPUVector>(
+                m_members_handle,
+                &GroupData::getMembersArray,
+                flag,
+                true,
+                GroupData::size);
         }
 
     protected:

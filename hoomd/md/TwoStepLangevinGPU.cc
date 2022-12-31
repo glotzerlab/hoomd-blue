@@ -40,21 +40,15 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
 
-    hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
-    m_tuner_one.reset(new Autotuner(dev_prop.warpSize,
-                                    dev_prop.maxThreadsPerBlock,
-                                    dev_prop.warpSize,
-                                    5,
-                                    100000,
-                                    "langevin_nve",
-                                    this->m_exec_conf));
-    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize,
-                                            dev_prop.maxThreadsPerBlock,
-                                            dev_prop.warpSize,
-                                            5,
-                                            100000,
-                                            "langevin_angular",
-                                            this->m_exec_conf));
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "langevin_nve"));
+    m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "langevin_angular",
+                                               5,
+                                               true));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_one, m_tuner_angular_one});
     }
 
 /*! \param timestep Current time step
@@ -99,7 +93,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                              false,
                              0,
                              false,
-                             m_tuner_one->getParam());
+                             m_tuner_one->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -133,7 +127,7 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
                                          m_group->getGPUPartition(),
                                          m_deltaT,
                                          1.0,
-                                         m_tuner_angular_one->getParam());
+                                         m_tuner_angular_one->getParam()[0]);
 
         m_tuner_angular_one->end();
         m_exec_conf->endMultiGPU();
@@ -185,21 +179,21 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
-        kernel::langevin_step_two_args args;
-        args.d_gamma = d_gamma.data;
-        args.n_types = (unsigned int)m_gamma.getNumElements();
-        args.use_alpha = m_use_alpha;
-        args.alpha = m_alpha;
-        args.T = (*m_T)(timestep);
-        args.timestep = timestep;
-        args.seed = m_sysdef->getSeed();
-        args.d_sum_bdenergy = d_sumBD.data;
-        args.d_partial_sum_bdenergy = d_partial_sumBD.data;
-        args.block_size = m_block_size;
-        args.num_blocks = m_num_blocks;
-        args.noiseless_t = m_noiseless_t;
-        args.noiseless_r = m_noiseless_r;
-        args.tally = m_tally;
+        kernel::langevin_step_two_args args(d_gamma.data,
+                                            (unsigned int)m_gamma.getNumElements(),
+                                            m_use_alpha,
+                                            m_alpha,
+                                            (*m_T)(timestep),
+                                            timestep,
+                                            m_sysdef->getSeed(),
+                                            d_sumBD.data,
+                                            d_partial_sumBD.data,
+                                            m_block_size,
+                                            m_num_blocks,
+                                            m_noiseless_t,
+                                            m_noiseless_r,
+                                            m_tally,
+                                            m_exec_conf->dev_prop);
 
         kernel::gpu_langevin_step_two(d_pos.data,
                                       d_vel.data,

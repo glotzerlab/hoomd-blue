@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/SystemDefinition.h"
 
@@ -95,7 +96,7 @@ namespace md
     -# each integration method only applies these operations to the particles contained within its
    group (exceptions are allowed when box rescaling is needed) \ingroup updaters
 */
-class PYBIND11_EXPORT IntegrationMethodTwoStep
+class PYBIND11_EXPORT IntegrationMethodTwoStep : public Autotuned
     {
     public:
     //! Constructs the integration method and associates it with the system
@@ -117,14 +118,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
     /*! \param timestep Current time step
      */
     virtual void includeRATTLEForce(uint64_t timestep) { }
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //! Change the timestep
     virtual void setDeltaT(Scalar deltaT);

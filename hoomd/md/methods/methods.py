@@ -5,7 +5,7 @@
 
 from hoomd.md import _md
 import hoomd
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import AutotunedObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
@@ -14,7 +14,7 @@ from hoomd.variant import Variant
 from collections.abc import Sequence
 
 
-class Method(_HOOMDBaseObject):
+class Method(AutotunedObject):
     """Base class integration method.
 
     Provides common methods for all subclasses.
@@ -23,13 +23,11 @@ class Method(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `Method` directly.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         self._simulation.state.update_group_dof()
-        super()._attach()
 
-    def _detach(self):
+    def _detach_hook(self):
         self._simulation.state.update_group_dof()
-        super()._detach()
 
 
 class NVT(Method):
@@ -114,7 +112,7 @@ class NVT(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         # initialize the reflected cpp class
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -128,7 +126,7 @@ class NVT(Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group)
         self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.tau, self.kT)
-        super()._attach()
+        super()._attach_hook()
 
     def thermalize_thermostat_dof(self):
         r"""Set the thermostat momenta to random values.
@@ -390,7 +388,7 @@ class NPT(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
@@ -411,7 +409,7 @@ class NPT(Method):
                                 self.S, self.couple, self.box_dof, False)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
     def _preprocess_stress(self, value):
         if isinstance(value, Sequence):
@@ -590,7 +588,7 @@ class NPH(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TwoStepNPTMTK
@@ -611,7 +609,7 @@ class NPH(Method):
                                 self.S, self.couple, self.box_dof, True)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
     @staticmethod
     def _preprocess_stress(value):
@@ -688,12 +686,12 @@ class NVE(Method):
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
-        param_dict.update(dict(filter=filter, zero_force=False))
+        param_dict["filter"] = filter
 
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         sim = self._simulation
         # initialize the reflected c++ class
@@ -705,7 +703,55 @@ class NVE(Method):
                                               sim.state._get_group(self.filter))
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
+
+
+class DisplacementCapped(NVE):
+    r"""Newtonian dynamics with a cap on the maximum displacement per time step.
+
+    The method employs a maximum displacement allowed each time step. This
+    method can be helpful to relax a system with too much overlaps without
+    "blowing up" the system.
+
+    Warning:
+        This method does not conserve energy or momentum.
+
+    Args:
+        filter (hoomd.filter.filter_like): Subset of particles on which to
+            apply this method.
+        maximum_displacement (hoomd.variant.variant_like): The maximum
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
+
+    `DisplacementCapped` integrates integrates translational and rotational
+    degrees of freedom using modified microcanoncial dynamics. See `NVE` for the
+    basis of the algorithm.
+
+    Examples::
+
+        relaxer = hoomd.md.methods.DisplacementCapped(
+            filter=hoomd.filter.All(), maximum_displacement=1e-3)
+        integrator = hoomd.md.Integrator(
+            dt=0.005, methods=[relaxer], forces=[lj])
+
+    Attributes:
+        filter (hoomd.filter.filter_like): Subset of particles on which to
+            apply this method.
+        maximum_displacement (hoomd.variant.variant_like): The maximum
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
+    """
+
+    def __init__(self, filter,
+                 maximum_displacement: hoomd.variant.variant_like):
+
+        # store metadata
+        super().__init__(filter)
+        param_dict = ParameterDict(maximum_displacement=hoomd.variant.Variant)
+        param_dict["maximum_displacement"] = maximum_displacement
+
+        # set defaults
+        self._param_dict.update(param_dict)
 
 
 class Langevin(Method):
@@ -724,11 +770,15 @@ class Langevin(Method):
             \mathrm{length}^{-1} \cdot \mathrm{time}^{-1}]`.
             Defaults to None.
 
-        tally_reservoir_energy (bool): If true, the energy exchange
-            between the thermal reservoir and the particles is tracked. Total
-            energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities.
+        tally_reservoir_energy (bool): When True, track the energy exchange
+            between the thermal reservoir and the particles.
             Defaults to False :math:`[\mathrm{energy}]`.
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `Langevin` integrates particles forward in time according to the
     Langevin equations of motion.
@@ -820,21 +870,28 @@ class Langevin(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`. Defaults to None.
 
+        tally_reservoir_energy (bool): When True, track the energy exchange
+            between the thermal reservoir and the particles.
+            :math:`[\mathrm{energy}]`.
+
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero
+            coefficient for each particle type. Used when `alpha` is `None`.
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero
-            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
-
+            The rotational drag coefficient tensor for each particle type
+            :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, kT, alpha=None, tally_reservoir_energy=False):
+    def __init__(
+            self,
+            filter,
+            kT,
+            alpha=None,
+            tally_reservoir_energy=False,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -849,27 +906,21 @@ class Langevin(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1))
+                              param_dict=TypeParameterDict(float, len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.),
-                                                             len_keys=1))
+                                param_dict=TypeParameterDict(
+                                    (float, float, float), len_keys=1))
+
+        gamma_r.default = default_gamma_r
 
         self._extend_typeparam([gamma, gamma_r])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Langevin uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
+        """Langevin uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             my_class = _md.TwoStepLangevin
@@ -880,7 +931,15 @@ class Langevin(Method):
                                  sim.state._get_group(self.filter), self.kT)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
+
+    @hoomd.logging.log(requires_run=True)
+    def reservoir_energy(self):
+        """Energy absorbed by the reservoir :math:`[\\mathrm{energy}]`.
+
+        Set `tally_reservoir_energy` to `True` to track the reservoir energy.
+        """
+        return self._cpp_obj.reservoir_energy
 
 
 class Brownian(Method):
@@ -898,6 +957,12 @@ class Brownian(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
             Defaults to ``None``
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics or the
@@ -1007,20 +1072,22 @@ class Brownian(Method):
             \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero
+            coefficient for each particle type. Used when `alpha` is `None`.
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero
-            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
-            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
+        gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
+            The rotational drag coefficient tensor for each particle type
+            :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, kT, alpha=None):
+    def __init__(
+            self,
+            filter,
+            kT,
+            alpha=None,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -1035,26 +1102,20 @@ class Brownian(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1))
+                              param_dict=TypeParameterDict(float, len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.),
-                                                             len_keys=1))
+                                param_dict=TypeParameterDict(
+                                    (float, float, float), len_keys=1))
+
+        gamma_r.default = default_gamma_r
         self._extend_typeparam([gamma, gamma_r])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Brownian uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
+        """Brownian uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
@@ -1066,7 +1127,7 @@ class Brownian(Method):
                                              self.kT, False, False)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()
 
 
 class Berendsen(Method):
@@ -1096,12 +1157,12 @@ class Berendsen(Method):
     .. attention::
         `Berendsen` does not integrate rotational degrees of freedom.
 
-        Examples::
+    Examples::
 
-            berendsen = hoomd.md.methods.Berendsen(
-                filter=hoomd.filter.All(), kT=0.2, tau=10.0)
-            integrator = hoomd.md.Integrator(
-                dt=0.001, methods=[berendsen], forces=[lj])
+        berendsen = hoomd.md.methods.Berendsen(
+            filter=hoomd.filter.All(), kT=0.2, tau=10.0)
+        integrator = hoomd.md.Integrator(
+            dt=0.001, methods=[berendsen], forces=[lj])
 
 
     Attributes:
@@ -1124,7 +1185,7 @@ class Berendsen(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         sim = self._simulation
         # Error out in MPI simulations
         if hoomd.version.mpi_enabled:
@@ -1143,7 +1204,7 @@ class Berendsen(Method):
         self._cpp_obj = cpp_method(sim.state._cpp_sys_def, group,
                                    thermo_cls(sim.state._cpp_sys_def, group),
                                    self.tau, self.kT)
-        super()._attach()
+        super()._attach_hook()
 
 
 class OverdampedViscous(Method):
@@ -1158,6 +1219,12 @@ class OverdampedViscous(Method):
             :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`.
             Defaults to ``None``
+
+        default_gamma (float): Default drag coefficient for all particle types
+            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
+
+        default_gamma_r ([`float`, `float`, `float`]): Default rotational drag
+            coefficient tensor for all particles :math:`[\mathrm{time}^{-1}]`.
 
     `OverdampedViscous` integrates particles forward in time following
     Newtonian dynamics in the overdamped limit where there is no inertial term.
@@ -1218,20 +1285,21 @@ class OverdampedViscous(Method):
             \cdot \mathrm{time}^{-1}]`.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero
+            coefficient for each particle type. Used when `alpha` is `None`.
             :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`.
 
-        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero
-            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
-            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`.
+        gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
+            The rotational drag coefficient tensor for each particle type
+            :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, alpha=None):
+    def __init__(
+            self,
+            filter,
+            alpha=None,
+            default_gamma=1.0,
+            default_gamma_r=(1.0, 1.0, 1.0),
+    ):
 
         # store metadata
         param_dict = ParameterDict(
@@ -1245,26 +1313,20 @@ class OverdampedViscous(Method):
 
         gamma = TypeParameter('gamma',
                               type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1))
+                              param_dict=TypeParameterDict(float, len_keys=1))
+        gamma.default = default_gamma
 
         gamma_r = TypeParameter('gamma_r',
                                 type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.),
-                                                             len_keys=1))
+                                param_dict=TypeParameterDict(
+                                    (float, float, float), len_keys=1))
+
+        gamma_r.default = default_gamma_r
         self._extend_typeparam([gamma, gamma_r])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        OverdampedViscous uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
+        """Class uses RNGs. Warn the user if they did not set the seed."""
+        self._simulation._warn_if_seed_unset()
         sim = self._simulation
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
@@ -1278,4 +1340,4 @@ class OverdampedViscous(Method):
                                              True)
 
         # Attach param_dict and typeparam_dict
-        super()._attach()
+        super()._attach_hook()

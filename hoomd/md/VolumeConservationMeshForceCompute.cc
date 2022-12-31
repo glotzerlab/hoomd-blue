@@ -101,7 +101,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
+    ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
         access_location::host,
         access_mode::read);
@@ -138,7 +138,7 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
+        const typename Angle::members_t& triangle = h_triangles.data[i];
 
         unsigned int ttag_a = triangle.tag[0];
         assert(ttag_a < m_pdata->getMaximumTag() + 1);
@@ -255,7 +255,7 @@ void VolumeConservationMeshForceCompute::computeVolume()
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
+    ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
         access_location::host,
         access_mode::read);
@@ -269,7 +269,7 @@ void VolumeConservationMeshForceCompute::computeVolume()
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
+        const typename Angle::members_t& triangle = h_triangles.data[i];
 
         unsigned int ttag_a = triangle.tag[0];
         assert(ttag_a < m_pdata->getMaximumTag() + 1);

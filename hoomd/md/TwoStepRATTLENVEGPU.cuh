@@ -386,9 +386,9 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4* d_pos,
 
             } while (resid > tolerance && iteration < maxiteration);
 
-        accel -= lambda * normal;
+        accel = accel - lambda * normal;
 
-        force -= inv_mass * lambda * normal;
+        force = force - inv_mass * lambda * normal;
 
         virial0 -= lambda * normal.x * pos.x;
         virial1 -= 0.5 * lambda * (normal.x * pos.y + normal.y * pos.x);

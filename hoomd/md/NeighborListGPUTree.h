@@ -47,51 +47,16 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     //! Destructor
     virtual ~NeighborListGPUTree();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        NeighborListGPU::setAutotunerParams(enable, period);
-
-        m_mark_tuner->setPeriod(period / 10);
-        m_mark_tuner->setEnabled(enable);
-
-        m_count_tuner->setPeriod(period / 10);
-        m_count_tuner->setEnabled(enable);
-
-        m_copy_tuner->setPeriod(period / 10);
-        m_copy_tuner->setEnabled(enable);
-
-        /* These may be null pointers if the first compute has not occurred, since construction of
-           these tuners is deferred until the first neighbor list build (in order to get the tuner
-           parameters from the LBVHWrapper and LBVHTraverserWrapper). When initialized, the period
-           and enabled must be borrowed from one of the tuners above to keep everything synced.
-         */
-        if (m_build_tuner)
-            {
-            m_build_tuner->setPeriod(period / 10);
-            m_build_tuner->setEnabled(enable);
-            }
-
-        if (m_traverse_tuner)
-            {
-            m_traverse_tuner->setPeriod(period / 10);
-            m_traverse_tuner->setEnabled(enable);
-            }
-        }
-
     protected:
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
 
     private:
-    std::unique_ptr<Autotuner> m_mark_tuner;     //!< Tuner for the type mark kernel
-    std::unique_ptr<Autotuner> m_count_tuner;    //!< Tuner for the type-count kernel
-    std::unique_ptr<Autotuner> m_copy_tuner;     //!< Tuner for the primitive-copy kernel
-    std::unique_ptr<Autotuner> m_build_tuner;    //!< Tuner for LBVH builds
-    std::unique_ptr<Autotuner> m_traverse_tuner; //!< Tuner for LBVH traversers
+    std::shared_ptr<Autotuner<1>> m_mark_tuner;     //!< Tuner for the type mark kernel
+    std::shared_ptr<Autotuner<1>> m_count_tuner;    //!< Tuner for the type-count kernel
+    std::shared_ptr<Autotuner<1>> m_copy_tuner;     //!< Tuner for the primitive-copy kernel
+    std::shared_ptr<Autotuner<1>> m_build_tuner;    //!< Tuner for LBVH builds
+    std::shared_ptr<Autotuner<1>> m_traverse_tuner; //!< Tuner for LBVH traversers
 
     GPUArray<unsigned int> m_types;          //!< Particle types (for sorting)
     GPUArray<unsigned int> m_sorted_types;   //!< Sorted particle types

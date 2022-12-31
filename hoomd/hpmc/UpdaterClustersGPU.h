@@ -41,34 +41,6 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
     //! Destructor
     virtual ~UpdaterClustersGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        m_tuner_excell_block_size->setPeriod(period);
-        m_tuner_excell_block_size->setEnabled(enable);
-
-        m_tuner_overlaps->setPeriod(period);
-        m_tuner_overlaps->setEnabled(enable);
-
-        m_tuner_depletants->setPeriod(period);
-        m_tuner_depletants->setEnabled(enable);
-
-        m_tuner_num_depletants->setPeriod(period);
-        m_tuner_num_depletants->setEnabled(enable);
-
-        m_tuner_concatenate->setPeriod(period);
-        m_tuner_concatenate->setEnabled(enable);
-
-        m_tuner_transform->setPeriod(period);
-        m_tuner_transform->setEnabled(enable);
-
-        m_tuner_flip->setPeriod(period);
-        m_tuner_flip->setEnabled(enable);
-        }
-
     //! Take one timestep forward
     /*! \param timestep timestep at which update is being evaluated
      */
@@ -84,15 +56,26 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
     uint3 m_last_dim;               //!< Dimensions of the cell list on the last call to update
     unsigned int m_last_nmax;       //!< Last cell list NMax value allocated in excell
 
-    std::unique_ptr<Autotuner> m_tuner_excell_block_size; //!< Autotuner for excell block_size
-    std::unique_ptr<Autotuner> m_tuner_overlaps;          //!< Autotuner for overlap checks
-    std::unique_ptr<Autotuner> m_tuner_depletants;        //!< Autotuner for inserting depletants
-    std::unique_ptr<Autotuner>
-        m_tuner_num_depletants; //!< Autotuner for calculating number of depletants
-    std::unique_ptr<Autotuner>
-        m_tuner_concatenate; //!< Autotuner for contenating the per-particle neighbor lists
-    std::unique_ptr<Autotuner> m_tuner_transform; //!< Autotuner for transforming particles
-    std::unique_ptr<Autotuner> m_tuner_flip;      //!< Autotuner for flipping clusters
+    /// Autotuner for excell block_size.
+    std::shared_ptr<Autotuner<1>> m_tuner_excell_block_size;
+
+    /// Autotuner for overlap checks.
+    std::shared_ptr<Autotuner<3>> m_tuner_overlaps;
+
+    /// Autotuner for inserting depletants.
+    std::shared_ptr<Autotuner<3>> m_tuner_depletants;
+
+    /// Autotuner for calculating number of depletants.
+    std::shared_ptr<Autotuner<1>> m_tuner_num_depletants;
+
+    /// Autotuner for contenating the per-particle neighbor lists.
+    std::shared_ptr<Autotuner<2>> m_tuner_concatenate;
+
+    /// Autotuner for transforming particles.
+    std::shared_ptr<Autotuner<1>> m_tuner_transform;
+
+    /// Autotuner for flipping clusters.
+    std::shared_ptr<Autotuner<1>> m_tuner_flip;
 
     GlobalArray<unsigned int> m_excell_idx;  //!< Particle indices in expanded cells
     GlobalArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
@@ -162,100 +145,106 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     m_last_nmax = 0xffffffff;
 
     hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
-    m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize,
-                                                  dev_prop.maxThreadsPerBlock,
-                                                  dev_prop.warpSize,
-                                                  5,
-                                                  1000000,
-                                                  "clusters_excell_block_size",
-                                                  this->m_exec_conf));
-    m_tuner_num_depletants.reset(new Autotuner(dev_prop.warpSize,
-                                               dev_prop.maxThreadsPerBlock,
-                                               dev_prop.warpSize,
-                                               5,
-                                               1000000,
-                                               "clusters_num_depletants",
-                                               this->m_exec_conf));
-    m_tuner_transform.reset(new Autotuner(dev_prop.warpSize,
-                                          dev_prop.maxThreadsPerBlock,
-                                          dev_prop.warpSize,
-                                          5,
-                                          1000000,
-                                          "clusters_transform",
-                                          this->m_exec_conf));
-    m_tuner_flip.reset(new Autotuner(dev_prop.warpSize,
-                                     dev_prop.maxThreadsPerBlock,
-                                     dev_prop.warpSize,
-                                     5,
-                                     1000000,
-                                     "clusters_flip",
-                                     this->m_exec_conf));
+    m_tuner_excell_block_size.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "clusters_excell_block_size"));
 
-    // tuning parameters for overlap checks
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    m_tuner_num_depletants.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "clusters_num_depletants",
+                         5,
+                         true));
+
+    m_tuner_transform.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "clusters_transform"));
+
+    m_tuner_flip.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                        this->m_exec_conf,
+                                        "clusters_flip"));
+
+    // Tuning parameters for overlap checks:
+    // 0: block size
+    // 1: threads per particle
+    // 2: overlap threads
+
+    // Only widen the parallelism if the shape supports it, and limit parallelism to fit within the
+    // warp.
+    std::function<bool(const std::array<unsigned int, 3>&)> is_overlaps_parameter_valid
+        = [](const std::array<unsigned int, 3>& parameter) -> bool
+    {
+        unsigned int block_size = parameter[0];
+        unsigned int threads_per_particle = parameter[1];
+        unsigned int overlap_threads = parameter[2];
+        return (threads_per_particle == 1 || Shape::isParallel())
+               && (threads_per_particle * overlap_threads <= block_size)
+               && (block_size % (threads_per_particle * overlap_threads)) == 0;
+    };
+
     const unsigned int overlaps_max_tpp = dev_prop.maxThreadsDim[2];
-    for (unsigned int block_size = warp_size;
-         block_size <= (unsigned int)dev_prop.maxThreadsPerBlock;
-         block_size += warp_size)
-        {
-        for (auto s : Autotuner::getTppListPow2(overlaps_max_tpp))
-            {
-            for (auto t : Autotuner::getTppListPow2(warp_size))
-                {
-                // only widen the parallelism if the shape supports it
-                if (t == 1 || Shape::isParallel())
-                    {
-                    if ((s * t <= block_size) && ((block_size % (s * t)) == 0))
-                        valid_params.push_back(block_size * 1000000 + s * 100 + t);
-                    }
-                }
-            }
-        }
 
     m_tuner_overlaps.reset(
-        new Autotuner(valid_params, 5, 100000, "clusters_overlaps", this->m_exec_conf));
+        new Autotuner<3>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf, overlaps_max_tpp),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "clusters_overlaps",
+                         3,
+                         true,
+                         is_overlaps_parameter_valid));
 
-    // tuning parameters for depletants
-    std::vector<unsigned int> valid_params_depletants;
-    for (unsigned int block_size = dev_prop.warpSize;
-         block_size <= (unsigned int)dev_prop.maxThreadsPerBlock;
-         block_size += dev_prop.warpSize)
-        {
-        for (unsigned int group_size = 1; group_size <= overlaps_max_tpp; group_size *= 2)
-            {
-            for (unsigned int depletants_per_thread = 1; depletants_per_thread <= 32;
-                 depletants_per_thread *= 2)
-                {
-                if ((block_size % group_size) == 0)
-                    valid_params_depletants.push_back(block_size * 1000000
-                                                      + depletants_per_thread * 10000 + group_size);
-                }
-            }
-        }
-    m_tuner_depletants.reset(new Autotuner(valid_params_depletants,
-                                           5,
-                                           100000,
-                                           "clusters_depletants",
-                                           this->m_exec_conf));
+    // Tuning parameters for depletants:
+    // 0: block size
+    // 1: depletants per thread
+    // 2: threads per particle
 
-    // tuning parameters for nlist concatenation kernel
-    std::vector<unsigned int> valid_params_concatenate;
-    for (unsigned int block_size = dev_prop.warpSize;
-         block_size <= (unsigned int)dev_prop.maxThreadsPerBlock;
-         block_size += dev_prop.warpSize)
-        {
-        for (unsigned int group_size = 1; group_size <= overlaps_max_tpp; group_size *= 2)
-            {
-            if ((block_size % group_size) == 0)
-                valid_params_concatenate.push_back(block_size * 10000 + group_size);
-            }
-        }
-    m_tuner_concatenate.reset(new Autotuner(valid_params_concatenate,
-                                            5,
-                                            100000,
-                                            "clusters_concatenate",
-                                            this->m_exec_conf));
+    std::function<bool(const std::array<unsigned int, 3>&)> is_depletant_parameter_valid
+        = [](const std::array<unsigned int, 3>& parameter) -> bool
+    {
+        unsigned int block_size = parameter[0];
+        // unsigned int depletants_per_thread = parameter[1]; // unused
+        unsigned int threads_per_particle = parameter[2];
+        return (block_size % threads_per_particle) == 0;
+    };
+
+    m_tuner_depletants.reset(
+        new Autotuner<3>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf, overlaps_max_tpp)},
+                         this->m_exec_conf,
+                         "clusters_depletants",
+                         3,
+                         true,
+                         is_depletant_parameter_valid));
+
+    // Tuning parameters for nlist concatenation kernel:
+    // 0: block size
+    // 1: threads per particle
+
+    std::function<bool(const std::array<unsigned int, 3>&)> is_dconcatenate_parameter_valid
+        = [](const std::array<unsigned int, 3>& parameter) -> bool
+    {
+        unsigned int block_size = parameter[0];
+        unsigned int threads_per_particle = parameter[1];
+        return (block_size % threads_per_particle) == 0;
+    };
+
+    m_tuner_concatenate.reset(
+        new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                          AutotunerBase::getTppListPow2(this->m_exec_conf, overlaps_max_tpp)},
+                         this->m_exec_conf,
+                         "clusters_concatenate"));
+
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_excell_block_size,
+                               m_tuner_num_depletants,
+                               m_tuner_transform,
+                               m_tuner_flip,
+                               m_tuner_overlaps,
+                               m_tuner_depletants,
+                               m_tuner_concatenate});
 
     GlobalArray<unsigned int> excell_size(0, this->m_exec_conf);
     m_excell_size.swap(excell_size);
@@ -447,9 +436,9 @@ template<class Shape> void UpdaterClustersGPU<Shape>::connectedComponents()
 
     // concatenate per-particle neighbor lists into a single one
     this->m_exec_conf->beginMultiGPU();
-    unsigned int param = m_tuner_concatenate->getParam();
-    unsigned int block_size = param / 10000;
-    unsigned int group_size = param % 10000;
+    auto param = m_tuner_concatenate->getParam();
+    unsigned int block_size = param[0];
+    unsigned int group_size = param[1];
     m_tuner_concatenate->begin();
     gpu::concatenate_adjacency_list(d_adjacency.data,
                                     d_nneigh.data,
@@ -602,7 +591,7 @@ void UpdaterClustersGPU<Shape>::transform(const quat<Scalar>& q,
                               access_mode::readwrite);
 
     auto params = this->m_mc->getParams();
-    unsigned int block_size = m_tuner_transform->getParam();
+    unsigned int block_size = m_tuner_transform->getParam()[0];
     gpu::clusters_transform_args_t args(d_postype.data,
                                         d_orientation.data,
                                         d_image.data,
@@ -660,7 +649,7 @@ template<class Shape> void UpdaterClustersGPU<Shape>::flip(uint64_t timestep)
                        this->m_sysdef->getSeed(),
                        timestep,
                        this->m_pdata->getGPUPartition(),
-                       m_tuner_flip->getParam());
+                       m_tuner_flip->getParam()[0]);
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_flip->end();
@@ -765,7 +754,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                      this->m_cl->getCellListIndexer(),
                      this->m_cl->getCellAdjIndexer(),
                      this->m_exec_conf->getNumActiveGPUs(),
-                     this->m_tuner_excell_block_size->getParam());
+                     this->m_tuner_excell_block_size->getParam()[0]);
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner_excell_block_size->end();
@@ -882,10 +871,10 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
              */
 
             m_tuner_overlaps->begin();
-            unsigned int param = m_tuner_overlaps->getParam();
-            args.block_size = param / 1000000;
-            args.tpp = (param % 1000000) / 100;
-            args.overlap_threads = param % 100;
+            auto param = m_tuner_overlaps->getParam();
+            args.block_size = param[0];
+            args.tpp = param[1];
+            args.overlap_threads = param[2];
             gpu::hpmc_cluster_overlaps<Shape>(args, params.data());
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -917,7 +906,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
                                              d_lambda.data,
                                              d_postype.data,
                                              d_n_depletants.data + itype * this->m_pdata->getMaxN(),
-                                             m_tuner_num_depletants->getParam(),
+                                             m_tuner_num_depletants->getParam()[0],
                                              &m_depletant_streams[itype].front(),
                                              m_old_gpu_partition,
                                              this->m_pdata->getNTypes());
@@ -937,10 +926,10 @@ void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep,
 
                 // insert depletants on-the-fly
                 m_tuner_depletants->begin();
-                unsigned int param = m_tuner_depletants->getParam();
-                args.block_size = param / 1000000;
-                unsigned int depletants_per_thread = (param % 1000000) / 10000;
-                args.tpp = param % 10000;
+                auto param = m_tuner_depletants->getParam();
+                args.block_size = param[0];
+                unsigned int depletants_per_thread = param[1];
+                args.tpp = param[2];
 
                 gpu::hpmc_implicit_args_t implicit_args(itype,
                                                         0,     // implicit_counters

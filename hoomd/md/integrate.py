@@ -39,36 +39,25 @@ class _DynamicIntegrator(BaseIntegrator):
             Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
 
         param_dict = ParameterDict(rigid=OnlyTypes(Rigid, allow_none=True))
-        if rigid is not None and rigid._added:
+        if rigid is not None and rigid._attached:
             raise ValueError("Rigid object can only belong to one integrator.")
         param_dict["rigid"] = rigid
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._forces._sync(self._simulation, self._cpp_obj.forces)
         self._constraints._sync(self._simulation, self._cpp_obj.constraints)
         self._methods._sync(self._simulation, self._cpp_obj.methods)
         if self.rigid is not None:
-            self.rigid._attach()
-        super()._attach()
+            self.rigid._attach(self._simulation)
+        super()._attach_hook()
 
-    def _detach(self):
+    def _detach_hook(self):
         self._forces._unsync()
         self._methods._unsync()
         self._constraints._unsync()
         if self.rigid is not None:
             self.rigid._detach()
-        super()._detach()
-
-    def _remove(self):
-        if self.rigid is not None:
-            self.rigid._remove()
-        super()._remove()
-
-    def _add(self, simulation):
-        super()._add(simulation)
-        if self.rigid is not None:
-            self.rigid._add(simulation)
 
     @property
     def forces(self):
@@ -121,23 +110,19 @@ class _DynamicIntegrator(BaseIntegrator):
 
         old_rigid = self.rigid
 
-        if new_rigid is not None and new_rigid._added:
+        if new_rigid is not None and new_rigid._attached:
             raise ValueError("Cannot add Rigid object to multiple integrators.")
 
         if old_rigid is not None:
             if self._attached:
                 old_rigid._detach()
-            if self._added:
-                old_rigid._remove()
 
         if new_rigid is None:
             self._param_dict["rigid"] = None
             return
 
-        if self._added:
-            new_rigid._add(self._simulation)
         if self._attached:
-            new_rigid._attach()
+            new_rigid._attach(self._simulation)
         self._param_dict["rigid"] = new_rigid
 
 
@@ -166,6 +151,9 @@ class Integrator(_DynamicIntegrator):
 
         rigid (hoomd.md.constrain.Rigid): An object defining the rigid bodies in
           the simulation.
+
+        half_step_hook (hoomd.md.HalfStepHook): Enables the user to perform
+            arbitrary computations during the half-step of the integration.
 
     `Integrator` is the top level class that orchestrates the time integration
     step in molecular dynamics simulations. The integration `methods` define
@@ -273,6 +261,9 @@ class Integrator(_DynamicIntegrator):
 
         rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
             simulation associated with the integrator.
+
+        half_step_hook (hoomd.md.HalfStepHook): User defined implementation to
+            perform computations during the half-step of the integration.
     """
 
     def __init__(self,
@@ -281,22 +272,27 @@ class Integrator(_DynamicIntegrator):
                  forces=None,
                  constraints=None,
                  methods=None,
-                 rigid=None):
+                 rigid=None,
+                 half_step_hook=None):
 
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
             ParameterDict(
                 dt=float(dt),
-                integrate_rotational_dof=bool(integrate_rotational_dof)))
+                integrate_rotational_dof=bool(integrate_rotational_dof),
+                half_step_hook=OnlyTypes(hoomd.md.HalfStepHook,
+                                         allow_none=True)))
 
-    def _attach(self):
+        self.half_step_hook = half_step_hook
+
+    def _attach_hook(self):
         # initialize the reflected c++ class
         self._cpp_obj = _md.IntegratorTwoStep(
             self._simulation.state._cpp_sys_def, self.dt)
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
-        super()._attach()
+        super()._attach_hook()
 
     def __setattr__(self, attr, value):
         """Hande group DOF update when setting integrate_rotational_dof."""

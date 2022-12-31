@@ -21,8 +21,13 @@ mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(
     std::shared_ptr<Variant> T)
     : mpcd::ATCollisionMethod(sysdata, cur_timestep, period, phase, thermo, rand_thermo, T)
     {
-    m_tuner_draw.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_at_draw", m_exec_conf));
-    m_tuner_apply.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_at_apply", m_exec_conf));
+    m_tuner_draw.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "mpcd_at_draw"));
+    m_tuner_apply.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_at_apply"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_draw, m_tuner_apply});
     }
 
 void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
@@ -71,7 +76,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
                                     T,
                                     N_mpcd,
                                     N_tot,
-                                    m_tuner_draw->getParam());
+                                    m_tuner_draw->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_draw->end();
@@ -91,7 +96,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
                                     T,
                                     N_mpcd,
                                     N_tot,
-                                    m_tuner_draw->getParam());
+                                    m_tuner_draw->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_draw->end();
@@ -145,7 +150,7 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
                                      d_rand_vel.data,
                                      N_mpcd,
                                      N_tot,
-                                     m_tuner_apply->getParam());
+                                     m_tuner_apply->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_apply->end();
@@ -163,7 +168,7 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
                                      d_rand_vel.data,
                                      N_mpcd,
                                      N_tot,
-                                     m_tuner_apply->getParam());
+                                     m_tuner_apply->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_apply->end();
