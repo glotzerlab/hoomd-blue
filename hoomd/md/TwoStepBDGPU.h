@@ -39,7 +39,8 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
     virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-    unsigned int m_block_size; //!< block size
+    /// Autotuner for block size.
+    std::shared_ptr<Autotuner<1>> m_tuner;
     };
 
     } // end namespace md

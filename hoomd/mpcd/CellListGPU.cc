@@ -15,12 +15,19 @@ mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
     : mpcd::CellList(sysdef, mpcd_pdata)
     {
-    m_tuner_cell.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell", m_exec_conf));
-    m_tuner_sort.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_sort", m_exec_conf));
+    m_tuner_cell.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "mpcd_cell"));
+    m_tuner_sort.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "mpcd_cell_sort"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_cell, m_tuner_sort});
 
 #ifdef ENABLE_MPI
-    m_tuner_embed_migrate.reset(
-        new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_embed_migrate", m_exec_conf));
+    m_tuner_embed_migrate.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                                 m_exec_conf,
+                                                 "mpcd_cell_embed_migrate"));
+    m_autotuners.push_back(m_tuner_embed_migrate);
 
     GPUFlags<unsigned int> migrate_flag(m_exec_conf);
     m_migrate_flag.swap(migrate_flag);
@@ -90,7 +97,7 @@ void mpcd::CellListGPU::buildCellList()
                                      m_cell_list_indexer,
                                      N_mpcd,
                                      N_tot,
-                                     m_tuner_cell->getParam());
+                                     m_tuner_cell->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_cell->end();
@@ -117,7 +124,7 @@ void mpcd::CellListGPU::buildCellList()
                                      m_cell_list_indexer,
                                      N_mpcd,
                                      N_tot,
-                                     m_tuner_cell->getParam());
+                                     m_tuner_cell->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_cell->end();
@@ -157,7 +164,7 @@ void mpcd::CellListGPU::sort(uint64_t timestep,
                                d_cell_np.data,
                                m_cell_list_indexer,
                                m_mpcd_pdata->getN(),
-                               m_tuner_sort->getParam());
+                               m_tuner_sort->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_sort->end();
@@ -187,7 +194,7 @@ bool mpcd::CellListGPU::needsEmbedMigrate(uint64_t timestep)
                                         m_cover_box,
                                         m_sysdef->getNDimensions(),
                                         m_embed_group->getNumMembers(),
-                                        m_tuner_embed_migrate->getParam());
+                                        m_tuner_embed_migrate->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_embed_migrate->end();

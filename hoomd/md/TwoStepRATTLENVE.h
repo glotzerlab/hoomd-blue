@@ -14,6 +14,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "hoomd/Variant.h"
 #include "hoomd/VectorMath.h"
 #include <pybind11/pybind11.h>
 
@@ -49,31 +50,14 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLENVE : public Integra
     virtual ~TwoStepRATTLENVE();
 
     //! Sets the movement limit
-    void setLimit(pybind11::object limit)
+    void setLimit(std::shared_ptr<Variant>& limit)
         {
-        if (limit.is_none())
-            {
-            m_limit = false;
-            }
-        else
-            {
-            m_limit = true;
-            m_limit_val = pybind11::cast<Scalar>(limit);
-            }
+        m_limit = limit;
         }
 
-    pybind11::object getLimit()
+    std::shared_ptr<Variant> getLimit()
         {
-        pybind11::object result;
-        if (m_limit)
-            {
-            result = pybind11::cast(m_limit_val);
-            }
-        else
-            {
-            result = pybind11::none();
-            }
-        return result;
+        return m_limit;
         }
 
     void setZeroForce(bool zero_force)
@@ -125,11 +109,11 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLENVE : public Integra
         }
 
     Manifold m_manifold; //!< The manifold used for the RATTLE constraint
-    bool m_limit;        //!< True if we should limit the distance a particle moves in one step
-    Scalar m_limit_val;  //!< The maximum distance a particle is to move in one step
-    Scalar m_tolerance;  //!< The tolerance value of the RATTLE algorithm, setting the tolerance to
-                         //!< the manifold
-    bool m_zero_force;   //!< True if the integration step should ignore computed forces
+    //!< The maximum distance a particle can move in one step
+    std::shared_ptr<Variant> m_limit;
+    Scalar m_tolerance; //!< The tolerance value of the RATTLE algorithm, setting the tolerance to
+                        //!< the manifold
+    bool m_zero_force;  //!< True if the integration step should ignore computed forces
     bool m_box_changed;
     };
 
@@ -147,8 +131,8 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
                                              std::shared_ptr<ParticleGroup> group,
                                              Manifold manifold,
                                              Scalar tolerance)
-    : IntegrationMethodTwoStep(sysdef, group), m_manifold(manifold), m_limit(false),
-      m_limit_val(1.0), m_tolerance(tolerance), m_zero_force(false), m_box_changed(false)
+    : IntegrationMethodTwoStep(sysdef, group), m_manifold(manifold), m_limit(),
+      m_tolerance(tolerance), m_zero_force(false), m_box_changed(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLENVE" << std::endl;
 
@@ -228,12 +212,13 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint6
         // limit the movement of the particles
         if (m_limit)
             {
+            Scalar maximum_displacement = m_limit->operator()(timestep);
             Scalar len = sqrt(dx * dx + dy * dy + dz * dz);
-            if (len > m_limit_val)
+            if (len > maximum_displacement)
                 {
-                dx = dx / len * m_limit_val;
-                dy = dy / len * m_limit_val;
-                dz = dz / len * m_limit_val;
+                dx = dx / len * maximum_displacement;
+                dy = dy / len * maximum_displacement;
+                dz = dz / len * maximum_displacement;
                 }
             }
 
@@ -472,13 +457,14 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint6
         // limit the movement of the particles
         if (m_limit)
             {
+            Scalar maximum_displacement = m_limit->operator()(timestep);
             Scalar vel = sqrt(h_vel.data[j].x * h_vel.data[j].x + h_vel.data[j].y * h_vel.data[j].y
                               + h_vel.data[j].z * h_vel.data[j].z);
-            if ((vel * m_deltaT) > m_limit_val)
+            if ((vel * m_deltaT) > maximum_displacement)
                 {
-                h_vel.data[j].x = h_vel.data[j].x / vel * m_limit_val / m_deltaT;
-                h_vel.data[j].y = h_vel.data[j].y / vel * m_limit_val / m_deltaT;
-                h_vel.data[j].z = h_vel.data[j].z / vel * m_limit_val / m_deltaT;
+                h_vel.data[j].x = h_vel.data[j].x / vel * maximum_displacement / m_deltaT;
+                h_vel.data[j].y = h_vel.data[j].y / vel * maximum_displacement / m_deltaT;
+                h_vel.data[j].z = h_vel.data[j].z / vel * maximum_displacement / m_deltaT;
                 }
             }
         }
@@ -646,7 +632,7 @@ template<class Manifold> void export_TwoStepRATTLENVE(pybind11::module& m, const
                             std::shared_ptr<ParticleGroup>,
                             Manifold,
                             Scalar>())
-        .def_property("limit",
+        .def_property("maximum_displacement",
                       &TwoStepRATTLENVE<Manifold>::getLimit,
                       &TwoStepRATTLENVE<Manifold>::setLimit)
         .def_property("zero_force",

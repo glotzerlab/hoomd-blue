@@ -79,14 +79,15 @@ class BoxResize(Updater):
         resets the constituent particle positions before computing forces.
 
     Args:
-        trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        box1 (hoomd.Box): The box associated with the minimum of the
+        trigger (hoomd.trigger.trigger_like): The trigger to activate this
+            updater.
+        box1 (hoomd.box.box_like): The box associated with the minimum of the
             passed variant.
-        box2 (hoomd.Box): The box associated with the maximum of the
+        box2 (hoomd.box.box_like): The box associated with the maximum of the
             passed variant.
-        variant (hoomd.variant.Variant): A variant used to interpolate between
-            the two boxes.
-        filter (hoomd.filter.ParticleFilter): The subset of particle positions
+        variant (hoomd.variant.variant_like): A variant used to interpolate
+            between the two boxes.
+        filter (hoomd.filter.filter_like): The subset of particle positions
             to update.
 
     Attributes:
@@ -97,7 +98,7 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        filter (hoomd.filter.ParticleFilter): The subset of particles to
+        filter (hoomd.filter.filter_like): The subset of particles to
             update.
     """
 
@@ -114,12 +115,11 @@ class BoxResize(Updater):
         self._param_dict.update(params)
         super().__init__(trigger)
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
             self._simulation.state._cpp_sys_def, self.trigger,
             self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
-        super()._attach()
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
@@ -146,8 +146,8 @@ class BoxResize(Updater):
 
         Args:
             state (State): System state to scale.
-            box (Box): New box.
-            filter (hoomd.filter.ParticleFilter): The subset of particles to
+            box (hoomd.box.box_like): New box.
+            filter (hoomd.filter.filter_like): The subset of particles to
                 update.
         """
         group = state._get_group(filter)

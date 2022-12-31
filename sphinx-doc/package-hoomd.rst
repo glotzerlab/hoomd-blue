@@ -34,6 +34,7 @@ hoomd
 .. toctree::
    :maxdepth: 3
 
+   module-hoomd-box
    module-hoomd-communicator
    module-hoomd-custom
    module-hoomd-data

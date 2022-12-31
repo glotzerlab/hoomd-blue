@@ -10,6 +10,8 @@ import hoomd.hpmc.pytest.conftest
 from hoomd.logging import LoggerCategories
 from hoomd.conftest import logging_check
 
+llvm_disabled = not hoomd.version.llvm_enabled
+
 
 def test_before_attaching():
     xmax = 0.02
@@ -69,7 +71,7 @@ def test_after_attaching(valid_args, simulation_factory,
     assert np.isclose(sdf.xmax, xmax)
     assert np.isclose(sdf.dx, dx)
 
-    sim.run(10)
+    sim.run(1)
     if not np.isnan(sdf.sdf).all():
         assert sim.device.communicator.rank == 0
         assert isinstance(sdf.sdf, np.ndarray)
@@ -199,6 +201,63 @@ def test_values(simulation_factory, lattice_snapshot_factory):
         v = np.mean(sdf_data[1:, :], axis=0)
         invalid = np.abs(_avg - v) > (8 * _err)
         assert np.sum(invalid) == 0
+
+
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+@pytest.mark.cpu  # SDF runs on the CPU only, no need to test on the GPUn
+def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
+    """Test that adding patches changes the pressure calculation.
+
+    The system and sdf compute here are constructed such that the first search
+    bin creates a soft overlap and the second one creates a hard overlap. We
+    test that the first overlap is found in the 2nd bin before adding patches
+    and that an overlap is found in the first bin after adding patches. We also
+    test that the SDF values are as expected: (1-exp(U-U_new)) * sdf.dx.
+    """
+    xmax = 0.02
+    dx = 1e-3
+    r_core = 0.5  # radius of hard core
+    r_patch = 0.5001  # if r_ij < 2*r_patch, particles interact
+    epsilon = 2.0  # strength of square well attraction
+    sim = simulation_factory(two_particle_snapshot_factory(d=1.001101081081081))
+    sim.seed = 0
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.0)
+    mc.shape['A'] = {'diameter': 2 * r_core}
+    sim.operations.add(mc)
+
+    # sdf compute
+    sdf = hoomd.hpmc.compute.SDF(xmax=xmax, dx=dx)
+    sim.operations.add(sdf)
+
+    # confirm that there is a hard overlap in the 2nd bin when there is no pair
+    # potential and that the SDF is zero everywhere else
+    sim.run(0)
+    norm_factor = 1 / sdf.dx
+    sdf_result = sdf.sdf
+    if sim.device.communicator.rank == 0:
+        assert (sdf_result[1] == norm_factor)
+        assert (np.count_nonzero(sdf_result) == 1)
+
+    # add pair potential
+    square_well = rf'''float rsq = dot(r_ij, r_ij);
+                    float rcut = {r_patch};
+                    if (rsq > 2*rcut)
+                        return 0.0f;
+                    else
+                        return -{epsilon};'''
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=2.5 * r_patch,
+                                              code=square_well,
+                                              param_array=[])
+    mc.pair_potential = patch
+
+    # assert we have an overlap in the first bin with the expected weight and
+    # that the SDF is zero everywhere else
+    sim.run(1)
+    neg_mayerF = 1 - np.exp(epsilon)
+    sdf_result = sdf.sdf
+    if sim.device.communicator.rank == 0:
+        assert (np.count_nonzero(sdf_result) == 1)
+        assert (sdf_result[0] == neg_mayerF * norm_factor)
 
 
 def test_logging():

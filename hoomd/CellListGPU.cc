@@ -24,22 +24,16 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
         throw std::runtime_error("Error initializing CellListGPU");
         }
 
-    unsigned int max_threads = m_exec_conf->dev_prop.maxThreadsPerBlock;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                max_threads,
-                                warp_size,
-                                5,
-                                100000,
-                                "cell_list",
-                                this->m_exec_conf));
-    m_tuner_combine.reset(new Autotuner(warp_size,
-                                        max_threads,
-                                        warp_size,
-                                        5,
-                                        100000,
-                                        "cell_list_combine",
-                                        this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "cell_list"));
+
+    m_tuner_combine.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           this->m_exec_conf,
+                                           "cell_list_combine",
+                                           5,
+                                           true));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner, m_tuner_combine});
     }
 
 void CellListGPU::computeCellList()
@@ -143,7 +137,7 @@ void CellListGPU::computeCellList()
             m_cell_indexer,
             m_cell_list_indexer,
             getGhostWidth(),
-            m_tuner->getParam(),
+            m_tuner->getParam()[0],
             m_pdata->getGPUPartition());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -284,7 +278,7 @@ void CellListGPU::combineCellLists()
                            d_cell_orientation.data,
                            m_cell_list_indexer,
                            m_exec_conf->getNumActiveGPUs(),
-                           m_tuner_combine->getParam(),
+                           m_tuner_combine->getParam()[0],
                            m_Nmax,
                            d_conditions.data,
                            m_pdata->getGPUPartition());

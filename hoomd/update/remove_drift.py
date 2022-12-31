@@ -17,7 +17,8 @@ class RemoveDrift(Updater):
     Args:
         reference_positions ((*N_particles*, 3) `numpy.ndarray` of `float`):
             the reference positions :math:`[\mathrm{length}]`.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to remove drift.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to remove
+            drift.
 
     `RemoveDrift` computes the mean drift :math:`\vec{D}` from the
     given `reference_positions` (:math:`\vec{r}_{ref, i}`):
@@ -53,11 +54,7 @@ class RemoveDrift(Updater):
             }))
         self.reference_positions = reference_positions
 
-    def _add(self, simulation):
-        """Add the operation to a simulation."""
-        super()._add(simulation)
-
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             self._simulation.device._cpp_msg.warning(
                 "Falling back on CPU. No GPU implementation available.\n")
@@ -65,4 +62,3 @@ class RemoveDrift(Updater):
         self._cpp_obj = _hoomd.UpdaterRemoveDrift(
             self._simulation.state._cpp_sys_def, self.trigger,
             self.reference_positions)
-        super()._attach()

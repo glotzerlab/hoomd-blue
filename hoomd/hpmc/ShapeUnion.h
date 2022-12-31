@@ -1507,6 +1507,12 @@ template<> inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere
     auto& members = sphere_union.members;
 
     unsigned int n_centers = members.N;
+
+    if (n_centers == 0)
+        {
+        throw std::runtime_error("Shape definition not supported for 0-center union.");
+        }
+
     std::ostringstream shapedef;
     shapedef << "{\"type\": \"SphereUnion\", \"centers\": [";
     for (unsigned int i = 0; i < n_centers - 1; i++)

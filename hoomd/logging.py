@@ -135,14 +135,17 @@ class _NamespaceFilter:
     """Filter for creating the proper namespace for logging object properties.
 
     Attributes:
-        remove_names (set[str]): A set of names which to remove for the logging
-            namespace whenever encountered.
-        base_names (set[str]): A set of names which indicate that the next
-            encountered name in the string should be skipped. For example, if a
-            module hierarchy went like ``project.foo.bar.Bar`` and ``foo``
-            directly imports ``Bar``, ``bar`` may not be desirable to have in
-            the logging namespace since users interact with it via ``foo.Bar``.
-            Currently, this only handles a single level of nesting like this.
+        remove_names (set[str], optional): A set of names which to remove for
+            the logging namespace whenever encountered.
+        base_names (set[str], optional): A set of names which indicate that the
+            next encountered name in the string should be skipped. For example,
+            if a module hierarchy was structured as ``project.foo.bar.Bar`` and
+            ``foo`` directly imports ``Bar``, ``bar`` may not be desirable to
+            have in the logging namespace since users interact with it via
+            ``foo.Bar``. Currently, this only handles a single level of nesting
+            like this.
+        non_native_remove (set[str], optional): A set of names which to remove
+            for the logging namespace when found in non-native loggables.
         skip_duplicates (bool, optional): Whether or not to remove consecutive
             duplicates from a logging namespace (e.g. ``foo.foo.bar`` ->
             ``foo.bar``), default ``True``. By default we assume that this
@@ -152,15 +155,30 @@ class _NamespaceFilter:
     def __init__(self,
                  remove_names=None,
                  base_names=None,
+                 non_native_remove=None,
                  skip_duplicates=True):
         self.remove_names = set() if remove_names is None else remove_names
+        if non_native_remove is None:
+            self.non_native_remove = set()
+        else:
+            self.non_native_remove = non_native_remove
         self.base_names = set() if base_names is None else base_names
         self._skip_next = False
         self.skip_duplicates = skip_duplicates
         if skip_duplicates:
             self._last_name = None
 
-    def __call__(self, namespace):
+    def __call__(self, namespace, native=True):
+        """Filter out parts of the namespace.
+
+        Args:
+            namespace (tuple[str]): The namespace of the loggable.
+            native (bool, optional): Whether the loggable comes internally from
+                hoomd or not.
+
+        Yields:
+             str: The filtered parts of a namespace.
+        """
         for name in namespace:
             # check for duplicates in the namespace and remove them (e.g.
             # `md.pair.pair.LJ` -> `md.pair.LJ`).
@@ -169,6 +187,10 @@ class _NamespaceFilter:
                 self._last_name = name
                 if last_name == name:
                     continue
+            if not native:
+                if name not in self.non_native_remove:
+                    yield name
+                continue
             if name in self.remove_names:
                 continue
             elif self._skip_next:
@@ -179,6 +201,7 @@ class _NamespaceFilter:
             yield name
         # Reset for next call of filter
         self._skip_next = False
+        self._last_name = None
 
 
 class _LoggerQuantity:
@@ -199,11 +222,12 @@ class _LoggerQuantity:
 
     namespace_filter = _NamespaceFilter(
         # Names that are imported directly into the hoomd namespace
-        remove_names={'simulation', 'state', 'operations', 'snapshot'},
+        remove_names={"hoomd", 'simulation', 'state', 'operations', 'snapshot'},
         # Names that have their submodules' classes directly imported into them
         # (e.g. `hoomd.update.box_resize.BoxResize` gets used as
         # `hoomd.update.BoxResize`)
         base_names={'update', 'tune', 'write'},
+        non_native_remove={"__main__"},
         skip_duplicates=True)
 
     def __init__(self, name, cls, category='scalar', default=True):
@@ -249,16 +273,19 @@ class _LoggerQuantity:
         self.namespace = self._generate_namespace(cls)
         return self
 
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        attrs = ("namespace", "name", "category", "default")
+        return all(getattr(self, a) == getattr(other, a) for a in attrs)
+
     @classmethod
     def _generate_namespace(cls, loggable_cls):
         """Generate the namespace of a class given its module hierarchy."""
         ns = tuple(loggable_cls.__module__.split('.'))
         cls_name = loggable_cls.__name__
         # Only filter namespaces of objects in the hoomd package
-        if ns[0] == 'hoomd':
-            return tuple(cls.namespace_filter(ns[1:])) + (cls_name,)
-        else:
-            return ns + (cls_name,)
+        return tuple(cls.namespace_filter(ns, ns[0] == "hoomd")) + (cls_name,)
 
 
 class Loggable(type):
@@ -383,23 +410,23 @@ def log(func=None,
             loggable quantity, defaults to 'scalar'. See `LoggerCategories` for
             available types. Keyword only argument.
         default (`bool`, optional): Whether the quantity should be logged
-            by default, defaults to True. This is orthogonal to the loggable
-            quantity's type. An example would be performance orientated loggable
-            quantities.  Many users may not want to log such quantities even
-            when logging other quantities of that type. The default category
-            allows for these to be pass over by `Logger` objects by default.
-            Keyword only argument.
+            by default. Defaults to True. This is orthogonal to the loggable
+            quantity's type. Many users may not want to log such quantities even
+            when logging other quantities of that type. An example would be
+            performance orientated loggable quantities, like the number of
+            neighborlist builds. The `default` argument allows for these to be
+            skipped by `Logger` objects by default. Keyword only argument.
         requires_run (`bool`, optional): Whether this property requires the
             simulation to run before being accessible.
 
     Note:
         The namespace (where the loggable object is stored in the `Logger`
-        object's nested dictionary, is determined by the module/script and class
+        object's nested dictionary) is determined by the module/script and class
         name the loggable class comes from. In creating subclasses of
         `hoomd.custom.Action`, for instance, if the module the subclass is
         defined in is ``user.custom.action`` and the class name is ``Foo`` then
         the namespace used will be ``('user', 'custom', 'action', 'Foo')``. This
-        helps to prevent naming conflicts, and automate the logging
+        helps to prevent naming conflicts and automates the logging
         specification for developers and users.
 
     Example::
@@ -563,16 +590,17 @@ class Logger(_SafeNamespaceDict):
 
     `Logger` objects support two ways of discriminating what loggable quantities
     they will accept: ``categories`` and ``only_default`` (the constructor
-    arguments). Both of these are static meaning that once instantiated a
+    arguments). Both of these are static, meaning that once instantiated, a
     `Logger` object will not change the values of these two properties.
-    ``categories`` determines what if any types of loggable quantities (see
+    ``categories`` determines what types of loggable quantities (see
     `LoggerCategories`) are appropriate for a given `Logger` object. This helps
     logging backends determine if a `Logger` object is compatible. The
-    ``only_default`` flag is mainly a convenience by allowing quantities not
-    commonly logged (but available) to be passed over unless explicitly asked
-    for. You can override the ``only_default`` flag by explicitly listing the
-    quantities you want in `add`, but the same is not true with regards
-    to ``categories``.
+    ``only_default`` flag prevents rarely-used quantities (e.g. the number of
+    neighborlist builds) from being added to the logger when
+    using`Logger.__iadd__` and `Logger.add` without specifying them explicitly.
+    In `Logger.add`, you can override the ``only_default`` flag by explicitly
+    listing the quantities you want to add. On the other hand, ``categories`` is
+    rigidly obeyed as it is a promise to logging backends.
 
     Note:
         The logger provides a way for users to create their own logger back
@@ -595,9 +623,9 @@ class Logger(_SafeNamespaceDict):
             the only types of loggable quantities that can be logged by this
             logger. Defaults to allowing every type.
         only_default (`bool`, optional): Whether to log only quantities that are
-            logged by "default", defaults to ``True``. This mostly means that
-            performance centric loggable quantities will be passed over when
-            logging when false.
+            logged by default. Defaults to ``True``. Non-default quantities
+            are typically measures of operation performance rather than
+            information about simulation state.
     """
 
     def __init__(self, categories=None, only_default=True):
@@ -624,11 +652,12 @@ class Logger(_SafeNamespaceDict):
         quantities."""
         return self._only_default
 
-    def _filter_quantities(self, quantities):
+    def _filter_quantities(self, quantities, force_quantities=False):
         for quantity in quantities:
-            if self._only_default and not quantity.default:
+            if quantity.category not in self._categories:
                 continue
-            elif quantity.category in self._categories:
+            # Must be before default check to overwrite _only_default
+            if not self._only_default or quantity.default or force_quantities:
                 yield quantity
 
     def _get_loggables_by_name(self, obj, quantities):
@@ -643,7 +672,7 @@ class Logger(_SafeNamespaceDict):
                     "object {} has not loggable quantities {}.".format(
                         obj, bad_keys))
             yield from self._filter_quantities(
-                map(lambda q: obj._export_dict[q], quantities))
+                map(lambda q: obj._export_dict[q], quantities), True)
 
     def add(self, obj, quantities=None, user_name=None):
         """Add loggables from obj to logger.
@@ -727,10 +756,12 @@ class Logger(_SafeNamespaceDict):
                 name and category. If using a method it should not take
                 arguments or have defaults for all arguments.
         """
-        if isinstance(value, _LoggerEntry):
-            super().__setitem__(namespace, value)
-        else:
-            super().__setitem__(namespace, _LoggerEntry.from_tuple(value))
+        if not isinstance(value, _LoggerEntry):
+            value = _LoggerEntry.from_tuple(value)
+        if value.category not in self.categories:
+            raise ValueError(
+                "User specified loggable is not of an accepted category.")
+        super().__setitem__(namespace, value)
 
     def __iadd__(self, obj):
         """Add quantities from object or list of objects to logger.
@@ -808,3 +839,32 @@ class Logger(_SafeNamespaceDict):
         return (self.categories == other.categories
                 and self.only_default == other.only_default
                 and self._dict == other._dict)
+
+
+def modify_namespace(cls, namespace=None):
+    """Modify a class's namespace to a manually assigned one.
+
+    Args:
+        cls (type or tuple[str]): The class to modify the namespace of or the
+            namespace itself. When passing a namespace (a tuple of strings), the
+            function can be used as a decorator.
+        namespace (`tuple` [`str` ], optional): The namespace to change the
+            class's namespace to.
+
+    Warning:
+        This will only persist for the current class. All subclasses will have
+        the standard namespace assignment.
+    """
+    if namespace is None:
+        namespace = cls
+        cls = None
+
+    def modify(cls):
+        for entry in cls._export_dict.values():
+            entry.namespace = namespace
+        return cls
+
+    if cls is None:
+        return modify
+
+    return modify(cls)

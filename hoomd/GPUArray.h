@@ -110,7 +110,6 @@ template<class T> class device_deleter
 #ifdef ENABLE_HIP
             hipFree(ptr);
 #endif
-            CHECK_CUDA_ERROR();
             }
         }
 
@@ -158,7 +157,6 @@ template<class T> class host_deleter
 #if (ENABLE_HIP)
             hipHostUnregister(ptr);
 #endif
-            CHECK_CUDA_ERROR();
             }
 
         // free the allocation
@@ -979,7 +977,7 @@ template<class T> void GPUArray<T>::allocate()
         {
         if (m_exec_conf)
             m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        throw std::bad_alloc();
         }
 
     bool use_device = m_exec_conf && m_exec_conf->isCUDAEnabled();
@@ -1006,20 +1004,37 @@ template<class T> void GPUArray<T>::allocate()
 #if defined(ENABLE_HIP)
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        // Check for pending errors.
+        CHECK_CUDA_ERROR();
+
         // allocate and/or map host memory
         if (m_mapped)
             {
 #ifdef ENABLE_HIP
-            hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
+            hipError_t error = hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
+            if (error == hipErrorMemoryAllocation)
+                {
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
 #endif
-            CHECK_CUDA_ERROR();
             }
         else
             {
 #ifdef ENABLE_HIP
-            hipMalloc(&device_ptr, m_num_elements * sizeof(T));
+            hipError_t error = hipMalloc(&device_ptr, m_num_elements * sizeof(T));
+            if (error == hipErrorMemoryAllocation)
+                {
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
 #endif
-            CHECK_CUDA_ERROR();
             }
 
         // store in smart pointer with custom deleter
@@ -1332,7 +1347,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(size_t num_elements)
         {
         if (m_exec_conf)
             m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        throw std::bad_alloc();
         }
 
 #ifdef ENABLE_HIP
@@ -1398,7 +1413,7 @@ T* GPUArray<T>::resize2DHostArray(size_t pitch, size_t new_pitch, size_t height,
         {
         if (m_exec_conf)
             m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        throw std::bad_alloc();
         }
 
 #ifdef ENABLE_HIP
@@ -1457,6 +1472,9 @@ T* GPUArray<T>::resize2DHostArray(size_t pitch, size_t new_pitch, size_t height,
  */
 template<class T> T* GPUArray<T>::resizeDeviceArray(size_t num_elements)
     {
+    // Check for pending errors.
+    CHECK_CUDA_ERROR();
+
 #ifdef ENABLE_HIP
     if (m_mapped)
         return NULL;
@@ -1464,10 +1482,16 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(size_t num_elements)
     // allocate resized array
     T* d_tmp;
 #ifdef ENABLE_HIP
-    hipMalloc(&d_tmp, num_elements * sizeof(T));
+    hipError_t error = hipMalloc(&d_tmp, num_elements * sizeof(T));
+    if (error == hipErrorMemoryAllocation)
+        {
+        throw std::bad_alloc();
+        }
+    else if (error != hipSuccess)
+        {
+        throw std::runtime_error(hipGetErrorString(error));
+        }
 #endif
-
-    CHECK_CUDA_ERROR();
 
     assert(d_tmp);
 
@@ -1508,15 +1532,25 @@ T* GPUArray<T>::resize2DDeviceArray(size_t pitch,
                                     size_t new_height)
     {
 #ifdef ENABLE_HIP
+    // Check for pending errors.
+    CHECK_CUDA_ERROR();
+
     if (m_mapped)
         return NULL;
 
     // allocate resized array
     T* d_tmp;
 #ifdef ENABLE_HIP
-    hipMalloc(&d_tmp, new_pitch * new_height * sizeof(T));
+    hipError_t error = hipMalloc(&d_tmp, new_pitch * new_height * sizeof(T));
+    if (error == hipErrorMemoryAllocation)
+        {
+        throw std::bad_alloc();
+        }
+    else if (error != hipSuccess)
+        {
+        throw std::runtime_error(hipGetErrorString(error));
+        }
 #endif
-    CHECK_CUDA_ERROR();
     assert(d_tmp);
 
 // clear memory

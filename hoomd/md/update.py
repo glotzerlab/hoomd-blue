@@ -16,7 +16,8 @@ class ZeroMomentum(Updater):
     r"""Zeroes system momentum.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to zero momentum.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to zero
+            momentum.
 
     `ZeroMomentum` computes the center of mass linear momentum of the system:
 
@@ -48,11 +49,10 @@ class ZeroMomentum(Updater):
         # initialize base class
         super().__init__(trigger)
 
-    def _attach(self):
+    def _attach_hook(self):
         # create the c++ mirror class
         self._cpp_obj = _md.ZeroMomentumUpdater(
             self._simulation.state._cpp_sys_def, self.trigger)
-        super()._attach()
 
 
 class ReversePerturbationFlow(Updater):
@@ -74,10 +74,10 @@ class ReversePerturbationFlow(Updater):
     "max" and "min" slab might be swapped.
 
     Args:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this updater.
 
-        flow_target (hoomd.variant.Variant): Target value of the
+        flow_target (hoomd.variant.variant_like): Target value of the
             time-integrated momentum flux.
             :math:`[\\delta t \\cdot \\mathrm{mass} \\cdot \\mathrm{length}
             \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the
@@ -123,7 +123,7 @@ class ReversePerturbationFlow(Updater):
                                                       n_slabs=20)
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this updater.
 
         flow_target (hoomd.variant.Variant): Target value of the
@@ -204,7 +204,7 @@ class ReversePerturbationFlow(Updater):
                               min_slab = max_slab = {min_slab}")
         return min_slab
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         sys_def = self._simulation.state._cpp_sys_def
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -217,7 +217,6 @@ class ReversePerturbationFlow(Updater):
                 sys_def, self.trigger, group, self.flow_target,
                 self.slab_direction, self.flow_direction, self.n_slabs,
                 self.min_slab, self.max_slab, self.flow_epsilon)
-        super()._attach()
 
     @log(category="scalar", requires_run=True)
     def summed_exchanged_momentum(self):
@@ -229,13 +228,13 @@ class ActiveRotationalDiffusion(Updater):
     r"""Updater to introduce rotational diffusion with an active force.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to update
             rotational diffusion.
         active_force (hoomd.md.force.Active): The active force associated with
             the updater can be any subclass of the class
             `hoomd.md.force.Active`.
-        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
-            as a function of time.
+        rotational_diffusion (hoomd.variant.variant_like): The rotational
+            diffusion as a function of time.
 
     `ActiveRotationalDiffusion` works directly with `hoomd.md.force.Active` or
     `hoomd.md.force.ActiveOnManifold` to apply rotational diffusion to the
@@ -276,7 +275,7 @@ class ActiveRotationalDiffusion(Updater):
         self._add_dependency(active_force)
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # Since integrators are attached first, if the active force is not
         # attached then the active force is not a part of the simulation, and we
         # should error.
@@ -291,7 +290,6 @@ class ActiveRotationalDiffusion(Updater):
         self._cpp_obj = _md.ActiveRotationalDiffusionUpdater(
             self._simulation.state._cpp_sys_def, self.trigger,
             self.rotational_diffusion, self.active_force._cpp_obj)
-        # No need to call super
 
     def _handle_removed_dependency(self, active_force):
         raise SimulationDefinitionError(

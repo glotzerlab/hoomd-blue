@@ -25,6 +25,8 @@ Example:
                 return (timestep**(1 / 2)).is_integer()
 """
 
+import typing
+
 from hoomd import _hoomd
 
 # Note: We use pybind11's pickling infrastructure for simple triggers like
@@ -374,3 +376,17 @@ class Or(_hoomd.OrTrigger, Trigger):
     def __eq__(self, other):
         """Test for equivalent triggers."""
         return isinstance(other, Or) and self.triggers == other.triggers
+
+
+trigger_like = typing.Union[Trigger, int]
+"""
+An object that can serve as a trigger for an operation.
+
+Any instance of a `Trigger` subclass is allowed, as well as an int instance or
+any object convertible to an int. The integer is converted to a `Periodic`
+trigger via ``Periodic(period=int(a))`` where ``a`` is the passed integer.
+
+Note:
+    Attributes that are `Trigger` objects can be set via a `trigger_like`
+    object.
+"""

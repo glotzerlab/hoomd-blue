@@ -13,6 +13,8 @@ md.data
 
     ForceLocalAccess
     ForceLocalAccessGPU
+    NeighborListLocalAccess
+    NeighborListLocalAccessGPU
 
 .. rubric:: Details
 
@@ -24,6 +26,12 @@ md.data
         :inherited-members:
 
     .. autoclass:: ForceLocalAccessGPU
+        :inherited-members:
+
+    .. autoclass:: NeighborListLocalAccess
+        :inherited-members:
+
+    .. autoclass:: NeighborListLocalAccessGPU
         :inherited-members:
 
 .. rubric:: Modules

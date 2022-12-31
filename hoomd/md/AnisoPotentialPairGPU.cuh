@@ -302,7 +302,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                const typename evaluator::param_type param = s_params[typpair];
+                const typename evaluator::param_type& param = s_params[typpair];
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
@@ -452,6 +452,12 @@ struct AnisoPairForceComputeKernel
 
             unsigned int base_shared_bytes;
             base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
+
+            if (base_shared_bytes > pair_args.devprop.sharedMemPerBlock)
+                {
+                throw std::runtime_error("Pair potential parameters exceed the available shared "
+                                         "memory per block.");
+                }
 
             unsigned int max_extra_bytes
                 = (unsigned int)(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);

@@ -7,6 +7,12 @@ import numpy.testing as npt
 import pytest
 
 import hoomd
+import hoomd.md as md
+from hoomd.conftest import expected_loggable_params
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
+
+import itertools
 
 
 def _evaluate_periodic(snapshot, params):
@@ -133,3 +139,58 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
             # and energies.
             np.testing.assert_allclose(expected_forces, forces, atol=1e-5)
             np.testing.assert_allclose(expected_energies, energies, atol=1e-5)
+
+
+# Test Logging
+_potential_cls = (md.external.field.Field, md.external.field.Periodic,
+                  md.external.field.Electric)
+
+
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip(_potential_cls,
+                             itertools.repeat(('md', 'external', 'field')),
+                             itertools.repeat(expected_loggable_params)))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
+
+
+def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory,
+                           external_params):
+    # unpack parameters
+    cls_obj, param_attr, list_params, evaluator = external_params
+
+    # create class instance, get/set params when not attached
+    obj_instance = cls_obj()
+    getattr(obj_instance, param_attr)['A'] = list_params[0]
+
+    pickling_check(obj_instance)
+    # set up simulation
+    snap = two_particle_snapshot_factory(d=3.7)
+    sim = simulation_factory(snap)
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    sim.operations.integrator.forces.append(obj_instance)
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=obj_instance,
+                                     activate=lambda: sim.run(1))
+
+
+# Pickle Testing
+def test_pickling(simulation_factory, two_particle_snapshot_factory,
+                  external_params):
+    """Test pickling while attached and while not attached."""
+    # unpack parameters
+    cls_obj, param_attr, list_params, evaluator = external_params
+
+    # create class instance, get/set params when not attached
+    obj_instance = cls_obj()
+    getattr(obj_instance, param_attr)['A'] = list_params[0]
+
+    pickling_check(obj_instance)
+    # set up simulation
+    snap = two_particle_snapshot_factory(d=3.7)
+    sim = simulation_factory(snap)
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    sim.operations.integrator.forces.append(obj_instance)
+    sim.run(0)
+    pickling_check(obj_instance)

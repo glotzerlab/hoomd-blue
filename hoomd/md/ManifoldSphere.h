@@ -105,12 +105,12 @@ class ManifoldSphere
         return sqrt(R_sq);
         };
 
-    #ifndef __HIPCC__
+#ifndef __HIPCC__
     pybind11::tuple getP()
         {
         return pybind11::make_tuple(Px, Py, Pz);
         }
-    #endif
+#endif
 
     static unsigned int dimension()
         {

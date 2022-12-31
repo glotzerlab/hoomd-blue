@@ -18,8 +18,7 @@ namespace hoomd
     \post The Compute is constructed with the given particle data.
 */
 Compute::Compute(std::shared_ptr<SystemDefinition> sysdef)
-    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_force_compute(false), m_last_computed(0), m_first_compute(true)
+    : Action(sysdef), m_force_compute(false), m_last_computed(0), m_first_compute(true)
     {
     // sanity check
     assert(m_sysdef);
@@ -102,7 +101,7 @@ namespace detail
     {
 void export_Compute(pybind11::module& m)
     {
-    pybind11::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
+    pybind11::class_<Compute, Action, std::shared_ptr<Compute>>(m, "Compute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &Compute::compute)
         .def("benchmark", &Compute::benchmark)

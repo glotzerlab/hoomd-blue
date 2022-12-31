@@ -15,7 +15,7 @@
 
 namespace hoomd
     {
-class HalfStepHook
+class PYBIND11_EXPORT HalfStepHook
     {
     public:
     // Set SystemDefinition.

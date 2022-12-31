@@ -15,6 +15,7 @@
 
 #include "ExternalField.h"
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include "hoomd/GPUPolymorph.h"
 
 #include <pybind11/pybind11.h>
@@ -28,7 +29,7 @@ namespace mpcd
  * This method implements the base version of ballistic propagation of MPCD
  * particles.
  */
-class PYBIND11_EXPORT StreamingMethod
+class PYBIND11_EXPORT StreamingMethod : public Autotuned
     {
     public:
     //! Constructor
@@ -44,15 +45,6 @@ class PYBIND11_EXPORT StreamingMethod
 
     //! Peek if the next step requires streaming
     virtual bool peekStream(uint64_t timestep) const;
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //! Change the timestep
     /*!

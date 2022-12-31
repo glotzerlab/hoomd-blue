@@ -10,7 +10,8 @@ import numpy as np
 import hoomd
 from hoomd import md
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.error import TypeConversionError
 import pytest
 import itertools
@@ -739,6 +740,8 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
 
+    autotuned_kernel_parameter_check(instance=pot, activate=lambda: sim.run(1))
+
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     # A subtle bug existed where we used "shifted" instead of "shift" in Python
@@ -1012,8 +1015,9 @@ def test_force_energy_accuracy(simulation_factory,
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
             assert isclose(sum(sim_energies), forces_and_energies.energies[i])
-            assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
-            assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
+            assert np.allclose(sim_forces[0],
+                               forces_and_energies.forces[i] * r,
+                               equal_nan=True)
 
 
 def populate_sim(sim):
@@ -1032,10 +1036,8 @@ def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
     lj = md.pair.LJ(nlist, default_r_cut=1.1)
     lj.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
     sim1.operations.integrator.forces.append(lj)
-
-    # Test cannot add to new integrator
-    with pytest.raises(RuntimeError):
-        sim2.operations.integrator.forces.append(lj)
+    sim2.operations.integrator.forces.append(lj)
+    sim2.operations.integrator.forces.clear()
 
     # Ensure that removing and appending works
     sim1.operations.integrator.forces.remove(lj)
@@ -1051,8 +1053,9 @@ def test_setting_to_new_sim(simulation_factory, two_particle_snapshot_factory):
     lj2.params[("A", "A")] = {"sigma": 0.5, "epsilon": 1.0}
     sim2.operations.integrator.forces.append(lj2)
     sim2.operations.integrator.forces.remove(lj)
+    sim1.operations.integrator.forces.append(lj)
     with pytest.warns(RuntimeWarning):
-        sim1.operations.integrator.forces.append(lj)
+        sim1.run(0)
 
 
 @pytest.mark.filterwarnings("always")
@@ -1080,8 +1083,11 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
 # Test logging
 @pytest.mark.parametrize(
     'cls, expected_namespace, expected_loggables',
-    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet),
-        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body')),
+    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet,
+         md.many_body.Tersoff, md.many_body.RevCross,
+         md.many_body.SquareDensity),
+        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body'),
+         ('md', 'many_body'), ('md', 'many_body'), ('md', 'many_body')),
         itertools.repeat({
             'energy': {
                 'category': LoggerCategories.scalar,
@@ -1253,3 +1259,56 @@ def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
     # make sure corrections correct in the right direction
     assert e_true < e_false
     assert p_true < p_false
+
+
+def test_adding_to_operations(simulation_factory,
+                              two_particle_snapshot_factory):
+    """Test that forces can work like computes since they are."""
+    sim = simulation_factory(two_particle_snapshot_factory(d=0.5))
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(0.4))
+    lj.r_cut.default = 2.5
+    lj.params.default = {"epsilon": 1.0, "sigma": 1.0}
+    sim.operations += lj
+    sim.run(0)
+    assert lj.energy != 0
+
+
+def test_forces_multiple_lists(simulation_factory,
+                               two_particle_snapshot_factory):
+    """Test that forces added to an integrator and compute work correctly.
+
+    Look at the edge cases where a force is added twice to a simulation: once
+    through the integrator and once through the compute list. We check that the
+    correct thing happens when one or both are removed.
+    """
+    sim = simulation_factory(two_particle_snapshot_factory())
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(0.4))
+    lj.r_cut[("A", "A")] = 2.5
+    lj.params[("A", "A")] = {"sigma": 1.0, "epsilon": 1.0}
+    integrator = md.Integrator(dt=0.005)
+    integrator.forces.append(lj)
+    sim.operations.integrator = integrator
+    sim.operations.computes.append(lj)
+    sim.run(0)
+    assert lj._use_count == 2
+    sim.operations.computes.clear()
+    assert lj._attached
+    assert lj._use_count == 1
+    sim.operations.integrator = None
+    assert not lj._attached
+    assert lj._use_count == 0
+
+    # Test adding to second list after attaching
+    sim.operations._unschedule()
+    sim.operations.integrator = integrator
+    sim.run(0)
+    assert lj._attached
+    assert lj._use_count == 1
+    sim.operations.computes.append(lj)
+    assert lj._use_count == 2
+    sim.operations.integrator = None
+    assert lj._attached
+    assert lj._use_count == 1
+    sim.operations.computes.clear()
+    assert not lj._attached
+    assert lj._use_count == 0

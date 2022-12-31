@@ -44,14 +44,14 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
         throw std::runtime_error("Error initializing MuellerPlatheFlowGPU");
         }
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "muellerplatheflow",
-                                this->m_exec_conf));
+    // m_tuner is only used on some ranks and only some times. Make it optional.
+    // This is the only tuner, so `is_tuning_complete` will not read `False` after starting a scan.
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "muellerplatheflow",
+                                   5,
+                                   true));
+    m_autotuners.push_back(m_tuner);
     }
 
 MuellerPlatheFlowGPU::~MuellerPlatheFlowGPU(void)
@@ -100,7 +100,7 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
                                         &m_last_min_vel,
                                         this->hasMaxSlab(),
                                         this->hasMinSlab(),
-                                        m_tuner->getParam(),
+                                        m_tuner->getParam()[0],
                                         m_flow_direction,
                                         m_slab_direction);
     m_tuner->end();

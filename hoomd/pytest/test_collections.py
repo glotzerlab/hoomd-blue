@@ -1,6 +1,9 @@
 # Copyright (c) 2009-2022 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+import warnings
+
+import numpy as np
 import pytest
 
 from hoomd.conftest import BaseListTest, BaseMappingTest, BaseSequenceTest
@@ -115,11 +118,15 @@ class TestHoomdTuple(BaseSequenceTest):
 
         def generate(n):
             strings = [self.str() for _ in range(self.int(10))]
-            return (self.int(), strings, self.float())
+            return (self.int(), strings, self.float(), self.ndarray((None, 3)))
 
         return generate
 
     def is_equal(self, a, b):
+        if isinstance(a, np.ndarray):
+            return np.array_equal(a, b)
+        if isinstance(b, np.ndarray):
+            return False
         return a == b
 
     def final_check(self, test_tuple):
@@ -133,8 +140,11 @@ class TestHoomdTuple(BaseSequenceTest):
     @pytest.fixture
     def populated_collection(self, plain_collection):
 
-        self._data = MockRoot({"tuple": (int, [str], float)},
-                              {"tuple": plain_collection})
+        self._data = MockRoot(
+            {
+                "tuple": (int, [str], float,
+                          typeconverter.NDArrayValidator("float64", (None, 3)))
+            }, {"tuple": plain_collection})
         return self._data._sync_data["tuple"], plain_collection
 
 
@@ -219,7 +229,7 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 obj[0] = obj._data[0]
 
-            with pytest.warns(None) as warning_record:
+            with warnings.catch_warnings(record=True) as warning_record:
                 obj.to_base()
             assert len(warning_record) == 0
 
@@ -232,7 +242,7 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 list(obj._data[0])
 
-            with pytest.warns(None) as warning_record:
+            with warnings.catch_warnings(record=True) as warning_record:
                 obj._data[0].to_base()
             assert len(warning_record) == 0
 
@@ -248,7 +258,7 @@ class TestHoomdDict(BaseMappingTest):
             with pytest.warns(IsolationWarning):
                 obj._data[0][1][0] = obj._data[0][1]._data[0]
 
-            with pytest.warns(None) as warning_record:
+            with warnings.catch_warnings(record=True) as warning_record:
                 obj._data[0]._data[1].to_base()
             assert len(warning_record) == 0
 
