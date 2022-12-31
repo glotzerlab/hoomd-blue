@@ -50,14 +50,10 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
     m_partial_sum.swap(partial_sum);
 
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "vconstraint_forces",
-                                this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "vconstraint_forces"));
+    m_autotuners.push_back(m_tuner);
     }
 
 void VolumeConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar V0)
@@ -121,7 +117,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                 d_gpu_n_meshtriangle.data,
                                                 d_params.data,
                                                 m_mesh_data->getMeshTriangleData()->getNTypes(),
-                                                m_tuner->getParam(),
+                                                m_tuner->getParam()[0],
                                                 d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())

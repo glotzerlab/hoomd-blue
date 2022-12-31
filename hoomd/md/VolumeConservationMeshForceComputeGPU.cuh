@@ -3,7 +3,7 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-#include "hoomd/MeshGroupData.cuh"
+#include "hoomd/BondedGroupData.cuh"
 #include "hoomd/ParticleData.cuh"
 #include <hip/hip_runtime.h>
 
@@ -28,7 +28,7 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
                                                 const Scalar4* d_pos,
                                                 const int3* d_image,
                                                 const BoxDim& box,
-                                                const group_storage<6>* tlist,
+                                                const group_storage<3>* tlist,
                                                 const unsigned int* tpos_list,
                                                 const Index2D tlist_idx,
                                                 const unsigned int* n_triangles_list,
@@ -44,7 +44,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                                                const int3* d_image,
                                                const BoxDim& box,
                                                const Scalar volume,
-                                               const group_storage<6>* tlist,
+                                               const group_storage<3>* tlist,
                                                const unsigned int* tpos_list,
                                                const Index2D tlist_idx,
                                                const unsigned int* n_triangles_list,
