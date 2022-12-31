@@ -39,17 +39,6 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceComputeGPU
     TriangleAreaConservationMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                 std::shared_ptr<MeshDefinition> meshdef);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        TriangleAreaConservationMeshForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);
 
