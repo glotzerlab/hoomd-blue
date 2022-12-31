@@ -8,7 +8,6 @@
 #include "hoomd/TextureTools.h"
 
 #include "hoomd/BondedGroupData.cuh"
-#include "hoomd/MeshGroupData.cuh"
 
 #include <assert.h>
 
