@@ -25,3 +25,4 @@ md.mesh
    :maxdepth: 3
 
    module-md-mesh-bond
+   module-md-mesh-conservation

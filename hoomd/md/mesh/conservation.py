@@ -12,10 +12,11 @@ from hoomd.logging import log
 class Area(MeshPotential):
     r"""Area conservation potential.
 
-    :py:class:`AreaConservation` specifies a area conservation energy of each
+    :py:class:`Area` specifies a area conservation energy of each
     triangle mesh unit applied to all particles within the mesh.
 
     .. math::
+
         U(r) = k \frac{( A(r) - A_0 )^2}{2 \cdot A_0}
 
     Args:
@@ -56,11 +57,11 @@ class Area(MeshPotential):
 class TriangleArea(MeshPotential):
     r"""Triangle Area conservation potential.
 
-    :py:class:`AreaConservation` specifies a area conservation energy by
+    :py:class:`TriangleArea` specifies a area conservation energy by
     applying an area constraint to each triangle of the mesh.
 
     .. math::
-        U(r) = k \sum={i,j,k \im \mathrm{mesh triangle}}
+        U(r) = k \sum_{i,j,k \in \mathrm{mesh{ }triangle}}
         \frac{( N_\mathrm{tri} \cdot A_{ijk} - A_0 )^2}
         {2 \cdot A_0 \cdot N_\mathrm{tri}}
 
