@@ -52,14 +52,10 @@ TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceCo
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
     m_partial_sum.swap(partial_sum);
 
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "TriangleAreaConservation_forces",
-                                this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "taconstraint_force"));
+    m_autotuners.push_back(m_tuner);
     }
 
 void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type,
@@ -78,14 +74,14 @@ void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timeste
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list
+    const GPUArray<typename Angle::members_t>& gpu_meshtriangle_list
         = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
     const Index2D& gpu_table_indexer
         = this->m_mesh_data->getMeshTriangleData()->getGPUTableIndexer();
 
-    ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
-                                                                         access_location::device,
-                                                                         access_mode::read);
+    ArrayHandle<typename Angle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
+                                                                  access_location::device,
+                                                                  access_mode::read);
 
     ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(
         m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
@@ -121,7 +117,7 @@ void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timeste
         d_gpu_n_meshtriangle.data,
         d_params.data,
         m_mesh_data->getMeshTriangleData()->getNTypes(),
-        m_tuner->getParam(),
+        m_tuner->getParam()[0],
         d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -147,14 +143,14 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list
+    const GPUArray<typename Angle::members_t>& gpu_meshtriangle_list
         = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
     const Index2D& gpu_table_indexer
         = this->m_mesh_data->getMeshTriangleData()->getGPUTableIndexer();
 
-    ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
-                                                                         access_location::device,
-                                                                         access_mode::read);
+    ArrayHandle<typename Angle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
+                                                                  access_location::device,
+                                                                  access_mode::read);
 
     ArrayHandle<unsigned int> d_gpu_n_meshtriangle(
         this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),

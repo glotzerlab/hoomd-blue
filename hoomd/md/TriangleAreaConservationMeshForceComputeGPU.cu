@@ -30,7 +30,7 @@ gpu_compute_TriangleAreaConservation_area_kernel(Scalar* d_partial_sum_area,
                                                  const unsigned int N,
                                                  const Scalar4* d_pos,
                                                  BoxDim box,
-                                                 const group_storage<6>* tlist,
+                                                 const group_storage<3>* tlist,
                                                  const Index2D tlist_idx,
                                                  const unsigned int* n_triangles_list)
     {
@@ -49,7 +49,7 @@ gpu_compute_TriangleAreaConservation_area_kernel(Scalar* d_partial_sum_area,
 
         for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
             {
-            group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+            group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
             int cur_mem2_idx = cur_triangle.idx[0];
             int cur_mem3_idx = cur_triangle.idx[1];
@@ -116,8 +116,9 @@ gpu_compute_TriangleAreaConservation_area_kernel(Scalar* d_partial_sum_area,
     \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
-__global__ void
-gpu_triangle_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
+__global__ void gpu_triangle_area_reduce_partial_sum_kernel(Scalar* d_sum,
+                                                            Scalar* d_partial_sum,
+                                                            unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -171,7 +172,7 @@ hipError_t gpu_compute_TriangleAreaConservation_area(Scalar* d_sum_area,
                                                      const unsigned int N,
                                                      const Scalar4* d_pos,
                                                      const BoxDim& box,
-                                                     const group_storage<6>* tlist,
+                                                     const group_storage<3>* tlist,
                                                      const Index2D tlist_idx,
                                                      const unsigned int* n_triangles_list,
                                                      unsigned int block_size,
@@ -230,7 +231,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
                                                   const unsigned int N_tri,
                                                   const Scalar4* d_pos,
                                                   BoxDim box,
-                                                  const group_storage<6>* tlist,
+                                                  const group_storage<3>* tlist,
                                                   const unsigned int* tpos_list,
                                                   const Index2D tlist_idx,
                                                   const unsigned int* n_triangles_list,
@@ -262,7 +263,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
-        group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+        group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
         int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
 
@@ -417,7 +418,7 @@ hipError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
                                                       const unsigned int N_tri,
                                                       const Scalar4* d_pos,
                                                       const BoxDim& box,
-                                                      const group_storage<6>* tlist,
+                                                      const group_storage<3>* tlist,
                                                       const unsigned int* tpos_list,
                                                       const Index2D tlist_idx,
                                                       const unsigned int* n_triangles_list,

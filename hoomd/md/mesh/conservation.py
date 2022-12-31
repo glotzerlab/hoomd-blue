@@ -15,6 +15,9 @@ class Area(MeshPotential):
     :py:class:`AreaConservation` specifies a area conservation energy of each
     triangle mesh unit applied to all particles within the mesh.
 
+    .. math::
+        U(r) = k \frac{( A(r) - A_0 )^2}{2 \cdot A_0}
+
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
@@ -24,10 +27,10 @@ class Area(MeshPotential):
             As the mesh can only have one type a type name does not have
             to be stated. The dictionary has the following keys:
             * ``k`` (`float`, **required**) - area conservation coefficient
-              :math:`[\mathrm{energy}]`
-            * ``A_mesh`` (`float`, **required**) - desired total sureface area
+              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
+            * ``A_mesh`` (`float`, **required**) - targeted sureface area
               of the whole mesh
-              :math:`[\mathrm{length}]^2`
+              :math:`[\mathrm{length}]^2]`
 
     Examples::
         area_conservation_potential =
@@ -53,8 +56,18 @@ class Area(MeshPotential):
 class TriangleArea(MeshPotential):
     r"""Triangle Area conservation potential.
 
-    :py:class:`AreaConservation` specifies a area conservation energy of each
-    triangle mesh unit applied to all particles within the mesh.
+    :py:class:`AreaConservation` specifies a area conservation energy by
+    applying an area constraint to each triangle of the mesh.
+
+    .. math::
+        U(r) = k \sum={i,j,k \im \mathrm{mesh triangle}}
+        \frac{( N_\mathrm{tri} \cdot A_{ijk} - A_0 )^2}
+        {2 \cdot A_0 \cdot N_\mathrm{tri}}
+
+    The potential sums over the area :math:`A_{ijk}` of all triplets
+    :math:`i`, :math:`j` and :math:`k` that make up a trinagle in the
+    mesh. The number of triangles in the mesh are symbolized by
+    :math:`N_\mathrm{tri}`.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
@@ -65,8 +78,8 @@ class TriangleArea(MeshPotential):
             As the mesh can only have one type a type name does not have
             to be stated. The dictionary has the following keys:
             * ``k`` (`float`, **required**) - area conservation coefficient
-              :math:`[\mathrm{energy}]`
-            * ``A_mesh`` (`float`, **required**) - desired total sureface area
+              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
+            * ``A_mesh`` (`float`, **required**) - targeted total surface area
               of the whole mesh
               :math:`[\mathrm{length}]^2`
 

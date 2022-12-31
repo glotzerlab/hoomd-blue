@@ -39,7 +39,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
                                                         const unsigned int N,
                                                         const Scalar4* d_pos,
                                                         BoxDim box,
-                                                        const group_storage<6>* tlist,
+                                                        const group_storage<3>* tlist,
                                                         const unsigned int* tpos_list,
                                                         const Index2D tlist_idx,
                                                         const unsigned int* n_triangles_list)
@@ -61,7 +61,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
 
         for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
             {
-            group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+            group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
             int cur_triangle_b = cur_triangle.idx[0];
             int cur_triangle_c = cur_triangle.idx[1];
@@ -194,7 +194,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                                             const unsigned int N,
                                             const Scalar4* d_pos,
                                             const BoxDim& box,
-                                            const group_storage<6>* tlist,
+                                            const group_storage<3>* tlist,
                                             const unsigned int* tpos_list,
                                             const Index2D tlist_idx,
                                             const unsigned int* n_triangles_list,
@@ -256,7 +256,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          const Scalar4* d_pos,
                                                          BoxDim box,
                                                          const Scalar area,
-                                                         const group_storage<6>* tlist,
+                                                         const group_storage<3>* tlist,
                                                          const unsigned int* tpos_list,
                                                          const Index2D tlist_idx,
                                                          const unsigned int* n_triangles_list,
@@ -287,7 +287,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
-        group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+        group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
         int cur_triangle_b = cur_triangle.idx[0];
         int cur_triangle_c = cur_triangle.idx[1];
@@ -444,7 +444,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                                              const Scalar4* d_pos,
                                              const BoxDim& box,
                                              const Scalar area,
-                                             const group_storage<6>* tlist,
+                                             const group_storage<3>* tlist,
                                              const unsigned int* tpos_list,
                                              const Index2D tlist_idx,
                                              const unsigned int* n_triangles_list,
