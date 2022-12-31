@@ -130,7 +130,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
             std::vector<unsigned int> triag_tag(3);
             std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(
                 3);
-            unsigned int bonds0, bonds1;
             triag_tag[0] = snapshot.groups[group_idx].tag[0];
             triag_tag[1] = snapshot.groups[group_idx].tag[1];
             triag_tag[2] = snapshot.groups[group_idx].tag[2];
@@ -156,19 +155,23 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
             bonds[2].tag[2] = triag_tag[1];
             bonds[2].tag[3] = triag_tag[1];
 
+            for (unsigned int j = 0; j < bonds.size(); ++j)
+                {
+                if (bonds[j].tag[0] > bonds[j].tag[1])
+                    {
+                    unsigned int bonds0 = bonds[j].tag[0];
+                    unsigned int bonds1 = bonds[j].tag[1];
+
+                    bonds[j].tag[0] = bonds1;
+                    bonds[j].tag[1] = bonds0;
+                    }
+                }
+
             // Remove any duplicate bonds.
             for (unsigned int i = 0; i < all_helper.size(); ++i)
                 {
                 for (unsigned int j = 0; j < bonds.size(); ++j)
                     {
-                    if (bonds[j].tag[0] > bonds[j].tag[1])
-                        {
-                        bonds0 = bonds[j].tag[0];
-                        bonds1 = bonds[j].tag[1];
-
-                        bonds[j].tag[0] = bonds1;
-                        bonds[j].tag[1] = bonds0;
-                        }
                     if (bonds[j].tag[0] == all_helper[i].tag[0]
                         && bonds[j].tag[1] == all_helper[i].tag[1])
                         {
@@ -427,207 +430,208 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
     return tag;
     }
 
-//template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-//void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
-//    {
+// template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+// void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTable()
+//     {
 //#ifdef ENABLE_HIP
-//    if (this->m_exec_conf->isCUDAEnabled())
-//        rebuildGPUTableGPU();
-//    else
+//     if (this->m_exec_conf->isCUDAEnabled())
+//         rebuildGPUTableGPU();
+//     else
 //#endif
-//        {
-//        ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(),
-//                                         access_location::host,
-//                                         access_mode::read);
+//         {
+//         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(),
+//                                          access_location::host,
+//                                          access_mode::read);
 //
-//        this->m_gpu_n_groups.resize(this->m_pdata->getN() + this->m_pdata->getNGhosts());
+//         this->m_gpu_n_groups.resize(this->m_pdata->getN() + this->m_pdata->getNGhosts());
 //
-//        unsigned int num_groups_max = 0;
+//         unsigned int num_groups_max = 0;
 //
-//        unsigned int group_size_half = group_size / 2;
+//         unsigned int group_size_half = group_size / 2;
 //
-//        unsigned int ngroups_tot = this->m_n_groups + this->m_n_ghost;
-//            {
-//            ArrayHandle<unsigned int> h_n_groups(this->m_gpu_n_groups,
-//                                                 access_location::host,
-//                                                 access_mode::overwrite);
+//         unsigned int ngroups_tot = this->m_n_groups + this->m_n_ghost;
+//             {
+//             ArrayHandle<unsigned int> h_n_groups(this->m_gpu_n_groups,
+//                                                  access_location::host,
+//                                                  access_mode::overwrite);
 //
-//            unsigned int N = this->m_pdata->getN() + this->m_pdata->getNGhosts();
+//             unsigned int N = this->m_pdata->getN() + this->m_pdata->getNGhosts();
 //
-//            // count the number of bonded groups per particle
-//            // start by initializing the n_groups values to 0
-//            memset(h_n_groups.data, 0, sizeof(unsigned int) * N);
+//             // count the number of bonded groups per particle
+//             // start by initializing the n_groups values to 0
+//             memset(h_n_groups.data, 0, sizeof(unsigned int) * N);
 //
-//            // loop through the particles and count the number of groups based on each particle
-//            // index
-//            for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
-//                {
-//                typename BondedGroupData<group_size, Group, name, true>::members_t g
-//                    = this->m_groups[cur_group];
-//                for (unsigned int i = 0; i < group_size_half; ++i)
-//                    {
-//                    unsigned int tag = g.tag[i];
-//                    unsigned int idx = h_rtag.data[tag];
+//             // loop through the particles and count the number of groups based on each particle
+//             // index
+//             for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
+//                 {
+//                 typename BondedGroupData<group_size, Group, name, true>::members_t g
+//                     = this->m_groups[cur_group];
+//                 for (unsigned int i = 0; i < group_size_half; ++i)
+//                     {
+//                     unsigned int tag = g.tag[i];
+//                     unsigned int idx = h_rtag.data[tag];
 //
-//                    if (idx == NOT_LOCAL)
-//                        {
-//                        throw std::runtime_error("Error building GPU group table.");
-//                        }
+//                     if (idx == NOT_LOCAL)
+//                         {
+//                         throw std::runtime_error("Error building GPU group table.");
+//                         }
 //
-//                    h_n_groups.data[idx]++;
-//                    }
-//                }
+//                     h_n_groups.data[idx]++;
+//                     }
+//                 }
 //
-//            // find the maximum number of groups
-//            num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data + N);
-//            }
+//             // find the maximum number of groups
+//             num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data + N);
+//             }
 //
-//        // resize lookup table
-//        this->m_gpu_table_indexer
-//            = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), num_groups_max);
-//        this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
+//         // resize lookup table
+//         this->m_gpu_table_indexer
+//             = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(), num_groups_max);
+//         this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
 //
-//            {
-//            ArrayHandle<unsigned int> h_n_groups(this->m_gpu_n_groups,
-//                                                 access_location::host,
-//                                                 access_mode::overwrite);
-//            ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
-//                h_gpu_table(this->m_gpu_table, access_location::host, access_mode::overwrite);
+//             {
+//             ArrayHandle<unsigned int> h_n_groups(this->m_gpu_n_groups,
+//                                                  access_location::host,
+//                                                  access_mode::overwrite);
+//             ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
+//                 h_gpu_table(this->m_gpu_table, access_location::host, access_mode::overwrite);
 //
-//            // now, update the actual table
-//            // zero the number of bonded groups counter (again)
-//            memset(h_n_groups.data,
-//                   0,
-//                   sizeof(unsigned int) * (this->m_pdata->getN() + this->m_pdata->getNGhosts()));
+//             // now, update the actual table
+//             // zero the number of bonded groups counter (again)
+//             memset(h_n_groups.data,
+//                    0,
+//                    sizeof(unsigned int) * (this->m_pdata->getN() + this->m_pdata->getNGhosts()));
 //
-//            // loop through all group and add them to each column in the list
-//            for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
-//                {
-//                typename BondedGroupData<group_size, Group, name, true>::members_t g
-//                    = this->m_groups[cur_group];
+//             // loop through all group and add them to each column in the list
+//             for (unsigned int cur_group = 0; cur_group < ngroups_tot; cur_group++)
+//                 {
+//                 typename BondedGroupData<group_size, Group, name, true>::members_t g
+//                     = this->m_groups[cur_group];
 //
-//                for (unsigned int i = 0; i < group_size_half; ++i)
-//                    {
-//                    unsigned int tag1 = g.tag[i];
-//                    unsigned int idx1 = h_rtag.data[tag1];
-//                    unsigned int num = h_n_groups.data[idx1]++;
+//                 for (unsigned int i = 0; i < group_size_half; ++i)
+//                     {
+//                     unsigned int tag1 = g.tag[i];
+//                     unsigned int idx1 = h_rtag.data[tag1];
+//                     unsigned int num = h_n_groups.data[idx1]++;
 //
-//                    typename BondedGroupData<group_size, Group, name, true>::members_t h;
+//                     typename BondedGroupData<group_size, Group, name, true>::members_t h;
 //
-//                    h.idx[group_size - 1]
-//                        = static_cast<typeval_t>(this->m_group_typeval[cur_group]).type;
-//                    for (unsigned int j = group_size_half; j < group_size; ++j)
-//                        {
-//                        h.idx[j - 1] = g.tag[j];
-//                        }
+//                     h.idx[group_size - 1]
+//                         = static_cast<typeval_t>(this->m_group_typeval[cur_group]).type;
+//                     for (unsigned int j = group_size_half; j < group_size; ++j)
+//                         {
+//                         h.idx[j - 1] = g.tag[j];
+//                         }
 //
-//                    // list all group members j!=i in p.idx
-//                    unsigned int n = 0;
-//                    for (unsigned int j = 0; j < group_size_half; ++j)
-//                        {
-//                        if (j == i)
-//                            {
-//                            continue;
-//                            }
-//                        unsigned int tag2 = g.tag[j];
-//                        unsigned int idx2 = h_rtag.data[tag2];
-//                        h.idx[n++] = idx2;
-//                        }
+//                     // list all group members j!=i in p.idx
+//                     unsigned int n = 0;
+//                     for (unsigned int j = 0; j < group_size_half; ++j)
+//                         {
+//                         if (j == i)
+//                             {
+//                             continue;
+//                             }
+//                         unsigned int tag2 = g.tag[j];
+//                         unsigned int idx2 = h_rtag.data[tag2];
+//                         h.idx[n++] = idx2;
+//                         }
 //
-//                    h_gpu_table.data[this->m_gpu_table_indexer(idx1, num)] = h;
-//                    }
-//                }
-//            }
-//        }
-//    }
+//                     h_gpu_table.data[this->m_gpu_table_indexer(idx1, num)] = h;
+//                     }
+//                 }
+//             }
+//         }
+//     }
 //
 //#ifdef ENABLE_HIP
-//template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-//void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
-//    {
-//    // resize groups counter
-//    this->m_gpu_n_groups.resize(this->m_pdata->getN() + this->m_pdata->getNGhosts());
+// template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+// void MeshGroupData<group_size, Group, name, snap, bond>::rebuildGPUTableGPU()
+//     {
+//     // resize groups counter
+//     this->m_gpu_n_groups.resize(this->m_pdata->getN() + this->m_pdata->getNGhosts());
 //
-//    // resize GPU table to current number of particles
-//    this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(),
-//                                        this->m_gpu_table_indexer.getH());
-//    this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
-//    this->m_gpu_pos_table.resize(this->m_gpu_table_indexer.getNumElements());
+//     // resize GPU table to current number of particles
+//     this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(),
+//                                         this->m_gpu_table_indexer.getH());
+//     this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
+//     this->m_gpu_pos_table.resize(this->m_gpu_table_indexer.getNumElements());
 //
-//    unsigned int group_size_half = group_size / 2;
+//     unsigned int group_size_half = group_size / 2;
 //
-//    bool done = false;
-//    while (!done)
-//        {
-//        unsigned int flag = 0;
+//     bool done = false;
+//     while (!done)
+//         {
+//         unsigned int flag = 0;
 //
-//            {
-//            ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
-//                d_groups(this->m_groups, access_location::device, access_mode::read);
-//            ArrayHandle<typeval_t> d_group_typeval(this->m_group_typeval,
-//                                                   access_location::device,
-//                                                   access_mode::read);
-//            ArrayHandle<unsigned int> d_rtag(this->m_pdata->getRTags(),
-//                                             access_location::device,
-//                                             access_mode::read);
-//            ArrayHandle<unsigned int> d_n_groups(this->m_gpu_n_groups,
-//                                                 access_location::device,
-//                                                 access_mode::overwrite);
-//            ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
-//                d_gpu_table(this->m_gpu_table, access_location::device, access_mode::overwrite);
-//            ArrayHandle<unsigned int> d_condition(this->m_condition,
+//             {
+//             ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
+//                 d_groups(this->m_groups, access_location::device, access_mode::read);
+//             ArrayHandle<typeval_t> d_group_typeval(this->m_group_typeval,
+//                                                    access_location::device,
+//                                                    access_mode::read);
+//             ArrayHandle<unsigned int> d_rtag(this->m_pdata->getRTags(),
+//                                              access_location::device,
+//                                              access_mode::read);
+//             ArrayHandle<unsigned int> d_n_groups(this->m_gpu_n_groups,
 //                                                  access_location::device,
-//                                                  access_mode::readwrite);
+//                                                  access_mode::overwrite);
+//             ArrayHandle<typename BondedGroupData<group_size, Group, name, true>::members_t>
+//                 d_gpu_table(this->m_gpu_table, access_location::device, access_mode::overwrite);
+//             ArrayHandle<unsigned int> d_condition(this->m_condition,
+//                                                   access_location::device,
+//                                                   access_mode::readwrite);
 //
-//            // allocate scratch buffers
-//            CachedAllocator& alloc = this->m_exec_conf->getCachedAllocator();
-//            size_t tmp_size = this->m_groups.size() * group_size_half;
-//            unsigned int nptl = this->m_pdata->getN() + this->m_pdata->getNGhosts();
-//            ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
-//            ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
-//            ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
+//             // allocate scratch buffers
+//             CachedAllocator& alloc = this->m_exec_conf->getCachedAllocator();
+//             size_t tmp_size = this->m_groups.size() * group_size_half;
+//             unsigned int nptl = this->m_pdata->getN() + this->m_pdata->getNGhosts();
+//             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
+//             ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
+//             ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
 //
-//            // fill group table on GPU
-//            gpu_update_mesh_table<
-//                group_size,
-//                typename BondedGroupData<group_size, Group, name, true>::members_t>(
-//                this->getN() + this->getNGhosts(),
-//                nptl,
-//                d_groups.data,
-//                d_group_typeval.data,
-//                d_rtag.data,
-//                d_n_groups.data,
-//                this->m_gpu_table_indexer.getH(),
-//                d_condition.data,
-//                this->m_next_flag,
-//                flag,
-//                d_gpu_table.data,
-//                this->m_gpu_table_indexer.getW(),
-//                d_scratch_g.data,
-//                d_scratch_idx.data,
-//                d_offsets.data,
-//                this->m_exec_conf->getCachedAllocator());
-//            }
-//        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-//            CHECK_CUDA_ERROR();
+//             // fill group table on GPU
+//             gpu_update_mesh_table<
+//                 group_size,
+//                 typename BondedGroupData<group_size, Group, name, true>::members_t>(
+//                 this->getN() + this->getNGhosts(),
+//                 nptl,
+//                 d_groups.data,
+//                 d_group_typeval.data,
+//                 d_rtag.data,
+//                 d_n_groups.data,
+//                 this->m_gpu_table_indexer.getH(),
+//                 d_condition.data,
+//                 this->m_next_flag,
+//                 flag,
+//                 d_gpu_table.data,
+//                 this->m_gpu_table_indexer.getW(),
+//                 d_scratch_g.data,
+//                 d_scratch_idx.data,
+//                 d_offsets.data,
+//                 this->m_exec_conf->getCachedAllocator());
+//             }
+//         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+//             CHECK_CUDA_ERROR();
 //
-//        if (flag >= this->m_next_flag + 1)
-//            {
-//            throw std::runtime_error("Error building GPU group table.");
-//            }
+//         if (flag >= this->m_next_flag + 1)
+//             {
+//             throw std::runtime_error("Error building GPU group table.");
+//             }
 //
-//        if (flag == this->m_next_flag)
-//            {
-//            // grow array by incrementing groups per particle
-//            this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() + this->m_pdata->getNGhosts(),
-//                                                this->m_gpu_table_indexer.getH() + 1);
-//            this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
-//            this->m_next_flag++;
-//            }
-//        else
-//            done = true;
-//        }
-//    }
+//         if (flag == this->m_next_flag)
+//             {
+//             // grow array by incrementing groups per particle
+//             this->m_gpu_table_indexer = Index2D(this->m_pdata->getN() +
+//             this->m_pdata->getNGhosts(),
+//                                                 this->m_gpu_table_indexer.getH() + 1);
+//             this->m_gpu_table.resize(this->m_gpu_table_indexer.getNumElements());
+//             this->m_next_flag++;
+//             }
+//         else
+//             done = true;
+//         }
+//     }
 //#endif
 
 /*! \param snapshot Snapshot that will contain the group data
@@ -786,8 +790,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
     }
 
 //#ifdef ENABLE_MPI
-//template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-//void MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups(unsigned int tag,
+// template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+// void MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups(unsigned int tag,
 //                                                                            unsigned int old_rank,
 //                                                                            unsigned int new_rank)
 //    {
@@ -830,7 +834,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 //                  &req);
 //        MPI_Wait(&req, &stat);
 //
-//        for (std::vector<unsigned int>::iterator it = send_groups.begin(); it != send_groups.end();
+//        for (std::vector<unsigned int>::iterator it = send_groups.begin(); it !=
+//        send_groups.end();
 //             ++it)
 //            {
 //            // send group properties to other rank
@@ -867,7 +872,8 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 //            MPI_Wait(&req, &stat);
 //            }
 //        // remove groups that are no longer local
-//        for (std::vector<unsigned int>::iterator it = send_groups.begin(); it != send_groups.end();
+//        for (std::vector<unsigned int>::iterator it = send_groups.begin(); it !=
+//        send_groups.end();
 //             ++it)
 //            {
 //            unsigned int group_tag = *it;
