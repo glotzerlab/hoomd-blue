@@ -81,15 +81,15 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
         \param old_rank Old MPI rank for particle
         \param new_rank New MPI rank
      */
-    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+    //virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
 #endif
 
     private:
-    virtual void rebuildGPUTable();
+    //virtual void rebuildGPUTable();
 
 #ifdef ENABLE_HIP
     //! Helper function to rebuild lookup by index table on the GPU
-    virtual void rebuildGPUTableGPU();
+    //virtual void rebuildGPUTableGPU();
 #endif
     };
 

@@ -36,20 +36,9 @@ class EAMForceComputeGPU : public EAMForceCompute
     //! Destructor
     virtual ~EAMForceComputeGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-     \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        EAMForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     protected:
     GlobalArray<kernel::EAMTexInterData> m_eam_data; //!< EAM parameters to be communicated
-    std::unique_ptr<Autotuner> m_tuner;              //!< autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner;           //!< autotuner for block size
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };

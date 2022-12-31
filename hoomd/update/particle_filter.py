@@ -37,7 +37,7 @@ class FilterUpdater(hoomd.operation.Updater):
     """Update sets of particles associated with a filter.
 
     `hoomd.Simulation` caches the particles selected by
-    `hoomd.filter.ParticleFilter` instances to avoid the cost of re-running the
+    `hoomd.filter.filter_like` objects to avoid the cost of re-running the
     filter on every time step. The particles selected by a filter will remain
     static until recomputed. This class provides a mechanism to update the
     cached list of particles. For example, periodically update a MD integration
@@ -54,11 +54,10 @@ class FilterUpdater(hoomd.operation.Updater):
         or removing particles to the `hoomd.Simulation.state`.
 
     Args:
-        trigger (hoomd.trigger.Trigger or int):
-            A trigger to use for determining when to update particles associated
-            with a filter.
-        filters (list[hoomd.filter.ParticleFilter]):
-            A list of `hoomd.filter.ParticleFilter` instances to update.
+        trigger (hoomd.trigger.trigger_like): A trigger to use for determining
+            when to update particles associated with a filter.
+        filters (list[hoomd.filter.filter_like]): A list of
+            `hoomd.filter.filter_like` objects to update.
 
     Attributes:
         trigger (hoomd.trigger.Trigger):
@@ -75,7 +74,7 @@ class FilterUpdater(hoomd.operation.Updater):
 
     @property
     def filters(self):
-        """list[hoomd.filter.ParticleFilter]: filters to update select \
+        """list[hoomd.filter.filter_like]: filters to update select \
                 particles."""
         return self._filters
 
@@ -84,14 +83,13 @@ class FilterUpdater(hoomd.operation.Updater):
         self._filters.clear()
         self._filters.extend(new_filters)
 
-    def _attach(self):
+    def _attach_hook(self):
         # We use a SyncedList internal API to allow for storing the state to
         # query groups from filters.
         self._filters._to_synced_list_conversion._attach(self._simulation)
         self._cpp_obj = hoomd._hoomd.ParticleFilterUpdater(
             self._simulation.state._cpp_sys_def, self.trigger)
         self._filters._sync(self._simulation, self._cpp_obj.groups)
-        super()._attach()
 
     def __eq__(self, other):
         """Return whether two objects are equivalent."""

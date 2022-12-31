@@ -8,7 +8,7 @@ hoomd.md
 
 .. automodule:: hoomd.md
     :synopsis: Molecular Dynamics.
-    :members: Integrator
+    :members: Integrator, HalfStepHook
 
 .. rubric:: Modules
 
@@ -34,4 +34,5 @@ hoomd.md
     module-md-nlist
     module-md-pair
     module-md-special_pair
+    module-md-tune
     module-md-update

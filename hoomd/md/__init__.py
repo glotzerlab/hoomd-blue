@@ -40,3 +40,5 @@ from hoomd.md import special_pair
 from hoomd.md import methods
 from hoomd.md import mesh
 from hoomd.md import many_body
+from hoomd.md import tune
+from hoomd.md.half_step_hook import HalfStepHook

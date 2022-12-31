@@ -27,7 +27,7 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
 
     Args:
         action (hoomd.custom.Action): The action to call.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to call the
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to call the
           action.
 
     `CustomWriter` is a `hoomd.operation.Writer` that wraps a user-defined

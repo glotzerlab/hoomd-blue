@@ -100,8 +100,6 @@ template<class Base> class GPUPolymorph
                     << "Freeing device memory from GPUPolymorph [Base = " << typeid(Base).name()
                     << "]" << std::endl;
                 gpu::device_delete(p);
-                if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                    CHECK_CUDA_ERROR();
                 }
             }
 

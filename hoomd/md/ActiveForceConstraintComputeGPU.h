@@ -38,25 +38,10 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
                                     std::shared_ptr<ParticleGroup> group,
                                     Manifold manifold);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ActiveForceConstraintCompute<Manifold>::setAutotunerParams(enable, period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_diffusion->setPeriod(period);
-        m_tuner_diffusion->setEnabled(enable);
-        m_tuner_constraint->setPeriod(period);
-        m_tuner_constraint->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner_force;      //!< Autotuner for block size (force kernel)
-    std::unique_ptr<Autotuner> m_tuner_diffusion;  //!< Autotuner for block size (diff kernel)
-    std::unique_ptr<Autotuner> m_tuner_constraint; //!< Autotuner for block size (constr kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_force;      //!< Autotuner for block size (force kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_diffusion;  //!< Autotuner for block size (diff kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_constraint; //!< Autotuner for block size (constr kernel)
 
     //! Set forces for particles
     virtual void setForces();
@@ -96,18 +81,19 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
         throw std::runtime_error("ActiveForceConstraintComputeGPU requires a GPU device.");
         }
 
-    // initialize autotuner
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        valid_params.push_back(block_size);
-
-    m_tuner_force.reset(
-        new Autotuner(valid_params, 5, 100000, "active_constraint_force", this->m_exec_conf));
-    m_tuner_diffusion.reset(
-        new Autotuner(valid_params, 5, 100000, "active_constraint_diffusion", this->m_exec_conf));
+    // Initialize autotuners.
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "active_constraint_force"));
+    m_tuner_diffusion.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "active_constraint_diffusion"));
     m_tuner_constraint.reset(
-        new Autotuner(valid_params, 5, 100000, "active_constraint_constraint", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "active_constraint_constraint"));
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_force, m_tuner_diffusion, m_tuner_constraint});
 
     unsigned int type = this->m_pdata->getNTypes();
     GlobalVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);
@@ -179,7 +165,7 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
                                                 d_f_actVec.data,
                                                 d_t_actVec.data,
                                                 N,
-                                                this->m_tuner_force->getParam());
+                                                this->m_tuner_force->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -230,7 +216,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotat
         rotation_constant,
         timestep,
         this->m_sysdef->getSeed(),
-        this->m_tuner_diffusion->getParam());
+        this->m_tuner_diffusion->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -270,7 +256,7 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
         d_orientation.data,
         d_f_actVec.data,
         this->m_manifold,
-        this->m_tuner_constraint->getParam());
+        this->m_tuner_constraint->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

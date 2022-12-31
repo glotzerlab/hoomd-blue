@@ -277,7 +277,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             unsigned int typpair
                 = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
             Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
+            const typename evaluator::param_type& param = s_params[typpair];
 
             // compute the base repulsive and attractive terms of the potential
             Scalar invratio = 0.0;
@@ -496,7 +496,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
+                const typename evaluator::param_type& param = s_params[typpair];
 
                 evaluator eval(rij_sq, rcutsq, param);
                 eval.evalPhi(s_phi_ab[threadIdx.x * ntypes + __scalar_as_int(postypej.w)]);
@@ -518,7 +518,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                     {
                     unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
                     Scalar rcutsq = s_rcutsq[typpair];
-                    typename evaluator::param_type param = s_params[typpair];
+                    const typename evaluator::param_type& param = s_params[typpair];
 
                     evaluator eval(Scalar(0.0), rcutsq, param);
                     Scalar energy(0.0);
@@ -575,7 +575,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             unsigned int typpair
                 = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
             Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
+            const typename evaluator::param_type& param = s_params[typpair];
 
             // compute the base repulsive and attractive terms of the potential
             Scalar fR = Scalar(0.0);
@@ -609,7 +609,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                         typpair
                             = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
                         Scalar temp_rcutsq = s_rcutsq[typpair];
-                        typename evaluator::param_type temp_param = s_params[typpair];
+                        typename evaluator::param_type& temp_param = s_params[typpair];
 
                         evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
                         bool temp_evaluated = temp_eval.areInteractive();
@@ -709,7 +709,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                         typpair
                             = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
                         Scalar temp_rcutsq = s_rcutsq[typpair];
-                        typename evaluator::param_type temp_param = s_params[typpair];
+                        typename evaluator::param_type& temp_param = s_params[typpair];
 
                         evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
                         bool temp_evaluated = temp_eval.areInteractive();
@@ -927,6 +927,12 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
                 shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                    * typpair_idx.getNumElements()
                                + pair_args.ntypes * run_block_size * sizeof(Scalar);
+                }
+
+            if (shared_bytes > pair_args.devprop.sharedMemPerBlock)
+                {
+                throw std::runtime_error("Triplet potential parameters exceed the available shared "
+                                         "memory per block.");
                 }
 
             // zero the forces

@@ -204,7 +204,11 @@ void export_NeighborListBinned(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property("deterministic",
                       &NeighborListBinned::getDeterministic,
-                      &NeighborListBinned::setDeterministic);
+                      &NeighborListBinned::setDeterministic)
+        .def("getDim",
+             &NeighborListBinned::getDim,
+             pybind11::return_value_policy::reference_internal)
+        .def("getNmax", &NeighborListBinned::getNmax);
     }
 
     } // end namespace detail

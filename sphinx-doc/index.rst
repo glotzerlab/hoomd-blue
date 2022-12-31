@@ -51,6 +51,8 @@ Resources
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:
   Scripts to evaluate the performance of HOOMD-blue simulations.
+- `HOOMD-blue validation tests <https://github.com/glotzerlab/hoomd-validation>`_:
+  Scripts to validate that HOOMD-blue performs accurate simulations.
 
 Related tools
 =============
@@ -143,6 +145,7 @@ Molecular dynamics:
     tutorial/03-Parallel-Simulations-With-MPI/00-index
     tutorial/04-Custom-Actions-In-Python/00-index
     tutorial/05-Organizing-and-Executing-Simulations/00-index
+    tutorial/06-Modelling-Rigid-Bodies/00-index
 
 .. toctree::
     :maxdepth: 1
@@ -174,6 +177,7 @@ Molecular dynamics:
    notation
    units
    deprecated
+   logo
    license
    credits
    indices

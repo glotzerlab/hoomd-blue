@@ -13,8 +13,7 @@ namespace hoomd
     \post The Analyzer is constructed with the given particle data.
 */
 Analyzer::Analyzer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger)
-    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_trigger(trigger)
+    : Action(sysdef), m_trigger(trigger)
     {
     // sanity check
     assert(m_sysdef);
@@ -25,7 +24,7 @@ namespace detail
     {
 void export_Analyzer(pybind11::module& m)
     {
-    pybind11::class_<Analyzer, std::shared_ptr<Analyzer>>(m, "Analyzer")
+    pybind11::class_<Analyzer, Action, std::shared_ptr<Analyzer>>(m, "Analyzer")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
         .def("analyze", &Analyzer::analyze)
         .def("notifyDetach", &Analyzer::notifyDetach)

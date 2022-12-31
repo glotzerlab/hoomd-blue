@@ -14,9 +14,8 @@
 #ifndef __ANALYZER_H__
 #define __ANALYZER_H__
 
+#include "Action.h"
 #include "Communicator.h"
-#include "SharedSignal.h"
-#include "SystemDefinition.h"
 #include "Trigger.h"
 
 #include <memory>
@@ -55,7 +54,7 @@ namespace hoomd
 
     \ingroup analyzers
 */
-class PYBIND11_EXPORT Analyzer
+class PYBIND11_EXPORT Analyzer : public Action
     {
     public:
     //! Constructs the analyzer and associates it with the ParticleData
@@ -67,14 +66,6 @@ class PYBIND11_EXPORT Analyzer
         \param timestep Current time step of the simulation
         */
     virtual void analyze(uint64_t timestep) { }
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //! Reset stat counters
     /*! If derived classes provide statistics for the last run, they should resetStats() to
@@ -97,28 +88,6 @@ class PYBIND11_EXPORT Analyzer
         return m_exec_conf;
         }
 
-    void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
-        {
-        m_slots.push_back(slot);
-        }
-
-    void removeDisconnectedSlots()
-        {
-        for (unsigned int i = 0; i < m_slots.size();)
-            {
-            if (!m_slots[i]->connected())
-                {
-                m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get()
-                                            << std::dec << std::endl;
-                m_slots.erase(m_slots.begin() + i);
-                }
-            else
-                {
-                i++;
-                }
-            }
-        }
-
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
@@ -135,15 +104,6 @@ class PYBIND11_EXPORT Analyzer
         }
 
     protected:
-    const std::shared_ptr<SystemDefinition>
-        m_sysdef; //!< The system definition this analyzer is associated with
-    const std::shared_ptr<ParticleData>
-        m_pdata; //!< The particle data this analyzer is associated with
-
-    std::shared_ptr<const ExecutionConfiguration>
-        m_exec_conf; //!< Stored shared ptr to the execution configuration
-    std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots; //!< Stored shared ptr to the system signals
     /// Trigger that determines if updater runs.
     std::shared_ptr<Trigger> m_trigger;
     };

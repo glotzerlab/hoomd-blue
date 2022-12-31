@@ -8,7 +8,6 @@
 #include "hoomd/TextureTools.h"
 
 #include "hoomd/BondedGroupData.cuh"
-#include "hoomd/MeshGroupData.cuh"
 
 #include <assert.h>
 
@@ -40,13 +39,16 @@ template<int group_size> struct bond_args_t
                 const BoxDim& _box,
                 const group_storage<group_size>* _d_gpu_bondlist,
                 const Index2D& _gpu_table_indexer,
+                const unsigned int* _d_gpu_bond_pos,
                 const unsigned int* _d_gpu_n_bonds,
                 const unsigned int _n_bond_types,
-                const unsigned int _block_size)
+                const unsigned int _block_size,
+                const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), d_diameter(_d_diameter), box(_box),
-          d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer),
-          d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), block_size(_block_size) {};
+          d_gpu_bondlist(_d_gpu_bondlist), gpu_table_indexer(_gpu_table_indexer), 
+	  d_gpu_bond_pos(_d_gpu_bond_pos), d_gpu_n_bonds(_d_gpu_n_bonds), n_bond_types(_n_bond_types), 
+	  block_size(_block_size), devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -59,9 +61,11 @@ template<int group_size> struct bond_args_t
     const BoxDim box;          //!< Simulation box in GPU format
     const group_storage<group_size>* d_gpu_bondlist; //!< List of bonds stored on the GPU
     const Index2D& gpu_table_indexer;                //!< Indexer of 2D bond list
+    const unsigned int* d_gpu_bond_pos;              //!< List of pos id of bonds stored on the GPU (needed for mesh bond)
     const unsigned int* d_gpu_n_bonds;               //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;                 //!< Number of bond types in the simulation
     const unsigned int block_size;                   //!< Block size to execute
+    const hipDeviceProp_t& devprop;                  //!< CUDA device properties
     };
 
 #ifdef __HIPCC__
@@ -80,6 +84,7 @@ template<int group_size> struct bond_args_t
     \param box Box dimensions used to implement periodic boundary conditions
     \param blist List of bonds stored on the GPU
     \param pitch Pitch of 2D bond list
+    \param bpos_list List of positions in bonds stored on the GPU
     \param n_bonds_list List of numbers of bonds stored on the GPU
     \param n_bond_type number of bond types
     \param d_params Parameters for the potential, stored per bond type
@@ -91,7 +96,7 @@ template<int group_size> struct bond_args_t
    are not enabled. \tparam evaluator EvaluatorBond class to evaluate V(r) and -delta V(r)/r
 
 */
-template<class evaluator, int group_size>
+template<class evaluator, int group_size, bool enable_shared_cache>
 __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                Scalar* d_virial,
                                                const size_t virial_pitch,
@@ -102,6 +107,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
                                                const BoxDim box,
                                                const group_storage<group_size>* blist,
                                                const Index2D blist_idx,
+                                               const unsigned int* bpos_list,
                                                const unsigned int* n_bonds_list,
                                                const unsigned int n_bond_type,
                                                const typename evaluator::param_type* d_params,
@@ -114,16 +120,19 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     extern __shared__ char s_data[];
     typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
 
-    // load in per bond type parameters
-    for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
+    if (enable_shared_cache)
         {
-        if (cur_offset + threadIdx.x < n_bond_type)
+        // load in per bond type parameters
+        for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
             {
-            s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+            if (cur_offset + threadIdx.x < n_bond_type)
+                {
+                s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+                }
             }
-        }
 
-    __syncthreads();
+        __syncthreads();
+        }
 
     if (idx >= N)
         return;
@@ -162,6 +171,10 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
     // loop over neighbors
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
+        int cur_bond_pos = bpos_list[blist_idx(idx, bond_idx)];
+
+	if (cur_bond_pos > 1) continue;
+
         group_storage<group_size> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
@@ -178,7 +191,15 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         dx = box.minImage(dx);
 
         // get the bond parameters (MEM TRANSFER: 8 bytes)
-        typename evaluator::param_type param = s_params[cur_bond_type];
+        const typename evaluator::param_type* param;
+        if (enable_shared_cache)
+            {
+            param = s_params + cur_bond_type;
+            }
+        else
+            {
+            param = d_params + cur_bond_type;
+            }
 
         Scalar rsq = dot(dx, dx);
 
@@ -186,7 +207,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4* d_force,
         Scalar force_divr = Scalar(0.0);
         Scalar bond_eng = Scalar(0.0);
 
-        evaluator eval(rsq, param);
+        evaluator eval(rsq, *param);
 
         // get the bonded particle's diameter if needed
         if (evaluator::needsDiameter())
@@ -256,9 +277,9 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
 
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(
-        &attr,
-        reinterpret_cast<const void*>(&gpu_compute_bond_forces_kernel<evaluator, group_size>));
+    hipFuncGetAttributes(&attr,
+                         reinterpret_cast<const void*>(
+                             &gpu_compute_bond_forces_kernel<evaluator, group_size, true>));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(bond_args.block_size, max_block_size);
@@ -267,28 +288,63 @@ gpu_compute_bond_forces(const kernel::bond_args_t<group_size>& bond_args,
     dim3 grid(bond_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    const size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
+    size_t shared_bytes = sizeof(typename evaluator::param_type) * bond_args.n_bond_types;
+
+    bool enable_shared_cache = true;
+
+    if (shared_bytes > bond_args.devprop.sharedMemPerBlock)
+        {
+        enable_shared_cache = false;
+        shared_bytes = 0;
+        }
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size>),
-                       grid,
-                       threads,
-                       shared_bytes,
-                       0,
-                       bond_args.d_force,
-                       bond_args.d_virial,
-                       bond_args.virial_pitch,
-                       bond_args.N,
-                       bond_args.d_pos,
-                       bond_args.d_charge,
-                       bond_args.d_diameter,
-                       bond_args.box,
-                       bond_args.d_gpu_bondlist,
-                       bond_args.gpu_table_indexer,
-                       bond_args.d_gpu_n_bonds,
-                       bond_args.n_bond_types,
-                       d_params,
-                       d_flags);
+    if (enable_shared_cache)
+        {
+        hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size, true>),
+                           grid,
+                           threads,
+                           shared_bytes,
+                           0,
+                           bond_args.d_force,
+                           bond_args.d_virial,
+                           bond_args.virial_pitch,
+                           bond_args.N,
+                           bond_args.d_pos,
+                           bond_args.d_charge,
+                           bond_args.d_diameter,
+                           bond_args.box,
+                           bond_args.d_gpu_bondlist,
+                           bond_args.gpu_table_indexer,
+                           bond_args.d_gpu_bond_pos,
+                           bond_args.d_gpu_n_bonds,
+                           bond_args.n_bond_types,
+                           d_params,
+                           d_flags);
+        }
+    else
+        {
+        hipLaunchKernelGGL((gpu_compute_bond_forces_kernel<evaluator, group_size, false>),
+                           grid,
+                           threads,
+                           shared_bytes,
+                           0,
+                           bond_args.d_force,
+                           bond_args.d_virial,
+                           bond_args.virial_pitch,
+                           bond_args.N,
+                           bond_args.d_pos,
+                           bond_args.d_charge,
+                           bond_args.d_diameter,
+                           bond_args.box,
+                           bond_args.d_gpu_bondlist,
+                           bond_args.gpu_table_indexer,
+                           bond_args.d_gpu_bond_pos,
+                           bond_args.d_gpu_n_bonds,
+                           bond_args.n_bond_types,
+                           d_params,
+                           d_flags);
+        }
 
     return hipSuccess;
     }

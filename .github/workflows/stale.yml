@@ -11,7 +11,8 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/stale@v5.0.0
+    - name: Run stale action
+      uses: actions/stale@v6.0.1
       with:
         operations-per-run: 120
         delete-branch: true

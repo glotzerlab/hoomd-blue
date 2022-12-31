@@ -25,7 +25,7 @@ repos:
     language: pygrep
     types_or: [python, c, c++, cuda, inc]
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v4.1.0'
+  rev: 'v4.3.0'
   hooks:
   - id: end-of-file-fixer
     exclude_types: [svg]
@@ -65,7 +65,7 @@ repos:
     - --keep-after=.. include
     - --comment-prefix=..
 - repo: https://github.com/kynan/nbstripout
-  rev: 0.5.0
+  rev: 0.6.1
   hooks:
     - id: nbstripout
 - repo: https://github.com/google/yapf
@@ -73,7 +73,7 @@ repos:
   hooks:
   - id: yapf
 - repo: https://github.com/PyCQA/flake8
-  rev: '4.0.1'
+  rev: '5.0.4'
   hooks:
   - id: flake8
     additional_dependencies:
@@ -91,7 +91,7 @@ repos:
         ^hoomd/metal/
       )
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v13.0.1
+  rev: v14.0.6
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]

@@ -54,7 +54,7 @@ class ShapeMove(_HOOMDBaseObject):
                                                 step_size, len_keys=1))
         self._add_typeparam(typeparam_step_size)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -70,7 +70,6 @@ class ShapeMove(_HOOMDBaseObject):
         self._cpp_obj = self._move_cls(
             self._simulation.state._cpp_sys_def,
             self._simulation.operations.integrator._cpp_obj)
-        super()._attach()
 
 
 class Elastic(ShapeMove):
@@ -89,7 +88,7 @@ class Elastic(ShapeMove):
     and :math:`V` is the particle volume.
 
     Args:
-        stiffness (`hoomd.variant.Variant`): Shape stiffness against
+        stiffness (hoomd.variant.variant_like): Shape stiffness against
             deformations.
 
         mc (`type` or `hoomd.hpmc.integrate.HPMCIntegrator`): The class of
@@ -124,7 +123,7 @@ class Elastic(ShapeMove):
         elastic_move.reference_shape["A"] = verts
 
     Attributes:
-        stiffness (:py:mod:`hoomd.variant.Variant`): Shape stiffness against
+        stiffness (hoomd.variant.Variant): Shape stiffness against
             deformations.
 
         step_size (`TypeParameter` [``particle type``, `float`]): Maximum size
@@ -165,7 +164,7 @@ class Elastic(ShapeMove):
         shape.name = "reference_shape"
         return shape
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if isinstance(integrator, integrate.Ellipsoid):
             for shape in integrator.shape.values():
@@ -173,7 +172,7 @@ class Elastic(ShapeMove):
                                            shape["a"])
                 if not is_sphere:
                     raise ValueError("This updater only works when a=b=c.")
-        super()._attach()
+        super()._attach_hook()
 
 
 class ShapeSpace(ShapeMove):

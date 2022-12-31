@@ -60,27 +60,36 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         m_gpu_factory.setUnionParamsPtr(m_d_union_params.data());
         m_gpu_factory.setRCutUnion(float(m_r_cut_constituent));
 
-        // tuning params for patch narrow phase
-        std::vector<unsigned int> valid_params_patch;
-        const unsigned int narrow_phase_max_threads_per_eval = this->m_exec_conf->dev_prop.warpSize;
-        auto& launch_bounds = m_gpu_factory.getLaunchBounds();
-        for (auto cur_launch_bounds : launch_bounds)
-            {
-            for (unsigned int group_size = 1; group_size <= cur_launch_bounds; group_size *= 2)
-                {
-                for (unsigned int eval_threads = 1;
-                     eval_threads <= narrow_phase_max_threads_per_eval;
-                     eval_threads *= 2)
-                    {
-                    if ((cur_launch_bounds % (group_size * eval_threads)) == 0)
-                        valid_params_patch.push_back(cur_launch_bounds * 1000000 + group_size * 100
-                                                     + eval_threads);
-                    }
-                }
-            }
+        // Autotuner parameters:
+        // 0: block size
+        // 1: group size
+        // 2: eval threads
 
-        m_tuner_narrow_patch.reset(
-            new Autotuner(valid_params_patch, 5, 100000, "hpmc_narrow_patch", this->m_exec_conf));
+        std::function<bool(const std::array<unsigned int, 3>&)> is_parameter_valid
+            = [](const std::array<unsigned int, 3>& parameter) -> bool
+        {
+            unsigned int block_size = parameter[0];
+            unsigned int group_size = parameter[1];
+            unsigned int eval_threads = parameter[2];
+
+            return (group_size <= block_size) && (block_size % (eval_threads * group_size)) == 0;
+        };
+
+        auto& launch_bounds = m_gpu_factory.getLaunchBounds();
+        std::vector<unsigned int> valid_group_size = launch_bounds;
+        // add subwarp group sizes
+        for (unsigned int i = this->m_exec_conf->dev_prop.warpSize / 2; i >= 1; i /= 2)
+            valid_group_size.insert(valid_group_size.begin(), i);
+
+        m_tuner_narrow_patch.reset(new Autotuner<3>(
+            {launch_bounds, valid_group_size, AutotunerBase::getTppListPow2(m_exec_conf)},
+            this->m_exec_conf,
+            "hpmc_narrow_patch_jit",
+            3,
+            false,
+            is_parameter_valid));
+
+        m_autotuners.push_back(m_tuner_narrow_patch);
 
         m_managed_memory = true;
         }
@@ -176,18 +185,9 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         */
     virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        m_tuner_narrow_patch->setPeriod(period);
-        m_tuner_narrow_patch->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner_narrow_patch; //!< Autotuner for the narrow phase
+    /// Autotuner for the narrow phase kernel.
+    std::shared_ptr<Autotuner<3>> m_tuner_narrow_patch;
 
     private:
     GPUEvalFactory m_gpu_factory; //!< JIT implementation

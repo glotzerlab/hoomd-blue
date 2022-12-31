@@ -14,4 +14,4 @@ For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`
 
 from . import rattle
 from .methods import (Method, NVT, NPT, NPH, NVE, Langevin, Brownian, Berendsen,
-                      OverdampedViscous)
+                      DisplacementCapped, OverdampedViscous)

@@ -16,7 +16,7 @@ from hoomd import _compile
 from hoomd.hpmc import integrate
 if hoomd.version.llvm_enabled:
     from hoomd.hpmc import _jit
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import AutotunedObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import NDArrayValidator
@@ -24,7 +24,7 @@ from hoomd.logging import log
 import numpy as np
 
 
-class CPPPotentialBase(_HOOMDBaseObject):
+class CPPPotentialBase(AutotunedObject):
     """Base class for interaction between pairs of particles given in C++.
 
     Pair potential energies define energetic interactions between pairs of
@@ -75,7 +75,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.1.0/hoomd/VectorMath.h
+            v3.7.0/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
@@ -259,7 +259,7 @@ class CPPPotential(CPPPotentialBase):
             return self._param_dict[attr]
         return super()._getattr_param(attr)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -300,7 +300,7 @@ class CPPPotential(CPPPotentialBase):
                 self.param_array,
             )
         # attach patch object to the integrator
-        super()._attach()
+        super()._attach_hook()
 
 
 class CPPPotentialUnion(CPPPotentialBase):
@@ -530,7 +530,7 @@ class CPPPotentialUnion(CPPPotentialBase):
             return self._param_dict[attr]
         return super()._getattr_param(attr)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")
@@ -585,4 +585,4 @@ class CPPPotentialUnion(CPPPotentialBase):
                 self.param_array_constituent,
             )
         # attach patch object to the integrator
-        super()._attach()
+        super()._attach_hook()

@@ -15,7 +15,7 @@ class DCD(Writer):
     Args:
         trigger (hoomd.trigger.Periodic): Select the timesteps to write.
         filename (str): File name to write.
-        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+        filter (hoomd.filter.filter_like): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         overwrite (bool): When False, (the default) an existing DCD file will be
             appended to. When True, an existing DCD file *filename* will be
@@ -56,7 +56,7 @@ class DCD(Writer):
     Attributes:
         filename (str): File name to write.
         trigger (hoomd.trigger.Periodic): Select the timesteps to write.
-        filter (hoomd.filter.ParticleFilter): Select the particles to write.
+        filter (hoomd.filter.filter_like): Select the particles to write.
         overwrite (bool): When False, an existing DCD file will be appended to.
             When True, an existing DCD file *filename* will be overwritten.
         unwrap_full (bool): When False, particle coordinates are always written
@@ -93,9 +93,8 @@ class DCD(Writer):
                           angle_z=bool(angle_z)))
         self.filter = filter
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.DCDDumpWriter(
             self._simulation.state._cpp_sys_def, self.trigger, self.filename,
             int(self.trigger.period), group, self.overwrite)
-        super()._attach()
