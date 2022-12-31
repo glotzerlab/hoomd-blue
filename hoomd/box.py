@@ -3,6 +3,9 @@
 
 """Implement Box."""
 
+import abc
+import typing
+
 import numpy as np
 from functools import partial
 import hoomd._hoomd as _hoomd
@@ -259,25 +262,16 @@ class Box:
         r"""Initialize a Box instance from a box-like object.
 
         Args:
-            box:
-                A box-like object
+            box (box_like): A box-like object.
 
         Note:
-           Objects that can be converted to HOOMD-blue boxes include lists like
-           ``[Lx, Ly, Lz, xy, xz, yz]``, dictionaries with keys ``'Lx',
-           'Ly', 'Lz', 'xy', 'xz', 'yz'``, objects with attributes ``Lx, Ly,
-           Lz, xy, xz, yz``, 3x3 matrices (see `from_matrix`), or existing
-           `hoomd.Box` objects.
-
-           If any of ``Lz, xy, xz, yz`` are not provided, they will be set to 0.
-
            If all values are provided, a triclinic box will be constructed.
            If only ``Lx, Ly, Lz`` are provided, an orthorhombic box will
            be constructed. If only ``Lx, Ly`` are provided, a rectangular
            (2D) box will be constructed.
 
         Returns:
-            :class:`hoomd.Box`: The resulting box object.
+            hoomd.Box: The resulting box object.
         """
         if np.asarray(box).shape == (3, 3):
             # Handles 3x3 matrices
@@ -303,7 +297,7 @@ class Box:
                 if not len(box) in [2, 3, 6]:
                     raise ValueError(
                         "List-like objects must have length 2, 3, or 6 to be "
-                        "converted to freud.box.Box.")
+                        "converted to hoomd.Box.")
                 # Handle list-like
                 Lx = box[0]
                 Ly = box[1]
@@ -511,3 +505,67 @@ class Box:
     def __reduce__(self):
         """Reduce values to picklable format."""
         return (type(self), (*self.L, *self.tilts))
+
+
+class BoxInterface(abc.ABC):
+    """The class interface which HOOMD considers to be a box-like object.
+
+    Note:
+        This class is exclusively used for help with typing and documentation in
+        HOOMD, and is not meant to be used.
+    """
+
+    @property
+    @abc.abstractmethod
+    def Lx(self) -> float:  # noqa: N802: Allow function name
+        """Length in x direction."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def Ly(self) -> float:  # noqa: N802: Allow function name
+        """Length in y direction."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def Lz(self) -> float:  # noqa: N802: Allow function name
+        """Length in z direction."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def xy(self) -> float:
+        """Tilt factor in the xy plane."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def xz(self) -> float:
+        """Tilt factor in the xy plane."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def yz(self) -> float:
+        """Tilt factor in the xy plane."""
+        pass
+
+
+box_like = typing.Union[Box, BoxInterface, typing.Sequence[float],
+                        typing.Mapping[str, float], np.ndarray]
+"""Objects that are or can be converted to `Box`.
+
+This includes
+
+* `hoomd.Box` objects.
+* Objects with attributes ``Lx, Ly, Lz, xy, xz, yz``.
+* Lists like ``[Lx, Ly, Lz, xy, xz, yz]``.
+* Dictionaries with keys ``'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz'``.
+* 3x3 NumPy arrays or objects convertible to a 3x3 array (see
+  `hoomd.Box.from_matrix`).
+
+Note:
+    If any of ``Lz, xy, xz, yz`` for these different types are not provided,
+    they are considered 0.
+"""

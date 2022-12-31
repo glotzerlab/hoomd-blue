@@ -1,0 +1,16 @@
+name: Task
+description: A task that needs to be completed
+labels: ['task']
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: What needs to be done?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Motivation and context
+      description: What additional information is helpful to understand this task?
+    validations:
+      required: true

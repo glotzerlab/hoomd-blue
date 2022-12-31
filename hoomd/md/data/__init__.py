@@ -14,6 +14,6 @@ See Also:
     `hoomd.md.force.Custom`
 """
 
-from .local_access import _ForceLocalAccessBase
-from .local_access_cpu import ForceLocalAccess
-from .local_access_gpu import ForceLocalAccessGPU
+from .local_access import _ForceLocalAccessBase, _NeighborListLocalAccessBase
+from .local_access_cpu import ForceLocalAccess, NeighborListLocalAccess
+from .local_access_gpu import ForceLocalAccessGPU, NeighborListLocalAccessGPU

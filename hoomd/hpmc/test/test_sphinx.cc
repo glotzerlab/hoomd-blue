@@ -58,13 +58,11 @@ UP_TEST(construction)
     MY_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
     MY_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
 
-    UP_ASSERT_EQUAL(a.spheres.diameter, data.diameter);
     for (unsigned int i = 0; i < data.N; i++)
         {
         MY_CHECK_CLOSE(a.spheres.diameter[i], data.diameter[i], tol);
         }
 
-    MY_ASSERT_EQUAL(a.spheres.center, data.center);
     for (unsigned int i = 0; i < data.N; i++)
         {
         MY_CHECK_CLOSE(a.spheres.center[i].x, data.center[i].x, tol);

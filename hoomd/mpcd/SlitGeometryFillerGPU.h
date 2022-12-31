@@ -32,25 +32,12 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
                           std::shared_ptr<Variant> T,
                           std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        mpcd::SlitGeometryFiller::setAutotunerParams(enable, period);
-
-        m_tuner->setEnabled(enable);
-        m_tuner->setPeriod(period);
-        }
-
     protected:
     //! Draw particles within the fill volume on the GPU
     virtual void drawParticles(uint64_t timestep);
 
     private:
-    std::unique_ptr<hoomd::Autotuner> m_tuner; //!< Autotuner for drawing particles
+    std::shared_ptr<hoomd::Autotuner<1>> m_tuner; //!< Autotuner for drawing particles
     };
 
 namespace detail

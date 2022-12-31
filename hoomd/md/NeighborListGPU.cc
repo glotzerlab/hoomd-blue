@@ -21,43 +21,6 @@ namespace hoomd
     {
 namespace md
     {
-/*! \param num_iters Number of iterations to average for the benchmark
-    \returns Milliseconds of execution time per calculation
-
-    Calls filterNlist repeatedly to benchmark the neighbor list filter step.
-*/
-double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
-    {
-    ClockSource t;
-    // warm up run
-    forceUpdate();
-    compute(0);
-    buildNlist(0);
-    filterNlist();
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        hipDeviceSynchronize();
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    // benchmark
-    uint64_t start_time = t.getTime();
-    for (unsigned int i = 0; i < num_iters; i++)
-        filterNlist();
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        hipDeviceSynchronize();
-#endif
-    uint64_t total_time_ns = t.getTime() - start_time;
-
-    // convert the run time to milliseconds
-    return double(total_time_ns) / 1e6 / double(num_iters);
-    }
-
 void NeighborListGPU::buildNlist(uint64_t timestep)
     {
     throw runtime_error("Not implemented.");
@@ -159,7 +122,7 @@ void NeighborListGPU::filterNlist()
                              d_ex_list_idx.data,
                              m_ex_list_indexer,
                              m_pdata->getN(),
-                             m_tuner_filter->getParam());
+                             m_tuner_filter->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_filter->end();
@@ -229,17 +192,17 @@ void NeighborListGPU::buildHeadList()
                                              access_location::device,
                                              access_mode::readwrite);
 
-        m_tuner_head_list->begin();
+        // Hard code block size of 128. This kerenel is rarely called and performance varies little
+        // with block size.
         kernel::gpu_nlist_build_head_list(d_head_list.data,
                                           d_req_size_nlist.data,
                                           d_Nmax.data,
                                           d_pos.data,
                                           m_pdata->getN(),
                                           m_pdata->getNTypes(),
-                                          m_tuner_head_list->getParam());
+                                          128);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-        m_tuner_head_list->end();
         }
 
     size_t req_size_nlist;
@@ -264,8 +227,7 @@ void export_NeighborListGPU(pybind11::module& m)
     pybind11::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU>>(
         m,
         "NeighborListGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
-        .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter);
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
     }
 
     } // end namespace detail

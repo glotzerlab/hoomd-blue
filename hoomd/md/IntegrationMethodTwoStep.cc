@@ -139,9 +139,9 @@ namespace detail
     {
 void export_IntegrationMethodTwoStep(pybind11::module& m)
     {
-    pybind11::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
-        m,
-        "IntegrationMethodTwoStep")
+    pybind11::class_<IntegrationMethodTwoStep,
+                     Autotuned,
+                     std::shared_ptr<IntegrationMethodTwoStep>>(m, "IntegrationMethodTwoStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         .def_property_readonly("filter",

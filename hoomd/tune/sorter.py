@@ -15,8 +15,8 @@ class ParticleSorter(Tuner):
     """Order particles in memory to improve performance.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps on which to sort.
-            Defaults to a ``hoomd.trigger.Periodic(200)`` trigger.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps on which to
+            sort. Defaults to a ``hoomd.trigger.Periodic(200)`` trigger.
 
         grid (int): Resolution of the grid to use when sorting. The default
             value of `None` sets ``grid=4096`` in 2D simulations and
@@ -65,11 +65,10 @@ class ParticleSorter(Tuner):
         except TypeError:
             raise ValueError("Expected positive integer.")
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'SFCPackTunerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'SFCPackTuner')
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.trigger)
-        super()._attach()

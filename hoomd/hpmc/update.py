@@ -25,11 +25,11 @@ class BoxMC(Updater):
     r"""Apply box updates to sample isobaric and related ensembles.
 
     Args:
-        betaP (`float` or :py:mod:`hoomd.variant.Variant`):
-            :math:`\frac{p}{k_{\mathrm{B}}T}` :math:`[\mathrm{length}^{-2}]`
-            in 2D or :math:`[\mathrm{length}^{-3}]` in 3D.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
-            trial moves.
+        betaP (hoomd.variant.variant_like): :math:`\frac{p}{k_{\mathrm{B}}T}`
+            :math:`[\mathrm{length}^{-2}]` in 2D or
+            :math:`[\mathrm{length}^{-3}]` in 3D.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to perform
+            box trial moves.
 
     Use `BoxMC` in conjunction with an HPMC integrator to allow the simulation
     box to undergo random fluctuations at constant pressure, or random
@@ -288,17 +288,9 @@ class BoxMC(Updater):
         self.betaP = betaP
         self.instance = 0
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        HPMC uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
+    def _attach_hook(self):
+        # HPMC uses RNGs. Warn the user if they did not set the seed.
+        self._simulation._warn_if_seed_unset()
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -309,7 +301,6 @@ class BoxMC(Updater):
         self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
                                            self.trigger, integrator._cpp_obj,
                                            self.betaP)
-        super()._attach()
 
     @property
     def counter(self):
@@ -418,6 +409,9 @@ class MuVT(Updater):
           (applies to Gibbs ensemble)
         ntrial (float): (**default**: 1) Number of configurational bias attempts
           to swap depletants
+        fugacity (`TypeParameter` [ ``particle type``, `float`]):
+            Particle fugacity
+            :math:`[\mathrm{volume}^{-1}]` (**default:** 0).
     """
 
     def __init__(self,
@@ -446,7 +440,7 @@ class MuVT(Updater):
                                          _defaults=hoomd.variant.Constant(0.0)))
         self._append_typeparam(typeparam_fugacity)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -457,7 +451,6 @@ class MuVT(Updater):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.trigger, integrator._cpp_obj, self.ngibbs)
-        super()._attach()
 
     @log(category='sequence', requires_run=True)
     def insert_moves(self):
@@ -519,7 +512,8 @@ class Shape(Updater):
         `hoomd.hpmc.shape_move` describes the shape alchemy algorithm.
 
     Args:
-        trigger (Trigger): Call the updater on triggered time steps.
+        trigger (hoomd.trigger.trigger_like): Call the updater on triggered time
+            steps.
 
         shape_move (ShapeMove): Type of shape move to apply when updating shape
             definitions
@@ -583,38 +577,6 @@ class Shape(Updater):
         param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
 
-    def _add(self, simulation):
-        super()._add(simulation)
-        self._add_shape_move(self.shape_move)
-
-    def _add_shape_move(self, shape_move):
-        if not isinstance(self._simulation, hoomd.Simulation):
-            if shape_move._added:
-                raise RuntimeError(
-                    f"Shape move {shape_move} cannot be added to two lists at "
-                    f"once.")
-            return
-        # We need to check if the force is added since if it is not then this is
-        # being called by a SyncedList object and a disagreement between the
-        # simulation and shape_move._simulation is an error. If the updater is
-        # added then the shape_move is compatible. We cannot just check the
-        # shape_move's _added property because _add is also called when the
-        # SyncedList is synced.
-        if shape_move._added and shape_move._simulation != self._simulation:
-            raise RuntimeError(
-                f"Shape move {shape_move} cannot be added to two lists at once."
-            )
-        self.shape_move._add(self._simulation)
-
-    def _attach_shape_move(self):
-        # This should never happen, but leaving it in case the logic for adding
-        # missed some edge case.
-        if self._simulation != self.shape_move._simulation:
-            raise RuntimeError(
-                f"{type(self)}.shape_move is used in a different simulation.")
-        if not self.shape_move._attached:
-            self.shape_move._attach()
-
     def _setattr_param(self, attr, value):
         if attr == "shape_move":
             self._set_shape_move(value)
@@ -631,20 +593,16 @@ class Shape(Updater):
         if old_move is not None:
             if self._attached:
                 old_move._detach()
-            if self._added:
-                old_move._remove()
 
         if new_move is None:
             self._param_dict["shape_move"] = None
             return
 
-        if self._added:
-            self._add_shape_move(new_move)
         if self._attached:
-            new_move._attach()
+            new_move._attach(self._simulation)
         self._param_dict["shape_move"] = new_move
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -655,11 +613,10 @@ class Shape(Updater):
         integrator_name = integrator.__class__.__name__
         updater_cls = getattr(_hpmc, 'UpdaterShape' + integrator_name)
 
-        self._attach_shape_move()
+        self.shape_move._attach(self._simulation)
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     self.trigger, integrator._cpp_obj,
                                     self.shape_move._cpp_obj)
-        super()._attach()
 
     @log(category='sequence', requires_run=True)
     def shape_moves(self):
@@ -685,8 +642,8 @@ class Clusters(Updater):
                                         pivot move.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        trigger (Trigger): Select the timesteps on which to perform cluster
-            moves.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps on which to
+            perform cluster moves.
 
     The GCA as described in Liu and Lujten (2004),
     http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
@@ -733,17 +690,9 @@ class Clusters(Updater):
         self._param_dict.update(param_dict)
         self.instance = 0
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        HPMC uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
+    def _attach_hook(self):
+        # HPMC uses RNGs. Warn the user if they did not set the seed.
+        self._simulation._warn_if_seed_unset()
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -769,7 +718,6 @@ class Clusters(Updater):
         else:
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                     self.trigger, integrator._cpp_obj)
-        super()._attach()
 
     @log(requires_run=True)
     def avg_cluster_size(self):
@@ -785,9 +733,10 @@ class QuickCompress(Updater):
     r"""Quickly compress a hard particle system to a target box.
 
     Args:
-        trigger (Trigger): Update the box dimensions on triggered time steps.
+        trigger (hoomd.trigger.trigger_like): Update the box dimensions on
+            triggered time steps.
 
-        target_box (Box): Dimensions of the target box.
+        target_box (hoomd.box.box_like): Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
             allow per particle (may be less than 1 - e.g.
@@ -945,17 +894,9 @@ class QuickCompress(Updater):
 
         self.instance = 0
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        HPMC uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
+    def _attach_hook(self):
+        # HPMC uses RNGs. Warn the user if they did not set the seed.
+        self._simulation._warn_if_seed_unset()
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
@@ -967,7 +908,6 @@ class QuickCompress(Updater):
             self._simulation.state._cpp_sys_def, self.trigger,
             integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
             self.target_box._cpp_obj)
-        super()._attach()
 
     @property
     def complete(self):

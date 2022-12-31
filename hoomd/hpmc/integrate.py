@@ -26,6 +26,14 @@ When the trial move is accepted, the system state is set to the the trial
 configuration. When it is not accepted, the move is rejected and the state is
 not modified.
 
+.. rubric:: Temperature
+
+HPMC assumes that :math:`\beta = \frac{1}{kT} = 1`. This is not relevant to
+systems of purely hard particles where :math:`\Delta U` is either 0 or
+:math:`\infty`. To adjust the effective temperature in systems with finite
+interactions (see *Energy evaluation* below), scale the magnitude of the
+energetic interactions accordingly.
+
 .. rubric:: Local trial moves
 
 `HPMCIntegrator` generates local trial moves for a single particle :math:`i` at
@@ -244,11 +252,6 @@ Set `HPMCIntegrator.depletant_fugacity` to activate the implicit depletant code
 path. This inerts depletant particles during every trial move and modifies the
 acceptance criterion accordingly. See `Glaser 2015
 <https://dx.doi.org/10.1063/1.4935175>`_ for details.
-
-Warning:
-    The algorithm and API for implicit depletants is **experimental** and will
-    change in a future minor releases. Specifically, it will switch to accepting
-    a single type parameter: ``fugacity['A', 'A']`` -> ``fugacity['A']``
 """
 
 from hoomd import _hoomd
@@ -316,16 +319,10 @@ class HPMCIntegrator(Integrator):
 
         depletant_fugacity (`TypeParameter` [ ``particle type``, `float`]):
             Depletant fugacity
-            :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
+            :math:`[\\mathrm{volume}^{-1}]` (**default:** 0)
 
             Allows setting the fugacity per particle type, e.g. ``'A'``
             refers to a depletant of type **A**.
-
-            Warning:
-                The algorithm and API for implicit depletants is
-                **experimental** and will change in a future minor releases.
-                Specifically, it will switch to accepting a single type
-                parameter: ``fugacity['A', 'A']`` -> ``fugacity['A']``
 
         depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
             Multiplicative factor for the number of times a depletant is
@@ -395,22 +392,12 @@ class HPMCIntegrator(Integrator):
             typeparam_inter_matrix
         ])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
+    def _attach_hook(self):
+        """Initialize the reflected c++ class.
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-        if self._external_potential is not None:
-            self._external_potential._add(simulation)
-        if self._pair_potential is not None:
-            self._pair_potential._add(simulation)
-
-    def _attach(self):
-        """Initialize the reflected c++ class."""
+        self._simulation._warn_if_seed_unset()
         sys_def = self._simulation.state._cpp_sys_def
         if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
@@ -425,29 +412,20 @@ class HPMCIntegrator(Integrator):
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def)
             self._cpp_cell = None
 
-        super()._attach()
-
         if self._external_potential is not None:
-            self._external_potential._attach()
+            self._external_potential._attach(self._simulation)
             self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
 
         if self._pair_potential is not None:
-            self._pair_potential._attach()
+            self._pair_potential._attach(self._simulation)
             self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
+        super()._attach_hook()
 
-    def _detach(self):
+    def _detach_hook(self):
         if self._external_potential is not None:
             self._external_potential._detach()
         if self._pair_potential is not None:
             self._pair_potential._detach()
-        super()._detach()
-
-    def _remove(self):
-        if self._external_potential is not None:
-            self._external_potential._remove()
-        if self._pair_potential is not None:
-            self._pair_potential._remove()
-        super()._remove()
 
     # TODO need to validate somewhere that quaternions are normalized
 
@@ -546,15 +524,11 @@ class HPMCIntegrator(Integrator):
         if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
             raise TypeError(
                 "Pair potentials should be an instance of CPPPotentialBase")
-        if self._added:
-            new_potential._add(self._simulation)
         if self._attached:
-            new_potential._attach()
+            new_potential._attach(self._simulation)
             self._cpp_obj.setPatchEnergy(new_potential._cpp_obj)
             if self._pair_potential is not None:
                 self._pair_potential._detach()
-        if self._added and self._pair_potential is not None:
-            self._pair_potential._remove()
         self._pair_potential = new_potential
 
     @property
@@ -573,15 +547,11 @@ class HPMCIntegrator(Integrator):
             msg = 'External potentials should be an instance of '
             msg += 'hoomd.hpmc.field.external.ExternalField.'
             raise TypeError(msg)
-        if self._added:
-            new_external_potential._add(self._simulation)
         if self._attached:
-            new_external_potential._attach()
+            new_external_potential._attach(self._simulation)
             self._cpp_obj.setExternalField(new_external_potential._cpp_obj)
             if self._external_potential is not None:
                 self._external_potential._detach()
-        if self._added and self._external_potential is not None:
-            self._external_potential._remove()
         self._external_potential = new_external_potential
 
 

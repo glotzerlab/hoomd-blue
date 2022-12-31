@@ -4,7 +4,8 @@
 """Test hoomd.hpmc.update.Clusters."""
 
 import hoomd
-from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.conftest import (operation_pickling_check, logging_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.logging import LoggerCategories
 import pytest
 import hoomd.hpmc.pytest.conftest
@@ -148,7 +149,7 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
                                     pivot_move_probability=0.5)
     sim.operations.updaters.append(cl)
 
-    sim.run(100)
+    sim.run(10)
 
     avg = cl.avg_cluster_size
     assert avg > 0
@@ -165,6 +166,24 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
                                     pivot_move_probability=0.1)
     operation_pickling_check(cl, sim)
+
+
+@pytest.mark.serial
+def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
+    """Test that Cluster objects tune their kernel parameters."""
+    sim = simulation_factory(two_particle_snapshot_factory())
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
+    mc.shape['A'] = dict(diameter=1.1)
+    mc.shape['B'] = dict(diameter=1.3)
+    sim.operations.integrator = mc
+
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(1),
+                                    pivot_move_probability=0.1)
+    sim.operations.updaters.append(cl)
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=cl, activate=lambda: sim.run(1))
 
 
 def test_logging():

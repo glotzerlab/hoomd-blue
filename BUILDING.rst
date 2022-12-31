@@ -77,7 +77,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++17 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11, 12, 13)
+- C++17 capable compiler (tested with ``gcc`` 7 - 12 and ``clang`` 6 - 14)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
@@ -105,6 +105,7 @@ Install prerequisites
     external dependency when building for AMD GPUs
   - roctracer-dev
   - Linux kernel >= 3.5.0
+  - CMake >= 3.21
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
@@ -112,13 +113,19 @@ Install prerequisites
    2. The ``mpcd`` component is disabled on AMD GPUs.
    3. Multi-GPU execution via unified memory is not available.
 
+.. note::
+
+    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HHOOMD_GPU_PLATFORM=HIP`` to
+    choose HIP.
+
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
 - Intel Threading Building Blocks >= 4.3
 
 **For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 10.0, < 13
+- LLVM >= 10.0
+- libclang-cpp >= 10.0
 
 **To build the documentation:**
 
@@ -138,7 +145,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.1.0.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.7.0.tar.gz`_.
 
 .. seealso::
 
@@ -151,7 +158,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-v3.1.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.1.0/hoomd-v3.1.0.tar.gz
+.. _Download hoomd-v3.7.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.7.0/hoomd-v3.7.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/
@@ -226,7 +233,9 @@ Other option changes take effect at any time:
 
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
+- ``ENABLE_LLVM`` - Enable run time code generation with LLVM.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
+- ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
 
   - When set to ``on``, all calculations are performed in single precision.
@@ -250,6 +259,7 @@ Other option changes take effect at any time:
 
   - When set to ``on``, **HOOMD-blue** will use TBB to speed up calculations in some classes on
     multiple CPU cores.
+
 - ``PYTHON_SITE_INSTALL_DIR`` - Directory to install ``hoomd`` to relative to
   ``CMAKE_INSTALL_PREFIX``. Defaults to the ``site-packages`` directory used by the found Python
   executable.

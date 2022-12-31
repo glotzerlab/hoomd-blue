@@ -368,6 +368,11 @@ struct ShapePolyhedron
         unsigned int n_verts = data.n_verts;
         unsigned int n_faces = data.n_faces;
 
+        if (n_verts == 0)
+            {
+            throw std::runtime_error("Shape definition not supported for 0-vertex polyhedra.");
+            }
+
         std::ostringstream shapedef;
         if (n_verts == 1 && data.verts[0].x == 0.0f && data.verts[0].y == data.verts[0].x
             && data.verts[0].y == data.verts[0].z)

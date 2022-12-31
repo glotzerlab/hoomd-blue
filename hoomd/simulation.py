@@ -40,7 +40,9 @@ class Simulation(metaclass=Loggable):
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
-        self._seed = seed
+        self._seed = None
+        if seed is not None:
+            self.seed = seed
 
     @property
     def device(self):
@@ -344,6 +346,18 @@ class Simulation(metaclass=Loggable):
             return self.timestep
         else:
             return self._cpp_sys.final_timestep
+
+    @log
+    def initial_timestep(self):
+        """float: `run` started at this timestep.
+
+        `initial_timestep` is the timestep on which the currently executing
+        `run` started.
+        """
+        if self._state is None:
+            return self.timestep
+        else:
+            return self._cpp_sys.initial_timestep
 
     @property
     def always_compute_pressure(self):

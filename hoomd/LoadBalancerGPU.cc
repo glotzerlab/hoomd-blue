@@ -31,7 +31,10 @@ LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
     m_off_ranks.swap(off_ranks);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "load_balance", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "load_balance"));
+    m_autotuners.push_back(m_tuner);
     }
 
 LoadBalancerGPU::~LoadBalancerGPU()
@@ -70,7 +73,7 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
                                            m_pdata->getBox(),
                                            m_decomposition->getDomainIndexer(),
                                            m_pdata->getN(),
-                                           m_tuner->getParam());
+                                           m_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner->end();

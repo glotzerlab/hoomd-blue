@@ -87,7 +87,30 @@ def install_cmake_package(url, cmake_options):
             f.write(urllib.request.urlopen(req).read())
 
         with tarfile.open(tmp_path / 'file.tar.gz') as tar:
-            tar.extractall(path=tmp_path)
+
+            def is_within_directory(directory, target):
+
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+
+                return prefix == abs_directory
+
+            def safe_extract(tar,
+                             path=".",
+                             members=None,
+                             *,
+                             numeric_owner=False):
+
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+
+                tar.extractall(path, members, numeric_owner=numeric_owner)
+
+            safe_extract(tar, path=tmp_path)
             root = tar.getnames()[0]
             if '/' in root:
                 root = os.path.dirname(root)
@@ -194,20 +217,20 @@ if __name__ == "__main__":
 
             if not pybind:
                 install_cmake_package(
-                    'https://github.com/pybind/pybind11/archive/v2.6.0.tar.gz',
+                    'https://github.com/pybind/pybind11/archive/v2.10.1.tar.gz',
                     cmake_options=[
                         '-DPYBIND11_INSTALL=on', '-DPYBIND11_TEST=off'
                     ])
 
             if not cereal:
                 install_cmake_package(
-                    'https://github.com/USCiLab/cereal/archive/v1.3.0.tar.gz',
+                    'https://github.com/USCiLab/cereal/archive/v1.3.2.tar.gz',
                     cmake_options=['-DJUST_INSTALL_CEREAL=on'])
 
             if not eigen:
                 install_cmake_package(
-                    'https://gitlab.com/libeigen/eigen/-/archive/3.3.8/'
-                    'eigen-3.3.8.tar.gz',
+                    'https://gitlab.com/libeigen/eigen/-/archive/3.4.0/'
+                    'eigen-3.4.0.tar.gz',
                     cmake_options=[
                         '-DBUILD_TESTING=off', '-DEIGEN_TEST_NOQT=on'
                     ])

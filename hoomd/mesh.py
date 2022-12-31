@@ -71,7 +71,7 @@ class Mesh(_HOOMDBaseObject):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def)
@@ -87,18 +87,6 @@ class Mesh(_HOOMDBaseObject):
                     self._cpp_obj)
                 self._cpp_obj.setCommunicator(
                     self._simulation._system_communicator)
-
-        super()._attach()
-
-    def _remove_dependent(self, obj):
-        super()._remove_dependent(obj)
-        if len(self._dependents) == 0:
-            if self._attached:
-                self._detach()
-                self._remove()
-                return
-            if self._added:
-                self._remove()
 
     @log(category='sequence')
     def triangles(self):

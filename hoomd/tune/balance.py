@@ -13,7 +13,7 @@ class LoadBalancer(Tuner):
     r"""Adjusts the boundaries of the domain decomposition.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps on which to
+        trigger (hoomd.trigger.trigger_like): Select the timesteps on which to
             perform load balancing.
         x (bool): Balance the **x** direction when `True`.
         y (bool): Balance the **y** direction when `True`.
@@ -107,7 +107,7 @@ class LoadBalancer(Tuner):
         self._param_dict.update(load_balancer_params)
         self._param_dict.update(defaults)
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'LoadBalancerGPU')
         else:
@@ -115,5 +115,3 @@ class LoadBalancer(Tuner):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.trigger)
-
-        super()._attach()

@@ -51,28 +51,20 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
     //! Includes the RATTLE forces to the virial/net force
     virtual void includeRATTLEForce(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        TwoStepRATTLELangevin<Manifold>::setAutotunerParams(enable, period);
-        m_tuner_one->setPeriod(period);
-        m_tuner_one->setEnabled(enable);
-        m_tuner_angular_one->setPeriod(period);
-        m_tuner_angular_one->setEnabled(enable);
-        }
-
     protected:
     unsigned int m_block_size;       //!< block size for partial sum memory
     unsigned int m_num_blocks;       //!< number of memory blocks reserved for partial sum memory
     GPUArray<Scalar> m_partial_sum1; //!< memory space for partial sum over bd energy transfers
     GPUArray<Scalar> m_sum;          //!< memory space for sum over bd energy transfers
 
-    std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-    std::unique_ptr<Autotuner>
-        m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
+    /// Autotuner for block size (step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_one;
+
+    /// Autotuner for block size (force kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_force;
+
+    /// Autotuner for block size (angular step one kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_one;
     };
 
 /*! \param timestep Current time step
@@ -110,21 +102,20 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
     GPUArray<Scalar> partial_sum1(m_num_blocks, this->m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
 
-    hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
-    m_tuner_one.reset(new Autotuner(dev_prop.warpSize,
-                                    dev_prop.maxThreadsPerBlock,
-                                    dev_prop.warpSize,
-                                    5,
-                                    100000,
-                                    "rattle_langevin_nve",
-                                    this->m_exec_conf));
-    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize,
-                                            dev_prop.maxThreadsPerBlock,
-                                            dev_prop.warpSize,
-                                            5,
-                                            100000,
-                                            "rattle_langevin_angular",
-                                            this->m_exec_conf));
+    m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                       this->m_exec_conf,
+                                       "rattle_langevin_nve"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "rattle_langevin_force"));
+    m_tuner_angular_one.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "rattle_langevin_angular",
+                         5,
+                         true));
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_one, m_tuner_force, m_tuner_angular_one});
     }
 template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
@@ -169,7 +160,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
                                     this->m_deltaT,
                                     false,
                                     0,
-                                    this->m_tuner_one->getParam());
+                                    this->m_tuner_one->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -203,7 +194,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
                                                 this->m_group->getGPUPartition(),
                                                 this->m_deltaT,
                                                 1.0,
-                                                m_tuner_angular_one->getParam());
+                                                m_tuner_angular_one->getParam()[0]);
 
         m_tuner_angular_one->end();
         this->m_exec_conf->endMultiGPU();
@@ -256,22 +247,22 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
-        kernel::rattle_langevin_step_two_args args;
-        args.d_gamma = d_gamma.data;
-        args.n_types = this->m_gamma.getNumElements();
-        args.use_alpha = this->m_use_alpha;
-        args.alpha = this->m_alpha;
-        args.T = (*this->m_T)(timestep);
-        args.tolerance = this->m_tolerance;
-        args.timestep = timestep;
-        args.seed = this->m_sysdef->getSeed();
-        args.d_sum_bdenergy = d_sumBD.data;
-        args.d_partial_sum_bdenergy = d_partial_sumBD.data;
-        args.block_size = m_block_size;
-        args.num_blocks = m_num_blocks;
-        args.noiseless_t = this->m_noiseless_t;
-        args.noiseless_r = this->m_noiseless_r;
-        args.tally = this->m_tally;
+        kernel::rattle_langevin_step_two_args args(d_gamma.data,
+                                                   this->m_gamma.getNumElements(),
+                                                   this->m_use_alpha,
+                                                   this->m_alpha,
+                                                   (*this->m_T)(timestep),
+                                                   this->m_tolerance,
+                                                   timestep,
+                                                   this->m_sysdef->getSeed(),
+                                                   d_sumBD.data,
+                                                   d_partial_sumBD.data,
+                                                   m_block_size,
+                                                   m_num_blocks,
+                                                   this->m_noiseless_t,
+                                                   this->m_noiseless_r,
+                                                   this->m_tally,
+                                                   this->m_exec_conf->dev_prop);
 
         kernel::gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
                                                        d_vel.data,
@@ -371,7 +362,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
 
     // perform the update on the GPU
     this->m_exec_conf->beginMultiGPU();
-    m_tuner_one->begin();
+    m_tuner_force->begin();
     kernel::gpu_include_rattle_force_nve<Manifold>(d_pos.data,
                                                    d_vel.data,
                                                    d_accel.data,
@@ -384,12 +375,12 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
                                                    this->m_tolerance,
                                                    this->m_deltaT,
                                                    false,
-                                                   m_tuner_one->getParam());
+                                                   m_tuner_force->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_tuner_one->end();
+    m_tuner_force->end();
     this->m_exec_conf->endMultiGPU();
     }
 

@@ -2,8 +2,14 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+from hoomd import md
+from hoomd.conftest import expected_loggable_params
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 import pytest
 import numpy
+
+import itertools
 
 R = 0.9
 CHARGE = [-2.5, 2.5]
@@ -102,3 +108,54 @@ def test_forces_and_energies(snapshot_factory, simulation_factory,
         numpy.testing.assert_allclose(sim_forces[1], [-1 * force, 0.0, 0.0],
                                       rtol=1e-6,
                                       atol=1e-5)
+
+
+# Test Logging
+@pytest.mark.parametrize('cls, expected_namespace, expected_loggables',
+                         zip((md.special_pair.SpecialPair, md.special_pair.LJ,
+                              md.special_pair.Coulomb),
+                             itertools.repeat(('md', 'special_pair')),
+                             itertools.repeat(expected_loggable_params)))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
+
+
+@pytest.mark.parametrize("special_pair_cls, params, r_cut, force, energy",
+                         special_pair_test_parameters)
+def test_kernel_parameters(simulation_factory, snapshot_factory,
+                           special_pair_cls, params, r_cut, force, energy):
+    snapshot = snapshot_factory()
+    sim = simulation_factory(snapshot)
+
+    potential = special_pair_cls()
+    potential.params['A-A'] = params
+    potential.r_cut['A-A'] = r_cut
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=potential,
+                                     activate=lambda: sim.run(1))
+
+
+# Test Pickling
+@pytest.mark.parametrize("special_pair_cls, params, r_cut, force, energy",
+                         special_pair_test_parameters)
+def test_pickling(simulation_factory, snapshot_factory, special_pair_cls,
+                  params, r_cut, force, energy):
+    snapshot = snapshot_factory()
+    sim = simulation_factory(snapshot)
+
+    potential = special_pair_cls()
+    potential.params['A-A'] = params
+    potential.r_cut['A-A'] = r_cut
+
+    pickling_check(potential)
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+    pickling_check(potential)

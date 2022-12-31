@@ -21,6 +21,7 @@ hoomd.filter
     Tags
     Type
     Union
+    filter_like
 
 .. rubric:: Details
 
@@ -42,3 +43,4 @@ hoomd.filter
     .. autoclass:: Type(types)
         :members: types
     .. autoclass:: Union(f, g)
+    .. autodata:: filter_like

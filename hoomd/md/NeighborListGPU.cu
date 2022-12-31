@@ -52,26 +52,6 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int* d_result,
                                                         const unsigned int checkn,
                                                         const unsigned int offset)
     {
-    // cache delta max into shared memory
-    // shared data for per type pair parameters
-    HIP_DYNAMIC_SHARED(unsigned char, s_data)
-
-    // pointer for the r_listsq data
-    Scalar* s_maxshiftsq = (Scalar*)(&s_data[0]);
-
-    // load in the per type pair r_list
-    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < ntypes)
-            {
-            const Scalar rmin = d_rcut_max[cur_offset + threadIdx.x];
-            const Scalar rmax = rmin + r_buff;
-            const Scalar delta_max = (rmax * lambda_min - rmin) / Scalar(2.0);
-            s_maxshiftsq[cur_offset + threadIdx.x] = (delta_max > 0) ? delta_max * delta_max : 0.0f;
-            }
-        }
-    __syncthreads();
-
     // each thread will compare vs it's old position to see if the list needs updating
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -89,7 +69,12 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int* d_result,
         Scalar3 dx = cur_pos - lambda * last_pos;
         dx = box.minImage(dx);
 
-        if (dot(dx, dx) >= s_maxshiftsq[cur_type])
+        const Scalar rmin = __ldg(d_rcut_max + cur_type);
+        const Scalar rmax = rmin + r_buff;
+        const Scalar delta_max = (rmax * lambda_min - rmin) / Scalar(2.0);
+        Scalar maxshiftsq = (delta_max > 0) ? delta_max * delta_max : 0.0f;
+
+        if (dot(dx, dx) >= maxshiftsq)
 #if (__CUDA_ARCH__ >= 600)
             atomicMax_system(d_result, checkn);
 #else
@@ -111,8 +96,6 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
                                             const unsigned int checkn,
                                             const GPUPartition& gpu_partition)
     {
-    const size_t shared_bytes = sizeof(Scalar) * ntypes;
-
     unsigned int block_size = 128;
 
     // iterate over active GPUs in reverse order
@@ -125,7 +108,7 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
         hipLaunchKernelGGL((gpu_nlist_needs_update_check_new_kernel),
                            dim3(n_blocks),
                            dim3(block_size),
-                           shared_bytes,
+                           0,
                            0,
                            d_result,
                            d_last_pos,
@@ -376,18 +359,6 @@ __global__ void gpu_nlist_init_head_list_kernel(size_t* d_head_list,
                                                 const unsigned int N,
                                                 const unsigned int ntypes)
     {
-    // cache the d_Nmax into shared memory for faster reads
-    HIP_DYNAMIC_SHARED(unsigned char, sh)
-    unsigned int* s_Nmax = (unsigned int*)(&sh[0]);
-    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < ntypes)
-            {
-            s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
-            }
-        }
-    __syncthreads();
-
     // particle index
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -397,7 +368,7 @@ __global__ void gpu_nlist_init_head_list_kernel(size_t* d_head_list,
 
     const Scalar4 postype_i = d_pos[idx];
     const unsigned int type_i = __scalar_as_int(postype_i.w);
-    const unsigned int Nmax_i = s_Nmax[type_i];
+    const unsigned int Nmax_i = __ldg(d_Nmax + type_i);
 
     d_head_list[idx] = Nmax_i;
 
@@ -455,13 +426,12 @@ hipError_t gpu_nlist_build_head_list(size_t* d_head_list,
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    const size_t shared_bytes = ntypes * sizeof(unsigned int);
 
     // initialize each particle with its number of neighbors
     hipLaunchKernelGGL((gpu_nlist_init_head_list_kernel),
                        dim3(N / run_block_size + 1),
                        dim3(run_block_size),
-                       shared_bytes,
+                       0,
                        0,
                        d_head_list,
                        d_req_size_nlist,

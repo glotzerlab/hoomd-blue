@@ -230,11 +230,18 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
     const Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
-    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+    if (m_exec_conf->getRank() == 0)
+        {
+        snapshot.validate();
+        }
+
+    if (snapshot.type_mapping.size() >= 40)
         {
         std::ostringstream s;
-        s << "Error initializing from " << name << " data snapshot.";
-        throw std::runtime_error(s.str());
+        s << "Systems with many " << name
+          << " types perform poorly or result "
+             "in shared memory errors on the GPU.";
+        m_exec_conf->msg->warning() << s.str() << std::endl;
         }
 
     // re-initialize data structures
