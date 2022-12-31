@@ -130,7 +130,6 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
             std::vector<unsigned int> triag_tag(3);
             std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> bonds(
                 3);
-            unsigned int bonds0, bonds1;
             triag_tag[0] = snapshot.groups[group_idx].tag[0];
             triag_tag[1] = snapshot.groups[group_idx].tag[1];
             triag_tag[2] = snapshot.groups[group_idx].tag[2];
@@ -156,19 +155,23 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
             bonds[2].tag[2] = triag_tag[1];
             bonds[2].tag[3] = triag_tag[1];
 
+            for (unsigned int j = 0; j < bonds.size(); ++j)
+                {
+                if (bonds[j].tag[0] > bonds[j].tag[1])
+                    {
+                    unsigned int bonds0 = bonds[j].tag[0];
+                    unsigned int bonds1 = bonds[j].tag[1];
+
+                    bonds[j].tag[0] = bonds1;
+                    bonds[j].tag[1] = bonds0;
+                    }
+                }
+
             // Remove any duplicate bonds.
             for (unsigned int i = 0; i < all_helper.size(); ++i)
                 {
                 for (unsigned int j = 0; j < bonds.size(); ++j)
                     {
-                    if (bonds[j].tag[0] > bonds[j].tag[1])
-                        {
-                        bonds0 = bonds[j].tag[0];
-                        bonds1 = bonds[j].tag[1];
-
-                        bonds[j].tag[0] = bonds1;
-                        bonds[j].tag[1] = bonds0;
-                        }
                     if (bonds[j].tag[0] == all_helper[i].tag[0]
                         && bonds[j].tag[1] == all_helper[i].tag[1])
                         {
