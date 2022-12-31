@@ -25,14 +25,13 @@ namespace md
 namespace kernel
     {
 
-__global__ void
-gpu_compute_surface_tension_kernel(Scalar* d_partial_sum_area,
-                                                 const unsigned int N,
-                                                 const Scalar4* d_pos,
-                                                 BoxDim box,
-                                                 const group_storage<6>* tlist,
-                                                 const Index2D tlist_idx,
-                                                 const unsigned int* n_triangles_list)
+__global__ void gpu_compute_surface_tension_kernel(Scalar* d_partial_sum_area,
+                                                   const unsigned int N,
+                                                   const Scalar4* d_pos,
+                                                   BoxDim box,
+                                                   const group_storage<3>* tlist,
+                                                   const Index2D tlist_idx,
+                                                   const unsigned int* n_triangles_list)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* area_sdata = (Scalar*)&s_data[0];
@@ -49,7 +48,7 @@ gpu_compute_surface_tension_kernel(Scalar* d_partial_sum_area,
 
         for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
             {
-            group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+            group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
             int cur_mem2_idx = cur_triangle.idx[0];
             int cur_mem3_idx = cur_triangle.idx[1];
@@ -104,8 +103,9 @@ gpu_compute_surface_tension_kernel(Scalar* d_partial_sum_area,
     \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
-__global__ void
-gpu_triangle_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
+__global__ void gpu_triangle_area_reduce_partial_sum_kernel(Scalar* d_sum,
+                                                            Scalar* d_partial_sum,
+                                                            unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
     HIP_DYNAMIC_SHARED(char, s_data)
@@ -155,15 +155,15 @@ gpu_triangle_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_surface_tension(Scalar* d_sum_area,
-                                                     Scalar* d_sum_partial_area,
-                                                     const unsigned int N,
-                                                     const Scalar4* d_pos,
-                                                     const BoxDim& box,
-                                                     const group_storage<6>* tlist,
-                                                     const Index2D tlist_idx,
-                                                     const unsigned int* n_triangles_list,
-                                                     unsigned int block_size,
-                                                     unsigned int num_blocks)
+                                       Scalar* d_sum_partial_area,
+                                       const unsigned int N,
+                                       const Scalar4* d_pos,
+                                       const BoxDim& box,
+                                       const group_storage<3>* tlist,
+                                       const Index2D tlist_idx,
+                                       const unsigned int* n_triangles_list,
+                                       unsigned int block_size,
+                                       unsigned int num_blocks)
     {
     dim3 grid(num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
@@ -210,21 +210,20 @@ hipError_t gpu_compute_surface_tension(Scalar* d_sum_area,
     \param n_triangle_type number of mesh triangle types
     \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
 */
-__global__ void
-gpu_compute_surface_tension_force_kernel(Scalar4* d_force,
-                                                  Scalar* d_virial,
-                                                  const size_t virial_pitch,
-                                                  const unsigned int N,
-                                                  const unsigned int N_tri,
-                                                  const Scalar4* d_pos,
-                                                  BoxDim box,
-                                                  const group_storage<6>* tlist,
-                                                  const unsigned int* tpos_list,
-                                                  const Index2D tlist_idx,
-                                                  const unsigned int* n_triangles_list,
-                                                  Scalar* d_params,
-                                                  const unsigned int n_triangle_type,
-                                                  unsigned int* d_flags)
+__global__ void gpu_compute_surface_tension_force_kernel(Scalar4* d_force,
+                                                         Scalar* d_virial,
+                                                         const size_t virial_pitch,
+                                                         const unsigned int N,
+                                                         const unsigned int N_tri,
+                                                         const Scalar4* d_pos,
+                                                         BoxDim box,
+                                                         const group_storage<3>* tlist,
+                                                         const unsigned int* tpos_list,
+                                                         const Index2D tlist_idx,
+                                                         const unsigned int* n_triangles_list,
+                                                         Scalar* d_params,
+                                                         const unsigned int n_triangle_type,
+                                                         unsigned int* d_flags)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -250,7 +249,7 @@ gpu_compute_surface_tension_force_kernel(Scalar4* d_force,
     // loop over all triangles
     for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
         {
-        group_storage<6> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
+        group_storage<3> cur_triangle = tlist[tlist_idx(idx, triangle_idx)];
 
         int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
 
@@ -330,7 +329,7 @@ gpu_compute_surface_tension_force_kernel(Scalar4* d_force,
         force.y += Fa.y;
         force.z += Fa.z;
         force.w += energy_pp; // divided by 3 because of three
-                                                                 // particles sharing the energy
+                              // particles sharing the energy
 
         virial[0] += Scalar(1. / 2.) * pos_a.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * pos_a.y * Fa.x; // xy
@@ -365,20 +364,20 @@ gpu_compute_surface_tension_force_kernel(Scalar4* d_force,
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_surface_tension_force(Scalar4* d_force,
-                                                      Scalar* d_virial,
-                                                      const size_t virial_pitch,
-                                                      const unsigned int N,
-                                                      const unsigned int N_tri,
-                                                      const Scalar4* d_pos,
-                                                      const BoxDim& box,
-                                                      const group_storage<6>* tlist,
-                                                      const unsigned int* tpos_list,
-                                                      const Index2D tlist_idx,
-                                                      const unsigned int* n_triangles_list,
-                                                      Scalar* d_params,
-                                                      const unsigned int n_triangle_type,
-                                                      int block_size,
-                                                      unsigned int* d_flags)
+                                             Scalar* d_virial,
+                                             const size_t virial_pitch,
+                                             const unsigned int N,
+                                             const unsigned int N_tri,
+                                             const Scalar4* d_pos,
+                                             const BoxDim& box,
+                                             const group_storage<3>* tlist,
+                                             const unsigned int* tpos_list,
+                                             const Index2D tlist_idx,
+                                             const unsigned int* n_triangles_list,
+                                             Scalar* d_params,
+                                             const unsigned int n_triangle_type,
+                                             int block_size,
+                                             unsigned int* d_flags)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;

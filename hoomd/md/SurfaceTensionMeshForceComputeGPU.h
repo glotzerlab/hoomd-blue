@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "SurfaceTensionMeshForceCompute.h"
 #include "SurfaceTensionMeshForceComputeGPU.cuh"
 #include "hoomd/Autotuner.h"
@@ -26,24 +29,12 @@ namespace md
     \ingroup computes
 
 */
-class PYBIND11_EXPORT SurfaceTensionMeshForceComputeGPU
-    : public SurfaceTensionMeshForceCompute
+class PYBIND11_EXPORT SurfaceTensionMeshForceComputeGPU : public SurfaceTensionMeshForceCompute
     {
     public:
     //! Constructs the compute
     SurfaceTensionMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                std::shared_ptr<MeshDefinition> meshdef);
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        SurfaceTensionMeshForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
+                                      std::shared_ptr<MeshDefinition> meshdef);
 
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar sigma);
@@ -58,9 +49,9 @@ class PYBIND11_EXPORT SurfaceTensionMeshForceComputeGPU
     unsigned int m_block_size; //!< block size for partial sum memory
     unsigned int m_num_blocks; //!< number of memory blocks reserved for partial sum memory
 
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size of force loop
-    GPUArray<unsigned int> m_flags;     //!< Flags set during the kernel execution
-    GPUArray<Scalar> m_params;         //!< Parameters stored on the GPU
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
+    GPUArray<unsigned int> m_flags;        //!< Flags set during the kernel execution
+    GPUArray<Scalar> m_params;             //!< Parameters stored on the GPU
 
     GPUArray<Scalar> m_partial_sum; //!< memory space for partial sum over volume
     GPUArray<Scalar> m_sum;         //!< memory space for sum over volume

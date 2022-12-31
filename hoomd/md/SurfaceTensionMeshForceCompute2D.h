@@ -1,6 +1,9 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
+#include "SurfaceTensionMeshForceCompute.h"
 #include "hoomd/ForceCompute.h"
 #include "hoomd/MeshDefinition.h"
-#include "SurfaceTensionMeshForceCompute.h"
 #include <memory>
 
 #include <vector>
@@ -31,7 +34,7 @@ class PYBIND11_EXPORT SurfaceTensionMeshForceCompute2D : public ForceCompute
     public:
     //! Constructs the compute
     SurfaceTensionMeshForceCompute2D(std::shared_ptr<SystemDefinition> sysdef,
-                                             std::shared_ptr<MeshDefinition> meshdef);
+                                     std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
     virtual ~SurfaceTensionMeshForceCompute2D();
@@ -71,12 +74,6 @@ class PYBIND11_EXPORT SurfaceTensionMeshForceCompute2D : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    virtual Scalar energyDiff(unsigned int idx_a,
-                              unsigned int idx_b,
-                              unsigned int idx_c,
-                              unsigned int idx_d,
-                              unsigned int type_id);
     };
 
 namespace detail

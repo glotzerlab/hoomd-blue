@@ -57,8 +57,7 @@ void SurfaceTensionMeshForceCompute::setParams(unsigned int type, Scalar sigma)
         m_exec_conf->msg->warning() << "SurfaceTension: specified sigma <= 0" << endl;
     }
 
-void SurfaceTensionMeshForceCompute::setParamsPython(std::string type,
-                                                               pybind11::dict params)
+void SurfaceTensionMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshTriangleData()->getTypeByName(type);
     auto _params = surface_tension_params(params);
@@ -93,7 +92,7 @@ void SurfaceTensionMeshForceCompute::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
-    ArrayHandle<typename MeshTriangle::members_t> h_triangles(
+    ArrayHandle<typename Angle::members_t> h_triangles(
         m_mesh_data->getMeshTriangleData()->getMembersArray(),
         access_location::host,
         access_mode::read);
@@ -129,7 +128,7 @@ void SurfaceTensionMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the triangle
-        const typename MeshTriangle::members_t& triangle = h_triangles.data[i];
+        const typename Angle::members_t& triangle = h_triangles.data[i];
         assert(triangle.tag[0] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[1] < m_pdata->getMaximumTag() + 1);
         assert(triangle.tag[2] < m_pdata->getMaximumTag() + 1);
@@ -180,7 +179,7 @@ void SurfaceTensionMeshForceCompute::computeForces(uint64_t timestep)
 
         Scalar area2 = sqrt(rsqab * rsqac - rabrac * rabrac);
 
-        Scalar prefactor = -m_sigma[0] / (2*area2);
+        Scalar prefactor = -m_sigma[0] / (2 * area2);
 
         Scalar energy_pp = m_sigma[0] * area2 / 2;
 
@@ -255,15 +254,6 @@ void SurfaceTensionMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += surface_tension_virial[j];
             }
         }
-    }
-
-Scalar SurfaceTensionMeshForceCompute::energyDiff(unsigned int idx_a,
-                                                            unsigned int idx_b,
-                                                            unsigned int idx_c,
-                                                            unsigned int idx_d,
-                                                            unsigned int type_id)
-    {
-    return 0;
     }
 
 namespace detail

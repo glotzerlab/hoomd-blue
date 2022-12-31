@@ -152,7 +152,7 @@ void SurfaceTensionMeshForceCompute2D::computeForces(uint64_t timestep)
             // apply minimum image conventions to all 2 vectors
             dab = box.minImage(dab);
 
-            Scalar3 da, db, dc;
+            Scalar3 da, db;
             da.x = h_pos.data[idx_a].x;
             da.y = h_pos.data[idx_a].y;
             da.z = h_pos.data[idx_a].z;
@@ -219,15 +219,6 @@ void SurfaceTensionMeshForceCompute2D::computeForces(uint64_t timestep)
                 }
             }
         }
-    }
-
-Scalar SurfaceTensionMeshForceCompute2D::energyDiff(unsigned int idx_a,
-                                                    unsigned int idx_b,
-                                                    unsigned int idx_c,
-                                                    unsigned int idx_d,
-                                                    unsigned int type_id)
-    {
-    return 0;
     }
 
 namespace detail

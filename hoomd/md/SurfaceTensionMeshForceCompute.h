@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hoomd/ForceCompute.h"
 #include "hoomd/MeshDefinition.h"
 
@@ -27,12 +30,9 @@ struct surface_tension_params
     Scalar sigma;
 
 #ifndef __HIPCC__
-    surface_tension_params() : sigma(0){ }
+    surface_tension_params() : sigma(0) { }
 
-    surface_tension_params(pybind11::dict params)
-        : sigma(params["sigma"].cast<Scalar>())
-        {
-        }
+    surface_tension_params(pybind11::dict params) : sigma(params["sigma"].cast<Scalar>()) { }
 
     pybind11::dict asDict()
         {
@@ -57,7 +57,7 @@ class PYBIND11_EXPORT SurfaceTensionMeshForceCompute : public ForceCompute
     public:
     //! Constructs the compute
     SurfaceTensionMeshForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                             std::shared_ptr<MeshDefinition> meshdef);
+                                   std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
     virtual ~SurfaceTensionMeshForceCompute();
@@ -97,12 +97,6 @@ class PYBIND11_EXPORT SurfaceTensionMeshForceCompute : public ForceCompute
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
-
-    virtual Scalar energyDiff(unsigned int idx_a,
-                              unsigned int idx_b,
-                              unsigned int idx_c,
-                              unsigned int idx_d,
-                              unsigned int type_id);
     };
 
 namespace detail
