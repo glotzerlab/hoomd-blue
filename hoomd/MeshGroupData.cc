@@ -14,7 +14,7 @@
 
 #ifdef ENABLE_HIP
 #include "CachedAllocator.h"
-#include "MeshGroupData.cuh"
+//#include "MeshGroupData.cuh"
 #endif
 
 using namespace std;
