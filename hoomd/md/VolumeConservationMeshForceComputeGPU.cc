@@ -82,14 +82,14 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
-    const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list
+    const GPUArray<typename Angle::members_t>& gpu_meshtriangle_list
         = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
     const Index2D& gpu_table_indexer
         = this->m_mesh_data->getMeshTriangleData()->getGPUTableIndexer();
 
-    ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
-                                                                         access_location::device,
-                                                                         access_mode::read);
+    ArrayHandle<typename Angle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
+                                                                  access_location::device,
+                                                                  access_mode::read);
     ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(
         m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
         access_location::device,
@@ -155,14 +155,14 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
 
     m_num_blocks = m_pdata->getN() / m_block_size + 1;
 
-    const GPUArray<typename MeshTriangle::members_t>& gpu_meshtriangle_list
+    const GPUArray<typename Angle::members_t>& gpu_meshtriangle_list
         = this->m_mesh_data->getMeshTriangleData()->getGPUTable();
     const Index2D& gpu_table_indexer
         = this->m_mesh_data->getMeshTriangleData()->getGPUTableIndexer();
 
-    ArrayHandle<typename MeshTriangle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
-                                                                         access_location::device,
-                                                                         access_mode::read);
+    ArrayHandle<typename Angle::members_t> d_gpu_meshtrianglelist(gpu_meshtriangle_list,
+                                                                  access_location::device,
+                                                                  access_mode::read);
     ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(
         m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
         access_location::device,
