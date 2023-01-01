@@ -35,27 +35,14 @@ class PYBIND11_EXPORT HelfrichMeshForceComputeGPU : public HelfrichMeshForceComp
     HelfrichMeshForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                 std::shared_ptr<MeshDefinition> meshdef);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        HelfrichMeshForceCompute::setAutotunerParams(enable, period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_sigma->setPeriod(period);
-        m_tuner_sigma->setEnabled(enable);
-        }
-
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K);
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size of force loop
-    std::unique_ptr<Autotuner> m_tuner_sigma; //!< Autotuner for block size of sigma loop
-    GPUArray<unsigned int> m_flags;           //!< Flags set during the kernel execution
-    GPUArray<Scalar> m_params;                //!< Parameters stored on the GPU
+    std::shared_ptr<Autotuner<1>> m_tuner_force;
+    std::shared_ptr<Autotuner<1>> m_tuner_sigma;
+    GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
+    GPUArray<Scalar> m_params;      //!< Parameters stored on the GPU
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

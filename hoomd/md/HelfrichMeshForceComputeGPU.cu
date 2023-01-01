@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -39,8 +42,8 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
                                                   const unsigned int* d_rtag,
                                                   BoxDim box,
                                                   const group_storage<4>* blist,
-                                                  const group_storage<6>* d_triangles,
                                                   const Index2D blist_idx,
+                                                  const unsigned int* bpos_list,
                                                   const unsigned int* n_bonds_list)
     {
     // start by identifying which particle we are to handle
@@ -64,36 +67,19 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     // loop over all angles
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
+        int cur_bond_pos = bpos_list[blist_idx(idx, bond_idx)];
+
+        if (cur_bond_pos > 1)
+            continue;
+
         group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
-        int cur_tr1_idx = cur_bond.idx[1];
-        int cur_tr2_idx = cur_bond.idx[2];
+        int cur_idx_c = cur_bond.idx[1];
+        int cur_idx_d = cur_bond.idx[2];
 
-        if (cur_tr1_idx == cur_tr2_idx)
+        if (cur_idx_c == cur_idx_d)
             continue;
-
-        const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
-
-        unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
-
-        unsigned int iterator = 1;
-        while (idx == cur_idx_c || cur_bond_idx == cur_idx_c)
-            {
-            cur_idx_c = d_rtag[triangle1.tag[iterator]];
-            iterator++;
-            }
-
-        const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
-
-        unsigned int cur_idx_d = d_rtag[triangle2.tag[0]];
-
-        iterator = 1;
-        while (idx == cur_idx_d || cur_bond_idx == cur_idx_d)
-            {
-            cur_idx_d = d_rtag[triangle2.tag[iterator]];
-            iterator++;
-            }
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_bond_idx];
@@ -202,8 +188,8 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                                       const unsigned int* d_rtag,
                                       const BoxDim& box,
                                       const group_storage<4>* blist,
-                                      const group_storage<6>* d_triangles,
                                       const Index2D blist_idx,
+                                      const unsigned int* bpos_list,
                                       const unsigned int* n_bonds_list,
                                       int block_size)
     {
@@ -231,8 +217,8 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                        d_rtag,
                        box,
                        blist,
-                       d_triangles,
                        blist_idx,
+                       bpos_list,
                        n_bonds_list);
 
     return hipSuccess;
@@ -265,8 +251,8 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                                                   const Scalar* d_sigma,
                                                   const Scalar3* d_sigma_dash,
                                                   const group_storage<4>* blist,
-                                                  const group_storage<6>* d_triangles,
                                                   const Index2D blist_idx,
+                                                  const unsigned int* bpos_list,
                                                   const unsigned int* n_bonds_list,
                                                   Scalar* d_params,
                                                   const unsigned int n_bond_type,
@@ -300,37 +286,20 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     // loop over all angles
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
+        int cur_bond_pos = bpos_list[blist_idx(idx, bond_idx)];
+
+        if (cur_bond_pos > 1)
+            continue;
+
         group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
-        int cur_tr1_idx = cur_bond.idx[1];
-        int cur_tr2_idx = cur_bond.idx[2];
+        int cur_idx_c = cur_bond.idx[1];
+        int cur_idx_d = cur_bond.idx[2];
         int cur_bond_type = cur_bond.idx[3];
 
-        if (cur_tr1_idx == cur_tr2_idx)
+        if (cur_idx_c == cur_idx_d)
             continue;
-
-        const group_storage<6>& triangle1 = d_triangles[cur_tr1_idx];
-
-        unsigned int cur_idx_c = d_rtag[triangle1.tag[0]];
-
-        unsigned int iterator = 1;
-        while (idx == cur_idx_c || cur_bond_idx == cur_idx_c)
-            {
-            cur_idx_c = d_rtag[triangle1.tag[iterator]];
-            iterator++;
-            }
-
-        const group_storage<6>& triangle2 = d_triangles[cur_tr2_idx];
-
-        unsigned int cur_idx_d = d_rtag[triangle2.tag[0]];
-
-        iterator = 1;
-        while (idx == cur_idx_d || cur_bond_idx == cur_idx_d)
-            {
-            cur_idx_d = d_rtag[triangle2.tag[iterator]];
-            iterator++;
-            }
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_bond_idx];
@@ -564,8 +533,8 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                                       const Scalar* d_sigma,
                                       const Scalar3* d_sigma_dash,
                                       const group_storage<4>* blist,
-                                      const group_storage<6>* d_triangles,
                                       const Index2D blist_idx,
+                                      const unsigned int* bpos_list,
                                       const unsigned int* n_bonds_list,
                                       Scalar* d_params,
                                       const unsigned int n_bond_type,
@@ -599,8 +568,8 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                        d_sigma,
                        d_sigma_dash,
                        blist,
-                       d_triangles,
                        blist_idx,
+                       bpos_list,
                        n_bonds_list,
                        d_params,
                        n_bond_type,

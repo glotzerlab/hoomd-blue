@@ -41,11 +41,15 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    m_tuner_force.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "helfrich_forces", this->m_exec_conf));
-    m_tuner_sigma.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "helfrich_sigma", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "helfrich_force"));
+
+    m_tuner_sigma.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "helfrich_sigma"));
+
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_sigma});
 
     GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
     GlobalVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
@@ -92,11 +96,6 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
                                      access_location::device,
                                      access_mode::read);
 
-    ArrayHandle<typename MeshTriangle::members_t> d_triangles(
-        m_mesh_data->getMeshTriangleData()->getMembersArray(),
-        access_location::device,
-        access_mode::read);
-
     ArrayHandle<Scalar> d_sigma(m_sigma, access_location::device, access_mode::read);
     ArrayHandle<Scalar3> d_sigma_dash(m_sigma_dash, access_location::device, access_mode::read);
 
@@ -109,6 +108,12 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<typename MeshBond::members_t> d_gpu_meshbondlist(gpu_meshbond_list,
                                                                  access_location::device,
                                                                  access_mode::read);
+
+    ArrayHandle<unsigned int> d_gpu_meshbond_pos_list(
+        this->m_mesh_data->getMeshBondData()->getGPUPosTable(),
+        access_location::device,
+        access_mode::read);
+
     ArrayHandle<unsigned int> d_gpu_n_meshbond(
         this->m_mesh_data->getMeshBondData()->getNGroupsArray(),
         access_location::device,
@@ -132,12 +137,12 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
                                        d_sigma.data,
                                        d_sigma_dash.data,
                                        d_gpu_meshbondlist.data,
-                                       d_triangles.data,
                                        gpu_table_indexer,
+                                       d_gpu_meshbond_pos_list.data,
                                        d_gpu_n_meshbond.data,
                                        d_params.data,
                                        m_mesh_data->getMeshBondData()->getNTypes(),
-                                       m_tuner_force->getParam(),
+                                       m_tuner_force->getParam()[0],
                                        d_flags.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -169,11 +174,6 @@ void HelfrichMeshForceComputeGPU::computeSigma()
                                      access_location::device,
                                      access_mode::read);
 
-    ArrayHandle<typename MeshTriangle::members_t> d_triangles(
-        m_mesh_data->getMeshTriangleData()->getMembersArray(),
-        access_location::device,
-        access_mode::read);
-
     ArrayHandle<Scalar> d_sigma(m_sigma, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_sigma_dash(m_sigma_dash,
                                       access_location::device,
@@ -188,6 +188,12 @@ void HelfrichMeshForceComputeGPU::computeSigma()
     ArrayHandle<typename MeshBond::members_t> d_gpu_meshbondlist(gpu_meshbond_list,
                                                                  access_location::device,
                                                                  access_mode::read);
+
+    ArrayHandle<unsigned int> d_gpu_meshbond_pos_list(
+        this->m_mesh_data->getMeshBondData()->getGPUPosTable(),
+        access_location::device,
+        access_mode::read);
+
     ArrayHandle<unsigned int> d_gpu_n_meshbond(
         this->m_mesh_data->getMeshBondData()->getNGroupsArray(),
         access_location::device,
@@ -201,10 +207,10 @@ void HelfrichMeshForceComputeGPU::computeSigma()
                                        d_rtag.data,
                                        box,
                                        d_gpu_meshbondlist.data,
-                                       d_triangles.data,
                                        gpu_table_indexer,
+                                       d_gpu_meshbond_pos_list.data,
                                        d_gpu_n_meshbond.data,
-                                       m_tuner_sigma->getParam());
+                                       m_tuner_sigma->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
