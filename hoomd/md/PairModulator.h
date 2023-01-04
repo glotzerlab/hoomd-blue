@@ -212,6 +212,8 @@ public:
 
             // compute envelope
             Scalar envelope(Scalar(0));
+            // here, torque_i and torque_j get populated with the
+            // torque envelopes and are missing the factor of pair energy
             envelEval.evaluate(force, envelope, torque_i, torque_j);
 
             // modulate forces
@@ -221,7 +223,8 @@ public:
             force.z = pair_eng*force.z + dr.z*force_divr*envelope;
 
             // modulate torques
-            // TODO check this math
+            // TODO check this math. Finished checking Jan 4 2023
+            // U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
             torque_i.x *= pair_eng;
             torque_i.y *= pair_eng;
             torque_i.z *= pair_eng;

@@ -92,8 +92,8 @@ public:
     */
     DEVICE bool evaluate(Scalar3& force,
                          Scalar& envelope,
-                         Scalar3& torque_i,
-                         Scalar3& torque_j)
+                         Scalar3& torque_i, //torque_modulator
+                         Scalar3& torque_j) //torque_modulator
         {
             // common calculations
             Scalar modi = s.Modulatori();
@@ -105,25 +105,68 @@ public:
             envelope = modi*modj;
 
             // intermediate calculations
-            Scalar iPj = modPi*modj/s.magdr; // TODO: make variable name more descriptive and check if these are correct.
+            Scalar iPj = modPi*modj/s.magdr; // TODO: make variable name more descriptive and check if these are correct. Jan 4: They are correct
             Scalar jPi = modPj*modi/s.magdr;
-            
+            // TODO Jan 4 2023: I don't think this division by s.magdr should be here mathematically, but probably for efficiency
+
             // torque on ith
+            // These are not the full torque. The pair energy is multiplied in PairModulator.
             torque_i = vec_to_scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
+
             // The component of a2x, a2y, a2z ends up zero because the orientation is tied to the a1 direction.
             // Same for the a3 part.
-            
+
+            // The above comment is accurate when it's a uni-axial potential. Need to add more when I change the patch alignment.
+
+
+            // New general torque for patch offset from a1 direction of particle
+
+            // comments use Mathematica notation:
+
+            // qr * Cross[{drx, dry, drz}, {qx, qy, qz}]
+            vec3<Scalar> new_cross_term = s.oi.s * cross(s.dr, s.oi.v);
+
+            // {qx, qy, qz}*{{dry,drz}.{qy,qz}, {drx,drz}.{qx,qz}, {drx,dry}.{qx,qy}}
+            // Components of dot products:
+            drxqx = s.dr.x*s.oi.v.x;
+            dryqy = s.dr.y*s.oi.v.y;
+            drzqz = s.dr.z*s.oi.v.z;
+
+            new_cross_term.x += s.oi.v.x * (dryqy + drzqz);
+            new_cross_term.y += s.oi.v.y * (drxqx + drzqz);
+            new_cross_term.z += s.oi.v.z * (drxqx + dryqy);
+
+            // {drx, dry, drz}*{qx, qy, qz}^2 . {{-1, 1, 1}, {1, -1, 1}, {1, 1, -1}}
+            qx2 = s.oi.v.x * s.oi.v.x;
+            qy2 = s.oi.v.y * s.oi.v.y;
+            qz2 = s.oi.v.z * s.oi.v.z;
+
+            new_cross_term.x += s.dr.x * (-qx2 + qy2 + qz2);
+            new_cross_term.y += s.dr.y * ( qx2 - qy2 + qz2);
+            new_cross_term.z += s.dr.z * ( qx2 + qy2 - qz2);
+
+            // The norm2 comes from the definition of rotation for quaternion
+            // The magdr comes from the dot product definition of cos(theta_i)
+            new_cross_term = new_cross_term / (-s.magdr * norm2(s.oi));
+            // I multiply iPj by magdr next for clarity during the derivation bc I did it above -Corwin
+            new_torque_mult = vec_to_scalar3( (iPj*s.magdr) * cross(vec3<Scalar>(s.a1), new_cross_term));
+
+            // Previously above, I would have s.ei which is the same, but I'm moving to a1 for clarity.
+
             // torque on jth - note sign is opposite ith!
             torque_j = vec_to_scalar3(jPi * cross(vec3<Scalar>(s.dr), vec3<Scalar>(s.ej)));
 
             // compute force contribution
+            // not the full force. Just the envelope that will be applied to pair energy
             force.x = -(iPj*(-s.ei.x - s.doti*s.dr.x/s.magdr)
                         + jPi*(s.ej.x - s.dotj*s.dr.x/s.magdr));
             force.y = -(iPj*(-s.ei.y - s.doti*s.dr.y/s.magdr)
                         + jPi*(s.ej.y - s.dotj*s.dr.y/s.magdr));
             force.z = -(iPj*(-s.ei.z - s.doti*s.dr.z/s.magdr)
                         + jPi*(s.ej.z - s.dotj*s.dr.z/s.magdr));
-            
+            // for force we only care about derivative with respect to dr
+            // only doti, dotj depend on dr because ei or ej is fixed from particle orientation
+
             return true;
         }
 
@@ -134,12 +177,12 @@ public:
             return std::string("generalenvelope");
         }
 #endif
-    
+
 private:
         AngleDependence s;
 };
 
     } // end namespace md
     } // end namespace hoomd
-        
+
 #endif // __GENERAL_ENVELOPE_H__
