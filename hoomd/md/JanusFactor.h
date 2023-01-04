@@ -63,20 +63,37 @@ public:
         : dr(_dr), qi(_qi), qj(_qj), params(_params)
         {
             // compute current janus direction vectors
-            vec3<Scalar> e { make_scalar3(1, 0, 0) };
+            vec3<Scalar> ex { make_scalar3(1, 0, 0) };
+            vec3<Scalar> ey { make_scalar3(0, 1, 0) };
+            vec3<Scalar> ez { make_scalar3(0, 0, 1) };
+            vec3<Scalar> oi { orientation_i }; // patch orientation
+            vec3<Scalar> oj { orientation_j };
             vec3<Scalar> ei;
             vec3<Scalar> ej;
 
-            ei = rotate(quat<Scalar>(qi), e);
-            ej = rotate(quat<Scalar>(qj), e);
+            ei = rotate(quat<Scalar>(qi), ex);
+            a1 = rotate(quat<Scalar>(qi), ex);
+            a2 = rotate(quat<Scalar>(qi), ey);
+            a3 = rotate(quat<Scalar>(qi), ez);
+
+            ej = rotate(quat<Scalar>(qj), ex);
+            b1 = rotate(quat<Scalar>(qj), ex);
+            b2 = rotate(quat<Scalar>(qj), ey);
+            b3 = rotate(quat<Scalar>(qj), ez);
 
             // compute distance
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
 
             // cos(angle between dr and pointing vector)
+            // which as first implemented is the same as the angle between the patch and pointing director
             doti = -dot(vec3<Scalar>(dr), ei) / magdr; // negative because dr = dx = pi - pj
             dotj = dot(vec3<Scalar>(dr), ej) / magdr;
+
+            // cosines
+            doti1 = -dot(vec3<Scalar>(dr), a1) / magdr;
+            doti2 = -dot(vec3<Scalar>(dr), a2) / magdr;
+            doti3 = -dot(vec3<Scalar>(dr), a3) / magdr;
         }
 
     DEVICE inline Scalar Modulatori()
@@ -89,9 +106,10 @@ public:
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(dotj-params.cosalpha)) );
         }
 
-    DEVICE Scalar ModulatorPrimei()
+    DEVICE Scalar ModulatorPrimei() // D[f[\[Theta], \[Alpha], \[Omega]], Cos[\[Theta]]]
         {
             Scalar fact = Modulatori();
+            // weird way of writing out the derivative of f with respect to doti = Cos[theta] = 
             return params.omega * fast::exp(-params.omega*(doti-params.cosalpha)) * fact * fact;
         }
 
