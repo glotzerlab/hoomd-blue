@@ -60,16 +60,20 @@ public:
                        const Scalar4& _qj,
                        const Scalar& _rcutsq,
                        const param_type& _params)
-        : dr(_dr), qi(_qi), qj(_qj), params(_params)
+        : dr(_dr), qi(_qi), qj(_qj), oi(_params.patch_orientation), oj(_q_patchj), params(_params) // TODO: this is wrong
         {
             // compute current janus direction vectors
             vec3<Scalar> ex { make_scalar3(1, 0, 0) };
             vec3<Scalar> ey { make_scalar3(0, 1, 0) };
             vec3<Scalar> ez { make_scalar3(0, 0, 1) };
-            vec3<Scalar> oi { orientation_i }; // patch orientation
-            vec3<Scalar> oj { orientation_j };
             vec3<Scalar> ei;
+            vec3<Scalar> a1;
+            vec3<Scalar> a2;
+            vec3<Scalar> a3;
             vec3<Scalar> ej;
+            vec3<Scalar> b1;
+            vec3<Scalar> b2;
+            vec3<Scalar> b3;
 
             ei = rotate(quat<Scalar>(qi), ex);
             a1 = rotate(quat<Scalar>(qi), ex);
@@ -89,11 +93,6 @@ public:
             // which as first implemented is the same as the angle between the patch and pointing director
             doti = -dot(vec3<Scalar>(dr), ei) / magdr; // negative because dr = dx = pi - pj
             dotj = dot(vec3<Scalar>(dr), ej) / magdr;
-
-            // cosines
-            doti1 = -dot(vec3<Scalar>(dr), a1) / magdr;
-            doti2 = -dot(vec3<Scalar>(dr), a2) / magdr;
-            doti3 = -dot(vec3<Scalar>(dr), a3) / magdr;
         }
 
     DEVICE inline Scalar Modulatori()
@@ -124,10 +123,18 @@ public:
     Scalar3 dr;
     Scalar4 qi;
     Scalar4 qj;
+    Scalar4 oi;
+    Scalar4 oj;
     param_type params;
     // things that get calculated when constructor is called
     Scalar3 ei;
     Scalar3 ej;
+    Scalar3 a1;
+    Scalar3 a2;
+    Scalar3 a3;
+    Scalar3 b1;
+    Scalar3 b2;
+    Scalar3 b3;
     Scalar drsq;
     Scalar magdr;
     Scalar doti;
