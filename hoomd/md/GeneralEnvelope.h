@@ -111,7 +111,7 @@ public:
 
             // torque on ith
             // These are not the full torque. The pair energy is multiplied in PairModulator.
-            torque_i = vec_to_scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
+            // torque_i = vec_to_scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
 
             // The component of a2x, a2y, a2z ends up zero because the orientation is tied to the a1 direction.
             // Same for the a3 part.
@@ -128,18 +128,18 @@ public:
 
             // {qx, qy, qz}*{{dry,drz}.{qy,qz}, {drx,drz}.{qx,qz}, {drx,dry}.{qx,qy}}
             // Components of dot products:
-            drxqx = s.dr.x*s.oi.v.x;
-            dryqy = s.dr.y*s.oi.v.y;
-            drzqz = s.dr.z*s.oi.v.z;
+            Scalar drxqx = s.dr.x*s.oi.v.x;
+            Scalar dryqy = s.dr.y*s.oi.v.y;
+            Scalar drzqz = s.dr.z*s.oi.v.z;
 
             new_cross_term.x += s.oi.v.x * (dryqy + drzqz);
             new_cross_term.y += s.oi.v.y * (drxqx + drzqz);
             new_cross_term.z += s.oi.v.z * (drxqx + dryqy);
 
             // {drx, dry, drz}*{qx, qy, qz}^2 . {{-1, 1, 1}, {1, -1, 1}, {1, 1, -1}}
-            qx2 = s.oi.v.x * s.oi.v.x;
-            qy2 = s.oi.v.y * s.oi.v.y;
-            qz2 = s.oi.v.z * s.oi.v.z;
+            Scalar qx2 = s.oi.v.x * s.oi.v.x;
+            Scalar qy2 = s.oi.v.y * s.oi.v.y;
+            Scalar qz2 = s.oi.v.z * s.oi.v.z;
 
             new_cross_term.x += s.dr.x * (-qx2 + qy2 + qz2);
             new_cross_term.y += s.dr.y * ( qx2 - qy2 + qz2);
@@ -149,13 +149,13 @@ public:
             // The magdr comes from the dot product definition of cos(theta_i)
             new_cross_term = new_cross_term / (-s.magdr * norm2(s.oi));
             // I multiply iPj by magdr next for clarity during the derivation bc I did it above -Corwin
-            new_torque_mult = vec_to_scalar3( (iPj*s.magdr) * cross(vec3<Scalar>(s.a1), new_cross_term));
+            torque_i = vec_to_scalar3( (iPj*s.magdr) * cross(vec3<Scalar>(s.a1), new_cross_term));
 
             // Previously above, I would have s.ei which is the same, but I'm moving to a1 for clarity.
 
             // torque on jth - note sign is opposite ith!
-            torque_j = vec_to_scalar3(jPi * cross(vec3<Scalar>(s.dr), vec3<Scalar>(s.ej)));
-
+            torque_j = vec_to_scalar3( (jPi*s.magdr) * cross(vec3<Scalar>(s.b1), -new_cross_term));
+            
             // compute force contribution
             // not the full force. Just the envelope that will be applied to pair energy
             force.x = -(iPj*(-s.ei.x - s.doti*s.dr.x/s.magdr)
