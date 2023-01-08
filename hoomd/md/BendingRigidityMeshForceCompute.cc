@@ -130,9 +130,9 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
         assert(btag_a < m_pdata->getMaximumTag() + 1);
         unsigned int btag_b = bond.tag[1];
         assert(btag_b < m_pdata->getMaximumTag() + 1);
-        unsigned int btag_c = bond.tag[0];
+        unsigned int btag_c = bond.tag[2];
         assert(btag_c < m_pdata->getMaximumTag() + 1);
-        unsigned int btag_d = bond.tag[0];
+        unsigned int btag_d = bond.tag[3];
         assert(btag_d < m_pdata->getMaximumTag() + 1);
 
         if (btag_c == btag_d)
@@ -204,11 +204,11 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
         Fad.y = A2.x * dab.z - A2.z * dab.x;
         Fad.z = -A2.x * dab.y + A2.y * dab.x;
 
-        Fab = m_K[0] * Fab;
+        Fab = 0.5 * m_K[0] * Fab;
 
-        Fac = m_K[0] * Fac;
+        Fac = 0.5 * m_K[0] * Fac;
 
-        Fad = m_K[0] * Fad;
+        Fad = 0.5 * m_K[0] * Fad;
 
         if (compute_virial)
             {
@@ -234,8 +234,8 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].y += (Fab.y + Fac.y + Fad.y);
             h_force.data[idx_a].z += (Fab.z + Fac.z + Fad.z);
             h_force.data[idx_a].w
-                = m_K[0] * 0.25 * (1 - cosinus); // the missing minus sign comes from the fact that
-                                                 // we have to compare the normal directions
+                = m_K[0] * 0.125 * (1 - cosinus); // the missing minus sign comes from the fact that
+                                                  // we have to compare the normal directions
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += rigidity_virial[j];
             }
@@ -255,7 +255,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fab.x;
             h_force.data[idx_b].y -= Fab.y;
             h_force.data[idx_b].z -= Fab.z;
-            h_force.data[idx_b].w = m_K[0] * 0.25 * (1 - cosinus);
+            h_force.data[idx_b].w = m_K[0] * 0.125 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += rigidity_virial[j];
             }
@@ -275,7 +275,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_c].x -= Fac.x;
             h_force.data[idx_c].y -= Fac.y;
             h_force.data[idx_c].z -= Fac.z;
-            h_force.data[idx_c].w = m_K[0] * 0.25 * (1 - cosinus);
+            h_force.data[idx_c].w = m_K[0] * 0.125 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_c] += rigidity_virial[j];
             }
@@ -295,7 +295,7 @@ void BendingRigidityMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_d].x -= Fad.x;
             h_force.data[idx_d].y -= Fad.y;
             h_force.data[idx_d].z -= Fad.z;
-            h_force.data[idx_d].w = m_K[0] * 0.25 * (1 - cosinus);
+            h_force.data[idx_d].w = m_K[0] * 0.125 * (1 - cosinus);
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_d] += rigidity_virial[j];
             }

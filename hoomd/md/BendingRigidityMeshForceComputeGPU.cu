@@ -170,7 +170,7 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
         Fac.y = -A1.x * dab.z + A1.z * dab.x;
         Fac.z = A1.x * dab.y - A1.y * dab.x;
 
-        Fac *= K;
+        Fac *= 0.5 * K;
 
         virial[0] += Scalar(1. / 2.) * dac.x * Fac.x; // xx
 
@@ -191,8 +191,8 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
             Fad.y = A2.x * dab.z - A2.z * dab.x;
             Fad.z = -A2.x * dab.y + A2.y * dab.x;
 
-            Fab *= K;
-            Fad *= K;
+            Fab *= 0.5 * K;
+            Fad *= 0.5 * K;
 
             virial[0] += Scalar(1. / 2.) * (dab.x * Fab.x + dad.x * Fad.x); // xx
             virial[1] += Scalar(1. / 2.) * (dab.y * Fab.x + dad.y * Fad.x); // xy
@@ -211,7 +211,7 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
         force.x += Fac.x;
         force.y += Fac.y;
         force.z += Fac.z;
-        force.w = K / 4.0 * (1 - cosinus);
+        force.w = K / 8.0 * (1 - cosinus);
         }
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
