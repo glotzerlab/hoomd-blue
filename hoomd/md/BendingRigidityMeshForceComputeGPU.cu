@@ -109,12 +109,12 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
         Scalar K = __ldg(d_params + cur_bond_type);
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
-        Scalar4 bb_postype = d_pos[cur_bond_idx];
+        Scalar4 bb_postype = d_pos[cur_idx_b];
         Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
-        Scala3 aa_pos, cc_pos;
+        Scalar3 aa_pos, cc_pos;
 
         if (cur_bond_pos < 2)
             {
@@ -128,7 +128,7 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
             cc_pos = pos;
             // get the a-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 aa_postype = d_pos[cur_idx_a];
-            aa_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
+            aa_pos = make_scalar3(aa_postype.x, aa_postype.y, aa_postype.z);
             }
 
         Scalar3 dab = aa_pos - bb_pos;
@@ -283,7 +283,8 @@ hipError_t gpu_compute_bending_rigidity_force(Scalar4* d_force,
                        box,
                        blist,
                        blist_idx,
-                       bpos_list n_bonds_list,
+                       bpos_list, 
+		       n_bonds_list,
                        d_params,
                        n_bond_type,
                        d_flags);
