@@ -74,12 +74,13 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 
         group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
 
-        int cur_bond_idx = cur_bond.idx[0];
-        int cur_idx_c = cur_bond.idx[1];
-        int cur_idx_d = cur_bond.idx[2];
+        unsigned int cur_idx_c = cur_bond.idx[1];
+        unsigned int cur_idx_d = cur_bond.idx[2];
 
         if (cur_idx_c == cur_idx_d)
             continue;
+
+        unsigned int cur_bond_idx = cur_bond.idx[0];
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_bond_idx];
@@ -293,13 +294,14 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 
         group_storage<4> cur_bond = blist[blist_idx(idx, bond_idx)];
 
-        int cur_bond_idx = cur_bond.idx[0];
         int cur_idx_c = cur_bond.idx[1];
         int cur_idx_d = cur_bond.idx[2];
-        int cur_bond_type = cur_bond.idx[3];
 
         if (cur_idx_c == cur_idx_d)
             continue;
+
+        int cur_bond_idx = cur_bond.idx[0];
+        int cur_bond_type = cur_bond.idx[3];
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_bond_idx];
