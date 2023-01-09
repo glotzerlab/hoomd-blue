@@ -28,11 +28,15 @@ VolumeConservationMeshForceCompute::VolumeConservationMeshForceCompute(
     {
     m_exec_conf->msg->notice(5) << "Constructing VolumeConservationMeshForceCompute" << endl;
 
-    // allocate the parameters
-    m_K = new Scalar[m_pdata->getNTypes()];
+    unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
 
     // allocate the parameters
-    m_V0 = new Scalar[m_pdata->getNTypes()];
+    m_K = new Scalar[n_types];
+
+    // allocate the parameters
+    m_V0 = new Scalar[n_types];
+
+    m_volume = new Scalar[n_types];
     }
 
 VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
@@ -127,12 +131,6 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < 6; i++)
         helfrich_virial[i] = Scalar(0.0);
 
-    Scalar VolDiff = m_volume - m_V0[0];
-
-    Scalar energy = m_K[0] * VolDiff * VolDiff / (2 * m_V0[0] * m_pdata->getN());
-
-    VolDiff = -m_K[0] / m_V0[0] * VolDiff / 6.0;
-
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -172,6 +170,15 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
         vec3<Scalar> dVol_c = cross(pos_b, pos_a);
 
         Scalar3 Fa, Fb, Fc;
+
+        unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
+
+        Scalar VolDiff = m_volume[triangle_type] - m_V0[triangle_type];
+
+        Scalar energy
+            = m_K[triangle_type] * VolDiff * VolDiff / (2 * m_V0[triangle_type] * m_pdata->getN());
+
+        VolDiff = -m_K[triangle_type] / m_V0[triangle_type] * VolDiff / 6.0;
 
         Fa.x = VolDiff * dVol_a.x;
         Fa.y = VolDiff * dVol_a.y;
@@ -262,7 +269,9 @@ void VolumeConservationMeshForceCompute::computeVolume()
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
-    m_volume = 0;
+
+    for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
+        m_volume[i] = 0;
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
@@ -298,7 +307,9 @@ void VolumeConservationMeshForceCompute::computeVolume()
 
         Scalar vol_tri = dot(cross(pos_c, pos_b), pos_a) / 6.0;
 
-        m_volume += vol_tri;
+        unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
+
+        m_volume[triangle_type] += vol_tri;
         }
     }
 

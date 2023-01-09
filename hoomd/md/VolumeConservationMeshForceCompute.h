@@ -76,10 +76,15 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
-    Scalar getVolume()
+    // Scalar getVolume()
+    //     {
+    //     return m_volume[0];
+    //     };
+
+    pybind11::array_t<Scalar> getVolume()
         {
-        return m_volume;
-        };
+        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), m_volume);
+        }
 
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
@@ -101,7 +106,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
-    Scalar m_volume; //! sum of the triangle areas within the mesh
+    Scalar* m_volume; //! sum of the triangle areas within the mesh
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

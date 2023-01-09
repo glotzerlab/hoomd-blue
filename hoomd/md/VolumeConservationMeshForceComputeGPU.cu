@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
@@ -9,7 +12,6 @@
 #include <assert.h>
 
 #include <stdio.h>
-
 
 /*! \file MeshVolumeConservationGPU.cu
     \brief Defines GPU kernel code for calculating the volume_constraint forces. Used by
@@ -55,7 +57,7 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
         int n_triangles = n_triangles_list[idx];
         Scalar4 postype = __ldg(d_pos + idx);
         Scalar3 pos_a = make_scalar3(postype.x, postype.y, postype.z);
-        int3 image_a = d_image[idx]; 
+        int3 image_a = d_image[idx];
         pos_a = box.shift(pos_a, image_a);
 
         volume_transfer = 0;
@@ -72,16 +74,16 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             // get the b-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 bb_postype = d_pos[cur_triangle_b];
             Scalar3 pos_b = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-            int3 image_b = d_image[cur_triangle_b]; 
+            int3 image_b = d_image[cur_triangle_b];
             pos_b = box.shift(pos_b, image_b);
 
             // get the c-particle's position (MEM TRANSFER: 16 bytes)
             Scalar4 cc_postype = d_pos[cur_triangle_c];
             Scalar3 pos_c = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-            int3 image_c = d_image[cur_triangle_c]; 
+            int3 image_c = d_image[cur_triangle_c];
             pos_c = box.shift(pos_c, image_c);
 
-            vec3<Scalar> dVol(0,0,0);
+            vec3<Scalar> dVol(0, 0, 0);
             if (cur_triangle_abc == 1)
                 {
                 dVol.x = pos_b.y * pos_c.z - pos_b.z * pos_c.y;
@@ -148,7 +150,6 @@ gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsig
             if (threadIdx.x < offs)
                 volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
             offs >>= 1;
-            __syncthreads();
             }
 
         // everybody sums up sum2K
@@ -192,21 +193,20 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL(
-        (gpu_compute_volume_constraint_volume_kernel),
-        dim3(grid),
-        dim3(threads),
-        block_size * sizeof(Scalar),
-        0,
-        d_sum_partial_volume,
-        N,
-        d_pos,
-        d_image,
-        box,
-        tlist,
-        tpos_list,
-        tlist_idx,
-        n_triangles_list);
+    hipLaunchKernelGGL((gpu_compute_volume_constraint_volume_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       block_size * sizeof(Scalar),
+                       0,
+                       d_sum_partial_volume,
+                       N,
+                       d_pos,
+                       d_image,
+                       box,
+                       tlist,
+                       tpos_list,
+                       tlist_idx,
+                       n_triangles_list);
 
     hipLaunchKernelGGL((gpu_volume_reduce_partial_sum_kernel),
                        dim3(grid1),
@@ -265,10 +265,10 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos_a = make_scalar3(postype.x, postype.y, postype.z);
-    int3 image_a = d_image[idx]; 
+    int3 image_a = d_image[idx];
     pos_a = box.shift(pos_a, image_a);
-    
-    Scalar4 force = make_scalar4(Scalar(0.0),Scalar(0.0),Scalar(0.0),Scalar(0.0));
+
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     // initialize the virial to 0
     Scalar virial[6];
@@ -282,7 +282,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
 
         int cur_triangle_b = cur_triangle.idx[0];
         int cur_triangle_c = cur_triangle.idx[1];
-        int cur_triangle_type = cur_triangle.idx[5];
+        int cur_triangle_type = cur_triangle.idx[2];
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         Scalar2 params = __ldg(d_params + cur_triangle_type);
@@ -300,13 +300,13 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_triangle_b];
         Scalar3 pos_b = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        int3 image_b = d_image[cur_triangle_b]; 
+        int3 image_b = d_image[cur_triangle_b];
         pos_b = box.shift(pos_b, image_b);
 
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 cc_postype = d_pos[cur_triangle_c];
         Scalar3 pos_c = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-        int3 image_c = d_image[cur_triangle_c]; 
+        int3 image_c = d_image[cur_triangle_c];
         pos_c = box.shift(pos_c, image_c);
 
         vec3<Scalar> dVol;

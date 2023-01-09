@@ -41,12 +41,14 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    GPUArray<Scalar> sum(1, m_exec_conf);
+    GPUArray<Scalar> sum(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_sum.swap(sum);
 
     m_block_size = 256;
     unsigned int group_size = m_pdata->getN();
-    m_num_blocks = group_size / m_block_size + 1;
+    m_num_blocks = group_size / m_block_size;
+    m_num_blocks *= this->m_mesh_data->getMeshTriangleData()->getNTypes();
+    m_num_blocks += 1;
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
     m_partial_sum.swap(partial_sum);
 
