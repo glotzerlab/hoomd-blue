@@ -101,7 +101,7 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
             cur_idx_d = cur_bond.idx[2];
             }
 
-        int cur_bond_type = 0;
+        int cur_bond_type = cur_bond.idx[3];
 
         if (cur_idx_c == cur_idx_d)
             continue;
