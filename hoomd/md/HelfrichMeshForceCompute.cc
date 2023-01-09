@@ -31,7 +31,7 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_exec_conf->msg->notice(5) << "Constructing HelfrichMeshForceCompute" << endl;
 
     // allocate the parameters
-    m_K = new Scalar[m_pdata->getNTypes()];
+    m_K = new Scalar[m_mesh_data->getMeshBondData()->getNTypes()];
 
     // allocate memory for the per-type normal verctors
     GlobalVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
