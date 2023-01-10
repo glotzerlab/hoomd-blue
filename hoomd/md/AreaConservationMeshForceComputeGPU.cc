@@ -210,7 +210,7 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
         }
 #endif
     for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
-        h_area.data[i] = h_sumVol.data[i];
+        h_area.data[i] = h_sumArea.data[i];
     }
 
 namespace detail

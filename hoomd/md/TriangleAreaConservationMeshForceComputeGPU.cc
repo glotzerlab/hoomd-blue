@@ -156,6 +156,10 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
         this->m_mesh_data->getMeshTriangleData()->getNGroupsArray(),
         access_location::device,
         access_mode::read);
+    ArrayHandle<unsigned int> d_gpu_meshtriangle_pos_list(
+        m_mesh_data->getMeshTriangleData()->getGPUPosTable(),
+        access_location::device,
+        access_mode::read);
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
@@ -166,13 +170,14 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
                                        access_mode::overwrite);
     ArrayHandle<Scalar> d_sumA(m_sum, access_location::device, access_mode::overwrite);
 
-    kernel::gpu_compute_AreaConservation_area(d_sumA.data,
+    kernel::gpu_compute_area_constraint_area(d_sumA.data,
                                               d_partial_sumA.data,
                                               m_pdata->getN(),
                                               m_mesh_data->getMeshTriangleData()->getNTypes(),
                                               d_pos.data,
                                               box,
                                               d_gpu_meshtrianglelist.data,
+                                              d_gpu_meshtriangle_pos_list.data,
                                               gpu_table_indexer,
                                               d_gpu_n_meshtriangle.data,
                                               m_block_size,
