@@ -33,6 +33,10 @@ VolumeConservationMeshForceComputeGPU::VolumeConservationMeshForceComputeGPU(
     GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
+    // allocate and zero device memory
+    GPUArray<Scalar> volume_GPU(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
+    m_volume_GPU.swap(volume_GPU);
+
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
@@ -101,6 +105,8 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
+    ArrayHandle<Scalar> d_volume(m_volume_GPU, access_location::device, access_mode::read);
+
     // access the flags array for overwriting
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
@@ -112,7 +118,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                 d_pos.data,
                                                 d_image.data,
                                                 box,
-                                                m_volume,
+                                                d_volume.data,
                                                 d_gpu_meshtrianglelist.data,
                                                 d_gpu_meshtriangle_pos_list.data,
                                                 gpu_table_indexer,
@@ -178,6 +184,7 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
     kernel::gpu_compute_volume_constraint_volume(d_sumVol.data,
                                                  d_partial_sumVol.data,
                                                  m_pdata->getN(),
+                                                 m_mesh_data->getMeshTriangleData()->getNTypes(),
                                                  d_pos.data,
                                                  d_image.data,
                                                  box,
@@ -194,6 +201,7 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
         }
 
     ArrayHandle<Scalar> h_sumVol(m_sum, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_volume(m_volume_GPU, access_location::host, access_mode::overwrite);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -205,7 +213,8 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-    m_volume = h_sumVol.data[0];
+    for (unsigned int i = 0; i <  m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
+    	h_volume.data[i] = h_sumVol.data[i];
     }
 
 namespace detail

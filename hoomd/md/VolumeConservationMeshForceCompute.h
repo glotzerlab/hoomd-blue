@@ -76,12 +76,7 @@ class PYBIND11_EXPORT VolumeConservationMeshForceCompute : public ForceCompute
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
-    // Scalar getVolume()
-    //     {
-    //     return m_volume[0];
-    //     };
-
-    pybind11::array_t<Scalar> getVolume()
+    virtual pybind11::array_t<Scalar> getVolume()
         {
         return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), m_volume);
         }
