@@ -29,7 +29,7 @@ class Area(MeshPotential):
             to be stated. The dictionary has the following keys:
             * ``k`` (`float`, **required**) - area conservation coefficient
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
-            * ``A_mesh`` (`float`, **required**) - targeted sureface area
+            * ``A0`` (`float`, **required**) - targeted sureface area
               of the whole mesh
               :math:`[\mathrm{length}]^2]`
 
@@ -41,9 +41,8 @@ class Area(MeshPotential):
     _cpp_class_name = "AreaConservationMeshForceCompute"
 
     def __init__(self, mesh):
-        params = TypeParameter(
-            "params", "types",
-            TypeParameterDict(k=float, A_mesh=float, len_keys=1))
+        params = TypeParameter("params", "types",
+                               TypeParameterDict(k=float, A0=float, len_keys=1))
         self._add_typeparam(params)
 
         super().__init__(mesh)

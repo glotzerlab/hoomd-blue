@@ -24,15 +24,19 @@ namespace md
 AreaConservationMeshForceCompute::AreaConservationMeshForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<MeshDefinition> meshdef)
-    : ForceCompute(sysdef), m_K(NULL), m_Amesh(NULL), m_mesh_data(meshdef), m_area(0)
+    : ForceCompute(sysdef), m_K(NULL), m_A0(NULL), m_mesh_data(meshdef), m_area(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing AreaConservationMeshForceCompute" << endl;
 
-    // allocate the parameters
-    m_K = new Scalar[m_pdata->getNTypes()];
+    unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
 
     // allocate the parameters
-    m_Amesh = new Scalar[m_pdata->getNTypes()];
+    m_K = new Scalar[n_types];
+
+    // allocate the parameters
+    m_A0 = new Scalar[n_types];
+
+    m_area = new Scalar[n_types];
     }
 
 AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
@@ -40,9 +44,11 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
     m_exec_conf->msg->notice(5) << "Destroying AreaConservationMeshForceCompute" << endl;
 
     delete[] m_K;
-    delete[] m_Amesh;
+    delete[] m_A0;
+    delete[] m_area;
     m_K = NULL;
-    m_Amesh = NULL;
+    m_A0 = NULL;
+    m_area = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
@@ -50,23 +56,23 @@ AreaConservationMeshForceCompute::~AreaConservationMeshForceCompute()
 
     Sets parameters for the potential of a particular angle type
 */
-void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A_mesh)
+void AreaConservationMeshForceCompute::setParams(unsigned int type, Scalar K, Scalar A0)
     {
     m_K[type] = K;
-    m_Amesh[type] = A_mesh;
+    m_A0[type] = A0;
 
     // check for some silly errors a user could make
     if (K <= 0)
         m_exec_conf->msg->warning() << "area: specified K <= 0" << endl;
-    if (A_mesh <= 0)
-        m_exec_conf->msg->warning() << "area: specified A_mesh <= 0" << endl;
+    if (A0 <= 0)
+        m_exec_conf->msg->warning() << "area: specified A0 <= 0" << endl;
     }
 
 void AreaConservationMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
     auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
     auto _params = aconstraint_params(params);
-    setParams(typ, _params.k, _params.A_mesh);
+    setParams(typ, _params.k, _params.A0);
     }
 
 pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
@@ -79,7 +85,7 @@ pybind11::dict AreaConservationMeshForceCompute::getParams(std::string type)
         }
     pybind11::dict params;
     params["k"] = m_K[typ];
-    params["A_mesh"] = m_Amesh[typ];
+    params["A0"] = m_A0[typ];
     return params;
     }
 
@@ -125,12 +131,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     Scalar area_virial[6];
     for (unsigned int i = 0; i < 6; i++)
         area_virial[i] = Scalar(0.0);
-
-    Scalar AreaDiff = m_area - m_Amesh[0];
-
-    Scalar energy = m_K[0] * AreaDiff * AreaDiff / (2 * m_Amesh[0] * m_pdata->getN());
-
-    AreaDiff = -m_K[0] / m_Amesh[0] * AreaDiff / 2.0;
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
@@ -204,6 +204,15 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         ds_drc = -c_baac * inv_s_baac * dc_drc;
 
         Scalar3 Fa, Fb, Fc;
+
+        unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
+
+        Scalar AreaDiff = m_area[triangle_type] - m_A0[triangle_type];
+
+        Scalar energy = m_K[triangle_type] * AreaDiff * AreaDiff
+                        / (2 * m_A0[triangle_type] * m_pdata->getN());
+
+        AreaDiff = -m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
 
         Fa = AreaDiff * (-nab * rac * s_baac - nac * rab * s_baac + ds_dra * rab * rac);
 
@@ -287,7 +296,9 @@ void AreaConservationMeshForceCompute::precomputeParameter()
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
-    m_area = 0;
+
+    for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
+        m_area[i] = 0;
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
@@ -346,7 +357,9 @@ void AreaConservationMeshForceCompute::precomputeParameter()
         Scalar s_baac = sqrt(1.0 - c_baac * c_baac);
         Scalar area_tri = rab * rac * s_baac / 2.0;
 
-        m_area += area_tri;
+        unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
+
+        m_area[triangle_type] += area_tri;
         }
     }
 

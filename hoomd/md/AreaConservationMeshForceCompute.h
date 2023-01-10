@@ -28,13 +28,13 @@ namespace md
 struct aconstraint_params
     {
     Scalar k;
-    Scalar A_mesh;
+    Scalar A0;
 
 #ifndef __HIPCC__
-    aconstraint_params() : k(0), A_mesh(0) { }
+    aconstraint_params() : k(0), A0(0) { }
 
     aconstraint_params(pybind11::dict params)
-        : k(params["k"].cast<Scalar>()), A_mesh(params["A_mesh"].cast<Scalar>())
+        : k(params["k"].cast<Scalar>()), A0(params["A0"].cast<Scalar>())
         {
         }
 
@@ -42,7 +42,7 @@ struct aconstraint_params
         {
         pybind11::dict v;
         v["k"] = k;
-        v["A_mesh"] = A_mesh;
+        v["A0"] = A0;
         return v;
         }
 #endif
@@ -69,16 +69,16 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     virtual ~AreaConservationMeshForceCompute();
 
     //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);
+    virtual void setParams(unsigned int type, Scalar K, Scalar A0);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
     /// Get the parameters for a type
     pybind11::dict getParams(std::string type);
 
-    Scalar getArea()
+    virtual pybind11::array_t<Scalar> getArea()
         {
-        return m_area;
+        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), m_area);
         };
 
 #ifdef ENABLE_MPI
@@ -97,25 +97,17 @@ class PYBIND11_EXPORT AreaConservationMeshForceCompute : public ForceCompute
     protected:
     Scalar* m_K; //!< K parameter for multiple mesh triangles
 
-    Scalar* m_Amesh;
+    Scalar* m_A0;
 
     std::shared_ptr<MeshDefinition> m_mesh_data; //!< Mesh data to use in computing helfich energy
 
-    Scalar m_area; //! sum of the triangle areas within the mesh
-
-    Scalar m_area_diff;
+    Scalar* m_area; //! sum of the triangle areas within the mesh
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
 
     //! compute areas
     virtual void precomputeParameter();
-
-    virtual void
-    postcompute(unsigned int idx_a, unsigned int idx_b, unsigned int idx_c, unsigned int idx_d)
-        {
-        m_area += m_area_diff;
-        };
     };
 
 namespace detail

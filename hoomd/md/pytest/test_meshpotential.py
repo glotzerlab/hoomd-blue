@@ -32,14 +32,19 @@ _Tether_args = {
 _Tether_arg_list = [(hoomd.md.mesh.bond.Tether, dict(zip(_Tether_args, val)))
                     for val in zip(*_Tether_args.values())]
 
-_AreaConservation_args = {
+_TriangleAreaConservation_args = {
     'k': [1.0, 20.0, 100.0],
     'A_mesh': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
 }
+
+_AreaConservation_args = {
+    'k': [1.0, 20.0, 100.0],
+    'A0': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
+}
 _TriangleAreaConservation_arg_list = [
     (hoomd.md.mesh.conservation.TriangleArea,
-     dict(zip(_AreaConservation_args, val)))
-    for val in zip(*_AreaConservation_args.values())
+     dict(zip(_TriangleAreaConservation_args, val)))
+    for val in zip(*_TriangleAreaConservation_args.values())
 ]
 
 _AreaConservation_arg_list = [(hoomd.md.mesh.conservation.Area,
@@ -198,7 +203,7 @@ def test_area(simulation_factory, tetrahedron_snapshot_factory):
     mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
     mesh_potential = hoomd.md.mesh.conservation.Area(mesh)
-    mesh_potential.params["mesh"] = dict(k=1, A_mesh=1)
+    mesh_potential.params["mesh"] = dict(k=1, A0=1)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
