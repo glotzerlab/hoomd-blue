@@ -77,10 +77,10 @@ repos:
   hooks:
   - id: flake8
     additional_dependencies:
-    - pep8-naming==0.12.1
-    - pydocstyle==6.1.1
+    - pep8-naming==0.13.3
+    - pydocstyle==6.2.3
     - flake8-docstrings==1.6.0
-    - flake8-rst-docstrings==0.2.3
+    - flake8-rst-docstrings==0.3.0
     # Exclude components not yet ported to hoomd v3
     # TODO: Remove these exclusions as components are ported
     # These also need to be removed in setup.cfg
