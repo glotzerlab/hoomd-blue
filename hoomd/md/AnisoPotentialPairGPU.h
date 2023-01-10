@@ -40,6 +40,10 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
     //! Construct the pair potential
     AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<NeighborList> nlist);
+
+    AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+                          std::shared_ptr<NeighborList> nlist,
+                          bool reciprocal);
     //! Destructor
     virtual ~AnisoPotentialPairGPU() {};
 
@@ -82,6 +86,15 @@ AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDe
     // synchronize autotuner results across ranks
     m_tuner->setSync(bool(this->m_pdata->getDomainDecomposition()));
 #endif
+    }
+
+template<class evaluator>
+AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                        std::shared_ptr<NeighborList> nlist,
+                                                        bool reciprocal)
+    : AnisoPotentialPairGPU<evaluator>(sysdef, nlist)
+    {
+    m_reciprocal = reciprocal;
     }
 
 template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(uint64_t timestep)
@@ -171,6 +184,7 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
                               d_head_list.data,
                               d_rcutsq.data,
                               this->m_pdata->getNTypes(),
+                              this->m_reciprocal,
                               block_size,
                               this->m_shift_mode,
                               flags[pdata_flag::pressure_tensor],
@@ -220,7 +234,9 @@ template<class T> void export_AnisoPotentialPairGPU(pybind11::module& m, const s
     pybind11::class_<AnisoPotentialPairGPU<T>,
                      AnisoPotentialPair<T>,
                      std::shared_ptr<AnisoPotentialPairGPU<T>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, bool>());
     }
 
     } // end namespace detail

@@ -210,7 +210,7 @@ class EvaluatorPairGB
     /*! \param ai Angular momentum of particle i
         \param aj Angular momentum of particle j
     */
-    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, vec3<Scalar> aj) { }
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai) { }
 
     //! Evaluate the force and energy
     /*! \param force Output parameter to write the computed force.

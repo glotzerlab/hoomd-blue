@@ -77,6 +77,12 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     //! Construct the pair potential
     AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<NeighborList> nlist);
+
+    //! Construct the pair potential
+    AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<NeighborList> nlist,
+                       bool reciprocal);
+
     //! Destructor
     virtual ~AnisoPotentialPair();
 
@@ -237,6 +243,8 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
 
+    bool m_reciprocal = true;
+
     /// r_cut (not squared) given to the neighbor list
     std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
@@ -341,6 +349,15 @@ AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDe
             }
         }
 #endif
+    }
+
+template<class aniso_evaluator>
+AnisoPotentialPair<aniso_evaluator>::AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                                                        std::shared_ptr<NeighborList> nlist,
+                                                        bool reciprocal)
+    : AnisoPotentialPair<aniso_evaluator>(sysdef, nlist)
+    {
+    m_reciprocal = reciprocal;
     }
 
 template<class aniso_evaluator> AnisoPotentialPair<aniso_evaluator>::~AnisoPotentialPair()
@@ -614,7 +631,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     dj = h_diameter.data[j];
                 if (aniso_evaluator::needsCharge())
                     qj = h_charge.data[j];
-                if (aniso_evaluator::needsAngularMomentum())
+                if (aniso_evaluator::needsAngularMomentum() && m_reciprocal)
                     {
                     quat<Scalar> p(h_angmom.data[j]);
                     quat<Scalar> q(quat_j);
@@ -653,7 +670,12 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 if (aniso_evaluator::needsTags())
                     eval.setTags(h_tag.data[i], h_tag.data[j]);
                 if (aniso_evaluator::needsAngularMomentum())
-                    eval.setAngularMomentum(ai, aj);
+                    {
+                    if (m_reciprocal)
+                        eval.setAngularMomentum(ai + aj);
+                    else
+                        eval.setAngularMomentum(ai);
+                    }
 
                 bool evaluated = eval.evaluate(force, pair_eng, energy_shift, torque_i, torque_j);
 
@@ -764,6 +786,8 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         anisopotentialpair(m, name.c_str());
     anisopotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, bool>())
         .def("setParams", &AnisoPotentialPair<T>::setParamsPython)
         .def("getParams", &AnisoPotentialPair<T>::getParamsPython)
         .def("setShape", &AnisoPotentialPair<T>::setShapePython)

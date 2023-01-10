@@ -59,6 +59,7 @@ struct a_pair_args_t
                   const size_t* _d_head_list,
                   const Scalar* _d_rcutsq,
                   const unsigned int _ntypes,
+                  const bool _reciprocal,
                   const unsigned int _block_size,
                   const unsigned int _shift_mode,
                   const unsigned int _compute_virial,
@@ -68,9 +69,10 @@ struct a_pair_args_t
                   bool _update_shape_param)
         : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch),
           N(_N), n_max(_n_max), d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge),
-          d_orientation(_d_orientation), d_tag(_d_tag), d_angmom(_d_angmom), box(_box), d_n_neigh(_d_n_neigh),
-          d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes),
-          block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
+          d_orientation(_d_orientation), d_tag(_d_tag), d_angmom(_d_angmom), box(_box),
+          d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
+          ntypes(_ntypes), reciprocal(_reciprocal), block_size(_block_size),
+          shift_mode(_shift_mode), compute_virial(_compute_virial),
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
           devprop(_devprop), update_shape_param(_update_shape_param) {};
 
@@ -93,6 +95,7 @@ struct a_pair_args_t
     const size_t* d_head_list;   //!< Device array listing beginning of each particle's neighbors
     const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
     const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const bool reciprocal;
     const unsigned int block_size;           //!< Block size to execute
     const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
@@ -167,6 +170,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const typename evaluator::shape_type* d_shape_params,
                                      const Scalar* d_rcutsq,
                                      const unsigned int ntypes,
+                                     const bool reciprocal,
                                      const unsigned int offset,
                                      unsigned int max_extra_bytes)
     {
@@ -262,14 +266,13 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
-        vec3<Scalar> ai(0,0,0);
+        vec3<Scalar> ai(0, 0, 0);
         if (evaluator::needsAngularMomentum())
             {
             quat<Scalar> p(__ldg(d_angmom + idx));
             quat<Scalar> q(quati);
             ai = (Scalar(1. / 2.) * conj(q) * p).v;
             }
-
 
         size_t my_head = d_head_list[idx];
         unsigned int cur_j = 0;
@@ -302,8 +305,8 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
 
-                vec3<Scalar> aj(0,0,0);
-                if (evaluator::needsAngularMomentum())
+                vec3<Scalar> aj(0, 0, 0);
+                if (evaluator::needsAngularMomentum() && reciprocal)
                     {
                     quat<Scalar> p(__ldg(d_angmom + cur_j));
                     quat<Scalar> q(quatj);
@@ -349,7 +352,12 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 if (evaluator::needsTags())
                     eval.setTags(__ldg(d_tag + idx), __ldg(d_tag + cur_j));
                 if (evaluator::needsAngularMomentum())
-                    eval.setAngularMomentum(ai, aj);
+                    {
+                    if (reciprocal)
+                        eval.setAngularMomentum(ai + aj);
+                    else
+                        eval.setAngularMomentum(ai);
+                    }
 
                 // call evaluator
                 eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
@@ -528,6 +536,7 @@ struct AnisoPairForceComputeKernel
                 shape_params,
                 pair_args.d_rcutsq,
                 pair_args.ntypes,
+                pair_args.reciprocal,
                 offset,
                 max_extra_bytes);
             }
