@@ -33,6 +33,10 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
     GPUArray<Scalar2> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
+    // allocate and zero device memory
+    GPUArray<Scalar> area_GPU(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
+    m_area_GPU.swap(area_GPU);
+
     // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
@@ -41,12 +45,14 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    GPUArray<Scalar> sum(1, m_exec_conf);
+    GPUArray<Scalar> sum(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_sum.swap(sum);
 
     m_block_size = 256;
     unsigned int group_size = m_pdata->getN();
-    m_num_blocks = group_size / m_block_size + 1;
+    m_num_blocks = group_size / m_block_size;
+    m_num_blocks *= this->m_mesh_data->getMeshTriangleData()->getNTypes();
+    m_num_blocks += 1;
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
     m_partial_sum.swap(partial_sum);
 
@@ -56,13 +62,13 @@ AreaConservationMeshForceComputeGPU::AreaConservationMeshForceComputeGPU(
     m_autotuners.push_back(m_tuner);
     }
 
-void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A_mesh)
+void AreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A0)
     {
-    AreaConservationMeshForceCompute::setParams(type, K, A_mesh);
+    AreaConservationMeshForceCompute::setParams(type, K, A0);
 
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar2(K, A_mesh);
+    h_params.data[type] = make_scalar2(K, A0);
     }
 
 /*! Actually perform the force computation
@@ -98,6 +104,8 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
+    ArrayHandle<Scalar> d_area(m_area_GPU, access_location::device, access_mode::read);
+
     // access the flags array for overwriting
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
@@ -108,7 +116,7 @@ void AreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                               m_pdata->getN(),
                                               d_pos.data,
                                               box,
-                                              m_area,
+                                              d_area.data,
                                               d_gpu_meshtrianglelist.data,
                                               d_gpu_meshtriangle_pos_list.data,
                                               gpu_table_indexer,
@@ -173,6 +181,7 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
     kernel::gpu_compute_area_constraint_area(d_sumArea.data,
                                              d_partial_sumArea.data,
                                              m_pdata->getN(),
+                                             m_mesh_data->getMeshTriangleData()->getNTypes(),
                                              d_pos.data,
                                              box,
                                              d_gpu_meshtrianglelist.data,
@@ -188,6 +197,7 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
         }
 
     ArrayHandle<Scalar> h_sumArea(m_sum, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_area(m_area_GPU, access_location::host, access_mode::overwrite);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -199,7 +209,8 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-    m_area = h_sumArea.data[0];
+    for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
+        h_area.data[i] = h_sumVol.data[i];
     }
 
 namespace detail

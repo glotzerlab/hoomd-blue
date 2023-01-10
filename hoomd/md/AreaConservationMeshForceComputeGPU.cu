@@ -37,6 +37,7 @@ namespace kernel
 */
 __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_area,
                                                         const unsigned int N,
+                                                        const unsigned int tN,
                                                         const Scalar4* d_pos,
                                                         BoxDim box,
                                                         const group_storage<3>* tlist,
@@ -51,13 +52,13 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
 
     Scalar area_transfer = 0;
 
+    unsigned int cur_triangle_type = 0;
+
     if (idx < N)
         {
         int n_triangles = n_triangles_list[idx];
         Scalar4 postype = __ldg(d_pos + idx);
         Scalar3 pos_a = make_scalar3(postype.x, postype.y, postype.z);
-
-        area_transfer = 0;
 
         for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
             {
@@ -65,6 +66,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
 
             int cur_triangle_b = cur_triangle.idx[0];
             int cur_triangle_c = cur_triangle.idx[1];
+            cur_triangle_type = cur_triangle.idx[2];
 
             int cur_triangle_abc = tpos_list[tlist_idx(idx, triangle_idx)];
 
@@ -114,7 +116,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             }
         }
 
-    area_sdata[threadIdx.x] = area_transfer;
+    area_sdata[threadIdx.x * tN + cur_triangle_type] = area;
     __syncthreads();
 
     // reduce the sum in parallel
@@ -122,7 +124,9 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-            area_sdata[threadIdx.x] += area_sdata[threadIdx.x + offs];
+            for (int i_types = 0; i_types < tN; i_types++)
+                area_sdata[threadIdx.x * tN + i_types]
+                    += area_sdata[(threadIdx.x + offs) * tN + i_types];
         offs >>= 1;
         __syncthreads();
         }
@@ -130,7 +134,8 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
     // write out our partial sum
     if (threadIdx.x == 0)
         {
-        d_partial_sum_area[blockIdx.x] = area_sdata[0];
+        for (int i_types = 0; i_types < tN; i_types++)
+            d_partial_sum_area[blockIdx.x * tN + i_types] = area_sdata[i_types];
         }
     }
 
@@ -139,39 +144,44 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
     \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
-__global__ void
-gpu_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
+__global__ void gpu_area_reduce_partial_sum_kernel(Scalar* d_sum,
+                                                   Scalar* d_partial_sum,
+                                                   unsigned int tN,
+                                                   unsigned int num_blocks)
     {
-    Scalar sum = Scalar(0.0);
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* area_sdata = (Scalar*)&s_data[0];
 
-    // sum up the values in the partial sum via a sliding window
-    for (int start = 0; start < num_blocks; start += blockDim.x)
+    for (int i_types = 0; i_types < tN; i_types++)
         {
-        __syncthreads();
-        if (start + threadIdx.x < num_blocks)
-            area_sdata[threadIdx.x] = d_partial_sum[start + threadIdx.x];
-        else
-            area_sdata[threadIdx.x] = Scalar(0.0);
-        __syncthreads();
-
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
+        Scalar sum = Scalar(0.0);
+        // sum up the values in the partial sum via a sliding window
+        for (int start = 0; start < num_blocks; start += blockDim.x)
             {
-            if (threadIdx.x < offs)
-                area_sdata[threadIdx.x] += area_sdata[threadIdx.x + offs];
-            offs >>= 1;
             __syncthreads();
+            if (start + threadIdx.x < num_blocks)
+                area_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * tN + i_types];
+            else
+                area_sdata[threadIdx.x] = Scalar(0.0);
+            __syncthreads();
+
+            // reduce the sum in parallel
+            int offs = blockDim.x >> 1;
+            while (offs > 0)
+                {
+                if (threadIdx.x < offs)
+                    area_sdata[threadIdx.x] += area_sdata[threadIdx.x + offs];
+                offs >>= 1;
+                __syncthreads();
+                }
+
+            // everybody sums up sum2K
+            sum += area_sdata[0];
             }
 
-        // everybody sums up sum2K
-        sum += area_sdata[0];
+        if (threadIdx.x == 0)
+            d_sum[i_types] = sum;
         }
-
-    if (threadIdx.x == 0)
-        *d_sum = sum;
     }
 
 /*! \param d_sigma Device memory to write per paricle sigma
@@ -192,6 +202,7 @@ gpu_area_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigne
 hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                                             Scalar* d_sum_partial_area,
                                             const unsigned int N,
+                                            const unsigned int tN,
                                             const Scalar4* d_pos,
                                             const BoxDim& box,
                                             const group_storage<3>* tlist,
@@ -213,6 +224,7 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                        0,
                        d_sum_partial_area,
                        N,
+                       tN,
                        d_pos,
                        box,
                        tlist,
@@ -225,8 +237,9 @@ hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
                        dim3(threads),
                        block_size * sizeof(Scalar),
                        0,
-                       &d_sum_area[0],
+                       d_sum_area,
                        d_sum_partial_area,
+                       tN,
                        num_blocks);
 
     return hipSuccess;
@@ -255,7 +268,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          const unsigned int N,
                                                          const Scalar4* d_pos,
                                                          BoxDim box,
-                                                         const Scalar area,
+                                                         const Scalar* area,
                                                          const group_storage<3>* tlist,
                                                          const unsigned int* tpos_list,
                                                          const Index2D tlist_idx,
@@ -291,14 +304,14 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         int cur_triangle_b = cur_triangle.idx[0];
         int cur_triangle_c = cur_triangle.idx[1];
-        int cur_triangle_type = cur_triangle.idx[5];
+        int cur_triangle_type = cur_triangle.idx[2];
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
         Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
         Scalar A_mesh = params.y;
 
-        Scalar AreaDiff = area - A_mesh;
+        Scalar AreaDiff = area[cur_triangle_type] - A_mesh;
 
         Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * N);
 
@@ -443,7 +456,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                                              const unsigned int N,
                                              const Scalar4* d_pos,
                                              const BoxDim& box,
-                                             const Scalar area,
+                                             const Scalar* area,
                                              const group_storage<3>* tlist,
                                              const unsigned int* tpos_list,
                                              const Index2D tlist_idx,
