@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef __PAIR_EVALUATOR_ROTATIONAL_COUPLING_H__
-#define __PAIR_EVALUATOR_ROTATIONAL_COUPLING_H__
+#ifndef __PAIR_EVALUATOR_LUBRICATION_COUPLING_H__
+#define __PAIR_EVALUATOR_LUBRICATION_COUPLING_H__
 
 #ifndef __HIPCC__
 #include <string>
@@ -14,7 +14,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include <iostream>
-/*! \file EvaluatorPairDipole.h
+/*! \file EvaluatorPairLubricationCoupling.h
     \brief Defines the dipole potential
 */
 
@@ -33,12 +33,13 @@ namespace hoomd
     {
 namespace md
     {
-class EvaluatorPairRotationalCoupling
+class EvaluatorPairLubricationCoupling
     {
     public:
     struct param_type
         {
         Scalar kappa; //! force coefficient.
+        Scalar tau;   //! torque coefficient.
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -57,19 +58,21 @@ class EvaluatorPairRotationalCoupling
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-        HOSTDEVICE param_type() : kappa(0) { }
+        HOSTDEVICE param_type() : kappa(0), tau(0) { }
 
 #ifndef __HIPCC__
 
         param_type(pybind11::dict v, bool managed)
             {
             kappa = v["kappa"].cast<Scalar>();
+            tau = v["tau"].cast<Scalar>();
             }
 
         pybind11::object toPython()
             {
             pybind11::dict v;
             v["kappa"] = kappa;
+            v["tau"] = tau;
             return std::move(v);
             }
 
@@ -119,20 +122,20 @@ class EvaluatorPairRotationalCoupling
         \param _kappa Inverse screening length
         \param _params Per type pair parameters of this potential
     */
-    HOSTDEVICE EvaluatorPairRotationalCoupling(Scalar3& _dr,
-                                               Scalar4& _quat_i,
-                                               Scalar4& _quat_j,
-                                               Scalar _rcutsq,
-                                               const param_type& _params)
+    HOSTDEVICE EvaluatorPairLubricationCoupling(Scalar3& _dr,
+                                                Scalar4& _quat_i,
+                                                Scalar4& _quat_j,
+                                                Scalar _rcutsq,
+                                                const param_type& _params)
         : dr(_dr), rcutsq(_rcutsq), quat_i(_quat_i), quat_j(_quat_j), ang_mom {0, 0, 0}, am {true},
-          kappa(_params.kappa)
+          diameter(0), kappa(_params.kappa), tau(_params.tau)
         {
         }
 
     //! uses diameter
     HOSTDEVICE static bool needsDiameter()
         {
-        return false;
+        return true;
         }
 
     //! Whether the pair potential uses shape.
@@ -169,7 +172,10 @@ class EvaluatorPairRotationalCoupling
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
     */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
+    HOSTDEVICE void setDiameter(Scalar di, Scalar dj)
+        {
+        diameter = 0.5 * (di + dj);
+        }
 
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i
@@ -228,20 +234,26 @@ class EvaluatorPairRotationalCoupling
                 return false;
 
             Scalar rinv = fast::rsqrt(rsq);
-            Scalar rcutinv = fast::rsqrt(rcutsq);
 
-            Scalar d = rinv - rcutinv;
+            Scalar d = 1.0 / rinv - diameter;
+            Scalar dcut = fast::sqrt(rcutsq) - diameter;
 
-            vec3<Scalar> f = kappa * d * d * rinv * cross(ang_mom, rvec);
+            dcut = Scalar(1.0) / dcut;
+            Scalar prefactor = fast::log(dcut * d);
+
+            vec3<Scalar> f = kappa * prefactor * cross(rvec, ang_mom) * rinv;
+            vec3<Scalar> t = tau * prefactor * ang_mom;
 
             force = vec_to_scalar3(f);
+            torque_i = vec_to_scalar3(t);
+            torque_j = vec_to_scalar3(t);
             }
         else
             {
             force = make_scalar3(0, 0, 0);
+            torque_i = make_scalar3(0, 0, 0);
+            torque_j = make_scalar3(0, 0, 0);
             }
-        torque_i = make_scalar3(0, 0, 0);
-        torque_j = make_scalar3(0, 0, 0);
 
         pair_eng = 0;
         return true;
@@ -278,11 +290,13 @@ class EvaluatorPairRotationalCoupling
     Scalar4 quat_i, quat_j; //!< Stored quaternion of ith and jth particle from constructor
     vec3<Scalar> ang_mom;   /// Sum of angular momentum for ith and jth particle
     bool am;
+    Scalar diameter; /// average diameter of the particle pair
     Scalar kappa;
+    Scalar tau;
     // const param_type &params;   //!< The pair potential parameters
     };
 
     } // end namespace md
     } // end namespace hoomd
 
-#endif // __PAIR_EVALUATOR_ROTATIONAL_COUPLING_H__
+#endif // __PAIR_EVALUATOR_LUBRICATION_COUPLING_H__
