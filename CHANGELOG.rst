@@ -7,6 +7,20 @@ Change Log
 v3.x
 ----
 
+v3.8.0 (2023-01-11)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support Python 3.11.
+* Support CUDA 11.8.
+
+*Fixed*
+
+* Improve numerical stability of orientation quaternions when using
+  ``hoomd.md.update.ActiveRotationalDiffusion``
+* Reduced memory usage and fix spurious failures in ``test_nlist.py``.
+
 v3.7.0 (2022-11-29)
 ^^^^^^^^^^^^^^^^^^^
 
