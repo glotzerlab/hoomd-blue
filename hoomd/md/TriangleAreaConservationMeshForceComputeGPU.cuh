@@ -21,18 +21,6 @@ namespace md
 namespace kernel
     {
 //! Kernel driver that computes the forces for TriangleAreaConservationMeshForceComputeGPU
-hipError_t gpu_compute_TriangleAreaConservation_area(Scalar* d_sum_area,
-                                                     Scalar* d_sum_partial_area,
-                                                     const unsigned int N,
-                                                     const Scalar4* d_pos,
-                                                     const BoxDim& box,
-                                                     const group_storage<3>* tlist,
-                                                     const Index2D tlist_idx,
-                                                     const unsigned int* n_triangles_list,
-                                                     unsigned int block_size,
-                                                     unsigned int num_blocks);
-
-//! Kernel driver that computes the forces for TriangleAreaConservationMeshForceComputeGPU
 hipError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
                                                       Scalar* d_virial,
                                                       const size_t virial_pitch,

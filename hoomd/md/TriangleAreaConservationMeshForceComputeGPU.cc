@@ -43,12 +43,14 @@ TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceCo
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    GPUArray<Scalar> sum(1, m_exec_conf);
+    GPUArray<Scalar> sum(this->m_mesh_data->getMeshTriangleData()->getNTypes(), m_exec_conf);
     m_sum.swap(sum);
 
     m_block_size = 256;
     unsigned int group_size = m_pdata->getN();
-    m_num_blocks = group_size / m_block_size + 1;
+    m_num_blocks = group_size / m_block_size;
+    m_num_blocks *= this->m_mesh_data->getMeshTriangleData()->getNTypes();
+    m_num_blocks += 1;
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
     m_partial_sum.swap(partial_sum);
 
@@ -58,15 +60,13 @@ TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceCo
     m_autotuners.push_back(m_tuner);
     }
 
-void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type,
-                                                            Scalar K,
-                                                            Scalar A_mesh)
+void TriangleAreaConservationMeshForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar A0)
     {
-    TriangleAreaConservationMeshForceCompute::setParams(type, K, A_mesh);
+    TriangleAreaConservationMeshForceCompute::setParams(type, K, A0);
 
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar2(K, A_mesh);
+    h_params.data[type] = make_scalar2(K, A0);
     }
 
 void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
@@ -166,16 +166,17 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
                                        access_mode::overwrite);
     ArrayHandle<Scalar> d_sumA(m_sum, access_location::device, access_mode::overwrite);
 
-    kernel::gpu_compute_TriangleAreaConservation_area(d_sumA.data,
-                                                      d_partial_sumA.data,
-                                                      m_pdata->getN(),
-                                                      d_pos.data,
-                                                      box,
-                                                      d_gpu_meshtrianglelist.data,
-                                                      gpu_table_indexer,
-                                                      d_gpu_n_meshtriangle.data,
-                                                      m_block_size,
-                                                      m_num_blocks);
+    kernel::gpu_compute_AreaConservation_area(d_sumA.data,
+                                              d_partial_sumA.data,
+                                              m_pdata->getN(),
+                                              m_mesh_data->getMeshTriangleData()->getNTypes(),
+                                              d_pos.data,
+                                              box,
+                                              d_gpu_meshtrianglelist.data,
+                                              gpu_table_indexer,
+                                              d_gpu_n_meshtriangle.data,
+                                              m_block_size,
+                                              m_num_blocks);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -194,7 +195,8 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-    m_area = h_sumA.data[0];
+    for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
+        m_area[i] = h_sumA.data[i];
     }
 
 namespace detail

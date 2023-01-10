@@ -3,6 +3,7 @@
 
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "AreaConservationMeshForceComputeGPU.cuh"
 #include "TriangleAreaConservationMeshForceCompute.h"
 #include "TriangleAreaConservationMeshForceComputeGPU.cuh"
 #include "hoomd/Autotuner.h"
@@ -42,10 +43,10 @@ class PYBIND11_EXPORT TriangleAreaConservationMeshForceComputeGPU
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar A_mesh);
 
-    virtual Scalar getArea()
+    virtual pybind11::array_t<Scalar> getArea()
         {
         computeArea();
-        return m_area;
+        return pybind11::array(m_mesh_data->getMeshTriangleData()->getNTypes(), m_area);
         }
 
     protected:
