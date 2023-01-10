@@ -102,8 +102,8 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             volume += Vol / 18.0;
             }
         }
-    
-    volume_sdata[threadIdx.x*tN + cur_triangle_type] = volume;
+
+    volume_sdata[threadIdx.x * tN + cur_triangle_type] = volume;
 
     __syncthreads();
 
@@ -112,10 +112,11 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
     while (offs > 0)
         {
         if (threadIdx.x < offs)
-	    {
-            for ( int i_types = 0; i_types < tN; i_types++)
-                 volume_sdata[threadIdx.x*tN + i_types] += volume_sdata[(threadIdx.x + offs)*tN + i_types];
-	    }
+            {
+            for (int i_types = 0; i_types < tN; i_types++)
+                volume_sdata[threadIdx.x * tN + i_types]
+                    += volume_sdata[(threadIdx.x + offs) * tN + i_types];
+            }
         offs >>= 1;
         __syncthreads();
         }
@@ -123,8 +124,8 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
     // write out our partial sum
     if (threadIdx.x == 0)
         {
-        for ( int i_types = 0; i_types < tN; i_types++)
-            d_partial_sum_volume[blockIdx.x*tN+i_types] = volume_sdata[i_types];
+        for (int i_types = 0; i_types < tN; i_types++)
+            d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[i_types];
         }
     }
 
@@ -133,21 +134,23 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
     \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
-__global__ void
-gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int tN, unsigned int num_blocks)
+__global__ void gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum,
+                                                     Scalar* d_partial_sum,
+                                                     unsigned int tN,
+                                                     unsigned int num_blocks)
     {
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* volume_sdata = (Scalar*)&s_data[0];
 
     // sum up the values in the partial sum via a sliding window
-    for ( int i_types = 0; i_types < tN; i_types++)
-	{
+    for (int i_types = 0; i_types < tN; i_types++)
+        {
         Scalar sum = Scalar(0.0);
         for (int start = 0; start < num_blocks; start += blockDim.x)
             {
             __syncthreads();
             if (start + threadIdx.x < num_blocks)
-                volume_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x)*tN+i_types];
+                volume_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * tN + i_types];
             else
                 volume_sdata[threadIdx.x] = Scalar(0.0);
             __syncthreads();
@@ -157,7 +160,7 @@ gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsig
             while (offs > 0)
                 {
                 if (threadIdx.x < offs)
-                   volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
+                    volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
                 offs >>= 1;
                 }
 
@@ -168,7 +171,7 @@ gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsig
         if (threadIdx.x == 0)
             d_sum[i_types] = sum;
         }
-   }
+    }
 
 /*! \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
@@ -227,7 +230,7 @@ hipError_t gpu_compute_volume_constraint_volume(Scalar* d_sum_volume,
                        0,
                        d_sum_volume,
                        d_sum_partial_volume,
-		       tN,
+                       tN,
                        num_blocks);
 
     return hipSuccess;
@@ -302,7 +305,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
         Scalar K = params.x;
         Scalar V0 = params.y;
 
-        Scalar VolDiff = volume[0] - V0;
+        Scalar VolDiff = volume[cur_triangle_type] - V0;
 
         Scalar energy = K * VolDiff * VolDiff / (2 * V0 * N);
 
