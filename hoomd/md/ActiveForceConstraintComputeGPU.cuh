@@ -101,7 +101,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
         quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(rot_vec, phi);
 
         quati = rot_quat * quati;
-
+        quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
         d_orientation[idx] = quat_to_scalar4(quati);
         }
     }
@@ -151,6 +151,7 @@ gpu_compute_active_force_constraint_rotational_diffusion_kernel(const unsigned i
     quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
 
     quati = rot_quat * quati;
+    quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
     d_orientation[idx] = quat_to_scalar4(quati);
     }
 

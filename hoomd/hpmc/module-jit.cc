@@ -4,11 +4,7 @@
 #include "PatchEnergyJIT.h"
 #include "PatchEnergyJITUnion.h"
 
-//#include "hoomd/hpmc/IntegratorHPMC.h"
-//#include "hoomd/hpmc/IntegratorHPMCMono.h"
-//#include "hoomd/hpmc/IntegratorHPMCMonoImplicit.h"
 #include "ExternalFieldJIT.h"
-//#include "ExternalFieldJIT.cc"
 
 #include "hoomd/hpmc/ShapeConvexPolygon.h"
 #include "hoomd/hpmc/ShapeConvexPolyhedron.h"

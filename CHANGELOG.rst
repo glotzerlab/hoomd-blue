@@ -23,6 +23,25 @@ v4.0.0 (net yet released)
 v3.x
 ----
 
+v3.8.0 (2023-01-11)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support Python 3.11.
+* Support CUDA 11.8.
+* Support CUDA 12.0.0 final.
+
+*Fixed*
+
+* Improve numerical stability of orientation quaternions when using
+  ``hoomd.md.update.ActiveRotationalDiffusion``
+* Reduced memory usage and fix spurious failures in ``test_nlist.py``.
+
+*Removed*
+
+* Support for CUDA 10.
+
 v3.7.0 (2022-11-29)
 ^^^^^^^^^^^^^^^^^^^
 
