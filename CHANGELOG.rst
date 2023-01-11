@@ -24,6 +24,13 @@ v3.8.0 (2023-01-12)
 * Avoid triggering ``TypeError("expected x and y to have same length")`` in
   ``hoomd.hpmc.compute.SDF.betaP``.
 
+*Deprecated*
+
+* ``hoomd.md.methods.NVE``. ``hoomd.md.methods.NVT``, ``hoomd.md.methods.Berendsen``,
+  ``hoomd.md.methods.NPH``, ``hoomd.md.methods.NPT``. Starting in v4.0.0, the same functionalities
+ will be available via ``hoomd.md.methods.ConstantVolume``/ ``hoomd.md.methods.ConstantPressure``
+ with an appropriately chosen ``thermostat`` argument.
+
 *Removed*
 
 * Support for CUDA 10.
