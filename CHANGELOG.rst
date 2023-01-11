@@ -7,7 +7,7 @@ Change Log
 v3.x
 ----
 
-v3.8.0 (2023-01-11)
+v3.8.0 (2023-01-12)
 ^^^^^^^^^^^^^^^^^^^
 
 *Added*
@@ -20,6 +20,8 @@ v3.8.0 (2023-01-11)
 * Improve numerical stability of orientation quaternions when using
   ``hoomd.md.update.ActiveRotationalDiffusion``
 * Reduced memory usage and fix spurious failures in ``test_nlist.py``.
+* Avoid triggering ``TypeError("expected x and y to have same length")`` in
+  ``hoomd.hpmc.compute.SDF.betaP``.
 
 v3.7.0 (2022-11-29)
 ^^^^^^^^^^^^^^^^^^^
