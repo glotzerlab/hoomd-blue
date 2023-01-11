@@ -6,6 +6,11 @@ Deprecated
 
 Features deprecated in v3.x may be removed in a future v4.0.0 release.
 
+.. note::
+
+    Where noted, suggested replacements will be first available with v4.0.0 and there  will be no
+    releases with overlapping support for the two APIs.
+
 v3.x
 ----
 
@@ -42,3 +47,18 @@ v3.x
    * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
      - Set diameters in system state.
      - v3.7.0
+   * - ``hoomd.md.methods.NVE``
+     - ``hoomd.md.methods.ConstantVolume`` with ``thermostat=None`` (available in >=4.0.0).
+     - v3.8.0
+   * - ``hoomd.md.methods.NVT``
+     - ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
+     - v3.8.0
+   * - ``hoomd.md.methods.Berendsen``
+     - ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.Berendsen`` thermostat (available in >=4.0.0).
+     - v3.8.0
+   * - ``hoomd.md.methods.NPH``
+     - ``hoomd.md.methods.ConstantPressure` with ``thermostat=None`` (available in >=4.0.0).
+     - v3.8.0
+   * - ``hoomd.md.methods.NPT``
+     - ``hoomd.md.methods.ConstantPressure`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
+     - v3.8.0
