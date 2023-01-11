@@ -316,6 +316,7 @@ class RotationalCoupling(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        third_law (bool): Decides if forces are reciprocal.
 
     `RotationalCoupling` computes an hydrodynamic anisotropic pair force on
     every particle in the simulation state that couples to the angular momenta
@@ -326,7 +327,7 @@ class RotationalCoupling(AnisotropicPair):
         nl = nlist.Cell()
         rotational_coupling = md.pair.aniso.RotationalCoupling(nlist=nl,
                               default_r_cut=2.5)
-        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45, tau=0.5)
+        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45)
         rotational_coupling.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
 
     .. py:attribute:: params
@@ -336,20 +337,18 @@ class RotationalCoupling(AnisotropicPair):
 
         * ``kappa`` (`float`, **required**) - :math:`\varepsilon`
           :math:`[\mathrm{energy}]`
-        * ``tau`` (`float`, **required**) - :math:`\ell_\perp`
-          :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
     """
     _cpp_class_name = "AnisoPotentialPairRotationalCoupling"
 
-    def __init__(self, nlist, default_r_cut=None, mode='none'):
+    def __init__(self, nlist, default_r_cut=None, mode='none', third_law=True):
         super().__init__(nlist, default_r_cut, mode)
-        params = TypeParameter(
-            'params', 'particle_types',
-            TypeParameterDict(kappa=float, tau=float, len_keys=2))
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(kappa=float, len_keys=2))
         self._add_typeparam(params)
+        self.third_law = third_law
 
     def _attach_hook(self):
         if self.nlist._attached and self._simulation != self.nlist._simulation:

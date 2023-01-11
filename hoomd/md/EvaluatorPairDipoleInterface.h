@@ -146,8 +146,8 @@ class EvaluatorPairDipoleInterface
             Scalar r2inv = Scalar(1.0) / rsq;
             Scalar rinv = fast::sqrt(r2inv);
 
-            force_divr = 3 * A * r2inv * r2inv * rinv;
             pair_eng = A * r2inv * rinv;
+            force_divr = 3. * r2inv * pair_eng;
 
             if (energy_shift)
                 {
