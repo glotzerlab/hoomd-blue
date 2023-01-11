@@ -23,7 +23,7 @@ v4.0.0 (net yet released)
 v3.x
 ----
 
-v3.8.0 (2023-01-11)
+v3.8.0 (2023-01-12)
 ^^^^^^^^^^^^^^^^^^^
 
 *Added*
@@ -37,6 +37,15 @@ v3.8.0 (2023-01-11)
 * Improve numerical stability of orientation quaternions when using
   ``hoomd.md.update.ActiveRotationalDiffusion``
 * Reduced memory usage and fix spurious failures in ``test_nlist.py``.
+* Avoid triggering ``TypeError("expected x and y to have same length")`` in
+  ``hoomd.hpmc.compute.SDF.betaP``.
+
+*Deprecated*
+
+* ``hoomd.md.methods.NVE``. ``hoomd.md.methods.NVT``, ``hoomd.md.methods.Berendsen``,
+  ``hoomd.md.methods.NPH``, ``hoomd.md.methods.NPT``. Starting in v4.0.0, the same functionalities
+ will be available via ``hoomd.md.methods.ConstantVolume``/ ``hoomd.md.methods.ConstantPressure``
+ with an appropriately chosen ``thermostat`` argument.
 
 *Removed*
 
