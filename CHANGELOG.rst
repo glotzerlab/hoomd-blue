@@ -28,8 +28,8 @@ v3.8.0 (2023-01-12)
 
 * ``hoomd.md.methods.NVE``. ``hoomd.md.methods.NVT``, ``hoomd.md.methods.Berendsen``,
   ``hoomd.md.methods.NPH``, ``hoomd.md.methods.NPT``. Starting in v4.0.0, the same functionalities
- will be available via ``hoomd.md.methods.ConstantVolume``/ ``hoomd.md.methods.ConstantPressure``
- with an appropriately chosen ``thermostat`` argument.
+  will be available via ``hoomd.md.methods.ConstantVolume``/ ``hoomd.md.methods.ConstantPressure``
+  with an appropriately chosen ``thermostat`` argument.
 
 *Removed*
 
