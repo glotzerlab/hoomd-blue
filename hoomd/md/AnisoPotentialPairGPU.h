@@ -94,7 +94,7 @@ AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDe
                                                         bool reciprocal)
     : AnisoPotentialPairGPU<evaluator>(sysdef, nlist)
     {
-    m_reciprocal = reciprocal;
+    this->m_reciprocal = reciprocal;
     }
 
 template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(uint64_t timestep)
