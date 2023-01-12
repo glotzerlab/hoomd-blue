@@ -123,6 +123,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
     std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> all_groups;
     std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t> all_helper;
 
+    std::vector<unsigned int> all_types;
+
     if (bond)
         {
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
@@ -136,22 +138,16 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
 
             bonds[0].tag[0] = triag_tag[0];
             bonds[0].tag[1] = triag_tag[1];
-            // bonds[0].tag[2] = group_idx;
-            // bonds[0].tag[3] = group_idx;
             bonds[0].tag[2] = triag_tag[2];
             bonds[0].tag[3] = triag_tag[2];
 
             bonds[1].tag[0] = triag_tag[1];
             bonds[1].tag[1] = triag_tag[2];
-            // bonds[1].tag[2] = group_idx;
-            // bonds[1].tag[3] = group_idx;
             bonds[1].tag[2] = triag_tag[0];
             bonds[1].tag[3] = triag_tag[0];
 
             bonds[2].tag[0] = triag_tag[2];
             bonds[2].tag[1] = triag_tag[0];
-            // bonds[2].tag[2] = group_idx;
-            // bonds[2].tag[3] = group_idx;
             bonds[2].tag[2] = triag_tag[1];
             bonds[2].tag[3] = triag_tag[1];
 
@@ -185,6 +181,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
             for (unsigned int i = 0; i < bonds.size(); ++i)
                 {
                 all_helper.push_back(bonds[i]);
+                all_types.push_back(snapshot.type_id[group_idx]);
                 }
             }
         all_groups = all_helper;
@@ -192,6 +189,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
     else
         {
         all_groups.resize(snapshot.groups.size());
+        all_types.resize(snapshot.groups.size());
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
             {
             typename BondedGroupData<group_size, Group, name, true>::members_t triag;
@@ -249,6 +247,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
                 j++;
                 }
             all_groups[group_idx] = triag;
+            all_types[group_idx] = snapshot.type_id[group_idx];
             }
         }
 
@@ -278,7 +277,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
         if (bond)
             {
             for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-                addBondedGroup(Group(all_typeval[0], all_groups[group_tag]));
+                addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
             }
         else
             {
@@ -291,10 +290,10 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
         {
         this->m_type_mapping = snapshot.type_mapping;
 
-        typeval_t t;
-        t.type = 0;
         for (unsigned group_idx = 0; group_idx < all_groups.size(); group_idx++)
             {
+            typeval_t t;
+            t.type = all_types[group_idx];
             addBondedGroup(Group(t, all_groups[group_idx]));
             }
         }
