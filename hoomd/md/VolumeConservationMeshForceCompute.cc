@@ -45,8 +45,10 @@ VolumeConservationMeshForceCompute::~VolumeConservationMeshForceCompute()
 
     delete[] m_K;
     delete[] m_V0;
+    delete[] m_volume;
     m_K = NULL;
     m_V0 = NULL;
+    m_volume = NULL;
     }
 
 /*! \param type Type of the angle to set parameters for
