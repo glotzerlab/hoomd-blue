@@ -49,8 +49,8 @@ TriangleAreaConservationMeshForceComputeGPU::TriangleAreaConservationMeshForceCo
     m_block_size = 256;
     unsigned int group_size = m_pdata->getN();
     m_num_blocks = group_size / m_block_size;
-    m_num_blocks *= this->m_mesh_data->getMeshTriangleData()->getNTypes();
     m_num_blocks += 1;
+    m_num_blocks *= this->m_mesh_data->getMeshTriangleData()->getNTypes();
     GPUArray<Scalar> partial_sum(m_num_blocks, m_exec_conf);
     m_partial_sum.swap(partial_sum);
 
@@ -170,18 +170,24 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
                                        access_mode::overwrite);
     ArrayHandle<Scalar> d_sumA(m_sum, access_location::device, access_mode::overwrite);
 
-    kernel::gpu_compute_area_constraint_area(d_sumA.data,
-                                              d_partial_sumA.data,
-                                              m_pdata->getN(),
-                                              m_mesh_data->getMeshTriangleData()->getNTypes(),
-                                              d_pos.data,
-                                              box,
-                                              d_gpu_meshtrianglelist.data,
-                                              d_gpu_meshtriangle_pos_list.data,
-                                              gpu_table_indexer,
-                                              d_gpu_n_meshtriangle.data,
-                                              m_block_size,
-                                              m_num_blocks);
+    unsigned int NTypes =  m_mesh_data->getMeshTriangleData()->getNTypes();
+
+    for (unsigned int tid = 0; tid < NTypes; tid++)
+    	{
+    	kernel::gpu_compute_area_constraint_area(d_sumA.data,
+                                             d_partial_sumA.data,
+                                             m_pdata->getN(),
+                                             NTypes,
+					     tid,
+                                             d_pos.data,
+                                             box,
+                                             d_gpu_meshtrianglelist.data,
+                                             d_gpu_meshtriangle_pos_list.data,
+                                             gpu_table_indexer,
+                                             d_gpu_n_meshtriangle.data,
+                                             m_block_size,
+                                             m_num_blocks);
+	}
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {

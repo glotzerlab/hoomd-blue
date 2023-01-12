@@ -291,12 +291,13 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
+    mesh.types = ["mesh", "patch"]
     mesh.type_ids = [0,0,0,0]
     mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
-    mesh_potential.params["path"] = potential_kwargs
+    mesh_potential.params["patch"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
