@@ -33,7 +33,7 @@ BendingRigidityMeshForceCompute::BendingRigidityMeshForceCompute(
     m_exec_conf->msg->notice(5) << "Constructing BendingRigidityMeshForceCompute" << endl;
 
     // allocate the parameters
-    m_K = new Scalar[m_pdata->getNTypes()];
+    m_K = new Scalar[m_mesh_data->getMeshBondData()->getNTypes()];
     }
 
 BendingRigidityMeshForceCompute::~BendingRigidityMeshForceCompute()
