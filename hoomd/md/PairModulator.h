@@ -120,7 +120,8 @@ public:
           rsq(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z),
           rcutsq(_rcutsq),
           pairEval(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z, _rcutsq, _params.pairP),
-          envelEval(_dr, _quat_eye, _quat_jay, _rcutsq, _params.envelP)
+          envelEval(_dr, _quat_eye, _quat_jay, _rcutsq, _params.envelP) // make this format what it's looking for
+          // or add a blah::needsOrientation in the envelope
         { }
 
     //! If diameter is used

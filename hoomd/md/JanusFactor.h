@@ -64,7 +64,7 @@ public:
                        const Scalar4& _qj,
                        const Scalar& _rcutsq,
                        const param_type& _params)
-        : dr(_dr), qi(_qi), qj(_qj), oi(_params.patch_orientation), oj(_q_patchj), params(_params) // TODO: this is wrong
+        : dr(_dr), qi(_qi), qj(_qj), oi(q_patch_i), oj(q_patch_j), params(_params) // patch orientation is per type, so it's not in params
         {
             // compute current janus direction vectors
             vec3<Scalar> ex { make_scalar3(1, 0, 0) };

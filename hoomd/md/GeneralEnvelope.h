@@ -155,9 +155,13 @@ public:
 
             // torque on jth - note sign is opposite ith!
             torque_j = vec_to_scalar3( (jPi*s.magdr) * cross(vec3<Scalar>(s.b1), -new_cross_term));
-            
+
             // compute force contribution
             // not the full force. Just the envelope that will be applied to pair energy
+
+            // For first check, pretend that ei is a1.
+            // force.x = -( ModulatorPrimei * Modulatorj /s.magdr *(-s.ei.x - s.doti*s.dr.x/s.magdr)
+            //             + jPi*(s.ej.x - s.dotj*s.dr.x/s.magdr));
             force.x = -(iPj*(-s.ei.x - s.doti*s.dr.x/s.magdr)
                         + jPi*(s.ej.x - s.dotj*s.dr.x/s.magdr));
             force.y = -(iPj*(-s.ei.y - s.doti*s.dr.y/s.magdr)
