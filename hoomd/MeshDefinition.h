@@ -65,7 +65,7 @@ class PYBIND11_EXPORT MeshDefinition
     //! Constructs a NULL MeshDefinition
     MeshDefinition();
     //! Constructs a MeshDefinition with a simply initialized ParticleData
-    MeshDefinition(std::shared_ptr<SystemDefinition> sysdef);
+    MeshDefinition(std::shared_ptr<SystemDefinition> sysdef, unsigned int n_types);
 
 #ifdef ENABLE_MPI
     void setCommunicator(std::shared_ptr<Communicator> communicator)
@@ -109,7 +109,7 @@ class PYBIND11_EXPORT MeshDefinition
 
     TriangleData::Snapshot getTriangleData();
 
-    void setTriangleData(pybind11::array_t<int> triangles);
+    void setTriangleData(pybind11::array_t<int> triangles, pybind11::array_t<int> type_ids);
 
     private:
     std::shared_ptr<SystemDefinition>
