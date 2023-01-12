@@ -1,0 +1,9 @@
+ipython
+ipython_genutils
+nbconvert
+nbsphinx
+numpy
+pandoc
+sphinx==5.3.0
+sphinx-rtd-theme==0.5.2
+tornado
