@@ -104,95 +104,6 @@ def triplet_snapshot_factory(device):
     return make_snapshot
 
 
-@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
-                         get_mesh_bond_and_args())
-def test_before_attaching(mesh_bond_cls, potential_kwargs):
-    mesh = hoomd.mesh.Mesh()
-    mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params["mesh"] = potential_kwargs
-
-    assert mesh is mesh_bond_potential.mesh
-    for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
-                                   potential_kwargs[key],
-                                   rtol=1e-6)
-
-    mesh1 = hoomd.mesh.Mesh()
-    mesh_bond_potential.mesh = mesh1
-    assert mesh1 is mesh_bond_potential.mesh
-
-
-@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
-                         get_mesh_bond_and_args())
-def test_after_attaching(triplet_snapshot_factory, simulation_factory,
-                         mesh_bond_cls, potential_kwargs):
-    snap = triplet_snapshot_factory(d=0.969, L=5)
-    sim = simulation_factory(snap)
-
-    mesh = hoomd.mesh.Mesh()
-    mesh.size = 1
-    mesh.triangles = [[0, 1, 2]]
-
-    mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params["mesh"] = potential_kwargs
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-
-    integrator.forces.append(mesh_bond_potential)
-
-    langevin = hoomd.md.methods.Langevin(kT=1,
-                                         filter=hoomd.filter.All(),
-                                         alpha=0.1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-
-    sim.run(0)
-    for key in potential_kwargs:
-        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
-                                   potential_kwargs[key],
-                                   rtol=1e-6)
-
-    mesh1 = hoomd.mesh.Mesh()
-    with pytest.raises(RuntimeError):
-        mesh_bond_potential.mesh = mesh1
-
-
-@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs, force, energy",
-                         get_mesh_bond_args_forces_and_energies())
-def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
-                             mesh_bond_cls, potential_kwargs, force, energy):
-    snap = triplet_snapshot_factory(d=0.969, L=5)
-    sim = simulation_factory(snap)
-
-    mesh = hoomd.mesh.Mesh()
-    mesh.size = 1
-    mesh.triangles = [[0, 1, 2]]
-
-    mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.params["mesh"] = potential_kwargs
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-
-    integrator.forces.append(mesh_bond_potential)
-
-    langevin = hoomd.md.methods.Langevin(kT=1,
-                                         filter=hoomd.filter.All(),
-                                         alpha=0.1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-
-    sim.run(0)
-
-    sim_energies = sim.operations.integrator.forces[0].energies
-    sim_forces = sim.operations.integrator.forces[0].forces
-    if sim.device.communicator.rank == 0:
-        np.testing.assert_allclose(sum(sim_energies),
-                                   energy,
-                                   rtol=1e-2,
-                                   atol=1e-5)
-        np.testing.assert_allclose(sim_forces, force, rtol=1e-2, atol=1e-5)
-
-
 @pytest.fixture(scope='session')
 def mesh_snapshot_factory(device):
 
@@ -220,9 +131,140 @@ def mesh_snapshot_factory(device):
     return make_snapshot
 
 
+@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
+                         get_mesh_bond_and_args())
+def test_before_attaching(mesh_bond_cls, potential_kwargs):
+    mesh = hoomd.mesh.Mesh()
+    mesh_bond_potential = mesh_bond_cls(mesh)
+    mesh_bond_potential.params["mesh"] = potential_kwargs
+
+    assert mesh is mesh_bond_potential.mesh
+    for key in potential_kwargs:
+        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
+                                   potential_kwargs[key],
+                                   rtol=1e-6)
+
+    mesh1 = hoomd.mesh.Mesh()
+    mesh_bond_potential.mesh = mesh1
+    assert mesh1 is mesh_bond_potential.mesh
+
+
+@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
+                         get_mesh_bond_and_args())
+def test_after_attaching(triplet_snapshot_factory, simulation_factory,
+                         mesh_bond_cls, potential_kwargs):
+    snap = triplet_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh()
+    mesh.size = 1
+    mesh.type_ids = [0]
+    mesh.triangles = [[0, 1, 2]]
+
+    mesh_bond_potential = mesh_bond_cls(mesh)
+    mesh_bond_potential.params["mesh"] = potential_kwargs
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_bond_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    for key in potential_kwargs:
+        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
+                                   potential_kwargs[key],
+                                   rtol=1e-6)
+
+    mesh1 = hoomd.mesh.Mesh()
+    with pytest.raises(RuntimeError):
+        mesh_bond_potential.mesh = mesh1
+
+
+@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs",
+                         get_mesh_bond_and_args())
+def test_multiple_types(triplet_snapshot_factory, simulation_factory,
+                        mesh_bond_cls, potential_kwargs):
+
+    sim = simulation_factory(triplet_snapshot_factory(d=0.969, L=5))
+
+    mesh = hoomd.mesh.Mesh()
+    mesh.types = ["mesh", "patch"]
+    mesh.type_ids = [1]
+    mesh.triangles = [[0, 1, 2]]
+
+    mesh_bond_potential = mesh_bond_cls(mesh)
+    mesh_bond_potential.all_params = potential_kwargs
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_bond_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    for key in potential_kwargs:
+        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
+                                   potential_kwargs[key],
+                                   rtol=1e-6)
+        np.testing.assert_allclose(mesh_bond_potential.params["patch"][key],
+                                   potential_kwargs[key],
+                                   rtol=1e-6)
+
+    mesh1 = hoomd.mesh.Mesh()
+    with pytest.raises(RuntimeError):
+        mesh_bond_potential.mesh = mesh1
+
+
+@pytest.mark.parametrize("mesh_bond_cls, potential_kwargs, force, energy",
+                         get_mesh_bond_args_forces_and_energies())
+def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
+                             mesh_bond_cls, potential_kwargs, force, energy):
+
+    snap = triplet_snapshot_factory(d=0.969, L=5)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh()
+    mesh.type_ids = [0]
+    mesh.triangles = [[0, 1, 2]]
+
+    mesh_bond_potential = mesh_bond_cls(mesh)
+    mesh_bond_potential.params["mesh"] = potential_kwargs
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_bond_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    sim_energies = sim.operations.integrator.forces[0].energies
+    sim_forces = sim.operations.integrator.forces[0].forces
+    if sim.device.communicator.rank == 0:
+        np.testing.assert_allclose(sum(sim_energies),
+                                   energy,
+                                   rtol=1e-2,
+                                   atol=1e-5)
+        np.testing.assert_allclose(sim_forces, force, rtol=1e-2, atol=1e-5)
+
+
 def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
     sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
+    mesh.type_ids = [0, 0]
     mesh.triangles = [[0, 1, 2], [0, 2, 3]]
 
     harmonic = hoomd.md.mesh.bond.Harmonic(mesh)

@@ -68,13 +68,14 @@ class Mesh(_HOOMDBaseObject):
         param_dict["types"] = ["mesh"]
         param_dict["size"] = 0
         self._triangles = np.empty([0, 3], dtype=int)
+        self._type_ids = np.empty(0, dtype=int)
 
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
-            self._simulation.state._cpp_sys_def)
+            self._simulation.state._cpp_sys_def, len(self._param_dict["types"]))
 
         self.triangles = self._triangles
 
@@ -102,12 +103,32 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
         if self._attached:
-            self._cpp_obj.setTypes(list(self._param_dict['types']))
 
-            self._cpp_obj.setTriangleData(triag)
+            if len(triag) != len(self._type_ids):
+                raise ValueError(
+                    "Number of type_ids do not match number of triangles.")
+            else:
+                self._cpp_obj.setTypes(list(self._param_dict['types']))
+
+                self._cpp_obj.setTriangleData(triag, self._type_ids)
         else:
             self.size = len(triag)
         self._triangles = triag
+
+    @log(category='sequence')
+    def type_ids(self):
+        """((*N*) `numpy.ndarray` of ``uint32``): Triangle typed ids."""
+        if self._attached:
+            return self._cpp_obj.getTriangleData().typeid
+        return self._type_ids
+
+    @type_ids.setter
+    def type_ids(self, tid):
+        if self._attached and self.size == len(tid):
+            self._cpp_obj.setTypes(list(self._param_dict['types']))
+
+            self._cpp_obj.setTriangleData(self._triagles, tid)
+        self._type_ids = tid
 
     @log(category='sequence', requires_run=True)
     def bonds(self):
@@ -119,7 +140,6 @@ class Mesh(_HOOMDBaseObject):
         return self._cpp_obj.getBondData().group
 
     def _preprocess_type(self, typename):
-        if not isinstance(typename, str) and isinstance(typename, Sequence):
-            if len(typename) != 1:
-                raise ValueError("Only one meshtype is allowed.")
+        if not isinstance(typename, Sequence):
+            raise ValueError("Expected a sequence of strings.")
         return typename

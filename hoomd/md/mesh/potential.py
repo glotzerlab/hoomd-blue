@@ -59,6 +59,17 @@ class MeshPotential(Force):
                     f"{str(err)}")
 
     @property
+    def all_params(self):
+        """Type parameter setter for all mesh types."""
+        raise RuntimeError("all_params can only be used as a setter.")
+        return []
+
+    @all_params.setter
+    def all_params(self, value):
+        for mt in self.mesh.types:
+            self.params[mt] = value
+
+    @property
     def mesh(self):
         """Mesh data structure used to compute the bond potential."""
         return self._mesh
