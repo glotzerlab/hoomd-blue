@@ -53,8 +53,10 @@ class Mesh(_HOOMDBaseObject):
 
     Examples::
 
-        mesh = mesh.Mesh()
-        mesh.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
+        mesh_obj = mesh.Mesh()
+        mesh_obj.types = ["mesh"]
+        mesh_obj.type_ids = [0,0,0,0]
+        mesh_obj.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
 
     """
 
@@ -117,7 +119,7 @@ class Mesh(_HOOMDBaseObject):
 
     @log(category='sequence')
     def type_ids(self):
-        """((*N*) `numpy.ndarray` of ``uint32``): Triangle typed ids."""
+        """((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids."""
         if self._attached:
             return self._cpp_obj.getTriangleData().typeid
         return self._type_ids
