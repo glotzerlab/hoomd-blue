@@ -144,7 +144,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.size = 4
+    mesh.type_ids = [0, 0, 0, 0]
     mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
 
     mesh_potential = mesh_potential_cls(mesh)
@@ -171,6 +171,45 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
         mesh_potential.mesh = mesh1
 
 
+@pytest.mark.parametrize("mesh_potential_cls, potential_kwargs",
+                         get_mesh_potential_and_args())
+def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
+                        mesh_potential_cls, potential_kwargs):
+
+    sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
+
+    mesh = hoomd.mesh.Mesh()
+    mesh.types = ["mesh", "patch"]
+    mesh.type_ids = [0, 0, 0, 1]
+    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+
+    mesh_bond_potential = mesh_potential_cls(mesh)
+    mesh_bond_potential.all_params = potential_kwargs
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+
+    integrator.forces.append(mesh_bond_potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+    for key in potential_kwargs:
+        np.testing.assert_allclose(mesh_bond_potential.params["mesh"][key],
+                                   potential_kwargs[key],
+                                   rtol=1e-6)
+        np.testing.assert_allclose(mesh_bond_potential.params["patch"][key],
+                                   potential_kwargs[key],
+                                   rtol=1e-6)
+
+    mesh1 = hoomd.mesh.Mesh()
+    with pytest.raises(RuntimeError):
+        mesh_bond_potential.mesh = mesh1
+
+
 @pytest.mark.parametrize("mesh_potential_cls, potential_kwargs, force, energy",
                          get_mesh_potential_args_forces_and_energies())
 def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
@@ -180,11 +219,13 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.size = 1
+    mesh.types = ["mesh", "patch"]
+    mesh.type_ids = [0, 0, 0, 1]
     mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
+    mesh_potential.params["patch"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -212,6 +253,7 @@ def test_auto_detach_simulation(simulation_factory,
                                 tetrahedron_snapshot_factory):
     sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
+    mesh.type_ids = [0, 0]
     mesh.triangles = [[0, 1, 2], [0, 2, 3]]
 
     harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
