@@ -8,11 +8,11 @@ namespace hoomd
 namespace kernel
     {
 
-__global__ void gpu_box_resize_updater_kernel(Scalar4* d_pos,
-                                              const BoxDim cur_box,
-                                              const BoxDim new_box,
-                                              const unsigned int* d_group_members,
-                                              const unsigned int group_size)
+__global__ void gpu_box_resize_scale_kernel(Scalar4* d_pos,
+                                            const BoxDim cur_box,
+                                            const BoxDim new_box,
+                                            const unsigned int* d_group_members,
+                                            const unsigned int group_size)
     {
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -32,7 +32,7 @@ __global__ void gpu_box_resize_updater_kernel(Scalar4* d_pos,
     }
 
 __global__ void
-gpu_box_wrap_kernel(unsigned int N, Scalar4* d_pos, int3* d_image, const BoxDim new_box)
+gpu_box_resize_wrap_kernel(unsigned int N, Scalar4* d_pos, int3* d_image, const BoxDim new_box)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -42,19 +42,23 @@ gpu_box_wrap_kernel(unsigned int N, Scalar4* d_pos, int3* d_image, const BoxDim 
         }
     }
 
-hipError_t gpu_box_resize_updater(const unsigned int N,
-                                  Scalar4* d_pos,
-                                  const BoxDim& cur_box,
-                                  const BoxDim& new_box,
-                                  const unsigned int* d_group_members,
-                                  const unsigned int group_size,
-                                  int3* d_image)
+hipError_t gpu_box_resize_scale(Scalar4* d_pos,
+                                const BoxDim& cur_box,
+                                const BoxDim& new_box,
+                                const unsigned int* d_group_members,
+                                const unsigned int group_size,
+                                unsigned int block_size)
     {
-    int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_box_resize_wrap_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
-    hipLaunchKernelGGL((gpu_box_resize_updater_kernel),
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid((group_size / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
+
+    hipLaunchKernelGGL((gpu_box_resize_scale_kernel),
                        grid,
                        threads,
                        0,
@@ -65,12 +69,35 @@ hipError_t gpu_box_resize_updater(const unsigned int N,
                        d_group_members,
                        group_size);
 
-    grid = dim3((N / block_size) + 1, 1, 1);
-    threads = dim3(block_size, 1, 1);
+    return hipSuccess;
+    }
 
-    hipLaunchKernelGGL((gpu_box_wrap_kernel), grid, threads, 0, 0, N, d_pos, d_image, new_box);
+hipError_t gpu_box_resize_wrap(const unsigned int N,
+                               Scalar4* d_pos,
+                               int3* d_image,
+                               const BoxDim& new_box,
+                               unsigned int block_size)
+    {
+    unsigned int max_block_size;
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_box_resize_wrap_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
 
-    return hipDeviceSynchronize();
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid((N / run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
+
+    hipLaunchKernelGGL((gpu_box_resize_wrap_kernel),
+                       grid,
+                       threads,
+                       0,
+                       0,
+                       N,
+                       d_pos,
+                       d_image,
+                       new_box);
+
+    return hipSuccess;
     }
 
     } // end namespace kernel

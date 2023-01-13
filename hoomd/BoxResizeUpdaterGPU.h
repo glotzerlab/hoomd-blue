@@ -37,8 +37,14 @@ class PYBIND11_EXPORT BoxResizeUpdaterGPU : public BoxResizeUpdater
     /// Destructor
     virtual ~BoxResizeUpdaterGPU();
 
-    /// Update box interpolation based on provided timestep
-    virtual void update(uint64_t timestep);
+    /// Scale particles to the new box and wrap any others back into the box
+    virtual void scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box);
+
+    private:
+    /// Autotuner for block size (scale kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_scale;
+    /// Autotuner for block size (wrap kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_wrap;
     };
 
 namespace detail
