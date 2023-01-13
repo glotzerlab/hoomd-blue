@@ -39,13 +39,6 @@ class Thermostat
 
     virtual void advanceThermostat(uint64_t timestep, Scalar deltaT, bool aniso) { }
 
-    virtual void thermalizeThermostat(uint64_t timestep) { }
-
-    virtual Scalar getThermostatEnergy(uint64_t timestep)
-        {
-        return Scalar(0.0);
-        }
-
     std::shared_ptr<Variant> getT()
         {
         return m_T;
@@ -136,7 +129,7 @@ class MTTKThermostat : public Thermostat
             }
         }
 
-    Scalar getThermostatEnergy(uint64_t timestep) override
+    Scalar getThermostatEnergy(uint64_t timestep)
         {
         Scalar translation_dof = m_group->getTranslationalDOF();
         Scalar thermostat_energy
@@ -189,7 +182,7 @@ class MTTKThermostat : public Thermostat
         m_tau = tau;
         }
 
-    void thermalizeThermostat(uint64_t timestep) override
+    void thermalizeThermostat(uint64_t timestep)
         {
         auto exec_conf = m_sysdef->getParticleData()->getExecConf();
         exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;

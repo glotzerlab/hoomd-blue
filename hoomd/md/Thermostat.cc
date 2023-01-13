@@ -11,9 +11,7 @@ void export_Thermostat(pybind11::module& m)
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<SystemDefinition>>())
-        .def_property("kT", &Thermostat::getT, &Thermostat::setT)
-        .def("getThermostatEnergy", &Thermostat::getThermostatEnergy)
-        .def("thermalizeThermostat", &Thermostat::thermalizeThermostat);
+        .def_property("kT", &Thermostat::getT, &Thermostat::setT);
     }
 
 void export_MTTKThermostat(pybind11::module& m)
@@ -31,7 +29,9 @@ void export_MTTKThermostat(pybind11::module& m)
         .def_property("rotational_thermostat_dof",
                       &MTTKThermostat::getRotationalDOF,
                       &MTTKThermostat::setRotationalDOF)
-        .def_property("tau", &MTTKThermostat::getTau, &MTTKThermostat::setTau);
+        .def_property("tau", &MTTKThermostat::getTau, &MTTKThermostat::setTau)
+        .def("getThermostatEnergy", &MTTKThermostat::getThermostatEnergy)
+        .def("thermalizeThermostat", &MTTKThermostat::thermalizeThermostat);
     }
 
 void export_BussiThermostat(pybind11::module& m)
