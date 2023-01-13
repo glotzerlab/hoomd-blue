@@ -56,15 +56,18 @@ public:
 #endif
 
     //!
-    /*! \param
-
+    /*!
+      \param _patchi
+      \param
      */
     DEVICE JanusFactor(const Scalar3& _dr,
                        const Scalar4& _qi,
                        const Scalar4& _qj,
+                       const Scalar4& _patch_orientation_i,
+                       const Scalar4& _patch_orientation_j,
                        const Scalar& _rcutsq,
                        const param_type& _params)
-        : dr(_dr), qi(_qi), qj(_qj), oi(q_patch_i), oj(q_patch_j), params(_params) // patch orientation is per type, so it's not in params
+        : dr(_dr), qi(_qi), qj(_qj), oi(_patch_orientation_i), oj(_patch_orientation_j), params(_params) // patch orientation is per type, so it's not in params
         {
             // compute current janus direction vectors
             vec3<Scalar> ex { make_scalar3(1, 0, 0) };
@@ -72,6 +75,7 @@ public:
             vec3<Scalar> ez { make_scalar3(0, 0, 1) };
 
             vec3<Scalar> ei, ej;
+            vec3<Scalar> ni, nj;
             vec3<Scalar> a1, a2, a3, b1, b2, b3;
 
             ei = rotate(quat<Scalar>(qi), ex);
@@ -79,7 +83,7 @@ public:
             a2 = rotate(quat<Scalar>(qi), ey);
             a3 = rotate(quat<Scalar>(qi), ez);
             // patch points relative to x (a1) direction of particle
-            ni = rotate(quat<Scalar>(a1), oi);
+            ni = rotate(quat<Scalar>(oi), a1);
 
             ej = rotate(quat<Scalar>(qj), ex);
             b1 = rotate(quat<Scalar>(qj), ex);
@@ -87,7 +91,7 @@ public:
             b3 = rotate(quat<Scalar>(qj), ez);
 
             // patch points relative to x (b1) direction of particle
-            ni = rotate(quat<Scalar>(b1), oj);
+            nj = rotate(quat<Scalar>(oj), b1);
 
             // compute distance
             drsq = dot(dr, dr);
@@ -145,8 +149,8 @@ public:
     Scalar3 b3;
     Scalar drsq;
     Scalar magdr;
-    Scalar doti;
-    Scalar dotj;
+    Scalar doti, costhetai;
+    Scalar dotj, costhetaj;
 };
 
 
