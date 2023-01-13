@@ -20,7 +20,7 @@ namespace hoomd
 /** This simple updater gets the box lengths from specified variants and sets
  * those box sizes over time. As an option, particles can be rescaled with the
  * box lengths or left where they are. Note: rescaling particles does not work
- * properly in MPI simulations.
+ * properly in MPI simulations with HPMC.
  * \ingroup updaters
  */
 class PYBIND11_EXPORT BoxResizeUpdaterGPU : public BoxResizeUpdater
