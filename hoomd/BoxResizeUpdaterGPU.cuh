@@ -13,12 +13,12 @@ namespace kernel
     {
 
 hipError_t gpu_box_resize_updater(const unsigned int N,
-                                Scalar4* d_pos,
-                                const BoxDim& cur_box,
-                                const BoxDim& new_box,
-                                const unsigned int* d_group_members,
-                                const unsigned int group_size,
-                                int3* d_image);
+                                  Scalar4* d_pos,
+                                  const BoxDim& cur_box,
+                                  const BoxDim& new_box,
+                                  const unsigned int* d_group_members,
+                                  const unsigned int group_size,
+                                  int3* d_image);
 
     } // end namespace kernel
     } // end namespace hoomd

@@ -28,24 +28,23 @@ class PYBIND11_EXPORT BoxResizeUpdaterGPU : public BoxResizeUpdater
     public:
     /// Constructor
     BoxResizeUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
-                     std::shared_ptr<Trigger> trigger,
-                     std::shared_ptr<BoxDim> box1,
-                     std::shared_ptr<BoxDim> box2,
-                     std::shared_ptr<Variant> variant,
-                     std::shared_ptr<ParticleGroup> m_group);
+                        std::shared_ptr<Trigger> trigger,
+                        std::shared_ptr<BoxDim> box1,
+                        std::shared_ptr<BoxDim> box2,
+                        std::shared_ptr<Variant> variant,
+                        std::shared_ptr<ParticleGroup> m_group);
 
     /// Destructor
     virtual ~BoxResizeUpdaterGPU();
 
     /// Update box interpolation based on provided timestep
     virtual void update(uint64_t timestep);
-    
     };
 
 namespace detail
     {
 /// Export the BoxResizeUpdaterGPU to python
 void export_BoxResizeUpdaterGPU(pybind11::module& m);
-    } // end namespace detail
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace hoomd
 #endif // __BOX_RESIZE_UPDATER_GPU_H__

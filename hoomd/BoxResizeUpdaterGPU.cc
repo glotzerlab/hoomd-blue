@@ -19,12 +19,12 @@ namespace hoomd
 */
 
 BoxResizeUpdaterGPU::BoxResizeUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                   std::shared_ptr<Trigger> trigger,
-                                   std::shared_ptr<BoxDim> box1,
-                                   std::shared_ptr<BoxDim> box2,
-                                   std::shared_ptr<Variant> variant,
-                                   std::shared_ptr<ParticleGroup> group)
-    : BoxResizeUpdater(sysdef, trigger, box1, box2, variant, group) 
+                                         std::shared_ptr<Trigger> trigger,
+                                         std::shared_ptr<BoxDim> box1,
+                                         std::shared_ptr<BoxDim> box2,
+                                         std::shared_ptr<Variant> variant,
+                                         std::shared_ptr<ParticleGroup> group)
+    : BoxResizeUpdater(sysdef, trigger, box1, box2, variant, group)
     {
     }
 
@@ -65,16 +65,16 @@ void BoxResizeUpdaterGPU::update(uint64_t timestep)
 
         unsigned int group_size = m_group->getNumMembers();
         ArrayHandle<unsigned int> d_group_members(m_group->getIndexArray(),
-                                                access_location::device,
-                                                access_mode::read);
+                                                  access_location::device,
+                                                  access_mode::read);
 
         kernel::gpu_box_resize_updater(m_pdata->getN(),
-                                        d_pos.data,
-                                        cur_box,
-                                        new_box,
-                                        d_group_members.data,
-                                        group_size,
-                                        d_image.data);
+                                       d_pos.data,
+                                       cur_box,
+                                       new_box,
+                                       d_group_members.data,
+                                       group_size,
+                                       d_image.data);
         }
     }
 

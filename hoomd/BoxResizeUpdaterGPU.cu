@@ -9,10 +9,10 @@ namespace kernel
     {
 
 __global__ void gpu_box_resize_updater_kernel(Scalar4* d_pos,
-                                            const BoxDim cur_box,
-                                            const BoxDim new_box,
-                                            const unsigned int* d_group_members,
-                                            const unsigned int group_size)
+                                              const BoxDim cur_box,
+                                              const BoxDim new_box,
+                                              const unsigned int* d_group_members,
+                                              const unsigned int group_size)
     {
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -22,8 +22,7 @@ __global__ void gpu_box_resize_updater_kernel(Scalar4* d_pos,
 
         Scalar4 pos = d_pos[idx];
 
-        Scalar3 fractional_pos = cur_box.makeFraction(
-            make_scalar3(pos.x, pos.y, pos.z));
+        Scalar3 fractional_pos = cur_box.makeFraction(make_scalar3(pos.x, pos.y, pos.z));
 
         Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
         d_pos[idx].x = scaled_pos.x;
@@ -32,10 +31,8 @@ __global__ void gpu_box_resize_updater_kernel(Scalar4* d_pos,
         }
     }
 
-__global__ void gpu_box_wrap_kernel(unsigned int N,
-                                    Scalar4* d_pos,
-                                    int3* d_image,
-                                    const BoxDim new_box)
+__global__ void
+gpu_box_wrap_kernel(unsigned int N, Scalar4* d_pos, int3* d_image, const BoxDim new_box)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -46,40 +43,32 @@ __global__ void gpu_box_wrap_kernel(unsigned int N,
     }
 
 hipError_t gpu_box_resize_updater(const unsigned int N,
-                                Scalar4* d_pos,
-                                const BoxDim& cur_box,
-                                const BoxDim& new_box,
-                                const unsigned int* d_group_members,
-                                const unsigned int group_size,
-                                int3* d_image)
+                                  Scalar4* d_pos,
+                                  const BoxDim& cur_box,
+                                  const BoxDim& new_box,
+                                  const unsigned int* d_group_members,
+                                  const unsigned int group_size,
+                                  int3* d_image)
     {
     int block_size = 256;
     dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     hipLaunchKernelGGL((gpu_box_resize_updater_kernel),
-                    grid,
-                    threads,
-                    0,
-                    0,
-                    d_pos,
-                    cur_box,
-                    new_box,
-                    d_group_members,
-                    group_size);
+                       grid,
+                       threads,
+                       0,
+                       0,
+                       d_pos,
+                       cur_box,
+                       new_box,
+                       d_group_members,
+                       group_size);
 
     grid = dim3((N / block_size) + 1, 1, 1);
     threads = dim3(block_size, 1, 1);
 
-    hipLaunchKernelGGL((gpu_box_wrap_kernel),
-                    grid,
-                    threads,
-                    0,
-                    0,
-                    N,
-                    d_pos,
-                    d_image,
-                    new_box);
+    hipLaunchKernelGGL((gpu_box_wrap_kernel), grid, threads, 0, 0, N, d_pos, d_image, new_box);
 
     return hipDeviceSynchronize();
     }
