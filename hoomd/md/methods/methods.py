@@ -140,15 +140,14 @@ class ConstantVolume(Thermostatted):
         self._thermo = thermo_cls(cpp_sys_def, group)
 
         if self.thermostat is None:
-            self._cpp_obj = cls(cpp_sys_def, group, self._thermo, None)
+            self._cpp_obj = cls(cpp_sys_def, group, None)
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
                                    "already attached")
             self.thermostat._set_thermo(self.filter, self._thermo)
             self.thermostat._attach(self._simulation)
-            self._cpp_obj = cls(cpp_sys_def, group, self._thermo,
-                                self.thermostat._cpp_obj)
+            self._cpp_obj = cls(cpp_sys_def, group, self.thermostat._cpp_obj)
         super()._attach_hook()
 
 

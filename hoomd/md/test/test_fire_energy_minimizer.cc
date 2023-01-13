@@ -64,7 +64,7 @@ base_class_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
                                               thermo,
                                               sysdef);
     return std::shared_ptr<TwoStepConstantVolume>(
-        new TwoStepConstantVolume(sysdef, group, thermo, tstat));
+        new TwoStepConstantVolume(sysdef, group, tstat));
     }
 
 #ifdef ENABLE_HIP
@@ -78,7 +78,7 @@ std::shared_ptr<TwoStepConstantVolume> gpu_nve_creator(std::shared_ptr<SystemDef
                                               thermo,
                                               sysdef);
     return std::shared_ptr<TwoStepConstantVolume>(
-        new TwoStepConstantVolumeGPU(sysdef, group, thermo, tstat));
+        new TwoStepConstantVolumeGPU(sysdef, group, tstat));
     }
 
 //! FIREEnergyMinimizerGPU creator

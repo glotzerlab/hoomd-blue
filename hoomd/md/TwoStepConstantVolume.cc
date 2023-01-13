@@ -324,7 +324,6 @@ void export_TwoStepConstantVolume(pybind11::module& m)
                      std::shared_ptr<TwoStepConstantVolume>>(m, "TwoStepConstantVolume")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<Thermostat>>())
         .def("setThermostat", &TwoStepConstantVolume::setThermostat)
         .def_property("maximum_displacement",

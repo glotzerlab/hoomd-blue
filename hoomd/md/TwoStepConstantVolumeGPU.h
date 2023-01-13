@@ -15,7 +15,6 @@ class PYBIND11_EXPORT TwoStepConstantVolumeGPU : public TwoStepConstantVolume
     public:
     TwoStepConstantVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             std::shared_ptr<ComputeThermo> thermo,
                              std::shared_ptr<Thermostat> thermostat);
 
     virtual ~TwoStepConstantVolumeGPU() { }

@@ -17,9 +17,8 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
     public:
     TwoStepConstantVolume(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
-                          std::shared_ptr<ComputeThermo> thermo,
                           std::shared_ptr<Thermostat> thermostat)
-        : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_thermostat(thermostat)
+        : IntegrationMethodTwoStep(sysdef, group), m_thermostat(thermostat)
         {
         }
 
@@ -66,7 +65,6 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
         }
 
     protected:
-    std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
     std::shared_ptr<Thermostat> m_thermostat;
     std::shared_ptr<Variant> m_limit;
     };

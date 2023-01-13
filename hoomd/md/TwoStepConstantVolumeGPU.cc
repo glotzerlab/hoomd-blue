@@ -14,9 +14,8 @@ namespace hoomd::md
 
 TwoStepConstantVolumeGPU::TwoStepConstantVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group,
-                                                   std::shared_ptr<ComputeThermo> thermo,
                                                    std::shared_ptr<Thermostat> thermostat)
-    : TwoStepConstantVolume(sysdef, group, thermo, thermostat)
+    : TwoStepConstantVolume(sysdef, group, thermostat)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -239,7 +238,6 @@ void export_TwoStepConstantVolumeGPU(pybind11::module& m)
                      std::shared_ptr<TwoStepConstantVolumeGPU>>(m, "TwoStepConstantVolumeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<Thermostat>>());
     }
     } // namespace hoomd::md::detail
