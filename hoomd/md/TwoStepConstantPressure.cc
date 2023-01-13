@@ -235,7 +235,6 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
                                   : std::array<Scalar, 2> {1., 1.};
     const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
 
-    // NPT_thermo_rescale_factor_one(timestep);
     //  update the propagator matrix using current barostat momenta
     updatePropagator();
 
@@ -324,7 +323,7 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
             v.z = m_mat_exp_v[5] * v.z;
 
             // apply thermostat update of velocity
-            v *= rescaleFactors[0]; // exp_thermo_fac;
+            v *= rescaleFactors[0];
 
             if (!m_rescale_all)
                 {
@@ -412,7 +411,7 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
             p += m_deltaT * q * t;
 
             // apply thermostat
-            p = p * rescaleFactors[1]; // exp_thermo_fac_rot;
+            p = p * rescaleFactors[1];
 
             quat<Scalar> p1, p2, p3; // permutated quaternions
             quat<Scalar> q1, q2, q3;
@@ -509,7 +508,7 @@ void TwoStepConstantPressure::thermalizeBarostatDOF(uint64_t timestep)
     if (m_group->getNumMembersGlobal() > 0)
         instance_id = m_group->getMemberTag(0);
 
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNPTThermalizeBarostat,
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepConstantPressureThermalizeBarostat,
                                            timestep,
                                            m_sysdef->getSeed()),
                                hoomd::Counter(instance_id));
@@ -628,7 +627,7 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
             Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
 
             // apply thermostat
-            v = v * rescaleFactors[0]; // exp_thermo_fac;
+            v = v * rescaleFactors[0];
 
             // apply barostat by multiplying with matrix exponential
             v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z;
@@ -690,7 +689,7 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
                     t.z = 0;
 
                 // thermostat angular degrees of freedom
-                p = p * rescaleFactors[1]; // exp_thermo_fac_rot;
+                p = p * rescaleFactors[1];
 
                 // advance p(t+deltaT/2)->p(t+deltaT)
                 p += m_deltaT * q * t;

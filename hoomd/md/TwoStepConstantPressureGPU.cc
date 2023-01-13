@@ -86,9 +86,6 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                  : std::array<Scalar, 2> {1., 1.};
     std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
 
-    // Martyna-Tobias-Klein correction
-    // Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-
     // update the propagator matrix using current barostat momenta
     updatePropagator();
 
@@ -174,9 +171,6 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        // precompute loop invariant quantity
-        // Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
-
         // perform the particle update on the GPU
         m_exec_conf->beginMultiGPU();
         m_tuner_one->begin();
@@ -245,9 +239,6 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        // precompute loop invariant quantity
-        // Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
-
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
@@ -258,7 +249,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getGPUPartition(),
                                          m_deltaT,
-                                         rescalingFactors[1], // exp_thermo_fac_rot,
+                                         rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
