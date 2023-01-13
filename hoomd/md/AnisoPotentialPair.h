@@ -583,7 +583,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 di = h_diameter.data[i];
             if (aniso_evaluator::needsCharge())
                 qi = h_charge.data[i];
-            if (aniso_evaluator::needsAngularMomentum())
+            if (aniso_evaluator::needsAngularMomentum() && m_reciprocal)
                 {
                 quat<Scalar> p(h_angmom.data[i]);
                 quat<Scalar> q(quat_i);
@@ -631,7 +631,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     dj = h_diameter.data[j];
                 if (aniso_evaluator::needsCharge())
                     qj = h_charge.data[j];
-                if (aniso_evaluator::needsAngularMomentum() && m_reciprocal)
+                if (aniso_evaluator::needsAngularMomentum())
                     {
                     quat<Scalar> p(h_angmom.data[j]);
                     quat<Scalar> q(quat_j);
@@ -674,7 +674,7 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     if (m_reciprocal)
                         eval.setAngularMomentum(ai + aj);
                     else
-                        eval.setAngularMomentum(ai);
+                        eval.setAngularMomentum(aj);
                     }
 
                 bool evaluated = eval.evaluate(force, pair_eng, energy_shift, torque_i, torque_j);

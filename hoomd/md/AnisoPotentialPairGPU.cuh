@@ -267,7 +267,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
             qi = __ldg(d_charge + idx);
 
         vec3<Scalar> ai(0, 0, 0);
-        if (evaluator::needsAngularMomentum())
+        if (evaluator::needsAngularMomentum() && reciprocal)
             {
             quat<Scalar> p(__ldg(d_angmom + idx));
             quat<Scalar> q(quati);
@@ -306,7 +306,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                     qj = __ldg(d_charge + cur_j);
 
                 vec3<Scalar> aj(0, 0, 0);
-                if (evaluator::needsAngularMomentum() && reciprocal)
+                if (evaluator::needsAngularMomentum())
                     {
                     quat<Scalar> p(__ldg(d_angmom + cur_j));
                     quat<Scalar> q(quatj);
@@ -356,7 +356,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                     if (reciprocal)
                         eval.setAngularMomentum(ai + aj);
                     else
-                        eval.setAngularMomentum(ai);
+                        eval.setAngularMomentum(aj);
                     }
 
                 // call evaluator
