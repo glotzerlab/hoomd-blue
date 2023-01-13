@@ -69,7 +69,7 @@ class NVE(MethodRATTLE):
             function. Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations as described
-    in `hoomd.md.methods.ConstantPressure` without any thermostat. In addition
+    in `hoomd.md.methods.ConstantVolume` without any thermostat. In addition
     the particles are constrained to a manifold by using the RATTLE algorithm.
 
     Examples::
