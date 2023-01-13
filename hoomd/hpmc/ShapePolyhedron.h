@@ -36,7 +36,7 @@
   left in here for future experimentation, and can be enabled by uncommenting the below line.
 */
 // uncomment for parallel overlap checks
-//#define LEAVES_AGAINST_TREE_TRAVERSAL
+// #define LEAVES_AGAINST_TREE_TRAVERSAL
 
 namespace hoomd
     {

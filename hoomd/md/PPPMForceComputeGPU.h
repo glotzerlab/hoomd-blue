@@ -18,7 +18,7 @@ typedef cufftHandle hipfftHandle;
 
 #include <sstream>
 
-//#define USE_HOST_DFFT
+// #define USE_HOST_DFFT
 
 #include "hoomd/Autotuner.h"
 
