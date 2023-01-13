@@ -27,7 +27,7 @@ For some functionalities, you will need to update your scripts to use a new API:
    * - ``hoomd.md.methods.NVE``
      - `hoomd.md.methods.ConstantVolume` with ``thermostat=None``.
    * - ``hoomd.md.methods.NVT``
-     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` or thermostat.
+     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
    * - ``hoomd.md.methods.Berendsen``
      - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.Berendsen` thermostat.
    * - ``hoomd.md.methods.NPH``
