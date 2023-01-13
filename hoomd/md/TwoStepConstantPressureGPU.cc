@@ -11,7 +11,6 @@ namespace hoomd::md
 TwoStepConstantPressureGPU::TwoStepConstantPressureGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,
-    std::shared_ptr<ComputeThermo> thermo_half_step,
     std::shared_ptr<ComputeThermo> thermo_full_step,
     Scalar tauS,
     const std::vector<std::shared_ptr<Variant>>& S,
@@ -21,7 +20,6 @@ TwoStepConstantPressureGPU::TwoStepConstantPressureGPU(
     Scalar gamma)
     : TwoStepConstantPressure(sysdef,
                               group,
-                              thermo_half_step,
                               thermo_full_step,
                               tauS,
                               S,
@@ -373,7 +371,6 @@ void export_TwoStepConstantPressureGPU(pybind11::module& m)
                      std::shared_ptr<TwoStepConstantPressureGPU>>(m, "TwoStepConstantPressureGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<ComputeThermo>,
                             Scalar,
                             std::vector<std::shared_ptr<Variant>>,

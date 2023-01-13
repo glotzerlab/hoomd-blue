@@ -12,7 +12,6 @@ class TwoStepConstantPressureGPU : public TwoStepConstantPressure
     public:
     TwoStepConstantPressureGPU(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<ParticleGroup> group,
-                               std::shared_ptr<ComputeThermo> thermo_half_step,
                                std::shared_ptr<ComputeThermo> thermo_full_step,
                                Scalar tauS,
                                const std::vector<std::shared_ptr<Variant>>& S,

@@ -21,7 +21,6 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     public:
     TwoStepConstantPressure(std::shared_ptr<SystemDefinition> sysdef,
                             std::shared_ptr<ParticleGroup> group,
-                            std::shared_ptr<ComputeThermo> thermo_half_step,
                             std::shared_ptr<ComputeThermo> thermo_full_step,
                             Scalar tauS,
                             const std::vector<std::shared_ptr<Variant>>& S,
@@ -162,8 +161,6 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     Scalar m_mat_exp_r_int[6]; //!< Integrated matrix exp. for velocity update (upper triangular)
     Scalar m_gamma;
     std::shared_ptr<Thermostat> m_thermostat;
-    std::shared_ptr<ComputeThermo>
-        m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t
     std::shared_ptr<ComputeThermo>
         m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
     bool m_rescale_all;     //!< If true, rescale all particles in the system irrespective of group

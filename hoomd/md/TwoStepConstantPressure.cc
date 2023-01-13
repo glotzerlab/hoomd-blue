@@ -36,7 +36,6 @@ const Scalar h_coeff[] = {Scalar(1.0 / 3.0),
 
 TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinition> sysdef,
                                                  std::shared_ptr<ParticleGroup> group,
-                                                 std::shared_ptr<ComputeThermo> thermo_half_step,
                                                  std::shared_ptr<ComputeThermo> thermo_full_step,
                                                  Scalar tauS,
                                                  const std::vector<std::shared_ptr<Variant>>& S,
@@ -45,7 +44,7 @@ TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinitio
                                                  std::shared_ptr<Thermostat> thermostat,
                                                  Scalar gamma)
     : IntegrationMethodTwoStep(sysdef, group), m_S(S), m_tauS(tauS), m_ndof(0), m_gamma(gamma),
-      m_thermostat(thermostat), m_thermo_half_step(thermo_half_step),
+      m_thermostat(thermostat),
       m_thermo_full_step(thermo_full_step), m_rescale_all(false)
     {
     if (m_flags == 0)
@@ -999,7 +998,6 @@ void export_TwoStepConstantPressure(pybind11::module& m)
                      std::shared_ptr<TwoStepConstantPressure>>(m, "TwoStepConstantPressure")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>,
                             std::shared_ptr<ComputeThermo>,
                             Scalar,
                             std::vector<std::shared_ptr<Variant>>,
