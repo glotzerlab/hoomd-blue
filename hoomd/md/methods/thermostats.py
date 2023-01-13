@@ -80,7 +80,6 @@ class MTTK(Thermostat):
         rotational_thermostat_dof (tuple[float, float]): Additional degrees
             of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
             :math:`\eta_\mathrm{rot}`)
-
     """
 
     def __init__(self, kT, tau):
@@ -147,13 +146,12 @@ class Bussi(Thermostat):
     where :math:`N_f` is the number of degrees of freedom thermalized.
 
     See Also:
-        `Bussi et. al. 2007 <https://doi.org/10.1063/1.2408420>`.
+        `Bussi et. al. 2007 <https://doi.org/10.1063/1.2408420>`_.
 
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point
             for the thermostat :math:`[\mathrm{energy}]`.
-
     """
 
     def __init__(self, kT):
@@ -194,7 +192,6 @@ class Berendsen(Thermostat):
             :math:`[energy]`
 
         tau (float): Time constant of thermostat. :math:`[time]`
-
     """
 
     def __init__(self, kT, tau):
