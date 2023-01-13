@@ -42,10 +42,10 @@ def force_simulation_factory(simulation_factory):
         sim = simulation_factory(snapshot, domain_decomposition)
         thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
         npt = md.methods.ConstantPressure(hoomd.filter.All(),
-                             S=1,
-                             tauS=1,
-                             couple="none",
-                             thermostat=thermostat)
+                                          S=1,
+                                          tauS=1,
+                                          couple="none",
+                                          thermostat=thermostat)
         integrator = md.Integrator(dt=0.005, forces=[force_obj], methods=[npt])
         sim.operations.integrator = integrator
         return sim
@@ -358,10 +358,10 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     custom_force = MyForce('gpu_local_force_arrays')
     thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
     npt = md.methods.ConstantPressure(hoomd.filter.All(),
-                         thermostat=thermostat,
-                         S=1,
-                         tauS=1,
-                         couple="none")
+                                      thermostat=thermostat,
+                                      S=1,
+                                      tauS=1,
+                                      couple="none")
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[npt])
     sim.operations.integrator = integrator
     with pytest.raises(RuntimeError):

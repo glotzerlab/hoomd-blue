@@ -14,7 +14,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
         throw std::runtime_error("Empty integration group.");
         }
 
-    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT):std::array<Scalar, 2>{1., 1.};
+    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT)
+                                          : std::array<Scalar, 2> {1., 1.};
 
     unsigned int group_size = m_group->getNumMembers();
 
@@ -209,7 +210,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
         }
 
     // get temperature and advance thermostat
-    if(m_thermostat)
+    if (m_thermostat)
         m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
     } /*! \param timestep Current time step
          \post particle velocities are moved forward to timestep+1
@@ -218,7 +219,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT) : std::array<Scalar, 2>{1., 1.};
+    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
+                                          : std::array<Scalar, 2> {1., 1.};
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 

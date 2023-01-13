@@ -140,8 +140,7 @@ class ConstantVolume(Thermostatted):
         self._thermo = thermo_cls(cpp_sys_def, group)
 
         if self.thermostat is None:
-            self._cpp_obj = cls(cpp_sys_def, group, self._thermo,
-                                None)
+            self._cpp_obj = cls(cpp_sys_def, group, self._thermo, None)
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
@@ -372,8 +371,7 @@ class ConstantPressure(Thermostatted):
         if self.thermostat is None:
             self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
                                     thermo_full_step, self.tauS, self.S,
-                                    self.couple, self.box_dof,
-                                    None, self.gamma)
+                                    self.couple, self.box_dof, None, self.gamma)
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
@@ -382,9 +380,9 @@ class ConstantPressure(Thermostatted):
             self.thermostat._attach(self._simulation)
 
             self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
-                                thermo_full_step, self.tauS, self.S,
-                                self.couple, self.box_dof,
-                                self.thermostat._cpp_obj, self.gamma)
+                                    thermo_full_step, self.tauS, self.S,
+                                    self.couple, self.box_dof,
+                                    self.thermostat._cpp_obj, self.gamma)
 
         # Attach param_dict and typeparam_dict
         super()._attach_hook()

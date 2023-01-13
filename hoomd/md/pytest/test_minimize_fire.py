@@ -182,7 +182,9 @@ def test_validate_methods(lattice_snapshot_factory, simulation_factory):
 
     surface = md.manifold.Diamond(5)
     nve = md.methods.rattle.NVE(hoomd.filter.All(), surface)
-    nph = md.methods.ConstantPressure(hoomd.filter.All(), S=1, tauS=1,
+    nph = md.methods.ConstantPressure(hoomd.filter.All(),
+                                      S=1,
+                                      tauS=1,
                                       couple='none')
     brownian = md.methods.Brownian(hoomd.filter.All(), kT=1)
     rattle_brownian = md.methods.rattle.Brownian(hoomd.filter.All(), 1, surface)

@@ -56,7 +56,9 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
         }
 
     unsigned int group_size = m_group->getNumMembers();
-    const auto&& rescalingFactors = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT) : std::array<Scalar, 2>{1., 1.};
+    const auto&& rescalingFactors = m_thermostat
+                                        ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT)
+                                        : std::array<Scalar, 2> {1., 1.};
         {
         // access all the needed data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
@@ -142,7 +144,7 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
         }
 
     // advance thermostat
-    if(m_thermostat)
+    if (m_thermostat)
         m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
     }
 
@@ -158,7 +160,9 @@ void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                             access_location::device,
                                             access_mode::read);
-    const auto&& rescalingFactors = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT) : std::array<Scalar, 2>{1., 1.};
+    const auto&& rescalingFactors = m_thermostat
+                                        ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
+                                        : std::array<Scalar, 2> {1., 1.};
 
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),

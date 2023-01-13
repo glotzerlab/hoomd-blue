@@ -6,7 +6,7 @@
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
-//#include "TwoStepConstantVolume.h"
+// #include "TwoStepConstantVolume.h"
 
 #include "Thermostat.h"
 #include "hoomd/Variant.h"

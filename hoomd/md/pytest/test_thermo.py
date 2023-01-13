@@ -117,8 +117,8 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
 
     integrator = hoomd.md.Integrator(dt=0.0001)
     thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
-    integrator.methods.append(hoomd.md.methods.ConstantVolume(filterA,
-                                                              thermostat))
+    integrator.methods.append(
+        hoomd.md.methods.ConstantVolume(filterA, thermostat))
     integrator.methods.append(
         hoomd.md.methods.Langevin(filterB, kT=1, alpha=0.00001))
     sim.operations.integrator = integrator
