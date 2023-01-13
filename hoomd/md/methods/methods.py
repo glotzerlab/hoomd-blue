@@ -368,7 +368,7 @@ class ConstantPressure(Thermostatted):
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         if self.thermostat is None:
-            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
+            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group,
                                     thermo_full_step, self.tauS, self.S,
                                     self.couple, self.box_dof, None, self.gamma)
         else:
@@ -378,7 +378,7 @@ class ConstantPressure(Thermostatted):
             self.thermostat._set_thermo(self.filter, self._thermo)
             self.thermostat._attach(self._simulation)
 
-            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, self._thermo,
+            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group,
                                     thermo_full_step, self.tauS, self.S,
                                     self.couple, self.box_dof,
                                     self.thermostat._cpp_obj, self.gamma)
