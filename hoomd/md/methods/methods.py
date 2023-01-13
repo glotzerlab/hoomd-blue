@@ -38,7 +38,7 @@ class Thermostatted(Method):
 
     Note:
         Users should use the subclasses and not instantiate `Thermostatted`
-        directly
+        directly.
     """
     _remove_for_pickling = AutotunedObject._remove_for_pickling + ("_thermo",)
     _skip_for_equality = AutotunedObject._skip_for_equality | {
@@ -82,22 +82,16 @@ class ConstantVolume(Thermostatted):
             to control temperature. Setting this to ``None`` produces NVE
             dynamics. Defaults to ``None``
 
-    `ConstantVolume` integrates translational and rotational degrees of freedom
-    in the canonical ensemble using the Nosé-Hoover thermostat. The thermostat
-    is introduced as additional degrees of freedom in the Hamiltonian that
-    couple with the velocities and angular momenta of the particles.
+    `ConstantVolume` `Langevin` numerically integrates the translational degrees
+    of freedom using Velocity-Verlet and the rotational degrees of freedom with
+    a scheme based on `Kamberaj 2005`_.
 
-    The translational thermostat has a momentum :math:`\xi` and position
-    :math:`\eta`. The rotational thermostat has momentum
-    :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`. Access
-    these quantities using `translational_thermostat_dof` and
-    `rotational_thermostat_dof`.
+    When set, the `thermostat` rescales the particle velocities to control the
+    temperature of the system. When `thermostat` = `None`, perform constant
+    energy integration.
 
-    `NVT` numerically integrates the equations of motion using the symplectic
-    Martyna-Tobias-Klein formalism described refs. `G. J. Martyna, D. J.
-    Tobias, M. L. Klein 1994 <http://dx.doi.org/10.1063/1.467468>`_ and `J.
-    Cao, G. J. Martyna 1996 <http://dx.doi.org/10.1063/1.470959>`_.
-
+    See Also:
+        `hoomd.md.methods.thermostats` for the available thermostats.
 
     Examples::
 
@@ -159,7 +153,8 @@ class ConstantPressure(Thermostatted):
             this method.
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Thermostat used to
-            control temperature. Setting this to ``None`` yields NPH integration
+            control temperature. Setting this to ``None`` yields NPH
+            integration.
 
         S (tuple[hoomd.variant.variant_like, ...] or \
                 hoomd.variant.variant_like): Stress components set point for the
@@ -178,9 +173,9 @@ class ConstantPressure(Thermostatted):
 
         box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
             elements corresponding to x, y, z, xy, xz, yz, each. Default to
-            [True,True,True,False,False,False]). If turned on to True,
-            rescale corresponding lengths or tilt factors and components of
-            particle coordinates and velocities.
+            [True,True,True,False,False,False]). If True, rescale corresponding
+            lengths or tilt factors and components of particle coordinates and
+            velocities.
 
         rescale_all (bool): if True, rescale all particles, not only those
             in the group, Default to False.
@@ -188,23 +183,25 @@ class ConstantPressure(Thermostatted):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    `ConstantPressure` integrates translational and rotational
-    degrees of freedom at constant pressure. The barostat is introduced as
+    `ConstantPressure` integrates translational and rotational degrees of
+    freedom of the system held at constant pressure. The barostat introduces
     additional degrees of freedom in the Hamiltonian that couple with box
     parameters. Using a thermostat yields an isobaric-isothermal ensemble,
-    whereas its absence yields an isoenthalpic-isobaric ensemble.
+    whereas its absence (`thermostat` = `None`) yields an isoenthalpic-isobaric
+    ensemble.
+
+    See Also:
+        `hoomd.md.methods.thermostats` for the available thermostats.
 
     The barostat tensor is :math:`\\nu_{\\mathrm{ij}}`. Access these quantities
     using `barostat_dof`.
 
     By default, `ConstantPressure` performs integration in a cubic box under
     hydrostatic pressure by simultaneously rescaling the lengths *Lx*, *Ly* and
-    *Lz* of the simulation box. Set the integration mode to change this
-    default.
+    *Lz* of the simulation box by the same factors. Set the couplings and/or
+    box degrees of freedom to change this default.
 
-    The integration mode is defined by a set of couplings and by specifying
-    the box degrees of freedom that are put under barostat control. Couplings
-    define which diagonal elements of the pressure tensor
+    Couplings define which diagonal elements of the pressure tensor
     :math:`P_{\\alpha,\\beta}` should be averaged over, so that the
     corresponding box lengths are rescaled by the same amount.
 
@@ -216,36 +213,35 @@ class ConstantPressure(Thermostatted):
     - ``'yz`'`` (*Ly* and *Lz* are coupled)
     - ``'xyz`'`` (*Lx*, *Ly*, and *Lz* are coupled)
 
-    Degrees of freedom of the box specify which lengths and tilt factors of the
+    The degrees of freedom of the box set which lengths and tilt factors of the
     box should be updated, and how particle coordinates and velocities should be
     rescaled. The ``box_dof`` tuple controls the way the box is rescaled and
-    updated. The first three elements ``box_dof[:3]`` controls whether the x, y,
-    and z box lengths are rescaled and updated, respectively. The last three
-    entries ``box_dof[3:]`` control the rescaling or the tilt factors xy, xz,
-    and yz. All options also appropriately rescale particle coordinates and
-    velocities.
+    updated. The first three elements ``box_dof[:3]`` controls whether the *x*,
+    *y*, and *z* box lengths are rescaled and updated, respectively. The last
+    three entries ``box_dof[3:]`` control the rescaling or the tilt factors
+    *xy*, *xz*, and *yz*. All options also appropriately rescale particle
+    coordinates and velocities.
 
-    By default, the x, y, and z degrees of freedom are updated.
+    By default, the *x*, *y*, and *z* degrees of freedom are updated.
     ``[True,True,True,False,False,False]``
 
     Note:
-        If any of the diagonal x, y, z degrees of freedom is not being
+        If any of the diagonal *x*, *y*, *z* degrees of freedom is not being
         integrated, pressure tensor components along that direction are not
         considered for the remaining degrees of freedom.
 
     For example:
 
-    - Specifying all couplings and x, y, and z degrees of freedom amounts to
+    - Setting all couplings and *x*, *y*, and *z* degrees of freedom amounts to
       cubic symmetry (default)
-    - Specifying xy couplings and x, y, and z degrees of freedom amounts to
+    - Setting *xy* coupling and *x*, *y*, and *z* degrees of freedom amounts to
       tetragonal symmetry.
-    - Specifying no couplings and all degrees of freedom amounts to a fully
+    - Setting no couplings and all degrees of freedom amounts to a fully
       deformable triclinic unit cell
 
     `ConstantPressure` numerically integrates the equations of motion using the
-    symplectic Martyna-Tobias-Klein equations of motion. For optimal stability,
-    the update equations leave the phase-space measure invariant and are
-    manifestly time-reversible.
+    symplectic Martyna-Tobias-Klein integrator with (TODO: document Langevin
+    Piston, and link to paper, and suggest how to choose an appropriate gamma).
 
     See Also:
         * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
@@ -260,6 +256,10 @@ class ConstantPressure(Thermostatted):
         range to avoid abrupt fluctuations in the box volume and to avoid long
         time to equilibration. The recommend value for most systems is
         :math:`\\tau_S = 1000 \\delta t`.
+
+    Note:
+        Set `gamma` = 0 to obtain the same MTK equations of motion used in
+        HOOMD-blue releases prior to v4.0.0.
 
     Examples::
 

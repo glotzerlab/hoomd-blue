@@ -7,12 +7,14 @@ Integration methods work with `hoomd.md.Integrator` to define the equations
 of motion for the system. Each individual method applies the given equations
 of motion to a subset of particles.
 
-.. rubric:: Integration methods with constraints
-
-For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`
+.. rubric:: Thermostatted methods
 
 Thermostatted methods require usage of a thermostat, see
-`hoomd.md.methods.thermostats`
+`hoomd.md.methods.thermostats`.
+
+.. rubric:: Integration methods with constraints
+
+For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`.
 """
 
 from . import rattle
