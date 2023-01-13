@@ -44,8 +44,7 @@ TwoStepConstantPressure::TwoStepConstantPressure(std::shared_ptr<SystemDefinitio
                                                  std::shared_ptr<Thermostat> thermostat,
                                                  Scalar gamma)
     : IntegrationMethodTwoStep(sysdef, group), m_S(S), m_tauS(tauS), m_ndof(0), m_gamma(gamma),
-      m_thermostat(thermostat),
-      m_thermo_full_step(thermo_full_step), m_rescale_all(false)
+      m_thermostat(thermostat), m_thermo_full_step(thermo_full_step), m_rescale_all(false)
     {
     if (m_flags == 0)
         m_exec_conf->msg->warning()
@@ -507,10 +506,11 @@ void TwoStepConstantPressure::thermalizeBarostatDOF(uint64_t timestep)
     if (m_group->getNumMembersGlobal() > 0)
         instance_id = m_group->getMemberTag(0);
 
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepConstantPressureThermalizeBarostat,
-                                           timestep,
-                                           m_sysdef->getSeed()),
-                               hoomd::Counter(instance_id));
+    hoomd::RandomGenerator rng(
+        hoomd::Seed(hoomd::RNGIdentifier::TwoStepConstantPressureThermalizeBarostat,
+                    timestep,
+                    m_sysdef->getSeed()),
+        hoomd::Counter(instance_id));
 
     bool master = m_exec_conf->getRank() == 0;
 

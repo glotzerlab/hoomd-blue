@@ -108,6 +108,8 @@ class ConstantVolume(Thermostatted):
 
         thermostat (hoomd.md.methods.thermostats.Thermostat): Temperature
             control for the integrator
+
+    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
     """
 
     def __init__(self, filter, thermostat=None):
@@ -368,9 +370,9 @@ class ConstantPressure(Thermostatted):
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         if self.thermostat is None:
-            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group,
-                                    thermo_full_step, self.tauS, self.S,
-                                    self.couple, self.box_dof, None, self.gamma)
+            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_full_step,
+                                    self.tauS, self.S, self.couple,
+                                    self.box_dof, None, self.gamma)
         else:
             if self.thermostat._attached:
                 raise RuntimeError("Trying to attach a thermostat that is "
@@ -378,10 +380,10 @@ class ConstantPressure(Thermostatted):
             self.thermostat._set_thermo(self.filter, self._thermo)
             self.thermostat._attach(self._simulation)
 
-            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group,
-                                    thermo_full_step, self.tauS, self.S,
-                                    self.couple, self.box_dof,
-                                    self.thermostat._cpp_obj, self.gamma)
+            self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_full_step,
+                                    self.tauS, self.S, self.couple,
+                                    self.box_dof, self.thermostat._cpp_obj,
+                                    self.gamma)
 
         # Attach param_dict and typeparam_dict
         super()._attach_hook()

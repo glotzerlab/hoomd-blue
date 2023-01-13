@@ -63,8 +63,7 @@ base_class_nve_creator(std::shared_ptr<SystemDefinition> sysdef,
                                               group,
                                               thermo,
                                               sysdef);
-    return std::shared_ptr<TwoStepConstantVolume>(
-        new TwoStepConstantVolume(sysdef, group, tstat));
+    return std::shared_ptr<TwoStepConstantVolume>(new TwoStepConstantVolume(sysdef, group, tstat));
     }
 
 #ifdef ENABLE_HIP
