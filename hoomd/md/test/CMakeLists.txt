@@ -19,15 +19,6 @@ set(TEST_LIST
     test_zero_momentum_updater
     )
 
-if (NOT HOOMD_SKIP_LONG_TESTS)
-    # put the longest tests last
-set(TEST_LIST ${TEST_LIST}
-    test_dpd_integrator
-    test_npt_mtk_integrator
-    test_nvt_mtk_integrator
-    test_nve_integrator)
-endif()
-
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
     SET("NProc_${_KEY}" "${_VALUE}")

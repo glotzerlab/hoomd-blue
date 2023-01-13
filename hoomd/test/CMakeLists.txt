@@ -32,8 +32,6 @@ set(SYNC_TEST_LIST
     test_warp_tools)
 endif (ENABLE_HIP)
 
-option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
-
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
     SET("NProc_${_KEY}" "${_VALUE}")

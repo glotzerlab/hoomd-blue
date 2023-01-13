@@ -624,12 +624,7 @@ add_subdirectory(alchemy)
 add_subdirectory(tune)
 
 if (BUILD_TESTING)
-    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
 add_subdirectory(pytest)
-
-if (BUILD_VALIDATION)
-    # add_subdirectory(validation)
-endif()

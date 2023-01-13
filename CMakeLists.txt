@@ -165,13 +165,10 @@ exec_program("date +%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
 enable_testing()
 option(BUILD_TESTING "Build unit tests" ON)
 
-################################
-# set up long validation tests
-option(BUILD_VALIDATION "Build validation tests" OFF)
-if (BUILD_TESTING OR BUILD_VALIDATION)
+if (BUILD_TESTING)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
-endif (BUILD_TESTING OR BUILD_VALIDATION)
+endif (BUILD_TESTING)
 
 ################################
 ## Process subdirectories
