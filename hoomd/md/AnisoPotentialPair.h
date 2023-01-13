@@ -526,6 +526,11 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                                        access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
+    // TODO figure out if this is the right approach
+    ArrayHandle<Scalar4> h_patch_orientation(m_pdata->getPatchOrientations(),
+                                             access_location::host,
+                                             access_mode::read)
+
     // force arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
@@ -633,6 +638,9 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                     eval.setShape(&m_shape_params[typei], &m_shape_params[typej]);
                 if (aniso_evaluator::needsTags())
                     eval.setTags(h_tag.data[i], h_tag.data[j]);
+                if (aniso_evaluator::needsPatchOrientation())
+                    eval.setPatchOrientation();
+                // TODO figure out if this is ok
 
                 bool evaluated = eval.evaluate(force, pair_eng, energy_shift, torque_i, torque_j);
 
