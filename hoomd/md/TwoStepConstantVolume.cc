@@ -86,9 +86,6 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
     // time-reversal symmetric integration scheme of Miller et al., extended by thermostat
     if (m_aniso)
         {
-        // thermostat factor
-        // Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * TwoStepNVTMTK::m_thermostat.xi_rot);
-
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,
                                            access_mode::readwrite);
@@ -133,7 +130,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
             p += m_deltaT * q * t;
 
             // apply thermostat
-            p = p * rescaling_factors[1]; // exp_fac;
+            p = p * rescaling_factors[1];
 
             quat<Scalar> p1, p2, p3; // permutated quaternions
             quat<Scalar> q1, q2, q3;
@@ -251,7 +248,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
         accel = net_force * minv;
 
         // rescale velocity
-        v *= rescaling_factors[0]; // TwoStepNVTMTK::m_exp_thermo_fac;
+        v *= rescaling_factors[0];
 
         // update velocity
         v += Scalar(1.0 / 2.0) * m_deltaT * accel;
@@ -308,7 +305,7 @@ void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
                 t.z = 0;
 
             // apply thermostat
-            p = p * rescaling_factors[1]; // exp_fac;
+            p = p * rescaling_factors[1];
 
             // advance p(t+deltaT/2)->p(t+deltaT)
             p += m_deltaT * q * t;
