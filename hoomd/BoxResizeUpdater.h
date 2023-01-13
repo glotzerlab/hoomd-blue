@@ -81,7 +81,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     /// Update box interpolation based on provided timestep
     virtual void update(uint64_t timestep);
 
-    private:
+    protected:
     std::shared_ptr<BoxDim> m_box1;         ///< C++ box assoc with min
     std::shared_ptr<BoxDim> m_box2;         ///< C++ box assoc with max
     std::shared_ptr<Variant> m_variant;     //!< Variant that interpolates between boxes
