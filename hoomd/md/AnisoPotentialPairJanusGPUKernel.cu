@@ -4,7 +4,6 @@
 #include "AnisoPotentialPairGPU.cuh"
 #include "EvaluatorPairLJ.h"
 #include "GeneralEnvelope.h"
-#include "JanusFactor.h"
 #include "PairModulator.h"
 
 namespace hoomd

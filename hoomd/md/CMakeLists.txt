@@ -128,7 +128,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
-                JanusFactor.h
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
