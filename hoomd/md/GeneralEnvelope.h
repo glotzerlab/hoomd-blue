@@ -35,7 +35,6 @@ namespace md
 class GeneralEnvelope
 {
 public:
-    //typedef typename AngleDependence::param_type param_type;
     struct param_type
     {
         param_type()
@@ -43,9 +42,21 @@ public:
             }
 
         param_type(pybind11::dict params)
-            : cosalpha( fast::cos(params["alpha"].cast<Scalar>()) ),
-              omega(params["omega"].cast<Scalar>())
             {
+                cosalpha = fast::cos(params["alpha"].cast<Scalar>());
+                omega =params["omega"].cast<Scalar>();
+
+                // precompute the normalization
+                nsq = dot(ni, ni);
+                magn = fast::sqrt(nsq);
+                ni = ni / magn;
+
+                nsq = dot(nj, nj);
+                magn = fast::sqrt(nsq);
+                nj = nj / magn;
+
+                // Find quaternion to rotate from (1,0,0) to ni, nj
+
             }
 
         pybind11::dict asDict()
@@ -55,44 +66,43 @@ public:
                 v["alpha"] = fast::acos(cosalpha);
                 v["omega"] = omega;
 
+                vec3<Scalar> ex(1,0,0);
+                vec3<Scalar> ni = rotate(qpi, ex);
+                vec3<Scalar> nj = rotate(qpi, ex);
+
+                v["ni"] = pybind11::make_tuple(ni.x, ni.y, ni.z);
+                v["nj"] = pybind11::make_tuple(nj.x, nj.y, nj.z);
+
+
                 return v;
             }
 
+        quat<Scalar> qpi;
+        quat<Scalar> qpj;
         Scalar cosalpha;
         Scalar omega;
-    }
-#ifdef SINGLE_PRECISION
-        __attribute__((aligned(8)));
-#else
-        __attribute__((aligned(16)));
-#endif
+    }__attribute__((aligned(16)));
 
-    //! Constructor
-    DEVICE GeneralEnvelope( // TODO: this is not actually general. It assumes a single off center patch
-        const vec3<Scalar>& _dr,
-        const quat<Scalar>& _quat_i,
-        const quat<Scalar>& _quat_j,
-        const quat<Scalar>& _patch_orientation_i,
-        const quat<Scalar>& _patch_orientation_j,
-        const Scalar& _rcutsq,
+    DEVICE GeneralEnvelope( // TODO: this is not actually general. It assumes a single off-center patch
+        const Scalar3& _dr,
+        const Scalar4& _quat_i, // Note in hoomd, the quaternion is how to get from the particle orientation to align to the world orientation. so World = qi Local qi-1
+        const Scalar4& _quat_j,
+        const Scalar _rcutsq,
         const param_type& _params)
-        : dr(_dr), qi(_quat_i), qj(_quat_j), oi(_patch_orientation_i), oj(_patch_orientation_j), params(_params) // patch orientation is per type, so it's not in params
+        : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params)
         {
             // compute current janus direction vectors
-            vec3<Scalar> ex { make_scalar3(1, 0, 0) };
-            vec3<Scalar> ey { make_scalar3(0, 1, 0) };
-            vec3<Scalar> ez { make_scalar3(0, 0, 1) };
-
-            //vec3<Scalar> ei, ej;
-            //vec3<Scalar> ni, nj;
-            // vec3<Scalar> a1, a2, a3, b1, b2, b3;
+            vec3<Scalar> ex(1,0,0); // ex = ni
+            vec3<Scalar> ey(0,1,0);
+            vec3<Scalar> ez(0,0,1);
 
             ei = rotate(qi, ex);
-            a1 = rotate(qi, ex);
+            a1 = rotate(conj(qi), ex);
             a2 = rotate(qi, ey);
             a3 = rotate(qi, ez);
             // patch points relative to x (a1) direction of particle
-            ni = rotate(oi, a1);
+            ni = rotate(params.qpi, a1);
+            // TODO ni = rotate(params.qpi * conj(qi), ex)
 
             ej = rotate(qj, ex);
             b1 = rotate(qj, ex);
@@ -100,17 +110,17 @@ public:
             b3 = rotate(qj, ez);
 
             // patch points relative to x (b1) direction of particle
-            nj = rotate(oj, b1);
+            nj = rotate(params.qpj, b1);
 
             // compute distance
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
-            
+
 
             // Possible idea to rotate into particle frame so (1,0,0) is pointing in the direction of the patch
             // rotate dr
             // rotate nj
-            
+
             // cos(angle between dr and pointing vector)
             // which as first implemented is the same as the angle between the patch and pointing director
             doti = -dot(vec3<Scalar>(dr), ei) / magdr; // negative because dr = dx = pi - pj
@@ -216,22 +226,25 @@ public:
             // comments use Mathematica notation:
 
             // qr * Cross[{drx, dry, drz}, {qx, qy, qz}]
-            vec3<Scalar> new_cross_term = oi.s * cross(dr, oi.v);
+
+            quat<Scalar> qpi = params.qpi; // quaternion representing orientation of patch with respect to particle x direction (a1)
+
+            vec3<Scalar> new_cross_term = qpi.s * cross(dr, qpi.v);
 
             // {qx, qy, qz}*{{dry,drz}.{qy,qz}, {drx,drz}.{qx,qz}, {drx,dry}.{qx,qy}}
             // Components of dot products:
-            Scalar drxqx = dr.x*oi.v.x;
-            Scalar dryqy = dr.y*oi.v.y;
-            Scalar drzqz = dr.z*oi.v.z;
+            Scalar drxqx = dr.x*qpi.v.x;
+            Scalar dryqy = dr.y*qpi.v.y;
+            Scalar drzqz = dr.z*qpi.v.z;
 
-            new_cross_term.x += oi.v.x * (dryqy + drzqz);
-            new_cross_term.y += oi.v.y * (drxqx + drzqz);
-            new_cross_term.z += oi.v.z * (drxqx + dryqy);
+            new_cross_term.x += qpi.v.x * (dryqy + drzqz);
+            new_cross_term.y += qpi.v.y * (drxqx + drzqz);
+            new_cross_term.z += qpi.v.z * (drxqx + dryqy);
 
             // {drx, dry, drz}*{qx, qy, qz}^2 . {{-1, 1, 1}, {1, -1, 1}, {1, 1, -1}}
-            Scalar qx2 = oi.v.x * oi.v.x;
-            Scalar qy2 = oi.v.y * oi.v.y;
-            Scalar qz2 = oi.v.z * oi.v.z;
+            Scalar qx2 = qpi.v.x * qpi.v.x;
+            Scalar qy2 = qpi.v.y * qpi.v.y;
+            Scalar qz2 = qpi.v.z * qpi.v.z;
 
             new_cross_term.x += dr.x * (-qx2 + qy2 + qz2);
             new_cross_term.y += dr.y * ( qx2 - qy2 + qz2);
@@ -239,7 +252,7 @@ public:
 
             // The norm2 comes from the definition of rotation for quaternion
             // The magdr comes from the dot product definition of cos(theta_i)
-            new_cross_term = new_cross_term / (-magdr * norm2(oi));
+            new_cross_term = new_cross_term / (-magdr * norm2(qpi));
             // I multiply iPj by magdr next for clarity during the derivation bc I did it above -Corwin
             torque_i = vec_to_scalar3( (iPj*magdr) * cross(vec3<Scalar>(a1), new_cross_term));
 
@@ -275,13 +288,10 @@ public:
 #endif
 
 private:
-    //AngleDependence s;
     vec3<Scalar> dr;
     quat<Scalar> qi;
     quat<Scalar> qj;
 
-    quat<Scalar> oi; // quaternion representing orientation of patch with respect to particle x direction (a1)
-    quat<Scalar> oj; // quaternion representing orientation of patch with respect to particle x direction (b1)
     const param_type& params;
 
     vec3<Scalar> ni; // pointing vector for patch on particle i

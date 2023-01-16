@@ -112,9 +112,9 @@ public:
       \param _params Per type pair parameters of the potential
     */
     DEVICE PairModulator( const Scalar3& _dr,
-                          const quat<Scalar>& _quat_eye,
-                          const quat<Scalar>& _quat_jay,
-                          const Scalar& _rcutsq,
+                          const Scalar4& _quat_eye,
+                          const Scalar4& _quat_jay,
+                          const Scalar _rcutsq,
                           const param_type& _params)
         : dr(_dr),
           rsq(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z),

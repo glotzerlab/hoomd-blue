@@ -643,6 +643,7 @@ class JanusLJ(AnisotropicPair):
             return input
         else:
             raise ValueError(f"Value {input} is not between 0 and pi")
+        # can we get the keys here to check for A A being ni=nj
 
     def __init__(self, nlist, default_r_cut=None, mode='none'):
         super().__init__(nlist, default_r_cut, mode)
@@ -653,7 +654,9 @@ class JanusLJ(AnisotropicPair):
                                  sigma = float),
                 envelope_params = dict(alpha = OnlyTypes(float,
                                                         postprocess = self._check_0_pi),
-                                       omega= float)),
+                                       omega= float,
+                                       ni = (float, float, float),
+                                       nj = (float, float, float))),
                               len_keys=2))
         self._add_typeparam(params)
 
