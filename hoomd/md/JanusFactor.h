@@ -18,8 +18,7 @@ namespace hoomd
     {
 namespace md
     {
-/*! \file JanusFactor.h
-*/
+
 class JanusFactor
 {
 public:
@@ -61,10 +60,10 @@ public:
       \param
      */
     DEVICE JanusFactor(const Scalar3& _dr, // TODO rename to Patchy Factor?
-                       const quat<Scalar>& _qi, // TODO follow this pattern
-                       const Scalar4& _qj,
-                       const Scalar4& _patch_orientation_i,
-                       const Scalar4& _patch_orientation_j,
+                       const quat<Scalar>& _qi,
+                       const quat<Scalar>& _qj,
+                       const quat<Scalar>& _patch_orientation_i,
+                       const quat<Scalar>& _patch_orientation_j,
                        const Scalar& _rcutsq,
                        const param_type& _params)
         : dr(_dr), qi(_qi), qj(_qj), oi(_patch_orientation_i), oj(_patch_orientation_j), params(_params) // patch orientation is per type, so it's not in params
@@ -79,19 +78,19 @@ public:
             vec3<Scalar> a1, a2, a3, b1, b2, b3;
 
             ei = rotate(qi, ex);
-            a1 = rotate(quat<Scalar>(qi), ex);
-            a2 = rotate(quat<Scalar>(qi), ey);
-            a3 = rotate(quat<Scalar>(qi), ez);
+            a1 = rotate(qi, ex);
+            a2 = rotate(qi, ey);
+            a3 = rotate(qi, ez);
             // patch points relative to x (a1) direction of particle
-            ni = rotate(quat<Scalar>(oi), a1);
+            ni = rotate(oi, a1);
 
-            ej = rotate(quat<Scalar>(qj), ex);
-            b1 = rotate(quat<Scalar>(qj), ex);
-            b2 = rotate(quat<Scalar>(qj), ey);
-            b3 = rotate(quat<Scalar>(qj), ez);
+            ej = rotate(qj, ex);
+            b1 = rotate(qj, ex);
+            b2 = rotate(qj, ey);
+            b3 = rotate(qj, ez);
 
             // patch points relative to x (b1) direction of particle
-            nj = rotate(quat<Scalar>(oj), b1);
+            nj = rotate(oj, b1);
 
             // compute distance
             drsq = dot(dr, dr);
@@ -137,11 +136,11 @@ public:
 
 
     Scalar3 dr;
-    quat<Scalar> qi; // TODO
-    Scalar4 qj;
+    quat<Scalar> qi;
+    quat<Scalar> qj;
 
-    Scalar4 oi; // quaternion representing orientation of patch with respect to particle x direction (a1)
-    Scalar4 oj; // quaternion representing orientation of patch with respect to particle x direction (b1)
+    quat<Scalar> oi; // quaternion representing orientation of patch with respect to particle x direction (a1)
+    quat<Scalar> oj; // quaternion representing orientation of patch with respect to particle x direction (b1)
     param_type params;
 
     Scalar3 ni; // pointing vector for patch on particle i

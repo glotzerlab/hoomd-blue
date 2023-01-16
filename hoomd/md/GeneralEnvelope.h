@@ -45,10 +45,10 @@ public:
     //! Constructor
     DEVICE GeneralEnvelope(
         const Scalar3& _dr,
-        const Scalar4& _quat_i,
-        const Scalar4& _quat_j,
-        const Scalar4& _patch_orientation_i,
-        const Scalar4& _patch_orientation_j,
+        const quat<Scalar>& _quat_i,
+        const quat<Scalar>& _quat_j,
+        const quat<Scalar>& _patch_orientation_i,
+        const quat<Scalar>& _patch_orientation_j,
         const Scalar& _rcutsq,
         const param_type& _params):
         s(_dr, _quat_i, _quat_j, _patch_orientation_i, _patch_orientation_j, _rcutsq, _params) {}
