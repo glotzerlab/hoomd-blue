@@ -37,7 +37,7 @@ class GeneralEnvelope
 public:
     typedef typename AngleDependence::param_type param_type;
 
-    DEVICE GeneralEnvelope(pybind11::dict params)
+    DEVICE GeneralEnvelope(pybind11::dict params) // TODO: this is not actually general. It assumes a single off center patch
         : param_type(params)
         {
         }

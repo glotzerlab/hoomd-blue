@@ -218,7 +218,7 @@ public:
             envelEval.evaluate(force, envelope, torque_i, torque_j);
 
             // modulate forces
-            // TODO check this math
+            // TODO check this math. yes.
             force.x = pair_eng*force.x + dr.x*force_divr*envelope;
             force.y = pair_eng*force.y + dr.y*force_divr*envelope;
             force.z = pair_eng*force.z + dr.z*force_divr*envelope;
@@ -226,7 +226,7 @@ public:
             // modulate torques
             // TODO check this math. Finished checking Jan 4 2023
             // U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
-            torque_i.x *= pair_eng;
+            torque_i.x *= pair_eng; // here, the "anisotropic" part can't have distance dependence
             torque_i.y *= pair_eng;
             torque_i.z *= pair_eng;
 

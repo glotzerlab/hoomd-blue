@@ -60,8 +60,8 @@ public:
       \param _patchi
       \param
      */
-    DEVICE JanusFactor(const Scalar3& _dr,
-                       const Scalar4& _qi,
+    DEVICE JanusFactor(const Scalar3& _dr, // TODO rename to Patchy Factor?
+                       const quat<Scalar>& _qi, // TODO follow this pattern
                        const Scalar4& _qj,
                        const Scalar4& _patch_orientation_i,
                        const Scalar4& _patch_orientation_j,
@@ -78,7 +78,7 @@ public:
             vec3<Scalar> ni, nj;
             vec3<Scalar> a1, a2, a3, b1, b2, b3;
 
-            ei = rotate(quat<Scalar>(qi), ex);
+            ei = rotate(qi, ex);
             a1 = rotate(quat<Scalar>(qi), ex);
             a2 = rotate(quat<Scalar>(qi), ey);
             a3 = rotate(quat<Scalar>(qi), ez);
@@ -96,7 +96,12 @@ public:
             // compute distance
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
+            
 
+            // Possible idea to rotate into particle frame so (1,0,0) is pointing in the direction of the patch
+            // rotate dr
+            // rotate nj
+            
             // cos(angle between dr and pointing vector)
             // which as first implemented is the same as the angle between the patch and pointing director
             doti = -dot(vec3<Scalar>(dr), ei) / magdr; // negative because dr = dx = pi - pj
@@ -108,7 +113,8 @@ public:
 
     DEVICE inline Scalar Modulatori()
         {
-            return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetai-params.cosalpha)) );
+            return Scalar(1.0) /
+                ( Scalar(1.0) + fast::exp(-params.omega*(costhetai-params.cosalpha)) );
         }
 
     DEVICE inline Scalar Modulatorj()
@@ -131,7 +137,7 @@ public:
 
 
     Scalar3 dr;
-    Scalar4 qi;
+    quat<Scalar> qi; // TODO
     Scalar4 qj;
 
     Scalar4 oi; // quaternion representing orientation of patch with respect to particle x direction (a1)
