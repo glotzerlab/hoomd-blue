@@ -201,9 +201,9 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         m_meshbond_comm; //!< Communication helper for mesh bonds
     friend class GroupCommunicatorGPU<MeshBondData, true>;
 
-    GroupCommunicatorGPU<MeshTriangleData, true>
+    GroupCommunicatorGPU<TriangleData, true>
         m_meshtriangle_comm; //!< Communication helper for mesh triangles
-    friend class GroupCommunicatorGPU<MeshTriangleData, true>;
+    friend class GroupCommunicatorGPU<TriangleData, true>;
 
     /* Ghost communication */
     GlobalVector<unsigned int> m_tag_ghost_sendbuf; //!< Buffer for sending particle tags
