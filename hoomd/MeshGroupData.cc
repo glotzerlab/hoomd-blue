@@ -14,7 +14,7 @@
 
 #ifdef ENABLE_HIP
 #include "CachedAllocator.h"
-//#include "MeshGroupData.cuh"
+// #include "MeshGroupData.cuh"
 #endif
 
 using namespace std;
@@ -184,7 +184,7 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
             }
         all_groups = all_helper;
         }
-    else
+    else // this part will be important later for dynamical bonding
         {
         all_groups.resize(snapshot.groups.size());
         all_types.resize(snapshot.groups.size());
