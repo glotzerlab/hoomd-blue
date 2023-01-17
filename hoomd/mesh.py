@@ -110,7 +110,7 @@ class Mesh(_HOOMDBaseObject):
                 raise ValueError(
                     "Number of type_ids do not match number of triangles.")
             else:
-                if self.communicator.rank == 0:
+                if self._simulation.communicator.rank == 0:
                     self._cpp_obj.setTypes(list(self._param_dict['types']))
 
                     self._cpp_obj.setTriangleData(triag, self._type_ids)
@@ -128,7 +128,7 @@ class Mesh(_HOOMDBaseObject):
     @type_ids.setter
     def type_ids(self, tid):
         if self._attached and self.size == len(tid):
-            if self.communicator.rank == 0:
+            if self._simulation.communicator.rank == 0:
                 self._cpp_obj.setTypes(list(self._param_dict['types']))
 
                 self._cpp_obj.setTriangleData(self._triagles, tid)
