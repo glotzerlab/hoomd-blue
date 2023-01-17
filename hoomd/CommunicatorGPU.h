@@ -197,11 +197,10 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     friend class GroupCommunicatorGPU<PairData>;
 
     /* Communication of meshbonded groups */
-    GroupCommunicatorGPU<MeshBondData, true>
-        m_meshbond_comm; //!< Communication helper for mesh bonds
+    GroupCommunicatorGPU<MeshBondData> m_meshbond_comm; //!< Communication helper for mesh bonds
     friend class GroupCommunicatorGPU<MeshBondData>;
 
-    GroupCommunicatorGPU<TriangleData, true>
+    GroupCommunicatorGPU<TriangleData>
         m_meshtriangle_comm; //!< Communication helper for mesh triangles
     friend class GroupCommunicatorGPU<TriangleData>;
 
