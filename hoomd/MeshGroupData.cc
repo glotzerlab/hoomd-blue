@@ -45,8 +45,8 @@ MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<Part
     if (this->m_pdata->getDomainDecomposition())
         {
         this->m_pdata->getSingleParticleMoveSignal()
-            .template connect<MeshGroupData<group_size, Group, name, snap>,
-                              &MeshGroupData<group_size, Group, name, snap>::moveParticleGroups>(
+            .template connect<BondedGroupData<group_size, Group, name, true>,
+                              &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
                 this);
         }
 #endif
@@ -82,8 +82,8 @@ MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<Part
     if (this->m_pdata->getDomainDecomposition())
         {
         this->m_pdata->getSingleParticleMoveSignal()
-            .template connect<MeshGroupData<group_size, Group, name, snap>,
-                              &MeshGroupData<group_size, Group, name, snap>::moveParticleGroups>(
+            .template connect<BondedGroupData<group_size, Group, name, true>,
+                              &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
                 this);
         }
 #endif
@@ -98,8 +98,8 @@ MeshGroupData<group_size, Group, name, snap>::~MeshGroupData()
                              &BondedGroupData<group_size, Group, name, true>::setDirty>(this);
 #ifdef ENABLE_MPI
     this->m_pdata->getSingleParticleMoveSignal()
-        .template disconnect<MeshGroupData<group_size, Group, name, snap>,
-                             &MeshGroupData<group_size, Group, name, snap>::moveParticleGroups>(
+        .template disconnect<BondedGroupData<group_size, Group, name, true>,
+                             &BondedGroupData<group_size, Group, name, true>::moveParticleGroups>(
             this);
 #endif
     }
