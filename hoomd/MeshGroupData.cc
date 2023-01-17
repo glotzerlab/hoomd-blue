@@ -272,7 +272,7 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
         bcast(all_typeval, 0, this->m_exec_conf->getMPICommunicator());
         bcast(this->m_type_mapping, 0, this->m_exec_conf->getMPICommunicator());
 
-        if (bond)
+        if (group_size == 4)
             {
             for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
                 addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
