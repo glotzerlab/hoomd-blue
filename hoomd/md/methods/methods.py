@@ -158,7 +158,7 @@ class ConstantPressure(Thermostatted):
             control temperature. Setting this to ``None`` yields NPH
             integration.
 
-        S (tuple[hoomd.variant.variant_like, ...] or hoomd.variant.variant_like):
+        S (tuple[variant.variant_like, ...] or variant.variant_like):
             Stress components set point for the barostat.
 
             In Voigt notation:
