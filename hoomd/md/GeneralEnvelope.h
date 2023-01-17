@@ -45,9 +45,12 @@ public:
             {
                 cosalpha = fast::cos(params["alpha"].cast<Scalar>());
                 omega = params["omega"].cast<Scalar>();
+                auto ni_ = (pybind11::tuple)params["ni"];
+                auto nj_ = (pybind11::tuple)params["nj"];
 
-                vec3<Scalar> ni = params["ni"].cast<vec3<Scalar>>();
-                vec3<Scalar> nj = params["nj"].cast<vec3<Scalar>>();
+                auto ni = vec3<Scalar>(ni_[0].cast<Scalar>(), ni_[1].cast<Scalar>(), ni_[2].cast<Scalar>());
+                auto nj = vec3<Scalar>(nj_[0].cast<Scalar>(), nj_[1].cast<Scalar>(), nj_[2].cast<Scalar>());
+
                 // normalize
                 ni = ni * fast::rsqrt(dot(ni, ni));
                 nj = nj * fast::rsqrt(dot(nj, nj));
