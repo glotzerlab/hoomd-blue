@@ -694,8 +694,8 @@ class PYBIND11_EXPORT Communicator
     friend class GroupCommunicator<PairData>;
 
     /* Communication of mesh bonded groups */
-    GroupCommunicator<MeshBondData, true> m_meshbond_comm; //!< Communication helper for mesh bonds
-    friend class GroupCommunicator<MeshBondData, true>;
+    GroupCommunicator<MeshBondData> m_meshbond_comm; //!< Communication helper for mesh bonds
+    friend class GroupCommunicator<MeshBondData>;
 
     /* Communication of mesh triangle groups */
     GroupCommunicator<TriangleData>
