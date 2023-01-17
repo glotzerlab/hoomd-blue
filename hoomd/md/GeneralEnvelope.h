@@ -44,18 +44,22 @@ public:
         param_type(pybind11::dict params)
             {
                 cosalpha = fast::cos(params["alpha"].cast<Scalar>());
-                omega =params["omega"].cast<Scalar>();
+                omega = params["omega"].cast<Scalar>();
 
-                // precompute the normalization
-                nsq = dot(ni, ni);
-                magn = fast::sqrt(nsq);
-                ni = ni / magn;
+                vec3<Scalar> ni = params["ni"].cast<vec3<Scalar>>();
+                vec3<Scalar> nj = params["nj"].cast<vec3<Scalar>>();
+                // normalize
+                ni = ni * fast::rsqrt(dot(ni, ni));
+                nj = nj * fast::rsqrt(dot(nj, nj));
 
-                nsq = dot(nj, nj);
-                magn = fast::sqrt(nsq);
-                nj = nj / magn;
+                // Find quaternions to rotate from (1,0,0) to ni and nj
+                vec3<Scalar> ex(1,0,0);
 
-                // Find quaternion to rotate from (1,0,0) to ni, nj
+                qpi = quat(Scalar(1) + dot(ex, ni), cross(ex, ni));
+                qpi = qpi * fast::rsqrt(norm2(qpi));
+
+                qpj = quat(Scalar(1) + dot(ex, nj), cross(ex, nj));
+                qpj = qpj * fast::rsqrt(norm2(qpj));
 
             }
 
@@ -68,11 +72,10 @@ public:
 
                 vec3<Scalar> ex(1,0,0);
                 vec3<Scalar> ni = rotate(qpi, ex);
-                vec3<Scalar> nj = rotate(qpi, ex);
+                vec3<Scalar> nj = rotate(qpj, ex);
 
                 v["ni"] = pybind11::make_tuple(ni.x, ni.y, ni.z);
                 v["nj"] = pybind11::make_tuple(nj.x, nj.y, nj.z);
-
 
                 return v;
             }
