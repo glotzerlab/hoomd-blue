@@ -102,18 +102,19 @@ public:
             vec3<Scalar> ey(0,1,0);
             vec3<Scalar> ez(0,0,1);
 
-            ei = rotate(qi, ex);
+            ei = rotate(conj(qi), ex);
             a1 = rotate(conj(qi), ex);
-            a2 = rotate(qi, ey);
-            a3 = rotate(qi, ez);
+            a2 = rotate(conj(qi), ey);
+            a3 = rotate(conj(qi), ez);
             // patch points relative to x (a1) direction of particle
             ni = rotate(params.qpi, a1);
-            // TODO ni = rotate(params.qpi * conj(qi), ex)
 
-            ej = rotate(qj, ex);
-            b1 = rotate(qj, ex);
-            b2 = rotate(qj, ey);
-            b3 = rotate(qj, ez);
+            // TODO combine rotations ni = rotate(params.qpi * conj(qi), ex)
+
+            ej = rotate(conj(qj), ex);
+            b1 = rotate(conj(qj), ex);
+            b2 = rotate(conj(qj), ey);
+            b3 = rotate(conj(qj), ez);
 
             // patch points relative to x (b1) direction of particle
             nj = rotate(params.qpj, b1);
@@ -273,6 +274,8 @@ public:
             // For first check, pretend that ei is a1.
             // force.x = -( ModulatorPrimei * Modulatorj /s.magdr *(-s.ei.x - s.doti*s.dr.x/s.magdr)
             //             + jPi*(s.ej.x - s.dotj*s.dr.x/s.magdr));
+
+            // TODO still need to update this with respect to the conj(quat) bug
             force.x = -(iPj*(-ei.x - doti*dr.x/magdr)
                         + jPi*(ej.x - dotj*dr.x/magdr));
             force.y = -(iPj*(-ei.y - doti*dr.y/magdr)
