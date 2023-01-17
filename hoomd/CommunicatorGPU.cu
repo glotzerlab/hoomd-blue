@@ -429,7 +429,7 @@ __device__ unsigned int get_direction_mask(unsigned int plan)
     }
 
 //! Kernel to select ghost atoms due to non-bonded interactions
-template<unsigned int group_size, bool inMesh, typename members_t>
+template<unsigned int group_size, typename members_t>
 __global__ void gpu_make_ghost_group_exchange_plan_kernel(unsigned int N,
                                                           const members_t* d_groups,
                                                           unsigned int* d_group_plan,
@@ -446,10 +446,6 @@ __global__ void gpu_make_ghost_group_exchange_plan_kernel(unsigned int N,
     members_t members = d_groups[idx];
 
     unsigned int gs = group_size;
-    if (inMesh)
-        {
-        gs /= 2;
-        }
 
     for (unsigned int i = 0; i < gs; ++i)
         {
@@ -472,7 +468,7 @@ __global__ void gpu_make_ghost_group_exchange_plan_kernel(unsigned int N,
     d_group_plan[idx] = plan;
     };
 
-template<unsigned int group_size, bool inMesh, typename members_t>
+template<unsigned int group_size, typename members_t>
 void gpu_make_ghost_group_exchange_plan(unsigned int* d_ghost_group_plan,
                                         const members_t* d_groups,
                                         unsigned int N,
@@ -488,18 +484,17 @@ void gpu_make_ghost_group_exchange_plan(unsigned int* d_ghost_group_plan,
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
 
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(gpu_make_ghost_group_exchange_plan_kernel<group_size, inMesh>),
-        dim3(n_blocks),
-        dim3(block_size),
-        0,
-        0,
-        N,
-        d_groups,
-        d_ghost_group_plan,
-        d_rtag,
-        d_plans,
-        n_local);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_make_ghost_group_exchange_plan_kernel<group_size>),
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       N,
+                       d_groups,
+                       d_ghost_group_plan,
+                       d_rtag,
+                       d_plans,
+                       n_local);
     }
 
 //! Apply adjacency masks to plan and return number of matching neighbors
@@ -1391,7 +1386,7 @@ __global__ void gpu_mark_received_ghost_groups_kernel(unsigned int nrecv,
     d_keep[buf_idx] = keep;
     }
 
-template<unsigned int size, bool inMesh, class members_t, class ranks_t, class group_element_t>
+template<unsigned int size, class members_t, class ranks_t, class group_element_t>
 void gpu_exchange_ghost_groups_copy_buf(unsigned int nrecv,
                                         const group_element_t* d_groups_recvbuf,
                                         unsigned int* d_group_tag,
@@ -1492,7 +1487,7 @@ void gpu_compute_ghost_rtags(unsigned int first_idx,
 /*!
  * Routines for communication of bonded groups
  */
-template<unsigned int group_size, bool inMesh, typename group_t, typename ranks_t>
+template<unsigned int group_size, typename group_t, typename ranks_t>
 __global__ void gpu_mark_groups_kernel(unsigned int N,
                                        const unsigned int* d_comm_flags,
                                        unsigned int n_groups,
@@ -1523,10 +1518,6 @@ __global__ void gpu_mark_groups_kernel(unsigned int N,
     bool update = false;
 
     unsigned int gs = group_size;
-    if (inMesh)
-        {
-        gs /= 2;
-        }
 
     // loop through members of group
     for (unsigned int i = 0; i < gs; ++i)
@@ -1631,7 +1622,7 @@ __global__ void gpu_mark_groups_kernel(unsigned int N,
     \param my_pos Integer triple of domain coordinates
     \param incomplete If true, initially update auxiliary rank information
  */
-template<unsigned int group_size, bool inMesh, typename group_t, typename ranks_t>
+template<unsigned int group_size, typename group_t, typename ranks_t>
 void gpu_mark_groups(unsigned int N,
                      const unsigned int* d_comm_flags,
                      unsigned int n_groups,
@@ -1661,7 +1652,7 @@ void gpu_mark_groups(unsigned int N,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_groups_kernel<group_size, inMesh>),
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_groups_kernel<group_size>),
                        dim3(n_blocks),
                        dim3(block_size),
                        0,
@@ -1720,11 +1711,7 @@ void gpu_mark_groups(unsigned int N,
     alloc.deallocate((char*)d_n_out);
     }
 
-template<unsigned int group_size,
-         bool inMesh,
-         typename group_t,
-         typename ranks_t,
-         typename rank_element_t>
+template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
 __global__ void gpu_scatter_ranks_and_mark_send_groups_kernel(unsigned int n_groups,
                                                               const unsigned int* d_group_tag,
                                                               const ranks_t* d_group_ranks,
@@ -1757,10 +1744,6 @@ __global__ void gpu_scatter_ranks_and_mark_send_groups_kernel(unsigned int n_gro
     group_t members = d_groups[group_idx];
 
     unsigned int gs = group_size;
-    if (inMesh)
-        {
-        gs /= 2;
-        }
 
     mask = 0;
     for (unsigned int i = 0; i < gs; ++i)
@@ -1778,11 +1761,7 @@ __global__ void gpu_scatter_ranks_and_mark_send_groups_kernel(unsigned int n_gro
     d_rank_mask[group_idx] = mask;
     }
 
-template<unsigned int group_size,
-         bool inMesh,
-         typename group_t,
-         typename ranks_t,
-         typename rank_element_t>
+template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
 void gpu_scatter_ranks_and_mark_send_groups(unsigned int n_groups,
                                             const unsigned int* d_group_tag,
                                             const ranks_t* d_group_ranks,
@@ -1813,22 +1792,21 @@ void gpu_scatter_ranks_and_mark_send_groups(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(gpu_scatter_ranks_and_mark_send_groups_kernel<group_size, inMesh>),
-        dim3(n_blocks),
-        dim3(block_size),
-        0,
-        0,
-        n_groups,
-        d_group_tag,
-        d_group_ranks,
-        d_rank_mask,
-        d_groups,
-        d_rtag,
-        d_comm_flags,
-        d_marked_send_groups,
-        d_scan,
-        d_out_ranks);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_scatter_ranks_and_mark_send_groups_kernel<group_size>),
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       n_groups,
+                       d_group_tag,
+                       d_group_ranks,
+                       d_rank_mask,
+                       d_groups,
+                       d_rtag,
+                       d_comm_flags,
+                       d_marked_send_groups,
+                       d_scan,
+                       d_out_ranks);
 
     // scan over groups marked for sending
     void* d_temp_storage = NULL;
@@ -1871,7 +1849,7 @@ void gpu_scatter_ranks_and_mark_send_groups(unsigned int n_groups,
     alloc.deallocate((char*)d_n_send);
     }
 
-template<unsigned int group_size, bool inMesh, typename ranks_t, typename rank_element_t>
+template<unsigned int group_size, typename ranks_t, typename rank_element_t>
 __global__ void gpu_update_ranks_table_kernel(unsigned int n_groups,
                                               ranks_t* d_group_ranks,
                                               unsigned int* d_group_rtag,
@@ -1893,10 +1871,6 @@ __global__ void gpu_update_ranks_table_kernel(unsigned int n_groups,
         unsigned int mask = el.mask;
 
         unsigned int gs = group_size;
-        if (inMesh)
-            {
-            gs /= 2;
-            }
 
         for (unsigned int i = 0; i < gs; ++i)
             {
@@ -1909,7 +1883,7 @@ __global__ void gpu_update_ranks_table_kernel(unsigned int n_groups,
         }
     }
 
-template<unsigned int group_size, bool inMesh, typename ranks_t, typename rank_element_t>
+template<unsigned int group_size, typename ranks_t, typename rank_element_t>
 void gpu_update_ranks_table(unsigned int n_groups,
                             ranks_t* d_group_ranks,
                             unsigned int* d_group_rtag,
@@ -1922,7 +1896,7 @@ void gpu_update_ranks_table(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_update_ranks_table_kernel<group_size, inMesh>),
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_update_ranks_table_kernel<group_size>),
                        dim3(n_blocks),
                        dim3(block_size),
                        0,
@@ -1934,11 +1908,7 @@ void gpu_update_ranks_table(unsigned int n_groups,
                        d_ranks_recvbuf);
     }
 
-template<unsigned int group_size,
-         bool inMesh,
-         typename group_t,
-         typename ranks_t,
-         typename packed_t>
+template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
 __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(unsigned int n_groups,
                                                                const group_t* d_groups,
                                                                const typeval_union* d_group_typeval,
@@ -1976,10 +1946,6 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(unsigned int n_gr
         d_out_rank_mask[out_idx] = mask;
 
         unsigned int gs = group_size;
-        if (inMesh)
-            {
-            gs /= 2;
-            }
 
         // determine if the group still has any local ptls
         bool is_local = false;
@@ -2008,11 +1974,7 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(unsigned int n_gr
     d_marked_groups[group_idx] = flag;
     }
 
-template<unsigned int group_size,
-         bool inMesh,
-         typename group_t,
-         typename ranks_t,
-         typename packed_t>
+template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
 void gpu_scatter_and_mark_groups_for_removal(unsigned int n_groups,
                                              const group_t* d_groups,
                                              const typeval_union* d_group_typeval,
@@ -2045,27 +2007,26 @@ void gpu_scatter_and_mark_groups_for_removal(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(gpu_scatter_and_mark_groups_for_removal_kernel<group_size, inMesh>),
-        dim3(n_blocks),
-        dim3(block_size),
-        0,
-        0,
-        n_groups,
-        d_groups,
-        d_group_typeval,
-        d_group_tag,
-        d_group_rtag,
-        d_group_ranks,
-        d_rank_mask,
-        d_rtag,
-        d_comm_flags,
-        my_rank,
-        d_scan,
-        d_marked_groups,
-        d_out_groups,
-        d_out_rank_mask,
-        local_multiple);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_scatter_and_mark_groups_for_removal_kernel<group_size>),
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       n_groups,
+                       d_groups,
+                       d_group_typeval,
+                       d_group_tag,
+                       d_group_rtag,
+                       d_group_ranks,
+                       d_rank_mask,
+                       d_rtag,
+                       d_comm_flags,
+                       my_rank,
+                       d_scan,
+                       d_marked_groups,
+                       d_out_groups,
+                       d_out_rank_mask,
+                       local_multiple);
     }
 
 template<typename group_t, typename ranks_t>
@@ -2382,7 +2343,7 @@ void gpu_add_groups(unsigned int n_groups,
                        myrank);
     }
 
-template<unsigned int group_size, bool inMesh, typename members_t, typename ranks_t>
+template<unsigned int group_size, typename members_t, typename ranks_t>
 __global__ void gpu_mark_bonded_ghosts_kernel(unsigned int n_groups,
                                               members_t* d_groups,
                                               ranks_t* d_ranks,
@@ -2408,10 +2369,6 @@ __global__ void gpu_mark_bonded_ghosts_kernel(unsigned int n_groups,
     ranks_t r = d_ranks[group_idx];
 
     unsigned int gs = group_size;
-    if (inMesh)
-        {
-        gs /= 2;
-        }
 
     for (unsigned int i = 0; i < gs; ++i)
         {
@@ -2485,7 +2442,7 @@ __global__ void gpu_mark_bonded_ghosts_kernel(unsigned int n_groups,
         }
     }
 
-template<unsigned int group_size, bool inMesh, typename members_t, typename ranks_t>
+template<unsigned int group_size, typename members_t, typename ranks_t>
 void gpu_mark_bonded_ghosts(unsigned int n_groups,
                             members_t* d_groups,
                             ranks_t* d_ranks,
@@ -2509,7 +2466,7 @@ void gpu_mark_bonded_ghosts(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_bonded_ghosts_kernel<group_size, inMesh>),
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_bonded_ghosts_kernel<group_size>),
                        dim3(n_blocks),
                        dim3(block_size),
                        0,
