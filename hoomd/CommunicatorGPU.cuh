@@ -8,7 +8,6 @@
 #ifdef ENABLE_MPI
 
 #include "BondedGroupData.cuh"
-#include "MeshGroupData.cuh"
 #include "ParticleData.cuh"
 
 #include "Index1D.h"
