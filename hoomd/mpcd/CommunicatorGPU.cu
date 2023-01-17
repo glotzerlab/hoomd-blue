@@ -22,11 +22,7 @@
 #include <thrust/transform.h>
 #pragma GCC diagnostic pop
 
-#if __CUDACC_VER_MAJOR__ >= 11
 #include <cub/device/device_reduce.cuh>
-#else
-#include "hoomd/extern/cub/cub/device/device_reduce.cuh"
-#endif
 
 namespace hoomd
     {

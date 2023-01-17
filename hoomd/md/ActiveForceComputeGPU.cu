@@ -109,6 +109,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(b, delta_theta);
 
             quati = rot_quat * quati;
+            quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
             d_orientation[idx] = quat_to_scalar4(quati);
             // in 2D there is only one meaningful direction for torque
             }
@@ -129,6 +130,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(aux_vec, delta_theta);
 
             quati = rot_quat * quati;
+            quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
             d_orientation[idx] = quat_to_scalar4(quati);
             }
         }
