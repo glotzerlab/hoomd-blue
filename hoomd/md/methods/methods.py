@@ -148,7 +148,7 @@ class ConstantVolume(Thermostatted):
 
 
 class ConstantPressure(Thermostatted):
-    """Constant pressure dynamics.
+    r"""Constant pressure dynamics.
 
     Args:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
@@ -158,17 +158,16 @@ class ConstantPressure(Thermostatted):
             control temperature. Setting this to ``None`` yields NPH
             integration.
 
-        S (tuple[hoomd.variant.variant_like, ...] or \
-                hoomd.variant.variant_like): Stress components set point for the
-            barostat.
+        S (tuple[hoomd.variant.variant_like, ...] or hoomd.variant.variant_like):
+            Stress components set point for the barostat.
 
             In Voigt notation:
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
-            :math:`[\\mathrm{pressure}]`. In case of isotropic
+            :math:`[\mathrm{pressure}]`. In case of isotropic
             pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
         tauS (float): Coupling constant for the barostat
-           :math:`[\\mathrm{time}]`.
+           :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "xyz".
@@ -182,8 +181,8 @@ class ConstantPressure(Thermostatted):
         rescale_all (bool): if True, rescale all particles, not only those
             in the group, Default to False.
 
-        gamma (float): Dimensionless damping factor for the box degrees of
-            freedom, Default to 0.
+        gamma (float): Friction constant for the box degrees of freedom, Default
+            to 0 :math:`[\mathrm{time}^{-1}]`.
 
     `ConstantPressure` integrates translational and rotational degrees of
     freedom of the system held at constant pressure. The barostat introduces
@@ -195,7 +194,7 @@ class ConstantPressure(Thermostatted):
     See Also:
         `hoomd.md.methods.thermostats` for the available thermostats.
 
-    The barostat tensor is :math:`\\nu_{\\mathrm{ij}}`. Access these quantities
+    The barostat tensor is :math:`\nu_{\mathrm{ij}}`. Access these quantities
     using `barostat_dof`.
 
     By default, `ConstantPressure` performs integration in a cubic box under
@@ -204,16 +203,16 @@ class ConstantPressure(Thermostatted):
     box degrees of freedom to change this default.
 
     Couplings define which diagonal elements of the pressure tensor
-    :math:`P_{\\alpha,\\beta}` should be averaged over, so that the
+    :math:`P_{\alpha,\beta}` should be averaged over, so that the
     corresponding box lengths are rescaled by the same amount.
 
     Valid couplings are:
 
     - ``'none'`` (all box lengths are updated independently)
-    - ``'xy`'`` (*Lx* and *Ly* are coupled)
-    - ``'xz`'`` (*Lx* and *Lz* are coupled)
-    - ``'yz`'`` (*Ly* and *Lz* are coupled)
-    - ``'xyz`'`` (*Lx*, *Ly*, and *Lz* are coupled)
+    - ``'xy'`` (*Lx* and *Ly* are coupled)
+    - ``'xz'`` (*Lx* and *Lz* are coupled)
+    - ``'yz'`` (*Ly* and *Lz* are coupled)
+    - ``'xyz'`` (*Lx*, *Ly*, and *Lz* are coupled)
 
     The degrees of freedom of the box set which lengths and tilt factors of the
     box should be updated, and how particle coordinates and velocities should be
@@ -242,12 +241,28 @@ class ConstantPressure(Thermostatted):
       deformable triclinic unit cell
 
     `ConstantPressure` numerically integrates the equations of motion using the
-    symplectic Martyna-Tobias-Klein integrator with (TODO: document Langevin
-    Piston, and link to paper, and suggest how to choose an appropriate gamma).
+    symplectic Martyna-Tobias-Klein integrator with a Langevin piston. The
+    equation of motion of box dimensions is given by:
+
+    .. math::
+
+        \frac{d^2 L}{dt^2} &= V W^{-1} (S - S_{ext})
+            - \gamma \frac{dL}{dt} + R(t)
+
+        \langle R \rangle &= 0
+
+        \langle |R|^2 \rangle &= 2 \gamma kT \delta t W^{-1}
+
+    Where :math:`\gamma` is the friction on the barostat piston, which damps
+    unphysical volume oscillations at the cost of non-deterministic integration,
+    and :math:`R` is a random force, chosen appropriately for the coupled
+    degrees of freedom.
 
     See Also:
         * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994
           <http://dx.doi.org/10.1063/1.467468>`__
+        * `S. E. Feller, Y. Zhang, R. W. Pastor 1995
+          <https://doi.org/10.1063/1.470648>`_
         * `M. E. Tuckerman et. al. 2006
           <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__
         * `T. Yu et. al. 2010
@@ -256,8 +271,14 @@ class ConstantPressure(Thermostatted):
     Note:
         The barostat coupling constant `tauS` should be set within a reasonable
         range to avoid abrupt fluctuations in the box volume and to avoid long
-        time to equilibration. The recommend value for most systems is
-        :math:`\\tau_S = 1000 \\delta t`.
+        time to equilibration. The recommended value for most systems is
+        :math:`\tau_S = 1000 \delta t`.
+
+    Note:
+        If :math:`\gamma` is used, its value should be chosen so that the system
+        is near critical damping. A good initial guess is
+        :math:`\gamma \approx 2 \tau_S^{-1}`. A value too high will result in
+        long relaxation times.
 
     Note:
         Set `gamma` = 0 to obtain the same MTK equations of motion used in
@@ -292,12 +313,12 @@ class ConstantPressure(Thermostatted):
             the barostat.
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
-            :math:`[\\mathrm{pressure}]`. Stress can be reset after the method
+            :math:`[\mathrm{pressure}]`. Stress can be reset after the method
             object is created. For example, an isotropic pressure can be set by
             ``npt.S = 4.``
 
         tauS (float): Coupling constant for the barostat
-            :math:`[\\mathrm{time}]`.
+            :math:`[\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "xyz".
@@ -308,13 +329,13 @@ class ConstantPressure(Thermostatted):
         rescale_all (bool): if True, rescale all particles, not only those in
             the group.
 
-        gamma (float): Dimensionless damping factor for the box degrees of
-            freedom.
+        gamma (float): Friction constant for the box degrees of freedom, Default
+            to 0  :math:`[\mathrm{time^{-1}}]`.
 
         barostat_dof (tuple[float, float, float, float, float, float]):
-            Additional degrees of freedom for the barostat (:math:`\\nu_{xx}`,
-            :math:`\\nu_{xy}`, :math:`\\nu_{xz}`, :math:`\\nu_{yy}`,
-            :math:`\\nu_{yz}`, :math:`\\nu_{zz}`)
+            Additional degrees of freedom for the barostat (:math:`\nu_{xx}`,
+            :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
+            :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
 
     def __init__(self,
