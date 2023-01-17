@@ -698,9 +698,9 @@ class PYBIND11_EXPORT Communicator
     friend class GroupCommunicator<MeshBondData, true>;
 
     /* Communication of mesh triangle groups */
-    GroupCommunicator<MeshTriangleData, true>
+    GroupCommunicator<TriangleData, true>
         m_meshtriangle_comm; //!< Communication helper for mesh triangles
-    friend class GroupCommunicator<MeshTriangleData, true>;
+    friend class GroupCommunicator<TriangleData, true>;
 
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();
