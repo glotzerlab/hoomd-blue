@@ -28,10 +28,9 @@ namespace hoomd
 /*! \param pdata The particle data to associate with
     \param n_group_types Number of bonded group types to initialize
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
-    std::shared_ptr<ParticleData> pdata,
-    unsigned int n_group_types)
+template<unsigned int group_size, typename Group, const char* name, typename snap>
+MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
+                                                            unsigned int n_group_types)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5)
@@ -46,9 +45,9 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     if (this->m_pdata->getDomainDecomposition())
         {
         this->m_pdata->getSingleParticleMoveSignal()
-            .template connect<
-                MeshGroupData<group_size, Group, name, snap, bond>,
-                &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(this);
+            .template connect<MeshGroupData<group_size, Group, name, snap>,
+                              &MeshGroupData<group_size, Group, name, snap>::moveParticleGroups>(
+                this);
         }
 #endif
 
@@ -65,10 +64,9 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
 /*! \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
-    std::shared_ptr<ParticleData> pdata,
-    const TriangleData::Snapshot& snapshot)
+template<unsigned int group_size, typename Group, const char* name, typename snap>
+MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
+                                                            const TriangleData::Snapshot& snapshot)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing MeshGroupData (" << name << ") " << endl;
@@ -84,31 +82,31 @@ MeshGroupData<group_size, Group, name, snap, bond>::MeshGroupData(
     if (this->m_pdata->getDomainDecomposition())
         {
         this->m_pdata->getSingleParticleMoveSignal()
-            .template connect<
-                MeshGroupData<group_size, Group, name, snap, bond>,
-                &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(this);
+            .template connect<MeshGroupData<group_size, Group, name, snap>,
+                              &MeshGroupData<group_size, Group, name, snap>::moveParticleGroups>(
+                this);
         }
 #endif
     }
 
 //! Destructor
-template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-MeshGroupData<group_size, Group, name, snap, bond>::~MeshGroupData()
+template<unsigned int group_size, typename Group, const char* name, typename snap>
+MeshGroupData<group_size, Group, name, snap>::~MeshGroupData()
     {
     this->m_pdata->getParticleSortSignal()
         .template disconnect<BondedGroupData<group_size, Group, name, true>,
                              &BondedGroupData<group_size, Group, name, true>::setDirty>(this);
 #ifdef ENABLE_MPI
     this->m_pdata->getSingleParticleMoveSignal()
-        .template disconnect<
-            MeshGroupData<group_size, Group, name, snap, bond>,
-            &MeshGroupData<group_size, Group, name, snap, bond>::moveParticleGroups>(this);
+        .template disconnect<MeshGroupData<group_size, Group, name, snap>,
+                             &MeshGroupData<group_size, Group, name, snap>::moveParticleGroups>(
+            this);
 #endif
     }
 
 //! Initialize from a snapshot
-template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
+template<unsigned int group_size, typename Group, const char* name, typename snap>
+void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
     const TriangleData::Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
@@ -125,7 +123,7 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
 
     std::vector<unsigned int> all_types;
 
-    if (bond)
+    if (group_size == 4)
         {
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
             {
@@ -299,8 +297,8 @@ void MeshGroupData<group_size, Group, name, snap, bond>::initializeFromSnapshot(
         }
     }
 
-template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
-unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(Group g)
+template<unsigned int group_size, typename Group, const char* name, typename snap>
+unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group g)
     {
     this->removeAllGhostGroups();
 
@@ -434,9 +432,9 @@ unsigned int MeshGroupData<group_size, Group, name, snap, bond>::addBondedGroup(
  *
  *  Data in the snapshot is in tag order, where non-existent tags are skipped
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap, bool bond>
+template<unsigned int group_size, typename Group, const char* name, typename snap>
 std::map<unsigned int, unsigned int>
-MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot) const
+MeshGroupData<group_size, Group, name, snap>::takeSnapshot(snap& snapshot) const
     {
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
@@ -618,18 +616,10 @@ void export_MeshGroupData(pybind11::module& m,
 
     } // end namespace detail
 
-template class PYBIND11_EXPORT
-    MeshGroupData<6, MeshTriangle, name_meshtriangle_data, TriangleData::Snapshot, false>;
-template class PYBIND11_EXPORT
-    MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot, true>;
+template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot>;
 
 namespace detail
     {
-template void export_MeshGroupData<MeshTriangleData, MeshTriangle>(pybind11::module& m,
-                                                                   std::string name,
-                                                                   std::string snapshot_name,
-                                                                   bool export_struct);
-
 template void export_MeshGroupData<MeshBondData, MeshBond>(pybind11::module& m,
                                                            std::string name,
                                                            std::string snapshot_name,

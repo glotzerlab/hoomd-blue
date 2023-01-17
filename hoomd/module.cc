@@ -246,9 +246,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_BondedGroupData<TriangleData, Angle>(m, "TriangleData", "TriangleDataSnapshot", false);
     export_BondedGroupData<DihedralData, Dihedral>(m, "DihedralData", "DihedralDataSnapshot");
     export_MeshGroupData<MeshBondData, MeshBond>(m, "MeshBondData", "MeshBondDataSnapshot");
-    export_MeshGroupData<MeshTriangleData, MeshTriangle>(m,
-                                                         "MeshTriangleData",
-                                                         "MeshTriangleDataSnapshot");
     export_BondedGroupData<ImproperData, Dihedral>(m,
                                                    "ImproperData",
                                                    "ImproperDataSnapshot",
@@ -263,7 +260,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDHostBuffer, TriangleData>(m, "LocalTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, DihedralData>(m, "LocalDihedralDataHost");
     export_LocalGroupData<HOOMDHostBuffer, MeshBondData>(m, "LocalMeshBondDataHost");
-    export_LocalGroupData<HOOMDHostBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ImproperData>(m, "LocalImproperDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(m, "LocalConstraintDataHost");
     export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
@@ -273,7 +269,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(m, "LocalAngleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(m, "LocalDihedralDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, MeshBondData>(m, "LocalMeshBondDataDevice");
-    export_LocalGroupData<HOOMDDeviceBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(m, "LocalImproperDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(m, "LocalConstraintDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");
