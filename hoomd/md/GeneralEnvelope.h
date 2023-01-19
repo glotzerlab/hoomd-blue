@@ -1,14 +1,13 @@
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-
 #ifndef __GENERAL_ENVELOPE_H__
 #define __GENERAL_ENVELOPE_H__
 
 #ifndef __HIPCC__
 #include <string>
 #endif
-
+#include <string.h>
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -31,6 +30,11 @@ namespace md
 /*
   The GeneralEnvelope creates the pair potential modulator.
 */
+
+        std::string vecString(vec3<Scalar> a) {
+            return std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + '\n';
+        }
+
 
 class GeneralEnvelope
 {
@@ -210,6 +214,7 @@ public:
             Scalar modPi = ModulatorPrimei();
             Scalar modPj = ModulatorPrimej();
 
+            std::cout << "------------\n";
             // the overall modulation
             envelope = modi*modj;
 
@@ -236,32 +241,49 @@ public:
 
             quat<Scalar> qpi = params.qpi; // quaternion representing orientation of patch with respect to particle x direction (a1)
 
-            vec3<Scalar> new_cross_term = qpi.s * cross(dr, qpi.v);
+            std::cout << params.qpi.s << params.qpi.v.x << params.qpi.v.y << params.qpi.v.z << '\n';             // this is okay
 
-            // {qx, qy, qz}*{{dry,drz}.{qy,qz}, {drx,drz}.{qx,qz}, {drx,dry}.{qx,qy}}
-            // Components of dot products:
-            Scalar drxqx = dr.x*qpi.v.x;
-            Scalar dryqy = dr.y*qpi.v.y;
-            Scalar drzqz = dr.z*qpi.v.z;
+            // quicker calculation and avoiding a bug in the following when patch is aligned
+            // a1 = old ei
+            vec3<Scalar> new_cross_term;
+            if (qpi.s == Scalar(1) && qpi.v == vec3<Scalar>(0,0,0) )
+                {
+                    new_cross_term = -dr / magdr;
+                }
+            else
+                {
+                    new_cross_term = qpi.s * cross(dr, qpi.v);
+                    std::cout << vecString(dr); // this is okay
+                    std::cout << vecString(qpi.v); // this is zero. Problem!
+                    std::cout << vecString(new_cross_term);
 
-            new_cross_term.x += qpi.v.x * (dryqy + drzqz);
-            new_cross_term.y += qpi.v.y * (drxqx + drzqz);
-            new_cross_term.z += qpi.v.z * (drxqx + dryqy);
+                    // {qx, qy, qz}*{{dry,drz}.{qy,qz}, {drx,drz}.{qx,qz}, {drx,dry}.{qx,qy}}
+                    // Components of dot products:
+                    Scalar drxqx = dr.x*qpi.v.x;
+                    Scalar dryqy = dr.y*qpi.v.y;
+                    Scalar drzqz = dr.z*qpi.v.z;
 
-            // {drx, dry, drz}*{qx, qy, qz}^2 . {{-1, 1, 1}, {1, -1, 1}, {1, 1, -1}}
-            Scalar qx2 = qpi.v.x * qpi.v.x;
-            Scalar qy2 = qpi.v.y * qpi.v.y;
-            Scalar qz2 = qpi.v.z * qpi.v.z;
+                    new_cross_term.x += qpi.v.x * (dryqy + drzqz);
+                    new_cross_term.y += qpi.v.y * (drxqx + drzqz);
+                    new_cross_term.z += qpi.v.z * (drxqx + dryqy);
 
-            new_cross_term.x += dr.x * (-qx2 + qy2 + qz2);
-            new_cross_term.y += dr.y * ( qx2 - qy2 + qz2);
-            new_cross_term.z += dr.z * ( qx2 + qy2 - qz2);
+                    // {drx, dry, drz}*{qx, qy, qz}^2 . {{-1, 1, 1}, {1, -1, 1}, {1, 1, -1}}
+                    Scalar qx2 = qpi.v.x * qpi.v.x;
+                    Scalar qy2 = qpi.v.y * qpi.v.y;
+                    Scalar qz2 = qpi.v.z * qpi.v.z;
 
-            // The norm2 comes from the definition of rotation for quaternion
-            // The magdr comes from the dot product definition of cos(theta_i)
-            new_cross_term = new_cross_term / (-magdr * norm2(qpi));
+                    new_cross_term.x += dr.x * (-qx2 + qy2 + qz2);
+                    new_cross_term.y += dr.y * ( qx2 - qy2 + qz2);
+                    new_cross_term.z += dr.z * ( qx2 + qy2 - qz2);
+
+                    // The norm2 comes from the definition of rotation for quaternion
+                    // The magdr comes from the dot product definition of cos(theta_i)
+                    new_cross_term = new_cross_term / (-magdr * norm2(qpi));
+                }
+
             // I multiply iPj by magdr next for clarity during the derivation bc I did it above -Corwin
             torque_i = vec_to_scalar3( (iPj*magdr) * cross(vec3<Scalar>(a1), new_cross_term));
+
 
             // Previously above, I would have s.ei which is the same, but I'm moving to a1 for clarity.
 
@@ -277,7 +299,7 @@ public:
             //             + jPi*(s.ej.x - s.dotj*s.dr.x/s.magdr));
 
             // TODO still need to update this with respect to the conj(quat) bug
-            force.x = -(iPj*(-ei.x - doti*dr.x/magdr)
+            force.x = -(iPj*(-ei.x - doti*dr.x/magdr) // iPj includes a factor of magdr
                         + jPi*(ej.x - dotj*dr.x/magdr));
             force.y = -(iPj*(-ei.y - doti*dr.y/magdr)
                         + jPi*(ej.y - dotj*dr.y/magdr));
