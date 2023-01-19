@@ -267,7 +267,8 @@ public:
 
             // torque on jth - note sign is opposite ith!
             torque_j = vec_to_scalar3( (jPi*magdr) * cross(vec3<Scalar>(b1), -new_cross_term));
-
+            // TODO why is the order different than before?
+            
             // compute force contribution
             // not the full force. Just the envelope that will be applied to pair energy
 
