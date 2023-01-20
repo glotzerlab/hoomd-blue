@@ -33,6 +33,7 @@ set(_md_sources module-md.cc
                    ManifoldPrimitive.cc
                    ManifoldSphere.cc
                    MolecularForceCompute.cc
+        MoleculeEnsemble.cpp
                    MuellerPlatheFlow.cc
                    NeighborListBinned.cc
                    NeighborList.cc

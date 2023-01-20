@@ -147,6 +147,8 @@ void export_ManifoldZCylinder(pybind11::module& m);
 void export_AlchemicalMDParticles(pybind11::module& m);
 void export_PotentialPairAlchemicalLJGauss(pybind11::module& m);
 
+void export_MoleculeEnsemble(pybind11::module&);
+
 #ifdef ENABLE_HIP
 
 void export_ActiveForceConstraintComputeCylinderGPU(pybind11::module& m);
@@ -369,6 +371,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWallGauss(m);
     export_PotentialExternalWallMorse(m);
 
+    export_MoleculeEnsemble(m);
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
