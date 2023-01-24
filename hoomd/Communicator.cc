@@ -1202,10 +1202,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
       m_nettorque_copybuf(m_exec_conf), m_netvirial_copybuf(m_exec_conf),
       m_netvirial_recvbuf(m_exec_conf), m_plan(m_exec_conf), m_plan_reverse(m_exec_conf),
       m_tag_reverse(m_exec_conf), m_netforce_reverse_copybuf(m_exec_conf),
-      m_netforce_reverse_recvbuf(m_exec_conf), m_r_ghost_max(Scalar(0.0)),
-      m_r_extra_ghost_max(Scalar(0.0)), m_ghosts_added(0), m_has_ghost_particles(false),
-      m_last_flags(0), m_comm_pending(false), m_bond_comm(*this, m_sysdef->getBondData()),
-      m_angle_comm(*this, m_sysdef->getAngleData()),
+      m_netforce_reverse_recvbuf(m_exec_conf), m_r_ghost_max(Scalar(0.0)), m_ghosts_added(0),
+      m_has_ghost_particles(false), m_last_flags(0), m_comm_pending(false),
+      m_bond_comm(*this, m_sysdef->getBondData()), m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_constraint_comm(*this, m_sysdef->getConstraintData()),
@@ -1787,7 +1786,6 @@ void Communicator::updateGhostWidth()
                                            access_location::host,
                                            access_mode::readwrite);
 
-        Scalar r_body_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
             {
             Scalar r_body_ghost_i = 0.0;
@@ -1801,10 +1799,7 @@ void Communicator::updateGhostWidth()
                 h_r_ghost.data);
 
             h_r_ghost_body.data[cur_type] = r_body_ghost_i;
-            if (r_body_ghost_i > r_body_ghost_max)
-                r_body_ghost_max = r_body_ghost_i;
             }
-        m_r_extra_ghost_max = r_body_ghost_max;
         }
     }
 

@@ -258,7 +258,20 @@ class PYBIND11_EXPORT Communicator
     //! Get the current maximum ghost layer width
     Scalar getGhostLayerMaxWidth() const
         {
-        return m_r_ghost_max; // + m_r_extra_ghost_max;
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body,
+                                           access_location::host,
+                                           access_mode::read);
+
+        Scalar ghost_max_width = 0.0;
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            ghost_max_width
+                = std::max(ghost_max_width,
+                           std::max(h_r_ghost.data[cur_type], h_r_ghost_body.data[cur_type]));
+            }
+
+        return ghost_max_width;
         }
 
     //! Set the ghost communication flags
@@ -544,7 +557,6 @@ class PYBIND11_EXPORT Communicator
     GlobalArray<Scalar> m_r_ghost;      //!< Width of ghost layer
     GlobalArray<Scalar> m_r_ghost_body; //!< Extra ghost width for rigid bodies
     Scalar m_r_ghost_max;               //!< Maximum ghost layer width
-    Scalar m_r_extra_ghost_max;         //!< Maximum extra ghost layer width
 
     unsigned int m_ghosts_added; //!< Number of ghosts added
     bool m_has_ghost_particles;  //!< True if we have a current copy of ghost particles
