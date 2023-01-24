@@ -19,15 +19,10 @@ namespace md
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
-    : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false),
-      m_global_max_d(0.0), m_global_max_d_changed(true)
+    : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false)
     {
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
-
-    // connect to box change signal
-    m_pdata->getCompositeParticlesSignal()
-        .connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 
     m_exec_conf->msg->notice(7) << "ForceComposite initialize memory" << std::endl;
 
@@ -60,8 +55,6 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
 
-    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
-
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -82,8 +75,6 @@ ForceComposite::~ForceComposite()
     // disconnect from signal in ParticleData;
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
-    m_pdata->getCompositeParticlesSignal()
-        .disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
@@ -219,12 +210,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
         // make sure central particle will be communicated
         m_d_max_changed[body_typeid] = true;
-
-        // story body diameter
-        m_body_max_diameter[body_typeid] = getBodyDiameter(body_typeid);
-
-        // indicate that the maximum diameter may have changed
-        m_global_max_d_changed = true;
         }
     }
 

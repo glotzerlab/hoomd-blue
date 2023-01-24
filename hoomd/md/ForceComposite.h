@@ -227,8 +227,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
     std::vector<Scalar> m_d_max;       //!< Maximum body diameter per constituent particle type
     std::vector<bool> m_d_max_changed; //!< True if maximum body diameter changed (per type)
-    std::vector<Scalar> m_body_max_diameter; //!< List of diameters for all body types
-    Scalar m_global_max_d;                   //!< Maximum over all body diameters
 
 #ifdef ENABLE_MPI
     /// The system's communicator.
@@ -241,33 +239,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         m_particles_added_removed = true;
         }
 
-    //! Returns the maximum diameter over all rigid bodies
-    Scalar getMaxBodyDiameter()
-        {
-        if (m_global_max_d_changed)
-            {
-            // find maximum diameter over all bodies
-            Scalar d_max(0.0);
-            ArrayHandle<unsigned int> h_body_len(m_body_len,
-                                                 access_location::host,
-                                                 access_mode::read);
-            for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
-                {
-                if (h_body_len.data[i] != 0 && m_body_max_diameter[i] > d_max)
-                    d_max = m_body_max_diameter[i];
-                }
-
-            // cache value
-            m_global_max_d = d_max;
-            m_global_max_d_changed = false;
-
-            m_exec_conf->msg->notice(7)
-                << "ForceComposite: Maximum body diameter is " << m_global_max_d << std::endl;
-            }
-
-        return m_global_max_d;
-        }
-
     /// Return the requested minimum ghost layer width for a body's central particle.
     virtual Scalar requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost);
 
@@ -276,9 +247,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
     //! Helper method to calculate the body diameter
     Scalar getBodyDiameter(unsigned int body_type);
-
-    private:
-    bool m_global_max_d_changed; //!< True if we updated any rigid body
     };
 
     } // end namespace md
