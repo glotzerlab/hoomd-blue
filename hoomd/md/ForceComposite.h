@@ -249,8 +249,8 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         return m_global_max_d;
         }
 
-    //! Return the requested minimum ghost layer width
-    virtual Scalar requestExtraGhostLayerWidth(unsigned int type);
+    /// Return the requested minimum ghost layer width for a body's central particle.
+    virtual Scalar requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost);
 
     //! Compute the forces and torques on the central particle
     virtual void computeForces(uint64_t timestep);

@@ -70,8 +70,8 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         m_comm = comm_weak.lock();
 
         // register this class with the communicator
-        m_comm->getExtraGhostLayerWidthRequestSignal()
-            .connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        m_comm->getBodyGhostLayerWidthRequestSignal()
+            .connect<ForceComposite, &ForceComposite::requestBodyGhostLayerWidth>(this);
         }
 #endif
     }
@@ -87,8 +87,8 @@ ForceComposite::~ForceComposite()
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
-        m_comm->getExtraGhostLayerWidthRequestSignal()
-            .disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        m_comm->getBodyGhostLayerWidthRequestSignal()
+            .disconnect<ForceComposite, &ForceComposite::requestBodyGhostLayerWidth>(this);
         }
 #endif
     }
@@ -220,12 +220,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
         // make sure central particle will be communicated
         m_d_max_changed[body_typeid] = true;
 
-        // also update diameter on constituent particles
-        for (unsigned int i = 0; i < type.size(); ++i)
-            {
-            m_d_max_changed[type[i]] = true;
-            }
-
         // story body diameter
         m_body_max_diameter[body_typeid] = getBodyDiameter(body_typeid);
 
@@ -273,75 +267,40 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
     return d_max;
     }
 
-Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
+/** Compute the needed body ghost layer width.
+
+    The body ghost layer width is the maximum of [d_i + r_ghost_i] where d_i is distance of particle
+    i from the center of the body and r_ghost_i is the ghost width for particle i determined by
+    cutoff and other interactions.
+
+    The body ghost layer width for constituent particles is 0.
+*/
+Scalar ForceComposite::requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost)
     {
+    assert(m_body_len.getNumElements() > type);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
-    if (m_d_max_changed[type])
+    if (m_d_max_changed[type] && h_body_len.data[type] != 0)
         {
         m_d_max[type] = Scalar(0.0);
-
-        assert(m_body_len.getNumElements() > type);
-
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_body_type(m_body_types,
                                               access_location::host,
                                               access_mode::read);
 
-        unsigned int ntypes = m_pdata->getNTypes();
-
-        // find maximum body radius over all bodies this type participates in
-        for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
+        for (unsigned int body_particle = 0; body_particle < h_body_len.data[type]; body_particle++)
             {
-            bool is_part_of_body = body_type == type;
-            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
-                {
-                if (h_body_type.data[m_body_idx(body_type, i)] == type)
-                    {
-                    is_part_of_body = true;
-                    }
-                }
-
-            if (is_part_of_body)
-                {
-                for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
-                    {
-                    if (body_type != type && h_body_type.data[m_body_idx(body_type, i)] != type)
-                        continue;
-
-                    // distance to central particle
-                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type, i)];
-                    Scalar d = sqrt(dot(dr, dr));
-                    if (d > m_d_max[type])
-                        {
-                        m_d_max[type] = d;
-                        }
-
-                    if (body_type != type)
-                        {
-                        // for non-central particles, distance to every other particle
-                        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-                            {
-                            dr = h_body_pos.data[m_body_idx(body_type, i)]
-                                 - h_body_pos.data[m_body_idx(body_type, j)];
-                            d = sqrt(dot(dr, dr));
-
-                            if (d > m_d_max[type])
-                                {
-                                m_d_max[type] = d;
-                                }
-                            }
-                        }
-                    }
+            unsigned int constituent_typeid = h_body_type.data[m_body_idx(type, body_particle)];
+            vec3<Scalar> constituent_position(h_body_pos.data[m_body_idx(type, body_particle)]);
+            Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
+            m_d_max[type] = std::max(m_d_max[type], d + h_r_ghost[constituent_typeid]);
                 }
             }
 
         m_d_max_changed[type] = false;
-
-        m_exec_conf->msg->notice(7)
-            << "ForceComposite: requesting ghost layer for type " << m_pdata->getNameByType(type)
-            << ": " << m_d_max[type] << std::endl;
-        }
+    m_exec_conf->msg->notice(7) << "ForceComposite: requesting ghost layer for type "
+                                << m_pdata->getNameByType(type) << ": " << m_d_max[type]
+                                << std::endl;
 
     return m_d_max[type];
     }

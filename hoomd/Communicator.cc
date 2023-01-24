@@ -1757,10 +1757,10 @@ void Communicator::updateGhostWidth()
             }
         }
 
+    ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
     if (!m_ghost_layer_width_requests.empty())
         {
         // update the ghost layer width only if subscribers are available
-        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
 
         // reduce per type using the signals, and then overall
         Scalar r_ghost_max = 0.0;
@@ -1780,30 +1780,31 @@ void Communicator::updateGhostWidth()
             }
         m_r_ghost_max = r_ghost_max;
         }
-    if (!m_extra_ghost_layer_width_requests.empty())
+    if (!m_body_ghost_layer_width_requests.empty())
         {
         // update the ghost layer width only if subscribers are available
         ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body,
                                            access_location::host,
                                            access_mode::readwrite);
 
-        Scalar r_extra_ghost_max = 0.0;
+        Scalar r_body_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
             {
-            Scalar r_extra_ghost_i = 0.0;
-            m_extra_ghost_layer_width_requests.emit_accumulate(
+            Scalar r_body_ghost_i = 0.0;
+            m_body_ghost_layer_width_requests.emit_accumulate(
                 [&](Scalar r)
                 {
-                    if (r > r_extra_ghost_i)
-                        r_extra_ghost_i = r;
+                    if (r > r_body_ghost_i)
+                        r_body_ghost_i = r;
                 },
-                cur_type);
+                cur_type,
+                h_r_ghost.data);
 
-            h_r_ghost_body.data[cur_type] = r_extra_ghost_i;
-            if (r_extra_ghost_i > r_extra_ghost_max)
-                r_extra_ghost_max = r_extra_ghost_i;
+            h_r_ghost_body.data[cur_type] = r_body_ghost_i;
+            if (r_body_ghost_i > r_body_ghost_max)
+                r_body_ghost_max = r_body_ghost_i;
             }
-        m_r_extra_ghost_max = r_extra_ghost_max;
+        m_r_extra_ghost_max = r_body_ghost_max;
         }
     }
 
@@ -1843,13 +1844,6 @@ void Communicator::exchangeGhosts()
     ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::read);
     const Scalar3 box_dist = box.getNearestPlaneDistance();
-    std::vector<Scalar3> ghost_fractions(m_pdata->getNTypes());
-    std::vector<Scalar3> ghost_fractions_body(m_pdata->getNTypes());
-    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
-        {
-        ghost_fractions[cur_type] = h_r_ghost.data[cur_type] / box_dist;
-        ghost_fractions_body[cur_type] = h_r_ghost_body.data[cur_type] / box_dist;
-        }
 
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
@@ -1868,12 +1862,13 @@ void Communicator::exchangeGhosts()
 
             // get the ghost fraction for this particle type
             const unsigned int type = __scalar_as_int(postype.w);
-            Scalar3 ghost_fraction = ghost_fractions[type];
+            Scalar ghost_width = h_r_ghost.data[type];
 
             if (h_body.data[idx] < MIN_FLOPPY)
                 {
-                ghost_fraction += ghost_fractions_body[type];
+                ghost_width = std::max(ghost_width, h_r_ghost_body.data[type]);
                 }
+            Scalar3 ghost_fraction = ghost_width / box_dist;
 
             Scalar3 f = box.makeFraction(pos);
             if (f.x >= Scalar(1.0) - ghost_fraction.x)
