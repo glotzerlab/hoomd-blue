@@ -25,6 +25,25 @@
         even if it isn't "optimal". Since creation and validation are only called infrequently and
         updating is efficient, this preserves the most readability without sacrificing meaningfully
         performance.
+
+    Communication:
+
+    The communication scheme for ForceComposite is split between ForceComposite, Communicator,
+    and IntegratorTwoStep. ForceComposite works with Communicator to adjust the ghost communication
+    width for the rigid body types. Constituent particles do not need any extra ghost width as
+    they interact with other particles directly. For every ghost consitutent particle, the
+    corresponding central particle must be present to compute the most up to date constituent
+    position / orientation. To implement this, Communicator requests a special body ghost width
+    that ForceComposite computes. See requestBodyGhostLayerWidth for details on the body ghost
+    width. Communicator then takes the maximum of the existing interaction ghost width and the
+    body ghost width to determine the final ghost width for central particles.
+
+    To ensure that constituent particles are synchronized between their home and neighboring ranks,
+    IntegratorTwoStep updates the central particles, then updates the constituents
+    (updateCompositeParticles), then communicates, and updates the constituents again. The first
+    update is needed so that the constituent particles are migrated and added to ghost layers when
+    needed. The update after communication is needed to ensure that the ghost constituents
+    are placed correctly according to the ghost central particles after communicating.
 */
 
 #ifdef __HIPCC__
