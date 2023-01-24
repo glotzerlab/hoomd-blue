@@ -99,10 +99,10 @@ void mpcd::Integrator::update(uint64_t timestep)
     else
 #endif // ENABLE_MPI
 
-    // Update rigid body constituent particles after communicating (or once in serial) to ensure
-    // that all ghost constituent particle positions are set in accordance with any just
-    // communicated ghost and/or migrated rigid body centers.
-    updateRigidBodies(timestep + 1);
+        // Update rigid body constituent particles after communicating (or once in serial) to ensure
+        // that all ghost constituent particle positions are set in accordance with any just
+        // communicated ghost and/or migrated rigid body centers.
+        updateRigidBodies(timestep + 1);
 
     // execute the MPCD streaming step now that MD particles are communicated onto their final
     // domains

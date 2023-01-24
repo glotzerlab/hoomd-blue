@@ -294,10 +294,10 @@ Scalar ForceComposite::requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r
             vec3<Scalar> constituent_position(h_body_pos.data[m_body_idx(type, body_particle)]);
             Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
             m_d_max[type] = std::max(m_d_max[type], d + h_r_ghost[constituent_typeid]);
-                }
             }
+        }
 
-        m_d_max_changed[type] = false;
+    m_d_max_changed[type] = false;
     m_exec_conf->msg->notice(7) << "ForceComposite: requesting ghost layer for type "
                                 << m_pdata->getNameByType(type) << ": " << m_d_max[type]
                                 << std::endl;

@@ -88,12 +88,12 @@ void IntegratorTwoStep::update(uint64_t timestep)
     else
 #endif
 
-    // Update rigid body constituent particles after communicating (or once in serial) to ensure
-    // that all ghost constituent particle positions are set in accordance with any just
-    // communicated ghost and/or migrated rigid body centers.
-    updateRigidBodies(timestep + 1);
+        // Update rigid body constituent particles after communicating (or once in serial) to ensure
+        // that all ghost constituent particle positions are set in accordance with any just
+        // communicated ghost and/or migrated rigid body centers.
+        updateRigidBodies(timestep + 1);
 
-    // compute the net force on all particles
+        // compute the net force on all particles
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep + 1);
