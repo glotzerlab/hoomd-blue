@@ -210,6 +210,12 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
         // make sure central particle will be communicated
         m_d_max_changed[body_typeid] = true;
+
+        // also update diameter on constituent particles
+        for (unsigned int i = 0; i < type.size(); ++i)
+            {
+            m_d_max_changed[type[i]] = true;
+            }
         }
     }
 
@@ -254,18 +260,19 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
 
 /** Compute the needed body ghost layer width.
 
-    The body ghost layer width is the maximum of [d_i + r_ghost_i] where d_i is distance of particle
-    i from the center of the body and r_ghost_i is the ghost width for particle i determined by
-    cutoff and other interactions.
+    For central particles, the body ghost layer width is the maximum of [d_i + r_ghost_i] where d_i
+    is distance of particle i from the center of the body and r_ghost_i is the ghost width for
+    particle i determined by cutoff and other interactions.
 
-    The body ghost layer width for constituent particles is 0.
+    The body ghost layer width for constituent particles is the maximum diameter d_i among all
+    rigid body types that have this particle as a consituent.
 */
 Scalar ForceComposite::requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost)
     {
     assert(m_body_len.getNumElements() > type);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
-    if (m_d_max_changed[type] && h_body_len.data[type] != 0)
+    if (m_d_max_changed[type])
         {
         m_d_max[type] = Scalar(0.0);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
@@ -273,12 +280,43 @@ Scalar ForceComposite::requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r
                                               access_location::host,
                                               access_mode::read);
 
-        for (unsigned int body_particle = 0; body_particle < h_body_len.data[type]; body_particle++)
+        if (h_body_len.data[type] != 0)
             {
-            unsigned int constituent_typeid = h_body_type.data[m_body_idx(type, body_particle)];
-            vec3<Scalar> constituent_position(h_body_pos.data[m_body_idx(type, body_particle)]);
-            Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
-            m_d_max[type] = std::max(m_d_max[type], d + h_r_ghost[constituent_typeid]);
+            // central particles
+            for (unsigned int body_particle = 0; body_particle < h_body_len.data[type];
+                 body_particle++)
+                {
+                unsigned int constituent_typeid = h_body_type.data[m_body_idx(type, body_particle)];
+                vec3<Scalar> constituent_position(h_body_pos.data[m_body_idx(type, body_particle)]);
+                Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
+                m_d_max[type] = std::max(m_d_max[type], d + h_r_ghost[constituent_typeid]);
+                }
+            }
+        else
+            {
+            // constituent particles
+            for (unsigned int body_type = 0; body_type < m_pdata->getNTypes(); body_type++)
+                {
+                if (h_body_len.data[body_type] == 0)
+                    {
+                    continue;
+                    }
+
+                for (unsigned int body_particle = 0; body_particle < h_body_len.data[body_type];
+                     body_particle++)
+                    {
+                    unsigned int constituent_typeid
+                        = h_body_type.data[m_body_idx(body_type, body_particle)];
+
+                    if (constituent_typeid == type)
+                        {
+                        vec3<Scalar> constituent_position(
+                            h_body_pos.data[m_body_idx(body_type, body_particle)]);
+                        Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
+                        m_d_max[type] = std::max(m_d_max[type], d);
+                        }
+                    }
+                }
             }
         }
 
@@ -744,11 +782,10 @@ void ForceComposite::computeForces(uint64_t timestep)
                 // if the central particle is local, the molecule should be complete
                 if (h_molecule_length.data[ibody] != h_body_len.data[type] + 1)
                     {
-                    m_exec_conf->msg->errorAllRanks()
-                        << "constrain.rigid(): Composite particle with body tag " << central_tag
-                        << " incomplete" << std::endl
-                        << std::endl;
-                    throw std::runtime_error("Error computing composite particle forces.\n");
+                    std::ostringstream error_msg;
+                    error_msg << "Composite particle with body tag " << central_tag
+                              << " is incomplete.";
+                    throw std::runtime_error(error_msg.str());
                     }
 
                 // sum up center of mass force
@@ -923,7 +960,9 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
                 // if the molecule is incomplete and has local members, this is an error
                 std::ostringstream error_msg;
                 error_msg << "Error while updating constituent particles:"
-                          << "Composite particle with body tag " << central_tag << " incomplete.";
+                          << "Composite particle with body tag " << central_tag << " incomplete: "
+                          << "body_len=" << body_len
+                          << ", molecule_len=" << h_molecule_len.data[mol_idx] - 1;
                 throw std::runtime_error(error_msg.str());
                 }
 
