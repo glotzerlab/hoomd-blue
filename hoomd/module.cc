@@ -43,6 +43,7 @@
 
 // include GPU classes
 #ifdef ENABLE_HIP
+#include "BoxResizeUpdaterGPU.h"
 #include "CellListGPU.h"
 #include "LoadBalancerGPU.h"
 #include "SFCPackTunerGPU.h"
@@ -311,6 +312,9 @@ PYBIND11_MODULE(_hoomd, m)
     export_Integrator(m);
     export_BoxResizeUpdater(m);
     export_UpdaterRemoveDrift(m);
+#ifdef ENABLE_HIP
+    export_BoxResizeUpdaterGPU(m);
+#endif
 
     // tuners
     export_Tuner(m);
