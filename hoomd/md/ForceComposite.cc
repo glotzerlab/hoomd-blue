@@ -225,8 +225,13 @@ void ForceComposite::setParam(unsigned int body_typeid,
     is distance of particle i from the center of the body and r_ghost_i is the ghost width for
     particle i determined by cutoff and other interactions.
 
-    The body ghost layer width for constituent particles is the maximum diameter d_i among all
-    rigid body types that have this particle as a consituent.
+    The body ghost layer width for constituent particles *should be* the maximum diameter d_i among
+    all rigid body types that have this particle as a consituent. However, this must be larger due
+    to limitations in the way that individual rigid body particles are indexed relative to the
+    molecules in MolecularForceCompute. In the worst case, for a ghost particle within the
+    interaction ghost width r_ghost_i of a boundary, *ALL* other particles in that body must be
+    included. The ghost layer width needed to satisfy this condition is the maximum of [2*d_i +
+    r_ghost_i], allowing for enough distance to communicate another particle placed at -r_i.
 */
 Scalar ForceComposite::requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost)
     {
@@ -274,7 +279,8 @@ Scalar ForceComposite::requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r
                         vec3<Scalar> constituent_position(
                             h_body_pos.data[m_body_idx(body_type, body_particle)]);
                         Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
-                        m_d_max[type] = std::max(m_d_max[type], d);
+                        m_d_max[type] = std::max(m_d_max[type],
+                                                 d * Scalar(2.0) + h_r_ghost[constituent_typeid]);
                         }
                     }
                 }
@@ -883,12 +889,14 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
             continue;
             }
 
+        // If the central particle is not local, then we cannot update the position and orientation
+        // of this particle. Ideally, this would perform an error check. However, that is not
+        // feasible as ForceComposite does not have knowledge of which ghost particles are within
+        // the interaction ghost width (and need therefore need to be updated) vs those that are
+        // communicated to make bodies whole.
         if (central_idx == NOT_LOCAL)
             {
-            std::ostringstream error_msg;
-            error_msg << "Error updating composite particles: Missing central particle tag "
-                      << central_tag << ".";
-            throw std::runtime_error(error_msg.str());
+            continue;
             }
 
         // central particle position and orientation
@@ -905,8 +913,9 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         unsigned int mol_idx = h_molecule_idx.data[particle_index];
         // Checks if the number of local particle in a molecule denoted by
         // h_molecule_len.data[particle_index] is equal to the number of particles in the rigid body
-        // definition `body_len`. If this is the case for a ghost particle this is fine, otherwise
-        // somehow we are in an invalid state for the body hence the inner condition.
+        // definition `body_len`. As above, this error check *should* be performed for all local and
+        // ghost particles within the interaction ghost width. However, that check is not feasible
+        // here. At least catch this error for particles local to this rank.
         if (body_len != h_molecule_len.data[mol_idx] - 1)
             {
             if (particle_index < m_pdata->getN())
