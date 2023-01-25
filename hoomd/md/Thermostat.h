@@ -188,7 +188,7 @@ class MTTKThermostat : public Thermostat
         exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 
         Scalar g = m_group->getTranslationalDOF();
-        Scalar sigmasq_t = Scalar(1.0) / ((Scalar)g * m_tau * m_tau);
+        Scalar sigmasq_t = Scalar(1.0) / (static_cast<Scalar>(g) * m_tau * m_tau);
 
         bool root = exec_conf->getRank() == 0;
 
