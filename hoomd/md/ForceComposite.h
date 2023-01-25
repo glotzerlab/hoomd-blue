@@ -249,9 +249,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
     //! Compute the forces and torques on the central particle
     virtual void computeForces(uint64_t timestep);
-
-    //! Helper method to calculate the body diameter
-    Scalar getBodyDiameter(unsigned int body_type);
     };
 
     } // end namespace md

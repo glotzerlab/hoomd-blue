@@ -219,45 +219,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
         }
     }
 
-Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
-    {
-    m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type "
-                                << m_pdata->getNameByType(body_type) << std::endl;
-
-    // get maximum pairwise distance
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
-
-    Scalar d_max(0.0);
-
-    for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
-        {
-        // distance to central particle
-        Scalar3 dr = h_body_pos.data[m_body_idx(body_type, i)];
-        Scalar d = sqrt(dot(dr, dr));
-        if (d > d_max)
-            {
-            d_max = d;
-            }
-
-        // distance to every other particle
-        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-            {
-            dr = h_body_pos.data[m_body_idx(body_type, i)]
-                 - h_body_pos.data[m_body_idx(body_type, j)];
-            d = sqrt(dot(dr, dr));
-
-            if (d > d_max)
-                {
-                d_max = d;
-                }
-            }
-        }
-
-    return d_max;
-    }
-
 /** Compute the needed body ghost layer width.
 
     For central particles, the body ghost layer width is the maximum of [d_i + r_ghost_i] where d_i
