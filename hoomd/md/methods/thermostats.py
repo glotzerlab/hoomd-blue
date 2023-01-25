@@ -58,8 +58,8 @@ class MTTK(Thermostat):
     The translational thermostat has a momentum :math:`\xi` and position
     :math:`\eta`. The rotational thermostat has momentum
     :math:`\xi_{\mathrm{rot}}` and position :math:`\eta_\mathrm{rot}`. Access
-    these quantities using `translational_thermostat_dof` and
-    `rotational_thermostat_dof`.
+    these quantities using `translational_dof` and
+    `rotational_dof`.
 
     See Also:
         `G. J. Martyna, D. J. Tobias, M. L. Klein 1994
@@ -99,7 +99,7 @@ class MTTK(Thermostat):
                                            self.tau)
 
     @hoomd.logging.log(requires_run=True)
-    def thermostat_energy(self):
+    def energy(self):
         """Energy the thermostat contributes to the Hamiltonian \
         :math:`[\\mathrm{energy}]`."""
         return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
