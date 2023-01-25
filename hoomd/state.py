@@ -649,7 +649,7 @@ class State:
         as determine by its moment of inertia.
 
         .. seealso::
-            `md.methods.thermostats.MTTK.thermalize_thermostat_dof`
+            `md.methods.thermostats.MTTK.thermalize_dof`
 
             `md.methods.ConstantPressure.thermalize_barostat_dof`
         """
