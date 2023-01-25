@@ -173,7 +173,7 @@ class TestThermostats:
 
     def test_thermostat_thermalize_thermostat_dof(
             self, simulation_factory, two_particle_snapshot_factory):
-        """Tests that NVT.thermalize_thermostat_dof can be called."""
+        """Tests that NVT.thermalize_dof can be called."""
         thermostat = hoomd.md.methods.thermostats.MTTK(1.5, 0.05)
         nvt = hoomd.md.methods.ConstantVolume(thermostat=thermostat,
                                               filter=hoomd.filter.All())
@@ -182,12 +182,12 @@ class TestThermostats:
         sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
         sim.run(0)
 
-        thermostat.thermalize_thermostat_dof()
-        xi, eta = thermostat.translational_thermostat_dof
+        thermostat.thermalize_dof()
+        xi, eta = thermostat.translational_dof
         assert xi != 0.0
         assert eta == 0.0
 
-        xi_rot, eta_rot = thermostat.rotational_thermostat_dof
+        xi_rot, eta_rot = thermostat.rotational_dof
         assert xi_rot == 0.0
         assert eta_rot == 0.0
 
@@ -196,7 +196,7 @@ class TestThermostats:
             snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
         sim.state.set_snapshot(snap)
 
-        xi_rot, eta_rot = thermostat.rotational_thermostat_dof
+        xi_rot, eta_rot = thermostat.rotational_dof
         assert xi_rot == 0.0
         assert eta_rot == 0.0
 
@@ -204,7 +204,7 @@ class TestThermostats:
         logging_check(
             hoomd.md.methods.thermostats.MTTK, ('md', 'methods', 'thermostats'),
             {
-                'thermostat_energy': {
+                'energy': {
                     'category': LoggerCategories.scalar,
                     'default': True
                 },
@@ -399,7 +399,7 @@ class TestMethods:
         logging_check(
             hoomd.md.methods.thermostats.MTTK, ('md', 'methods', 'thermostats'),
             {
-                'thermostat_energy': {
+                'energy': {
                     'category': LoggerCategories.scalar,
                     'default': True
                 },
