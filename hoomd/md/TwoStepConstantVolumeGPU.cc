@@ -144,7 +144,9 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
 
     // advance thermostat
     if (m_thermostat)
+        {
         m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+        }
     }
 
 /*! \param timestep Current time step
