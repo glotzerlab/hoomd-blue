@@ -622,7 +622,7 @@ class Either:
 
 
 class Generator:
-    """Class that can generate values of a specified specification.
+    """Generates random values of various specifications based on method.
 
     The purpose is similar to property testing libraries like hypothesis in that
     it enables automatic testing with a variety of values. This implementation
