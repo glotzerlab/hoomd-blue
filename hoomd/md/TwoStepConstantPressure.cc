@@ -890,7 +890,7 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
-    Scalar W = (Scalar)(m_ndof + d) / (Scalar)d
+    Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d)
                * (m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0)) * m_tauS
                * m_tauS;
     Scalar mtk_term = Scalar(2.0) * m_thermo_full_step->getTranslationalKineticEnergy();
