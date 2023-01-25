@@ -49,7 +49,7 @@ class Thermostat
         m_T = T;
         }
 
-    Scalar getTemperature(uint64_t timestep)
+    Scalar getTimestepTemperature(uint64_t timestep)
         {
         return (*m_T)(timestep);
         }

@@ -730,7 +730,7 @@ Scalar TwoStepConstantPressure::getBarostatEnergy(uint64_t timestep)
     {
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d)
-               * (m_thermostat ? m_thermostat->getTemperature(timestep) : Scalar(1.0)) * m_tauS
+               * (m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0)) * m_tauS
                * m_tauS;
 
     Scalar barostat_energy
@@ -891,7 +891,7 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = (Scalar)(m_ndof + d) / (Scalar)d
-               * (m_thermostat ? m_thermostat->getTemperature(timestep) : Scalar(1.0)) * m_tauS
+               * (m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0)) * m_tauS
                * m_tauS;
     Scalar mtk_term = Scalar(2.0) * m_thermo_full_step->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0 / 2.0) * m_deltaT / (Scalar)m_ndof / W;
@@ -947,7 +947,8 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
 
     // update barostat matrix
     Scalar noise_exp_integrate = exp(-m_gamma * m_deltaT / Scalar(2.0));
-    Scalar coeff = sqrt((m_thermostat ? m_thermostat->getTemperature(timestep) : Scalar(1.0))
+    Scalar coeff = sqrt((m_thermostat ? m_thermostat->getTimestepTemperature(
+            timestep) : Scalar(1.0))
                         * (Scalar(1.0) - noise_exp_integrate * noise_exp_integrate) / W);
     if (m_flags & baro_x)
         {
