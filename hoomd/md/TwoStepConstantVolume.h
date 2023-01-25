@@ -46,7 +46,7 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
 
     auto getKernelLimitValues(uint64_t timestep)
         {
-        auto use_limit = static_cast<bool>(m_limit);
+        const auto use_limit = static_cast<bool>(m_limit);
         Scalar maximum_displacement = use_limit ? m_limit->operator()(timestep) : 0.0;
         return std::make_pair(use_limit, maximum_displacement);
         }
