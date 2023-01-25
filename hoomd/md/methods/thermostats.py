@@ -73,11 +73,11 @@ class MTTK(Thermostat):
         tau (float): Coupling constant for the thermostat
             :math:`[\mathrm{time}]`
 
-        translational_thermostat_dof (tuple[float, float]): Additional degrees
+        translational_dof (tuple[float, float]): Additional degrees
             of freedom for the translational thermostat (:math:`\xi`,
             :math:`\eta`)
 
-        rotational_thermostat_dof (tuple[float, float]): Additional degrees
+        rotational_dof (tuple[float, float]): Additional degrees
             of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
             :math:`\eta_\mathrm{rot}`)
     """
@@ -85,11 +85,11 @@ class MTTK(Thermostat):
     def __init__(self, kT, tau):
         super().__init__(kT)
         param_dict = ParameterDict(tau=float(tau),
-                                   translational_thermostat_dof=(float, float),
-                                   rotational_thermostat_dof=(float, float))
+                                   translational_dof=(float, float),
+                                   rotational_dof=(float, float))
         param_dict.update(
-            dict(translational_thermostat_dof=(0, 0),
-                 rotational_thermostat_dof=(0, 0)))
+            dict(translational_dof=(0, 0),
+                 rotational_dof=(0, 0)))
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):
@@ -104,17 +104,17 @@ class MTTK(Thermostat):
         :math:`[\\mathrm{energy}]`."""
         return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
-    def thermalize_thermostat_dof(self):
+    def thermalize_dof(self):
         r"""Set the thermostat momenta to random values.
 
-        `thermalize_thermostat_dof` sets a random value for the momentum
+        `thermalize_dof` sets a random value for the momentum
         :math:`\xi`. When `Integrator.integrate_rotational_dof` is `True`, it
         also sets a random value for the rotational thermostat momentum
-        :math:`\xi_{\mathrm{rot}}`. Call `thermalize_thermostat_dof` to set a
+        :math:`\xi_{\mathrm{rot}}`. Call `thermalize_dof` to set a
         new random state for the thermostat.
 
         .. important::
-            You must call `Simulation.run` before `thermalize_thermostat_dof`.
+            You must call `Simulation.run` before `thermalize_dof`.
             Call ``run(steps=0)`` to prepare a newly created `hoomd.Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
