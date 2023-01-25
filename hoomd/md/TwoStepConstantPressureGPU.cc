@@ -256,7 +256,9 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->endMultiGPU();
         }
     if (m_thermostat)
+        {
         m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+        }
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
