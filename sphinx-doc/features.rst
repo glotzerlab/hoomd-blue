@@ -33,9 +33,9 @@ minimization (`md.minimize`). The constant volume and constant pressure methods 
 or without a thermostat (`md.methods.thermostats`). Unless otherwise stated in the documentation,
 all integration methods integrate both translational and rotational degrees of freedom. Some
 integration methods support manifold constraints (`md.methods.rattle`). HOOMD-blue provides a number
-of pair potentials (`md.pair`) including pair potentials that depend on particle orientation
-(`md.pair.aniso`) and many body potentials (`md.many_body`). HOOMD-blue also provides bond
-potentials and distance constraints commonly used in atomistic and coarse-grained force fields
+of cutoff potentials including pair potentials (`md.pair`), pair potentials that depend on particle
+orientation (`md.pair.aniso`), and many body potentials (`md.many_body`). HOOMD-blue also provides
+bond potentials and distance constraints commonly used in atomistic/coarse-grained force fields
 (`md.angle`, `md.bond`, `md.constrain.Distance`, `md.dihedral`, `md.improper`, `md.special_pair`)
 and can model rigid bodies (`md.constrain.Rigid`). External fields `md.external.field` apply
 potentials based only on the particle's position and orientation, including walls
