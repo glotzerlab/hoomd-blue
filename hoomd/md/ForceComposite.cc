@@ -922,13 +922,6 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
             continue;
             }
 
-        // Continue if central particle is on another rank and current index is a ghost particle
-        // since there is no updating to do.
-        if (central_idx == NOT_LOCAL && particle_index >= m_pdata->getN())
-            {
-            continue;
-            }
-
         if (central_idx == NOT_LOCAL)
             {
             std::ostringstream error_msg;

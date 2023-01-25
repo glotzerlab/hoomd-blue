@@ -680,13 +680,8 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     if (central_idx >= N + n_ghost)
         {
-        // if a molecule with a local member has no central particle, error out
-        if (idx < N)
-            {
-            atomicMax(&(d_flag->x), idx + 1);
-            }
-
-        // otherwise, ignore
+        // if a molecule has no central particle, error out
+        atomicMax(&(d_flag->x), idx + 1);
         return;
         }
 
