@@ -207,8 +207,9 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
         }
 
     // get temperature and advance thermostat
-    if (m_thermostat)
+    if (m_thermostat) {
         m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+        }
     } /*! \param timestep Current time step
          \post particle velocities are moved forward to timestep+1
      */
