@@ -98,9 +98,9 @@ class ConstantVolume(Thermostatted):
         nve=hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
 
-        mttk=hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+        bussi=hoomd.md.methods.thermostats.Bussi(kT=1.0)
         nvt=hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
-                                            thermostat=mttk)
+                                            thermostat=bussi)
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
