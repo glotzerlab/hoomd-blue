@@ -43,10 +43,6 @@ TwoStepConstantVolumeGPU::TwoStepConstantVolumeGPU(std::shared_ptr<SystemDefinit
                         {m_tuner_one, m_tuner_two, m_tuner_angular_one, m_tuner_angular_two});
     }
 
-/*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
-   Nose-Hoover method
-*/
 void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
@@ -149,9 +145,6 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
         }
     }
 
-/*! \param timestep Current time step
-    \post particle velocities are moved forward to timestep+1 on the GPU
-*/
 void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();

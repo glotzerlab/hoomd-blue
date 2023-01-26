@@ -8,6 +8,7 @@
 namespace hoomd::md
     {
 
+/// Implement TwoStepConstantPressure on the GPU.
 TwoStepConstantPressureGPU::TwoStepConstantPressureGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<ParticleGroup> group,

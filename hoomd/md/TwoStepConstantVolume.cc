@@ -3,10 +3,7 @@
 
 #include "TwoStepConstantVolume.h"
 #include "hoomd/VectorMath.h"
-/*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
-   velocity verlet method.
-*/
+
 void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
@@ -211,9 +208,8 @@ void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
         {
         m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
         }
-    } /*! \param timestep Current time step
-         \post particle velocities are moved forward to timestep+1
-     */
+    }
+
 void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();

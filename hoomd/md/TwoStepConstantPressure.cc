@@ -202,10 +202,6 @@ std::vector<bool> TwoStepConstantPressure::getFlags()
     return result;
     }
 
-/*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
-   Martyna-Tobias-Klein barostat and thermostat
-*/
 void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
@@ -587,9 +583,6 @@ void TwoStepConstantPressure::thermalizeBarostatDOF(uint64_t timestep)
 #endif
     }
 
-/*! \param timestep Current time step
-    \post particle velocities are moved forward to timestep+1
-*/
 void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();

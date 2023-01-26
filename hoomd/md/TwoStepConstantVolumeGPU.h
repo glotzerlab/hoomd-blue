@@ -10,6 +10,8 @@
 
 namespace hoomd::md
     {
+
+/// Implement TwoStepConstantVolume on the GPU.
 class PYBIND11_EXPORT TwoStepConstantVolumeGPU : public TwoStepConstantVolume
     {
     public:
@@ -19,10 +21,8 @@ class PYBIND11_EXPORT TwoStepConstantVolumeGPU : public TwoStepConstantVolume
 
     virtual ~TwoStepConstantVolumeGPU() { }
 
-    //! Performs the first step of the integration
     virtual void integrateStepOne(uint64_t timestep);
 
-    //! Performs the second step of the integration
     virtual void integrateStepTwo(uint64_t timestep);
 
     protected:

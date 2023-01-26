@@ -16,6 +16,19 @@
 namespace hoomd::md
     {
 
+/** Perform constant volume simulation.
+
+    Implement the the Velocity-Verlet integration scheme with MTTK+Langevin piston barostat along
+    with optional velocity rescaling Thermostat.
+
+    See:
+
+    * G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <http://dx.doi.org/10.1063/1.467468>
+    * S. E. Feller, Y. Zhang, R. W. Pastor 1995 <https://doi.org/10.1063/1.470648>
+    * M. E. Tuckerman et. al. 2006 <http://dx.doi.org/10.1088/0305-4470/39/19/S18>
+    * T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>
+
+*/
 class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     {
     public:
@@ -29,7 +42,7 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
                             std::shared_ptr<Thermostat> thermostat,
                             Scalar gamma);
 
-    //! Specify possible couplings between the diagonal elements of the pressure tensor
+    /// Define possible couplings between the diagonal elements of the pressure tensor
     enum couplingMode
         {
         couple_none = 0,
@@ -38,6 +51,8 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
         couple_yz,
         couple_xyz
         };
+
+    /// Define possible barostat degrees of freedom.
     enum baroFlags
         {
         baro_x = 1,
@@ -58,39 +73,43 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
         Scalar nu_yz;
         Scalar nu_zz;
         };
-    // Get tauS
+
+    /// Get the barostat time constant.
     virtual Scalar getTauS()
         {
         return m_tauS;
         }
 
-    //! Update the stress components
-    /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
-     */
+    /** Set the target values of the stress tensor.
+
+        @param S list of stress components: [xx, yy, zz, yz, xz, xy]
+    */
     virtual void setS(const std::vector<std::shared_ptr<Variant>>& S)
         {
         m_S = S;
         }
 
+    /// Choose random initial values for the barostat degrees of freedom.
     void thermalizeBarostatDOF(uint64_t timestep);
 
-    // declaration get function of couple
+    /// Get the coupling mode as a string (for use in the Python API).
     std::string getCouple();
 
-    // declaration get function of flags
+    /// Get the barostat degrees of freedom as a bool vector.
     std::vector<bool> getFlags();
 
-    // Get rescale_all
+    /// Returns true when all particles are scaled, false when only the integration group is.
     bool getRescaleAll()
         {
         return m_rescale_all;
         }
 
-    //! Get needed pdata flags
-    /*! TwoStepNPTMTK needs the pressure, so the pressure_tensor flag is set
-     */
+    /// Get needed pdata flags.
     virtual PDataFlags getRequestedPDataFlags()
         {
+        // Always compute the pressure tensor and the external field virials. Compute the rotational
+        // kinetic energy when integrating anistropic degrees of freedom.
+
         PDataFlags flags;
         flags[pdata_flag::pressure_tensor] = 1;
         if (m_aniso)
@@ -101,77 +120,112 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
         return flags;
         }
 
-    //! Performs the first step of the integration
+    /** Performs the first half-step of the integration.
+
+        @param timestep Current simulation timestep.
+
+        @post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per
+        the Velocity-Verlet method. Advance the barostat 1/2 step.
+    */
     virtual void integrateStepOne(uint64_t timestep);
 
-    //! Performs the second step of the integration
+    /** Performs the second half-step of the integration.
+
+        @param timestep Current simulation timestep.
+
+        @post Particle velocities are moved forward to timestep+1. Advance the barostat 1/2 step.
+    */
     virtual void integrateStepTwo(uint64_t timestep);
 
-    // Get stress
+    // Get the target stress tensor.
     std::vector<std::shared_ptr<Variant>> getS()
         {
         return m_S;
         }
-    //! Update the nuP value
-    /*! \param tauS New pressure constant to set
-     */
+
+    /// Set the barostat time constant.
     void setTauS(Scalar tauS)
         {
         m_tauS = tauS;
         }
-    //! declaration for setting the parameter couple
+
+    /// Set the coupling mode by string name (for use with the Python API).
     void setCouple(const std::string& value);
 
-    //! declaration for setting the parameter flags
+    /// Set the degrees of freedom flags.
     void setFlags(const std::vector<bool>& value);
 
-    //! Set the scale all particles option
-    /*! \param rescale_all If true, rescale all particles
-     */
+    /// Set rescale_all=true to rescale all particles, false to only rescale the integration group.
     void setRescaleAll(bool rescale_all)
         {
         m_rescale_all = rescale_all;
         }
 
-    /// Get the barostat degrees of freedom
+    /// Get the barostat degrees of freedom as a Python tuple.
     pybind11::tuple getBarostatDOF();
 
-    /// Set the barostat degrees of freedom
+    /// Set the barostat degrees of freedom from a Python tuple.
     void setBarostatDOF(pybind11::tuple v);
 
+    /// Get the barostat contribution to the Hamiltonian of the system.
     Scalar getBarostatEnergy(uint64_t timestep);
 
+    /// Set the thermostat to use when rescaling velocities (may be null).
     void setThermostat(std::shared_ptr<Thermostat> thermostat)
         {
         m_thermostat = thermostat;
         }
 
     protected:
-    Barostat m_barostat {}; //!< barostat degrees of freedom
+    /// The barostat degrees of freedom.
+    Barostat m_barostat {};
 
-    std::vector<std::shared_ptr<Variant>>
-        m_S;       //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
-    Scalar m_V;    //!< Current volume
-    Scalar m_tauS; //!< tauS value for the barostat
+    /// Target stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])/
+    std::vector<std::shared_ptr<Variant>> m_S;
+
+    /// Current box volume.
+    Scalar m_V;
+
+    /// Barostat time constant.
+    Scalar m_tauS;
+
+    /// Cached number of translational degrees of freedom.
     Scalar m_ndof;
-    couplingMode m_couple;     //!< Coupling of diagonal elements
-    unsigned int m_flags;      //!< Coupling flags for barostat
-    Scalar m_mat_exp_v[6];     //!< Matrix exponential for velocity update (upper triangular)
-    Scalar m_mat_exp_r[6];     //!< Matrix exponential for position update (upper triangular)
-    Scalar m_mat_exp_r_int[6]; //!< Integrated matrix exp. for velocity update (upper triangular)
-    Scalar m_gamma;
-    std::shared_ptr<Thermostat> m_thermostat;
-    std::shared_ptr<ComputeThermo>
-        m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
-    bool m_rescale_all;     //!< If true, rescale all particles in the system irrespective of group
 
-    //! Helper function to update the propagator elements
+    /// The coupling mode to use.
+    couplingMode m_couple;
+
+    /// Bit flag field that sets which box degrees of freedom to integrate.
+    unsigned int m_flags;
+
+    /// Matrix exponential for velocity update (upper triangular).
+    Scalar m_mat_exp_v[6];
+
+    /// Matrix exponential for position update (upper triangular).
+    Scalar m_mat_exp_r[6];
+
+    /// Integrated matrix exp. for velocity update (upper triangular)
+    Scalar m_mat_exp_r_int[6];
+
+    /// Damping coefficient in the Langevin piston.
+    Scalar m_gamma;
+
+    /// Thermostat to use when rescaling velocities (may be null).
+    std::shared_ptr<Thermostat> m_thermostat;
+
+    /// Compute thermodynamic properties of the integrated group.
+    std::shared_ptr<ComputeThermo> m_thermo_full_step;
+
+    /// When true, rescale all particles in the system irrespective of group.
+    bool m_rescale_all;
+
+    /// Helper function to update the propagator elements.
     void updatePropagator();
 
-    //! Get the relevant couplings for the active box degrees of freedom
+    /// Get the relevant couplings for the active box degrees of freedom.
     couplingMode getRelevantCouplings();
 
-    //! Helper function to advance the barostat parameters
+    /// Helper function to advance the barostat parameters.
     virtual void advanceBarostat(uint64_t timestep);
     };
 

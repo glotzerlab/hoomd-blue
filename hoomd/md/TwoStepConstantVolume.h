@@ -12,9 +12,20 @@
 namespace hoomd::md
     {
 
+/** Perform constant volume simulation.
+
+    Implement the the Velocity-Verlet integration scheme with an optional velocity rescaling
+    Thermostat.
+*/
 class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
     {
     public:
+    /** Construct the constant volume integration method.
+
+        @param sysdef System to work on.
+        @param group Subset of particles to integrate.
+        @param thermostat Thermostat to use. Set to null for constant energy simulations.
+    */
     TwoStepConstantVolume(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
                           std::shared_ptr<Thermostat> thermostat)
@@ -24,39 +35,56 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
 
     virtual ~TwoStepConstantVolume() { }
 
-    //! Performs the first step of the integration
+    /** Performs the first half-step of the integration.
+
+        @param timestep Current simulation timestep.
+
+        @post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per
+        the Velocity-Verlet method.
+    */
     virtual void integrateStepOne(uint64_t timestep);
-    //! Performs the second step of the integration
+
+    /** Performs the second half-step of the integration.
+
+        @param timestep Current simulation timestep.
+
+        @post Particle velocities are moved forward to timestep+1.
+    */
     virtual void integrateStepTwo(uint64_t timestep);
 
+    /** Set the thermostat.
+
+        @param thermostat Thermostat to use for velocity rescaling (may be null).
+    */
     void setThermostat(std::shared_ptr<Thermostat> thermostat)
         {
         m_thermostat = thermostat;
         }
 
+    /** Set the distance limit applied to particles.
+
+        @param limit Largest distance particles should move in a given timestep (may be null).
+
+        When non-null, simulations do not conserve energy or momentum, but some users find the limit
+        allows them to relax high energy initial conditions.
+    */
     void setLimit(std::shared_ptr<Variant>& limit)
         {
         m_limit = limit;
         }
 
+    /// Get the current limit.
     [[nodiscard]] auto getLimit() const
         {
         return m_limit;
         }
 
-    auto getKernelLimitValues(uint64_t timestep)
-        {
-        const auto use_limit = static_cast<bool>(m_limit);
-        Scalar maximum_displacement = use_limit ? m_limit->operator()(timestep) : 0.0;
-        return std::make_pair(use_limit, maximum_displacement);
-        }
-
-    //! Get needed pdata flags
-    /*! in anisotropic mode, we need the rotational kinetic energy
-     */
+    /// Get needed pdata flags.
     virtual PDataFlags getRequestedPDataFlags()
         {
         PDataFlags flags;
+
+        // Compute rotational kinetic energy in simulations with anisotropic degrees of freedom.
         if (m_aniso)
             {
             flags[pdata_flag::rotational_kinetic_energy] = 1;
@@ -65,7 +93,18 @@ class PYBIND11_EXPORT TwoStepConstantVolume : public IntegrationMethodTwoStep
         }
 
     protected:
+    /// Pack the limit values for use in the GPU kernel.
+    auto getKernelLimitValues(uint64_t timestep)
+        {
+        const auto use_limit = static_cast<bool>(m_limit);
+        Scalar maximum_displacement = use_limit ? m_limit->operator()(timestep) : 0.0;
+        return std::make_pair(use_limit, maximum_displacement);
+        }
+
+    /// The thermostat to apply (may be null).
     std::shared_ptr<Thermostat> m_thermostat;
+
+    /// The distance limit to apply (may be null).
     std::shared_ptr<Variant> m_limit;
     };
 
