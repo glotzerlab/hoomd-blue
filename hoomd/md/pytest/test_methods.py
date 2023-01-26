@@ -201,14 +201,13 @@ class TestThermostats:
         assert eta_rot == 0.0
 
     def test_logging(self):
-        logging_check(
-            hoomd.md.methods.thermostats.MTTK, ('md', 'methods', 'thermostats'),
-            {
-                'energy': {
-                    'category': LoggerCategories.scalar,
-                    'default': True
-                },
-            })
+        logging_check(hoomd.md.methods.thermostats.MTTK,
+                      ('md', 'methods', 'thermostats'), {
+                          'energy': {
+                              'category': LoggerCategories.scalar,
+                              'default': True
+                          },
+                      })
 
     def test_pickling(self, thermostat_definition, simulation_factory,
                       two_particle_snapshot_factory):
@@ -396,14 +395,13 @@ class TestMethods:
                     'default': True
                 },
             })
-        logging_check(
-            hoomd.md.methods.thermostats.MTTK, ('md', 'methods', 'thermostats'),
-            {
-                'energy': {
-                    'category': LoggerCategories.scalar,
-                    'default': True
-                },
-            })
+        logging_check(hoomd.md.methods.thermostats.MTTK,
+                      ('md', 'methods', 'thermostats'), {
+                          'energy': {
+                              'category': LoggerCategories.scalar,
+                              'default': True
+                          },
+                      })
 
 
 @pytest.fixture(scope="function", params=range(7))

@@ -28,7 +28,8 @@ class Thermostat(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `Thermostat`
         directly.
     """
-    _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + ("_thermo", "_filter")
+    _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + ("_thermo",
+                                                                    "_filter")
     _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {
         "_thermo", "_filter"
     }
@@ -87,9 +88,7 @@ class MTTK(Thermostat):
         param_dict = ParameterDict(tau=float(tau),
                                    translational_dof=(float, float),
                                    rotational_dof=(float, float))
-        param_dict.update(
-            dict(translational_dof=(0, 0),
-                 rotational_dof=(0, 0)))
+        param_dict.update(dict(translational_dof=(0, 0), rotational_dof=(0, 0)))
         self._param_dict.update(param_dict)
 
     def _attach_hook(self):

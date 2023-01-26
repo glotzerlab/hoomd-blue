@@ -135,7 +135,8 @@ class MTTKThermostat : public Thermostat
         Scalar thermostat_energy
             = static_cast<Scalar>(translation_dof) * m_T->operator()(timestep)
               * ((m_state.xi * m_state.xi * m_tau * m_tau / Scalar(2.0)) + m_state.eta);
-        thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF()) * m_T->operator()(timestep)
+        thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF())
+                             * m_T->operator()(timestep)
                              * (m_state.eta_rot
                                 + (m_tau * m_tau * m_state.xi_rot * m_state.xi_rot / Scalar(2.0)));
 
@@ -299,11 +300,12 @@ class BerendsenThermostat : public Thermostat
             throw std::runtime_error("Berendsen thermostat requires non-zero initial temperatures");
             }
 
-        Scalar lambda_T
-            = sqrt(Scalar(1.0)
-                   + deltaT / m_tau * (m_T->operator()(timestep) / current_translation_T - Scalar(1.0)));
+        Scalar lambda_T = sqrt(
+            Scalar(1.0)
+            + deltaT / m_tau * (m_T->operator()(timestep) / current_translation_T - Scalar(1.0)));
         Scalar lambda_R = sqrt(
-            Scalar(1.0) + deltaT / m_tau * (m_T->operator()(timestep) / current_rotational_T - Scalar(1.0)));
+            Scalar(1.0)
+            + deltaT / m_tau * (m_T->operator()(timestep) / current_rotational_T - Scalar(1.0)));
 
         return {lambda_T, lambda_R};
         }

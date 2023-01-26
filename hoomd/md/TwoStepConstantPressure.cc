@@ -228,7 +228,8 @@ void TwoStepConstantPressure::integrateStepOne(uint64_t timestep)
 
     // Rescaling factors, including Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
-                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / static_cast<Scalar>(m_ndof));
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz)
+                     / static_cast<Scalar>(m_ndof));
     const auto& rf = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT)
                                   : std::array<Scalar, 2> {1., 1.};
     const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
@@ -594,7 +595,8 @@ void TwoStepConstantPressure::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
     // Rescaling factors, including Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
-                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / static_cast<Scalar>(m_ndof));
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz)
+                     / static_cast<Scalar>(m_ndof));
     const auto& rf = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
                                   : std::array<Scalar, 2> {1., 1.};
     const std::array<Scalar, 2> rescaleFactors = {rf[0] * mtk, rf[1] * mtk};
@@ -732,8 +734,8 @@ Scalar TwoStepConstantPressure::getBarostatEnergy(uint64_t timestep)
     {
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d)
-               * (m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0)) * m_tauS
-               * m_tauS;
+               * (m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0))
+               * m_tauS * m_tauS;
 
     Scalar barostat_energy
         = W
@@ -893,8 +895,8 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     // Martyna-Tobias-Klein correction
     unsigned int d = m_sysdef->getNDimensions();
     Scalar W = static_cast<Scalar>(m_ndof + d) / static_cast<Scalar>(d)
-               * (m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0)) * m_tauS
-               * m_tauS;
+               * (m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0))
+               * m_tauS * m_tauS;
     Scalar mtk_term = Scalar(2.0) * m_thermo_full_step->getTranslationalKineticEnergy();
     mtk_term *= Scalar(1.0 / 2.0) * m_deltaT / (Scalar)m_ndof / W;
 
@@ -949,46 +951,52 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
 
     // update barostat matrix
     Scalar noise_exp_integrate = exp(-m_gamma * m_deltaT / Scalar(2.0));
-    Scalar coeff = sqrt((m_thermostat ? m_thermostat->getTimestepTemperature(
-            timestep) : Scalar(1.0))
-                        * (Scalar(1.0) - noise_exp_integrate * noise_exp_integrate) / W);
+    Scalar coeff
+        = sqrt((m_thermostat ? m_thermostat->getTimestepTemperature(timestep) : Scalar(1.0))
+               * (Scalar(1.0) - noise_exp_integrate * noise_exp_integrate) / W);
     if (m_flags & baro_x)
         {
         m_barostat.nu_xx = m_barostat.nu_xx * noise_exp_integrate + coeff * R_diag.x;
         m_barostat.nu_xx
-            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.x - m_S[0]->operator()(timestep)) + mtk_term;
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.x - m_S[0]->operator()(timestep))
+               + mtk_term;
         }
 
     if (m_flags & baro_xy)
         {
         m_barostat.nu_xy = m_barostat.nu_xy * noise_exp_integrate + coeff * noise(rng);
-        m_barostat.nu_xy += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xy - m_S[5]->operator()(timestep));
+        m_barostat.nu_xy
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xy - m_S[5]->operator()(timestep));
         }
 
     if (m_flags & baro_xz)
         {
         m_barostat.nu_xz = m_barostat.nu_xz * noise_exp_integrate + coeff * noise(rng);
-        m_barostat.nu_xz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xz - m_S[4]->operator()(timestep));
+        m_barostat.nu_xz
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xz - m_S[4]->operator()(timestep));
         }
 
     if (m_flags & baro_y)
         {
         m_barostat.nu_yy = m_barostat.nu_yy * noise_exp_integrate + coeff * R_diag.y;
         m_barostat.nu_yy
-            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.y - m_S[1]->operator()(timestep)) + mtk_term;
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.y - m_S[1]->operator()(timestep))
+               + mtk_term;
         }
 
     if (m_flags & baro_yz)
         {
         m_barostat.nu_yz = m_barostat.nu_yz * noise_exp_integrate + coeff * noise(rng);
-        m_barostat.nu_yz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.yz - m_S[3]->operator()(timestep));
+        m_barostat.nu_yz
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.yz - m_S[3]->operator()(timestep));
         }
 
     if (m_flags & baro_z)
         {
         m_barostat.nu_zz = m_barostat.nu_zz * noise_exp_integrate + coeff * R_diag.z;
         m_barostat.nu_zz
-            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.z - m_S[2]->operator()(timestep)) + mtk_term;
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.z - m_S[2]->operator()(timestep))
+               + mtk_term;
         }
     }
 

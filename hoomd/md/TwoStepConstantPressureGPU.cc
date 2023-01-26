@@ -79,7 +79,8 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
 
     // Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
-                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / static_cast<Scalar>(m_ndof));
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz)
+                     / static_cast<Scalar>(m_ndof));
     const auto rf = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT)
                                  : std::array<Scalar, 2> {1., 1.};
     std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
@@ -278,7 +279,8 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
 
     // Martyna-Tobias-Klein correction
     Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
-                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / static_cast<Scalar>(m_ndof));
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz)
+                     / static_cast<Scalar>(m_ndof));
     const auto rf = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
                                  : std::array<Scalar, 2> {1., 1.};
     std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
