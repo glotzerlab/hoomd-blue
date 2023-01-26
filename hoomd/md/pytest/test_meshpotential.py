@@ -198,7 +198,7 @@ def test_multiple_types(triplet_snapshot_factory, simulation_factory,
     mesh.triangles = [[0, 1, 2]]
 
     mesh_bond_potential = mesh_bond_cls(mesh)
-    mesh_bond_potential.all_params = potential_kwargs
+    mesh_bond_potential.params.default = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 

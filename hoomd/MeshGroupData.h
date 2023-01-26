@@ -74,14 +74,6 @@ class MeshGroupData : public BondedGroupData<group_size, Group, name, true>
     /*! \param g Definition of group to add
      */
     unsigned int addBondedGroup(Group g);
-
-    private:
-    // virtual void rebuildGPUTable();
-
-#ifdef ENABLE_HIP
-    //! Helper function to rebuild lookup by index table on the GPU
-    // virtual void rebuildGPUTableGPU();
-#endif
     };
 
 namespace detail

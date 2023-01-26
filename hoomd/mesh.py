@@ -38,7 +38,6 @@ from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
-from collections.abc import Sequence
 from hoomd.logging import log
 import numpy as np
 
@@ -63,9 +62,7 @@ class Mesh(_HOOMDBaseObject):
     def __init__(self):
 
         param_dict = ParameterDict(size=int,
-                                   types=OnlyIf(
-                                       to_type_converter([str]),
-                                       preprocess=self._preprocess_type))
+                                   types=OnlyIf(to_type_converter([str])))
 
         param_dict["types"] = ["mesh"]
         param_dict["size"] = 0
@@ -140,8 +137,3 @@ class Mesh(_HOOMDBaseObject):
         bonds within the mesh structure.
         """
         return self._cpp_obj.getBondData().group
-
-    def _preprocess_type(self, typename):
-        if not isinstance(typename, Sequence):
-            raise ValueError("Expected a sequence of strings.")
-        return typename
