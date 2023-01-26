@@ -881,12 +881,12 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
     if (std::isnan(P.xx) || std::isnan(P.xy) || std::isnan(P.xz) || std::isnan(P.yy)
         || std::isnan(P.yz) || std::isnan(P.zz))
         {
-        P.xx = (*m_S[0])(timestep);
-        P.yy = (*m_S[1])(timestep);
-        P.zz = (*m_S[2])(timestep);
-        P.yz = (*m_S[3])(timestep);
-        P.xz = (*m_S[4])(timestep);
-        P.xy = (*m_S[5])(timestep);
+        P.xx = m_S[0]->operator()(timestep);
+        P.yy = m_S[1]->operator()(timestep);
+        P.zz = m_S[2]->operator()(timestep);
+        P.yz = m_S[3]->operator()(timestep);
+        P.xz = m_S[4]->operator()(timestep);
+        P.xy = m_S[5]->operator()(timestep);
         }
 
     // advance barostat (m_barostat.nu_xx, m_barostat.nu_yy, m_barostat.nu_zz) half a time step
@@ -956,39 +956,39 @@ void TwoStepConstantPressure::advanceBarostat(uint64_t timestep)
         {
         m_barostat.nu_xx = m_barostat.nu_xx * noise_exp_integrate + coeff * R_diag.x;
         m_barostat.nu_xx
-            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.x - (*m_S[0])(timestep)) + mtk_term;
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.x - m_S[0]->operator()(timestep)) + mtk_term;
         }
 
     if (m_flags & baro_xy)
         {
         m_barostat.nu_xy = m_barostat.nu_xy * noise_exp_integrate + coeff * noise(rng);
-        m_barostat.nu_xy += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xy - (*m_S[5])(timestep));
+        m_barostat.nu_xy += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xy - m_S[5]->operator()(timestep));
         }
 
     if (m_flags & baro_xz)
         {
         m_barostat.nu_xz = m_barostat.nu_xz * noise_exp_integrate + coeff * noise(rng);
-        m_barostat.nu_xz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xz - (*m_S[4])(timestep));
+        m_barostat.nu_xz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.xz - m_S[4]->operator()(timestep));
         }
 
     if (m_flags & baro_y)
         {
         m_barostat.nu_yy = m_barostat.nu_yy * noise_exp_integrate + coeff * R_diag.y;
         m_barostat.nu_yy
-            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.y - (*m_S[1])(timestep)) + mtk_term;
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.y - m_S[1]->operator()(timestep)) + mtk_term;
         }
 
     if (m_flags & baro_yz)
         {
         m_barostat.nu_yz = m_barostat.nu_yz * noise_exp_integrate + coeff * noise(rng);
-        m_barostat.nu_yz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.yz - (*m_S[3])(timestep));
+        m_barostat.nu_yz += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P.yz - m_S[3]->operator()(timestep));
         }
 
     if (m_flags & baro_z)
         {
         m_barostat.nu_zz = m_barostat.nu_zz * noise_exp_integrate + coeff * R_diag.z;
         m_barostat.nu_zz
-            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.z - (*m_S[2])(timestep)) + mtk_term;
+            += Scalar(1.0 / 2.0) * m_deltaT * m_V / W * (P_diag.z - m_S[2]->operator()(timestep)) + mtk_term;
         }
     }
 

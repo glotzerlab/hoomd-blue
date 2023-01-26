@@ -88,7 +88,7 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                                         static_cast<unsigned int>(m_gamma.getNumElements()),
                                         m_use_alpha,
                                         m_alpha,
-                                        (*m_T)(timestep),
+                                        m_T->operator()(timestep),
                                         timestep,
                                         m_sysdef->getSeed(),
                                         NULL,

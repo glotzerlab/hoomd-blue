@@ -51,7 +51,7 @@ class Thermostat
 
     Scalar getTimestepTemperature(uint64_t timestep)
         {
-        return (*m_T)(timestep);
+        return m_T->operator()(timestep);
         }
 
     protected:
@@ -101,7 +101,7 @@ class MTTKThermostat : public Thermostat
         m_thermo->compute(timestep);
 
         Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
-        Scalar T = (*m_T)(timestep);
+        Scalar T = m_T->operator()(timestep);
 
         // update the state variables Xi and eta
         Scalar xi_prime
@@ -133,9 +133,9 @@ class MTTKThermostat : public Thermostat
         {
         Scalar translation_dof = m_group->getTranslationalDOF();
         Scalar thermostat_energy
-            = static_cast<Scalar>(translation_dof) * (*m_T)(timestep)
+            = static_cast<Scalar>(translation_dof) * m_T->operator()(timestep)
               * ((m_state.xi * m_state.xi * m_tau * m_tau / Scalar(2.0)) + m_state.eta);
-        thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF()) * (*m_T)(timestep)
+        thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF()) * m_T->operator()(timestep)
                              * (m_state.eta_rot
                                 + (m_tau * m_tau * m_state.xi_rot * m_state.xi_rot / Scalar(2.0)));
 
@@ -267,7 +267,7 @@ class BussiThermostat : public Thermostat
         RandomGenerator rng(Seed(RNGIdentifier::BussiThermostat, timestep, m_sysdef->getSeed()),
                             instance_id);
 
-        const auto set_T = (*m_T)(timestep);
+        const auto set_T = m_T->operator()(timestep);
         GammaDistribution<double> gamma_translation(ntdof / 2.0, set_T);
         GammaDistribution<double> gamma_rotation(nrdof / 2.0, set_T);
 
@@ -301,9 +301,9 @@ class BerendsenThermostat : public Thermostat
 
         Scalar lambda_T
             = sqrt(Scalar(1.0)
-                   + deltaT / m_tau * ((*m_T)(timestep) / current_translation_T - Scalar(1.0)));
+                   + deltaT / m_tau * (m_T->operator()(timestep) / current_translation_T - Scalar(1.0)));
         Scalar lambda_R = sqrt(
-            Scalar(1.0) + deltaT / m_tau * ((*m_T)(timestep) / current_rotational_T - Scalar(1.0)));
+            Scalar(1.0) + deltaT / m_tau * (m_T->operator()(timestep) / current_rotational_T - Scalar(1.0)));
 
         return {lambda_T, lambda_R};
         }

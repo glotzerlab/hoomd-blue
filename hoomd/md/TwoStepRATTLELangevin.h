@@ -373,7 +373,7 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
                                    access_mode::read);
 
     // grab some initial variables
-    const Scalar currentTemp = (*m_T)(timestep);
+    const Scalar currentTemp = m_T->operator()(timestep);
 
     // energy transferred over this time step
     Scalar bd_energy_transfer = 0;
