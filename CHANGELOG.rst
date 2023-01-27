@@ -7,6 +7,14 @@ Change Log
 v3.x
 ----
 
+v3.8.1 (2023-01-27)
+^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* `#1468 <https://github.com/glotzerlab/hoomd-blue/issues/1468>`_: Conserve linear momentum in
+  simulations using ``hoomd.md.constrain.Rigid`` on more than 1 MPI rank.
+
 v3.8.0 (2023-01-12)
 ^^^^^^^^^^^^^^^^^^^
 
