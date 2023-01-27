@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleData.h
@@ -615,20 +615,6 @@ class PYBIND11_EXPORT ParticleData
         return has_bodies;
         }
 
-    //! Return the maximum diameter of all registered composite particles
-    Scalar getMaxCompositeParticleDiameter()
-        {
-        Scalar d_max = 0.0;
-        m_composite_particles_signal.emit_accumulate(
-            [&](Scalar d)
-            {
-                if (d > d_max)
-                    d_max = d;
-            });
-
-        return d_max;
-        }
-
     //! Return positions and types
     const GlobalArray<Scalar4>& getPositions() const
         {
@@ -915,15 +901,6 @@ class PYBIND11_EXPORT ParticleData
 
     //! Notify listeners that ghost particles have been removed
     void notifyGhostParticlesRemoved();
-
-    //! Connects a function to be called every time the maximum diameter of composite particles is
-    //! needed
-    /*! The signal slot returns the maximum diameter
-     */
-    Nano::Signal<Scalar()>& getCompositeParticlesSignal()
-        {
-        return m_composite_particles_signal;
-        }
 
     //! Gets the particle type index given a name
     unsigned int getTypeByName(const std::string& name) const;
@@ -1311,9 +1288,6 @@ class PYBIND11_EXPORT ParticleData
                                                            //!< particles are removed
     Nano::Signal<void()> m_global_particle_num_signal; //!< Signal that is triggered when the global
                                                        //!< number of particles changes
-    Nano::Signal<Scalar()>
-        m_composite_particles_signal; //!< Signal that is triggered when the maximum diameter of a
-                                      //!< composite particle is needed
 
 #ifdef ENABLE_MPI
     Nano::Signal<void(unsigned int, unsigned int, unsigned int)>

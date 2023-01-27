@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -676,18 +676,16 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     idx += offset;
 
     unsigned int central_idx = d_lookup_center[idx];
-    if (central_idx == NO_BODY)
+    if (central_idx >= MIN_FLOPPY)
         return;
 
     if (central_idx >= N + n_ghost)
         {
-        // if a molecule with a local member has no central particle, error out
-        if (idx < N)
-            {
-            atomicMax(&(d_flag->x), idx + 1);
-            }
-
-        // otherwise, ignore
+        // If the central particle is not local, then we cannot update the position and orientation
+        // of this particle. Ideally, this would perform an error check. However, that is not
+        // feasible as ForceComposite does not have knowledge of which ghost particles are within
+        // the interaction ghost width (and need therefore need to be updated) vs those that are
+        // communicated to make bodies whole.
         return;
         }
 
@@ -704,9 +702,12 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int body_len = d_body_len[body_type];
     unsigned int mol_idx = d_molecule_idx[idx];
 
+    // Checks if the number of local particle in the molecule is equal to the number of particles in
+    // the rigid body definition `body_len`. As above, this error check *should* be performed for
+    // all local and ghost particles within the interaction ghost width. However, that check is not
+    // feasible here. At least catch this error for particles local to this rank.
     if (body_len != d_molecule_len[mol_idx] - 1)
         {
-        // if a molecule with a local member is incomplete, this is an error
         if (idx < N)
             {
             atomicMax(&(d_flag->y), idx + 1);
