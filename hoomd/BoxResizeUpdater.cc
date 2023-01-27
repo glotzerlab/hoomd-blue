@@ -114,41 +114,45 @@ void BoxResizeUpdater::update(uint64_t timestep)
 
         // scale the particle positions (if we have been asked to)
         // move the particles to be inside the new box
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                                   access_location::host,
-                                   access_mode::readwrite);
+        scaleAndWrapParticles(cur_box, new_box);
+        }
+    }
 
-        for (unsigned int group_idx = 0; group_idx < m_group->getNumMembers(); group_idx++)
-            {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            // obtain scaled coordinates in the old global box
-            Scalar3 fractional_pos = cur_box.makeFraction(
-                make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z));
+/// Scale particles to the new box and wrap any others back into the box
+void BoxResizeUpdater::scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::readwrite);
 
-            // intentionally scale both rigid body and free particles, this
-            // may waste a few cycles but it enables the debug inBox checks
-            // to be left as is (otherwise, setRV cannot fixup rigid body
-            // positions without failing the check)
-            Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
-            h_pos.data[j].x = scaled_pos.x;
-            h_pos.data[j].y = scaled_pos.y;
-            h_pos.data[j].z = scaled_pos.z;
-            }
+    for (unsigned int group_idx = 0; group_idx < m_group->getNumMembers(); group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        // obtain scaled coordinates in the old global box
+        Scalar3 fractional_pos
+            = cur_box.makeFraction(make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z));
 
-        // ensure that the particles are still in their
-        // local boxes by wrapping them if they are not
-        ArrayHandle<int3> h_image(m_pdata->getImages(),
-                                  access_location::host,
-                                  access_mode::readwrite);
+        // intentionally scale both rigid body and free particles, this
+        // may waste a few cycles but it enables the debug inBox checks
+        // to be left as is (otherwise, setRV cannot fixup rigid body
+        // positions without failing the check)
+        Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
+        h_pos.data[j].x = scaled_pos.x;
+        h_pos.data[j].y = scaled_pos.y;
+        h_pos.data[j].z = scaled_pos.z;
+        }
 
-        const BoxDim& local_box = m_pdata->getBox();
+    // ensure that the particles are still in their
+    // local boxes by wrapping them if they are not
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            // need to update the image if we move particles from one side
-            // of the box to the other
-            local_box.wrap(h_pos.data[i], h_image.data[i]);
-            }
+    const BoxDim& local_box = m_pdata->getBox();
+
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        // need to update the image if we move particles from one side
+        // of the box to the other
+        local_box.wrap(h_pos.data[i], h_image.data[i]);
         }
     }
 
