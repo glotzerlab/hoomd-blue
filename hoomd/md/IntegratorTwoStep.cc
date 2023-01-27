@@ -75,17 +75,24 @@ void IntegratorTwoStep::update(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
+        // Update the rigid body consituent particles before communicating so that any such
+        // particles that move from one domain to another are migrated.
+        updateRigidBodies(timestep + 1);
+
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time
         // step
-
-        // also updates rigid bodies after ghost updating
         m_comm->communicate(timestep + 1);
+
+        // Communicator uses a compute callback to trigger updateRigidBodies again and ensure that
+        // all ghost constituent particle positions are set in accordance with any just communicated
+        // ghost and/or migrated rigid body centers.
         }
     else
 #endif
         {
+        // Update rigid body constituent particles in serial simulations.
         updateRigidBodies(timestep + 1);
         }
 

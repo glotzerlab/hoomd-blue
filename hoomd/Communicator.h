@@ -178,15 +178,16 @@ class PYBIND11_EXPORT Communicator
         return m_ghost_layer_width_requests;
         }
 
-    //! Subscribe to list of functions that request a minimum extra ghost layer width (added to the
-    //! maximum ghost layer)
-    /*! This method keeps track of all functions that request a minimum ghost layer width
-     * The actual ghost layer width is chosen from the max over the inputs
+    //! Subscribe to list of functions that request a minimum ghost layer width for rigid bodies.
+    /*! This method keeps track of all functions that request a minimum ghost layer width.
+     * The actual ghost layer width is chosen from the max over the inputs, which is a function
+     * of the previously set cutoff ghost width of all the constituent types belonging to the body.
      * \return A connection to the present class
      */
-    Nano::Signal<Scalar(unsigned int type)>& getExtraGhostLayerWidthRequestSignal()
+    Nano::Signal<Scalar(unsigned int type, Scalar* h_r_ghost)>&
+    getBodyGhostLayerWidthRequestSignal()
         {
-        return m_extra_ghost_layer_width_requests;
+        return m_body_ghost_layer_width_requests;
         }
 
     //! Subscribe to list of functions that determine the communication flags
@@ -257,7 +258,20 @@ class PYBIND11_EXPORT Communicator
     //! Get the current maximum ghost layer width
     Scalar getGhostLayerMaxWidth() const
         {
-        return m_r_ghost_max + m_r_extra_ghost_max;
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body,
+                                           access_location::host,
+                                           access_mode::read);
+
+        Scalar ghost_max_width = 0.0;
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            ghost_max_width
+                = std::max(ghost_max_width,
+                           std::max(h_r_ghost.data[cur_type], h_r_ghost_body.data[cur_type]));
+            }
+
+        return ghost_max_width;
         }
 
     //! Set the ghost communication flags
@@ -543,7 +557,6 @@ class PYBIND11_EXPORT Communicator
     GlobalArray<Scalar> m_r_ghost;      //!< Width of ghost layer
     GlobalArray<Scalar> m_r_ghost_body; //!< Extra ghost width for rigid bodies
     Scalar m_r_ghost_max;               //!< Maximum ghost layer width
-    Scalar m_r_extra_ghost_max;         //!< Maximum extra ghost layer width
 
     unsigned int m_ghosts_added; //!< Number of ghosts added
     bool m_has_ghost_particles;  //!< True if we have a current copy of ghost particles
@@ -563,9 +576,8 @@ class PYBIND11_EXPORT Communicator
         m_ghost_layer_width_requests; //!< List of functions that request a minimum ghost layer
                                       //!< width
 
-    Nano::Signal<Scalar(unsigned int type)>
-        m_extra_ghost_layer_width_requests; //!< List of functions that request an extra ghost layer
-                                            //!< width
+    /// List of functions that compute the body ghost layer width.
+    Nano::Signal<Scalar(unsigned int type, Scalar* h_r_ghost)> m_body_ghost_layer_width_requests;
 
     Nano::Signal<void(uint64_t timestep)>
         m_compute_callbacks; //!< List of functions that are called after ghost communication
