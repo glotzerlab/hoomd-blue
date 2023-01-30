@@ -21,6 +21,11 @@ namespace hoomd::md{
             return 0;
         }
 
+        //! returns a description of what the bit sequence means, returns empty if sequence is invalid
+        virtual std::string get_description(unsigned int bits){
+            return "";
+        }
+
         virtual void initialize(){} //! initializes hash values, this needs to create a valid state for the hashes indepedently of its current state
 
     protected:

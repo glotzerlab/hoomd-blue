@@ -16,17 +16,13 @@ namespace hoomd::md {
     public:
         MoleculeEnsemble(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<ParticleGroup> group,
-                         bool include_all_bonded = true) :
-        MolecularForceCompute(sysdef), m_group(group){
-            if(sysdef->isDomainDecomposed())
-                throw std::runtime_error("Molecular ensembles does not work on domain decomposed simulations");
-        }
-
-        void initMolecules() override;
+                         bool include_all_bonded = true);
 
         auto& getHashes(){
             return m_hashes;
         }
+
+        void rebuild_table(); //! if system has changed, we need to cluster molecules
 
         void register_action(std::shared_ptr<MolecularHashAction> action);
 
@@ -34,28 +30,15 @@ namespace hoomd::md {
 
         void computeHashes(std::size_t);
 
-        auto get_molecule_sizes(){
-            return m_molecule_size;
-        }
-
-        auto get_molecule_indexer(){
-            return m_molecule_indexer;
-        }
-
-        auto get_molecules(){
-            return m_molecules;
-        }
+        auto get_hash_description(unsigned int hash);
 
     protected:
         std::shared_ptr<ParticleGroup> m_group;
 
+        bool m_include_all_bonded;
         unsigned int m_hash_size = 0; //! the number of bits currently associated with the hashes of this set of molecules
         GlobalArray<unsigned int> m_hashes; //! the hashes of all molecules within this set
         GlobalArray<Scalar> m_chemical_potentials; //! chemical potentials associated with a given hash, if any
-
-        GlobalArray<unsigned int> m_molecule_size; //! number of beads in each molecule
-        GlobalArray<unsigned int> m_molecules; //! indexes of beads of each molecule
-        Index2D m_molecule_indexer; //! yields index (molecule, bead_index) into m_molecules
 
         std::vector<std::weak_ptr<MolecularHashAction>> m_registered_actions;
         std::vector<std::weak_ptr<MolecularHashCompute>> m_registered_computes;
