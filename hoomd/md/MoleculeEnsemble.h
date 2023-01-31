@@ -22,11 +22,17 @@ namespace hoomd::md {
             return m_hashes;
         }
 
+        auto& getMoecularLock(){
+            return m_molecule_lock;
+        }
+
         void rebuild_table(); //! if system has changed, we need to cluster molecules
 
         void register_action(std::shared_ptr<MolecularHashAction> action);
 
         void deregister_action(std::shared_ptr<MolecularHashAction> action);
+
+        void update_hash_sizes();
 
         void computeHashes(std::size_t);
 
@@ -43,6 +49,7 @@ namespace hoomd::md {
         unsigned int m_hash_size = 0; //! the number of bits currently associated with the hashes of this set of molecules
         GlobalArray<unsigned int> m_hashes; //! the hashes of all molecules within this set
         GlobalArray<Scalar> m_chemical_potentials; //! chemical potentials associated with a given hash, if any
+        GlobalArray<unsigned int> m_molecule_lock; //! for use with CAS lock (hash changes may operate only on a subset of the whole hash, and two changes may result in a data race)
 
         std::vector<std::weak_ptr<MolecularHashAction>> m_registered_actions;
         std::vector<std::weak_ptr<MolecularHashCompute>> m_registered_computes;

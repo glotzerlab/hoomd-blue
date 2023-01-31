@@ -49,6 +49,7 @@ namespace hoomd::md{
         if(sysdef->isDomainDecomposed())
             throw std::runtime_error("Molecular ensembles does not work on domain decomposed simulations");
         rebuild_table();
+        m_chemical_potentials.resize(1);
     }
 
     void MoleculeEnsemble::rebuild_table() {
@@ -88,6 +89,8 @@ namespace hoomd::md{
                 tag_lookup[el] = i;
         }
         m_n_molecules_global = molecules.size();
+        m_hashes.resize(m_n_molecules_global);
+        m_molecule_lock.resize(m_n_molecules_global);
         ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::overwrite);
         std::copy(tag_lookup.begin(), tag_lookup.end(), h_molecule_tag.data);
     }
@@ -106,6 +109,7 @@ namespace hoomd::md{
         auto compute_pointer = std::dynamic_pointer_cast<MolecularHashCompute>(action);
         if(compute_pointer)
             m_registered_computes.push_back(compute_pointer);
+        m_chemical_potentials.resize(m_hash_size << 1u);
         action->initialize();
     }
 
@@ -142,6 +146,17 @@ namespace hoomd::md{
                                  m_registered_computes.end(), [&action](auto& element){return action == element.lock();});
         if(pos != m_registered_computes.end())
             m_registered_computes.erase(pos);
+    }
+
+    void MoleculeEnsemble::update_hash_sizes() {
+        m_hash_size = 0;
+        for(auto&& _action : m_registered_actions){
+            auto action = _action.lock();
+            auto hash_size = action->get_required_bits();
+            action->hash_offset = m_hash_size;
+            action->initialize();
+            m_hash_size += hash_size;
+        }
     }
 
     auto MoleculeEnsemble::get_hash_description(unsigned int hash) {
