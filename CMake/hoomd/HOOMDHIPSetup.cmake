@@ -22,17 +22,10 @@ if(ENABLE_HIP)
         set(HIP_VERSION_MINOR "${CMAKE_MATCH_2}")
         set(HIP_VERSION_PATCH "${CMAKE_MATCH_3}")
         set(HIP_PLATFORM "nvcc")
-        set(CUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/cub/")
 
         # hipCUB
-        # funny enough, we require this only on NVIDA platforms due to issues with hipCUB's cmake build system
-        # on AMD platforms, it is an external dependency
-        if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11)
-            set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/;${CUB_INCLUDE_DIR}")
-        else()
-            # Use system provided CUB for CUDA 11 and newer
-            set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/")
-        endif()
+        # Use system provided CUB for CUDA 11 and newer
+        set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/")
     else()
         message(FATAL_ERROR "HOOMD_GPU_PLATFORM must be either CUDA or HIP")
     endif()

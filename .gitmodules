@@ -4,9 +4,6 @@
 [submodule "hoomd/extern/nano-signal-slot"]
 	path = hoomd/extern/nano-signal-slot
 	url = https://github.com/glotzerlab/nano-signal-slot.git
-[submodule "hoomd/extern/cub"]
-	path = hoomd/extern/cub
-	url = https://github.com/glotzerlab/cub.git
 [submodule "hoomd/extern/quickhull"]
 	path = hoomd/extern/quickhull
 	url = https://github.com/glotzerlab/quickhull
