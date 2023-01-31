@@ -270,7 +270,7 @@ def test_linear_search_path(simulation_factory, two_particle_snapshot_factory):
     # that the SDF is zero everywhere else
     sim.run(1)
     neg_mayerF = 1 - np.exp(epsilon)
-    sdf_result = sdf.sdf
+    sdf_result = sdf.sdf_compression
     if sim.device.communicator.rank == 0:
         assert (np.count_nonzero(sdf_result) == 1)
         assert (sdf_result[0] == neg_mayerF * norm_factor)
@@ -286,5 +286,13 @@ def test_logging():
             'sdf': {
                 'category': LoggerCategories.sequence,
                 'default': True
-            }
+            },
+            'sdf_compression': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'sdf_expansion': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
         })
