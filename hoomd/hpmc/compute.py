@@ -395,10 +395,10 @@ class SDF(Compute):
         values at the center of each bin corresponding to the scale \
         distribution function for the compressive perturbations \
         :math:`[\\mathrm{length}]`."""
-        n_fit = int(numpy.ceil(self.xmax / self.dx))
-        x = numpy.arange(0, n_fit, 1) * self.dx
+        sdf_compression = numpy.array(self.sdf_compression)
+        x = numpy.arange(0, len(sdf_compression), 1) * self.dx
         x += self.dx / 2
-        return -x[::-1]
+        return x
 
     @log(category='sequence', requires_run=False)
     def x_expansion(self):
@@ -406,10 +406,10 @@ class SDF(Compute):
         values at the center of each bin corresponding to the scale \
         distribution function for the expansion moves \
         :math:`[\\mathrm{length}]`."""
-        n_fit = int(numpy.ceil(self.xmax / self.dx))
-        x = numpy.arange(0, n_fit, 1) * self.dx
+        sdf_expansion = numpy.array(self.sdf_expansion)
+        x = numpy.arange(0, len(sdf_expansion), 1) * self.dx
         x += self.dx / 2
-        return x
+        return -x[::-1]
 
     @log(requires_run=True)
     def betaP(self):  # noqa: N802 - allow function name
@@ -430,33 +430,37 @@ class SDF(Compute):
             In MPI parallel execution, `betaP` is available on rank 0 only.
             `betaP` is `None` on ranks >= 1.
         """
-        compression_contribution = 0
-        expansion_contribution = 0
-        n_fit = int(numpy.ceil(self.xmax / self.dx))
-        box = self._simulation.state.box
-        N = self._simulation.state.N_particles
-        rho = N / box.volume
-        x_fit = numpy.arange(0, n_fit, 1) * self.dx
-        x_fit += self.dx / 2
+        if not (numpy.isnan(self.sdf_compression).all()
+                or numpy.isnan(self.sdf_expansion).all()):
+            compression_contribution = 0
+            expansion_contribution = 0
+            box = self._simulation.state.box
+            N = self._simulation.state.N_particles
+            rho = N / box.volume
 
-        # compressive contribution
-        # get the values to fit
-        sdf_fit = self.sdf[0:n_fit]
-        # construct the x coordinates
-        # perform the fit and extrapolation
-        p = numpy.polyfit(x_fit, sdf_fit, 5)
-        p0_compression = numpy.polyval(p, 0.0)
-        compression_contribution = rho * p0_compression / (2 * box.dimensions)
+            # compressive contribution
+            # get the values to fit
+            sdf_fit_compression = numpy.array(self.sdf_compression)
+            x_fit = numpy.arange(0, len(sdf_fit_compression), 1) * self.dx
+            x_fit += self.dx / 2
+            # construct the x coordinates
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit, sdf_fit_compression, 5)
+            p0_compression = numpy.polyval(p, 0.0)
+            compression_contribution = rho * p0_compression / (2
+                                                               * box.dimensions)
 
-        # expansive contribution
-        # reverse the x-coordinates
-        x_fit_expansion = -x_fit[::-1]
-        # also reverse the sdf so that it starts at the bin for x = 0 and goes
-        # negative
-        sdf_fit_expansion = self.sdf_expansion[0:n_fit][::-1]
-        # perform the fit and extrapolation
-        p = numpy.polyfit(x_fit_expansion, sdf_fit_expansion, 5)
-        p0_expansion = numpy.polyval(p, 0.0)
-        expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
+            # expansive contribution
+            # reverse the x-coordinates
+            x_fit = -x_fit[::-1]
+            # also reverse the sdf so that it starts at the bin for x = 0 and
+            # goes negative
+            sdf_fit_expansion = self.sdf_expansion[::-1]
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit, sdf_fit_expansion, 5)
+            p0_expansion = numpy.polyval(p, 0.0)
+            expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
 
-        return rho + compression_contribution + expansion_contribution
+            return rho + compression_contribution + expansion_contribution
+        else:
+            return None
