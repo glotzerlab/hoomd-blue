@@ -30,6 +30,10 @@ namespace hoomd::md {
 
         void computeHashes(std::size_t);
 
+        auto getMaximumHash() const{
+            return 1u << m_hash_size;
+        }
+
         auto get_hash_description(unsigned int hash);
 
     protected:

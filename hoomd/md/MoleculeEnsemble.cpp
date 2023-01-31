@@ -164,7 +164,11 @@ namespace hoomd::md{
 
         void export_MoleculeEnsemble(pybind11::module& m){
             pybind11::class_<MoleculeEnsemble, MolecularForceCompute, std::shared_ptr<MoleculeEnsemble>>(m, "MoleculeEnsemble")
-            .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>());
+            .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, bool>())
+            .def("getHashSize", &MoleculeEnsemble::getMaximumHash)
+            .def("getHashDescription", &MoleculeEnsemble::get_hash_description)
+            .def("registerAction", &MoleculeEnsemble::register_action)
+            .def("deregisterAction", &MoleculeEnsemble::deregister_action);
         }
 
     }
