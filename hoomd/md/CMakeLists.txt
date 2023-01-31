@@ -34,6 +34,7 @@ set(_md_sources module-md.cc
                    ManifoldSphere.cc
                    MolecularForceCompute.cc
         MoleculeEnsemble.cpp
+        MolecularHashCompute.cpp
                    MuellerPlatheFlow.cc
                    NeighborListBinned.cc
                    NeighborList.cc
@@ -628,6 +629,7 @@ add_subdirectory(long_range)
 add_subdirectory(external)
 add_subdirectory(minimize)
 add_subdirectory(alchemy)
+add_subdirectory(molecules)
 add_subdirectory(tune)
 
 if (BUILD_TESTING)
