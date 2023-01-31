@@ -61,6 +61,7 @@ v3.x
      - v3.8.0
    * - ``hoomd.md.methods.NPT``
      - ``hoomd.md.methods.ConstantPressure`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
+     - v3.8.0
    * - ``sdf`` property of `hoomd.hpmc.compute.SDF`
      - ``sdf_compression`` property
      - v3.9.0
