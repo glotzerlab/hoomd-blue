@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxResizeUpdater.h
@@ -81,7 +81,10 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     /// Update box interpolation based on provided timestep
     virtual void update(uint64_t timestep);
 
-    private:
+    /// Scale particles to the new box and wrap any back into the box
+    virtual void scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box);
+
+    protected:
     std::shared_ptr<BoxDim> m_box1;         ///< C++ box assoc with min
     std::shared_ptr<BoxDim> m_box2;         ///< C++ box assoc with max
     std::shared_ptr<Variant> m_variant;     //!< Variant that interpolates between boxes
