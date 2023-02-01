@@ -257,12 +257,12 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
 
         if (this->m_exec_conf->getRank() == 0)
             {
-            all_typeval.resize(snapshot.type_id.size());
+            all_typeval.resize(all_types.size());
             // fill in types
-            for (unsigned int i = 0; i < snapshot.type_id.size(); ++i)
+            for (unsigned int i = 0; i < all_types.size(); ++i)
                 {
                 typeval_t t;
-                t.type = snapshot.type_id[i];
+                t.type = all_types[i];
                 all_typeval[i] = t;
                 }
             this->m_type_mapping = snapshot.type_mapping;
@@ -272,16 +272,8 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
         bcast(all_typeval, 0, this->m_exec_conf->getMPICommunicator());
         bcast(this->m_type_mapping, 0, this->m_exec_conf->getMPICommunicator());
 
-        if (group_size == 4)
-            {
-            for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-                addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
-            }
-        else
-            {
-            for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
-                addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
-            }
+        for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
+            addBondedGroup(Group(all_typeval[group_tag], all_groups[group_tag]));
         }
     else
 #endif
