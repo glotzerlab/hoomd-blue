@@ -338,8 +338,3 @@ def test_rigid_body_restart(simulation_factory, valid_body_definition):
         assert np.all(snapshot.particles.body[:N] == np.arange(N))
         should_be = np.arange(N * N_const) // N_const
         assert np.all(snapshot.particles.body[N:] == should_be)
-
-    # check rank == 0
-    # add asserts
-    # body
-    # types and typeid
