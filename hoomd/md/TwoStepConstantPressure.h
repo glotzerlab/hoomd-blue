@@ -180,7 +180,7 @@ class PYBIND11_EXPORT TwoStepConstantPressure : public IntegrationMethodTwoStep
     /// The barostat degrees of freedom.
     Barostat m_barostat {};
 
-    /// Target stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])/
+    /// Target stress matrix (upper triangular, components [xx, yy, zz, yz, xz, xy])/
     std::vector<std::shared_ptr<Variant>> m_S;
 
     /// Current box volume.
