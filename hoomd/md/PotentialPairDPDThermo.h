@@ -210,7 +210,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
             evaluator eval(rsq, rcutsq, param);
 
             // Special Potential Pair DPD Requirements
-            const Scalar currentTemp = (*m_T)(timestep);
+            const Scalar currentTemp = m_T->operator()(timestep);
 
             // set seed using global tags
             unsigned int tagi = h_tag.data[i];

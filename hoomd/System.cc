@@ -87,11 +87,6 @@ void System::run(uint64_t nsteps, bool write_at_start)
     m_last_walltime = 0.0;
     m_last_TPS = 0.0;
 
-    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
-    // info they need but set the flags before prepRun, as prepRun may remove some flags that it
-    // cannot generate on the first step
-    m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
-
     resetStats();
 
 #ifdef ENABLE_MPI
@@ -116,6 +111,11 @@ void System::run(uint64_t nsteps, bool write_at_start)
         {
         m_integrator->prepRun(m_cur_tstep);
         }
+
+    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
+    // info they need but set the flags before prepRun, as prepRun may remove some flags that it
+    // cannot generate on the first step
+    m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
 
     // execute analyzers on initial step if requested
     if (write_at_start)

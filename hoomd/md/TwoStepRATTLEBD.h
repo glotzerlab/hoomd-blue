@@ -150,7 +150,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const Scalar currentTemp = (*m_T)(timestep);
+    const Scalar currentTemp = m_T->operator()(timestep);
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
@@ -401,7 +401,7 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const Scalar currentTemp = (*m_T)(timestep);
+    const Scalar currentTemp = m_T->operator()(timestep);
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
     const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
