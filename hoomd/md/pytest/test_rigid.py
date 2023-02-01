@@ -307,3 +307,39 @@ def test_setting_body_after_attaching(simulation_factory,
     # setting should be fine.
     with pytest.raises(RuntimeError):
         sim.run(1)
+
+
+def test_rigid_body_restart(simulation_factory, valid_body_definition):
+    s = hoomd.Snapshot()
+    N = 1000
+    s.particles.N = N
+    s.particles.position[:] = [[-0.5, 0, 0]] * N
+    s.particles.body[:] = [x for x in range(N)]
+    s.particles.types = ['A', 'B']
+    s.particles.typeid[:] = [0] * N
+    s.configuration.box = [2, 2, 2, 0, 0, 0]
+
+    # create simulation object and add integrator
+    sim = simulation_factory(s)
+    integrator = hoomd.md.Integrator(dt=0.001)
+    sim.operations.integrator = integrator
+
+    # create bodies
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body["A"] = valid_body_definition
+    rigid.create_bodies(sim.state)
+    sim.run(0)
+
+    snapshot = sim.state.get_snapshot()
+    N_const = len(valid_body_definition['constituent_types'])
+    if snapshot.communicator.rank == 0:
+        assert np.all(snapshot.particles.typeid[:N] == 0)
+        assert np.all(snapshot.particles.typeid[N:] == 1)
+        assert np.all(snapshot.particles.body[:N] == np.arange(N))
+        should_be = np.arange(N * N_const) // N_const
+        assert np.all(snapshot.particles.body[N:] == should_be)
+
+    # check rank == 0
+    # add asserts
+    # body
+    # types and typeid
