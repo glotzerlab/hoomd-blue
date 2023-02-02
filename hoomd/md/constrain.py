@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Constraints.
@@ -300,19 +300,20 @@ class Rigid(Constraint):
                 'constituent_types': [str],
                 'positions': [(float,) * 3],
                 'orientations': [(float,) * 4],
-                'charges': [float],
-                'diameters': [float]
             }),
                                      allow_none=True),
                               len_keys=1))
         self._add_typeparam(body)
         self.body.default = None
 
-    def create_bodies(self, state):
+    def create_bodies(self, state, charges=None):
         r"""Create rigid bodies from central particles in state.
 
         Args:
             state (hoomd.State): The state in which to create rigid bodies.
+            charges (dict[str, list[float]]): (optional) The charges for each of
+                the constituent particles, defaults to ``None``. If ``None``,
+                all charges are zero. The keys should be the central particles.
 
         `create_bodies` removes any existing constituent particles and adds new
         ones based on the body definitions in `body`. It overwrites all existing
@@ -322,7 +323,7 @@ class Rigid(Constraint):
             raise RuntimeError(
                 "Cannot call create_bodies after running simulation.")
         super()._attach(state._simulation)
-        self._cpp_obj.createRigidBodies()
+        self._cpp_obj.createRigidBodies({} if charges is None else charges)
         # Restore previous state
         self._detach()
 

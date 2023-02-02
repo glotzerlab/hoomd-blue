@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Pair forces."""
@@ -664,8 +664,9 @@ class DPD(Pair):
     `DPD` does not implement any energy shift / smoothing modes due to the
     function of the force.
 
-    To use the DPD thermostat, apply the `hoomd.md.methods.NVE` integration
-    method along with `DPD` forces.  Use of the DPD thermostat pair force with
+    To use the DPD thermostat, apply the `hoomd.md.methods.ConstantVolume` or
+    `hoomd.md.methods.ConstantPressure` integration method without thermostats
+    along with `DPD` forces.  Use of the DPD thermostat pair force with
     other integrators will result in nonphysical behavior. To use `DPD` with a
     different conservative potential than :math:`F_C`, set A to zero and define
     the conservative pair force separately.
@@ -817,8 +818,9 @@ class DPDLJ(Pair):
     describes the DPD implementation details. Cite it if you utilize the DPD
     functionality in your work.
 
-    To use the DPD thermostat, apply the `hoomd.md.methods.NVE` integration
-    method along with `DPD` forces.  Use of the DPD thermostat pair force with
+    To use the DPD thermostat, apply the `hoomd.md.methods.ConstantVolume` or
+    `hoomd.md.methods.ConstantPressure` integration method  without thermostat
+    along with `DPD` forces.  Use of the DPD thermostat pair force with
     other integrators will result in nonphysical behavior.
 
     Example::

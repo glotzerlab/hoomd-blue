@@ -1,130 +1,86 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "TwoStepNVE.h"
+#include "TwoStepConstantVolume.h"
 #include "hoomd/VectorMath.h"
 
-using namespace std;
-
-/*! \file TwoStepNVE.h
-    \brief Contains code for the TwoStepNVE class
-*/
-
-namespace hoomd
+void hoomd::md::TwoStepConstantVolume::integrateStepOne(uint64_t timestep)
     {
-namespace md
-    {
-/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
-*/
-TwoStepNVE::TwoStepNVE(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group)
-    : IntegrationMethodTwoStep(sysdef, group), m_limit(), m_zero_force(false)
-    {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVE" << endl;
-    }
-
-TwoStepNVE::~TwoStepNVE()
-    {
-    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVE" << endl;
-    }
-
-/*! \param limit Distance to limit particle movement each time step
-
-    Once the limit is set, future calls to update() will never move a particle
-    a distance larger than the limit in a single time step
-*/
-
-std::shared_ptr<Variant> TwoStepNVE::getLimit()
-    {
-    return m_limit;
-    }
-
-void TwoStepNVE::setLimit(std::shared_ptr<Variant>& limit)
-    {
-    m_limit = limit;
-    }
-
-bool TwoStepNVE::getZeroForce()
-    {
-    return m_zero_force;
-    }
-
-void TwoStepNVE::setZeroForce(bool zero_force)
-    {
-    m_zero_force = zero_force;
-    }
-
-/*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
-   velocity verlet method.
-*/
-void TwoStepNVE::integrateStepOne(uint64_t timestep)
-    {
-    unsigned int group_size = m_group->getNumMembers();
-
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
-                               access_location::host,
-                               access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
-                                 access_location::host,
-                                 access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                               access_location::host,
-                               access_mode::readwrite);
-
-    // perform the first half step of velocity verlet
-    // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
-    // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    if (m_group->getNumMembersGlobal() == 0)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        if (m_zero_force)
-            h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
-
-        Scalar dx = h_vel.data[j].x * m_deltaT
-                    + Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT * m_deltaT;
-        Scalar dy = h_vel.data[j].y * m_deltaT
-                    + Scalar(1.0 / 2.0) * h_accel.data[j].y * m_deltaT * m_deltaT;
-        Scalar dz = h_vel.data[j].z * m_deltaT
-                    + Scalar(1.0 / 2.0) * h_accel.data[j].z * m_deltaT * m_deltaT;
-
-        // limit the movement of the particles
-        if (m_limit)
-            {
-            Scalar maximum_displacement = m_limit->operator()(timestep);
-            Scalar len = sqrt(dx * dx + dy * dy + dz * dz);
-            if (len > maximum_displacement)
-                {
-                dx = dx / len * maximum_displacement;
-                dy = dy / len * maximum_displacement;
-                dz = dz / len * maximum_displacement;
-                }
-            }
-
-        h_pos.data[j].x += dx;
-        h_pos.data[j].y += dy;
-        h_pos.data[j].z += dz;
-
-        h_vel.data[j].x += Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT;
-        h_vel.data[j].y += Scalar(1.0 / 2.0) * h_accel.data[j].y * m_deltaT;
-        h_vel.data[j].z += Scalar(1.0 / 2.0) * h_accel.data[j].z * m_deltaT;
+        throw std::runtime_error("Empty integration group.");
         }
 
-    // particles may have been moved slightly outside the box by the above steps, wrap them back
-    // into place
-    const BoxDim& box = m_pdata->getBox();
+    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT)
+                                          : std::array<Scalar, 2> {1., 1.};
 
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+    unsigned int group_size = m_group->getNumMembers();
 
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        // scope array handles for proper releasing before calling the thermo compute
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        box.wrap(h_pos.data[j], h_image.data[j]);
+        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                     access_location::host,
+                                     access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            // load variables
+            Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+            Scalar3 pos = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 accel = h_accel.data[j];
+
+            // update velocity and position
+            v = v + Scalar(1.0 / 2.0) * accel * m_deltaT;
+
+            // rescale velocity
+            v *= rescaling_factors[0];
+            if (m_limit)
+                {
+                auto maximum_displacement = m_limit->operator()(timestep);
+                auto len = sqrt(dot(v, v)) * m_deltaT;
+                if (len > maximum_displacement)
+                    {
+                    v = v / len * maximum_displacement / m_deltaT;
+                    }
+                }
+            pos += m_deltaT * v;
+
+            // store updated variables
+            h_vel.data[j].x = v.x;
+            h_vel.data[j].y = v.y;
+            h_vel.data[j].z = v.z;
+
+            h_pos.data[j].x = pos.x;
+            h_pos.data[j].y = pos.y;
+            h_pos.data[j].z = pos.z;
+            }
+
+        // particles may have been moved slightly outside the box by the above steps, wrap them back
+        // into place
+        const BoxDim& box = m_pdata->getBox();
+
+        ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            // wrap the particles around the box
+            box.wrap(h_pos.data[j], h_image.data[j]);
+            }
         }
 
     // Integration of angular degrees of freedom using symplectic and
-    // time-reversal symmetric integration scheme of Miller et al.
+    // time-reversal symmetric integration scheme of Miller et al., extended by thermostat
     if (m_aniso)
         {
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -169,6 +125,9 @@ void TwoStepNVE::integrateStepOne(uint64_t timestep)
             // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
             // using Trotter factorization of rotation Liouvillian
             p += m_deltaT * q * t;
+
+            // apply thermostat
+            p = p * rescaling_factors[1];
 
             quat<Scalar> p1, p2, p3; // permutated quaternions
             quat<Scalar> q1, q2, q3;
@@ -243,14 +202,20 @@ void TwoStepNVE::integrateStepOne(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
+
+    // get temperature and advance thermostat
+    if (m_thermostat)
+        {
+        m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+        }
     }
 
-/*! \param timestep Current time step
-    \post particle velocities are moved forward to timestep+1
-*/
-void TwoStepNVE::integrateStepTwo(uint64_t timestep)
+void hoomd::md::TwoStepConstantVolume::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
+
+    auto rescaling_factors = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
+                                          : std::array<Scalar, 2> {1., 1.};
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
@@ -263,42 +228,36 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-    // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+    // perform second half step of Nose-Hoover integration
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
 
-        if (m_zero_force)
-            {
-            h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
-            }
-        else
-            {
-            // first, calculate acceleration from the net force
-            Scalar minv = Scalar(1.0) / h_vel.data[j].w;
-            h_accel.data[j].x = h_net_force.data[j].x * minv;
-            h_accel.data[j].y = h_net_force.data[j].y * minv;
-            h_accel.data[j].z = h_net_force.data[j].z * minv;
-            }
+        // load velocity
+        Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+        Scalar3 accel = h_accel.data[j];
+        Scalar3 net_force
+            = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
 
-        // then, update the velocity
-        h_vel.data[j].x += Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT;
-        h_vel.data[j].y += Scalar(1.0 / 2.0) * h_accel.data[j].y * m_deltaT;
-        h_vel.data[j].z += Scalar(1.0 / 2.0) * h_accel.data[j].z * m_deltaT;
+        // first, calculate acceleration from the net force
+        Scalar m = h_vel.data[j].w;
+        Scalar minv = Scalar(1.0) / m;
+        accel = net_force * minv;
 
-        // limit the movement of the particles
-        if (m_limit)
-            {
-            Scalar maximum_displacement = m_limit->operator()(timestep);
-            Scalar vel = sqrt(h_vel.data[j].x * h_vel.data[j].x + h_vel.data[j].y * h_vel.data[j].y
-                              + h_vel.data[j].z * h_vel.data[j].z);
-            if ((vel * m_deltaT) > maximum_displacement)
-                {
-                h_vel.data[j].x = h_vel.data[j].x / vel * maximum_displacement / m_deltaT;
-                h_vel.data[j].y = h_vel.data[j].y / vel * maximum_displacement / m_deltaT;
-                h_vel.data[j].z = h_vel.data[j].z / vel * maximum_displacement / m_deltaT;
-                }
-            }
+        // rescale velocity
+        v *= rescaling_factors[0];
+
+        // update velocity
+        v += Scalar(1.0 / 2.0) * m_deltaT * accel;
+
+        // store velocity
+        h_vel.data[j].x = v.x;
+        h_vel.data[j].y = v.y;
+        h_vel.data[j].z = v.z;
+
+        // store acceleration
+        h_accel.data[j] = accel;
         }
 
     if (m_aniso)
@@ -343,6 +302,9 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
             if (z_zero)
                 t.z = 0;
 
+            // apply thermostat
+            p = p * rescaling_factors[1];
+
             // advance p(t+deltaT/2)->p(t+deltaT)
             p += m_deltaT * q * t;
 
@@ -351,17 +313,19 @@ void TwoStepNVE::integrateStepTwo(uint64_t timestep)
         }
     }
 
-namespace detail
+namespace hoomd::md::detail
     {
-void export_TwoStepNVE(pybind11::module& m)
+void export_TwoStepConstantVolume(pybind11::module& m)
     {
-    pybind11::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE>>(
-        m,
-        "TwoStepNVE")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
-        .def_property("maximum_displacement", &TwoStepNVE::getLimit, &TwoStepNVE::setLimit)
-        .def_property("zero_force", &TwoStepNVE::getZeroForce, &TwoStepNVE::setZeroForce);
+    pybind11::class_<TwoStepConstantVolume,
+                     IntegrationMethodTwoStep,
+                     std::shared_ptr<TwoStepConstantVolume>>(m, "TwoStepConstantVolume")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Thermostat>>())
+        .def("setThermostat", &TwoStepConstantVolume::setThermostat)
+        .def_property("maximum_displacement",
+                      &TwoStepConstantVolume::getLimit,
+                      &TwoStepConstantVolume::setLimit);
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }; // namespace hoomd::md::detail

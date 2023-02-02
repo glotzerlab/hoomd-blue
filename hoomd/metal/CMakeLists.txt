@@ -36,8 +36,6 @@ endif()
 # link the library to its dependencies
 target_link_libraries(_${PACKAGE_NAME} PUBLIC _md)
 
-fix_cudart_rpath(_${PACKAGE_NAME})
-
 # install the library
 install(TARGETS _${PACKAGE_NAME}
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/${PACKAGE_NAME}

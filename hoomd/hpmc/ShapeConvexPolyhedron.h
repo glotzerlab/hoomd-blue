@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -288,8 +288,7 @@ class SupportFuncConvexPolyhedron
 
         if (verts.N > 0)
             {
-#if !defined(__HIPCC__) && defined(__AVX__) \
-    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+#if !defined(__HIPCC__) && defined(__AVX__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with AVX 8 at a time on the CPU when working with more than
             // 4 verts
             __m256 nx_v = _mm256_broadcast_ss(&n.x);
@@ -342,8 +341,7 @@ class SupportFuncConvexPolyhedron
                     break;
                     }
                 }
-#elif !defined(__HIPCC__) && defined(__SSE__) \
-    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+#elif !defined(__HIPCC__) && defined(__SSE__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with SSE 4 at a time on the CPU
             __m128 nx_v = _mm_load_ps1(&n.x);
             __m128 ny_v = _mm_load_ps1(&n.y);

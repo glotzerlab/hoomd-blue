@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply forces to particles."""
@@ -127,7 +127,7 @@ class Force(Compute):
         Attention:
             To improve performance `Force` objects only compute virials when
             needed. When not computed, `virials` is `None`. Virials are computed
-            on every step when using a `md.methods.NPT` or `md.methods.NPH`
+            on every step when using a `md.methods.ConstantPressure`
             integrator, on steps where a writer is triggered (such as
             `write.GSD` which may log pressure or virials), or when
             `Simulation.always_compute_pressure` is `True`.

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
@@ -49,7 +49,7 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     // grab some initial variables
-    const Scalar currentTemp = (*m_T)(timestep);
+    const Scalar currentTemp = m_T->operator()(timestep);
     const unsigned int D = m_sysdef->getNDimensions();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();

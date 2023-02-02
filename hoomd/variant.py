@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define quantities that vary over the simulation.
 
 A `Variant` object represents a scalar function of the time step. Some
 operations accept `Variant` values for certain parameters, such as the
-``kT`` parameter to `hoomd.md.methods.NVT`.
+``kT`` parameter to `hoomd.md.methods.thermostats.Bussi`.
 
 Use one of the built in variant types, or define your own custom function
 in Python:

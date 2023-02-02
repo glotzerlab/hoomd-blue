@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods with manifold constraints."""
@@ -69,8 +69,8 @@ class NVE(MethodRATTLE):
             function. Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations as described
-    in `hoomd.md.methods.NVE`. In addition the particles are constrained to a
-    manifold by using the RATTLE algorithm.
+    in `hoomd.md.methods.ConstantVolume` without any thermostat. In addition
+    the particles are constrained to a manifold by using the RATTLE algorithm.
 
     Examples::
 

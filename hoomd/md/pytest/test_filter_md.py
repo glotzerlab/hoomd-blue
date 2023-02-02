@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -36,8 +36,6 @@ def test_rigid_filter(make_filter_snapshot, simulation_factory):
             [0, 1, 1 / (2**(1. / 2.))],
         ],
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
-        "charges": [0.0, 1.0, 2.0, 3.5],
-        "diameters": [1.0, 1.5, 0.5, 1.0]
     }
 
     snapshot = make_filter_snapshot(n=100, particle_types=["A", "B", "C"])

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence, Mapping
@@ -1023,7 +1023,7 @@ def test_force_energy_accuracy(simulation_factory,
 def populate_sim(sim):
     """Add an integrator for the following tests."""
     sim.operations.integrator = md.Integrator(
-        dt=0.005, methods=[md.methods.NVE(hoomd.filter.All())])
+        dt=0.005, methods=[md.methods.ConstantVolume(hoomd.filter.All())])
     return sim
 
 

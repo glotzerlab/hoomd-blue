@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Module implements the `State` class.
@@ -649,9 +649,9 @@ class State:
         as determine by its moment of inertia.
 
         .. seealso::
-            `md.methods.NVT.thermalize_thermostat_dof`
+            `md.methods.thermostats.MTTK.thermalize_dof`
 
-            `md.methods.NPT.thermalize_thermostat_and_barostat_dof`
+            `md.methods.ConstantPressure.thermalize_barostat_dof`
         """
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)

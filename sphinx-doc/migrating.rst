@@ -1,15 +1,81 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+Migrating to the latest version
+===============================
+
+Migrating to HOOMD v4
+---------------------
+
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For some functionalities, you will need to update your scripts to use a new API:
+
+.. list-table::
+   :header-rows: 1
+
+   * - v3 Feature
+     - Replace with
+   * - ``hoomd.md.dihedral.Harmonic``
+     - `hoomd.md.dihedral.Periodic` - new name.
+   * - ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
+     - Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in
+       system state.
+   * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
+     - Set diameters in system state.
+   * - ``hoomd.md.methods.NVE``
+     - `hoomd.md.methods.ConstantVolume` with ``thermostat=None``.
+   * - ``hoomd.md.methods.NVT``
+     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
+   * - ``hoomd.md.methods.Berendsen``
+     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.Berendsen` thermostat.
+   * - ``hoomd.md.methods.NPH``
+     - `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
+   * - ``hoomd.md.methods.NPT``
+     - `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
+
+Removed functionalities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+HOOMD-blue v4 removes functionalities deprecated in v3.x releases:
+
+.. list-table::
+   :header-rows: 1
+
+   * - v3 Feature
+     - Replace with
+   * - ``hoomd.md.pair.aniso.ALJ.mode`` parameter
+     - n/a: ``mode`` has no effect since v3.0.0.
+   * - ``hoomd.md.pair.aniso.Dipole.mode`` parameter
+     - n/a: ``mode`` has no effect since v3.0.0.
+   * - ``hoomd.device.GPU.memory_traceback`` parameter
+     - n/a: ``memory_traceback`` has no effect since v3.0.0.
+
+Compiling
+^^^^^^^^^
+
+* HOOMD-blue v4 no longer builds on macOS with ``ENABLE_GPU=on``.
+* Use the CMake options ``HOOMD_LONGREAL_SIZE`` and ``HOOMD_SHORTREAL_SIZE`` to control the floating
+  point precision of the calculations. These replace the ``SINGLE_PRECISION`` and
+  ``HPMC_MIXED_PRECISION`` options from v3.
+
+Components
+^^^^^^^^^^
+
+* Remove ``fix_cudart_rpath(_${COMPONENT_NAME})`` from your components ``CMakeLists.txt``
+* Use ``LongReal`` and ``ShortReal`` types in new code. ``Scalar`` will be removed in a future
+  release (v5 or later).
+
 Migrating to HOOMD v3
-=====================
+---------------------
 
 HOOMD v3 introduces many breaking changes for both users and developers
 in order to provide a cleaner Python interface, enable new functionalities, and
 move away from unsupported tools. This guide highlights those changes.
 
 Overview of API changes
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 HOOMD v3 introduces a completely new API. All classes have been renamed to match
 PEP8 naming guidelines and have new or renamed parameters, methods, and
@@ -75,7 +141,7 @@ Here is a module level overview of features that have been moved or removed:
      - `hoomd.hpmc.external.user`
 
 Removed functionality
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 HOOMD v3 removes old APIs, unused functionality, and features better served by other codes:
 
@@ -182,7 +248,7 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
      - ALJ pair potential in `hoomd.md.pair.aniso`.
 
 Not yet ported
---------------
+^^^^^^^^^^^^^^
 
 The following v2 functionalities have not yet been ported to the v3 API. They may be added in a
 future 3.x release:
@@ -198,7 +264,7 @@ contact the developers if you have an interest in porting these in a future rele
 
 
 Compiling
----------
+^^^^^^^^^
 
 * CMake 3.8 or newer is required to build HOOMD v3.0.
 * To compile with GPU support, use the option ``ENABLE_GPU=ON``.
@@ -213,7 +279,7 @@ Compiling
 * ``BUILD_JIT`` is replaced with ``ENABLE_LLVM``.
 
 Components
-----------
+^^^^^^^^^^
 
 * HOOMD now uses native CUDA support in CMake. Use ``CMAKE_CUDA_COMPILER`` to
   specify a specific ``nvcc`` or ``hipcc``. Plugins will require updates to

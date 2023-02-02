@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Mesh potential base class."""
@@ -57,17 +57,6 @@ class MeshPotential(Force):
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} "
                     f"{str(err)}")
-
-    @property
-    def all_params(self):
-        """Type parameter setter for all mesh types."""
-        raise RuntimeError("all_params can only be used as a setter.")
-        return []
-
-    @all_params.setter
-    def all_params(self, value):
-        for mt in self.mesh.types:
-            self.params[mt] = value
 
     @property
     def mesh(self):

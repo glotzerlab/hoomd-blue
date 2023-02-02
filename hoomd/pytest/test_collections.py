@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import warnings
@@ -45,13 +45,16 @@ class TestHoomdList(BaseListTest):
     @pytest.fixture
     def generate_plain_collection(self):
         if self._current_list == "ints":
-            generate_one = self.int
+            generate_one = self.generator.int
         elif self._current_list == "floats":
-            generate_one = self.float
+            generate_one = self.generator.float
         elif self._current_list == "strs":
 
             def generate_one():
-                return [self.str() for _ in range(3 + self.int(10))]
+                return [
+                    self.generator.str()
+                    for _ in range(3 + self.generator.int(10))
+                ]
 
         def generate(n):
             return [generate_one() for _ in range(n)]
@@ -117,8 +120,11 @@ class TestHoomdTuple(BaseSequenceTest):
     def generate_plain_collection(self):
 
         def generate(n):
-            strings = [self.str() for _ in range(self.int(10))]
-            return (self.int(), strings, self.float(), self.ndarray((None, 3)))
+            strings = [
+                self.generator.str() for _ in range(self.generator.int(10))
+            ]
+            return (self.generator.int(), strings, self.generator.float(),
+                    self.generator.ndarray((None, 3)))
 
         return generate
 
@@ -155,13 +161,12 @@ class TestHoomdDict(BaseMappingTest):
     def generate_plain_collection(self):
 
         def generate(n):
-            tuples = [(self.int(),
-                       [self.str()
-                        for _ in range(3 + self.int(10))])
-                      for _ in range(self.int(10) + 3)]
+            tuples = [(self.generator.int(), [
+                self.generator.str() for _ in range(3 + self.generator.int(10))
+            ]) for _ in range(self.generator.int(10) + 3)]
             data = {
-                "sigma": self.float(),
-                "epsilon": self.float(),
+                "sigma": self.generator.float(),
+                "epsilon": self.generator.float(),
                 "notes": tuples
             }
             return data

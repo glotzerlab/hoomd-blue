@@ -1,6 +1,7 @@
 set(files __init__.py
           methods.py
           rattle.py
+          thermostats.py
    )
 
 install(FILES ${files}

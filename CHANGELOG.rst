@@ -1,11 +1,68 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Change Log
 ==========
 
+v4.x
+----
+
+v4.0.0 (net yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+*Changed*
+
+*Fixed*
+
+*Removed*
+
+* ``fix_cudart_rpath`` CMake macro.
+
 v3.x
 ----
+
+v3.8.1 (2023-01-27)
+^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* `#1468 <https://github.com/glotzerlab/hoomd-blue/issues/1468>`_: Conserve linear momentum in
+  simulations using ``hoomd.md.constrain.Rigid`` on more than 1 MPI rank.
+
+v3.8.0 (2023-01-12)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support Python 3.11.
+* Support CUDA 11.8.
+* Support CUDA 12.0.0 final.
+
+*Fixed*
+
+* Improve numerical stability of orientation quaternions when using
+  ``hoomd.md.update.ActiveRotationalDiffusion``
+* Reduced memory usage and fix spurious failures in ``test_nlist.py``.
+* Avoid triggering ``TypeError("expected x and y to have same length")`` in
+  ``hoomd.hpmc.compute.SDF.betaP``.
+
+*Deprecated*
+
+* The following integration methods are deprecated. Starting in v4.0.0, the same functionalities
+  will be available via ``hoomd.md.methods.ConstantVolume``/ ``hoomd.md.methods.ConstantPressure``
+  with an appropriately chosen ``thermostat`` argument.
+
+  * ``hoomd.md.methods.NVE``
+  * ``hoomd.md.methods.NVT``
+  * ``hoomd.md.methods.Berendsen``
+  * ``hoomd.md.methods.NPH``
+  * ``hoomd.md.methods.NPT``
+
+*Removed*
+
+* Support for CUDA 10.
 
 v3.7.0 (2022-11-29)
 ^^^^^^^^^^^^^^^^^^^
