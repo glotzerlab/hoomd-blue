@@ -514,7 +514,7 @@ void ForceComposite::createRigidBodies()
         ArrayHandle<unsigned int> h_body_type(m_body_types,
                                               access_location::host,
                                               access_mode::read);
-        molecule_tag.resize(n_central_particles + n_constituent_particles_to_add, NO_MOLECULE);
+        molecule_tag.resize(snap.size, NO_MOLECULE);
 
         unsigned int constituent_particle_tag = initial_snapshot_size;
         for (unsigned int particle_tag = 0; particle_tag < initial_snapshot_size; ++particle_tag)
