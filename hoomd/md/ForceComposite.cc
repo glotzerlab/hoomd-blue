@@ -478,7 +478,7 @@ void ForceComposite::createRigidBodies()
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
         for (unsigned int particle_tag = 0; particle_tag < snap.size; ++particle_tag)
             {
-            if (snap.body[particle_tag] == NO_BODY)
+            if (h_body_len.data[snap.type[particle_tag]] == 0)
                 {
                 n_free_particles++;
                 }
