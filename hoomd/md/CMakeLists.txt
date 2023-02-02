@@ -190,7 +190,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLENVEGPU.h
                 TwoStepRATTLENVEGPU.cuh
                 TwoStepRATTLENVE.h
-                TwoStepNVE.h
                 TwoStepConstantVolume.h
                 TwoStepConstantVolumeGPU.h
                 TwoStepConstantPressure.h
