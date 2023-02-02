@@ -1,40 +1,22 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "TwoStepNVTMTKGPU.h"
-#include "TwoStepNPTMTKGPU.cuh"
+#include "TwoStepConstantVolumeGPU.h"
+#include "TwoStepConstantVolumeGPU.cuh"
 #include "TwoStepNVEGPU.cuh"
-#include "TwoStepNVTMTKGPU.cuh"
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-using namespace std;
+namespace hoomd::md
+    {
 
-/*! \file TwoStepNVTMTKGPU.h
-    \brief Contains code for the TwoStepNVTMTKGPU class
-*/
-
-namespace hoomd
+TwoStepConstantVolumeGPU::TwoStepConstantVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                   std::shared_ptr<ParticleGroup> group,
+                                                   std::shared_ptr<Thermostat> thermostat)
+    : TwoStepConstantVolume(sysdef, group, thermostat)
     {
-namespace md
-    {
-/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
-    \param thermo compute for thermodynamic quantities
-    \param tau NVT period
-    \param T Temperature set point
-*/
-TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                   std::shared_ptr<ParticleGroup> group,
-                                   std::shared_ptr<ComputeThermo> thermo,
-                                   Scalar tau,
-                                   std::shared_ptr<Variant> T)
-    : TwoStepNVTMTK(sysdef, group, thermo, tau, T)
-    {
-    // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
         throw std::runtime_error("Cannot create TwoStepNVTMTKGPU on a CPU device.");
@@ -61,11 +43,7 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                         {m_tuner_one, m_tuner_two, m_tuner_angular_one, m_tuner_angular_two});
     }
 
-/*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
-   Nose-Hoover method
-*/
-void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
+void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -73,7 +51,9 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
         }
 
     unsigned int group_size = m_group->getNumMembers();
-
+    const auto&& rescalingFactors = m_thermostat
+                                        ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT)
+                                        : std::array<Scalar, 2> {1., 1.};
         {
         // access all the needed data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
@@ -94,21 +74,25 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
+        auto limits = getKernelLimitValues(timestep);
+
         m_exec_conf->beginMultiGPU();
 
         // perform the update on the GPU
         m_tuner_one->begin();
-        kernel::gpu_nvt_mtk_step_one(d_pos.data,
-                                     d_vel.data,
-                                     d_accel.data,
-                                     d_image.data,
-                                     d_index_array.data,
-                                     group_size,
-                                     box,
-                                     m_tuner_one->getParam()[0],
-                                     m_exp_thermo_fac,
-                                     m_deltaT,
-                                     m_group->getGPUPartition());
+        kernel::gpu_nvt_rescale_step_one(d_pos.data,
+                                         d_vel.data,
+                                         d_accel.data,
+                                         d_image.data,
+                                         d_index_array.data,
+                                         group_size,
+                                         box,
+                                         m_tuner_one->getParam()[0],
+                                         rescalingFactors[0], // m_exp_thermo_fac,
+                                         m_deltaT,
+                                         m_group->getGPUPartition(),
+                                         limits.first,
+                                         limits.second);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -136,8 +120,6 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        const Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * m_thermostat.xi_rot);
-
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
         kernel::gpu_nve_angular_step_one(d_orientation.data,
@@ -147,7 +129,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getGPUPartition(),
                                          m_deltaT,
-                                         exp_fac,
+                                         rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -157,13 +139,13 @@ void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
         }
 
     // advance thermostat
-    advanceThermostat(timestep, false);
+    if (m_thermostat)
+        {
+        m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
+        }
     }
 
-/*! \param timestep Current time step
-    \post particle velocities are moved forward to timestep+1 on the GPU
-*/
-void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
+void TwoStepConstantVolumeGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -172,6 +154,9 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                             access_location::device,
                                             access_mode::read);
+    const auto&& rescalingFactors = m_thermostat
+                                        ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
+                                        : std::array<Scalar, 2> {1., 1.};
 
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
@@ -186,15 +171,15 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
 
         // perform the update on the GPU
         m_tuner_two->begin();
-        kernel::gpu_nvt_mtk_step_two(d_vel.data,
-                                     d_accel.data,
-                                     d_index_array.data,
-                                     group_size,
-                                     d_net_force.data,
-                                     m_tuner_two->getParam()[0],
-                                     m_deltaT,
-                                     m_exp_thermo_fac,
-                                     m_group->getGPUPartition());
+        kernel::gpu_nvt_rescale_step_two(d_vel.data,
+                                         d_accel.data,
+                                         d_index_array.data,
+                                         group_size,
+                                         d_net_force.data,
+                                         m_tuner_two->getParam()[0],
+                                         m_deltaT,
+                                         rescalingFactors[0],
+                                         m_group->getGPUPartition());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -219,8 +204,6 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
                                        access_location::device,
                                        access_mode::read);
 
-        Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * m_thermostat.xi_rot);
-
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
         kernel::gpu_nve_angular_step_two(d_orientation.data,
@@ -230,7 +213,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getGPUPartition(),
                                          m_deltaT,
-                                         exp_fac,
+                                         rescalingFactors[1],
                                          m_tuner_angular_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -239,20 +222,17 @@ void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
         m_exec_conf->endMultiGPU();
         }
     }
+    } // namespace hoomd::md
 
-namespace detail
+namespace hoomd::md::detail
     {
-void export_TwoStepNVTMTKGPU(pybind11::module& m)
+void export_TwoStepConstantVolumeGPU(pybind11::module& m)
     {
-    pybind11::class_<TwoStepNVTMTKGPU, TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTKGPU>>(
-        m,
-        "TwoStepNVTMTKGPU")
+    pybind11::class_<TwoStepConstantVolumeGPU,
+                     TwoStepConstantVolume,
+                     std::shared_ptr<TwoStepConstantVolumeGPU>>(m, "TwoStepConstantVolumeGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<ComputeThermo>,
-                            Scalar,
-                            std::shared_ptr<Variant>>());
+                            std::shared_ptr<Thermostat>>());
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    } // namespace hoomd::md::detail

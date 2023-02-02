@@ -238,7 +238,7 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
                                    access_mode::read);
 
     // grab some initial variables
-    const Scalar currentTemp = (*m_T)(timestep);
+    const Scalar currentTemp = m_T->operator()(timestep);
     const unsigned int D = m_sysdef->getNDimensions();
 
     // energy transferred over this time step

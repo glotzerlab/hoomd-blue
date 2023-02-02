@@ -649,9 +649,9 @@ class State:
         as determine by its moment of inertia.
 
         .. seealso::
-            `md.methods.NVT.thermalize_thermostat_dof`
+            `md.methods.thermostats.MTTK.thermalize_dof`
 
-            `md.methods.NPT.thermalize_thermostat_and_barostat_dof`
+            `md.methods.ConstantPressure.thermalize_barostat_dof`
         """
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)

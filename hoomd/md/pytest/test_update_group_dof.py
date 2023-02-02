@@ -111,8 +111,9 @@ def test_set_integrator(simulation_factory, snapshot_factory):
         methods=[method1],
         integrate_rotational_dof=True,
     )
-
-    method2 = hoomd.md.methods.NVT(filter=filter_all, kT=1.0, tau=1.0)
+    thermostat = hoomd.md.methods.thermostats.Bussi(kT=1.0)
+    method2 = hoomd.md.methods.ConstantVolume(filter=filter_all,
+                                              thermostat=thermostat)
     integrator2 = hoomd.md.Integrator(
         0.005,
         methods=[method2],
@@ -147,8 +148,9 @@ def test_set_method(simulation_factory, snapshot_factory):
         methods=[method1],
         integrate_rotational_dof=True,
     )
-
-    method2 = hoomd.md.methods.NVT(filter=filter_all, kT=1.0, tau=1.0)
+    thermostat = hoomd.md.methods.thermostats.Bussi(kT=1.0)
+    method2 = hoomd.md.methods.ConstantVolume(filter=filter_all,
+                                              thermostat=thermostat)
 
     sim.operations.integrator = integrator
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=filter_all)

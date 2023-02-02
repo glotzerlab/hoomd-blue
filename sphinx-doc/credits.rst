@@ -75,6 +75,7 @@ The following people have contributed to the to HOOMD-blue:
 * Luis Y. Rivera-Rivera, University of Michigan
 * Malcolm Ramsay
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
+* Martin Girard, Max-Planck-Institut für Polymerforschung
 * Matthew Spellings, University of Michgan
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
