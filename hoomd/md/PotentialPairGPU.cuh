@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -140,7 +140,11 @@ struct pair_args_t
     Each group of \a tpp threads will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp>
+template<class evaluator,
+         unsigned int shift_mode,
+         unsigned int compute_virial,
+         int tpp,
+         bool enable_shared_cache>
 __global__ void
 gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       Scalar* d_virial,
@@ -171,38 +175,41 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
     Scalar* s_ronsq
         = (Scalar*)(&s_data[num_typ_parameters
                             * (sizeof(typename evaluator::param_type) + sizeof(Scalar))]);
-
-    // load in the per type pair parameters
-    for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < num_typ_parameters)
-            {
-            s_rcutsq[cur_offset + threadIdx.x] = d_rcutsq[cur_offset + threadIdx.x];
-            if (shift_mode == 2)
-                s_ronsq[cur_offset + threadIdx.x] = d_ronsq[cur_offset + threadIdx.x];
-            }
-        }
-
-    unsigned int param_size
-        = num_typ_parameters * sizeof(typename evaluator::param_type) / sizeof(int);
-    for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < param_size)
-            {
-            ((int*)s_params)[cur_offset + threadIdx.x] = ((int*)d_params)[cur_offset + threadIdx.x];
-            }
-        }
-
-    // initialize extra shared mem
     auto s_extra = reinterpret_cast<char*>(s_ronsq + num_typ_parameters);
 
-    __syncthreads();
+    if (enable_shared_cache)
+        {
+        // load in the per type pair parameters
+        for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
+            {
+            if (cur_offset + threadIdx.x < num_typ_parameters)
+                {
+                s_rcutsq[cur_offset + threadIdx.x] = d_rcutsq[cur_offset + threadIdx.x];
+                if (shift_mode == 2)
+                    s_ronsq[cur_offset + threadIdx.x] = d_ronsq[cur_offset + threadIdx.x];
+                }
+            }
 
-    unsigned int available_bytes = max_extra_bytes;
-    for (unsigned int cur_pair = 0; cur_pair < num_typ_parameters; ++cur_pair)
-        s_params[cur_pair].load_shared(s_extra, available_bytes);
+        unsigned int param_size
+            = num_typ_parameters * sizeof(typename evaluator::param_type) / sizeof(int);
+        for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += blockDim.x)
+            {
+            if (cur_offset + threadIdx.x < param_size)
+                {
+                ((int*)s_params)[cur_offset + threadIdx.x]
+                    = ((int*)d_params)[cur_offset + threadIdx.x];
+                }
+            }
 
-    __syncthreads();
+        __syncthreads();
+
+        // initialize extra shared mem
+        unsigned int available_bytes = max_extra_bytes;
+        for (unsigned int cur_pair = 0; cur_pair < num_typ_parameters; ++cur_pair)
+            s_params[cur_pair].load_shared(s_extra, available_bytes);
+
+        __syncthreads();
+        }
 
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * (blockDim.x / tpp) + threadIdx.x / tpp;
@@ -282,11 +289,26 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 // access the per type pair parameters
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-                Scalar rcutsq = s_rcutsq[typpair];
-                const typename evaluator::param_type& param = s_params[typpair];
+                Scalar rcutsq;
+                const typename evaluator::param_type* param = nullptr;
                 Scalar ronsq = Scalar(0.0);
-                if (shift_mode == 2)
-                    ronsq = s_ronsq[typpair];
+
+                if (enable_shared_cache)
+                    {
+                    rcutsq = s_rcutsq[typpair];
+                    param = s_params + typpair;
+
+                    if (shift_mode == 2)
+                        ronsq = s_ronsq[typpair];
+                    }
+                else
+                    {
+                    rcutsq = d_rcutsq[typpair];
+                    param = d_params + typpair;
+
+                    if (shift_mode == 2)
+                        ronsq = d_ronsq[typpair];
+                    }
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
@@ -304,7 +326,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 Scalar force_divr = Scalar(0.0);
                 Scalar pair_eng = Scalar(0.0);
 
-                evaluator eval(rsq, rcutsq, param);
+                evaluator eval(rsq, rcutsq, *param);
                 if (evaluator::needsDiameter())
                     eval.setDiameter(di, dj);
                 if (evaluator::needsCharge())
@@ -437,6 +459,7 @@ struct PairForceComputeKernel
         if (tpp == pair_args.threads_per_particle)
             {
             unsigned int block_size = pair_args.block_size;
+            bool enable_shared_cache = true;
 
             Index2D typpair_idx(pair_args.ntypes);
             size_t param_shared_bytes
@@ -444,8 +467,12 @@ struct PairForceComputeKernel
                   * typpair_idx.getNumElements();
 
             unsigned int max_block_size;
-            max_block_size = get_max_block_size(
-                gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>);
+            max_block_size
+                = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                                           shift_mode,
+                                                                           compute_virial,
+                                                                           tpp,
+                                                                           true>);
 
             hipFuncAttributes attr;
             hipFuncGetAttributes(
@@ -453,7 +480,14 @@ struct PairForceComputeKernel
                 reinterpret_cast<const void*>(&gpu_compute_pair_forces_shared_kernel<evaluator,
                                                                                      shift_mode,
                                                                                      compute_virial,
-                                                                                     tpp>));
+                                                                                     tpp,
+                                                                                     true>));
+
+            if (param_shared_bytes + attr.sharedSizeBytes > pair_args.devprop.sharedMemPerBlock)
+                {
+                param_shared_bytes = 0;
+                enable_shared_cache = false;
+                }
 
             unsigned int max_extra_bytes = static_cast<unsigned int>(
                 pair_args.devprop.sharedMemPerBlock - param_shared_bytes - attr.sharedSizeBytes);
@@ -471,29 +505,64 @@ struct PairForceComputeKernel
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size / tpp) + 1, 1, 1);
 
-            hipLaunchKernelGGL(
-                (gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>),
-                dim3(grid),
-                dim3(block_size),
-                param_shared_bytes + extra_shared_bytes,
-                0,
-                pair_args.d_force,
-                pair_args.d_virial,
-                pair_args.virial_pitch,
-                N,
-                pair_args.d_pos,
-                pair_args.d_diameter,
-                pair_args.d_charge,
-                pair_args.box,
-                pair_args.d_n_neigh,
-                pair_args.d_nlist,
-                pair_args.d_head_list,
-                d_params,
-                pair_args.d_rcutsq,
-                pair_args.d_ronsq,
-                pair_args.ntypes,
-                offset,
-                max_extra_bytes);
+            if (enable_shared_cache)
+                {
+                hipLaunchKernelGGL((gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                                          shift_mode,
+                                                                          compute_virial,
+                                                                          tpp,
+                                                                          true>),
+                                   dim3(grid),
+                                   dim3(block_size),
+                                   param_shared_bytes + extra_shared_bytes,
+                                   0,
+                                   pair_args.d_force,
+                                   pair_args.d_virial,
+                                   pair_args.virial_pitch,
+                                   N,
+                                   pair_args.d_pos,
+                                   pair_args.d_diameter,
+                                   pair_args.d_charge,
+                                   pair_args.box,
+                                   pair_args.d_n_neigh,
+                                   pair_args.d_nlist,
+                                   pair_args.d_head_list,
+                                   d_params,
+                                   pair_args.d_rcutsq,
+                                   pair_args.d_ronsq,
+                                   pair_args.ntypes,
+                                   offset,
+                                   max_extra_bytes);
+                }
+            else
+                {
+                hipLaunchKernelGGL((gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                                          shift_mode,
+                                                                          compute_virial,
+                                                                          tpp,
+                                                                          false>),
+                                   dim3(grid),
+                                   dim3(block_size),
+                                   param_shared_bytes + extra_shared_bytes,
+                                   0,
+                                   pair_args.d_force,
+                                   pair_args.d_virial,
+                                   pair_args.virial_pitch,
+                                   N,
+                                   pair_args.d_pos,
+                                   pair_args.d_diameter,
+                                   pair_args.d_charge,
+                                   pair_args.box,
+                                   pair_args.d_n_neigh,
+                                   pair_args.d_nlist,
+                                   pair_args.d_head_list,
+                                   d_params,
+                                   pair_args.d_rcutsq,
+                                   pair_args.d_ronsq,
+                                   pair_args.ntypes,
+                                   offset,
+                                   max_extra_bytes);
+                }
             }
         else
             {

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __NEIGHBORLOSTGPUBINNED_CUH__
@@ -60,7 +60,8 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     bool diameter_shift,
                                     const Scalar3& ghost_width,
                                     const GPUPartition& gpu_partition,
-                                    bool use_index);
+                                    bool use_index,
+                                    const hipDeviceProp_t& devprop);
 
     } // end namespace kernel
     } // end namespace md

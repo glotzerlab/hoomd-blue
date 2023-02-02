@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -120,10 +120,10 @@ struct hpmc_patch_args_t
     Provide a PatchEnergy instance to IntegratorHPMC. The pairwise patch energy will be evaluated
     when needed during the HPMC trial moves.
 */
-class PatchEnergy
+class PatchEnergy : public Autotuned
     {
     public:
-    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef) { }
+    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Autotuned(), m_sysdef(sysdef) { }
     virtual ~PatchEnergy() { }
 
 #ifdef ENABLE_HIP
@@ -170,15 +170,6 @@ class PatchEnergy
         }
 
 #ifdef ENABLE_HIP
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        throw std::runtime_error("PatchEnergy (base class) does not support setAutotunerParams");
-        }
-
     //! Asynchronously launch the JIT kernel
     /*! \param args Kernel arguments
         \param hStream stream to execute on
@@ -465,8 +456,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be
                                     //! used in a more general setting.
 
-    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
-
     bool m_past_first_run; //!< Flag to test if the first run() has started
     //! Update the nominal width of the cells
     /*! This method is virtual so that derived classes can set appropriate widths
@@ -488,6 +477,8 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         }
 
 #endif
+
+    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
     private:
     hpmc_counters_t m_count_run_start;  //!< Count saved at run() start

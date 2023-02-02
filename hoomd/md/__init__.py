@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Molecular dynamics.
@@ -41,3 +41,4 @@ from hoomd.md import methods
 from hoomd.md import mesh
 from hoomd.md import many_body
 from hoomd.md import tune
+from hoomd.md.half_step_hook import HalfStepHook

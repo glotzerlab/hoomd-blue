@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_NEC__H__
@@ -136,7 +136,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
     inline double getPressure()
         {
         return (1 + count_pressurevirial / count_movelength) * this->m_pdata->getN()
-               / this->m_pdata->getBox().getVolume();
+               / this->m_pdata->getBox().getVolume(this->m_sysdef->getNDimensions() == 2);
         }
 
     //! Get the current counter values for NEC

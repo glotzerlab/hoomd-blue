@@ -1,9 +1,10 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 import pytest
 import numpy
 
@@ -112,6 +113,29 @@ def test_forces_and_energies(snapshot_factory, simulation_factory, improper_cls,
     if sim.device.communicator.rank == 0:
         assert sum(sim_energies) == pytest.approx(energy, rel=1e-4)
         numpy.testing.assert_allclose(sim_forces, force, rtol=1e-4, atol=1e-4)
+
+
+@pytest.mark.parametrize("improper_cls, params, force, energy",
+                         improper_test_parameters)
+def test_kernel_parameters(snapshot_factory, simulation_factory, improper_cls,
+                           params, force, energy):
+    snapshot = snapshot_factory()
+    sim = simulation_factory(snapshot)
+
+    potential = improper_cls()
+    potential.params['A-A-A-A'] = params
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(potential)
+
+    langevin = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All())
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=potential,
+                                     activate=lambda: sim.run(1))
 
 
 # Test Logging

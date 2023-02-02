@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
 import pytest
 from itertools import permutations
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check
+from hoomd.conftest import logging_check, autotuned_kernel_parameter_check
 
 _directions = list(permutations(['x', 'y', 'z'], 2))
 
@@ -40,7 +40,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     mpf = hoomd.md.update.ReversePerturbationFlow(filt, ramp, slab_direction,
                                                   flow_direction, n_slabs)
 
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
     sim.operations.add(mpf)
@@ -81,6 +81,13 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
         mpf.summed_exchanged_momentum = 1.5
 
     sim.run(10)
+
+    if sim.device.communicator.num_ranks == 1:
+        # ReversePerturbationFlow doesn't execute its kernel on all ranks,
+        # test only on serial simulations.
+        autotuned_kernel_parameter_check(instance=mpf,
+                                         activate=lambda: sim.run(1),
+                                         all_optional=True)
 
 
 def test_logging():

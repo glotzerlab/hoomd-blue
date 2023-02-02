@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraintGPU.h"
@@ -28,21 +28,13 @@ ForceDistanceConstraintGPU::ForceDistanceConstraintGPU(std::shared_ptr<SystemDef
       m_T(m_exec_conf), m_nnz(m_exec_conf), m_nnz_tot(0)
 #endif
     {
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner_fill.reset(new Autotuner(warp_size,
-                                     1024,
-                                     warp_size,
-                                     5,
-                                     100000,
-                                     "dist_constraint_fill_matrix_vec",
-                                     this->m_exec_conf));
-    m_tuner_force.reset(new Autotuner(warp_size,
-                                      1024,
-                                      warp_size,
-                                      5,
-                                      100000,
-                                      "dist_constraint_force",
-                                      this->m_exec_conf));
+    m_tuner_fill.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "dist_constraint_fill_matrix_vec"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "dist_constraint_force"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_fill, m_tuner_force});
 
 #ifdef CUSOLVER_AVAILABLE
     // initialize cuSPARSE
@@ -196,7 +188,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(uint64_t timestep)
                                        d_group_typeval.data,
                                        m_deltaT,
                                        m_pdata->getBox(),
-                                       m_tuner_fill->getParam());
+                                       m_tuner_fill->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -245,6 +237,71 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
         // reset flags
         m_condition.resetFlags(0);
 
+        m_csr_rowptr.resize(n_constraint + 1);
+#ifdef CUSPARSE_NEW_API
+            {
+            ArrayHandle<int> d_csr_rowptr(m_csr_rowptr,
+                                          access_location::device,
+                                          access_mode::overwrite);
+            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
+            cusparseDnMatDescr_t cmatrix_descr;
+            cusparseSpMatDescr_t csr_descr;
+            cusparseCreateDnMat(&cmatrix_descr,
+                                n_constraint,
+                                n_constraint,
+                                n_constraint,
+                                d_cmatrix.data,
+                                CUDA_R_64F,
+                                CUSPARSE_ORDER_COL);
+            cusparseCreateCsr(&csr_descr,
+                              n_constraint,
+                              n_constraint,
+                              0,
+                              d_csr_rowptr.data,
+                              NULL,
+                              NULL,
+                              CUSPARSE_INDEX_32I,
+                              CUSPARSE_INDEX_32I,
+                              CUSPARSE_INDEX_BASE_ZERO,
+                              CUDA_R_64F);
+            size_t bufferSize = 0;
+            cusparseDenseToSparse_bufferSize(m_cusparse_handle,
+                                             cmatrix_descr,
+                                             csr_descr,
+                                             CUSPARSE_DENSETOSPARSE_ALG_DEFAULT,
+                                             &bufferSize);
+            void* d_buffer = NULL;
+            cudaMalloc(&d_buffer, bufferSize);
+            cusparseDenseToSparse_analysis(m_cusparse_handle,
+                                           cmatrix_descr,
+                                           csr_descr,
+                                           CUSPARSE_DENSETOSPARSE_ALG_DEFAULT,
+                                           d_buffer);
+            int64_t nrows, ncols, nnz;
+            cusparseSpMatGetSize(csr_descr, &nrows, &ncols, &nnz);
+            m_nnz_tot = static_cast<int>(nnz);
+            m_csr_colind.resize(m_nnz_tot);
+            m_sparse_val.resize(m_nnz_tot);
+            ArrayHandle<int> d_csr_colind(m_csr_colind,
+                                          access_location::device,
+                                          access_mode::overwrite);
+            ArrayHandle<double> d_sparse_val(m_sparse_val,
+                                             access_location::device,
+                                             access_mode::overwrite);
+            cusparseCsrSetPointers(csr_descr,
+                                   d_csr_rowptr.data,
+                                   d_csr_colind.data,
+                                   d_sparse_val.data);
+            cusparseDenseToSparse_convert(m_cusparse_handle,
+                                          cmatrix_descr,
+                                          csr_descr,
+                                          CUSPARSE_DENSETOSPARSE_ALG_DEFAULT,
+                                          d_buffer);
+            cusparseDestroyDnMat(cmatrix_descr);
+            cusparseDestroySpMat(csr_descr);
+            cudaFree(d_buffer);
+            }
+#else
             {
             // access matrix and vector
             ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
@@ -266,11 +323,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-
-        m_csr_rowptr.resize(n_constraint + 1);
         m_csr_colind.resize(m_nnz_tot);
         m_sparse_val.resize(m_nnz_tot);
-
             {
             // access matrix and vector
             ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
@@ -302,6 +356,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                 CHECK_CUDA_ERROR();
             }
 
+#endif
             {
             ArrayHandle<int> h_sparse_idxlookup(m_sparse_idxlookup,
                                                 access_location::host,
@@ -704,7 +759,7 @@ void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
                                           m_virial_pitch,
                                           box,
                                           n_ptl,
-                                          m_tuner_force->getParam(),
+                                          m_tuner_force->getParam()[0],
                                           d_lagrange.data);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

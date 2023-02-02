@@ -1,10 +1,11 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
 from hoomd import md
 from hoomd.conftest import expected_loggable_params
-from hoomd.conftest import logging_check, pickling_check
+from hoomd.conftest import (logging_check, pickling_check,
+                            autotuned_kernel_parameter_check)
 import pytest
 import numpy
 
@@ -117,6 +118,26 @@ def test_forces_and_energies(snapshot_factory, simulation_factory,
                              itertools.repeat(expected_loggable_params)))
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
+
+
+@pytest.mark.parametrize("special_pair_cls, params, r_cut, force, energy",
+                         special_pair_test_parameters)
+def test_kernel_parameters(simulation_factory, snapshot_factory,
+                           special_pair_cls, params, r_cut, force, energy):
+    snapshot = snapshot_factory()
+    sim = simulation_factory(snapshot)
+
+    potential = special_pair_cls()
+    potential.params['A-A'] = params
+    potential.r_cut['A-A'] = r_cut
+
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    forces=[potential])
+
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=potential,
+                                     activate=lambda: sim.run(1))
 
 
 # Test Pickling

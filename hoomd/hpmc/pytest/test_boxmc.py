@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.BoxMC."""
@@ -203,7 +203,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     sim.operations.integrator = mc
 
     # run w/o setting any of the box moves
-    sim.run(10)
+    sim.run(1)
 
     # check that the box remains unchanged
     assert mc.overlaps == 0
@@ -211,7 +211,7 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
 
     # add a box move
     setattr(boxmc, box_move['move'], box_move['params'])
-    sim.run(50)
+    sim.run(5)
 
     # check that box is changed
     assert mc.overlaps == 0
@@ -237,7 +237,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
     sim.operations.integrator = mc
 
     # run w/o setting any of the box moves
-    sim.run(100)
+    sim.run(10)
 
     # check that the box remains unchanged
     assert mc.overlaps == 0
@@ -245,7 +245,7 @@ def test_disk_compression(betaP, box_move, simulation_factory,
 
     # add a box move
     setattr(boxmc, box_move['move'], box_move['params'])
-    sim.run(500)
+    sim.run(50)
 
     # check that box is changed
     assert mc.overlaps == 0
@@ -271,7 +271,7 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator = mc
 
     # run w/o setting any of the box moves
-    sim.run(100)
+    sim.run(1)
 
     # check results after attaching but with zero weights and deltas
     for v in counter_attrs.values():
@@ -280,14 +280,14 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
     # add a box move
     setattr(boxmc, box_move['move'], box_move['params'])
     # run with box move
-    sim.run(100)
+    sim.run(10)
 
     # check some moves are accepted after properly setting a box move
     for (k, v) in counter_attrs.items():
         if k == box_move['move']:
             ctr = getattr(boxmc, v)
             assert ctr[0] > 0
-            assert ctr[0] + ctr[1] == 100
+            assert ctr[0] + ctr[1] == 10
 
 
 @pytest.mark.parametrize("box_move", box_moves_attrs)

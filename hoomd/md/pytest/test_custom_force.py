@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -10,6 +10,8 @@ try:
     import cupy  # noqa F401
     CUPY_IMPORTED = True
 except ImportError:
+    # Necessary to test failure of using GPU buffers in CPU simulation.
+    cupy = None
     CUPY_IMPORTED = False
 
 # mpi4py is needed for the ghost data test
@@ -38,12 +40,12 @@ def force_simulation_factory(simulation_factory):
 
     def make_sim(force_obj, snapshot=None, domain_decomposition=None):
         sim = simulation_factory(snapshot, domain_decomposition)
-        npt = md.methods.NPT(hoomd.filter.All(),
-                             kT=1,
-                             tau=1,
-                             S=1,
-                             tauS=1,
-                             couple="none")
+        thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+        npt = md.methods.ConstantPressure(hoomd.filter.All(),
+                                          S=1,
+                                          tauS=1,
+                                          couple="none",
+                                          thermostat=thermostat)
         integrator = md.Integrator(dt=0.005, forces=[force_obj], methods=[npt])
         sim.operations.integrator = integrator
         return sim
@@ -79,11 +81,16 @@ class MyForce(md.force.Custom):
         self._local_force_name = local_force_name
 
     def set_forces(self, timestep):
+        if 'gpu' in self._local_force_name:
+            array_mod = cupy
+        else:
+            array_mod = np
         with getattr(self, self._local_force_name) as arrays:
             arrays.force[:] = -5
             arrays.potential_energy[:] = 37
             arrays.torque[:] = 23
-            arrays.virial[:] = np.arange(6)[None, :]
+            if arrays.virial.shape[0] != 0:
+                arrays.virial[:] = array_mod.arange(6)[None, :]
 
 
 def test_simulation(local_force_names, force_simulation_factory,
@@ -128,12 +135,16 @@ class MyPeriodicField(md.force.Custom):
 
     def _evaluate_periodic(self, snapshot):
         """Evaluate force and energy in python."""
+        if 'gpu' in self._local_force_name:
+            array_mod = cupy
+        else:
+            array_mod = np
         box = snapshot.global_box
         positions = self._numpy_array(snapshot.particles.position)
 
         # if no particles on this rank, return
         if positions.shape == (0,):
-            return np.array([]), np.array([])
+            return array_mod.array([]), array_mod.array([])
 
         a1, a2, a3 = box.to_matrix().T
         V = np.dot(a1, np.cross(a2, a3))
@@ -141,13 +152,16 @@ class MyPeriodicField(md.force.Custom):
         b2 = 2 * np.pi / V * np.cross(a3, a1)
         b3 = 2 * np.pi / V * np.cross(a1, a2)
         b = {0: b1, 1: b2, 2: b3}.get(self._i)
-        dot = np.dot(positions, b)
-        cos_term = 1 / (2 * np.pi * self._p * self._w) * np.cos(self._p * dot)
-        sin_term = 1 / (2 * np.pi * self._p * self._w) * np.sin(self._p * dot)
-        energies = self._A * np.tanh(cos_term)
+        dot = array_mod.dot(array_mod.array(positions), array_mod.array(b))
+
+        cos_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.cos(
+            self._p * dot)
+        sin_term = 1 / (2 * array_mod.pi * self._p * self._w) * array_mod.sin(
+            self._p * dot)
+        energies = self._A * array_mod.tanh(cos_term)
         forces = self._A * sin_term
-        forces *= 1 - np.tanh(cos_term)**2
-        forces = np.outer(forces, b)
+        forces *= 1 - array_mod.tanh(cos_term)**2
+        forces = array_mod.outer(forces, array_mod.array(b))
         return forces, energies
 
     def set_forces(self, timestep):
@@ -342,12 +356,12 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(snap)
     custom_force = MyForce('gpu_local_force_arrays')
-    npt = md.methods.NPT(hoomd.filter.All(),
-                         kT=1,
-                         tau=1,
-                         S=1,
-                         tauS=1,
-                         couple="none")
+    thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+    npt = md.methods.ConstantPressure(hoomd.filter.All(),
+                                      thermostat=thermostat,
+                                      S=1,
+                                      tauS=1,
+                                      couple="none")
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[npt])
     sim.operations.integrator = integrator
     with pytest.raises(RuntimeError):
@@ -361,10 +375,9 @@ def test_torques_update(local_force_names, two_particle_snapshot_factory,
     for local_force_name in local_force_names:
         snap = two_particle_snapshot_factory()
         force = MyForce(local_force_name)
-        sim = force_simulation_factory(force, snap)
-        if sim.device.communicator.rank == 0:
+        if snap.communicator.rank == 0:
             snap.particles.moment_inertia[:] = [[1, 1, 1], [1, 1, 1]]
-        sim.state.set_snapshot(snap)
+        sim = force_simulation_factory(force, snap)
 
         _skip_if_gpu_device_and_no_cupy(sim)
         sim.operations.integrator.integrate_rotational_dof = True

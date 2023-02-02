@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement various data structures for syncing C++ and Python data."""
@@ -6,6 +6,8 @@
 from abc import abstractmethod
 from collections import abc
 import warnings
+
+import numpy as np
 
 import hoomd
 import hoomd.data.typeconverter as _typeconverter
@@ -163,7 +165,16 @@ class _HOOMDSyncedCollection(abc.Collection):
 
     def __contains__(self, obj):
         self._read()
-        return obj in self._data
+        if isinstance(obj, np.ndarray):
+            return any(self._numpy_equality(obj, item) for item in self._data)
+        for item in self._data:
+            if isinstance(item, np.ndarray):
+                if self._numpy_equality(item, obj):
+                    return True
+                continue
+            if obj == item:
+                return True
+        return False
 
     def __iter__(self):
         self._read()
@@ -177,6 +188,20 @@ class _HOOMDSyncedCollection(abc.Collection):
         if isinstance(other, _HOOMDSyncedCollection):
             return self.to_base() == other.to_base()
         return self.to_base() == other
+
+    def _numpy_equality(self, a, b):
+        """Whether to consider a and b equal for purposes of __contains__.
+
+        Args:
+            a (numpy.ndarray): Any array.
+            b (any): Any value
+
+        Returns:
+            bool: Whether a and b are equal.
+        """
+        if not isinstance(b, np.ndarray):
+            return False
+        return a is b or np.array_equal(a, b, equal_nan=True)
 
     def to_base(self):
         """Return a base data object (e.g. list, dict, or tuple).
@@ -562,6 +587,13 @@ class _HOOMDTuple(_HOOMDSyncedCollection, abc.Sequence):
 def _to_hoomd_data(root, schema, parent=None, identity=None, data=None):
     _exclude_classes = (hoomd.logging.Logger,)
     if isinstance(data, _exclude_classes):
+        return data
+    # Even though a ndarray is a MutableSequence we need to ensure that it
+    # remains a ndarray and not a list when the validation is for an array. In
+    # addition, this would error if we allowed the MutableSequence conditional
+    # to execute.
+    if (isinstance(data, np.ndarray)
+            and isinstance(schema, _typeconverter.NDArrayValidator)):
         return data
     if isinstance(data, abc.MutableMapping):
         spec = _find_structural_validator(schema,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -63,7 +63,8 @@ class GPUEvalFactory
         for (unsigned int i = 1; i <= (unsigned int)m_exec_conf->dev_prop.warpSize; i *= 2)
             m_eval_threads.push_back(i);
 
-        for (unsigned int i = 32; i <= (unsigned int)m_exec_conf->dev_prop.maxThreadsPerBlock;
+        for (unsigned int i = exec_conf->dev_prop.warpSize;
+             i <= (unsigned int)m_exec_conf->dev_prop.maxThreadsPerBlock;
              i *= 2)
             m_launch_bounds.push_back(i);
 

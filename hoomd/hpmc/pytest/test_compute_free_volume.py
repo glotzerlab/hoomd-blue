@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 from hoomd.error import DataAccessError
 from hoomd.logging import LoggerCategories
-from hoomd.conftest import logging_check
+from hoomd.conftest import logging_check, autotuned_kernel_parameter_check
 
 
 def test_before_attaching():
@@ -49,8 +49,8 @@ _radii = [
 
 
 @pytest.mark.parametrize("radius1, radius2", _radii)
-def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
-                            lattice_snapshot_factory, radius1, radius2):
+def test_validation_systems(simulation_factory, lattice_snapshot_factory,
+                            radius1, radius2):
     n = 7
     free_volume = (n**3) * (1 - (4 / 3) * np.pi * (radius1 + radius2)**3)
     free_volume = max([0.0, free_volume])
@@ -75,6 +75,15 @@ def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
     np.testing.assert_allclose(free_volume,
                                free_volume_compute.free_volume,
                                rtol=2e-2)
+
+    # Tet the kernel parameter tuner.
+    def activate_tuner():
+        sim.run(1)
+        # We need to make the kernel be called.
+        free_volume_compute.free_volume
+
+    autotuned_kernel_parameter_check(instance=free_volume_compute,
+                                     activate=activate_tuner)
 
 
 def test_logging():

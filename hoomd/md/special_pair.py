@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Special pair forces.
@@ -58,7 +58,7 @@ class SpecialPair(Force):
     def __init__(self):
         super().__init__()
 
-    def _attach(self):
+    def _attach_hook(self):
         # check that some special pairs are defined
         if self._simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
             self._simulation.device._cpp_msg.error("No pairs are defined.\n")
@@ -69,7 +69,6 @@ class SpecialPair(Force):
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
-        super()._attach()
 
 
 class LJ(SpecialPair):

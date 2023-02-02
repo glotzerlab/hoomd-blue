@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Bond forces.
@@ -55,7 +55,7 @@ class Bond(Force):
     def __init__(self):
         super().__init__()
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
@@ -63,8 +63,6 @@ class Bond(Force):
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
-
-        super()._attach()
 
 
 class Harmonic(Bond):
@@ -261,7 +259,7 @@ class Table(Bond):
                 len_keys=1))
         self._add_typeparam(params)
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.BondTablePotential
@@ -269,8 +267,6 @@ class Table(Bond):
             cpp_cls = _md.BondTablePotentialGPU
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
-
-        Force._attach(self)
 
 
 class Tether(Bond):

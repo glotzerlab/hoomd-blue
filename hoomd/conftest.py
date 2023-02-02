@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Code to support unit and validation tests.
@@ -14,8 +14,6 @@ import hoomd
 import atexit
 import os
 import numpy
-import math
-import warnings
 from hoomd.logging import LoggerCategories
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
@@ -514,106 +512,38 @@ def operation_pickling_check(instance, sim):
     pickling_check(instance)
 
 
-class BlockAverage:
-    """Block average method for estimating standard deviation of the mean.
+def autotuned_kernel_parameter_check(instance, activate, all_optional=False):
+    """Check that an AutotunedObject behaves as expected."""
+    instance.tune_kernel_parameters()
 
-    Args:
-        data: List of values
-    """
+    initial_kernel_parameters = instance.kernel_parameters
 
-    def __init__(self, data):
-        # round down to the nearest power of 2
-        N = 2**int(math.log(len(data)) / math.log(2))
-        if N != len(data):
-            warnings.warn(
-                "Ignoring some data. Data array should be a power of 2.")
+    if isinstance(instance._simulation.device, hoomd.device.CPU):
+        # CPU instances have no parameters and are always complete.
+        assert initial_kernel_parameters == {}
+        assert instance.is_tuning_complete
+    else:
+        # GPU instances have parameters and start incomplete.
+        assert initial_kernel_parameters != {}
 
-        block_sizes = []
-        block_mean = []
-        block_variance = []
+        # is_tuning_complete is True when all tuners are optional.
+        if not all_optional:
+            assert not instance.is_tuning_complete
 
-        # take means of blocks and the mean/variance of all blocks, growing
-        # blocks by factors of 2
-        block_size = 1
-        while block_size <= N // 8:
-            num_blocks = N // block_size
-            block_data = numpy.zeros(num_blocks)
+        activate()
 
-            for i in range(0, num_blocks):
-                start = i * block_size
-                end = start + block_size
-                block_data[i] = numpy.mean(data[start:end])
+        assert instance.kernel_parameters != initial_kernel_parameters
 
-            block_mean.append(numpy.mean(block_data))
-            block_variance.append(numpy.var(block_data) / (num_blocks - 1))
+        # Note: It is not practical to automatically test that
+        # `is_tuning_complete` is eventually achieved as failure results in an
+        # infinite loop. Also, some objects (like neighbor lists) require
+        # realistic simulation conditions to test adequately. `hoomd-benchmarks`
+        # tests that tuning completes in all benchmarks.
 
-            block_sizes.append(block_size)
-            block_size *= 2
-
-        self._block_mean = numpy.array(block_mean)
-        self._block_variance = numpy.array(block_variance)
-        self._block_sizes = numpy.array(block_sizes)
-        self.data = numpy.array(data)
-
-        # check for a plateau in the relative error before the last data point
-        block_relative_error = numpy.sqrt(self._block_variance) / numpy.fabs(
-            self._block_mean)
-        relative_error_derivative = (numpy.diff(block_relative_error)
-                                     / numpy.diff(self._block_sizes))
-        if numpy.all(relative_error_derivative > 0):
-            warnings.warn("Block averaging failed to plateau, run longer")
-
-    def get_hierarchical_errors(self):
-        """Get details on the hierarchical errors."""
-        return (self._block_sizes, self._block_mean, self._block_variance)
-
-    @property
-    def standard_deviation(self):
-        """float: The error estimate on the mean."""
-        if numpy.all(self.data == self.data[0]):
-            return 0
-
-        return numpy.sqrt(numpy.max(self._block_variance))
-
-    @property
-    def mean(self):
-        """float: The mean."""
-        return self._block_mean[-1]
-
-    @property
-    def relative_error(self):
-        """float: The relative error."""
-        return self.standard_deviation / numpy.fabs(self.mean)
-
-    def assert_close(self,
-                     reference_mean,
-                     reference_deviation,
-                     z=6,
-                     max_relative_error=0.02):
-        """Assert that the distribution is constent with a given reference.
-
-        Also assert that the relative error of the distribution is small.
-        Otherwise, test runs with massive fluctuations would likely lead to
-        passing tests.
-
-        Args:
-            reference_mean: Known good mean value
-            reference_deviation: Standard deviation of the known good value
-            z: Number of standard deviations
-            max_relative_error: Maximum relative error to allow
-        """
-        sample_mean = self.mean
-        sample_deviation = self.standard_deviation
-
-        assert sample_deviation / sample_mean <= max_relative_error
-
-        # compare if 0 is within the confidence interval around the difference
-        # of the means
-        deviation_diff = ((sample_deviation**2
-                           + reference_deviation**2)**(1 / 2.))
-        mean_diff = math.fabs(sample_mean - reference_mean)
-        deviation_allowed = z * deviation_diff
-        assert mean_diff <= deviation_allowed
+        # Ensure that we can set parameters.
+        instance.kernel_parameters = initial_kernel_parameters
+        activate()
+        assert instance.kernel_parameters == initial_kernel_parameters
 
 
 class ListWriter(hoomd.custom.Action):
@@ -669,6 +599,180 @@ class ManyListWriter(hoomd.custom.Action):
 def index_id(i):
     """Used for pytest fixture ids of indices."""
     return f"(i={i})"
+
+
+class Options:
+    """Item should be one of a set number of values.
+
+    For use with `Generator`.
+    """
+
+    def __init__(self, *options):
+        self.options = options
+
+
+class Either:
+    """Item should be a value from a set number of specs.
+
+    For use with `Generator`.
+    """
+
+    def __init__(self, *options):
+        self.options = options
+
+
+class Generator:
+    """Generates random values of various specifications based on method.
+
+    The purpose is similar to property testing libraries like hypothesis in that
+    it enables automatic testing with a variety of values. This implementation
+    is nowhere near as sophicisticated as those packages. However, for general
+    purpose testing of property setting and manipulation, this is sufficient.
+
+    Note:
+        Developers should use this over adding ad-hoc values to tests. This
+        should not be used when testing the behavior of an object in a
+        simulation where manual specified values is often important.
+
+    Note:
+        If more flexibility is needed small classes like `Options` would work
+        well for instance a ``Float`` class which specified the range of values
+        to assume would be quite simple to add.
+    """
+    alphabet = [
+        char for char in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    ]
+
+    def __init__(self, rng, max_float=1e9, max_int=1_000_000):
+        self.rng = rng
+        self.max_float = max_float
+        self.max_int = max_int
+
+    def __call__(self, spec):
+        """Return a random valid value from the specification."""
+        if isinstance(spec, dict):
+            return self.dict(spec)
+        if isinstance(spec, tuple):
+            return self.tuple(spec)
+        if isinstance(spec, list):
+            return self.list(spec)
+        if isinstance(spec, Either):
+            return self.either(spec)
+        if isinstance(spec, Options):
+            return self.option(spec)
+        return {
+            str: self.str,
+            float: self.float,
+            int: self.int,
+            bool: self.bool,
+            numpy.ndarray: self.ndarray,
+            hoomd.variant.Variant: self.variant,
+            None: self.none
+        }[spec]()
+
+    def tuple(self, spec):
+        """Return an appropriately structured tuple."""
+        return tuple(self(inner_spec) for inner_spec in spec)
+
+    def list(self, spec, max_size=20):
+        """Return an appropriately structured list."""
+        return [self(spec[0]) for _ in range(self.rng.integers(max_size))]
+
+    def dict(self, spec):
+        """Return an appropriately structured dict."""
+        return {k: self(inner_spec) for k, inner_spec in spec.items()}
+
+    def none(self):
+        """Return ``None``."""
+        return None
+
+    def int(self, max_=None):
+        """Return a random integer."""
+        max_ = self.max_int if max_ is None else max_
+        return self.rng.integers(max_).item()
+
+    def float(self, max_=None):
+        """Return a random float."""
+        max_ = self.max_float if max_ is None else max_
+        return max_ * (self.rng.random() - 0.5)
+
+    def bool(self):
+        """Return a random Boolean."""
+        return bool(self.int(2))
+
+    def str(self, max_length=20):
+        """Return a random string."""
+        length = self.int(max_length) + 1
+        characters = [
+            self.rng.choice(self.alphabet)
+            for _ in range(self.rng.integers(length))
+        ]
+        return "".join(characters)
+
+    def ndarray(self, shape=(None,), dtype="float64"):
+        """Return a ndarray of specified shape and dtype.
+
+        A value of None in shape means any length.
+        """
+        shape = tuple(i if i is not None else self.int(20) for i in shape)
+        return (100 * self.rng.random(numpy.product(shape))
+                - 50).reshape(shape).astype(dtype)
+
+    def variant(self):
+        """Return a random `hoomd.variant.Variant` or `float`."""
+        classes = ((hoomd.variant.Constant, (float,)),
+                   (hoomd.variant.Cycle, (float, float, int, int, int, int,
+                                          int)), (hoomd.variant.Ramp,
+                                                  (float, float, int, int)),
+                   (hoomd.variant.Power, (float, float, int, int,
+                                          int)), (float, (float,)))
+        cls, spec = classes[self.rng.integers(len(classes))]
+        return cls(*self(spec))
+
+    def option(self, spec):
+        """Return one of the specified options."""
+        return spec.options[self.rng.integers(len(spec.options))]
+
+    def either(self, spec):
+        """Return a random value from one of the specified specifications."""
+        return self(spec.options[self.rng.integers(len(spec.options))])
+
+
+class ClassDefinition:
+    """Provides a class interface for working with classes with `Generator`.
+
+    See methods for usage.
+
+    Note:
+        For further development, methods for dealing with type_parameters would
+        be helpful for testing.
+    """
+
+    def __init__(
+        self,
+        cls,
+        constructor_spec,
+        attribute_spec=None,
+        generator=None,
+    ):
+        self.cls = cls
+        self.constructor_spec = constructor_spec
+        if attribute_spec is None:
+            attribute_spec = constructor_spec
+        self.attribute_spec = attribute_spec
+        if generator is None:
+            generator = Generator(numpy.random.default_rng())
+        self.generator = generator
+
+    def generate_init_args(self):
+        """Get arguments necessary for constructing the object."""
+        return self.generator(self.constructor_spec)
+
+    def generate_all_attr_change(self):
+        """Get arguments to test setting attributes."""
+        return {
+            k: self.generator(spec) for k, spec in self.attribute_spec.items()
+        }
 
 
 class BaseCollectionsTest:
@@ -753,34 +857,16 @@ class BaseCollectionsTest:
         """
         assert True
 
-    _rng = numpy.random.default_rng(15656456)
+    _generator = Generator(numpy.random.default_rng(15656456))
 
     @property
-    def rng(self):
-        """Return a randon number generator.
+    def generator(self):
+        """Return the value generator.
 
         Many test rely on the generation of random numbers. To ensure
         reproducible this should have a constant seed.
         """
-        return self._rng
-
-    def int(self, max_=100_000_000):
-        """Return a random integer."""
-        return self.rng.integers(max_).item()
-
-    def float(self, max_=1e9):
-        """Return a random float."""
-        return max_ * (self.rng.random() - 0.5)
-
-    def bool(self):
-        """Return a random Boolean."""
-        return bool(self.int(2))
-
-    def str(self, max_length=20):
-        """Return a random string."""
-        length = self.int(max_length) + 1
-        characters = [self.rng.choice(self.alphabet) for _ in range(length)]
-        return "".join(characters)
+        return self._generator
 
     @pytest.fixture(autouse=True, params=(5, 10, 20))
     def n(self, request):
@@ -828,7 +914,25 @@ class BaseCollectionsTest:
         # collection generation this is all but guaranteed.
         new_collection = generate_plain_collection(5)
         for item in new_collection:
-            if item in plain_collection:
+            # Having a NumPy array anywhere in another collection reeks havoc
+            # because of NumPy's use of == as a elementwise operator.
+            if isinstance(item, numpy.ndarray):
+                contains = any(
+                    test_collection._numpy_equality(item, item2)
+                    for item2 in plain_collection)
+            else:
+                if any(isinstance(a, numpy.ndarray) for a in plain_collection):
+                    contains = False
+                    for a in plain_collection:
+                        if isinstance(a, numpy.ndarray):
+                            contains |= test_collection._numpy_equality(a, item)
+                        else:
+                            contains |= a == item
+                        if contains:
+                            break
+                else:
+                    contains = item in plain_collection
+            if contains:
                 assert item in test_collection
             else:
                 assert item not in test_collection
@@ -1038,7 +1142,7 @@ class BaseListTest(BaseSequenceTest):
     def test_remove(self, populated_collection):
         """Test remove."""
         test_list, plain_list = populated_collection
-        remove_index = self.int(len(plain_list))
+        remove_index = self.generator.int(len(plain_list))
         test_list.remove(plain_list[remove_index])
         assert plain_list[remove_index] not in test_list
         plain_list.remove(plain_list[remove_index])
@@ -1079,14 +1183,14 @@ class BaseMappingTest(BaseCollectionsTest):
             This is an infinite generator.
         """
         while True:
-            yield self.str()
+            yield self.generator.str()
 
     def choose_random_key(self, mapping):
         """Pick a random existing key from mapping.
 
         Fails on an empty mapping.
         """
-        return list(mapping)[self.int(len(mapping))]
+        return list(mapping)[self.generator.int(len(mapping))]
 
     def test_iter(self, populated_collection):
         """Test __iter__."""

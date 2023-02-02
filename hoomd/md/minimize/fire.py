@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Energy minimizer."""
@@ -116,13 +116,13 @@ class FIRE(_DynamicIntegrator):
                                 force_tol=1e-2,
                                 angmom_tol=1e-2,
                                 energy_tol=1e-7)
-        fire.methods.append(md.methods.NVE(hoomd.filter.All()))
+        fire.methods.append(md.methods.ConstantVolume(hoomd.filter.All()))
         sim.operations.integrator = fire
         while not(fire.converged):
            sim.run(100)
 
         fire = md.minimize.FIRE(dt=0.05)
-        fire.methods.append(md.methods.NPH(
+        fire.methods.append(md.methods.ConstantPressure(
             hoomd.filter.All(), S=1, tauS=1, couple='none'))
         sim.operations.integrator = fire
         while not(fire.converged):
@@ -135,9 +135,10 @@ class FIRE(_DynamicIntegrator):
     Note:
         The algorithm requires an integration method to update the particle
         position and velocities. This should either be either
-        `hoomd.md.methods.NVE` (to minimize energy) or `hoomd.md.methods.NPH`
-        (to minimize energy and relax the box). The quantity minimized is in any
-        case the potential energy (not the enthalpy or any other quantity).
+        `hoomd.md.methods.ConstantVolume` (to minimize energy) or
+        `hoomd.md.methods.ConstantPressure` (to minimize energy and relax
+        the box), without setting any thermostat. The quantity minimized is in
+        any case the potential energy (not the enthalpy or any other quantity).
 
     Note:
         In practice, the default parameters prevents the simulation from making
@@ -244,19 +245,20 @@ class FIRE(_DynamicIntegrator):
         self._methods.clear()
 
         methods_list = syncedlist.SyncedList(
-            OnlyTypes((hoomd.md.methods.NVE, hoomd.md.methods.NPH,
+            OnlyTypes((hoomd.md.methods.ConstantVolume,
+                       hoomd.md.methods.ConstantPressure,
                        hoomd.md.methods.rattle.NVE)),
             syncedlist._PartialGetAttr("_cpp_obj"),
             iterable=methods)
         self._methods = methods_list
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.dt)
-        super()._attach()
+        super()._attach_hook()
 
     @log(requires_run=True)
     def energy(self):

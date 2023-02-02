@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceComputeGPU.h"
@@ -37,14 +37,13 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
         }
 
     // initialize autotuner
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        valid_params.push_back(block_size);
-
-    m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "active_force", this->m_exec_conf));
-    m_tuner_diffusion.reset(
-        new Autotuner(valid_params, 5, 100000, "active_diffusion", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "active_force"));
+    m_tuner_diffusion.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "active_diffusion"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_diffusion});
 
     // unsigned int N = m_pdata->getNGlobal();
     // unsigned int group_size = m_group->getNumMembersGlobal();
@@ -113,7 +112,7 @@ void ActiveForceComputeGPU::setForces()
                                                 d_f_actVec.data,
                                                 d_t_actVec.data,
                                                 N,
-                                                m_tuner_force->getParam());
+                                                m_tuner_force->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -159,7 +158,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
                                                           rotation_constant,
                                                           timestep,
                                                           m_sysdef->getSeed(),
-                                                          m_tuner_diffusion->getParam());
+                                                          m_tuner_diffusion->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

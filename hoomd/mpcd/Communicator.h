@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -19,6 +19,7 @@
 #include "ParticleData.h"
 #include "SystemData.h"
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/Autotuner.h"
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/GPUArray.h"
@@ -54,7 +55,7 @@ namespace mpcd
  *
  * \ingroup communication
  */
-class PYBIND11_EXPORT Communicator
+class PYBIND11_EXPORT Communicator : public Autotuned
     {
     public:
     //! Constructor
@@ -77,13 +78,6 @@ class PYBIND11_EXPORT Communicator
         {
         return m_unique_neighbors;
         }
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //@}
 

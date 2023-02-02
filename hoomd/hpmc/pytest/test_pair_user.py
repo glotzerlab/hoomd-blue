@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.pair.user.CPPPotential."""
@@ -6,6 +6,7 @@
 import hoomd
 import pytest
 import numpy as np
+from hoomd.conftest import autotuned_kernel_parameter_check
 
 # check if llvm_enabled
 llvm_disabled = not hoomd.version.llvm_enabled
@@ -84,6 +85,23 @@ def test_attaching(device, simulation_factory, two_particle_snapshot_factory):
     sim.run(0)
     assert mc._attached
     assert patch._attached
+
+
+@pytest.mark.validate
+@pytest.mark.skipif(llvm_disabled, reason='LLVM not enabled')
+def test_kernel_parameters(simulation_factory, lattice_snapshot_factory):
+    patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1,
+                                              param_array=[0, 1],
+                                              code='return -1;')
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    mc.pair_potential = patch
+    sim = simulation_factory(lattice_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=patch,
+                                     activate=lambda: sim.run(1))
 
 
 @pytest.mark.validate

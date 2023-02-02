@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -108,3 +108,33 @@ def test_cpu_build_specifics():
         pytest.skip("Don't run CPU-build specific tests when GPU is available")
     assert not hoomd.device.GPU.is_available()
     assert type(hoomd.device.auto_select()) == hoomd.device.CPU
+
+
+def test_device_notice(device, tmp_path):
+    # Message file declared. Should output in specified file.
+    device.notice_level = 4
+    device.msg_file = str(tmp_path / "str_message")
+    msg = "This message should output."
+    device.notice(msg)
+
+    if device.communicator.rank == 0:
+        with open(device.msg_file) as fh:
+            assert fh.read() == msg + "\n"
+
+    # Test notice with a message that is not a string.
+    device.msg_file = str(tmp_path / "int_message")
+    msg = 123456
+    device.notice(msg)
+
+    if device.communicator.rank == 0:
+        with open(device.msg_file) as fh:
+            assert fh.read() == str(msg) + "\n"
+
+    # Test the level argument.
+    device.msg_file = str(tmp_path / "empty_notice")
+    msg = "This message should not output."
+    device.notice(msg, level=5)
+
+    if device.communicator.rank == 0:
+        with open(device.msg_file) as fh:
+            assert fh.read() == ""

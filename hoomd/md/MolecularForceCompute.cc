@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
@@ -47,8 +47,10 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
         for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
             valid_params.push_back(block_size);
 
-        m_tuner_fill.reset(
-            new Autotuner(valid_params, 5, 100000, "fill_molecule_table", this->m_exec_conf));
+        m_tuner_fill.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                            this->m_exec_conf,
+                                            "fill_molecule_table"));
+        this->m_autotuners.push_back(m_tuner_fill);
         }
 #endif
     }
@@ -169,7 +171,7 @@ void MolecularForceCompute::initMoleculesGPU()
                                                  access_mode::read);
 
         m_tuner_fill->begin();
-        unsigned int block_size = m_tuner_fill->getParam();
+        unsigned int block_size = m_tuner_fill->getParam()[0];
 
         kernel::gpu_fill_molecule_table(nptl_local,
                                         n_local_ptls_in_molecules,

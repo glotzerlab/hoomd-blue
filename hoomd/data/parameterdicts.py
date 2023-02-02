@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement parameter dictionaries."""
@@ -26,7 +26,7 @@ def _has_str_elems(obj):
     return all([isinstance(elem, str) for elem in obj])
 
 
-def _is_good_iterable(obj):
+def _is_key_iterable(obj):
     """Returns True if object is iterable with respect to types."""
     return _is_iterable(obj) and _has_str_elems(obj)
 
@@ -61,9 +61,12 @@ def _raise_if_required_arg(value, current_context=()):
     if isinstance(value, Mapping):
         for key, item in value.items():
             _raise_if_required_arg(item, current_context + (key,))
-    # _is_good_iterable is required over isinstance(value, Sequence) because a
+    # _is_iterable is required over isinstance(value, Sequence) because a
     # str of 1 character is still a sequence and results in infinite recursion.
-    elif _is_good_iterable(value):
+    elif _is_iterable(value):
+        # Special case where a sequence type spec was given no value.
+        if len(value) == 1 and value[0] is RequiredArg:
+            _raise_error_with_context(current_context)
         for index, item in enumerate(value):
             _raise_if_required_arg(item, current_context + (index,))
 
@@ -131,7 +134,7 @@ class _SmartTypeIndexer:
         """
         if isinstance(key, tuple) and len(key) == self.len_key:
             if any([
-                    not _is_good_iterable(v) and not isinstance(v, str)
+                    not _is_key_iterable(v) and not isinstance(v, str)
                     for v in key
             ]):
                 raise KeyError("The key {} is not valid.".format(key))

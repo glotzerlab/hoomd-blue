@@ -1,11 +1,11 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import itertools
 
 import pytest
 
-from hoomd.conftest import BaseMappingTest, pickling_check
+from hoomd.conftest import BaseMappingTest, Either, pickling_check
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj
 from hoomd.data.collections import _HOOMDSyncedCollection
@@ -46,19 +46,19 @@ class TestTypeParameterDict(BaseMappingTest):
 
     def _generate_value(self):
         if self._spec == "int":
-            return self.int()
+            return self.generator.int()
         value = {}
         for key in ("foo", "bar", "baz"):
-            if self.rng.random() > 0.5:
+            if self.generator.rng.random() > 0.5:
                 continue
             if key == "foo":
-                value["foo"] = self.int()
+                value["foo"] = self.generator.int()
             elif key == "bar":
-                value["bar"] = self.rng.choice(
-                    [self.int(), None,
-                     self.float(), self.str()])
+                value["bar"] = self.generator(Either(int, None, float, str))
+            elif key == "baz":
+                value["baz"] = self.generator.str()
             else:
-                value["baz"] = self.str()
+                value["gar"] = self.generator([int])
         return value
 
     @pytest.fixture
@@ -87,7 +87,12 @@ class TestTypeParameterDict(BaseMappingTest):
         """Return an empty type parameter."""
         validator = int
         if spec == "dict":
-            validator = {"foo": 1, "bar": identity, "baz": "hello"}
+            validator = {
+                "foo": 1,
+                "bar": identity,
+                "baz": "hello",
+                "gar": [int]
+            }
         return TypeParameterDict(validator, len_keys=len_keys)
 
     def check_equivalent(self, test_mapping, other):
@@ -113,7 +118,7 @@ class TestTypeParameterDict(BaseMappingTest):
         keys = list(self._generate_keys(n))
         value = self._generate_value()
         if request.param:
-            return keys[self.int(len(keys))], value
+            return keys[self.generator.int(len(keys))], value
         key = next(filter(lambda x: x not in keys, self.random_keys()))
         return key, value
 
@@ -191,7 +196,8 @@ class TestTypeParameterDict(BaseMappingTest):
             assert initial_default == {
                 "foo": 1,
                 "bar": RequiredArg,
-                "baz": "hello"
+                "baz": "hello",
+                "gar": [RequiredArg],
             }
             new_default = self._generate_value()
             initial_default.update(new_default)
@@ -239,18 +245,17 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
 
     def _generate_value(self):
         if self._spec == "int":
-            return self.int()
+            return self.generator.int()
         value = {}
         for key in ("foo", "baz"):
-            if self.rng.random() > 0.5:
+            if self.generator.rng.random() > 0.5:
                 continue
             if key == "foo":
-                value["foo"] = self.int()
+                value["foo"] = self.generator.int()
             else:
-                value["baz"] = self.str()
-        value["bar"] = self.rng.choice(
-            [self.int(), None, self.str(),
-             self.float()])
+                value["baz"] = self.generator.str()
+        value["bar"] = self.generator(Either(int, None, str, float))
+        value["gar"] = self.generator([int])
         return value
 
     def test_detach(self, populated_collection):
@@ -270,6 +275,20 @@ class TestTypeParameterDictAttached(TestTypeParameterDict):
         empty_collection._attach(DummyCppObj(),
                                  param_name="type_param",
                                  types=self.alphabet[:n])
+
+    def test_unspecified_sequence_errors(self, empty_collection,
+                                         plain_collection, n):
+        if self._spec != "dict":
+            return
+        last_key, last_value = plain_collection.popitem()
+        for key, value in plain_collection.items():
+            empty_collection[key] = value
+        last_value.pop("gar")
+        empty_collection[last_key] = last_value
+        with pytest.raises(IncompleteSpecificationError):
+            empty_collection._attach(DummyCppObj(),
+                                     param_name="type_param",
+                                     types=self.alphabet[:n])
 
     def _invalid_key_specs(self, n):
         invalid_types = list(self.alphabet[n:n + n])

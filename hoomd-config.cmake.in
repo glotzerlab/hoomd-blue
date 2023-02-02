@@ -6,8 +6,9 @@
 include(CMakeFindDependencyMacro)
 
 # build options
-set(SINGLE_PRECISION "@SINGLE_PRECISION@")
-set(ENABLE_HPMC_MIXED_PRECISION "@ENABLE_HPMC_MIXED_PRECISION@")
+set(HOOMD_SHORTREAL_SIZE "@HOOMD_SHORTREAL_SIZE@")
+set(HOOMD_LONGREAL_SIZE "@HOOMD_LONGREAL_SIZE@")
+set(HOOMD_GPU_PLATFORM "@HOOMD_GPU_PLATFORM@")
 
 set(BUILD_MD "@BUILD_MD@")
 set(BUILD_HPMC "@BUILD_HPMC@")
@@ -20,10 +21,12 @@ set(HIP_PLATFORM "@HIP_PLATFORM@")
 set(ENABLE_NVTOOLS "@ENABLE_NVTOOLS@")
 set(ENABLE_ROCTRACER "@ENABLE_ROCTRACER@")
 set(ENABLE_MPI "@ENABLE_MPI@")
-set(ENABLE_MPI_CUDA "@ENABLE_MPI_CUDA@")
 set(ENABLE_TBB "@ENABLE_TBB@")
 set(ENABLE_LLVM "@ENABLE_LLVM@")
 set(ALWAYS_USE_MANAGED_MEMORY "@ALWAYS_USE_MANAGED_MEMORY@")
+
+# CUDA architectures
+set(CMAKE_CUDA_ARCHITECTURES "@CMAKE_CUDA_ARCHITECTURES@")
 
 # C++ standard
 set(CMAKE_CXX_STANDARD "@CMAKE_CXX_STANDARD@")
@@ -51,7 +54,8 @@ endif()
 
 if (ENABLE_MPI)
     find_dependency(MPI REQUIRED)
-    find_dependency(cereal CONFIG REQUIRED)
+
+    find_package(cereal CONFIG)
     if (cereal_FOUND)
         find_package_message(cereal "Found cereal: ${cereal_DIR}" "[${cereal_DIR}]")
 
@@ -59,6 +63,22 @@ if (ENABLE_MPI)
             message(STATUS "Found cereal target, adding cereal::cereal alias.")
             add_library(cereal::cereal ALIAS cereal)
         endif()
+    else()
+        # work around missing ceralConfig.cmake (common on Ubuntu 20.04)
+        find_path(cereal_INCLUDE_DIR NAMES cereal/cereal.hpp
+            PATHS ${CMAKE_INSTALL_PREFIX}/include)
+        add_library(cereal::cereal INTERFACE IMPORTED)
+        set_target_properties(cereal::cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
+        find_package_message(cereal "Could not find cereal by config file, falling back to ${cereal_INCLUDE_DIR}" "[${cereal_INCLUDE_DIR}]")
+    endif()
+
+    # Work around broken cereal::cereal target (common on Ubuntu 22.04)
+    get_target_property(_cereal_include cereal::cereal INTERFACE_INCLUDE_DIRECTORIES)
+    if (_cereal_include STREQUAL "/include")
+        find_path(cereal_INCLUDE_DIR NAMES cereal/cereal.hpp
+            PATHS ${CMAKE_INSTALL_PREFIX}/include)
+        set_target_properties(cereal::cereal PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cereal_INCLUDE_DIR}")
+        find_package_message(cereal "Fixing broken cereal::cereal target with ${cereal_INCLUDE_DIR}" "[${cereal_INCLUDE_DIR}]")
     endif()
 endif()
 

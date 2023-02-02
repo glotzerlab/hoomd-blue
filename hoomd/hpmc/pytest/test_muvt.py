@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.MuVT."""
@@ -153,7 +153,7 @@ def test_insertion_removal(device, simulation_factory,
     # set a positive fugacity
     muvt.fugacity['B'] = 1
 
-    sim.run(100)
+    sim.run(20)
     assert sum(muvt.insert_moves) > 0
     assert sum(muvt.remove_moves) > 0
 

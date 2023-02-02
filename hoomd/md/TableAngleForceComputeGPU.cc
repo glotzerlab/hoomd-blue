@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TableAngleForceComputeGPU.h"
@@ -35,9 +35,10 @@ TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefin
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_angle", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "table_angle"));
+    m_autotuners.push_back(m_tuner);
     }
 
 /*! \post The table based forces are computed for the given timestep.
@@ -85,7 +86,7 @@ void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
                                                d_tables.data,
                                                m_table_width,
                                                m_table_value,
-                                               m_tuner->getParam());
+                                               m_tuner->getParam()[0]);
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())

@@ -1,8 +1,8 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
 import numpy
 import pytest
 
@@ -81,7 +81,7 @@ def test_attach_detach(simulation_factory, polymer_snapshot_factory):
     # attached
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
@@ -101,7 +101,7 @@ def test_pickling(simulation_factory, polymer_snapshot_factory):
     # attached
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
@@ -115,7 +115,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
 
     sim = simulation_factory(polymer_snapshot_factory())
     integrator = hoomd.md.Integrator(dt=0.005)
-    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
@@ -128,7 +128,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
     sim.operations.integrator = integrator
 
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.0)
-    sim.run(100)
+    sim.run(10)
 
     snap = sim.state.get_snapshot()
 
@@ -144,3 +144,5 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
         numpy.testing.assert_allclose(bond_lengths,
                                       snap.constraints.value,
                                       rtol=1e-5)
+
+    autotuned_kernel_parameter_check(instance=d, activate=lambda: sim.run(1))

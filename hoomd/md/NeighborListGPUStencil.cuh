@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __NEIGHBORLOSTGPUSTENCIL_CUH__
@@ -57,7 +57,8 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      bool filter_body,
                                      bool diameter_shift,
                                      const unsigned int threads_per_particle,
-                                     const unsigned int block_size);
+                                     const unsigned int block_size,
+                                     const hipDeviceProp_t& devprop);
 
 //! Kernel driver for filling the particle types for sorting
 hipError_t gpu_compute_nlist_stencil_fill_types(unsigned int* d_pids,

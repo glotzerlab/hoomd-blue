@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraint.h"
@@ -50,24 +50,9 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~ForceDistanceConstraintGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ForceDistanceConstraint::setAutotunerParams(enable, period);
-
-        m_tuner_fill->setPeriod(period);
-        m_tuner_force->setPeriod(period);
-
-        m_tuner_fill->setEnabled(enable);
-        m_tuner_force->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
-    std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+    std::shared_ptr<Autotuner<1>> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
+    std::shared_ptr<Autotuner<1>> m_tuner_force; //!< Autotuner for populating the force array
 
 #ifdef CUSOLVER_AVAILABLE
     cusparseHandle_t m_cusparse_handle;        //!< cuSPARSE handle

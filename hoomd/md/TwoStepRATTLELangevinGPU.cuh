@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <hip/hip_runtime.h>
@@ -33,6 +33,30 @@ namespace kernel
 //! gpu_rattle_langevin_step_two()
 struct rattle_langevin_step_two_args
     {
+    rattle_langevin_step_two_args(Scalar* _d_gamma,
+                                  size_t _n_types,
+                                  bool _use_alpha,
+                                  Scalar _alpha,
+                                  Scalar _T,
+                                  Scalar _tolerance,
+                                  uint64_t _timestep,
+                                  uint16_t _seed,
+                                  Scalar* _d_sum_bdenergy,
+                                  Scalar* _d_partial_sum_bdenergy,
+                                  unsigned int _block_size,
+                                  unsigned int _num_blocks,
+                                  bool _noiseless_t,
+                                  bool _noiseless_r,
+                                  bool _tally,
+                                  const hipDeviceProp_t& _devprop)
+        : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha), alpha(_alpha), T(_T),
+          tolerance(_tolerance), timestep(_timestep), seed(_seed), d_sum_bdenergy(_d_sum_bdenergy),
+          d_partial_sum_bdenergy(_d_partial_sum_bdenergy), block_size(_block_size),
+          num_blocks(_num_blocks), noiseless_t(_noiseless_t), noiseless_r(_noiseless_r),
+          tally(_tally), devprop(_devprop)
+        {
+        }
+
     Scalar* d_gamma; //!< Device array listing per-type gammas
     size_t n_types;  //!< Number of types in \a d_gamma
     bool use_alpha;  //!< Set to true to scale diameters by alpha to get gamma
@@ -48,6 +72,7 @@ struct rattle_langevin_step_two_args
     bool noiseless_t; //!<  If set true, there will be no translational noise (random force)
     bool noiseless_r; //!<  If set true, there will be no rotational noise (random torque)
     bool tally;       //!< Set to true is bd thermal reservoir energy ally is to be performed
+    const hipDeviceProp_t& devprop; //!< Device properties.
     };
 
 hipError_t
@@ -365,12 +390,20 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
     dim3 threads(rattle_langevin_args.block_size, 1, 1);
     dim3 threads1(256, 1, 1);
 
+    size_t shared_bytes = max((unsigned int)(sizeof(Scalar) * rattle_langevin_args.n_types),
+                              (unsigned int)(rattle_langevin_args.block_size * sizeof(Scalar)));
+
+    if (shared_bytes > rattle_langevin_args.devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("Langevin gamma parameters exceed the available shared "
+                                 "memory per block.");
+        }
+
     // run the kernel
     hipLaunchKernelGGL((gpu_rattle_langevin_step_two_kernel<Manifold>),
                        grid,
                        threads,
-                       max((unsigned int)(sizeof(Scalar) * rattle_langevin_args.n_types),
-                           (unsigned int)(rattle_langevin_args.block_size * sizeof(Scalar))),
+                       shared_bytes,
                        0,
                        d_pos,
                        d_vel,

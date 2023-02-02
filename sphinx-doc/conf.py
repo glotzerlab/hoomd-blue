@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Sphinx configuration."""
@@ -63,8 +63,8 @@ year = datetime.date.today().year
 copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.3.0'
-release = '3.3.0'
+version = '3.8.1'
+release = '3.8.1'
 
 language = 'en'
 
@@ -77,6 +77,9 @@ todo_include_todos = False
 html_theme = 'sphinx_rtd_theme'
 html_css_files = ['css/hoomd-theme.css']
 html_static_path = ['_static']
+html_logo = 'hoomdblue-logo-vertical.svg'
+html_theme_options = {'logo_only': True}
+html_favicon = 'hoomdblue-logo-favicon.svg'
 
 IGNORE_MODULES = ['hoomd._hoomd']
 IGNORE_CLASSES = []

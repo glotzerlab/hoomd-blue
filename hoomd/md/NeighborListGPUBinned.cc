@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file NeighborListGPUBinned.cc
@@ -18,7 +18,7 @@ namespace md
     {
 NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                                              Scalar r_buff)
-    : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellListGPU>(sysdef)), m_param(0)
+    : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellListGPU>(sysdef))
     {
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->allConcurrentManagedAccess();
@@ -35,24 +35,13 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
 
     CHECK_CUDA_ERROR();
 
-    // initialize autotuner
-    // the full block size and threads_per_particle matrix is searched,
-    // encoded as block_size*10000 + threads_per_particle
-    std::vector<unsigned int> valid_params;
-
-    const unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        {
-        unsigned int s = 1;
-
-        while (s <= warp_size)
-            {
-            valid_params.push_back(block_size * 10000 + s);
-            s = s * 2;
-            }
-        }
-
-    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_binned", this->m_exec_conf));
+    // Initialize autotuner.
+    m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                    AutotunerBase::getTppListPow2(m_exec_conf)},
+                                   m_exec_conf,
+                                   "nlist_binned",
+                                   3));
+    m_autotuners.push_back(m_tuner);
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned() { }
@@ -153,10 +142,10 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
 
     m_exec_conf->beginMultiGPU();
 
-    this->m_tuner->begin();
-    unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
-    unsigned int block_size = param / 10000;
-    unsigned int threads_per_particle = param % 10000;
+    m_tuner->begin();
+    auto param = m_tuner->getParam();
+    unsigned int block_size = param[0];
+    unsigned int threads_per_particle = param[1];
 
     kernel::gpu_compute_nlist_binned(
         d_nlist.data,
@@ -187,11 +176,12 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         m_diameter_shift,
         m_cl->getGhostWidth(),
         m_pdata->getGPUPartition(),
-        m_use_index);
+        m_use_index,
+        m_exec_conf->dev_prop);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    this->m_tuner->end();
+    m_tuner->end();
 
     m_exec_conf->endMultiGPU();
     }
@@ -204,7 +194,6 @@ void export_NeighborListGPUBinned(pybind11::module& m)
                      NeighborListGPU,
                      std::shared_ptr<NeighborListGPUBinned>>(m, "NeighborListGPUBinned")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
-        .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
         .def_property("deterministic",
                       &NeighborListGPUBinned::getDeterministic,
                       &NeighborListGPUBinned::setDeterministic)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
@@ -7,6 +7,8 @@
 #include <map>
 #include <sstream>
 #include <string.h>
+
+#include <pybind11/stl.h>
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
@@ -19,15 +21,10 @@ namespace md
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
-    : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false),
-      m_global_max_d(0.0), m_global_max_d_changed(true)
+    : MolecularForceCompute(sysdef), m_bodies_changed(false), m_particles_added_removed(false)
     {
     m_pdata->getGlobalParticleNumberChangeSignal()
         .connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
-
-    // connect to box change signal
-    m_pdata->getCompositeParticlesSignal()
-        .connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 
     m_exec_conf->msg->notice(7) << "ForceComposite initialize memory" << std::endl;
 
@@ -54,13 +51,8 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         h_body_len.data[i] = 0;
         }
 
-    m_body_charge.resize(m_pdata->getNTypes());
-    m_body_diameter.resize(m_pdata->getNTypes());
-
     m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
-
-    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -70,8 +62,8 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         m_comm = comm_weak.lock();
 
         // register this class with the communicator
-        m_comm->getExtraGhostLayerWidthRequestSignal()
-            .connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        m_comm->getBodyGhostLayerWidthRequestSignal()
+            .connect<ForceComposite, &ForceComposite::requestBodyGhostLayerWidth>(this);
         }
 #endif
     }
@@ -82,13 +74,11 @@ ForceComposite::~ForceComposite()
     // disconnect from signal in ParticleData;
     m_pdata->getGlobalParticleNumberChangeSignal()
         .disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
-    m_pdata->getCompositeParticlesSignal()
-        .disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
-        m_comm->getExtraGhostLayerWidthRequestSignal()
-            .disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+        m_comm->getBodyGhostLayerWidthRequestSignal()
+            .disconnect<ForceComposite, &ForceComposite::requestBodyGhostLayerWidth>(this);
         }
 #endif
     }
@@ -96,15 +86,11 @@ ForceComposite::~ForceComposite()
 void ForceComposite::setParam(unsigned int body_typeid,
                               std::vector<unsigned int>& type,
                               std::vector<Scalar3>& pos,
-                              std::vector<Scalar4>& orientation,
-                              std::vector<Scalar>& charge,
-                              std::vector<Scalar>& diameter)
+                              std::vector<Scalar4>& orientation)
     {
     assert(m_body_types.getPitch() >= m_pdata->getNTypes());
     assert(m_body_pos.getPitch() >= m_pdata->getNTypes());
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
-    assert(m_body_charge.size() >= m_pdata->getNTypes());
-    assert(m_body_diameter.size() >= m_pdata->getNTypes());
 
     if (body_typeid >= m_pdata->getNTypes())
         {
@@ -118,21 +104,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
                   << " (position, orientation, type) are of unequal length.";
         throw std::runtime_error(error_msg.str());
         }
-    if (charge.size() && charge.size() != pos.size())
-        {
-        std::ostringstream error_msg;
-        error_msg << "Error initializing ForceComposite: Charges are non-empty but of different "
-                  << "length than the positions.";
-        throw std::runtime_error(error_msg.str());
-        }
-    if (diameter.size() && diameter.size() != pos.size())
-        {
-        std::ostringstream error_msg;
-        error_msg << "Error initializing ForceComposite: Diameters are non-empty but of different "
-                  << "length than the positions.";
-        throw std::runtime_error(error_msg.str());
-        }
-
     bool body_updated = false;
 
     bool body_len_changed = false;
@@ -200,18 +171,12 @@ void ForceComposite::setParam(unsigned int body_typeid,
                                                     access_location::host,
                                                     access_mode::readwrite);
 
-            m_body_charge[body_typeid].resize(type.size());
-            m_body_diameter[body_typeid].resize(type.size());
-
             // store body data in GlobalArray
             for (unsigned int i = 0; i < type.size(); ++i)
                 {
                 h_body_type.data[m_body_idx(body_typeid, i)] = type[i];
                 h_body_pos.data[m_body_idx(body_typeid, i)] = pos[i];
                 h_body_orientation.data[m_body_idx(body_typeid, i)] = orientation[i];
-
-                m_body_charge[body_typeid][i] = charge[i];
-                m_body_diameter[body_typeid][i] = diameter[i];
                 }
             }
         m_bodies_changed = true;
@@ -225,123 +190,81 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             m_d_max_changed[type[i]] = true;
             }
-
-        // story body diameter
-        m_body_max_diameter[body_typeid] = getBodyDiameter(body_typeid);
-
-        // indicate that the maximum diameter may have changed
-        m_global_max_d_changed = true;
         }
     }
 
-Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
+/** Compute the needed body ghost layer width.
+
+    For central particles, the body ghost layer width is the maximum of [d_i + r_ghost_i] where d_i
+    is distance of particle i from the center of the body and r_ghost_i is the ghost width for
+    particle i determined by cutoff and other interactions.
+
+    The body ghost layer width for constituent particles *should be* the maximum diameter d_i among
+    all rigid body types that have this particle as a consituent. However, this must be larger due
+    to limitations in the way that individual rigid body particles are indexed relative to the
+    molecules in MolecularForceCompute. In the worst case, for a ghost particle within the
+    interaction ghost width r_ghost_i of a boundary, *ALL* other particles in that body must be
+    included. The ghost layer width needed to satisfy this condition is the maximum of [2*d_i +
+    r_ghost_i], allowing for enough distance to communicate another particle placed at -r_i.
+*/
+Scalar ForceComposite::requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost)
     {
-    m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type "
-                                << m_pdata->getNameByType(body_type) << std::endl;
-
-    // get maximum pairwise distance
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
-
-    Scalar d_max(0.0);
-
-    for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
-        {
-        // distance to central particle
-        Scalar3 dr = h_body_pos.data[m_body_idx(body_type, i)];
-        Scalar d = sqrt(dot(dr, dr));
-        if (d > d_max)
-            {
-            d_max = d;
-            }
-
-        // distance to every other particle
-        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-            {
-            dr = h_body_pos.data[m_body_idx(body_type, i)]
-                 - h_body_pos.data[m_body_idx(body_type, j)];
-            d = sqrt(dot(dr, dr));
-
-            if (d > d_max)
-                {
-                d_max = d;
-                }
-            }
-        }
-
-    return d_max;
-    }
-
-Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
-    {
+    assert(m_body_len.getNumElements() > type);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
         {
         m_d_max[type] = Scalar(0.0);
-
-        assert(m_body_len.getNumElements() > type);
-
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_body_type(m_body_types,
                                               access_location::host,
                                               access_mode::read);
 
-        unsigned int ntypes = m_pdata->getNTypes();
-
-        // find maximum body radius over all bodies this type participates in
-        for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
+        if (h_body_len.data[type] != 0)
             {
-            bool is_part_of_body = body_type == type;
-            for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+            // central particles
+            for (unsigned int body_particle = 0; body_particle < h_body_len.data[type];
+                 body_particle++)
                 {
-                if (h_body_type.data[m_body_idx(body_type, i)] == type)
-                    {
-                    is_part_of_body = true;
-                    }
+                unsigned int constituent_typeid = h_body_type.data[m_body_idx(type, body_particle)];
+                vec3<Scalar> constituent_position(h_body_pos.data[m_body_idx(type, body_particle)]);
+                Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
+                m_d_max[type] = std::max(m_d_max[type], d + h_r_ghost[constituent_typeid]);
                 }
-
-            if (is_part_of_body)
+            }
+        else
+            {
+            // constituent particles
+            for (unsigned int body_type = 0; body_type < m_pdata->getNTypes(); body_type++)
                 {
-                for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+                if (h_body_len.data[body_type] == 0)
                     {
-                    if (body_type != type && h_body_type.data[m_body_idx(body_type, i)] != type)
-                        continue;
+                    continue;
+                    }
 
-                    // distance to central particle
-                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type, i)];
-                    Scalar d = sqrt(dot(dr, dr));
-                    if (d > m_d_max[type])
+                for (unsigned int body_particle = 0; body_particle < h_body_len.data[body_type];
+                     body_particle++)
+                    {
+                    unsigned int constituent_typeid
+                        = h_body_type.data[m_body_idx(body_type, body_particle)];
+
+                    if (constituent_typeid == type)
                         {
-                        m_d_max[type] = d;
-                        }
-
-                    if (body_type != type)
-                        {
-                        // for non-central particles, distance to every other particle
-                        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-                            {
-                            dr = h_body_pos.data[m_body_idx(body_type, i)]
-                                 - h_body_pos.data[m_body_idx(body_type, j)];
-                            d = sqrt(dot(dr, dr));
-
-                            if (d > m_d_max[type])
-                                {
-                                m_d_max[type] = d;
-                                }
-                            }
+                        vec3<Scalar> constituent_position(
+                            h_body_pos.data[m_body_idx(body_type, body_particle)]);
+                        Scalar d = slow::sqrt(dot(constituent_position, constituent_position));
+                        m_d_max[type] = std::max(m_d_max[type],
+                                                 d * Scalar(2.0) + h_r_ghost[constituent_typeid]);
                         }
                     }
                 }
             }
-
-        m_d_max_changed[type] = false;
-
-        m_exec_conf->msg->notice(7)
-            << "ForceComposite: requesting ghost layer for type " << m_pdata->getNameByType(type)
-            << ": " << m_d_max[type] << std::endl;
         }
+
+    m_d_max_changed[type] = false;
+    m_exec_conf->msg->notice(7) << "ForceComposite: requesting ghost layer for type "
+                                << m_pdata->getNameByType(type) << ": " << m_d_max[type]
+                                << std::endl;
 
     return m_d_max[type];
     }
@@ -391,10 +314,6 @@ void ForceComposite::validateRigidBodies()
         {
         // access body data
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_type(m_body_types,
-                                              access_location::host,
-                                              access_mode::read);
-
         typedef std::map<unsigned int, unsigned int> map_t;
         // This will count the length of all molecules (realized rigid bodies) in the system.
         map_t body_particle_count;
@@ -457,14 +376,6 @@ void ForceComposite::validateRigidBodies()
                         "Error validating rigid bodies: Too many constituent particles for "
                         "rigid body.");
                     }
-
-                if (h_body_type.data[m_body_idx(body_type, current_molecule_size)] != snap.type[i])
-                    {
-                    throw std::runtime_error(
-                        "Error validating rigid bodies: Constituent particle types must be "
-                        "consistent with the rigid body definition.  Rigid body definition "
-                        "is in order of particle tag.");
-                    }
                 // increase molecule size by one as particle is validated
                 it->second++;
                 // Mark consistent particle in molecule as belonging to its central particle.
@@ -513,7 +424,39 @@ void ForceComposite::validateRigidBodies()
     m_particles_added_removed = false;
     }
 
-void ForceComposite::createRigidBodies()
+void ForceComposite::pyCreateRigidBodies(pybind11::dict charges)
+    {
+    if (pybind11::len(charges) == 0)
+        {
+        createRigidBodies(std::unordered_map<unsigned int, std::vector<Scalar>>());
+        return;
+        }
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+    std::unordered_map<unsigned int, std::vector<Scalar>> charges_map;
+    for (const auto& item : charges)
+        {
+        const auto type = m_pdata->getTypeByName(item.first.cast<std::string>());
+        if (h_body_len.data[type] == 0)
+            {
+            throw std::runtime_error("Charge provided for non-central particle type.");
+            }
+        const auto charges_list = item.second.cast<pybind11::list>();
+        if (pybind11::len(charges_list) != h_body_len.data[type])
+            {
+            throw std::runtime_error("Charges provided not consistent with rigid body size.");
+            }
+        std::vector<Scalar> charges_vector;
+        for (auto& charge : charges_list)
+            {
+            charges_vector.emplace_back(charge.cast<Scalar>());
+            }
+        charges_map.insert({type, charges_vector});
+        }
+    createRigidBodies(charges_map);
+    }
+
+void ForceComposite::createRigidBodies(
+    const std::unordered_map<unsigned int, std::vector<Scalar>> charges)
     {
     SnapshotParticleData<Scalar> snap;
 
@@ -522,6 +465,7 @@ void ForceComposite::createRigidBodies()
     bool remove_existing_bodies = false;
     unsigned int n_constituent_particles = 0;
     unsigned int n_free_bodies = 0;
+    if (m_exec_conf->getRank() == 0)
         {
         // We restrict the scope of h_body_len to ensure if we remove_existing_bodies or in any way
         // reallocated m_body_len to a new memory location that we will be forced to reaquire the
@@ -600,16 +544,16 @@ void ForceComposite::createRigidBodies()
                  ++current_body_index)
                 {
                 // Update constituent particle snapshot properties from default.
-                // Position and orientation are handled by updateCompositeParticles.
+                // Position, orientation, and types are handled by updateCompositeParticles.
                 snap.type[constituent_particle_tag]
                     = h_body_type.data[m_body_idx(body_type, current_body_index)];
                 snap.body[constituent_particle_tag] = particle_tag;
-                snap.charge[constituent_particle_tag]
-                    = m_body_charge[body_type][current_body_index];
-                snap.diameter[constituent_particle_tag]
-                    = m_body_diameter[body_type][current_body_index];
                 snap.pos[constituent_particle_tag] = snap.pos[particle_tag];
-
+                if (!charges.empty())
+                    {
+                    snap.charge[constituent_particle_tag]
+                        = charges.at(body_type)[current_body_index];
+                    }
                 // Since the central particle tags here will be [0, n_central_particles), we know
                 // that the molecule number will be the same as the central particle tag.
                 molecule_tag[constituent_particle_tag] = particle_tag;
@@ -800,11 +744,10 @@ void ForceComposite::computeForces(uint64_t timestep)
                 // if the central particle is local, the molecule should be complete
                 if (h_molecule_length.data[ibody] != h_body_len.data[type] + 1)
                     {
-                    m_exec_conf->msg->errorAllRanks()
-                        << "constrain.rigid(): Composite particle with body tag " << central_tag
-                        << " incomplete" << std::endl
-                        << std::endl;
-                    throw std::runtime_error("Error computing composite particle forces.\n");
+                    std::ostringstream error_msg;
+                    error_msg << "Composite particle with body tag " << central_tag
+                              << " is incomplete.";
+                    throw std::runtime_error(error_msg.str());
                     }
 
                 // sum up center of mass force
@@ -866,9 +809,9 @@ void ForceComposite::computeForces(uint64_t timestep)
         }
     }
 
-/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of
- * integration on the CPU based on the body center of mass and particle relative position in each
- * body frame.
+/* Set position, velocity, and type of constituent particles in rigid bodies in the 1st or second
+ * half of integration on the CPU based on the body center of mass and particle relative position in
+ * each body frame.
  */
 
 void ForceComposite::updateCompositeParticles(uint64_t timestep)
@@ -912,6 +855,7 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
     ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
                                             access_location::host,
                                             access_mode::read);
+    ArrayHandle<unsigned int> h_body_types(m_body_types, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
@@ -941,19 +885,14 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
             continue;
             }
 
-        // Continue if central particle is on another rank and current index is a ghost particle
-        // since there is no updating to do.
-        if (central_idx == NOT_LOCAL && particle_index >= m_pdata->getN())
-            {
-            continue;
-            }
-
+        // If the central particle is not local, then we cannot update the position and orientation
+        // of this particle. Ideally, this would perform an error check. However, that is not
+        // feasible as ForceComposite does not have knowledge of which ghost particles are within
+        // the interaction ghost width (and need therefore need to be updated) vs those that are
+        // communicated to make bodies whole.
         if (central_idx == NOT_LOCAL)
             {
-            std::ostringstream error_msg;
-            error_msg << "Error updating composite particles: Missing central particle tag "
-                      << central_tag << ".";
-            throw std::runtime_error(error_msg.str());
+            continue;
             }
 
         // central particle position and orientation
@@ -970,8 +909,9 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         unsigned int mol_idx = h_molecule_idx.data[particle_index];
         // Checks if the number of local particle in a molecule denoted by
         // h_molecule_len.data[particle_index] is equal to the number of particles in the rigid body
-        // definition `body_len`. If this is the case for a ghost particle this is fine, otherwise
-        // somehow we are in an invalid state for the body hence the inner condition.
+        // definition `body_len`. As above, this error check *should* be performed for all local and
+        // ghost particles within the interaction ghost width. However, that check is not feasible
+        // here. At least catch this error for particles local to this rank.
         if (body_len != h_molecule_len.data[mol_idx] - 1)
             {
             if (particle_index < m_pdata->getN())
@@ -979,7 +919,9 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
                 // if the molecule is incomplete and has local members, this is an error
                 std::ostringstream error_msg;
                 error_msg << "Error while updating constituent particles:"
-                          << "Composite particle with body tag " << central_tag << " incomplete.";
+                          << "Composite particle with body tag " << central_tag << " incomplete: "
+                          << "body_len=" << body_len
+                          << ", molecule_len=" << h_molecule_len.data[mol_idx] - 1;
                 throw std::runtime_error(error_msg.str());
                 }
 
@@ -1009,10 +951,11 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         int3 negimgi = make_int3(-imgi.x, -imgi.y, -imgi.z);
         updated_pos = global_box.shift(updated_pos, negimgi);
 
-        h_postype.data[particle_index] = make_scalar4(updated_pos.x,
-                                                      updated_pos.y,
-                                                      updated_pos.z,
-                                                      h_postype.data[particle_index].w);
+        h_postype.data[particle_index]
+            = make_scalar4(updated_pos.x,
+                           updated_pos.y,
+                           updated_pos.z,
+                           __int_as_scalar(h_body_types.data[m_body_idx(type, idx_in_body)]));
         h_orientation.data[particle_index] = quat_to_scalar4(updated_orientation);
         h_image.data[particle_index] = img + imgi;
         }
@@ -1029,7 +972,7 @@ void export_ForceComposite(pybind11::module& m)
         .def("setBody", &ForceComposite::setBody)
         .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
-        .def("createRigidBodies", &ForceComposite::createRigidBodies)
+        .def("createRigidBodies", &ForceComposite::pyCreateRigidBodies)
         .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles);
     }
 

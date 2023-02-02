@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
@@ -75,17 +75,24 @@ void IntegratorTwoStep::update(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
+        // Update the rigid body consituent particles before communicating so that any such
+        // particles that move from one domain to another are migrated.
+        updateRigidBodies(timestep + 1);
+
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time
         // step
-
-        // also updates rigid bodies after ghost updating
         m_comm->communicate(timestep + 1);
+
+        // Communicator uses a compute callback to trigger updateRigidBodies again and ensure that
+        // all ghost constituent particle positions are set in accordance with any just communicated
+        // ghost and/or migrated rigid body centers.
         }
     else
 #endif
         {
+        // Update rigid body constituent particles in serial simulations.
         updateRigidBodies(timestep + 1);
         }
 
@@ -292,15 +299,24 @@ void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
         }
     }
 
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
+void IntegratorTwoStep::startAutotuning()
     {
-    Integrator::setAutotunerParams(enable, period);
-    // set params in all methods
+    Integrator::startAutotuning();
+
+    // Start autotuning in all methods.
     for (auto& method : m_methods)
-        method->setAutotunerParams(enable, period);
+        method->startAutotuning();
+    }
+
+/// Check if autotuning is complete.
+bool IntegratorTwoStep::isAutotuningComplete()
+    {
+    bool result = Integrator::isAutotuningComplete();
+    for (auto& method : m_methods)
+        {
+        result = result && method->isAutotuningComplete();
+        }
+    return result;
     }
 
 /// helper function to compute net force/virial
@@ -375,7 +391,10 @@ void export_IntegratorTwoStep(pybind11::module& m)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("integrate_rotational_dof",
                       &IntegratorTwoStep::getIntegrateRotationalDOF,
-                      &IntegratorTwoStep::setIntegrateRotationalDOF);
+                      &IntegratorTwoStep::setIntegrateRotationalDOF)
+        .def_property("half_step_hook",
+                      &IntegratorTwoStep::getHalfStepHook,
+                      &IntegratorTwoStep::setHalfStepHook);
     }
 
     } // end namespace detail

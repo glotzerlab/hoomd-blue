@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondTablePotentialGPU.cuh
@@ -36,7 +36,8 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                         const unsigned int table_width,
                                         const Index2D& table_value,
                                         unsigned int* d_flags,
-                                        const unsigned int block_size);
+                                        const unsigned int block_size,
+                                        const hipDeviceProp_t& devprop);
 
     } // end namespace kernel
     } // end namespace md

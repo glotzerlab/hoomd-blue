@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshDefinition.h
@@ -65,7 +65,7 @@ class PYBIND11_EXPORT MeshDefinition
     //! Constructs a NULL MeshDefinition
     MeshDefinition();
     //! Constructs a MeshDefinition with a simply initialized ParticleData
-    MeshDefinition(std::shared_ptr<SystemDefinition> sysdef);
+    MeshDefinition(std::shared_ptr<SystemDefinition> sysdef, unsigned int n_types);
 
 #ifdef ENABLE_MPI
     void setCommunicator(std::shared_ptr<Communicator> communicator)
@@ -82,7 +82,7 @@ class PYBIND11_EXPORT MeshDefinition
 #endif
 
     //! Access the mesh triangle data defined for the simulation
-    std::shared_ptr<MeshTriangleData> getMeshTriangleData()
+    std::shared_ptr<TriangleData> getMeshTriangleData()
         {
         return m_meshtriangle_data;
         }
@@ -109,13 +109,13 @@ class PYBIND11_EXPORT MeshDefinition
 
     TriangleData::Snapshot getTriangleData();
 
-    void setTriangleData(pybind11::array_t<int> triangles);
+    void setTriangleData(pybind11::array_t<int> triangles, pybind11::array_t<int> type_ids);
 
     private:
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
-    std::shared_ptr<MeshBondData> m_meshbond_data;         //!< Bond data for the mesh
-    std::shared_ptr<MeshTriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
+    std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
+    std::shared_ptr<TriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
 
 #ifdef ENABLE_MPI
     /// The system communicator

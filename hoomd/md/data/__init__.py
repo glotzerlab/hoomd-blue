@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Force data local access.
@@ -14,6 +14,6 @@ See Also:
     `hoomd.md.force.Custom`
 """
 
-from .local_access import _ForceLocalAccessBase
-from .local_access_cpu import ForceLocalAccess
-from .local_access_gpu import ForceLocalAccessGPU
+from .local_access import _ForceLocalAccessBase, _NeighborListLocalAccessBase
+from .local_access_cpu import ForceLocalAccess, NeighborListLocalAccess
+from .local_access_gpu import ForceLocalAccessGPU, NeighborListLocalAccessGPU

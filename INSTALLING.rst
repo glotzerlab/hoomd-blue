@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Installing binaries
@@ -31,10 +31,20 @@ package. Override this and force GPU package installation with::
 
     $ conda install -c conda-forge "hoomd=*=*gpu*"
 
+.. note::
+
+    To use :ref:`run time compilation` on **macOS**, install the ``compilers`` package::
+
+        $ conda install -c conda-forge compilers
+
+    Without this package you will get *file not found* errors when HOOMD-blue performs the run time
+    compilation.
+
 .. tip::
 
-    Use miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid package
-    conflicts with conda-forge_ packages.
+    Use mambaforge_, miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid
+    package conflicts with conda-forge_ packages.
 
+.. _mambaforge: https://github.com/conda-forge/miniforge
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _miniconda: http://conda.pydata.org/miniconda.html

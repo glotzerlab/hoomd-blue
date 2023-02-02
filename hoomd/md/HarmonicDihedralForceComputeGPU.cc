@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file HarmonicDihedralForceComputeGPU.cc
@@ -32,14 +32,10 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(
     GPUArray<Scalar4> params(m_dihedral_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                1024,
-                                warp_size,
-                                5,
-                                100000,
-                                "harmonic_dihedral",
-                                this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "harmonic_dihedral"));
+    m_autotuners.push_back(m_tuner);
     }
 
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU() { }
@@ -108,7 +104,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(uint64_t timestep)
                                                  d_n_dihedrals.data,
                                                  d_params.data,
                                                  m_dihedral_data->getNTypes(),
-                                                 this->m_tuner->getParam(),
+                                                 this->m_tuner->getParam()[0],
                                                  this->m_exec_conf->dev_prop.warpSize);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

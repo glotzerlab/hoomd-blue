@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxDim.h
@@ -306,7 +306,7 @@ struct
 #ifdef __HIPCC__
         if (m_periodic.z)
             {
-            Scalar img = rint(w.z * m_Linv.z);
+            Scalar img = slow::rint(w.z * m_Linv.z);
             w.z -= L.z * img;
             w.y -= L.z * m_yz * img;
             w.x -= L.z * m_xz * img;
@@ -314,14 +314,14 @@ struct
 
         if (m_periodic.y)
             {
-            Scalar img = rint(w.y * m_Linv.y);
+            Scalar img = slow::rint(w.y * m_Linv.y);
             w.y -= L.y * img;
             w.x -= L.y * m_xy * img;
             }
 
         if (m_periodic.x)
             {
-            w.x -= L.x * rint(w.x * m_Linv.x);
+            w.x -= L.x * slow::rint(w.x * m_Linv.x);
             }
 #else
         // on the cpu, branches are faster than calling rint

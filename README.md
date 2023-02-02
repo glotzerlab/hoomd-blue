@@ -1,4 +1,4 @@
-# HOOMD-blue
+[![HOOMD-blue](sphinx-doc/hoomdblue-logo-horizontal.svg)](https://glotzerlab.engin.umich.edu/hoomd-blue/)
 
 [![Citing HOOMD](https://img.shields.io/badge/cite-hoomd-blue.svg)](https://hoomd-blue.readthedocs.io/en/latest/citing.html)
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/hoomd.svg?style=flat)](https://anaconda.org/conda-forge/hoomd)
@@ -30,6 +30,8 @@ types of particle simulations.
   Additional information and publications.
 - [HOOMD-blue benchmark scripts](https://github.com/glotzerlab/hoomd-benchmarks):
   Scripts to evaluate the performance of HOOMD-blue simulations.
+- [HOOMD-blue validation tests](https://github.com/glotzerlab/hoomd-validation):
+  Scripts to validate that HOOMD-blue performs accurate simulations.
 
 ## Related tools
 
@@ -76,7 +78,8 @@ lj.r_cut[('A', 'A')] = 2.5
 
 integrator = hoomd.md.Integrator(dt=0.005)
 integrator.forces.append(lj)
-nvt = hoomd.md.methods.NVT(kT=1.5, filter=hoomd.filter.All(), tau=1.0)
+bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(), thermostat=bussi)
 integrator.methods.append(nvt)
 
 gpu = hoomd.device.GPU()

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceCompute.h"
@@ -31,22 +31,9 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ActiveForceCompute::setAutotunerParams(enable, period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_diffusion->setPeriod(period);
-        m_tuner_diffusion->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner_force;     //!< Autotuner for block size (force kernel)
-    std::unique_ptr<Autotuner> m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_force;     //!< Autotuner for block size (force kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_diffusion; //!< Autotuner for block size (diff kernel)
 
     //! Set forces for particles
     virtual void setForces();

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -349,12 +349,19 @@ inline void stencil_launcher(unsigned int* d_nlist,
                              bool filter_body,
                              bool diameter_shift,
                              const unsigned int threads_per_particle,
-                             const unsigned int block_size)
+                             const unsigned int block_size,
+                             const hipDeviceProp_t& devprop)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
     unsigned int shared_size = (unsigned int)(sizeof(Scalar) * typpair_idx.getNumElements()
                                               + sizeof(unsigned int) * ntypes);
+
+    if (shared_size > devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("Neighborlist r_cut matrix exceeds the available shared memory "
+                                 "per block.");
+        }
 
     if (threads_per_particle == cur_tpp && cur_tpp != 0)
         {
@@ -544,7 +551,8 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                       filter_body,
                                       diameter_shift,
                                       threads_per_particle,
-                                      block_size);
+                                      block_size,
+                                      devprop);
         }
     }
 
@@ -577,7 +585,8 @@ inline void stencil_launcher<min_threads_per_particle / 2>(unsigned int* d_nlist
                                                            bool filter_body,
                                                            bool diameter_shift,
                                                            const unsigned int threads_per_particle,
-                                                           const unsigned int block_size)
+                                                           const unsigned int block_size,
+                                                           const hipDeviceProp_t& devprop)
     {
     }
 
@@ -608,7 +617,8 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      bool filter_body,
                                      bool diameter_shift,
                                      const unsigned int threads_per_particle,
-                                     const unsigned int block_size)
+                                     const unsigned int block_size,
+                                     const hipDeviceProp_t& devprop)
     {
     stencil_launcher<max_threads_per_particle>(d_nlist,
                                                d_n_neigh,
@@ -637,7 +647,8 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                                filter_body,
                                                diameter_shift,
                                                threads_per_particle,
-                                               block_size);
+                                               block_size,
+                                               devprop);
     return hipSuccess;
     }
 

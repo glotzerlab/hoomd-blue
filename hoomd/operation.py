@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Operation class types.
@@ -192,59 +192,118 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     infrastructure for HOOMD-blue objects.
 
     This class's main features are handling attaching and detaching from
-    simulations and adding and removing from containing object such as methods
-    for MD integrators and updaters for the operations list. Attaching is the
-    idea of creating a C++ object that is tied to a given simulation while
-    detaching is removing an object from its simulation.
+    simulations and _adding_ and _removing_ from containing object such as
+    methods for MD integrators and updaters for the operations list. _Attaching_
+    is the idea of creating a C++ object that is tied to a given simulation
+    while _detaching_ is removing an object from its simulation.
+
+    The class also has a counter ``_use_count`` which keeps track of consumers
+    of an operation outside of regular dependencies. This is necessary to avoid
+    double attaching or premature detaching if the object is removed from one of
+    its consumers. This does allow for simple dependency handling outside of the
+    features of `_DependencyRelation`.
     """
     _reserved_default_attrs = {
-        **_HOOMDGetSetAttrBase._reserved_default_attrs, '_cpp_obj': None,
+        **_HOOMDGetSetAttrBase._reserved_default_attrs,
+        '_cpp_obj': None,
         '_simulation': None,
         '_dependents': list,
-        '_dependencies': list
+        '_dependencies': list,
+        # Keeps track of the number of times _attach is called to avoid
+        # premature detaching.
+        "_use_count": int,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependents', '_dependencies', '_simulation'
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation', "_use_count"
     }
-    _remove_for_pickling = ('_simulation', '_cpp_obj')
+    # _use_count must be included or attaching and detaching won't work as
+    # expected as _use_count may not equal 0.
+    _remove_for_pickling = ('_simulation', '_cpp_obj', "_use_count")
 
     def _detach(self):
-        if self._attached:
-            self._unapply_typeparam_dict()
-            self._param_dict._detach()
-            if hasattr(self._cpp_obj, "notifyDetach"):
-                self._cpp_obj.notifyDetach()
-            # In case the C++ object is necessary for proper disconnect
-            # notification we call _notify_disconnect here as well.
-            self._notify_disconnect()
-            self._cpp_obj = None
-            return self
+        """Decrement attach count and destroy C++ object if count == 0.
 
-    def _attach(self):
+        This method is not designed to be overwritten, but handles the necessary
+        detaching procedures for all `_HOOMDBaseObject` subclasses.
+
+        Note:
+            Use `~._detach_hook` in subclasses to provide custom detaching
+            logic.
+        """
+        if self._use_count == 0:
+            return self
+        self._use_count -= 1
+        if self._use_count > 0:
+            return self
+        self._unapply_typeparam_dict()
+        self._param_dict._detach()
+        if hasattr(self._cpp_obj, "notifyDetach"):
+            self._cpp_obj.notifyDetach()
+        # In case the C++ object is necessary for proper disconnect
+        # notification we call _notify_disconnect here as well.
+        try:
+            self._notify_disconnect()
+        except hoomd.error.SimulationDefinitionError as err:
+            raise err
+        finally:
+            self._detach_hook()
+            self._simulation = None
+            self._cpp_obj = None
+        return self
+
+    def _detach_hook(self):
+        """Implement custom detaching behavior.
+
+        This is to provide custom detaching behavior not to:
+            - Change the instance's ``_use_count`` member.
+            - Remove the C++ instance.
+            - Handle the ``_param_dict`` and ``_typeparam_dict``.
+            - Notifying dependencies in C++ or Python of detaching.
+
+        Note:
+            This is only called when the attach counter goes to zero.
+
+        Note:
+            The C++ object is available for this method.
+        """
+        pass
+
+    def _attach_hook(self):
+        """Create the C++ object and store it in ``_cpp_obj``.
+
+        All subclasses should implement this to create the correct pybind11
+        wrapped C++ object. This should not worry about the consumer count or
+        deal with ``_param_dict`` or ``_typeparam_dict``.
+        """
+        pass
+
+    def _attach(self, simulation):
+        """Attach the object to the added simulation.
+
+        This should not be overwritten by subclasses, see `~._attach_hook`
+        instead. This method handles consumer count book keeping and
+        ``_param_dict`` and ``_typeparam_dict``.
+        """
+        self._use_count += 1
+        if self._use_count > 1:
+            if simulation != self._simulation:
+                raise hoomd.error.SimulationDefinitionError(
+                    f"Cannot add {self} to multiple simulations simultaneously."
+                )
+            return
+        self._simulation = simulation
+        try:
+            self._attach_hook()
+        except hoomd.error.SimulationDefinitionError as err:
+            self._use_count -= 1
+            raise err
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
     @property
     def _attached(self):
         return self._cpp_obj is not None
-
-    def _add(self, simulation):
-        self._simulation = simulation
-
-    def _remove(self):
-        # Since objects can be added without being attached, we need to call
-        # _notify_disconnect on both _remove and _detach. The method should be
-        # do nothing after being called onces so being called twice is not a
-        # concern. I should note that if
-        # `hoomd.operations.Operations._unschedule` is called this is
-        # invalidated, but as that is not public facing this should be fine.
-        self._notify_disconnect()
-        self._simulation = None
-
-    @property
-    def _added(self):
-        return self._simulation is not None
 
     def _apply_param_dict(self):
         self._param_dict._attach(self._cpp_obj)
@@ -288,7 +347,100 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         return state
 
 
-class Operation(_HOOMDBaseObject):
+class AutotunedObject(_HOOMDBaseObject):
+    """An object with autotuned kernel parameters.
+
+    `AutotunedObject` instances may complete portions of their computation with
+    one or more GPU kernels. Each GPU kernel is executed with a set of
+    parameters (`kernel_parameters`) that influence the run time of the
+    execution. After initialization, `AutotunedObject` varies these parameters
+    as the simulation runs and searches for the best performing combination. The
+    optimal parameters depend on your system's size, density, force field
+    parameters, the specific hardware you execute on, and more.
+
+    Check `is_tuning_complete` to check if the search is complete. After the
+    search is complete, `AutotunedObject` holds the parameters constant at the
+    optimal values. Typical operations require thousands of time steps to
+    complete tuning. Some may take tens of thousands or more depending on the
+    parameters you set.
+
+    Tip:
+        When you significantly change your system during the simulation (e.g.
+        compress to a higher density), then you can tune the parameters again
+        after with `tune_kernel_parameters`. This step is optional, but may
+        increase performance as the new system parameters may lead to different
+        optimal parameters.
+
+    Note:
+        In MPI parallel execution, all methods and attributes of
+        `AutotunedObject` reference the rank local tuner objects. Different
+        ranks may tune different optimal kernel parameters and may complete
+        tuning at different times. Use only
+        `hoomd.Operations.is_tuning_complete` in control flow operations, as
+        this method is reduced across all ranks.
+
+
+    See Also:
+        * `hoomd.Operations.is_tuning_complete`
+        * `hoomd.Operations.tune_kernel_parameters`
+    """
+
+    @property
+    def kernel_parameters(self):
+        """dict[str, tuple[float]]: Kernel parameters.
+
+        The dictionary maps GPU kernel names to tuples of integers that control
+        how the kernel executes on the GPU. These values will change during the
+        tuning process and remain static after tuning completes. Set the kernel
+        parameters for one or more kernels to force specific values and stop
+        tuning.
+
+        Warning:
+            The keys and valid values in this dictionary depend on the hardware
+            device, the HOOMD-blue version, and the value of class attributes.
+            Keys and/or valid values may change even with new patch releases of
+            HOOMD-blue.
+
+            Provided that you use the same HOOMD-blue binary on the same
+            hardware and execute a script with the same parameters, you may save
+            the tuned values from one run and load them in the next.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("kernel_parameters")
+        return self._cpp_obj.getAutotunerParameters()
+
+    @kernel_parameters.setter
+    def kernel_parameters(self, parameters):
+        if not self._attached:
+            raise hoomd.error.DataAccessError("kernel_parameters")
+        return self._cpp_obj.setAutotunerParameters(parameters)
+
+    @property
+    def is_tuning_complete(self):
+        """bool: Check if kernel parameter tuning is complete.
+
+        ``True`` when tuning is complete and `kernel_parameters` has locked
+        optimal parameters for all active kernels used by this object.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("is_tuning_complete")
+        return self._cpp_obj.isAutotuningComplete()
+
+    def tune_kernel_parameters(self):
+        """Start tuning kernel parameters.
+
+        After calling `tune_kernel_parameters`, `AutotunedObject` will vary the
+        kernel parameters in subsequent time steps, check the run time of each,
+        and lock to the fastest performing parameters after the scan is
+        complete.
+        """
+        if not self._attached:
+            raise RuntimeError("Call Simulation.run() before "
+                               "tune_kernel_parameters.")
+        self._cpp_obj.startAutotuning()
+
+
+class Operation(AutotunedObject):
     """Represents an operation.
 
     Operations in the HOOMD-blue data scheme are objects that *operate* on a
@@ -390,9 +542,8 @@ class Integrator(Operation):
         for `isinstance` or `issubclass` checks.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
-        super()._attach()
 
         # The integrator has changed, update the number of DOF in all groups
         self._simulation.state.update_group_dof()

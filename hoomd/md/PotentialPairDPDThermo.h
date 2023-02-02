@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_H__
@@ -194,7 +194,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
 
             // get parameters for this type pair
             unsigned int typpair_idx = this->m_typpair_idx(typei, typej);
-            param_type param = this->m_params[typpair_idx];
+            const param_type& param = this->m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
 
             // design specifies that energies are shifted if
@@ -210,7 +210,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
             evaluator eval(rsq, rcutsq, param);
 
             // Special Potential Pair DPD Requirements
-            const Scalar currentTemp = (*m_T)(timestep);
+            const Scalar currentTemp = m_T->operator()(timestep);
 
             // set seed using global tags
             unsigned int tagi = h_tag.data[i];

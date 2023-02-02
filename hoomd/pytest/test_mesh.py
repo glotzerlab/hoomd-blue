@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -46,16 +46,17 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     assert mesh.size == 0
     assert mesh.types[0] == "mesh"
     assert len(mesh.triangles) == 0
+    assert len(mesh.type_ids) == 0
     with pytest.raises(DataAccessError):
         mesh.bonds
 
-    mesh._add(sim)
-    mesh._attach()
+    mesh._attach(sim)
 
     assert mesh.size == 0
     assert mesh.types[0] == "mesh"
     assert len(mesh.triangles) == 0
     assert len(mesh.bonds) == 0
+    assert len(mesh.type_ids) == 0
 
 
 def test_mesh_setter():
@@ -64,34 +65,39 @@ def test_mesh_setter():
     mesh.size = 1
     assert mesh.size == 1
 
-    mesh.types[0] = "vesicle"
-    assert mesh.types[0] == "vesicle"
+    mesh.types = ["vesicle", "patch"]
+    assert mesh.types == ["vesicle", "patch"]
+
+    mesh_type_ids = numpy.array([0, 1])
+    mesh.type_ids = mesh_type_ids
 
     mesh_triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
-
     mesh.triangles = mesh_triangles
 
     assert mesh.size == 2
     assert numpy.array_equal(mesh.triangles, mesh_triangles)
+    assert numpy.array_equal(mesh.type_ids, mesh_type_ids)
 
 
 def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
     sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
     mesh = Mesh()
 
-    mesh._add(sim)
-    mesh._attach()
+    mesh._attach(sim)
 
     with pytest.raises(MutabilityError):
         mesh.types = ["vesicle"]
     with pytest.raises(MutabilityError):
         mesh.size = 3
 
-    mesh_triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
+    mesh_type_ids = numpy.array([0, 0])
+    mesh.type_ids = mesh_type_ids
 
+    mesh_triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
     mesh.triangles = mesh_triangles
 
     assert mesh.size == 2
     assert numpy.array_equal(mesh.triangles, mesh_triangles)
+    assert numpy.array_equal(mesh.type_ids, mesh_type_ids)
     assert numpy.array_equal(
-        mesh.bonds, numpy.array([[0, 1], [1, 2], [2, 0], [2, 3], [3, 1]]))
+        mesh.bonds, numpy.array([[0, 1], [1, 2], [0, 2], [2, 3], [1, 3]]))

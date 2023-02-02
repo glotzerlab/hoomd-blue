@@ -52,8 +52,9 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
 ##############################
 ## Source setup
 
-set(_hoomd_sources Analyzer.cc
-                   Autotuner.cc
+set(_hoomd_sources Action.cc
+                   Autotuned.cc
+                   Analyzer.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
                    CellList.cc
@@ -77,7 +78,6 @@ set(_hoomd_sources Analyzer.cc
                    MeshGroupData.cc
                    MeshDefinition.cc
                    Messenger.cc
-                   MemoryTraceback.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
@@ -113,13 +113,17 @@ endif()
 set(_hoomd_headers
     AABB.h
     AABBTree.h
+    Action.h
     Analyzer.h
     ArrayView.h
+    Autotuned.h
     Autotuner.h
     BondedGroupData.cuh
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
+    BoxResizeUpdaterGPU.cuh
+    BoxResizeUpdaterGPU.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
     CellListGPU.cuh
@@ -160,8 +164,6 @@ set(_hoomd_headers
     LoadBalancer.h
     managed_allocator.h
     ManagedArray.h
-    MemoryTraceback.h
-    MeshGroupData.cuh
     MeshGroupData.h
     MeshDefinition.h
     Messenger.h
@@ -193,7 +195,8 @@ set(_hoomd_headers
     )
 
 if (ENABLE_HIP)
-list(APPEND _hoomd_sources CellListGPU.cc
+list(APPEND _hoomd_sources BoxResizeUpdaterGPU.cc
+                           CellListGPU.cc
                            CommunicatorGPU.cc
                            LoadBalancerGPU.cc
                            SFCPackTunerGPU.cc
@@ -201,17 +204,18 @@ list(APPEND _hoomd_sources CellListGPU.cc
 endif()
 
 set(_hoomd_cu_sources BondedGroupData.cu
+                      BoxResizeUpdaterGPU.cu
                       CellListGPU.cu
                       CommunicatorGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
-                      MeshGroupData.cu
                       ParticleData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
+set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
 #########################
@@ -261,15 +265,13 @@ target_include_directories(_hoomd PUBLIC
 
 # specify required definitions
 target_compile_definitions(_hoomd PUBLIC _REENTRANT EIGEN_MPL2_ONLY)
-
-if (SINGLE_PRECISION)
-    target_compile_definitions(_hoomd PUBLIC SINGLE_PRECISION)
-endif(SINGLE_PRECISION)
+target_compile_definitions(_hoomd PUBLIC HOOMD_SHORTREAL_SIZE=${HOOMD_SHORTREAL_SIZE})
+target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SIZE})
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "hcc" OR HIP_PLATFORM STREQUAL "hip-clang")
-        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
+    if (HIP_PLATFORM STREQUAL "hip-clang")
+        target_link_libraries(_hoomd PUBLIC hip::hipfft)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
@@ -288,7 +290,7 @@ if (ENABLE_HIP)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
     endif()
 
-    target_link_libraries(_hoomd PUBLIC HIP::hip)
+    target_link_libraries(_hoomd PUBLIC hip::host)
 
     if (ENABLE_ROCTRACER)
         target_link_libraries(_hoomd PUBLIC HIP::roctracer)
@@ -315,14 +317,6 @@ endif()
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
     target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal::cereal)
-
-    if (ENABLE_MPI_CUDA)
-          target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
-    endif(ENABLE_MPI_CUDA)
-endif()
-
-if (ENABLE_HPMC_MIXED_PRECISION)
-    target_compile_definitions(_hoomd PUBLIC ENABLE_HPMC_MIXED_PRECISION)
 endif()
 
 if (APPLE)
@@ -330,8 +324,6 @@ set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "@loader_path")
 else()
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "\$ORIGIN")
 endif()
-
-fix_cudart_rpath(_hoomd)
 
 # install the library
 install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
@@ -360,6 +352,7 @@ set(files box.py
           mesh.py
           version.py
           wall.py
+          pytest.ini
     )
 
 install(FILES ${files}
@@ -399,7 +392,7 @@ if (BUILD_MD)
     add_subdirectory(md)
 endif()
 
-if (NOT SINGLE_PRECISION AND BUILD_HPMC)
+if (BUILD_HPMC)
     add_subdirectory(hpmc)
 endif()
 
@@ -415,6 +408,7 @@ endif()
 
 foreach(entry ${PLUGINS})
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+        message(STATUS "Found plugin: ${entry}")
         add_subdirectory(${entry})
     endif()
 endforeach()

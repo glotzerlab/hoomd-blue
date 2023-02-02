@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Credits
@@ -7,6 +7,7 @@ Credits
 The following people have contributed to the to HOOMD-blue:
 
 * Aaron Keys, University of Michigan
+* Adrien Chen, University of Florida
 * Alain Kadar, University of Michigan
 * Alex Travesset, Iowa State University and Ames Laboratory
 * Alex Yang, Vanderbilt University
@@ -50,6 +51,7 @@ The following people have contributed to the to HOOMD-blue:
 * Geert Kapteijns, University of Amsterdam
 * Greg van Anders, University of Michigan
 * Grey Garrett, University of Michigan
+* Ian Graham, University of Pennsylvania
 * Igor Morozov, Joint Institute for High Temperatures of RAS
 * Isaac Bruss, University of Michigan
 * Jakin B. Delony, University of South Florida
@@ -73,11 +75,13 @@ The following people have contributed to the to HOOMD-blue:
 * Luis Y. Rivera-Rivera, University of Michigan
 * Malcolm Ramsay
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
+* Martin Girard, Max-Planck-Institut für Polymerforschung
 * Matthew Spellings, University of Michgan
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
+* Pablo Zubieta, PME, The University of Chicago
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
 * Pavani Medapuram Lakshmi Narasimha, University of Minnesota

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HOOMD_MPI_H__
@@ -156,7 +156,7 @@ inline void load(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A>& unorde
 
 namespace hoomd
     {
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 //! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
 const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;

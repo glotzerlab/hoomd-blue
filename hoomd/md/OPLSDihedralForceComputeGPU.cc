@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file OPLSDihedralForceComputeGPU.cc
@@ -27,9 +27,10 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemD
         throw std::runtime_error("Error initializing OPLSDihedralForceComputeGPU");
         }
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "opls_dihedral", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "opls_dihedral"));
+    m_autotuners.push_back(m_tuner);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -60,7 +61,7 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
 
     // run the kernel in parallel on all GPUs
-    this->m_tuner->begin();
+    m_tuner->begin();
     kernel::gpu_compute_opls_dihedral_forces(d_force.data,
                                              d_virial.data,
                                              m_virial.getPitch(),
@@ -73,11 +74,11 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
                                              d_n_dihedrals.data,
                                              d_params.data,
                                              m_dihedral_data->getNTypes(),
-                                             this->m_tuner->getParam(),
+                                             m_tuner->getParam()[0],
                                              m_exec_conf->dev_prop.warpSize);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    this->m_tuner->end();
+    m_tuner->end();
     }
 
 namespace detail

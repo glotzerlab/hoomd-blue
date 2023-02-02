@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -111,21 +111,6 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
                                              access_location::host,
                                              access_mode::read);
         return h_net_properties.data[mpcd::detail::thermo_index::temperature];
-        }
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-#ifdef ENABLE_MPI
-        if (m_vel_comm)
-            m_vel_comm->setAutotunerParams(enable, period);
-        if (m_energy_comm)
-            m_energy_comm->setAutotunerParams(enable, period);
-#endif // ENABLE_MPI
         }
 
     //! Get the signal for requested thermo flags

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
@@ -38,26 +38,6 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
      */
     virtual void updateCompositeParticles(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ForceComposite::setAutotunerParams(enable, period);
-
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-
-        m_tuner_virial->setPeriod(period);
-        m_tuner_virial->setEnabled(enable);
-
-        m_tuner_update->setPeriod(period);
-        m_tuner_update->setEnabled(enable);
-        }
-
     protected:
     //! Compute the forces and torques on the central particle
     virtual void computeForces(uint64_t timestep);
@@ -77,10 +57,14 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         MolecularForceCompute::checkParticlesSorted();
         }
 
-    std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size and threads per particle
-    std::unique_ptr<Autotuner>
-        m_tuner_virial; //!< Autotuner for block size and threads per particle
-    std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
+    /// Autotuner for block size and threads per body.
+    std::shared_ptr<Autotuner<2>> m_tuner_force;
+
+    /// Autotuner for block size and threads per body.
+    std::shared_ptr<Autotuner<2>> m_tuner_virial;
+
+    /// Autotuner for block size of update kernel.
+    std::shared_ptr<Autotuner<1>> m_tuner_update;
 
     GlobalArray<uint2> m_flag; //!< Flag to read out error condition
 

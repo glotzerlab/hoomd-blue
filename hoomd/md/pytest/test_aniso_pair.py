@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections import namedtuple
@@ -13,7 +13,8 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import pickling_check, logging_check
+from hoomd.conftest import (pickling_check, logging_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.logging import LoggerCategories
 from hoomd import md
 from hoomd.error import TypeConversionError
@@ -412,6 +413,9 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
                                old_snap.particles.position)
         assert np.any(energies != 0)
         assert np.any(forces != 0)
+
+    autotuned_kernel_parameter_check(instance=pair_potential,
+                                     activate=lambda: sim.run(1))
 
 
 @pytest.mark.parametrize("aniso_forces_and_energies",

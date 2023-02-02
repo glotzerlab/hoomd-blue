@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -386,9 +386,9 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4* d_pos,
 
             } while (resid > tolerance && iteration < maxiteration);
 
-        accel -= lambda * normal;
+        accel = accel - lambda * normal;
 
-        force -= inv_mass * lambda * normal;
+        force = force - inv_mass * lambda * normal;
 
         virial0 -= lambda * normal.x * pos.x;
         virial1 -= 0.5 * lambda * (normal.x * pos.y + normal.y * pos.x);

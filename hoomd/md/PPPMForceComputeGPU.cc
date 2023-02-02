@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.h"
@@ -20,27 +20,25 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
     : PPPMForceCompute(sysdef, nlist, group), m_local_fft(true), m_sum(m_exec_conf),
       m_block_size(256)
     {
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner_assign.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_assign", this->m_exec_conf));
-    m_tuner_reduce_mesh.reset(new Autotuner(warp_size,
-                                            1024,
-                                            warp_size,
-                                            5,
-                                            100000,
-                                            "pppm_reduce_mesh",
-                                            this->m_exec_conf));
-    m_tuner_update.reset(new Autotuner(warp_size,
-                                       1024,
-                                       warp_size,
-                                       5,
-                                       100000,
-                                       "pppm_update_mesh",
-                                       this->m_exec_conf));
-    m_tuner_force.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_force", this->m_exec_conf));
-    m_tuner_influence.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pppm_influence", this->m_exec_conf));
+    m_tuner_assign.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                          m_exec_conf,
+                                          "pppm_assign"));
+    m_tuner_reduce_mesh.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "pppm_reduce_mesh"));
+    m_tuner_update.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                          m_exec_conf,
+                                          "pppm_update_mesh"));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "pppm_force"));
+    m_tuner_influence.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                             m_exec_conf,
+                                             "pppm_influence"));
+
+    m_autotuners.insert(
+        m_autotuners.end(),
+        {m_tuner_assign, m_tuner_reduce_mesh, m_tuner_update, m_tuner_force, m_tuner_influence});
 
     m_cufft_initialized = false;
     m_cuda_dfft_initialized = false;
@@ -315,7 +313,7 @@ void PPPMForceComputeGPU::assignParticles()
     this->m_exec_conf->beginMultiGPU();
 
     m_tuner_assign->begin();
-    unsigned int block_size = m_tuner_assign->getParam();
+    unsigned int block_size = m_tuner_assign->getParam()[0];
 
     kernel::gpu_assign_particles(m_mesh_points,
                                  m_n_ghost_cells,
@@ -347,7 +345,7 @@ void PPPMForceComputeGPU::assignParticles()
                                   d_mesh_scratch.data,
                                   d_mesh.data,
                                   m_exec_conf->getNumActiveGPUs(),
-                                  m_tuner_reduce_mesh->getParam());
+                                  m_tuner_reduce_mesh->getParam()[0]);
         m_tuner_reduce_mesh->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -415,7 +413,7 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
 
-        unsigned int block_size = m_tuner_update->getParam();
+        unsigned int block_size = m_tuner_update->getParam()[0];
         m_tuner_update->begin();
         kernel::gpu_update_meshes(m_n_inner_cells,
                                   d_mesh.data + m_ghost_offset,
@@ -578,7 +576,7 @@ void PPPMForceComputeGPU::interpolateForces()
 
     m_exec_conf->beginMultiGPU();
 
-    unsigned int block_size = m_tuner_force->getParam();
+    unsigned int block_size = m_tuner_force->getParam()[0];
     m_tuner_force->begin();
     kernel::gpu_compute_forces(m_pdata->getN(),
                                d_postype.data,
@@ -755,7 +753,7 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
 
     ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::read);
 
-    unsigned int block_size = m_tuner_influence->getParam();
+    unsigned int block_size = m_tuner_influence->getParam()[0];
     m_tuner_influence->begin();
     kernel::gpu_compute_influence_function(m_mesh_points,
                                            global_dim,

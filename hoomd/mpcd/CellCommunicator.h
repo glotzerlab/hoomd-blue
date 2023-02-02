@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -22,6 +22,7 @@
 #include "CellList.h"
 #include "CommunicatorUtilities.h"
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
@@ -37,7 +38,7 @@ namespace hoomd
 namespace mpcd
     {
 //! Communicates properties across the MPCD cell list
-class PYBIND11_EXPORT CellCommunicator
+class PYBIND11_EXPORT CellCommunicator : public Autotuned
     {
     public:
     //! Constructor
@@ -87,27 +88,6 @@ class PYBIND11_EXPORT CellCommunicator
         return m_cells;
         }
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
-        {
-#ifdef ENABLE_HIP
-        if (m_tuner_pack)
-            {
-            m_tuner_pack->setEnabled(enable);
-            m_tuner_pack->setPeriod(period);
-            }
-        if (m_tuner_unpack)
-            {
-            m_tuner_unpack->setEnabled(enable);
-            m_tuner_unpack->setPeriod(period);
-            }
-#endif // ENABLE_HIP
-        }
-
     private:
     static unsigned int num_instances; //!< Number of communicator instances
     const unsigned int m_id;           //!< Id for this communicator to use in tags
@@ -155,8 +135,8 @@ class PYBIND11_EXPORT CellCommunicator
     void unpackBuffer(const GPUArray<T>& props, const PackOpT op);
 
 #ifdef ENABLE_HIP
-    std::unique_ptr<Autotuner> m_tuner_pack;   //!< Tuner for pack kernel
-    std::unique_ptr<Autotuner> m_tuner_unpack; //!< Tuner for unpack kernel
+    std::shared_ptr<Autotuner<1>> m_tuner_pack;   //!< Tuner for pack kernel
+    std::shared_ptr<Autotuner<1>> m_tuner_unpack; //!< Tuner for unpack kernel
 
     //! Packs the property buffer on the GPU
     template<typename T, class PackOpT>
@@ -224,13 +204,6 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
         {
         // determine whether to use CPU or GPU CUDA buffers
         access_location::Enum mpi_loc;
-#ifdef ENABLE_MPI_CUDA
-        if (m_exec_conf->isCUDAEnabled())
-            {
-            mpi_loc = access_location::device;
-            }
-        else
-#endif // ENABLE_MPI_CUDA
             {
             mpi_loc = access_location::host;
             }
@@ -241,10 +214,6 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
             = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
         typename PackOpT::element* recv_buf
             = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
-#ifdef ENABLE_MPI_CUDA
-        if (mpi_loc == access_location::device)
-            cudaDeviceSynchronize();
-#endif // ENABLE_MPI_CUDA
 
         m_reqs.resize(2 * m_neighbors.size());
         for (unsigned int idx = 0; idx < m_neighbors.size(); ++idx)
@@ -290,11 +259,6 @@ void mpcd::CellCommunicator::finalize(const GPUArray<T>& props, const PackOpT op
 
     // finish all MPI requests
     MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
-#ifdef ENABLE_MPI_CUDA
-    // MPI calls can execute in multiple streams, so force a synchronization before we move on
-    if (m_exec_conf->isCUDAEnabled())
-        cudaDeviceSynchronize();
-#endif // ENABLE_MPI_CUDA
 
 // unpack the buffer
 #ifdef ENABLE_HIP
@@ -416,7 +380,7 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, const PackO
                                 d_send_idx.data,
                                 op,
                                 (unsigned int)m_send_idx.getNumElements(),
-                                m_tuner_pack->getParam());
+                                m_tuner_pack->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_pack->end();
@@ -459,7 +423,7 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
                                   recv_buf,
                                   op,
                                   m_num_cells,
-                                  m_tuner_unpack->getParam());
+                                  m_tuner_unpack->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_unpack->end();

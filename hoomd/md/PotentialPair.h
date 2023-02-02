@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_PAIR_H__
@@ -220,6 +220,12 @@ template<class evaluator> class PotentialPair : public ForceCompute
         {
         m_nlist->resetStats();
         }
+
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning();
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete();
 
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
@@ -706,7 +712,7 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
 
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            param_type param = m_params[typpair_idx];
+            const param_type& param = m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
             Scalar ronsq = Scalar(0.0);
             if (m_shift_mode == xplor)
@@ -842,6 +848,20 @@ CommFlags PotentialPair<evaluator>::getRequestedCommFlags(uint64_t timestep)
     return flags;
     }
 #endif
+
+template<class evaluator> void PotentialPair<evaluator>::startAutotuning()
+    {
+    ForceCompute::startAutotuning();
+
+    // Start autotuning the neighbor list.
+    m_nlist->startAutotuning();
+    }
+
+template<class evaluator> bool PotentialPair<evaluator>::isAutotuningComplete()
+    {
+    bool result = ForceCompute::isAutotuningComplete();
+    return result && m_nlist->isAutotuningComplete();
+    }
 
 //! function to compute the energy between two lists of particles.
 //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.

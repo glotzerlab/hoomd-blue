@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegrationMethodTwoStep.h"
@@ -139,9 +139,9 @@ namespace detail
     {
 void export_IntegrationMethodTwoStep(pybind11::module& m)
     {
-    pybind11::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
-        m,
-        "IntegrationMethodTwoStep")
+    pybind11::class_<IntegrationMethodTwoStep,
+                     Autotuned,
+                     std::shared_ptr<IntegrationMethodTwoStep>>(m, "IntegrationMethodTwoStep")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
         .def_property_readonly("filter",

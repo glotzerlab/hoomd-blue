@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_FREE_VOLUME_CUH_
@@ -393,6 +393,12 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     size_t shared_bytes = args.num_types * sizeof(typename Shape::param_type)
                           + n_groups * sizeof(unsigned int)
                           + args.overlap_idx.getNumElements() * sizeof(unsigned int);
+
+    if (shared_bytes > args.devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("HPMC shape parameters exceed the available shared "
+                                 "memory per block.");
+        }
 
     unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock
                                                              - attr.sharedSizeBytes - shared_bytes);

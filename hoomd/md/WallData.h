@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file WallData.h
@@ -23,7 +23,7 @@
     \param inside Determines which half space is evaluated.
 */
 
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 #define ALIGN_SCALAR 4
 #else
 #define ALIGN_SCALAR 8
@@ -86,7 +86,7 @@ struct __attribute__((visibility("default"))) CylinderWall
             }
         quatAxisToZRot = quat<Scalar>(realPart, w);
         Scalar norm = fast::rsqrt(norm2(quatAxisToZRot));
-        quatAxisToZRot = norm * quatAxisToZRot;
+        quatAxisToZRot = conj(norm * quatAxisToZRot);
         }
     quat<Scalar>
         quatAxisToZRot; // need to order datatype in descending order of type size for Fermi

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods with manifold constraints."""
@@ -43,13 +43,8 @@ class MethodRATTLE(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _add(self, sim):
-        self.manifold_constraint._add(sim)
-        super()._add(sim)
-
     def _attach_constraint(self, sim):
-        if not self.manifold_constraint._attached:
-            self.manifold_constraint._attach()
+        self.manifold_constraint._attach(sim)
 
     def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":
@@ -74,8 +69,8 @@ class NVE(MethodRATTLE):
             function. Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations as described
-    in `hoomd.md.methods.NVE`. In addition the particles are constrained to a
-    manifold by using the RATTLE algorithm.
+    in `hoomd.md.methods.ConstantVolume` without any thermostat. In addition
+    the particles are constrained to a manifold by using the RATTLE algorithm.
 
     Examples::
 
@@ -115,8 +110,7 @@ class NVE(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _attach(self):
-
+    def _attach_hook(self):
         self._attach_constraint(self._simulation)
 
         # initialize the reflected c++ class
@@ -134,8 +128,72 @@ class NVE(MethodRATTLE):
                                  self.manifold_constraint._cpp_obj,
                                  self.tolerance)
 
-        # Attach param_dict and typeparam_dict
-        super()._attach()
+
+class DisplacementCapped(NVE):
+    r"""Newtonian dynamics with a cap on the maximum displacement per time step.
+
+    Integration is via a maximum displacement capped Velocity-Verlet with
+    RATTLE constraint. This class is useful to relax a simulation on a manifold.
+
+    Warning:
+        This method does not conserve energy or momentum.
+
+    Args:
+        filter (hoomd.filter.filter_like): Subset of particles on which to apply
+            this method.
+        maximum_displacement (hoomd.variant.variant_like): The maximum
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold
+            constraint.
+        tolerance (`float`, optional): Defines the tolerated error particles are
+            allowed to deviate from the manifold in terms of the implicit
+            function. The units of tolerance match that of the selected
+            manifold's implicit function. Defaults to 1e-6
+
+    `DisplacementCapped` performs constant volume simulations as described in
+    `hoomd.md.methods.DisplacementCapped`. In addition the particles are
+    constrained to a manifold by using the RATTLE algorithm.
+
+    Examples::
+
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        relax_rattle = hoomd.md.methods.rattle.DisplacementCapped(
+            filter=hoomd.filter.All(), maximum_displacement=0.01,
+            manifold=sphere)
+        integrator = hoomd.md.Integrator(
+            dt=0.005, methods=[relax_rattle], forces=[lj])
+
+
+    Attributes:
+        filter (hoomd.filter.filter_like): Subset of particles on which to apply
+            this method.
+        maximum_displacement (hoomd.variant.variant_like): The maximum
+            displacement allowed for a particular timestep
+            :math:`[\mathrm{length}]`.
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method.
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function. The
+            units of tolerance match that of the selected manifold's implicit
+            function. Defaults to 1e-6
+
+    """
+
+    def __init__(self,
+                 filter: hoomd.filter.filter_like,
+                 maximum_displacement: hoomd.variant.variant_like,
+                 manifold_constraint: "hoomd.md.manifold.Manifold",
+                 tolerance: float = 1e-6):
+
+        # store metadata
+        super().__init__(filter, manifold_constraint, tolerance)
+        param_dict = ParameterDict(maximum_displacement=hoomd.variant.Variant)
+        param_dict["maximum_displacement"] = maximum_displacement
+
+        # set defaults
+        self._param_dict.update(param_dict)
 
 
 class Langevin(MethodRATTLE):
@@ -260,19 +318,10 @@ class Langevin(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Langevin uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
         sim = self._simulation
+        # Langevin uses RNGs. Warn the user if they did not set the seed.
+        sim._warn_if_seed_unset()
         self._attach_constraint(sim)
 
         if isinstance(sim.device, hoomd.device.CPU):
@@ -288,9 +337,6 @@ class Langevin(MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class Brownian(MethodRATTLE):
@@ -399,19 +445,10 @@ class Brownian(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Brownian uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
         sim = self._simulation
+        # Brownian uses RNGs. Warn the user if they did not set the seed.
+        sim._warn_if_seed_unset()
         self._attach_constraint(sim)
 
         if isinstance(sim.device, hoomd.device.CPU):
@@ -427,9 +464,6 @@ class Brownian(MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
                                  False, False, self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class OverdampedViscous(MethodRATTLE):
@@ -528,19 +562,11 @@ class OverdampedViscous(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        OverdampedViscous uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
         sim = self._simulation
+        # OverdampedViscous uses RNGs. Warn the user if they did not set the
+        # seed.
+        sim._warn_if_seed_unset()
         self._attach_constraint(sim)
 
         if isinstance(sim.device, hoomd.device.CPU):
@@ -557,6 +583,3 @@ class OverdampedViscous(MethodRATTLE):
                                  self.manifold_constraint._cpp_obj,
                                  hoomd.variant.Constant(0.0), True, True,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()

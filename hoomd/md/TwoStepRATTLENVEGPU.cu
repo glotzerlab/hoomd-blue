@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -134,8 +134,8 @@ hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
                                    unsigned int block_size)
     {
     unsigned int max_block_size;
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_one_kernel);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_one_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);

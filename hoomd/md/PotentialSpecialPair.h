@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
@@ -284,7 +284,7 @@ template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(ui
         Scalar rsq = dot(dx, dx);
 
         // get parameters for this bond type
-        param_type param = h_params.data[h_typeval.data[i].type];
+        const param_type& param = h_params.data[h_typeval.data[i].type];
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);

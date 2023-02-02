@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -204,7 +204,8 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                         const unsigned int table_width,
                                         const Index2D& table_value,
                                         unsigned int* d_flags,
-                                        const unsigned int block_size)
+                                        const unsigned int block_size,
+                                        const hipDeviceProp_t& devprop)
     {
     assert(d_params);
     assert(d_tables);
@@ -222,10 +223,17 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
     dim3 grid(N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
+    size_t shared_bytes = sizeof(Scalar4) * n_bond_type;
+    if (shared_bytes > devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("Bond potential parameters exceed the available shared memory per "
+                                 "block.");
+        }
+
     hipLaunchKernelGGL((gpu_compute_bondtable_forces_kernel),
                        dim3(grid),
                        dim3(threads),
-                       sizeof(Scalar4) * n_bond_type,
+                       shared_bytes,
                        0,
                        d_force,
                        d_virial,

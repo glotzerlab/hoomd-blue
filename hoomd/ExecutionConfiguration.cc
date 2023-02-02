@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExecutionConfiguration.h"
@@ -704,7 +704,6 @@ void export_ExecutionConfiguration(pybind11::module& m)
 #endif
         .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
         .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
-        .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer)
         .def("memoryTracingEnabled", &ExecutionConfiguration::memoryTracingEnabled)
         .def_static("getCapableDevices", &ExecutionConfiguration::getCapableDevices)
         .def_static("getScanMessages", &ExecutionConfiguration::getScanMessages)

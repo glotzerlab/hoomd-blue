@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Dihedral forces.
@@ -48,7 +48,6 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd
 
 import numpy
-import math
 
 
 class Dihedral(Force):
@@ -64,7 +63,7 @@ class Dihedral(Force):
     def __init__(self):
         super().__init__()
 
-    def _attach(self):
+    def _attach_hook(self):
         # check that some dihedrals are defined
         if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal(
         ) == 0:
@@ -78,13 +77,12 @@ class Dihedral(Force):
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
-        super()._attach()
 
 
-class Harmonic(Dihedral):
-    r"""Harmonic dihedral force.
+class Periodic(Dihedral):
+    r"""Periodic dihedral force.
 
-    `Harmonic` computes forces, virials, and energies on all dihedrals in the
+    `Periodic` computes forces, virials, and energies on all dihedrals in the
     simulation state with:
 
     .. math::
@@ -120,10 +118,13 @@ class Harmonic(Dihedral):
         self._add_typeparam(params)
 
 
-def _table_eval(theta, V, T, width):
-    dth = (2 * math.pi) / float(width - 1)
-    i = int(round((theta + math.pi) / dth))
-    return (V[i], T[i])
+class Harmonic(Periodic):
+    """Periodic dihedral force.
+
+    .. deprecated:: v3.7.0
+        Use `Periodic`.
+    """
+    pass
 
 
 class Table(Dihedral):
@@ -181,7 +182,7 @@ class Table(Dihedral):
                 len_keys=1))
         self._add_typeparam(params)
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = _md.TableDihedralForceCompute
@@ -189,8 +190,6 @@ class Table(Dihedral):
             cpp_cls = _md.TableDihedralForceComputeGPU
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def, self.width)
-
-        Force._attach(self)
 
 
 class OPLS(Dihedral):

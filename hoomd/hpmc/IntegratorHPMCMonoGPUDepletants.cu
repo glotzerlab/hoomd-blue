@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPUDepletants.cuh"
@@ -12,6 +12,7 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#include <thrust/functional.h>
 #include <thrust/reduce.h>
 #pragma GCC diagnostic pop
 

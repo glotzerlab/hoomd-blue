@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -746,8 +746,6 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                 {
                 r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) + static_cast<OverlapReal>(0.5) *
                     static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
-                r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) +
-                    static_cast<OverlapReal>(0.5) * static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
                 }
 
             // subtract minimum AABB extent from search radius

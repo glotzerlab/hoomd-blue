@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Newtonain Event-Chain Integrators for Hard Particle Monte Carlo."""
@@ -71,9 +71,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
             raise ValueError(
                 "update_fraction has to be between 0 and 1. (got {})".format(
                     value))
-
-    def _attach(self):
-        super()._attach()
 
     @property
     def nec_counters(self):

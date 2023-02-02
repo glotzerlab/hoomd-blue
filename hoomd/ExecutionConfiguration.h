@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EXECUTION_CONFIGURATION__
@@ -30,7 +30,6 @@
 #include <tbb/task_arena.h>
 #endif
 
-#include "MemoryTraceback.h"
 #include "Messenger.h"
 
 /*! \file ExecutionConfiguration.h
@@ -300,21 +299,12 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! Set up memory tracing
     void setMemoryTracing(bool enable)
         {
-        if (enable)
-            m_memory_traceback = std::unique_ptr<MemoryTraceback>(new MemoryTraceback);
-        else
-            m_memory_traceback = std::unique_ptr<MemoryTraceback>();
-        }
-
-    //! Returns the memory tracer
-    const MemoryTraceback* getMemoryTracer() const
-        {
-        return m_memory_traceback.get();
+        m_memory_tracing = enable;
         }
 
     bool memoryTracingEnabled() const
         {
-        return m_memory_traceback.get() != nullptr;
+        return m_memory_tracing;
         }
 
     //! Returns true if we are in a multi-GPU block
@@ -422,7 +412,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
 
-    std::unique_ptr<MemoryTraceback> m_memory_traceback; //!< Keeps track of allocations
+    bool m_memory_tracing = false;
     };
 
 #if defined(ENABLE_HIP)

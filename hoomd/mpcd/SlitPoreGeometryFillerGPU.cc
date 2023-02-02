@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -20,7 +20,10 @@ mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(
     std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
     : mpcd::SlitPoreGeometryFiller(sysdata, density, type, T, seed, geom)
     {
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_slit_filler", m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "mpcd_slit_filler"));
+    m_autotuners.push_back(m_tuner);
     }
 
 /*!
@@ -62,7 +65,7 @@ void mpcd::SlitPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
                                         (*m_T)(timestep),
                                         timestep,
                                         seed,
-                                        m_tuner->getParam());
+                                        m_tuner->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();

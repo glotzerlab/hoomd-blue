@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_TERSOFF_GPU_H__
@@ -45,19 +45,8 @@ template<class evaluator> class PotentialTersoffGPU : public PotentialTersoff<ev
     //! Destructor
     virtual ~PotentialTersoffGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        PotentialTersoff<evaluator>::setAutotunerParams(enable, period);
-        this->m_tuner->setPeriod(period);
-        this->m_tuner->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -79,25 +68,12 @@ PotentialTersoffGPU<evaluator>::PotentialTersoffGPU(std::shared_ptr<SystemDefini
         throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
 
-    // initialize autotuner
-    // the full block size and threads_per_particle matrix is searched,
-    // encoded as block_size*10000 + threads_per_particle
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    unsigned int max_tpp = warp_size;
-
-    std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        {
-        unsigned int s = 1;
-
-        while (s <= max_tpp)
-            {
-            valid_params.push_back(block_size * 10000 + s);
-            s = s * 2;
-            }
-        }
-
-    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_tersoff", this->m_exec_conf));
+    // Initialize autotuner.
+    m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                                    AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "pair_tersoff"));
+    this->m_autotuners.push_back(m_tuner);
     }
 
 template<class evaluator> PotentialTersoffGPU<evaluator>::~PotentialTersoffGPU()
@@ -149,10 +125,10 @@ template<class evaluator> void PotentialTersoffGPU<evaluator>::computeForces(uin
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-    this->m_tuner->begin();
-    unsigned int param = this->m_tuner->getParam();
-    unsigned int block_size = param / 10000;
-    unsigned int threads_per_particle = param % 10000;
+    m_tuner->begin();
+    auto param = m_tuner->getParam();
+    unsigned int block_size = param[0];
+    unsigned int threads_per_particle = param[1];
 
     kernel::gpu_compute_triplet_forces<evaluator>(
         kernel::tersoff_args_t(d_force.data,
@@ -177,7 +153,7 @@ template<class evaluator> void PotentialTersoffGPU<evaluator>::computeForces(uin
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    this->m_tuner->end();
+    m_tuner->end();
     }
 
 namespace detail

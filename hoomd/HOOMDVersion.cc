@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDVersion.h"
@@ -29,21 +29,20 @@ std::string BuildInfo::getCompileFlags()
     o << "] (" << hip_major << "." << hip_minor << ") ";
 #endif
 
-#ifdef SINGLE_PRECISION
-    o << "SINGLE ";
+#if HOOMD_LONGREAL_SIZE == 32
+    o << "SINGLE";
 #else
-    o << "DOUBLE ";
-#ifdef ENABLE_HPMC_MIXED_PRECISION
-    o << "HPMC_MIXED ";
+    o << "DOUBLE";
 #endif
+
+#if HOOMD_SHORTREAL_SIZE == 32
+    o << "[SINGLE] ";
+#else
+    o << "[DOUBLE] ";
 #endif
 
 #ifdef ENABLE_MPI
     o << "MPI ";
-#endif
-
-#ifdef ENABLE_MPI_CUDA
-    o << "MPI_CUDA ";
 #endif
 
 #ifdef ENABLE_TBB
@@ -175,13 +174,7 @@ std::string BuildInfo::getInstallDir()
 
 std::pair<unsigned int, unsigned int> BuildInfo::getFloatingPointPrecision()
     {
-#if defined(SINGLE_PRECISION)
-    return std::make_pair(32, 32);
-#elif !defined(SINGLE_PRECISION) && defined(ENABLE_HPMC_MIXED_PRECISION)
-    return std::make_pair(64, 32);
-#elif !defined(SINGLE_PRECISION) && !defined(ENABLE_HPMC_MIXED_PRECISION)
-    return std::make_pair(64, 64);
-#endif
+    return std::make_pair(HOOMD_LONGREAL_SIZE, HOOMD_SHORTREAL_SIZE);
     }
 
     } // namespace hoomd

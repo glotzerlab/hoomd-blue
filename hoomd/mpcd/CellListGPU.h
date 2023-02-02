@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -30,25 +30,6 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
 
     virtual ~CellListGPU();
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        mpcd::CellList::setAutotunerParams(enable, period);
-
-        m_tuner_cell->setPeriod(period);
-        m_tuner_cell->setEnabled(enable);
-        m_tuner_sort->setPeriod(period);
-        m_tuner_sort->setEnabled(enable);
-#ifdef ENABLE_MPI
-        m_tuner_embed_migrate->setPeriod(period);
-        m_tuner_embed_migrate->setEnabled(enable);
-#endif // ENABLE_MPI
-        }
-
     protected:
     //! Compute the cell list of particles on the GPU
     virtual void buildCellList();
@@ -65,11 +46,15 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
 #endif                                     // ENABLE_MPI
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_cell; //!< Autotuner for the cell list calculation
-    std::unique_ptr<Autotuner> m_tuner_sort; //!< Autotuner for sorting the cell list
+    /// Autotuner for the cell list calculation.
+    std::shared_ptr<Autotuner<1>> m_tuner_cell;
+
+    /// Autotuner for sorting the cell list.
+    std::shared_ptr<Autotuner<1>> m_tuner_sort;
 #ifdef ENABLE_MPI
-    std::unique_ptr<Autotuner> m_tuner_embed_migrate; //!< Autotuner for checking embedded migration
-#endif                                                // ENABLE_MPI
+    /// Autotuner for checking embedded migration.
+    std::shared_ptr<Autotuner<1>> m_tuner_embed_migrate;
+#endif // ENABLE_MPI
     };
 
 namespace detail

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -14,6 +14,7 @@
 #endif
 
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include <pybind11/pybind11.h>
 
 namespace hoomd
@@ -35,7 +36,7 @@ namespace mpcd
  * because they cannot be removed easily if they are sorted with the rest of the particles,
  * and the performance gains from doing a separate (segmented) sort on them is probably small.
  */
-class PYBIND11_EXPORT Sorter
+class PYBIND11_EXPORT Sorter : public Autotuned
     {
     public:
     //! Constructor
@@ -48,15 +49,6 @@ class PYBIND11_EXPORT Sorter
 
     //! Update the particle data order
     virtual void update(uint64_t timestep);
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     bool peekSort(uint64_t timestep) const;
 

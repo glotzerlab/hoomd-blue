@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file System.cc
@@ -11,8 +11,8 @@
 #include "Communicator.h"
 #endif
 
-// #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
 #include <stdexcept>
 #include <time.h>
@@ -87,11 +87,6 @@ void System::run(uint64_t nsteps, bool write_at_start)
     m_last_walltime = 0.0;
     m_last_TPS = 0.0;
 
-    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
-    // info they need but set the flags before prepRun, as prepRun may remove some flags that it
-    // cannot generate on the first step
-    m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
-
     resetStats();
 
 #ifdef ENABLE_MPI
@@ -116,6 +111,11 @@ void System::run(uint64_t nsteps, bool write_at_start)
         {
         m_integrator->prepRun(m_cur_tstep);
         }
+
+    // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the
+    // info they need but set the flags before prepRun, as prepRun may remove some flags that it
+    // cannot generate on the first step
+    m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
 
     // execute analyzers on initial step if requested
     if (write_at_start)
@@ -186,33 +186,6 @@ void System::updateTPS()
 
     // calculate average TPS
     m_last_TPS = double(m_cur_tstep - m_start_tstep) / m_last_walltime;
-    }
-
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void System::setAutotunerParams(bool enabled, unsigned int period)
-    {
-    // set the autotuner parameters on everything
-    if (m_integrator)
-        m_integrator->setAutotunerParams(enabled, period);
-
-    // analyzers
-    for (auto& analyzer : m_analyzers)
-        analyzer->setAutotunerParams(enabled, period);
-
-    // updaters
-    for (auto& updater : m_updaters)
-        updater->setAutotunerParams(enabled, period);
-
-    // computes
-    for (auto compute : m_computes)
-        compute->setAutotunerParams(enabled, period);
-
-#ifdef ENABLE_MPI
-    if (m_sysdef->isDomainDecomposed())
-        m_comm->setAutotunerParams(enabled, period);
-#endif
     }
 
 // --------- Steps in the simulation run implemented in helper functions
@@ -300,7 +273,6 @@ void export_System(pybind11::module& m)
         .def("setIntegrator", &System::setIntegrator)
         .def("getIntegrator", &System::getIntegrator)
 
-        .def("setAutotunerParams", &System::setAutotunerParams)
         .def("run", &System::run)
 
         .def("getLastTPS", &System::getLastTPS)

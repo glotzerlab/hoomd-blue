@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __ANISO_POTENTIAL_PAIR_GPU_H__
@@ -43,35 +43,13 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
     //! Destructor
     virtual ~AnisoPotentialPairGPU() {};
 
-    //! Set the kernel runtime parameters
-    /*! \param param Kernel parameters
-     */
-    void setTuningParam(unsigned int param)
-        {
-        m_param = param;
-        }
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        AnisoPotentialPair<evaluator>::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     virtual void
     setParams(unsigned int typ1, unsigned int typ2, const typename evaluator::param_type& param);
 
     virtual void setShape(unsigned int typ, const typename evaluator::shape_type& shape_param);
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
-    unsigned int m_param;               //!< Kernel tuning parameter
+    std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size and threads per particle
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -80,7 +58,7 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
 template<class evaluator>
 AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                         std::shared_ptr<NeighborList> nlist)
-    : AnisoPotentialPair<evaluator>(sysdef, nlist), m_param(0)
+    : AnisoPotentialPair<evaluator>(sysdef, nlist)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -93,24 +71,13 @@ AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDe
         throw std::runtime_error("Error initializing AnisoPotentialPairGPU");
         }
 
-    // initialize autotuner
-    // the full block size and threads_per_particle matrix is searched,
-    // encoded as block_size*10000 + threads_per_particle
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        {
-        for (auto s : Autotuner::getTppListPow2(warp_size))
-            {
-            valid_params.push_back(block_size * 10000 + s);
-            }
-        }
+    // Initialize autotuner that tunes block sizes and threads per particle.
+    m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                                    AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "aniso_pair_" + evaluator::getName()));
+    this->m_autotuners.push_back(m_tuner);
 
-    m_tuner.reset(new Autotuner(valid_params,
-                                5,
-                                100000,
-                                "aniso_pair_" + evaluator::getName(),
-                                this->m_exec_conf));
 #ifdef ENABLE_MPI
     // synchronize autotuner results across ranks
     m_tuner->setSync(bool(this->m_pdata->getDomainDecomposition()));
@@ -173,11 +140,9 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
 
     this->m_exec_conf->beginMultiGPU();
 
-    if (!m_param)
-        this->m_tuner->begin();
-    unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
-    unsigned int block_size = param / 10000;
-    unsigned int threads_per_particle = param % 10000;
+    this->m_tuner->begin();
+    unsigned int block_size = this->m_tuner->getParam()[0];
+    unsigned int threads_per_particle = this->m_tuner->getParam()[1];
 
     // On the first iteration, shape parameters are updated. For optimization,
     // could track this between calls to avoid extra copying.
@@ -211,8 +176,7 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
         this->m_params.data(),
         this->m_shape_params.data());
 
-    if (!m_param)
-        this->m_tuner->end();
+    this->m_tuner->end();
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -251,8 +215,7 @@ template<class T> void export_AnisoPotentialPairGPU(pybind11::module& m, const s
     pybind11::class_<AnisoPotentialPairGPU<T>,
                      AnisoPotentialPair<T>,
                      std::shared_ptr<AnisoPotentialPairGPU<T>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setTuningParam", &AnisoPotentialPairGPU<T>::setTuningParam);
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
 
     } // end namespace detail

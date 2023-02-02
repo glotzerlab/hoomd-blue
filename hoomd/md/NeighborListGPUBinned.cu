@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -75,7 +75,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                                                 const Scalar3 ghost_width,
                                                 const unsigned int offset,
                                                 const unsigned int nwork,
-                                                const unsigned int ngpu)
+                                                const unsigned int ngpu,
+                                                bool enable_shared_cache)
     {
     bool filter_body = flags & 1;
     bool diameter_shift = flags & 2;
@@ -89,24 +90,22 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
 
     // pointer for the r_listsq data
     Scalar* s_r_list = (Scalar*)(&s_data[0]);
-    unsigned int* s_Nmax = (unsigned int*)(&s_data[sizeof(Scalar) * num_typ_parameters]);
 
-    // load in the per type pair r_list
-    for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
+    if (enable_shared_cache)
         {
-        if (cur_offset + threadIdx.x < num_typ_parameters)
+        // load in the per type pair r_list
+        for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
             {
-            Scalar r_cut = d_r_cut[cur_offset + threadIdx.x];
-            // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
-            s_r_list[cur_offset + threadIdx.x]
-                = (r_cut > Scalar(0.0)) ? r_cut + r_buff : Scalar(-1.0);
+            if (cur_offset + threadIdx.x < num_typ_parameters)
+                {
+                Scalar r_cut = d_r_cut[cur_offset + threadIdx.x];
+                // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
+                s_r_list[cur_offset + threadIdx.x]
+                    = (r_cut > Scalar(0.0)) ? r_cut + r_buff : Scalar(-1.0);
+                }
             }
-        if (cur_offset + threadIdx.x < ntypes)
-            {
-            s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
-            }
+        __syncthreads();
         }
-    __syncthreads();
 
     // each set of threads_per_particle threads is going to compute the neighbor list for a single
     // particle
@@ -167,6 +166,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
     // total number of neighbors
     unsigned int nneigh = 0;
 
+    unsigned int my_n_max = __ldg(d_Nmax + my_type);
+
     while (!done)
         {
         // initialize with default
@@ -224,7 +225,19 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
             unsigned int neigh_type = __scalar_as_int(cur_tdb.x);
 
             // Only do the hard work if the particle should be included by r_cut(i,j)
-            Scalar r_list = s_r_list[typpair_idx(my_type, neigh_type)];
+            Scalar r_list;
+
+            if (enable_shared_cache)
+                {
+                r_list = s_r_list[typpair_idx(my_type, neigh_type)];
+                }
+            else
+                {
+                Scalar r_cut = d_r_cut[typpair_idx(my_type, neigh_type)];
+                // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
+                r_list = (r_cut > Scalar(0.0)) ? r_cut + r_buff : Scalar(-1.0);
+                }
+
             if (r_list > Scalar(0.0))
                 {
                 Scalar neigh_diam = cur_tdb.y;
@@ -278,7 +291,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                 n);
 
             // write neighbor if it fits in list
-            if (has_neighbor && (nneigh + k) < s_Nmax[my_type])
+            if (has_neighbor && (nneigh + k) < my_n_max)
                 d_nlist[my_head + nneigh + k] = neighbor;
 
             // increment total neighbor count
@@ -289,7 +302,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
     if (threadIdx.x % threads_per_particle == 0)
         {
         // flag if we need to grow the neighbor list
-        if (nneigh >= s_Nmax[my_type])
+        if (nneigh >= my_n_max)
             atomicMax(&d_conditions[my_type], nneigh);
 
         d_n_neigh[my_pidx] = nneigh;
@@ -340,12 +353,20 @@ inline void launcher(unsigned int* d_nlist,
                      unsigned int block_size,
                      std::pair<unsigned int, unsigned int> range,
                      bool use_index,
-                     const unsigned int ngpu)
+                     const unsigned int ngpu,
+                     const hipDeviceProp_t& devprop)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
-    unsigned int shared_size = (unsigned int)(sizeof(Scalar) * typpair_idx.getNumElements()
-                                              + sizeof(unsigned int) * ntypes);
+    unsigned int shared_size = (unsigned int)(sizeof(Scalar) * typpair_idx.getNumElements());
+
+    bool enable_shared = true;
+
+    if (shared_size > devprop.sharedMemPerBlock)
+        {
+        enable_shared = false;
+        shared_size = 0;
+        }
 
     unsigned int offset = range.first;
     unsigned int nwork = range.second - range.first;
@@ -392,7 +413,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             else if (!diameter_shift && filter_body)
                 {
@@ -432,7 +454,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             else if (diameter_shift && !filter_body)
                 {
@@ -472,7 +495,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             else if (diameter_shift && filter_body)
                 {
@@ -512,7 +536,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             }
         else // use_index
@@ -555,7 +580,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             else if (!diameter_shift && filter_body)
                 {
@@ -595,7 +621,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             else if (diameter_shift && !filter_body)
                 {
@@ -635,7 +662,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             else if (diameter_shift && filter_body)
                 {
@@ -675,7 +703,8 @@ inline void launcher(unsigned int* d_nlist,
                                    ghost_width,
                                    offset,
                                    nwork,
-                                   ngpu);
+                                   ngpu,
+                                   enable_shared);
                 }
             }
         }
@@ -710,7 +739,8 @@ inline void launcher(unsigned int* d_nlist,
                               block_size,
                               range,
                               use_index,
-                              ngpu);
+                              ngpu,
+                              devprop);
         }
     }
 
@@ -745,7 +775,8 @@ inline void launcher<min_threads_per_particle / 2>(unsigned int* d_nlist,
                                                    unsigned int block_size,
                                                    std::pair<unsigned int, unsigned int> range,
                                                    bool use_index,
-                                                   const unsigned int ngpu)
+                                                   const unsigned int ngpu,
+                                                   const hipDeviceProp_t& devprop)
     {
     }
 
@@ -777,7 +808,8 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     bool diameter_shift,
                                     const Scalar3& ghost_width,
                                     const GPUPartition& gpu_partition,
-                                    bool use_index)
+                                    bool use_index,
+                                    const hipDeviceProp_t& devprop)
     {
     unsigned int ngpu = gpu_partition.getNumActiveGPUs();
 
@@ -815,7 +847,8 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                            block_size,
                                            range,
                                            use_index,
-                                           ngpu);
+                                           ngpu,
+                                           devprop);
         }
     return hipSuccess;
     }

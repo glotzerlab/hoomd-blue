@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CachedAllocator.h
@@ -125,7 +125,6 @@ class __attribute__((visibility("default"))) CachedAllocator
         for (free_blocks_type::iterator i = m_free_blocks.begin(); i != m_free_blocks.end(); ++i)
             {
             hipFree((void*)i->second);
-            CHECK_CUDA();
             }
 
         for (allocated_blocks_type::iterator i = m_allocated_blocks.begin();
@@ -133,7 +132,6 @@ class __attribute__((visibility("default"))) CachedAllocator
              ++i)
             {
             hipFree((void*)i->first);
-            CHECK_CUDA();
             }
         }
     };

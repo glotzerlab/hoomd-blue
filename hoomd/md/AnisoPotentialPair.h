@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __ANISO_POTENTIAL_PAIR_H__
@@ -205,6 +205,23 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     virtual bool isAnisotropic()
         {
         return true;
+        }
+
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        ForceCompute::startAutotuning();
+
+        // Start autotuning the neighbor list.
+        m_nlist->startAutotuning();
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = ForceCompute::isAutotuningComplete();
+        result = result && m_nlist->isAutotuningComplete();
+        return result;
         }
 
     protected:

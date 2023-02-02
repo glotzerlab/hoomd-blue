@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
@@ -114,23 +114,6 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         return m_molecule_idx;
         }
 
-#ifdef ENABLE_HIP
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        if (m_exec_conf->isCUDAEnabled())
-            {
-            m_tuner_fill->setPeriod(period);
-            m_tuner_fill->setEnabled(enable);
-            }
-        }
-#endif
-
     protected:
     GlobalVector<unsigned int> m_molecule_tag; //!< Molecule tag per particle tag
     unsigned int m_n_molecules_global;         //!< Global number of molecules
@@ -168,7 +151,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     GlobalVector<unsigned int> m_molecule_idx;
 
 #ifdef ENABLE_HIP
-    std::unique_ptr<Autotuner>
+    std::shared_ptr<Autotuner<1>>
         m_tuner_fill; //!< Autotuner for block size for filling the molecule table
 #endif
 

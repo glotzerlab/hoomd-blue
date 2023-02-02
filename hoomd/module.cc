@@ -1,6 +1,7 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "Action.h"
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
@@ -42,6 +43,7 @@
 
 // include GPU classes
 #ifdef ENABLE_HIP
+#include "BoxResizeUpdaterGPU.h"
 #include "CellListGPU.h"
 #include "LoadBalancerGPU.h"
 #include "SFCPackTunerGPU.h"
@@ -93,12 +95,6 @@ char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 //! Initialize the MPI environment
 int initialize_mpi()
     {
-#ifdef ENABLE_MPI_CUDA
-    // if we are using an MPI-CUDA implementation, enable this feature
-    // before the MPI_Init
-    putenv(env_enable_mpi_cuda);
-#endif
-
     // initialize MPI if it has not been initialized by another program
     int external_init = 0;
     MPI_Initialized(&external_init);
@@ -153,6 +149,17 @@ std::string mpi_bcast_str(pybind11::object string,
 #endif
     }
 
+bool mpi_allreduce_bcast_and(bool v, std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+#ifdef ENABLE_MPI
+    bool reduced_result = false;
+    MPI_Allreduce(&v, &reduced_result, 1, MPI_C_BOOL, MPI_LAND, exec_conf->getMPICommunicator());
+    return reduced_result;
+#else
+    return v;
+#endif
+    }
+
     } // end namespace detail
 
     } // end namespace hoomd
@@ -182,6 +189,7 @@ PYBIND11_MODULE(_hoomd, m)
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
     m.def("mpi_bcast_str", mpi_bcast_str);
+    m.def("mpi_allreduce_bcast_and", mpi_allreduce_bcast_and);
 
     pybind11::class_<BuildInfo>(m, "BuildInfo")
         .def_static("getVersion", BuildInfo::getVersion)
@@ -233,9 +241,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_BondedGroupData<TriangleData, Angle>(m, "TriangleData", "TriangleDataSnapshot", false);
     export_BondedGroupData<DihedralData, Dihedral>(m, "DihedralData", "DihedralDataSnapshot");
     export_MeshGroupData<MeshBondData, MeshBond>(m, "MeshBondData", "MeshBondDataSnapshot");
-    export_MeshGroupData<MeshTriangleData, MeshTriangle>(m,
-                                                         "MeshTriangleData",
-                                                         "MeshTriangleDataSnapshot");
     export_BondedGroupData<ImproperData, Dihedral>(m,
                                                    "ImproperData",
                                                    "ImproperDataSnapshot",
@@ -250,7 +255,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDHostBuffer, TriangleData>(m, "LocalTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, DihedralData>(m, "LocalDihedralDataHost");
     export_LocalGroupData<HOOMDHostBuffer, MeshBondData>(m, "LocalMeshBondDataHost");
-    export_LocalGroupData<HOOMDHostBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ImproperData>(m, "LocalImproperDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(m, "LocalConstraintDataHost");
     export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
@@ -260,7 +264,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(m, "LocalAngleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(m, "LocalDihedralDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, MeshBondData>(m, "LocalMeshBondDataDevice");
-    export_LocalGroupData<HOOMDDeviceBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(m, "LocalImproperDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(m, "LocalConstraintDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");
@@ -270,6 +273,8 @@ PYBIND11_MODULE(_hoomd, m)
     export_GSDReader(m);
 
     // computes
+    export_Autotuned(m);
+    export_Action(m);
     export_Compute(m);
     export_CellList(m);
     export_CellListStencil(m);
@@ -296,6 +301,9 @@ PYBIND11_MODULE(_hoomd, m)
     export_Integrator(m);
     export_BoxResizeUpdater(m);
     export_UpdaterRemoveDrift(m);
+#ifdef ENABLE_HIP
+    export_BoxResizeUpdaterGPU(m);
+#endif
 
     // tuners
     export_Tuner(m);

@@ -14,7 +14,7 @@ add_subdirectory (CMake)
 
 ################################
 ## Version information
-set(HOOMD_VERSION_RAW "3.3.0")
+set(HOOMD_VERSION_RAW "3.8.1")
 string(REGEX MATCH "(.*)\\.(.*)\\.(.*)$" _hoomd_version_match ${HOOMD_VERSION_RAW})
 set(HOOMD_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(HOOMD_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -62,6 +62,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_HIP_STANDARD 14)
 
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -82,16 +83,18 @@ endif()
 
 #################################
 ## Build options
-option(SINGLE_PRECISION "Use single precision math" OFF)
+set(HOOMD_SHORTREAL_SIZE "32" CACHE STRING "Size of the ShortReal type in bits.")
+SET_PROPERTY(CACHE HOOMD_SHORTREAL_SIZE PROPERTY STRINGS "32" "64")
+set(HOOMD_LONGREAL_SIZE "64" CACHE STRING "Size of the LongReal type in bits.")
+SET_PROPERTY(CACHE HOOMD_LONGREAL_SIZE PROPERTY STRINGS "32" "64")
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
 SET(ENABLE_HIP ${ENABLE_GPU})
+set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
 option(ENABLE_LLVM "Link to the LLVM library for run time code generation" off)
-
-option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
 
 # Components
 option(BUILD_MD "Build the md package" on)
-if (NOT SINGLE_PRECISION)
+if (HOOMD_LONGREAL_SIZE STREQUAL "64")
 option(BUILD_HPMC "Build the hpmc package" on)
 else ()
 option(BUILD_HPMC "Build the hpmc package" off)
@@ -102,7 +105,7 @@ option(BUILD_METAL "Build the metal package" on)
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
 # Add list of plugins
-set(PLUGINS "example_plugin;" CACHE STRING "List of plugin directories.")
+set(PLUGINS "example_plugins/pair_plugin;example_plugins/updater_plugin" CACHE STRING "List of plugin directories.")
 
 # this needs to go before CUDA setup
 include (HOOMDHIPSetup)
@@ -130,7 +133,6 @@ endif()
 #########################################
 # Check for submodules
 if (
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/cub/cub.cuh OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
@@ -163,13 +165,10 @@ exec_program("date +%Y-%m-%d" OUTPUT_VARIABLE COMPILE_DATE)
 enable_testing()
 option(BUILD_TESTING "Build unit tests" ON)
 
-################################
-# set up long validation tests
-option(BUILD_VALIDATION "Build validation tests" OFF)
-if (BUILD_TESTING OR BUILD_VALIDATION)
+if (BUILD_TESTING)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
-endif (BUILD_TESTING OR BUILD_VALIDATION)
+endif (BUILD_TESTING)
 
 ################################
 ## Process subdirectories
@@ -207,13 +206,7 @@ configure_package_config_file(hoomd-config.cmake.in
 
 install(FILES CMake/hoomd/FindTBB.cmake
               CMake/hoomd/FindCUDALibs.cmake
-              CMake/HIP/FindHIP.cmake
               CMake/hoomd/HOOMDHIPSetup.cmake
-              CMake/hoomd/hipcc.cmake
               CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
-
-install(FILES CMake/HIP/FindHIP/run_hipcc.cmake
-              CMake/HIP/FindHIP/run_make2cmake.cmake
-        DESTINATION ${CONFIG_INSTALL_DIR}/FindHIP)

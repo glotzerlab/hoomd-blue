@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -1107,7 +1107,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                           d_comm_flags.data,
                                           mask,
                                           m_N,
-                                          m_mark_tuner->getParam());
+                                          m_mark_tuner->getParam()[0]);
         m_mark_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1181,7 +1181,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                     d_remove_ids.data,
                                     n_remove,
                                     m_N,
-                                    m_remove_tuner->getParam());
+                                    m_remove_tuner->getParam()[0]);
         m_remove_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1238,7 +1238,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
                                  d_comm_flags.data,
                                  d_in.data,
                                  mask,
-                                 m_add_tuner->getParam());
+                                 m_add_tuner->getParam()[0]);
         m_add_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1260,10 +1260,16 @@ void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposi
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
-        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
-        m_remove_tuner.reset(
-            new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
-        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        m_mark_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "mpcd_pdata_mark"));
+        m_remove_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                              m_exec_conf,
+                                              "mpcd_pdata_remove"));
+        m_add_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           m_exec_conf,
+                                           "mpcd_pdata_add"));
+        m_autotuners.insert(m_autotuners.end(), {m_mark_tuner, m_remove_tuner, m_add_tuner});
         }
 #endif // ENABLE_HIP
     }

@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.constrain
@@ -20,5 +20,5 @@ md.constrain
 
 .. automodule:: hoomd.md.constrain
     :synopsis: Constraints.
-    :undoc-members:
+    :show-inheritance:
     :members: Constraint, Distance, Rigid

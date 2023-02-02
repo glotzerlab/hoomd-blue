@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -90,11 +90,20 @@ void mpcd::Integrator::update(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
+        // Update the rigid body consituent particles before communicating so that any such
+        // particles that move from one domain to another are migrated.
+        updateRigidBodies(timestep + 1);
+
         m_comm->communicate(timestep + 1);
+
+        // Communicator uses a compute callback to trigger updateRigidBodies again and ensure that
+        // all ghost constituent particle positions are set in accordance with any just communicated
+        // ghost and/or migrated rigid body centers.
         }
     else
 #endif // ENABLE_MPI
         {
+        // Update rigid body constituent particles in serial simulations.
         updateRigidBodies(timestep + 1);
         }
 
@@ -151,21 +160,6 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
         m_mpcd_comm->communicate(timestep);
         }
 #endif // ENABLE_MPI
-    }
-
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
-    {
-    IntegratorTwoStep::setAutotunerParams(enable, period);
-    m_mpcd_sys->setAutotunerParams(enable, period);
-    if (m_collide)
-        m_collide->setAutotunerParams(enable, period);
-    if (m_stream)
-        m_stream->setAutotunerParams(enable, period);
-    if (m_sorter)
-        m_sorter->setAutotunerParams(enable, period);
     }
 
 /*!

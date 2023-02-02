@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -34,7 +34,10 @@ mpcd::CommunicatorGPU::CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_
     m_num_send.swap(num_send);
 
     // autotuners
-    m_flags_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_comm_flags", m_exec_conf));
+    m_flags_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_comm_flags"));
+    m_autotuners.push_back(m_flags_tuner);
     }
 
 mpcd::CommunicatorGPU::~CommunicatorGPU() { }
@@ -372,7 +375,7 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
                                d_pos.data,
                                m_mpcd_pdata->getN(),
                                box,
-                               m_flags_tuner->getParam());
+                               m_flags_tuner->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_flags_tuner->end();

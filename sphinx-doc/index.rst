@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 ==========
@@ -51,6 +51,8 @@ Resources
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:
   Scripts to evaluate the performance of HOOMD-blue simulations.
+- `HOOMD-blue validation tests <https://github.com/glotzerlab/hoomd-validation>`_:
+  Scripts to validate that HOOMD-blue performs accurate simulations.
 
 Related tools
 =============
@@ -110,7 +112,8 @@ Molecular dynamics:
 
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(lj)
-    nvt = hoomd.md.methods.NVT(kT=1.5, filter=hoomd.filter.All(), tau=1.0)
+    bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+    nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(), thermostat=bussi)
     integrator.methods.append(nvt)
 
     gpu = hoomd.device.GPU()
@@ -143,6 +146,7 @@ Molecular dynamics:
     tutorial/03-Parallel-Simulations-With-MPI/00-index
     tutorial/04-Custom-Actions-In-Python/00-index
     tutorial/05-Organizing-and-Executing-Simulations/00-index
+    tutorial/06-Modelling-Rigid-Bodies/00-index
 
 .. toctree::
     :maxdepth: 1
@@ -174,6 +178,7 @@ Molecular dynamics:
    notation
    units
    deprecated
+   logo
    license
    credits
    indices

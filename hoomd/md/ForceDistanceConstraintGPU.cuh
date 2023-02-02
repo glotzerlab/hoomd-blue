@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BondedGroupData.cuh"
@@ -48,7 +48,7 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                          int& nnz,
                          cusparseHandle_t cusparse_handle,
                          cusparseMatDescr_t cusparse_mat_descr);
-
+#ifndef CUSPARSE_NEW_API
 hipError_t gpu_dense2sparse(unsigned int n_constraint,
                             double* d_matrix,
                             int* d_nnz,
@@ -57,6 +57,7 @@ hipError_t gpu_dense2sparse(unsigned int n_constraint,
                             int* d_csr_rowptr,
                             int* d_csr_colind,
                             double* d_csr_val);
+#endif
 #endif
 
 hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,

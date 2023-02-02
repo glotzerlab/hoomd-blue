@@ -1,35 +1,28 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
 import pytest
 from hoomd.conftest import BaseListTest, pickling_check
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
-from hoomd.data.syncedlist import SyncedList, _PartialIsInstance
+from hoomd.data.syncedlist import SyncedList
 
 
 class OpInt(int):
     """Used to test SyncedList where item equality checks are needed."""
+    _cpp_obj = False
 
-    def _attach(self):
-        self._cpp_obj = None
+    def _attach(self, simulation):
+        self._simulation = simulation
+        self._cpp_obj = True
+
+    def _detach(self):
+        self._simulation = None
+        self._cpp_obj = False
 
     @property
     def _attached(self):
-        return hasattr(self, '_cpp_obj')
-
-    def _detach(self):
-        del self._cpp_obj
-
-    def _add(self, simulation):
-        self._simulation = simulation
-
-    def _remove(self):
-        del self._simulation
-
-    @property
-    def _added(self):
-        return hasattr(self, '_simulation')
+        return self._cpp_obj
 
 
 class TestSyncedList(BaseListTest):
@@ -62,14 +55,15 @@ class TestSyncedList(BaseListTest):
         else:
 
             def generate(n):
-                return [OpInt(self.rng.integers(100_000_000)) for _ in range(n)]
+                return [
+                    OpInt(self.generator.int(100_000_000)) for _ in range(n)
+                ]
 
             return generate
 
     @pytest.fixture
     def empty_collection(self, item_cls, attached, attach_items):
-        list_ = SyncedList(validation=_PartialIsInstance(item_cls),
-                           attach_members=attach_items)
+        list_ = SyncedList(validation=item_cls, attach_members=attach_items)
         if attached:
             self._synced_list = []
             list_._sync(DummySimulation(), self._synced_list)
@@ -84,24 +78,18 @@ class TestSyncedList(BaseListTest):
         if test_list._synced:
             if test_list._attach_members:
                 assert all(item._attached for item in test_list)
-            else:
-                assert not any(
-                    getattr(item, "_attached", False) for item in test_list)
             for item, synced_item in zip(test_list, self._synced_list):
                 assert self.is_equal(item, synced_item)
             assert self._synced_list is test_list._synced_list
-        if test_list._attach_members:
-            assert all(item._added for item in test_list)
-        else:
-            assert not any(getattr(item, "_added", False) for item in test_list)
+        if not test_list._attach_members:
+            assert not any(
+                getattr(item, "_attached", False) for item in test_list)
 
     def test_init(self, generate_plain_collection, item_cls):
 
-        validate = _PartialIsInstance(item_cls)
-
         # Test automatic to_synced_list function generation
-        synced_list = SyncedList(validation=validate)
-        assert synced_list._validate == validate
+        synced_list = SyncedList(validation=item_cls)
+        assert item_cls in synced_list._validate.types
         op = item_cls()
         assert synced_list._to_synced_list_conversion(op) is op
 
@@ -111,13 +99,12 @@ class TestSyncedList(BaseListTest):
 
         # Test full initialziation
         plain_list = generate_plain_collection(5)
-        synced_list = SyncedList(validation=validate,
+        synced_list = SyncedList(validation=item_cls,
                                  to_synced_list=cpp_identity,
                                  iterable=plain_list)
         assert synced_list._to_synced_list_conversion == cpp_identity
         op._cpp_obj = 2
         assert synced_list._to_synced_list_conversion(op) == 2
-        assert all(op._added for op in synced_list)
         self.check_equivalent(plain_list, synced_list)
 
     def test_synced(self):
@@ -128,16 +115,15 @@ class TestSyncedList(BaseListTest):
         test_list._unsync()
         assert not test_list._synced
 
-    def test_attach_value(self, empty_collection, item_cls):
+    def test_register_item(self, empty_collection, item_cls):
         op = item_cls()
-        empty_collection._attach_value(op)
+        empty_collection._register_item(op)
         assert op._attached == (empty_collection._synced
                                 and empty_collection._attach_members)
-        assert op._added or not empty_collection._attach_members
 
     def test_validate_or_error(self, empty_collection, item_cls):
         with pytest.raises(ValueError):
-            empty_collection._validate_or_error(3)
+            empty_collection._validate_or_error({})
         with pytest.raises(ValueError):
             empty_collection._validate_or_error(None)
         with pytest.raises(ValueError):

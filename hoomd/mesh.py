@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Triangulated mesh data structure.
@@ -38,7 +38,6 @@ from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
-from collections.abc import Sequence
 from hoomd.logging import log
 import numpy as np
 
@@ -53,28 +52,29 @@ class Mesh(_HOOMDBaseObject):
 
     Examples::
 
-        mesh = mesh.Mesh()
-        mesh.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
+        mesh_obj = mesh.Mesh()
+        mesh_obj.types = ["mesh"]
+        mesh_obj.type_ids = [0,0,0,0]
+        mesh_obj.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
 
     """
 
     def __init__(self):
 
         param_dict = ParameterDict(size=int,
-                                   types=OnlyIf(
-                                       to_type_converter([str]),
-                                       preprocess=self._preprocess_type))
+                                   types=OnlyIf(to_type_converter([str])))
 
         param_dict["types"] = ["mesh"]
         param_dict["size"] = 0
         self._triangles = np.empty([0, 3], dtype=int)
+        self._type_ids = np.empty(0, dtype=int)
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
 
         self._cpp_obj = _hoomd.MeshDefinition(
-            self._simulation.state._cpp_sys_def)
+            self._simulation.state._cpp_sys_def, len(self._param_dict["types"]))
 
         self.triangles = self._triangles
 
@@ -87,18 +87,6 @@ class Mesh(_HOOMDBaseObject):
                     self._cpp_obj)
                 self._cpp_obj.setCommunicator(
                     self._simulation._system_communicator)
-
-        super()._attach()
-
-    def _remove_dependent(self, obj):
-        super()._remove_dependent(obj)
-        if len(self._dependents) == 0:
-            if self._attached:
-                self._detach()
-                self._remove()
-                return
-            if self._added:
-                self._remove()
 
     @log(category='sequence')
     def triangles(self):
@@ -114,12 +102,32 @@ class Mesh(_HOOMDBaseObject):
     @triangles.setter
     def triangles(self, triag):
         if self._attached:
-            self._cpp_obj.setTypes(list(self._param_dict['types']))
 
-            self._cpp_obj.setTriangleData(triag)
+            if len(triag) != len(self._type_ids):
+                raise ValueError(
+                    "Number of type_ids do not match number of triangles.")
+            else:
+                self._cpp_obj.setTypes(list(self._param_dict['types']))
+
+                self._cpp_obj.setTriangleData(triag, self._type_ids)
         else:
             self.size = len(triag)
         self._triangles = triag
+
+    @log(category='sequence')
+    def type_ids(self):
+        """((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids."""
+        if self._attached:
+            return self._cpp_obj.getTriangleData().typeid
+        return self._type_ids
+
+    @type_ids.setter
+    def type_ids(self, tid):
+        if self._attached and self.size == len(tid):
+            self._cpp_obj.setTypes(list(self._param_dict['types']))
+
+            self._cpp_obj.setTriangleData(self._triagles, tid)
+        self._type_ids = tid
 
     @log(category='sequence', requires_run=True)
     def bonds(self):
@@ -129,9 +137,3 @@ class Mesh(_HOOMDBaseObject):
         bonds within the mesh structure.
         """
         return self._cpp_obj.getBondData().group
-
-    def _preprocess_type(self, typename):
-        if not isinstance(typename, str) and isinstance(typename, Sequence):
-            if len(typename) != 1:
-                raise ValueError("Only one meshtype is allowed.")
-        return typename

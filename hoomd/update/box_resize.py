@@ -1,8 +1,9 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement BoxResize."""
 
+import hoomd
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
@@ -115,12 +116,16 @@ class BoxResize(Updater):
         self._param_dict.update(params)
         super().__init__(trigger)
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
-        self._cpp_obj = _hoomd.BoxResizeUpdater(
-            self._simulation.state._cpp_sys_def, self.trigger,
-            self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
-        super()._attach()
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            self._cpp_obj = _hoomd.BoxResizeUpdater(
+                self._simulation.state._cpp_sys_def, self.trigger,
+                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
+        else:
+            self._cpp_obj = _hoomd.BoxResizeUpdaterGPU(
+                self._simulation.state._cpp_sys_def, self.trigger,
+                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
@@ -152,7 +157,15 @@ class BoxResize(Updater):
                 update.
         """
         group = state._get_group(filter)
-        updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, Periodic(1),
-                                          state.box._cpp_obj, box._cpp_obj,
-                                          Constant(1), group)
+
+        if isinstance(state._simulation.device, hoomd.device.CPU):
+            updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, Periodic(1),
+                                              state.box._cpp_obj, box._cpp_obj,
+                                              Constant(1), group)
+        else:
+            updater = _hoomd.BoxResizeUpdaterGPU(state._cpp_sys_def,
+                                                 Periodic(1),
+                                                 state.box._cpp_obj,
+                                                 box._cpp_obj, Constant(1),
+                                                 group)
         updater.update(state._simulation.timestep)

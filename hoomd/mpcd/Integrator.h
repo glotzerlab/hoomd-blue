@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -63,9 +63,6 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
             .connect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
         }
 #endif
-
-    //! Set autotuner parameters
-    virtual void setAutotunerParams(bool enable, unsigned int period);
 
     //! Get current collision method
     std::shared_ptr<mpcd::CollisionMethod> getCollisionMethod() const

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef __HIPCC__
@@ -81,11 +81,17 @@ class PYBIND11_EXPORT Integrator : public Updater
         return m_constraint_forces;
         }
 
-    /// Set HalfStepHook
-    virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
+    /// Set the half step hook.
+    virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
+        {
+        m_half_step_hook = hook;
+        }
 
-    // Removes HalfStepHook
-    virtual void removeHalfStepHook();
+    // Get the half step hook.
+    virtual std::shared_ptr<HalfStepHook> getHalfStepHook()
+        {
+        return m_half_step_hook;
+        }
 
     /// Change the timestep
     virtual void setDeltaT(Scalar deltaT);
@@ -147,6 +153,27 @@ class PYBIND11_EXPORT Integrator : public Updater
             {
             constraint_force->resetStats();
             }
+        }
+
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        Updater::startAutotuning();
+        for (auto& force : m_forces)
+            {
+            force->startAutotuning();
+            }
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = Updater::isAutotuningComplete();
+        for (auto& force : m_forces)
+            {
+            result = result && force->isAutotuningComplete();
+            }
+        return result;
         }
 
     protected:

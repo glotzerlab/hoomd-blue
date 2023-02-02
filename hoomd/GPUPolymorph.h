@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -100,8 +100,6 @@ template<class Base> class GPUPolymorph
                     << "Freeing device memory from GPUPolymorph [Base = " << typeid(Base).name()
                     << "]" << std::endl;
                 gpu::device_delete(p);
-                if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                    CHECK_CUDA_ERROR();
                 }
             }
 

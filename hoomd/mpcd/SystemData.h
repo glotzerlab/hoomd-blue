@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
@@ -65,16 +65,6 @@ class PYBIND11_EXPORT SystemData
 
     //! Re-initialize the system from a snapshot
     void initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
-        {
-        m_particles->setAutotunerParams(enable, period);
-        }
 
     private:
     std::shared_ptr<hoomd::SystemDefinition> m_sysdef; //!< HOOMD system definition
