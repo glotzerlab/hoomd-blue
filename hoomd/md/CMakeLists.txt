@@ -232,7 +232,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepLangevinGPU.cc
-                           TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
 			   VolumeConservationMeshForceComputeGPU.cc
                            TwoStepConstantVolumeGPU.cc
