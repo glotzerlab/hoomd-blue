@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -55,7 +55,9 @@ class TestSyncedList(BaseListTest):
         else:
 
             def generate(n):
-                return [OpInt(self.rng.integers(100_000_000)) for _ in range(n)]
+                return [
+                    OpInt(self.generator.int(100_000_000)) for _ in range(n)
+                ]
 
             return generate
 

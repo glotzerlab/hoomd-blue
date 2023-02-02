@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HPMCPrecisionSetup.h"
@@ -66,7 +66,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, q);
     OverlapReal d;
 
-#if defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION)
+#if HOOMD_SHORTREAL_SIZE == 32
     // precision tolerance for single-precision floats near 1.0
     const OverlapReal precision_tol = OverlapReal(5e-7);
 

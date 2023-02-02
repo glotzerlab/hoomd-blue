@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinGPU.h"
@@ -183,7 +183,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
                                             (unsigned int)m_gamma.getNumElements(),
                                             m_use_alpha,
                                             m_alpha,
-                                            (*m_T)(timestep),
+                                            m_T->operator()(timestep),
                                             timestep,
                                             m_sysdef->getSeed(),
                                             d_sumBD.data,

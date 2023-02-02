@@ -1,66 +1,34 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "TwoStepNPTMTKGPU.h"
-#include "TwoStepNPTMTKGPU.cuh"
-
+#include "TwoStepConstantPressureGPU.cuh"
+#include "TwoStepConstantPressureGPU.h"
 #include "TwoStepNVEGPU.cuh"
 
-#ifdef ENABLE_MPI
-#include "hoomd/Communicator.h"
-#include "hoomd/HOOMDMPI.h"
-#endif
-
-using namespace std;
-
-/*! \file TwoStepNPTMTKGPU.h
-    \brief Contains code for the TwoStepNPTMTKGPU class
-*/
-
-namespace hoomd
+namespace hoomd::md
     {
-namespace md
+
+/// Implement TwoStepConstantPressure on the GPU.
+TwoStepConstantPressureGPU::TwoStepConstantPressureGPU(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group,
+    std::shared_ptr<ComputeThermo> thermo_full_step,
+    Scalar tauS,
+    const std::vector<std::shared_ptr<Variant>>& S,
+    const std::string& couple,
+    const std::vector<bool>& flags,
+    std::shared_ptr<Thermostat> thermostat,
+    Scalar gamma)
+    : TwoStepConstantPressure(sysdef,
+                              group,
+                              thermo_full_step,
+                              tauS,
+                              S,
+                              couple,
+                              flags,
+                              thermostat,
+                              gamma)
     {
-/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
-    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
-    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group at
-   full time step \param tau NPT temperature period \param tauS NPT pressure period \param T
-   Temperature set point \param S Pressure or Stress set point. Pressure if one value, Stress if a
-   list of 6. Stress should be ordered as [xx, yy, zz, yz, xz, xy] \param couple Coupling mode
-    \param flags Barostatted simulation box degrees of freedom
-*/
-TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                   std::shared_ptr<ParticleGroup> group,
-                                   std::shared_ptr<ComputeThermo> thermo_group,
-                                   std::shared_ptr<ComputeThermo> thermo_group_t,
-                                   Scalar tau,
-                                   Scalar tauS,
-                                   std::shared_ptr<Variant> T,
-                                   const std::vector<std::shared_ptr<Variant>>& S,
-                                   const std::string& couple,
-                                   const std::vector<bool>& flags,
-                                   const bool nph)
-
-    : TwoStepNPTMTK(sysdef,
-                    group,
-                    thermo_group,
-                    thermo_group_t,
-                    tau,
-                    tauS,
-                    T,
-                    S,
-                    couple,
-                    flags,
-                    nph)
-    {
-    if (!m_exec_conf->isCUDAEnabled())
-        {
-        throw std::runtime_error("Cannot create TwoStepNPTMTKGPU on a CPU device.");
-        }
-
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
-
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                        m_exec_conf,
                                        "npt_mtk_step_one"));
@@ -93,16 +61,11 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                          m_tuner_angular_two});
     }
 
-TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
-    {
-    m_exec_conf->msg->notice(5) << "Destroying TwoStepNPTMTKGPU" << endl;
-    }
-
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
    Nose-Hoover thermostat and Anderson barostat
 */
-void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
+void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -116,7 +79,12 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     advanceBarostat(timestep);
 
     // Martyna-Tobias-Klein correction
-    Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
+    Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz)
+                     / static_cast<Scalar>(m_ndof));
+    const auto rf = m_thermostat ? m_thermostat->getRescalingFactorsOne(timestep, m_deltaT)
+                                 : std::array<Scalar, 2> {1., 1.};
+    std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
 
     // update the propagator matrix using current barostat momenta
     updatePropagator();
@@ -171,15 +139,15 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_tuner_rescale->begin();
 
         // perform the particle update on the GPU
-        kernel::gpu_npt_mtk_rescale(m_pdata->getGPUPartition(),
-                                    d_pos.data,
-                                    m_mat_exp_r[0],
-                                    m_mat_exp_r[1],
-                                    m_mat_exp_r[2],
-                                    m_mat_exp_r[3],
-                                    m_mat_exp_r[4],
-                                    m_mat_exp_r[5],
-                                    m_tuner_rescale->getParam()[0]);
+        kernel::gpu_npt_rescale_rescale(m_pdata->getGPUPartition(),
+                                        d_pos.data,
+                                        m_mat_exp_r[0],
+                                        m_mat_exp_r[1],
+                                        m_mat_exp_r[2],
+                                        m_mat_exp_r[3],
+                                        m_mat_exp_r[4],
+                                        m_mat_exp_r[5],
+                                        m_tuner_rescale->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -203,25 +171,22 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        // precompute loop invariant quantity
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
-
         // perform the particle update on the GPU
         m_exec_conf->beginMultiGPU();
         m_tuner_one->begin();
 
-        kernel::gpu_npt_mtk_step_one(d_pos.data,
-                                     d_vel.data,
-                                     d_accel.data,
-                                     d_index_array.data,
-                                     m_group->getGPUPartition(),
-                                     exp_thermo_fac,
-                                     m_mat_exp_v,
-                                     m_mat_exp_r,
-                                     m_mat_exp_r_int,
-                                     m_deltaT,
-                                     m_rescale_all,
-                                     m_tuner_one->getParam()[0]);
+        kernel::gpu_npt_rescale_step_one(d_pos.data,
+                                         d_vel.data,
+                                         d_accel.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         rescalingFactors[0],
+                                         m_mat_exp_v,
+                                         m_mat_exp_r,
+                                         m_mat_exp_r_int,
+                                         m_deltaT,
+                                         m_rescale_all,
+                                         m_tuner_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -245,11 +210,11 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->beginMultiGPU();
         m_tuner_wrap->begin();
 
-        kernel::gpu_npt_mtk_wrap(m_pdata->getGPUPartition(),
-                                 d_pos.data,
-                                 d_image.data,
-                                 box,
-                                 m_tuner_wrap->getParam()[0]);
+        kernel::gpu_npt_rescale_wrap(m_pdata->getGPUPartition(),
+                                     d_pos.data,
+                                     d_image.data,
+                                     box,
+                                     m_tuner_wrap->getParam()[0]);
 
         m_tuner_wrap->end();
         m_exec_conf->endMultiGPU();
@@ -274,9 +239,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                                 access_location::device,
                                                 access_mode::read);
 
-        // precompute loop invariant quantity
-        Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
-
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
@@ -287,7 +249,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getGPUPartition(),
                                          m_deltaT,
-                                         exp_thermo_fac_rot,
+                                         rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -295,18 +257,15 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_tuner_angular_one->end();
         m_exec_conf->endMultiGPU();
         }
-
-    if (!m_nph)
+    if (m_thermostat)
         {
-        // propagate thermostat variables forward
-        advanceThermostat(timestep);
+        m_thermostat->advanceThermostat(timestep, m_deltaT, m_aniso);
         }
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&m_thermostat, 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&m_barostat, 6, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
@@ -315,13 +274,17 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
+void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // Martyna-Tobias-Klein correction
-    Scalar mtk = (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz) / (Scalar)m_ndof;
-
+    Scalar mtk = exp(-Scalar(1.0 / 2.0) * m_deltaT
+                     * (m_barostat.nu_xx + m_barostat.nu_yy + m_barostat.nu_zz)
+                     / static_cast<Scalar>(m_ndof));
+    const auto rf = m_thermostat ? m_thermostat->getRescalingFactorsTwo(timestep, m_deltaT)
+                                 : std::array<Scalar, 2> {1., 1.};
+    std::array<Scalar, 2> rescalingFactors = {rf[0] * mtk, rf[1] * mtk};
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                    access_location::device,
@@ -336,21 +299,21 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
+        // Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (m_thermostat.xi + mtk) * m_deltaT);
 
         // perform second half step of NPT integration (update velocities and accelerations)
         m_exec_conf->beginMultiGPU();
         m_tuner_two->begin();
 
-        kernel::gpu_npt_mtk_step_two(d_vel.data,
-                                     d_accel.data,
-                                     d_index_array.data,
-                                     m_group->getGPUPartition(),
-                                     d_net_force.data,
-                                     m_mat_exp_v,
-                                     m_deltaT,
-                                     exp_thermo_fac,
-                                     m_tuner_two->getParam()[0]);
+        kernel::gpu_npt_rescale_step_two(d_vel.data,
+                                         d_accel.data,
+                                         d_index_array.data,
+                                         m_group->getGPUPartition(),
+                                         d_net_force.data,
+                                         m_mat_exp_v,
+                                         m_deltaT,
+                                         rescalingFactors[0], // exp_thermo_fac,
+                                         m_tuner_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -379,7 +342,6 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                                 access_mode::read);
 
         // precompute loop invariant quantity
-        Scalar exp_thermo_fac_rot = exp(-(m_thermostat.xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
@@ -391,7 +353,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getGPUPartition(),
                                          m_deltaT,
-                                         exp_thermo_fac_rot,
+                                         rescalingFactors[1], // exp_thermo_fac_rot,
                                          m_tuner_angular_two->getParam()[0]);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -407,23 +369,21 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
 
 namespace detail
     {
-void export_TwoStepNPTMTKGPU(pybind11::module& m)
+void export_TwoStepConstantPressureGPU(pybind11::module& m)
     {
-    pybind11::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU>>(
-        m,
-        "TwoStepNPTMTKGPU")
+    pybind11::class_<TwoStepConstantPressureGPU,
+                     TwoStepConstantPressure,
+                     std::shared_ptr<TwoStepConstantPressureGPU>>(m, "TwoStepConstantPressureGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,
-                            std::shared_ptr<ComputeThermo>,
                             Scalar,
-                            Scalar,
-                            std::shared_ptr<Variant>,
-                            const std::vector<std::shared_ptr<Variant>>&,
-                            const std::string&,
-                            const std::vector<bool>&,
-                            const bool>());
+                            std::vector<std::shared_ptr<Variant>>,
+                            std::string,
+                            std::vector<bool>,
+                            std::shared_ptr<Thermostat>,
+                            Scalar>());
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    } // namespace detail
+
+    } // namespace hoomd::md

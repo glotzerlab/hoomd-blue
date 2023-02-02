@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from __future__ import print_function
@@ -70,6 +70,22 @@ def test_after_attaching(valid_args, simulation_factory,
     sdf.dx = dx
     assert np.isclose(sdf.xmax, xmax)
     assert np.isclose(sdf.dx, dx)
+
+    sim.run(1)
+    if not np.isnan(sdf.sdf).all():
+        assert sim.device.communicator.rank == 0
+        assert isinstance(sdf.sdf, np.ndarray)
+        assert len(sdf.sdf) > 0
+        assert isinstance(sdf.betaP, float)
+        assert not np.isclose(sdf.betaP, 0)
+    else:
+        assert sim.device.communicator.rank > 0
+        assert sdf.betaP is None
+
+    # Regression test for array size mismatch bug:
+    # https://github.com/glotzerlab/hoomd-blue/issues/1455
+    sdf.xmax = 0.02
+    sdf.dx = 1e-5
 
     sim.run(1)
     if not np.isnan(sdf.sdf).all():

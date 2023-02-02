@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_SPECIAL_PAIR_GPU_H__
@@ -115,8 +115,8 @@ template<class evaluator> void PotentialSpecialPairGPU<evaluator>::computeForces
                                                                  access_location::device,
                                                                  access_mode::read);
         ArrayHandle<unsigned int> d_gpu_bond_pos_list(this->m_pair_data->getGPUPosTable(),
-                                                   access_location::device,
-                                                   access_mode::read);
+                                                      access_location::device,
+                                                      access_mode::read);
         ArrayHandle<unsigned int> d_gpu_n_bonds(this->m_pair_data->getNGroupsArray(),
                                                 access_location::device,
                                                 access_mode::read);

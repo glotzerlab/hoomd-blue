@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -40,7 +40,7 @@ template<class evaluator> struct Normalized : public evaluator
         m_normValue = value;
         }
 
-    bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
+    bool evalForceAndEnergy(ShortReal& force_divr, ShortReal& pair_eng, bool energy_shift)
         {
         bool evaluated = evaluator::evalForceAndEnergy(force_divr, pair_eng, energy_shift);
         force_divr *= m_normValue;

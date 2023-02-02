@@ -1,11 +1,11 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.cuh"
 #include "hoomd/TextureTools.h"
 
 // __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 #define __scalar2int_rd __float2int_rd
 #else
 #define __scalar2int_rd __double2int_rd

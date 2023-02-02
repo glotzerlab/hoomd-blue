@@ -122,6 +122,8 @@ set(_hoomd_headers
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
+    BoxResizeUpdaterGPU.cuh
+    BoxResizeUpdaterGPU.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
     CellListGPU.cuh
@@ -193,7 +195,8 @@ set(_hoomd_headers
     )
 
 if (ENABLE_HIP)
-list(APPEND _hoomd_sources CellListGPU.cc
+list(APPEND _hoomd_sources BoxResizeUpdaterGPU.cc
+                           CellListGPU.cc
                            CommunicatorGPU.cc
                            LoadBalancerGPU.cc
                            SFCPackTunerGPU.cc
@@ -201,6 +204,7 @@ list(APPEND _hoomd_sources CellListGPU.cc
 endif()
 
 set(_hoomd_cu_sources BondedGroupData.cu
+                      BoxResizeUpdaterGPU.cu
                       CellListGPU.cu
                       CommunicatorGPU.cu
                       Integrator.cu
@@ -261,10 +265,8 @@ target_include_directories(_hoomd PUBLIC
 
 # specify required definitions
 target_compile_definitions(_hoomd PUBLIC _REENTRANT EIGEN_MPL2_ONLY)
-
-if (SINGLE_PRECISION)
-    target_compile_definitions(_hoomd PUBLIC SINGLE_PRECISION)
-endif(SINGLE_PRECISION)
+target_compile_definitions(_hoomd PUBLIC HOOMD_SHORTREAL_SIZE=${HOOMD_SHORTREAL_SIZE})
+target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SIZE})
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
@@ -315,14 +317,6 @@ endif()
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
     target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal::cereal)
-
-    if (ENABLE_MPI_CUDA)
-          target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
-    endif(ENABLE_MPI_CUDA)
-endif()
-
-if (ENABLE_HPMC_MIXED_PRECISION)
-    target_compile_definitions(_hoomd PUBLIC ENABLE_HPMC_MIXED_PRECISION)
 endif()
 
 if (APPLE)
@@ -330,8 +324,6 @@ set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "@loader_path")
 else()
 set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "\$ORIGIN")
 endif()
-
-fix_cudart_rpath(_hoomd)
 
 # install the library
 install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
@@ -400,7 +392,7 @@ if (BUILD_MD)
     add_subdirectory(md)
 endif()
 
-if (NOT SINGLE_PRECISION AND BUILD_HPMC)
+if (BUILD_HPMC)
     add_subdirectory(hpmc)
 endif()
 

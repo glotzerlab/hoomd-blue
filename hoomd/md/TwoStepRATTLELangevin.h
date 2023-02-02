@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
@@ -373,7 +373,7 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
                                    access_mode::read);
 
     // grab some initial variables
-    const Scalar currentTemp = (*m_T)(timestep);
+    const Scalar currentTemp = m_T->operator()(timestep);
 
     // energy transferred over this time step
     Scalar bd_energy_transfer = 0;
