@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -23,7 +23,7 @@
 #define ELLIPSOID_OVERLAP_TRUE 1
 #define ELLIPSOID_OVERLAP_FALSE 0
 
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
 #define ELLIPSOID_OVERLAP_PRECISION 1e-3
 #else
 #define ELLIPSOID_OVERLAP_PRECISION 1e-6

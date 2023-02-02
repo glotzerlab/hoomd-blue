@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -17,7 +17,7 @@ import itertools
 def simulation(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
     integrator = md.Integrator(0.005)
-    integrator.methods.append(md.methods.NVE(hoomd.filter.All()))
+    integrator.methods.append(md.methods.ConstantVolume(hoomd.filter.All()))
     sim.operations += integrator
     sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1.0)
     return sim

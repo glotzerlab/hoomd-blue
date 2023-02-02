@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -82,7 +82,7 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
     def sim_constructor(active_force=None, rd_updater=None):
         sim = simulation_factory(two_particle_snapshot_factory())
         if isinstance(active_force, hoomd.md.force.Active):
-            method = hoomd.md.methods.NVE(hoomd.filter.All())
+            method = hoomd.md.methods.ConstantVolume(hoomd.filter.All())
         else:
             method = hoomd.md.methods.rattle.NVE(hoomd.filter.All(),
                                                  hoomd.md.manifold.Plane(0.1))

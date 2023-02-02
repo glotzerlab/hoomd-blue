@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
@@ -27,7 +27,6 @@ char name_triangle_data[] = "triangle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
 char name_meshbond_data[] = "meshbond";
-char name_meshtriangle_data[] = "meshtriangle";
 char name_constraint_data[] = "constraint";
 char name_pair_data[] = "pair";
 
@@ -1483,7 +1482,6 @@ template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
 template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_triangle_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
-template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
 template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;

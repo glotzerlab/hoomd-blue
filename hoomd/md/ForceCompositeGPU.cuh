@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/GPUPartition.cuh"
@@ -72,6 +72,7 @@ void gpu_update_composite(unsigned int N,
                           const unsigned int* d_lookup_center,
                           const Scalar3* d_body_pos,
                           const Scalar4* d_body_orientation,
+                          const unsigned int* d_body_types,
                           const unsigned int* d_body_len,
                           const unsigned int* d_molecule_order,
                           const unsigned int* d_molecule_len,

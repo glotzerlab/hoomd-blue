@@ -46,12 +46,11 @@ set(_md_sources module-md.cc
                    TableDihedralForceCompute.cc
                    TriangleAreaConservationMeshForceCompute.cc
                    TwoStepBD.cc
-                   TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
                    TwoStepLangevin.cc
-                   TwoStepNPTMTK.cc
-                   TwoStepNVE.cc
-                   TwoStepNVTMTK.cc
+                   TwoStepConstantVolume.cc
+                   TwoStepConstantPressure.cc
+                   Thermostat.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
@@ -82,7 +81,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
-	        ConstantForceComputeGPU.h
+                ConstantForceComputeGPU.h
                 ConstantForceCompute.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
@@ -189,23 +188,18 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLEBDGPU.cuh
                 TwoStepBD.h
                 TwoStepRATTLEBD.h
-                TwoStepBerendsenGPU.h
-                TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
                 TwoStepRATTLELangevinGPU.h
                 TwoStepRATTLELangevinGPU.cuh
                 TwoStepLangevin.h
                 TwoStepRATTLELangevin.h
-                TwoStepNPTMTKGPU.h
-                TwoStepNPTMTK.h
                 TwoStepRATTLENVEGPU.h
                 TwoStepRATTLENVEGPU.cuh
                 TwoStepRATTLENVE.h
-                TwoStepNVEGPU.h
-                TwoStepNVE.h
-                TwoStepNVTMTKGPU.h
-                TwoStepNVTMTK.h
+                TwoStepConstantVolume.h
+                TwoStepConstantVolumeGPU.h
+                TwoStepConstantPressure.h
                 AlchemostatTwoStep.h
                 TwoStepNVTAlchemy.h
                 WallData.h
@@ -241,11 +235,9 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TriangleAreaConservationMeshForceComputeGPU.cc
                            TwoStepBDGPU.cc
-                           TwoStepBerendsenGPU.cc
                            TwoStepLangevinGPU.cc
-                           TwoStepNPTMTKGPU.cc
-                           TwoStepNVEGPU.cc
-                           TwoStepNVTMTKGPU.cc
+                           TwoStepConstantVolumeGPU.cc
+                           TwoStepConstantPressureGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
                            )
@@ -279,13 +271,12 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TableDihedralForceGPU.cu
                       TriangleAreaConservationMeshForceComputeGPU.cu
                       TwoStepBDGPU.cu
-                      TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
                       TwoStepRATTLELangevinGPU.cu
-                      TwoStepNPTMTKGPU.cu
+                      TwoStepConstantPressureGPU.cu
+                      TwoStepConstantVolumeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepRATTLENVEGPU.cu
-                      TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
                       )
@@ -593,8 +584,6 @@ if (ENABLE_HIP)
     target_link_libraries(_md PRIVATE neighbor)
 endif()
 
-fix_cudart_rpath(_md)
-
 # install the library
 install(TARGETS _md EXPORT HOOMDTargets
         LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
@@ -646,12 +635,7 @@ add_subdirectory(alchemy)
 add_subdirectory(tune)
 
 if (BUILD_TESTING)
-    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
 add_subdirectory(pytest)
-
-if (BUILD_VALIDATION)
-    # add_subdirectory(validation)
-endif()

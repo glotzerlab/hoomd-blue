@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_LJ0804_H__
@@ -90,7 +90,7 @@ class EvaluatorPairLJ0804
             }
 #endif
         }
-#ifdef SINGLE_PRECISION
+#if HOOMD_LONGREAL_SIZE == 32
         __attribute__((aligned(8)));
 #else
         __attribute__((aligned(16)));
