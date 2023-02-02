@@ -181,7 +181,7 @@ def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.types = ["mesh"]
+    mesh.types = ["mesh", "patch"]
     mesh.type_ids = [0, 0, 0, 1]
     mesh.triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
 
