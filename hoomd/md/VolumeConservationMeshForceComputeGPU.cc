@@ -183,24 +183,19 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
 
     unsigned int NTypes =  m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    for( unsigned int tid = 0; tid < NTypes; tid++)
-    	{
-
-         kernel::gpu_compute_volume_constraint_volume(d_sumVol.data,
-                                                      d_partial_sumVol.data,
-                                                      m_pdata->getN(),
-                                                      m_mesh_data->getMeshTriangleData()->getNTypes(),
-             					      tid,
-                                                      d_pos.data,
-                                                      d_image.data,
-                                                      box,
-                                                      d_gpu_meshtrianglelist.data,
-                                                      d_gpu_meshtriangle_pos_list.data,
-                                                      gpu_table_indexer,
-                                                      d_gpu_n_meshtriangle.data,
-                                                      m_block_size,
-                                                      m_num_blocks);
-        }
+    kernel::gpu_compute_volume_constraint_volume(d_sumVol.data,
+                                                 d_partial_sumVol.data,
+                                                 m_pdata->getN(),
+                                                 NTypes,
+                                                 d_pos.data,
+                                                 d_image.data,
+                                                 box,
+                                                 d_gpu_meshtrianglelist.data,
+                                                 d_gpu_meshtriangle_pos_list.data,
+                                                 gpu_table_indexer,
+                                                 d_gpu_n_meshtriangle.data,
+                                                 m_block_size,
+                                                 m_num_blocks);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -214,13 +209,13 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &h_sumVol.data[0],
-                      1,
+                      NTypes,
                       MPI_HOOMD_SCALAR,
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
         }
 #endif
-    for (unsigned int i = 0; i <  m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
+    for (unsigned int i = 0; i < NTypes; i++)
     	h_volume.data[i] = h_sumVol.data[i];
     }
 
