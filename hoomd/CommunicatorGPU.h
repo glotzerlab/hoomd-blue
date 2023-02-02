@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.h
@@ -83,7 +83,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
 
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
-    template<class group_data, bool inMesh = false> class GroupCommunicatorGPU
+    template<class group_data> class GroupCommunicatorGPU
         {
         public:
         typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
@@ -197,13 +197,12 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     friend class GroupCommunicatorGPU<PairData>;
 
     /* Communication of meshbonded groups */
-    GroupCommunicatorGPU<MeshBondData, true>
-        m_meshbond_comm; //!< Communication helper for mesh bonds
-    friend class GroupCommunicatorGPU<MeshBondData, true>;
+    GroupCommunicatorGPU<MeshBondData> m_meshbond_comm; //!< Communication helper for mesh bonds
+    friend class GroupCommunicatorGPU<MeshBondData>;
 
-    GroupCommunicatorGPU<MeshTriangleData, true>
+    GroupCommunicatorGPU<TriangleData>
         m_meshtriangle_comm; //!< Communication helper for mesh triangles
-    friend class GroupCommunicatorGPU<MeshTriangleData, true>;
+    friend class GroupCommunicatorGPU<TriangleData>;
 
     /* Ghost communication */
     GlobalVector<unsigned int> m_tag_ghost_sendbuf; //!< Buffer for sending particle tags

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 # Import the plugin module.
@@ -49,7 +49,7 @@ def test_force_and_energy_eval(simulation_factory,
 
     # Setup integrator and force.
     integrator = hoomd.md.Integrator(dt=0.001)
-    nve = hoomd.md.methods.NVE(hoomd.filter.All())
+    nve = hoomd.md.methods.ConstantVolume(hoomd.filter.All())
 
     cell = hoomd.md.nlist.Cell(buffer=0.4)
     example_pair: hoomd.md.pair.Pair = pair_plugin.pair.ExamplePair(

@@ -1,12 +1,8 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "TwoStepConstantVolumeGPU.cuh"
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-#include "TwoStepNVTMTKGPU.cuh"
-
 #include <assert.h>
 
 /*! \file TwoStepNVTGPU.cu
@@ -27,7 +23,7 @@ namespace kernel
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param work_size Number of members in the group for this GPU
     \param box Box dimensions for periodic boundary condition handling
-    \param exp_fac Velocity rescaling factor from thermostat
+    \param rescale_factor Velocity rescaling factor from thermostat
     \param deltaT Amount of real time to step forward in one time step
     \param offset The offset of this GPU into the list of particles
 
@@ -36,16 +32,18 @@ namespace kernel
     See gpu_nve_step_one_kernel() for some performance notes on how to handle the group data reads
    efficiently.
 */
-__global__ void gpu_nvt_mtk_step_one_kernel(Scalar4* d_pos,
-                                            Scalar4* d_vel,
-                                            const Scalar3* d_accel,
-                                            int3* d_image,
-                                            unsigned int* d_group_members,
-                                            unsigned int work_size,
-                                            BoxDim box,
-                                            Scalar exp_fac,
-                                            Scalar deltaT,
-                                            unsigned int offset)
+__global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
+                                                Scalar4* d_vel,
+                                                const Scalar3* d_accel,
+                                                int3* d_image,
+                                                unsigned int* d_group_members,
+                                                unsigned int work_size,
+                                                BoxDim box,
+                                                Scalar rescale_factor,
+                                                Scalar deltaT,
+                                                unsigned int offset,
+                                                bool limit = false,
+                                                Scalar maximum_displacement = Scalar(0.))
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -66,7 +64,14 @@ __global__ void gpu_nvt_mtk_step_one_kernel(Scalar4* d_pos,
         vel = vel + Scalar(1.0 / 2.0) * accel * deltaT;
 
         // velocity rescale
-        vel *= exp_fac;
+        vel *= rescale_factor;
+
+        if (limit)
+            {
+            Scalar displacement = sqrtf(dot(vel, vel));
+            if (displacement * deltaT > maximum_displacement)
+                vel = vel * maximum_displacement / displacement * deltaT;
+            }
 
         pos += vel * deltaT;
 
@@ -91,24 +96,26 @@ __global__ void gpu_nvt_mtk_step_one_kernel(Scalar4* d_pos,
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
     \param block_size Size of the block to run
-    \param exp_fac Thermostat rescaling factor
+    \param rescale_factor Thermostat rescaling factor
     \param deltaT Amount of real time to step forward in one time step
 */
-hipError_t gpu_nvt_mtk_step_one(Scalar4* d_pos,
-                                Scalar4* d_vel,
-                                const Scalar3* d_accel,
-                                int3* d_image,
-                                unsigned int* d_group_members,
-                                unsigned int group_size,
-                                const BoxDim& box,
-                                unsigned int block_size,
-                                Scalar exp_fac,
-                                Scalar deltaT,
-                                const GPUPartition& gpu_partition)
+hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
+                                    Scalar4* d_vel,
+                                    const Scalar3* d_accel,
+                                    int3* d_image,
+                                    unsigned int* d_group_members,
+                                    unsigned int group_size,
+                                    const BoxDim& box,
+                                    unsigned int block_size,
+                                    Scalar rescale_factor,
+                                    Scalar deltaT,
+                                    const GPUPartition& gpu_partition,
+                                    bool use_limit,
+                                    Scalar maximum_displacement)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_mtk_step_one_kernel);
+    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_rescale_step_one_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -125,7 +132,7 @@ hipError_t gpu_nvt_mtk_step_one(Scalar4* d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel, starting with offset range.first
-        hipLaunchKernelGGL((gpu_nvt_mtk_step_one_kernel),
+        hipLaunchKernelGGL((gpu_nvt_rescale_step_one_kernel),
                            dim3(grid),
                            dim3(threads),
                            0,
@@ -137,9 +144,11 @@ hipError_t gpu_nvt_mtk_step_one(Scalar4* d_pos,
                            d_group_members,
                            nwork,
                            box,
-                           exp_fac,
+                           rescale_factor,
                            deltaT,
-                           range.first);
+                           range.first,
+                           use_limit,
+                           maximum_displacement);
         }
 
     return hipSuccess;
@@ -154,14 +163,14 @@ hipError_t gpu_nvt_mtk_step_one(Scalar4* d_pos,
     \param deltaT Amount of real time to step forward in one time step
     \param offset The offset of this GPU into the list of particles
 */
-__global__ void gpu_nvt_mtk_step_two_kernel(Scalar4* d_vel,
-                                            Scalar3* d_accel,
-                                            unsigned int* d_group_members,
-                                            unsigned int work_size,
-                                            Scalar4* d_net_force,
-                                            Scalar deltaT,
-                                            Scalar exp_v_fac_thermo,
-                                            unsigned int offset)
+__global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
+                                                Scalar3* d_accel,
+                                                unsigned int* d_group_members,
+                                                unsigned int work_size,
+                                                Scalar4* d_net_force,
+                                                Scalar deltaT,
+                                                Scalar rescale_factor,
+                                                unsigned int offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -181,7 +190,7 @@ __global__ void gpu_nvt_mtk_step_two_kernel(Scalar4* d_vel,
         accel = accel / mass;
 
         // rescale
-        v *= exp_v_fac_thermo;
+        v *= rescale_factor;
 
         // update
         v += Scalar(1.0 / 2.0) * deltaT * accel;
@@ -201,21 +210,21 @@ __global__ void gpu_nvt_mtk_step_two_kernel(Scalar4* d_vel,
     \param d_net_force Net force on each particle
     \param block_size Size of the block to execute on the device
     \param deltaT Amount of real time to step forward in one time step
-    \param exp_v_fac_thermo Exponential velocity scaling factor
+    \param rescale_factor Exponential velocity scaling factor
 */
-hipError_t gpu_nvt_mtk_step_two(Scalar4* d_vel,
-                                Scalar3* d_accel,
-                                unsigned int* d_group_members,
-                                unsigned int group_size,
-                                Scalar4* d_net_force,
-                                unsigned int block_size,
-                                Scalar deltaT,
-                                Scalar exp_v_fac_thermo,
-                                const GPUPartition& gpu_partition)
+hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
+                                    Scalar3* d_accel,
+                                    unsigned int* d_group_members,
+                                    unsigned int group_size,
+                                    Scalar4* d_net_force,
+                                    unsigned int block_size,
+                                    Scalar deltaT,
+                                    Scalar rescale_factor,
+                                    const GPUPartition& gpu_partition)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_mtk_step_two_kernel);
+    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_rescale_step_two_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -232,7 +241,7 @@ hipError_t gpu_nvt_mtk_step_two(Scalar4* d_vel,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        hipLaunchKernelGGL((gpu_nvt_mtk_step_two_kernel),
+        hipLaunchKernelGGL((gpu_nvt_rescale_step_two_kernel),
                            dim3(grid),
                            dim3(threads),
                            0,
@@ -243,7 +252,7 @@ hipError_t gpu_nvt_mtk_step_two(Scalar4* d_vel,
                            nwork,
                            d_net_force,
                            deltaT,
-                           exp_v_fac_thermo,
+                           rescale_factor,
                            range.first);
         }
 

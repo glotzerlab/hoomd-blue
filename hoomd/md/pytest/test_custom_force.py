@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import pytest
@@ -40,12 +40,12 @@ def force_simulation_factory(simulation_factory):
 
     def make_sim(force_obj, snapshot=None, domain_decomposition=None):
         sim = simulation_factory(snapshot, domain_decomposition)
-        npt = md.methods.NPT(hoomd.filter.All(),
-                             kT=1,
-                             tau=1,
-                             S=1,
-                             tauS=1,
-                             couple="none")
+        thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+        npt = md.methods.ConstantPressure(hoomd.filter.All(),
+                                          S=1,
+                                          tauS=1,
+                                          couple="none",
+                                          thermostat=thermostat)
         integrator = md.Integrator(dt=0.005, forces=[force_obj], methods=[npt])
         sim.operations.integrator = integrator
         return sim
@@ -356,12 +356,12 @@ def test_failure_with_cpu_device_and_gpu_buffer():
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(snap)
     custom_force = MyForce('gpu_local_force_arrays')
-    npt = md.methods.NPT(hoomd.filter.All(),
-                         kT=1,
-                         tau=1,
-                         S=1,
-                         tauS=1,
-                         couple="none")
+    thermostat = hoomd.md.methods.thermostats.MTTK(kT=1.0, tau=1.0)
+    npt = md.methods.ConstantPressure(hoomd.filter.All(),
+                                      thermostat=thermostat,
+                                      S=1,
+                                      tauS=1,
+                                      couple="none")
     integrator = md.Integrator(dt=0.005, forces=[custom_force], methods=[npt])
     sim.operations.integrator = integrator
     with pytest.raises(RuntimeError):

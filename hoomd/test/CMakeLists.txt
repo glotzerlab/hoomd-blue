@@ -32,8 +32,6 @@ set(SYNC_TEST_LIST
     test_warp_tools)
 endif (ENABLE_HIP)
 
-option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
-
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
     SET("NProc_${_KEY}" "${_VALUE}")
@@ -60,8 +58,6 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
     target_link_libraries(${CUR_TEST} _hoomd ${PYTHON_LIBRARIES})
-
-    fix_cudart_rpath(${CUR_TEST})
 
 endforeach (CUR_TEST)
 

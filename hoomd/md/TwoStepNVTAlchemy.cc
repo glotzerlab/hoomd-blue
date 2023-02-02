@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepNVTAlchemy.h"
@@ -114,10 +114,10 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
 void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
     {
     // update the state variables Xi and eta
-    Scalar half_delta_xi
-        = m_halfDeltaT
-          * ((Scalar(2) * m_alchem_KE) - (Scalar(m_alchemicalParticles.size()) * (*m_T)(timestep)))
-          / m_Q;
+    Scalar half_delta_xi = m_halfDeltaT
+                           * ((Scalar(2) * m_alchem_KE)
+                              - (Scalar(m_alchemicalParticles.size()) * m_T->operator()(timestep)))
+                           / m_Q;
     m_thermostat.eta += (half_delta_xi + m_thermostat.xi) * m_deltaT * m_nTimeFactor;
     m_thermostat.xi += half_delta_xi + half_delta_xi;
     }

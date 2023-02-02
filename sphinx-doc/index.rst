@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 ==========
@@ -112,7 +112,8 @@ Molecular dynamics:
 
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(lj)
-    nvt = hoomd.md.methods.NVT(kT=1.5, filter=hoomd.filter.All(), tau=1.0)
+    bussi = hoomd.md.methods.thermostats.Bussi(kT=1.5)
+    nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(), thermostat=bussi)
     integrator.methods.append(nvt)
 
     gpu = hoomd.device.GPU()

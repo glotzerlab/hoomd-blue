@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MeshDefinition.cc
@@ -34,8 +34,8 @@ void MeshDefinition::setTypes(pybind11::list types)
     {
     for (unsigned int i = 0; i < len(types); i++)
         {
-        m_meshbond_data->setTypeName(i, pybind11::cast<string>(types[i]));
-        m_meshtriangle_data->setTypeName(i, pybind11::cast<string>(types[i]));
+        m_meshbond_data->setTypeName(i, types[i].cast<string>());
+        m_meshtriangle_data->setTypeName(i, types[i].cast<string>());
         }
     }
 

@@ -1,11 +1,11 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include "TwoStepNPTMTKGPU.cuh"
+#include "TwoStepConstantPressureGPU.cuh"
 #include "hoomd/VectorMath.h"
 
 #include <assert.h>
@@ -28,7 +28,7 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
                                             unsigned int* d_group_members,
                                             const unsigned int nwork,
                                             const unsigned int offset,
-                                            Scalar exp_thermo_fac,
+                                            Scalar thermo_rescale,
                                             Scalar mat_exp_v_xx,
                                             Scalar mat_exp_v_xy,
                                             Scalar mat_exp_v_xz,
@@ -79,7 +79,7 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
         v.z = mat_exp_v_zz * v.z;
 
         // apply thermostat update of velocity
-        v *= exp_thermo_fac;
+        v *= thermo_rescale;
 
         if (!rescale_all)
             {
@@ -104,7 +104,7 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
     \param d_accel array of particle accelerations
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
-    \param exp_thermo_fac Update factor for thermostat
+    \param thermo_rescale Update factor for thermostat
     \param mat_exp_v Matrix exponential for velocity update
     \param mat_exp_r Matrix exponential for position update
     \param mat_exp_r_int Integrated matrix exp for position update
@@ -114,18 +114,18 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
 
     This is just a kernel driver for gpu_npt_mtk_step_one_kernel(). See it for more details.
 */
-hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
-                                Scalar4* d_vel,
-                                const Scalar3* d_accel,
-                                unsigned int* d_group_members,
-                                const GPUPartition& gpu_partition,
-                                Scalar exp_thermo_fac,
-                                Scalar* mat_exp_v,
-                                Scalar* mat_exp_r,
-                                Scalar* mat_exp_r_int,
-                                Scalar deltaT,
-                                bool rescale_all,
-                                const unsigned int block_size)
+hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
+                                    Scalar4* d_vel,
+                                    const Scalar3* d_accel,
+                                    unsigned int* d_group_members,
+                                    const GPUPartition& gpu_partition,
+                                    Scalar thermo_rescale,
+                                    Scalar* mat_exp_v,
+                                    Scalar* mat_exp_r,
+                                    Scalar* mat_exp_r_int,
+                                    Scalar deltaT,
+                                    bool rescale_all,
+                                    const unsigned int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -157,7 +157,7 @@ hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
                            d_group_members,
                            nwork,
                            range.first,
-                           exp_thermo_fac,
+                           thermo_rescale,
                            mat_exp_v[0],
                            mat_exp_v[1],
                            mat_exp_v[2],
@@ -227,11 +227,11 @@ __global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
 
     This is just a kernel driver for gpu_npt_mtk_wrap_kernel(). See it for more details.
 */
-hipError_t gpu_npt_mtk_wrap(const GPUPartition& gpu_partition,
-                            Scalar4* d_pos,
-                            int3* d_image,
-                            const BoxDim& box,
-                            const unsigned int block_size)
+hipError_t gpu_npt_rescale_wrap(const GPUPartition& gpu_partition,
+                                Scalar4* d_pos,
+                                int3* d_image,
+                                const BoxDim& box,
+                                const unsigned int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -281,7 +281,7 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
                                             Scalar mat_exp_v_yz,
                                             Scalar mat_exp_v_zz,
                                             Scalar deltaT,
-                                            Scalar exp_thermo_fac)
+                                            Scalar thermo_rescale)
     {
     // determine which particle this thread works on
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -303,7 +303,7 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
         Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
 
         // apply thermostat rescaling
-        v = v * exp_thermo_fac;
+        v = v * thermo_rescale;
 
         // propagate velocity by half a time step by multiplying with an upper triangular matrix
         v.x = mat_exp_v_xx * v.x + mat_exp_v_xy * v.y + mat_exp_v_xz * v.z;
@@ -332,15 +332,15 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
 
     This is just a kernel driver for gpu_npt_mtk_step_kernel(). See it for more details.
 */
-hipError_t gpu_npt_mtk_step_two(Scalar4* d_vel,
-                                Scalar3* d_accel,
-                                unsigned int* d_group_members,
-                                const GPUPartition& gpu_partition,
-                                Scalar4* d_net_force,
-                                Scalar* mat_exp_v,
-                                Scalar deltaT,
-                                Scalar exp_thermo_fac,
-                                const unsigned int block_size)
+hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
+                                    Scalar3* d_accel,
+                                    unsigned int* d_group_members,
+                                    const GPUPartition& gpu_partition,
+                                    Scalar4* d_net_force,
+                                    Scalar* mat_exp_v,
+                                    Scalar deltaT,
+                                    Scalar thermo_rescale,
+                                    const unsigned int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -379,7 +379,7 @@ hipError_t gpu_npt_mtk_step_two(Scalar4* d_vel,
                            mat_exp_v[4],
                            mat_exp_v[5],
                            deltaT,
-                           exp_thermo_fac);
+                           thermo_rescale);
         }
 
     return hipSuccess;
@@ -412,15 +412,15 @@ __global__ void gpu_npt_mtk_rescale_kernel(const unsigned int nwork,
     d_postype[idx] = make_scalar4(r.x, r.y, r.z, postype.w);
     }
 
-void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
-                         Scalar4* d_postype,
-                         Scalar mat_exp_r_xx,
-                         Scalar mat_exp_r_xy,
-                         Scalar mat_exp_r_xz,
-                         Scalar mat_exp_r_yy,
-                         Scalar mat_exp_r_yz,
-                         Scalar mat_exp_r_zz,
-                         const unsigned int block_size)
+void gpu_npt_rescale_rescale(const GPUPartition& gpu_partition,
+                             Scalar4* d_postype,
+                             Scalar mat_exp_r_xx,
+                             Scalar mat_exp_r_xy,
+                             Scalar mat_exp_r_xz,
+                             Scalar mat_exp_r_yy,
+                             Scalar mat_exp_r_yz,
+                             Scalar mat_exp_r_zz,
+                             const unsigned int block_size)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
