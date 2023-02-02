@@ -180,22 +180,18 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
 
     unsigned int NTypes =  m_mesh_data->getMeshTriangleData()->getNTypes();
 
-    for (unsigned int tid = 0; tid < NTypes; tid++)
-    	{
-    	kernel::gpu_compute_area_constraint_area(d_sumArea.data,
-                                             d_partial_sumArea.data,
-                                             m_pdata->getN(),
-                                             NTypes,
-					     tid,
-                                             d_pos.data,
-                                             box,
-                                             d_gpu_meshtrianglelist.data,
-                                             d_gpu_meshtriangle_pos_list.data,
-                                             gpu_table_indexer,
-                                             d_gpu_n_meshtriangle.data,
-                                             m_block_size,
-                                             m_num_blocks);
-	}
+    kernel::gpu_compute_area_constraint_area(d_sumArea.data,
+                                        d_partial_sumArea.data,
+                                        m_pdata->getN(),
+                                        NTypes,
+                                        d_pos.data,
+                                        box,
+                                        d_gpu_meshtrianglelist.data,
+                                        d_gpu_meshtriangle_pos_list.data,
+                                        gpu_table_indexer,
+                                        d_gpu_n_meshtriangle.data,
+                                        m_block_size,
+                                        m_num_blocks);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -209,7 +205,7 @@ void AreaConservationMeshForceComputeGPU::precomputeParameter()
         {
         MPI_Allreduce(MPI_IN_PLACE,
                       &h_sumArea.data[0],
-                      1,
+                      NTypes,
                       MPI_HOOMD_SCALAR,
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
