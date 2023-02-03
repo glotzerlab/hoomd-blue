@@ -524,7 +524,6 @@ void ForceComposite::createRigidBodies()
         unsigned int initial_snapshot_size = snap.size;
         snap.insert(snap.size, n_constituent_particles_to_add);
 
-
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
@@ -559,8 +558,7 @@ void ForceComposite::createRigidBodies()
                 size_t body_idx = m_body_idx(body_type, current_body_index);
 
                 // Update constituent particle snapshot properties from default.
-                snap.type[constituent_particle_tag]
-                    = h_body_type.data[body_idx];
+                snap.type[constituent_particle_tag] = h_body_type.data[body_idx];
                 snap.body[constituent_particle_tag] = particle_tag;
                 snap.charge[constituent_particle_tag]
                     = m_body_charge[body_type][current_body_index];
@@ -573,7 +571,8 @@ void ForceComposite::createRigidBodies()
                 vec3<Scalar> local_position(h_body_pos.data[body_idx]);
                 quat<Scalar> local_orientation(h_body_orientation.data[body_idx]);
 
-                vec3<Scalar> constituent_position = body_position + rotate(body_orientation, local_position);
+                vec3<Scalar> constituent_position
+                    = body_position + rotate(body_orientation, local_position);
                 quat<Scalar> constituent_orientation = body_orientation * local_orientation;
 
                 snap.pos[constituent_particle_tag] = constituent_position;
@@ -581,7 +580,8 @@ void ForceComposite::createRigidBodies()
                 snap.orientation[constituent_particle_tag] = constituent_orientation;
 
                 // wrap back into the box
-                global_box.wrap(snap.pos[constituent_particle_tag], snap.image[constituent_particle_tag]);
+                global_box.wrap(snap.pos[constituent_particle_tag],
+                                snap.image[constituent_particle_tag]);
 
                 // Since the central particle tags here will be [0, n_central_particles), we know
                 // that the molecule number will be the same as the central particle tag.
