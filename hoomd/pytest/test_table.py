@@ -8,6 +8,7 @@ import pytest
 from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
+import sys
 
 try:
     from mpi4py import MPI
@@ -205,3 +206,23 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
     sim = simulation_factory(two_particle_snapshot_factory())
     table = hoomd.write.Table(1, logger)
     operation_pickling_check(table, sim)
+
+
+def test_table_output_notice(device, logger):
+    output = "notice"
+    table_writer = hoomd.write.Table(trigger=1, logger=logger, output=output)
+    table_writer._comm = device.communicator
+    table_writer._notice = device.notice
+    stdout = sys.stdout
+    output_IO = StringIO()
+    sys.stdout = output_IO
+    for i in range(10):
+        table_writer.write()
+    sys.stdout = stdout
+    output_str = output_IO.getvalue()
+    lines = output_str.split('\n')
+    headers = lines[0].split()
+    expected_headers = [
+        'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string'
+    ]
+    assert all(hdr in headers for hdr in expected_headers)
