@@ -44,6 +44,9 @@ class GSD(Writer):
         log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
             `None`.
 
+            .. deprecated:: v3.9.0
+               ``log`` will be renamed to ``logger`` in v4.
+
     `GSD` writes the simulation trajectory to the specified file in the GSD
     format. `GSD` can store all particle, bond, angle, dihedral, improper,
     pair, and constraint data fields in every frame of the trajectory.  `GSD`
