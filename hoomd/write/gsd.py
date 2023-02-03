@@ -41,8 +41,8 @@ class GSD(Writer):
             each time this operation triggers. Defaults to `False`.
         dynamic (list[str]): Quantity categories to save in every frame.
             Defaults to ``['property']``.
-        log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
-            `None`.
+        logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
+            to `None`.
 
     `GSD` writes the simulation trajectory to the specified file in the GSD
     format. `GSD` can store all particle, bond, angle, dihedral, improper,
@@ -129,9 +129,9 @@ class GSD(Writer):
         attribute before the operation is triggered to write the first frame
         in the file.
 
-        Some (or all) chunks may be omitted on later frames. You can set `log`
-        to `None` or remove specific quantities from the logger, but do not
-        add additional quantities after the first frame.
+        Some (or all) chunks may be omitted on later frames. You can set
+        `logger` to `None` or remove specific quantities from the logger, but do
+        not add additional quantities after the first frame.
 
     Attributes:
         filename (str): File name to write.
@@ -150,7 +150,7 @@ class GSD(Writer):
                  mode='ab',
                  truncate=False,
                  dynamic=None,
-                 log=None):
+                 logger=None):
 
         super().__init__(trigger)
 
@@ -167,7 +167,7 @@ class GSD(Writer):
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)))
 
-        self._log = None if log is None else _GSDLogWriter(log)
+        self._logger = None if logger is None else _GSDLogWriter(logger)
 
     def _attach_hook(self):
         # validate dynamic property
@@ -191,10 +191,10 @@ class GSD(Writer):
         self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
         self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
-        self._cpp_obj.log_writer = self.log
+        self._cpp_obj.log_writer = self.logger
 
     @staticmethod
-    def write(state, filename, filter=All(), mode='wb', log=None):
+    def write(state, filename, filter=All(), mode='wb', logger=None):
         """Write the given simulation state out to a GSD file.
 
         Args:
@@ -202,7 +202,7 @@ class GSD(Writer):
             filename (str): File name to write.
             filter (hoomd.filter.filter_like): Select the particles to write.
             mode (str): The file open mode. Defaults to ``'wb'``.
-            log (hoomd.logging.Logger): Provide log quantities to write.
+            logger (hoomd.logging.Logger): Provide log quantities to write.
 
         The valid file modes for `write` are ``'wb'`` and ``'xb'``.
         """
@@ -212,27 +212,27 @@ class GSD(Writer):
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1), filename,
                                       state._get_group(filter), mode, False)
 
-        if log is not None:
-            writer.log_writer = _GSDLogWriter(log)
+        if logger is not None:
+            writer.log_writer = _GSDLogWriter(logger)
         writer.analyze(state._simulation.timestep)
 
     @property
-    def log(self):
+    def logger(self):
         """hoomd.logging.Logger: Provide log quantities to write.
 
         May be `None`.
         """
-        return self._log
+        return self._logger
 
-    @log.setter
-    def log(self, log):
-        if log is not None and isinstance(log, Logger):
-            log = _GSDLogWriter(log)
+    @logger.setter
+    def logger(self, logger):
+        if logger is not None and isinstance(logger, Logger):
+            logger = _GSDLogWriter(logger)
         else:
-            raise ValueError("GSD.log can only be set with a Logger.")
+            raise ValueError("GSD.logger can only be set with a Logger.")
         if self._attached:
-            self._cpp_obj.log_writer = log
-        self._log = log
+            self._cpp_obj.log_writer = logger
+        self._logger = logger
 
 
 def _iterable_is_incomplete(iterable):
