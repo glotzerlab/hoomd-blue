@@ -465,35 +465,48 @@ void ForceComposite::validateRigidBodies()
 void ForceComposite::createRigidBodies()
     {
     SnapshotParticleData<Scalar> snap;
+    const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // take a snapshot on rank 0
     m_pdata->takeSnapshot(snap);
     bool remove_existing_constituents = false;
     unsigned int n_constituent_particles_to_add = 0;
     unsigned int n_free_particles = 0;
+
+    if (m_exec_conf->getRank() == 0)
         {
-        // We restrict the scope of h_body_len to ensure if we remove_existing_constituents or in
-        // any way reallocated m_body_len to a new memory location that we will be forced to
-        // reaquire the handle to the correct new memory location.
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
         for (unsigned int particle_tag = 0; particle_tag < snap.size; ++particle_tag)
             {
+            // Determine whether each particle is rigid or free based on the particle type and the
+            // rigid body definition.
             if (h_body_len.data[snap.type[particle_tag]] == 0)
                 {
                 n_free_particles++;
                 }
             else
                 {
+                // Determine whether we need to remove existing constituent particles. These will
+                // be recreated below.
                 if (snap.body[particle_tag] != particle_tag)
                     {
                     remove_existing_constituents = true;
                     }
+
                 // Increase the number of particles we need to add by the number of constituent
                 // particles this rigid body center has based on its type.
                 n_constituent_particles_to_add += h_body_len.data[snap.type[particle_tag]];
                 }
             }
         }
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        bcast(remove_existing_constituents, 0, m_exec_conf->getMPICommunicator());
+        bcast(n_free_particles, 0, m_exec_conf->getMPICommunicator());
+        }
+#endif
 
     if (remove_existing_constituents)
         {
@@ -505,12 +518,18 @@ void ForceComposite::createRigidBodies()
 
     std::vector<unsigned int> molecule_tag;
     unsigned int n_central_particles = snap.size - n_free_particles;
-    unsigned int initial_snapshot_size = snap.size;
-    snap.insert(snap.size, n_constituent_particles_to_add);
 
     if (m_exec_conf->getRank() == 0)
         {
+        unsigned int initial_snapshot_size = snap.size;
+        snap.insert(snap.size, n_constituent_particles_to_add);
+
+
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_body_orientation(m_body_orientation,
+                                                access_location::host,
+                                                access_mode::read);
         ArrayHandle<unsigned int> h_body_type(m_body_types,
                                               access_location::host,
                                               access_mode::read);
@@ -537,16 +556,32 @@ void ForceComposite::createRigidBodies()
             for (unsigned int current_body_index = 0; current_body_index < n_body_particles;
                  ++current_body_index)
                 {
+                size_t body_idx = m_body_idx(body_type, current_body_index);
+
                 // Update constituent particle snapshot properties from default.
-                // Position and orientation are handled by updateCompositeParticles.
                 snap.type[constituent_particle_tag]
-                    = h_body_type.data[m_body_idx(body_type, current_body_index)];
+                    = h_body_type.data[body_idx];
                 snap.body[constituent_particle_tag] = particle_tag;
                 snap.charge[constituent_particle_tag]
                     = m_body_charge[body_type][current_body_index];
                 snap.diameter[constituent_particle_tag]
                     = m_body_diameter[body_type][current_body_index];
-                snap.pos[constituent_particle_tag] = snap.pos[particle_tag];
+
+                // Set position and orientation of constituents
+                vec3<Scalar> body_position(snap.pos[particle_tag]);
+                quat<Scalar> body_orientation(snap.orientation[particle_tag]);
+                vec3<Scalar> local_position(h_body_pos.data[body_idx]);
+                quat<Scalar> local_orientation(h_body_orientation.data[body_idx]);
+
+                vec3<Scalar> constituent_position = body_position + rotate(body_orientation, local_position);
+                quat<Scalar> constituent_orientation = body_orientation * local_orientation;
+
+                snap.pos[constituent_particle_tag] = constituent_position;
+                snap.image[constituent_particle_tag] = snap.image[particle_tag];
+                snap.orientation[constituent_particle_tag] = constituent_orientation;
+
+                // wrap back into the box
+                global_box.wrap(snap.pos[constituent_particle_tag], snap.image[constituent_particle_tag]);
 
                 // Since the central particle tags here will be [0, n_central_particles), we know
                 // that the molecule number will be the same as the central particle tag.
@@ -564,7 +599,6 @@ void ForceComposite::createRigidBodies()
     if (m_pdata->getDomainDecomposition())
         {
         bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
-        bcast(n_central_particles, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -580,10 +614,6 @@ void ForceComposite::createRigidBodies()
 
     m_bodies_changed = false;
     m_particles_added_removed = false;
-
-    // Timestep is not currently used by updateCompositeParticles so we can just pass in a dummy
-    // value. TODO this may better just be removed from the signature.
-    updateCompositeParticles(0);
     }
 
 #ifdef ENABLE_MPI

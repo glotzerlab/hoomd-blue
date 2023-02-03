@@ -312,12 +312,14 @@ def test_setting_body_after_attaching(simulation_factory,
 def test_rigid_body_restart(simulation_factory, valid_body_definition):
     s = hoomd.Snapshot()
     N = 1000
-    s.particles.N = N
-    s.particles.position[:] = [[-0.5, 0, 0]] * N
-    s.particles.body[:] = [x for x in range(N)]
-    s.particles.types = ['A', 'B']
-    s.particles.typeid[:] = [0] * N
-    s.configuration.box = [2, 2, 2, 0, 0, 0]
+
+    if s.communicator.rank == 0:
+        s.particles.N = N
+        s.particles.position[:] = [[-0.5, 0, 0]] * N
+        s.particles.body[:] = [x for x in range(N)]
+        s.particles.types = ['A', 'B']
+        s.particles.typeid[:] = [0] * N
+        s.configuration.box = [2, 2, 2, 0, 0, 0]
 
     # create simulation object and add integrator
     sim = simulation_factory(s)
