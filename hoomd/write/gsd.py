@@ -125,7 +125,7 @@ class GSD(Writer):
 
     Tip:
         All logged data chunks must be present in the first frame in the gsd
-        file to provide the default value. To achieve this, set the `log`
+        file to provide the default value. To achieve this, set the `logger`
         attribute before the operation is triggered to write the first frame
         in the file.
 
