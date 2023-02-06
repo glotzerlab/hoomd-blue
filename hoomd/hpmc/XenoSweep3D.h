@@ -16,9 +16,7 @@
     \brief Implements XenoCollide in 3D
 */
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
