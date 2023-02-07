@@ -34,6 +34,8 @@ For some functionalities, you will need to update your scripts to use a new API:
      - `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
    * - ``hoomd.md.methods.NPT``
      - `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
+   * - ``hoomd.write.GSD.log``
+     - `hoomd.write.GSD.logger`
 
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
