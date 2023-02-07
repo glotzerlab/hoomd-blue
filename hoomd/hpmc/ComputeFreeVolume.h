@@ -175,7 +175,10 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
             Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
-
+            if (this->m_sysdef->getNDimensions() == 2)
+                {
+                zrand = 0;
+                }
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));
 
@@ -294,8 +297,8 @@ template<class Shape> Scalar ComputeFreeVolume<Shape>::getFreeVolume()
 
     // total free volume
     const BoxDim global_box = this->m_pdata->getGlobalBox();
-    Scalar V_free
-        = (Scalar)(n_sample - *h_n_overlap_all.data) / (Scalar)n_sample * global_box.getVolume();
+    Scalar V_free = (Scalar)(n_sample - *h_n_overlap_all.data) / (Scalar)n_sample
+                    * global_box.getVolume(this->m_sysdef->getNDimensions() == 2);
 
     return V_free;
     }
