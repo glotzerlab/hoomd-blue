@@ -14,6 +14,7 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
+import warnings
 
 
 def _array_to_strings(value):
@@ -41,6 +42,8 @@ class GSD(Writer):
             each time this operation triggers. Defaults to `False`.
         dynamic (list[str]): Quantity categories to save in every frame.
             Defaults to ``['property']``.
+        logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
+            to `None`.
         log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
             `None`.
 
@@ -153,6 +156,7 @@ class GSD(Writer):
                  mode='ab',
                  truncate=False,
                  dynamic=None,
+                 logger=None,
                  log=None):
 
         super().__init__(trigger)
@@ -170,7 +174,18 @@ class GSD(Writer):
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)))
 
-        self._log = None if log is None else _GSDLogWriter(log)
+        if all((logger is not None, log is not None)):
+            warnings.warn(
+                f"log and logger keyword arguments passed to {self}."
+                f" Keyword argument \"log\" is deprecated since v3.9.0."
+                f" Ignoring log and using logger instead.", DeprecationWarning)
+        elif logger is None and log is not None:
+            warnings.warn(
+                f"log keyword arguments passed to {self} is deprecated since"
+                f" v3.9.0. Use logger instead.", DeprecationWarning)
+            logger = log
+
+        self._logger = None if logger is None else _GSDLogWriter(logger)
 
     def _attach_hook(self):
         # validate dynamic property
