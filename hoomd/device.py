@@ -20,6 +20,8 @@ See Also:
     `hoomd.Simulation`
 """
 
+import warnings
+
 import contextlib
 import hoomd
 from hoomd import _hoomd
@@ -263,11 +265,14 @@ class GPU(Device):
         .. deprecated:: v3.4.0
            `memory_traceback` has no effect.
         """
+        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
+                      DeprecationWarning)
         return self._cpp_exec_conf.memoryTracingEnabled()
 
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
-
+        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
+                      DeprecationWarning)
         self._cpp_exec_conf.setMemoryTracing(mem_traceback)
 
     @property
