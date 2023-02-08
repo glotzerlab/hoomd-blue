@@ -225,6 +225,18 @@ class ThermodynamicQuantities(Compute):
         distributes the momentum conservation constraint evenly when
         `ThermodynamicQuantities` is applied to multiple subsets.
 
+        Note:
+
+            When using rigid bodies (`hoomd.md.constrain.Rigid`), :math:`N`
+            is the number of rigid body centers plus free particles selected
+            by the filter and :math:`N_\\mathrm{particles}` is total number
+            of rigid body centers plus free particles in the whole system.
+
+            When `hoomd.md.Integrator.rigid` is not set, :math:`N` is the
+            total number of particles selected by the filter and
+            :math:`N_\\mathrm{particles}` is the total number of particles in
+            the system, regardless of their ``body`` value.
+
         When using multiple integration methods, a single integration method
         on fewer than all particles, or a single integration method that is
         not momentum conserving, `hoomd.md.Integrator` assumes that linear
