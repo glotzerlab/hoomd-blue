@@ -314,7 +314,7 @@ ParticleGroup::~ParticleGroup()
 
 /*! \param force_update If true, always update member tags
  */
-void ParticleGroup::updateMemberTags(bool force_update) const
+void ParticleGroup::updateMemberTags(bool force_update)
     {
     if (m_selector && !(m_update_tags || force_update) && !m_warning_printed)
         {
@@ -394,9 +394,36 @@ void ParticleGroup::updateMemberTags(bool force_update) const
     // now that the tag list is completely set up and all memory is allocated, rebuild the index
     // list
     rebuildIndexList();
+
+    // count the number of central and free particles in the group
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    for (unsigned int group_idx = 0; group_idx < getNumMembers(); group_idx++)
+        {
+        unsigned int particle_idx = getMemberIndex(group_idx);
+        unsigned int tag = h_tag.data[particle_idx];
+        unsigned int body = h_body.data[particle_idx];
+
+        if (body == tag || body > MIN_FLOPPY)
+            {
+            m_n_central_and_free_global++;
+            }
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &m_n_central_and_free_global,
+                      1,
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
+    #endif
     }
 
-void ParticleGroup::reallocate() const
+void ParticleGroup::reallocate()
     {
     m_is_member.resize(m_pdata->getMaxN());
 
@@ -414,7 +441,7 @@ void ParticleGroup::reallocate() const
 /*! \returns Total mass of all particles in the group
     \note This method acquires the ParticleData internally
 */
-Scalar ParticleGroup::getTotalMass() const
+Scalar ParticleGroup::getTotalMass()
     {
     // grab the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
@@ -432,7 +459,7 @@ Scalar ParticleGroup::getTotalMass() const
 /*! \returns The center of mass of the group, in unwrapped coordinates
     \note This method acquires the ParticleData internally
 */
-Scalar3 ParticleGroup::getCenterOfMass() const
+Scalar3 ParticleGroup::getCenterOfMass()
     {
     // grab the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
@@ -614,7 +641,7 @@ std::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(std::shared_ptr<Pa
 
 /*! Builds the by-tag-lookup table for group membership
  */
-void ParticleGroup::buildTagHash() const
+void ParticleGroup::buildTagHash()
     {
     ArrayHandle<unsigned int> h_is_member_tag(m_is_member_tag,
                                               access_location::host,
@@ -639,7 +666,7 @@ void ParticleGroup::buildTagHash() const
    group \post m_member_idx is updated listing all particle indices belonging to the group, in index
    order
 */
-void ParticleGroup::rebuildIndexList() const
+void ParticleGroup::rebuildIndexList()
     {
     // notice message
     m_pdata->getExecConf()->msg->notice(10) << "ParticleGroup: rebuilding index" << std::endl;
@@ -695,7 +722,7 @@ void ParticleGroup::rebuildIndexList() const
 #endif
     }
 
-void ParticleGroup::updateGPUAdvice() const
+void ParticleGroup::updateGPUAdvice()
     {
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
@@ -734,7 +761,7 @@ void ParticleGroup::updateGPUAdvice() const
 
 #ifdef ENABLE_HIP
 //! rebuild index list on the GPU
-void ParticleGroup::rebuildIndexListGPU() const
+void ParticleGroup::rebuildIndexListGPU()
     {
     ArrayHandle<unsigned int> d_is_member(m_is_member,
                                           access_location::device,

@@ -162,7 +162,7 @@ class PYBIND11_EXPORT ParticleGroup
         }
 
     //! Updates the members tags of a particle group according to a selection
-    void updateMemberTags(bool force_update) const;
+    void updateMemberTags(bool force_update);
 
     // @}
     //! \name Accessor methods
@@ -171,7 +171,7 @@ class PYBIND11_EXPORT ParticleGroup
     //! Get the number of members in the group
     /*! \returns The number of particles that belong to this group
      */
-    unsigned int getNumMembersGlobal() const
+    unsigned int getNumMembersGlobal()
         {
         checkRebuild();
 
@@ -181,7 +181,7 @@ class PYBIND11_EXPORT ParticleGroup
     //! Get the number of members that are present on the local processor
     /*! \returns The number of particles on the local processor that belong to this group
      */
-    unsigned int getNumMembers() const
+    unsigned int getNumMembers()
         {
         checkRebuild();
 
@@ -192,7 +192,7 @@ class PYBIND11_EXPORT ParticleGroup
     /*! \param i Index from 0 to getNumMembersGlobal()-1 of the group member to get
         \returns Tag of the member at index \a i
     */
-    unsigned int getMemberTag(unsigned int i) const
+    unsigned int getMemberTag(unsigned int i)
         {
         checkRebuild();
 
@@ -212,7 +212,7 @@ class PYBIND11_EXPORT ParticleGroup
        the index is rebuilt. Hence, the tag array may not be accessed in the same scope in which
        this method is called.
     */
-    unsigned int getMemberIndex(unsigned int j) const
+    unsigned int getMemberIndex(unsigned int j)
         {
         checkRebuild();
 
@@ -229,7 +229,7 @@ class PYBIND11_EXPORT ParticleGroup
        access the particle data tag array if the index is rebuilt. Hence, the tag array may not be
        accessed in the same scope in which this method is called.
     */
-    bool isMember(unsigned int idx) const
+    bool isMember(unsigned int idx)
         {
         checkRebuild();
 
@@ -245,7 +245,7 @@ class PYBIND11_EXPORT ParticleGroup
               Hence, the tag array may not be accessed in the same scope in which this method is
        called.
     */
-    const GlobalArray<unsigned int>& getIndexArray() const
+    const GlobalArray<unsigned int>& getIndexArray()
         {
         checkRebuild();
 
@@ -254,7 +254,7 @@ class PYBIND11_EXPORT ParticleGroup
 
 #ifdef ENABLE_HIP
     //! Return the load balancing GPU partition
-    const GPUPartition& getGPUPartition() const
+    const GPUPartition& getGPUPartition()
         {
         checkRebuild();
 
@@ -267,9 +267,9 @@ class PYBIND11_EXPORT ParticleGroup
     // @{
 
     //! Compute the total mass of the group
-    Scalar getTotalMass() const;
+    Scalar getTotalMass();
     //! Compute the center of mass of the group
-    Scalar3 getCenterOfMass() const;
+    Scalar3 getCenterOfMass();
 
     // @}
     //! \name Combination methods
@@ -339,6 +339,12 @@ class PYBIND11_EXPORT ParticleGroup
     */
     void thermalizeParticleMomenta(Scalar kT, uint64_t timestep);
 
+    /// Get the number of central and free particles (global)
+    unsigned int getNCentralAndFreeGlobal()
+        {
+        return m_n_central_and_free_global;
+        }
+
     private:
     std::shared_ptr<SystemDefinition>
         m_sysdef;                          //!< The system definition this group is associated with
@@ -374,14 +380,17 @@ class PYBIND11_EXPORT ParticleGroup
     /// Number of rotational degrees of freedom in the group
     Scalar m_rotational_dof = 0;
 
+    /// Number of central and free particles in the group (global)
+    unsigned int m_n_central_and_free_global = 0;
+
     //! Helper function to resize array of member tags
-    void reallocate() const;
+    void reallocate();
 
     //! Helper function to rebuild the index lists after the particles have been sorted
-    void rebuildIndexList() const;
+    void rebuildIndexList();
 
     //! Helper function to rebuild internal arrays
-    void checkRebuild() const
+    void checkRebuild()
         {
         // carry out rebuild in correct order
         bool update_gpu_advice = false;
@@ -420,7 +429,7 @@ class PYBIND11_EXPORT ParticleGroup
         }
 
     //! Update the GPU memory advice
-    void updateGPUAdvice() const;
+    void updateGPUAdvice();
 
     //! Helper function to be called when particles are added/removed
     void slotGlobalParticleNumChange()
@@ -429,11 +438,11 @@ class PYBIND11_EXPORT ParticleGroup
         }
 
     //! Helper function to build the 1:1 hash for tag membership
-    void buildTagHash() const;
+    void buildTagHash();
 
 #ifdef ENABLE_HIP
     //! Helper function to rebuild the index lists after the particles have been sorted
-    void rebuildIndexListGPU() const;
+    void rebuildIndexListGPU();
 #endif
     };
 
