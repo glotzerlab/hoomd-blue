@@ -396,15 +396,20 @@ void ParticleGroup::updateMemberTags(bool force_update)
     rebuildIndexList();
 
     // count the number of central and free particles in the group
+    // updateMemberTags cannot call any member function that would result in a checkRebuild() call
+    m_n_central_and_free_global = 0;
+
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int group_idx = 0; group_idx < getNumMembers(); group_idx++)
+    ArrayHandle<unsigned int> h_is_member_tag(m_is_member_tag,
+                                              access_location::host,
+                                              access_mode::read);
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        unsigned int particle_idx = getMemberIndex(group_idx);
-        unsigned int tag = h_tag.data[particle_idx];
-        unsigned int body = h_body.data[particle_idx];
+        unsigned int tag = h_tag.data[i];
+        unsigned int body = h_body.data[i];
 
-        if (body == tag || body > MIN_FLOPPY)
+        if (h_is_member_tag.data[tag] && (body == tag || body > MIN_FLOPPY))
             {
             m_n_central_and_free_global++;
             }
