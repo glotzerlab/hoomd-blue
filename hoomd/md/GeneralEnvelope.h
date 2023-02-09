@@ -93,7 +93,7 @@ public:
         Scalar omega;
     }__attribute__((aligned(16)));
 
-    DEVICE GeneralEnvelope( // TODO: this is not actually general. It assumes a single off-center patch
+    DEVICE GeneralEnvelope( // TODO: Change name to PatchModulator. It is not general. It assumes a single off-center patch
         const Scalar3& _dr,
         const Scalar4& _quat_i, // Note in hoomd, the quaternion is how to get from the particle orientation to align to the world orientation. so World = qi Local qi-1
         const Scalar4& _quat_j,
@@ -191,12 +191,47 @@ public:
     DEVICE Scalar ModulatorPrimej()
         {
             Scalar fact = Modulatorj();
+            std::cout << "fact=Modulatorj = " + std::to_string(fact) + '\n';
+            std::cout << "costhetaj: " + std::to_string(costhetaj) + '\n'; // is near 1
+            std::cout << "cosalpha: " + std::to_string(params.cosalpha) + '\n';
             return params.omega * fast::exp(-params.omega*(costhetaj-params.cosalpha)) * fact * fact;
         }
 
+    vec3<Scalar> new_cross_fun(quat<Scalar> qp)
+        {
+            vec3<Scalar> new_cross_term;
+            new_cross_term = qp.s * cross(dr, qp.v);
+
+            // {qx, qy, qz}*{{dry,drz}.{qy,qz}, {drx,drz}.{qx,qz}, {drx,dry}.{qx,qy}}
+            // Components of dot products:
+            Scalar drxqx = dr.x*qp.v.x;
+            Scalar dryqy = dr.y*qp.v.y;
+            Scalar drzqz = dr.z*qp.v.z;
+
+            new_cross_term.x += Scalar(2) * qp.v.x * (dryqy + drzqz);
+            new_cross_term.y += Scalar(2) * qp.v.y * (drxqx + drzqz);
+            new_cross_term.z += Scalar(2) * qp.v.z * (drxqx + dryqy);
+
+            // {drx, dry, drz}*{qx, qy, qz}^2 . {{-1, 1, 1}, {1, -1, 1}, {1, 1, -1}}
+            Scalar qr2 = qp.s * qp.s;
+            Scalar qx2 = qp.v.x * qp.v.x;
+            Scalar qy2 = qp.v.y * qp.v.y;
+            Scalar qz2 = qp.v.z * qp.v.z;
+
+            new_cross_term.x += dr.x * (qr2 + qx2 - qy2 - qz2);
+            new_cross_term.y += dr.y * (qr2 - qx2 + qy2 - qz2);
+            new_cross_term.z += dr.z * (qr2 - qx2 - qy2 + qz2);
+
+            // The norm2 comes from the definition of rotation for quaternion
+            // The magdr comes from the dot product definition of cos(theta_i)
+            new_cross_term = new_cross_term / (magdr * norm2(qp));
+
+            return new_cross_term;
+        }
     //! Evaluate the force and energy
     /*
-      \param force Output parameter to write the computed force.
+      // TODO update this
+      \Param force Output parameter to write the computed force.
       \param envelope Output parameter to write the amount of modulation of the isotropic part
       \param torque_i The torque exterted on the i^th particle.
       \param torque_j The torque exterted on the j^th particle.
@@ -214,13 +249,16 @@ public:
             Scalar modPi = ModulatorPrimei();
             Scalar modPj = ModulatorPrimej();
 
-            std::cout << "------------\n";
+            std::cout << "in evaluate \n\n";
+            std::cout << "modPj: " + std::to_string(modPj) + '\n'; // this rapidly goes to 0
+            std::cout << "modi: " + std::to_string(modi) + '\n';
+
             // the overall modulation
             envelope = modi*modj;
 
             // intermediate calculations
             Scalar iPj = modPi*modj/magdr; // TODO: make variable name more descriptive and check if these are correct. Jan 4: They are correct
-            Scalar jPi = modPj*modi/magdr;
+            Scalar jPi = modPj*modi/magdr; // something wrong here
             // TODO Jan 4 2023: I don't think this division by s.magdr should be here mathematically, but probably for efficiency
 
             // torque on ith
@@ -239,56 +277,37 @@ public:
 
             // qr * Cross[{drx, dry, drz}, {qx, qy, qz}]
 
-            quat<Scalar> qpi = params.qpi; // quaternion representing orientation of patch with respect to particle x direction (a1)
-
-            std::cout << params.qpi.s << params.qpi.v.x << params.qpi.v.y << params.qpi.v.z << '\n';             // this is okay
+            // quat<Scalar> qpi = params.qpi; // quaternion representing orientation of patch with respect to particle x direction (a1)
 
             // quicker calculation and avoiding a bug in the following when patch is aligned
             // a1 = old ei
-            vec3<Scalar> new_cross_term;
-            if (qpi.s == Scalar(1) && qpi.v == vec3<Scalar>(0,0,0) )
-                {
-                    new_cross_term = -dr / magdr;
-                }
-            else
-                {
-                    new_cross_term = qpi.s * cross(dr, qpi.v);
-                    std::cout << vecString(dr); // this is okay
-                    std::cout << vecString(qpi.v); // this is zero. Problem!
-                    std::cout << vecString(new_cross_term);
 
-                    // {qx, qy, qz}*{{dry,drz}.{qy,qz}, {drx,drz}.{qx,qz}, {drx,dry}.{qx,qy}}
-                    // Components of dot products:
-                    Scalar drxqx = dr.x*qpi.v.x;
-                    Scalar dryqy = dr.y*qpi.v.y;
-                    Scalar drzqz = dr.z*qpi.v.z;
+            // TODO turn new_cross_term into a function
 
-                    new_cross_term.x += qpi.v.x * (dryqy + drzqz);
-                    new_cross_term.y += qpi.v.y * (drxqx + drzqz);
-                    new_cross_term.z += qpi.v.z * (drxqx + dryqy);
-
-                    // {drx, dry, drz}*{qx, qy, qz}^2 . {{-1, 1, 1}, {1, -1, 1}, {1, 1, -1}}
-                    Scalar qx2 = qpi.v.x * qpi.v.x;
-                    Scalar qy2 = qpi.v.y * qpi.v.y;
-                    Scalar qz2 = qpi.v.z * qpi.v.z;
-
-                    new_cross_term.x += dr.x * (-qx2 + qy2 + qz2);
-                    new_cross_term.y += dr.y * ( qx2 - qy2 + qz2);
-                    new_cross_term.z += dr.z * ( qx2 + qy2 - qz2);
-
-                    // The norm2 comes from the definition of rotation for quaternion
-                    // The magdr comes from the dot product definition of cos(theta_i)
-                    new_cross_term = new_cross_term / (-magdr * norm2(qpi));
-                }
 
             // I multiply iPj by magdr next for clarity during the derivation bc I did it above -Corwin
-            torque_i = vec_to_scalar3( (iPj*magdr) * cross(vec3<Scalar>(a1), new_cross_term));
-
-
+            torque_i = vec_to_scalar3( (iPj*magdr) * cross(vec3<Scalar>(a1), -new_cross_fun(params.qpi)));
+            // TODO make the new_cross_term for torque_j depend on 
             // Previously above, I would have s.ei which is the same, but I'm moving to a1 for clarity.
 
-            // torque on jth - note sign is opposite ith!
-            torque_j = vec_to_scalar3( (jPi*magdr) * cross(vec3<Scalar>(b1), -new_cross_term));
+                                                             vec3<Scalar> ii;
+            // torque on jth - note sign is opposite ith
+            ii = new_cross_fun(params.qpi);
+            // std::cout << vecString(ii);
+            vec3<Scalar> jj = new_cross_fun(params.qpj);
+            // std::cout << vecString(jj);
+            
+            torque_j = vec_to_scalar3( (jPi*magdr) * cross(vec3<Scalar>(b1), jj));
+
+            std::cout << "iPj: " + std::to_string(iPj) + '\n';
+            std::cout << "jPi: " + std::to_string(jPi) + '\n'; // is always 0
+
+            
+            // std::cout << vecString(vec3<Scalar>(a1)); //okay
+            //std::cout << vecString(vec3<Scalar>(torque_i));
+            std::cout << "j: \n";
+            std::cout << vecString(vec3<Scalar>(b1)); // okay
+            //std::cout << vecString(vec3<Scalar>(torque_j));
             // TODO why is the order different than before?
             
             // compute force contribution
@@ -299,7 +318,18 @@ public:
             //             + jPi*(s.ej.x - s.dotj*s.dr.x/s.magdr));
 
             // TODO still need to update this with respect to the conj(quat) bug
-            force.x = -(iPj*(-ei.x - doti*dr.x/magdr) // iPj includes a factor of magdr
+
+            // x component
+            hi_i = Scalar(-1) * dot(dr, ni) / norm2(params.qpi);
+            dhi_i = ;
+                
+            hi_j = Scalar(1) * dot(dr, nj) / norm2(params.qpj);
+
+
+            
+            force.x = ;
+            
+            force.x = -(iPj*(-ei.x - doti*dr.x/magdr) // iPj includes a factor of 1/magdr
                         + jPi*(ej.x - dotj*dr.x/magdr));
             force.y = -(iPj*(-ei.y - doti*dr.y/magdr)
                         + jPi*(ej.y - dotj*dr.y/magdr));
