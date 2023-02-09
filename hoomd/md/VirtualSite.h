@@ -43,7 +43,7 @@ namespace hoomd::md{
 
     template<class Mapping = virtualsites::Type2>
     class _VirtualSite : public VirtualSite{
-
+    public:
         _VirtualSite(std::shared_ptr<SystemDefinition> sysdef) : VirtualSite(sysdef){}
 
 
@@ -179,12 +179,9 @@ namespace hoomd::md{
     };
 
     namespace detail{
-
-        void export_virtual_site_base(pybind11::module& m);
-
         template<class Mapping>
         void export_virtual_site(pybind11::module& m, const std::string& name){
-            pybind11::class_<_VirtualSite<Mapping>, VirtualSite, std::shared_ptr<_VirtualSite<Mapping>>>(m, name)
+            pybind11::class_<_VirtualSite<Mapping>, VirtualSite, std::shared_ptr<_VirtualSite<Mapping>>>(m, name.c_str())
                     .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
         }
     }

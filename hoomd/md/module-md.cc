@@ -147,6 +147,9 @@ void export_ManifoldZCylinder(pybind11::module& m);
 void export_AlchemicalMDParticles(pybind11::module& m);
 void export_PotentialPairAlchemicalLJGauss(pybind11::module& m);
 
+    void export_virtual_site_base(pybind11::module&);
+    void export_virtual_siteType2(pybind11::module&);
+
 #ifdef ENABLE_HIP
 
 void export_ActiveForceConstraintComputeCylinderGPU(pybind11::module& m);
@@ -175,8 +178,7 @@ void export_ForceDistanceConstraintGPU(pybind11::module& m);
 void export_ForceCompositeGPU(pybind11::module& m);
 void export_PPPMForceComputeGPU(pybind11::module& m);
 
-void export_virtual_site_base(pybind11::module&);
-void export_virtual_siteType2(pybind11::module&);
+
 
 void export_PotentialPairBuckinghamGPU(pybind11::module& m);
 void export_PotentialPairLJGPU(pybind11::module& m);

@@ -384,8 +384,8 @@ foreach(_bond ${_bonds})
 endforeach()
 
 set(_virtual_types Type2)
-foreach(_vstype ${_virtual})
-    configure_file(export_virtual_site.cc.inc.cpp
+foreach(_vstype ${_virtual_types})
+    configure_file(export_virtual_site.cc.inc
                    export_virtual_site${_vstype}.cc
                    @ONLY)
     set(_md_sources ${_md_sources} export_virtual_site${_vstype}.cc)
