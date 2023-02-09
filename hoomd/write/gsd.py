@@ -270,7 +270,7 @@ class GSD(Writer):
         warnings.warn(
             "log property is deprecated since v3.9.0. Use logger instead.",
             DeprecationWarning)
-        return self._logger
+        return self.logger
 
     @logger.setter
     def logger(self, logger):
@@ -287,13 +287,7 @@ class GSD(Writer):
         warnings.warn(
             "log property is deprecated since v3.9.0. Use logger instead.",
             DeprecationWarning)
-        if log is not None and isinstance(log, Logger):
-            log = _GSDLogWriter(log)
-        else:
-            raise ValueError("GSD.log can only be set with a Logger.")
-        if self._attached:
-            self._cpp_obj.log_writer = log
-        self._log = log
+        self.logger = log
 
 
 def _iterable_is_incomplete(iterable):
