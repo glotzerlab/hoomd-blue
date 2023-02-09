@@ -16,6 +16,7 @@
 #ifdef __HIPCC__
 //! Sentinel value in \a body to signify that this particle does not belong to a body
 const unsigned int NO_BODY = 0xffffffff;
+const unsigned int VIRTUAL_PARTICLE = 0xfffffffe;
 
 //! Unsigned value equivalent to a sign flip in a signed int. All larger values of the \a body flag
 //! indicate a floppy body (forces between are ignored, but they are integrated independently).

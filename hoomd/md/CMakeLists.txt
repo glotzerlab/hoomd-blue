@@ -50,6 +50,7 @@ set(_md_sources module-md.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
                    TwoStepNVTAlchemy.cc
+        VirtualSite.cpp
                    WallData.cc
                    ZeroMomentumUpdater.cc
                    )
@@ -382,6 +383,13 @@ foreach(_bond ${_bonds})
     endif()
 endforeach()
 
+set(_virtual_types Type2)
+foreach(_vstype ${_virtual})
+    configure_file(export_virtual_site.cc.inc.cpp
+                   export_virtual_site${_vstype}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_virtual_site${_vstype}.cc)
+endforeach()
 
 set(_pairs LJ Coulomb)
 

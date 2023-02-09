@@ -175,6 +175,9 @@ void export_ForceDistanceConstraintGPU(pybind11::module& m);
 void export_ForceCompositeGPU(pybind11::module& m);
 void export_PPPMForceComputeGPU(pybind11::module& m);
 
+void export_virtual_site_base(pybind11::module&);
+void export_virtual_siteType2(pybind11::module&);
+
 void export_PotentialPairBuckinghamGPU(pybind11::module& m);
 void export_PotentialPairLJGPU(pybind11::module& m);
 void export_PotentialPairLJ1208GPU(pybind11::module& m);
@@ -297,6 +300,9 @@ PYBIND11_MODULE(_md, m)
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
     export_BondTablePotential(m);
+
+        export_virtual_site_base(m);
+        export_virtual_siteType2(m);
 
     export_PotentialPairBuckingham(m);
     export_PotentialPairLJ(m);

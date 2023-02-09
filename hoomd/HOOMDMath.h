@@ -657,6 +657,15 @@ HOSTDEVICE inline hoomd::Scalar3& operator+=(hoomd::Scalar3& a, const hoomd::Sca
     a.z += b.z;
     return a;
     }
+
+HOSTDEVICE inline hoomd::Scalar4& operator+=(hoomd::Scalar4& a, const hoomd::Scalar4& b)
+{
+    a.x += b.x;
+    a.y += b.y;
+    a.z += b.z;
+    a.w += b.w;
+    return a;
+}
 #endif
 
 //! Vector subtraction
@@ -698,6 +707,12 @@ HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar& a, const hoomd::
     {
     return hoomd::make_scalar3(a * b.x, a * b.y, a * b.z);
     }
+//! Scalar - vector multiplication
+HOSTDEVICE inline hoomd::Scalar4 operator*(const hoomd::Scalar4& a, const hoomd::Scalar& b)
+{
+    return hoomd::make_scalar4(a.x * b, a.y * b, a.z * b, a.w * b);
+}
+
 //! Scalar - vector multiplication
 HOSTDEVICE inline hoomd::Scalar3 operator*(const hoomd::Scalar3& a, const hoomd::Scalar& b)
     {

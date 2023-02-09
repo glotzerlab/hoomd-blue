@@ -132,6 +132,11 @@ void IntegrationMethodTwoStep::validateGroup()
                 << std::endl;
             throw std::runtime_error("Error initializing integration method");
             }
+        if(body == VIRTUAL_PARTICLE){
+            m_exec_conf->msg->error() << "Particle " << tag << " is a virtual particle. " << std::endl
+            << " This integration method does not apply on virtual sites. " << std::endl;
+            throw std::runtime_error("Error initializing integration method");
+        }
         }
     }
 

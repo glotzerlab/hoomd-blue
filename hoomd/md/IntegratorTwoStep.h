@@ -5,6 +5,7 @@
 #include "hoomd/Integrator.h"
 
 #include "ForceComposite.h"
+#include "VirtualSite.h"
 
 #pragma once
 
@@ -115,6 +116,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         m_methods; //!< List of all the integration methods
 
     std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
+    std::vector<std::shared_ptr<VirtualSite>> m_virtual_sites;
 
     bool m_prepared;     //!< True if preprun has been called
     bool m_gave_warning; //!< True if a warning has been given about no methods added
