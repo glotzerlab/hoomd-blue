@@ -130,7 +130,7 @@ class Harmonic(Periodic):
     def __init__(self):
         warnings.warn(
             "Harmonic is deprecated and will be removed in hoomd 4.0. Use "
-            "Periodic instead.", DeprecationWarning)
+            "Periodic instead.", FutureWarning)
         super().__init__()
 
 

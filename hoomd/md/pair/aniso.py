@@ -145,7 +145,7 @@ class Dipole(AnisotropicPair):
         if attr == "mode":
             warnings.warn(
                 "'mode' key is deprectated and will be removed in hoomd 4.0.",
-                DeprecationWarning)
+                FutureWarning)
         super()._setattr_param(attr, value)
 
 
@@ -588,5 +588,5 @@ class ALJ(AnisotropicPair):
         if attr == "mode":
             warnings.warn(
                 "'mode' key is deprectated and will be removed in hoomd 4.0.",
-                DeprecationWarning)
+                FutureWarning)
         super()._setattr_param(attr, value)

@@ -41,7 +41,7 @@ class _DeprecateKey:
         msg += f"{self.version}."
         if self.alt:
             msg += f" Use {self.alt} in version {self.version} instead."
-        warnings.warn(msg, DeprecationWarning)
+        warnings.warn(msg, FutureWarning)
         return value
 
 

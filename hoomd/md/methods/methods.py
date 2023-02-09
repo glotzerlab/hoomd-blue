@@ -102,7 +102,7 @@ class NVT(Method):
         warnings.warn(
             "NVT is deprecated and wil be removed in hoomd 4.0. In version "
             "4.0, use the ConstantVolume method with the desired thermostat "
-            "from hoomd.md.methods.thermostats.", DeprecationWarning)
+            "from hoomd.md.methods.thermostats.", FutureWarning)
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
@@ -365,7 +365,7 @@ class NPT(Method):
         warnings.warn(
             "NPT is deprecated and wil be removed in hoomd 4.0. In version "
             "4.0, use the ConstantPressure method with the desired thermostat "
-            "from hoomd.md.methods.thermostats.", DeprecationWarning)
+            "from hoomd.md.methods.thermostats.", FutureWarning)
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
@@ -574,7 +574,7 @@ class NPH(Method):
         warnings.warn(
             "NPH is deprecated and wil be removed in hoomd 4.0. In version "
             "4.0, use the ConstantPressure method without a thermostat.",
-            DeprecationWarning)
+            FutureWarning)
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
@@ -699,7 +699,7 @@ class NVE(Method):
         warnings.warn(
             "NVE is deprecated and wil be removed in hoomd 4.0. In version "
             "4.0, use the ConstantVolume method without a thermostat.",
-            DeprecationWarning)
+            FutureWarning)
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
@@ -1196,7 +1196,7 @@ class Berendsen(Method):
         warnings.warn(
             "Berendsen is deprecated and wil be removed in hoomd 4.0. In "
             "version 4.0, use the ConstantVolume method with the Berendsen "
-            "thermostat from hoomd.md.methods.thermostats.", DeprecationWarning)
+            "thermostat from hoomd.md.methods.thermostats.", FutureWarning)
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
