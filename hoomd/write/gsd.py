@@ -268,7 +268,7 @@ class GSD(Writer):
            ``log`` will be renamed to ``logger`` in v4.
         """
         warnings.warn(
-            "log property  is deprecated since v3.9.0. Use logger instead.",
+            "log property is deprecated since v3.9.0. Use logger instead.",
             DeprecationWarning)
         return self._logger
 
@@ -285,7 +285,7 @@ class GSD(Writer):
     @log.setter
     def log(self, log):
         warnings.warn(
-            "log property is deprecated since  v3.9.0. Use logger instead.",
+            "log property is deprecated since v3.9.0. Use logger instead.",
             DeprecationWarning)
         if log is not None and isinstance(log, Logger):
             log = _GSDLogWriter(log)
