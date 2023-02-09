@@ -6,6 +6,11 @@ Deprecated
 
 Features deprecated in v3.x may be removed in a future v4.0.0 release.
 
+HOOMD may issue `FutureWarning` messages to provide warnings for breaking changes in the next major
+release. Use Python's warnings module to silence warnings which may not be correctable until the
+next major release. Use this filter: ``ignore::FutureWarning:hoomd``. See Python's `warnings`
+documentation for more information on warning filters.
+
 .. note::
 
     Where noted, suggested replacements will be first available with v4.0.0 and there  will be no
