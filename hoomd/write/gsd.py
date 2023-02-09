@@ -234,12 +234,12 @@ class GSD(Writer):
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1), filename,
                                       state._get_group(filter), mode, False)
 
-        if all((logger is not None, log is not None)):
+        if logger is not None and log is not None:
             warnings.warn(
                 "log and logger keyword arguments passed to write.GSD.write()."
                 " Keyword argument \"log\" is deprecated since v3.9.0."
-                " Ignoring log and using logger instead.", DeprecationWarning)
-        elif logger is None and log is not None:
+                " Ignoring log and using logger instead.", RuntimeWarning)
+       elif log is not None:
             warnings.warn(
                 "log keyword arguments passed to write.GSD.write() is"
                 " deprecated since v3.9.0. Use logger instead.",
@@ -267,6 +267,9 @@ class GSD(Writer):
         .. deprecated:: v3.9.0
            ``log`` will be renamed to ``logger`` in v4.
         """
+        warnings.warn(
+            "log property  is deprecated since v3.9.0. Use logger instead.",
+            DeprecationWarning)
         return self._logger
 
     @logger.setter
@@ -282,8 +285,8 @@ class GSD(Writer):
     @log.setter
     def log(self, log):
         warnings.warn(
-            f"log keyword arguments passed to {self} is deprecated since"
-            f" v3.9.0. Use logger instead.", DeprecationWarning)
+            "log property is deprecated since  v3.9.0. Use logger instead.",
+            DeprecationWarning)
         if log is not None and isinstance(log, Logger):
             log = _GSDLogWriter(log)
         else:
