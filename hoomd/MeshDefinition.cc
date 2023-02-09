@@ -66,11 +66,9 @@ void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles,
                                      pybind11::array_t<int> type_ids)
     {
     TriangleData::Snapshot triangle_data = getTriangleData();
-    pybind11::buffer_info buf1 = triangles.request();
-    int* ptr1 = static_cast<int*>(buf1.ptr);
+    const int* ptr1 = static_cast<const int*>(triangles.request().ptr);
 
-    pybind11::buffer_info buf2 = type_ids.request();
-    int* ptr2 = static_cast<int*>(buf2.ptr);
+    const int* ptr2 = static_cast<const int*>(type_ids.request().ptr);
 
     size_t len_triang = len(triangles);
     triangle_data.resize(static_cast<unsigned int>(len_triang));

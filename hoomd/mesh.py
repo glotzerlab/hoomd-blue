@@ -37,7 +37,6 @@ import hoomd
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.logging import log
 import numpy as np
 
@@ -61,8 +60,7 @@ class Mesh(_HOOMDBaseObject):
 
     def __init__(self):
 
-        param_dict = ParameterDict(size=int,
-                                   types=OnlyIf(to_type_converter([str])))
+        param_dict = ParameterDict(size=int, types=[str])
 
         param_dict["types"] = ["mesh"]
         param_dict["size"] = 0
