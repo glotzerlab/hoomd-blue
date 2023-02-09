@@ -31,69 +31,6 @@
 
 namespace hoomd
     {
-//! Select particles in the space defined by a cuboid
-class PYBIND11_EXPORT ParticleFilterCuboid : public ParticleFilter
-    {
-    public:
-    //! Constructs the selector
-    ParticleFilterCuboid(Scalar3 min, Scalar3 max);
-    virtual ~ParticleFilterCuboid() { }
-
-    //! Test if a particle meets the selection criteria
-    virtual std::vector<unsigned int>
-    getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-
-    protected:
-    Scalar3 m_min; //!< Minimum type to select (inclusive)
-    Scalar3 m_max; //!< Maximum type to select (exclusive)
-    };
-
-//! Select particles based on their body
-class PYBIND11_EXPORT ParticleFilterBody : public ParticleFilter
-    {
-    public:
-    //! Constructs the selector
-    ParticleFilterBody(bool body);
-    virtual ~ParticleFilterBody() { }
-
-    //! Test if a particle meets the selection criteria
-    virtual std::vector<unsigned int>
-    getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-
-    protected:
-    bool m_body; //!< true if we should select particles in a body, false if we should select
-                 //!< non-body particles
-    };
-
-//! Select particles based on their floppy body
-class PYBIND11_EXPORT ParticleFilterFloppy : public ParticleFilter
-    {
-    public:
-    //! Constructs the selector
-    ParticleFilterFloppy(bool molecule);
-    virtual ~ParticleFilterFloppy() { }
-
-    //! Test if a particle meets the selection criteria
-    virtual std::vector<unsigned int>
-    getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-
-    protected:
-    bool m_floppy; //!< true if we should select particles in floppy bodies, false if we should
-                   //!< select non-floppy particles
-    };
-
-class PYBIND11_EXPORT ParticleFilterRigidCenter : public ParticleFilter
-    {
-    public:
-    //! Constructs the selector
-    ParticleFilterRigidCenter();
-    virtual ~ParticleFilterRigidCenter() { }
-
-    //! Test if a particle meets the selection criteria
-    virtual std::vector<unsigned int>
-    getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-    };
-
 //! Describes a group of particles
 /*! \b Overview
 
