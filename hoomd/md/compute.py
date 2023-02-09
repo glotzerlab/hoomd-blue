@@ -226,7 +226,6 @@ class ThermodynamicQuantities(Compute):
         `ThermodynamicQuantities` is applied to multiple subsets.
 
         Note:
-
             When using rigid bodies (`hoomd.md.constrain.Rigid`), :math:`N`
             is the number of rigid body centers plus free particles selected
             by the filter and :math:`N_\\mathrm{particles}` is total number

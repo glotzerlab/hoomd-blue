@@ -400,7 +400,9 @@ void ParticleGroup::updateMemberTags(bool force_update)
     m_n_central_and_free_global = 0;
 
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
     ArrayHandle<unsigned int> h_is_member_tag(m_is_member_tag,
                                               access_location::host,
                                               access_mode::read);
@@ -415,7 +417,7 @@ void ParticleGroup::updateMemberTags(bool force_update)
             }
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
@@ -425,7 +427,7 @@ void ParticleGroup::updateMemberTags(bool force_update)
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
     }
 
 void ParticleGroup::reallocate()
