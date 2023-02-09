@@ -178,11 +178,11 @@ class GSD(Writer):
             warnings.warn(
                 f"log and logger keyword arguments passed to {self}."
                 f" Keyword argument \"log\" is deprecated since v3.9.0."
-                f" Ignoring log and using logger instead.", DeprecationWarning)
+                f" Ignoring log and using logger instead.", FutureWarning)
         elif logger is None and log is not None:
             warnings.warn(
                 f"log keyword arguments passed to {self} is deprecated since"
-                f" v3.9.0. Use logger instead.", DeprecationWarning)
+                f" v3.9.0. Use logger instead.", FutureWarning)
             logger = log
 
         self._logger = None if logger is None else _GSDLogWriter(logger)
@@ -243,7 +243,7 @@ class GSD(Writer):
             warnings.warn(
                 "log keyword arguments passed to write.GSD.write() is"
                 " deprecated since v3.9.0. Use logger instead.",
-                DeprecationWarning)
+                FutureWarning)
             logger = log
 
         if logger is not None:
@@ -269,7 +269,7 @@ class GSD(Writer):
         """
         warnings.warn(
             "log property is deprecated since v3.9.0. Use logger instead.",
-            DeprecationWarning)
+            FutureWarning)
         return self.logger
 
     @logger.setter
@@ -286,7 +286,7 @@ class GSD(Writer):
     def log(self, log):
         warnings.warn(
             "log property is deprecated since v3.9.0. Use logger instead.",
-            DeprecationWarning)
+            FutureWarning)
         self.logger = log
 
 
