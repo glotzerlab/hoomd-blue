@@ -266,13 +266,13 @@ class GPU(Device):
            `memory_traceback` has no effect.
         """
         warnings.warn("memory_traceback will be removed in hoomd 4.0.",
-                      DeprecationWarning)
+                      FutureWarning)
         return self._cpp_exec_conf.memoryTracingEnabled()
 
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
         warnings.warn("memory_traceback will be removed in hoomd 4.0.",
-                      DeprecationWarning)
+                      FutureWarning)
         self._cpp_exec_conf.setMemoryTracing(mem_traceback)
 
     @property
