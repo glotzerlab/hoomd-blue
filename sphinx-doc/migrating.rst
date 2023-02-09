@@ -1,17 +1,6 @@
 .. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-Note about Warnings
-===================
-
-HOOMD developers may use ``FutureWarnings`` to provide warnings for breaking changes in the next
-major release. For users who wish to silence these warnings which may not be correctable until the
-next major release use Python's warnings module. Specifically, this filter will work,
-``ignore::FutureWarning:hoomd``. See Python's `warnings`_ documentation for more information on
-warning filters.
-
-.. _warnings: https://docs.python.org/3/library/warnings.html#describing-warning-filters
-
 Migrating to HOOMD v3
 =====================
 
