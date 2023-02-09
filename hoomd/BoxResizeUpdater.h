@@ -81,7 +81,10 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     /// Update box interpolation based on provided timestep
     virtual void update(uint64_t timestep);
 
-    private:
+    /// Scale particles to the new box and wrap any back into the box
+    virtual void scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box);
+
+    protected:
     std::shared_ptr<BoxDim> m_box1;         ///< C++ box assoc with min
     std::shared_ptr<BoxDim> m_box2;         ///< C++ box assoc with max
     std::shared_ptr<Variant> m_variant;     //!< Variant that interpolates between boxes
