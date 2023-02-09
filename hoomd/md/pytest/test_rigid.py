@@ -350,7 +350,8 @@ def test_rigid_dof(lattice_snapshot_factory, simulation_factory,
     n_bodies = n**3 - n_free
     initial_snapshot = lattice_snapshot_factory(particle_types=['A', 'B'],
                                                 n=n,
-                                                dimensions=3)
+                                                dimensions=3,
+                                                a=5)
 
     if initial_snapshot.communicator.rank == 0:
         initial_snapshot.particles.body[:n_bodies] = range(n_bodies)
