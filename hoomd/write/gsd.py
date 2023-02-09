@@ -239,7 +239,7 @@ class GSD(Writer):
                 "log and logger keyword arguments passed to write.GSD.write()."
                 " Keyword argument \"log\" is deprecated since v3.9.0."
                 " Ignoring log and using logger instead.", RuntimeWarning)
-       elif log is not None:
+        elif log is not None:
             warnings.warn(
                 "log keyword arguments passed to write.GSD.write() is"
                 " deprecated since v3.9.0. Use logger instead.",
