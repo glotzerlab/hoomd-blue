@@ -3,6 +3,7 @@
 
 Note about Warnings
 ===================
+
 HOOMD developers may use ``FutureWarnings`` to provide warnings for breaking changes in the next
 major release. For users who wish to silence these warnings which may not be correctable until the
 next major release use Python's warnings module. Specifically, this filter will work,
