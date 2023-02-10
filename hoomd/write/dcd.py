@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement DCD."""
@@ -93,9 +93,8 @@ class DCD(Writer):
                           angle_z=bool(angle_z)))
         self.filter = filter
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.DCDDumpWriter(
             self._simulation.state._cpp_sys_def, self.trigger, self.filename,
             int(self.trigger.period), group, self.overwrite)
-        super()._attach()

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Compute.h"
@@ -176,17 +176,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         return false;
         }
 
-    unsigned int getN() const
-        {
-        return m_pdata->getN();
-        }
-
-    unsigned int getNGhosts() const
-        {
-        return m_pdata->getNGhosts();
-        }
-
-    bool getBuffersWriteable() const
+    bool getLocalBuffersWriteable() const
         {
         return m_buffers_writeable;
         }
@@ -247,13 +237,17 @@ class PYBIND11_EXPORT ForceCompute : public Compute
  *
  * */
 template<class Output>
-class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, ForceCompute>
+class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output, ForceCompute>
     {
     public:
-    LocalForceComputeData(ForceCompute& data)
-        : LocalDataAccess<Output, ForceCompute>(data), m_force_handle(), m_torque_handle(),
-          m_virial_handle(), m_virial_pitch(data.getVirialArray().getPitch()),
-          m_buffers_writeable(data.getBuffersWriteable())
+    LocalForceComputeData(ForceCompute& data, ParticleData& pdata)
+        : GhostLocalDataAccess<Output, ForceCompute>(data,
+                                                     pdata.getN(),
+                                                     pdata.getNGhosts(),
+                                                     pdata.getNGlobal()),
+          m_force_handle(), m_torque_handle(), m_virial_handle(),
+          m_virial_pitch(data.getVirialArray().getPitch()),
+          m_buffers_writeable(data.getLocalBuffersWriteable())
         {
         }
 
@@ -261,30 +255,30 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
 
     Output getForce(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
-                                                         &ForceCompute::getForceArray,
-                                                         flag,
-                                                         m_buffers_writeable,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_force_handle,
+                                                              &ForceCompute::getForceArray,
+                                                              flag,
+                                                              m_buffers_writeable,
+                                                              3);
         }
 
     Output getPotentialEnergy(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_force_handle,
-                                                         &ForceCompute::getForceArray,
-                                                         flag,
-                                                         m_buffers_writeable,
-                                                         0,
-                                                         3 * sizeof(Scalar));
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_force_handle,
+                                                              &ForceCompute::getForceArray,
+                                                              flag,
+                                                              m_buffers_writeable,
+                                                              0,
+                                                              3 * sizeof(Scalar));
         }
 
     Output getTorque(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_torque_handle,
-                                                         &ForceCompute::getTorqueArray,
-                                                         flag,
-                                                         m_buffers_writeable,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_torque_handle,
+                                                              &ForceCompute::getTorqueArray,
+                                                              flag,
+                                                              m_buffers_writeable,
+                                                              3);
         }
 
     Output getVirial(GhostDataFlag flag)
@@ -292,15 +286,15 @@ class PYBIND11_EXPORT LocalForceComputeData : public LocalDataAccess<Output, For
         // we order the strides as (1, m_virial_pitch) because we need to expose
         // the array as having shape (N, 6) even though the underlying data has
         // shape (6, m_virial_pitch)
-        return this->template getBuffer<Scalar, Scalar>(
+        return this->template getLocalBuffer<Scalar, Scalar>(
             m_virial_handle,
             &ForceCompute::getVirialArray,
             flag,
             m_buffers_writeable,
             6,
             0,
-            std::vector<ssize_t>(
-                {sizeof(Scalar), static_cast<ssize_t>(m_virial_pitch * sizeof(Scalar))}));
+            std::vector<size_t>(
+                {sizeof(Scalar), static_cast<size_t>(m_virial_pitch * sizeof(Scalar))}));
         }
 
     protected:
@@ -333,7 +327,7 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
     pybind11::class_<LocalForceComputeData<Output>, std::shared_ptr<LocalForceComputeData<Output>>>(
         m,
         name.c_str())
-        .def(pybind11::init<ForceCompute&>())
+        .def(pybind11::init<ForceCompute&, ParticleData&>())
         .def("getForce", &LocalForceComputeData<Output>::getForce)
         .def("getPotentialEnergy", &LocalForceComputeData<Output>::getPotentialEnergy)
         .def("getTorque", &LocalForceComputeData<Output>::getTorque)

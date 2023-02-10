@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -18,7 +18,7 @@ typedef cufftHandle hipfftHandle;
 
 #include <sstream>
 
-//#define USE_HOST_DFFT
+// #define USE_HOST_DFFT
 
 #include "hoomd/Autotuner.h"
 

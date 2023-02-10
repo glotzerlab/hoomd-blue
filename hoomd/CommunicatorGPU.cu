@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.cu
@@ -324,12 +324,14 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(unsigned int N,
     Scalar4 postype = d_postype[idx];
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     const unsigned int type = __scalar_as_int(postype.w);
-    Scalar3 ghost_fraction = __ldg(d_r_ghost + type) / npd;
+    Scalar ghost_width = __ldg(d_r_ghost + type);
 
     if (d_body[idx] < MIN_FLOPPY)
         {
-        ghost_fraction += __ldg(d_r_ghost_body + type) / npd;
+        ghost_width = max(ghost_width, __ldg(d_r_ghost_body + type));
         }
+
+    Scalar3 ghost_fraction = ghost_width / npd;
 
     Scalar3 f = box.makeFraction(pos);
 

@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Testing
@@ -19,12 +19,12 @@ APIs to provide inputs and check for correct outputs. For example, test that the
 hard sphere HPMC simulation executes for several steps. System integration tests
 may take several seconds.
 
-**Validation tests** rigorously check that HOOMD simulations sample the correct
-statistical ensembles. For example, validate the a Lennard-Jones simulation at a
-given density matches the pressure in the NIST reference. Validation tests
-should run long enough to ensure reasonable sampling, but not too long. These
-test run in a CI environment on every pull request. Individual validation tests
-should execute in less than 10 minutes.
+**Long running tests** check for correct behavior, but require up to a minute to execute. Mark long
+running tests with the ``validate`` label.
+
+**Validation tests** rigorously check that simulations sample the correct statistical ensembles.
+These tests take hours to execute on many CPU cores or GPUs. Find HOOMD's validation tests in the
+hoomd-validation_ repository.
 
 Requirements
 ------------
@@ -93,22 +93,22 @@ this file when a test fails on rank 1. This will result in an ``MPI_ABORT`` on r
 
 .. _OpenMPI: https://www.open-mpi.org/
 
-Running validation tests
-------------------------
+Executing long runing tests
+---------------------------
 
-Longer running validation tests do not execute by default. Run these with the ``--validate`` command
-line option to pytest::
+Longer running  tests do not execute by default. Run these with the ``--validate`` command line
+option to pytest::
 
     $ python3 -m pytest build/hoomd --validate -m validate
     $ mpirun -n 2 hoomd/pytest/pytest-openmpi.sh build/hoomd -v -x -ra --validate -m validate
 
 .. note::
 
-    The ``-m validate`` option selects *only* the validation tests.
+    The ``-m validate`` option selects *only* the long running tests.
 
 .. note::
 
-    To run validation tests on an installed ``hoomd`` package, you need to specify additional
+    To run long running tests on an installed ``hoomd`` package, you need to specify additional
     options::
 
         python3 -m pytest --pyargs hoomd -p hoomd.pytest_plugin_validate -m validate --validate
@@ -125,4 +125,7 @@ time.
     Add any new ``test_*.py`` files to the list in the corresponding ``CMakeLists.txt`` file.
 
 Only add C++ tests for classes that have no Python interface or otherwise require low level testing.
-If you are unsure, please check with the lead developers prior to adding new C++ tests.
+If you are unsure, please check with the lead developers prior to adding new C++ tests. Add
+new validation tests to the hoomd-validation_ repository.
+
+.. _hoomd-validation: https://github.com/glotzerlab/hoomd-validation/

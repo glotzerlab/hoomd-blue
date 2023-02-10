@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply external fields to HPMC simulations."""
@@ -104,7 +104,7 @@ class Harmonic(ExternalField):
         param_dict['symmetries'] = symmetries
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         cls = None
 
         integrator = self._simulation.operations.integrator
@@ -162,7 +162,7 @@ class Harmonic(ExternalField):
             self.k_rotational,
             self.symmetries,
         )
-        super()._attach()
+        super()._attach_hook()
 
     @log(requires_run=True)
     def energy(self):

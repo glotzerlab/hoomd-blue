@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD updaters."""
@@ -49,11 +49,10 @@ class ZeroMomentum(Updater):
         # initialize base class
         super().__init__(trigger)
 
-    def _attach(self):
+    def _attach_hook(self):
         # create the c++ mirror class
         self._cpp_obj = _md.ZeroMomentumUpdater(
             self._simulation.state._cpp_sys_def, self.trigger)
-        super()._attach()
 
 
 class ReversePerturbationFlow(Updater):
@@ -205,7 +204,7 @@ class ReversePerturbationFlow(Updater):
                               min_slab = max_slab = {min_slab}")
         return min_slab
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         sys_def = self._simulation.state._cpp_sys_def
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -218,7 +217,6 @@ class ReversePerturbationFlow(Updater):
                 sys_def, self.trigger, group, self.flow_target,
                 self.slab_direction, self.flow_direction, self.n_slabs,
                 self.min_slab, self.max_slab, self.flow_epsilon)
-        super()._attach()
 
     @log(category="scalar", requires_run=True)
     def summed_exchanged_momentum(self):
@@ -277,7 +275,7 @@ class ActiveRotationalDiffusion(Updater):
         self._add_dependency(active_force)
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # Since integrators are attached first, if the active force is not
         # attached then the active force is not a part of the simulation, and we
         # should error.
@@ -292,7 +290,6 @@ class ActiveRotationalDiffusion(Updater):
         self._cpp_obj = _md.ActiveRotationalDiffusionUpdater(
             self._simulation.state._cpp_sys_def, self.trigger,
             self.rotational_diffusion, self.active_force._cpp_obj)
-        # No need to call super
 
     def _handle_removed_dependency(self, active_force):
         raise SimulationDefinitionError(

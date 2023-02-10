@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Manifolds.
@@ -33,9 +33,6 @@ class Manifold(_HOOMDBaseObject):
     Warning:
         Only one manifold can be applied to a given method or active forces.
     """
-
-    def _attach(self):
-        self._apply_param_dict()
 
     @staticmethod
     def _preprocess_unitcell(value):
@@ -89,11 +86,11 @@ class Cylinder(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldZCylinder(
             self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Diamond(Manifold):
@@ -145,11 +142,11 @@ class Diamond(Manifold):
         param_dict['N'] = N
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldDiamond(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Ellipsoid(Manifold):
@@ -192,12 +189,12 @@ class Ellipsoid(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldEllipsoid(
             self.a, self.b, self.c,
             _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Gyroid(Manifold):
@@ -250,11 +247,11 @@ class Gyroid(Manifold):
         param_dict['N'] = N
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldGyroid(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Plane(Manifold):
@@ -279,10 +276,10 @@ class Plane(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldXYPlane(self.shift)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Primitive(Manifold):
@@ -332,11 +329,11 @@ class Primitive(Manifold):
         param_dict['N'] = N
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldPrimitive(
             _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon)
 
-        super()._attach()
+        super()._attach(self._simulation)
 
 
 class Sphere(Manifold):
@@ -370,8 +367,8 @@ class Sphere(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = _md.ManifoldSphere(
             self.r, _hoomd.make_scalar3(self.P[0], self.P[1], self.P[2]))
 
-        super()._attach()
+        super()._attach(self._simulation)

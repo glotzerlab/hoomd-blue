@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CellList.cc
@@ -136,6 +136,11 @@ void CellList::compute(uint64_t timestep)
     bool force = false;
 
     m_exec_conf->msg->notice(10) << "Cell list compute" << endl;
+
+    if (m_nominal_width == 0)
+        {
+        throw std::runtime_error("Cell: cell width must be non-zero");
+        }
 
     if (m_params_changed)
         {

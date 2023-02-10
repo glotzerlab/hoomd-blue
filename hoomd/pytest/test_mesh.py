@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -49,8 +49,7 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
     with pytest.raises(DataAccessError):
         mesh.bonds
 
-    mesh._add(sim)
-    mesh._attach()
+    mesh._attach(sim)
 
     assert mesh.size == 0
     assert mesh.types[0] == "mesh"
@@ -79,8 +78,7 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
     sim = simulation_factory(mesh_snapshot_factory(d=0.969, L=5))
     mesh = Mesh()
 
-    mesh._add(sim)
-    mesh._attach()
+    mesh._attach(sim)
 
     with pytest.raises(MutabilityError):
         mesh.types = ["vesicle"]

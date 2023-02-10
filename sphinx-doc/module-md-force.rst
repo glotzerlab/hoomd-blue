@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.force
@@ -12,9 +12,10 @@ md.force
     :nosignatures:
 
     Force
-    Custom
     Active
     ActiveOnManifold
+    Constant
+    Custom
 
 .. rubric:: Details
 
@@ -22,9 +23,6 @@ md.force
     :synopsis: Apply forces to particles.
 
     .. autoclass:: Force
-        :members:
-
-    .. autoclass:: Custom
         :members:
 
     .. autoclass:: Active
@@ -35,3 +33,9 @@ md.force
     .. autoclass:: ActiveOnManifold
         :show-inheritance:
         :members: create_diffusion_updater
+
+    .. autoclass:: Constant
+        :members:
+
+    .. autoclass:: Custom
+        :members:

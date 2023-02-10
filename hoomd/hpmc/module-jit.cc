@@ -1,14 +1,10 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PatchEnergyJIT.h"
 #include "PatchEnergyJITUnion.h"
 
-//#include "hoomd/hpmc/IntegratorHPMC.h"
-//#include "hoomd/hpmc/IntegratorHPMCMono.h"
-//#include "hoomd/hpmc/IntegratorHPMCMonoImplicit.h"
 #include "ExternalFieldJIT.h"
-//#include "ExternalFieldJIT.cc"
 
 #include "hoomd/hpmc/ShapeConvexPolygon.h"
 #include "hoomd/hpmc/ShapeConvexPolyhedron.h"

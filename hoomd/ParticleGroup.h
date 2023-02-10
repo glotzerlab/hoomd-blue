@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleGroup.h
@@ -320,7 +320,7 @@ class PYBIND11_EXPORT ParticleGroup
                                                       access_location::host,
                                                       access_mode::read);
         return pybind11::array_t<unsigned int, pybind11::array::c_style>(
-            static_cast<ssize_t>(m_member_tags.getNumElements()),
+            static_cast<size_t>(m_member_tags.getNumElements()),
             h_member_tags.data);
         }
 

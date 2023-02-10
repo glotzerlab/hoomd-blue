@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -678,3 +678,44 @@ def test_logging():
             'default': True
         }
     })
+
+
+@pytest.mark.parametrize("cls, init_args", [
+    (hoomd.md.methods.Brownian, {
+        'kT': 1.5
+    }),
+    (hoomd.md.methods.Langevin, {
+        'kT': 1.5
+    }),
+    (hoomd.md.methods.OverdampedViscous, {}),
+])
+def test_default_gamma(cls, init_args):
+    c = cls(filter=hoomd.filter.All(), **init_args)
+    assert c.gamma['A'] == 1.0
+    assert c.gamma_r['A'] == (1.0, 1.0, 1.0)
+
+    c = cls(filter=hoomd.filter.All(), **init_args, default_gamma=2.0)
+    assert c.gamma['A'] == 2.0
+    assert c.gamma_r['A'] == (1.0, 1.0, 1.0)
+
+    c = cls(filter=hoomd.filter.All(),
+            **init_args,
+            default_gamma_r=(3.0, 4.0, 5.0))
+    assert c.gamma['A'] == 1.0
+    assert c.gamma_r['A'] == (3.0, 4.0, 5.0)
+
+
+def test_langevin_reservoir(simulation_factory, two_particle_snapshot_factory):
+
+    langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    methods=[langevin])
+    sim.run(10)
+    assert langevin.reservoir_energy == 0.0
+
+    langevin.tally_reservoir_energy = True
+
+    sim.run(10)
+    assert langevin.reservoir_energy != 0.0

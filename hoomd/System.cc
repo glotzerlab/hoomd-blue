@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file System.cc
@@ -11,8 +11,8 @@
 #include "Communicator.h"
 #endif
 
-// #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
 #include <stdexcept>
 #include <time.h>

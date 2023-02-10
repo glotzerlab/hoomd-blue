@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolygon.h"
@@ -198,6 +198,10 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolygon& spoly)
     std::ostringstream shapedef;
     auto& verts = spoly.verts;
     unsigned int nverts = verts.N;
+    if (nverts == 0)
+        {
+        throw std::runtime_error("Shape definition not supported for 0-vertex spheropolygons");
+        }
     if (nverts == 1)
         {
         shapedef << "{\"type\": \"Sphere\", "
@@ -205,7 +209,7 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolygon& spoly)
         }
     else if (nverts == 2)
         {
-        throw std::runtime_error("Shape definition not supported for 2-vertex spheropolygons");
+        throw std::runtime_error("Shape definition not supported for 2-vertex spheropolygons.");
         }
     else
         {

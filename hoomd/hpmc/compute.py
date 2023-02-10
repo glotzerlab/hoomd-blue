@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Compute properties of hard particle configurations.
@@ -108,7 +108,7 @@ class FreeVolume(Compute):
                  num_samples=num_samples))
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")
@@ -127,8 +127,6 @@ class FreeVolume(Compute):
         cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj, cl)
-
-        super()._attach()
 
     @log(requires_run=True)
     def free_volume(self):
@@ -277,7 +275,7 @@ class SDF(Compute):
         )
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")
@@ -293,8 +291,6 @@ class SDF(Compute):
             self.xmax,
             self.dx,
         )
-
-        super()._attach()
 
     @log(category='sequence', requires_run=True)
     def sdf(self):
@@ -331,10 +327,9 @@ class SDF(Compute):
         """
         if not numpy.isnan(self.sdf).all():
             # get the values to fit
-            n_fit = int(numpy.ceil(self.xmax / self.dx))
-            sdf_fit = self.sdf[0:n_fit]
+            sdf_fit = numpy.array(self.sdf)
             # construct the x coordinates
-            x_fit = numpy.arange(0, self.xmax, self.dx)
+            x_fit = numpy.arange(0, len(sdf_fit), 1) * self.dx
             x_fit += self.dx / 2
             # perform the fit and extrapolation
             p = numpy.polyfit(x_fit, sdf_fit, 5)

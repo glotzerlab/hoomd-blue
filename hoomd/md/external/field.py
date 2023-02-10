@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """External field forces."""
@@ -21,14 +21,13 @@ class Field(force.Force):
         for `isinstance` or `issubclass` checks.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def)
-        super()._attach()
 
 
 class Periodic(Field):

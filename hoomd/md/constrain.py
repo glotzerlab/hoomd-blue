@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Constraints.
@@ -37,7 +37,7 @@ class Constraint(Force):
         for `isinstance` or `issubclass` checks.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cpp_cls = getattr(_md, self._cpp_class_name)
@@ -45,8 +45,6 @@ class Constraint(Force):
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
-
-        super()._attach()
 
 
 class Distance(Constraint):
@@ -264,15 +262,25 @@ class Rigid(Constraint):
 
         - ``constituent_types`` (`list` [`str`]): List of types of constituent
           particles.
+
         - ``positions`` (`list` [`tuple` [`float`, `float`, `float`]]): List of
           relative positions of constituent particles.
+
         - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
           `float`]]): List of orientations (as quaternions) of constituent
           particles.
+
         - ``charges`` (`list` [`float`]): List of charges of constituent
           particles.
+
+          .. deprecated:: v3.7.0
+             ``charges`` will be removed in v4.
+
         - ``diameters`` (`list` [`float`]): List of diameters of constituent
           particles.
+
+          .. deprecated:: v3.7.0
+             ``diameters`` will be removed in v4.
 
         Of these, `Rigid` uses ``positions`` and ``orientation`` to set the
         constituent particle positions and orientations every time step.
@@ -313,25 +321,13 @@ class Rigid(Constraint):
         if self._attached:
             raise RuntimeError(
                 "Cannot call create_bodies after running simulation.")
-        # Attach and store information for detaching after calling
-        # createRigidBodies
-        old_sim = None
-        if self._added:
-            old_sim = self._simulation
-        self._add(state._simulation)
-        super()._attach()
-
+        super()._attach(state._simulation)
         self._cpp_obj.createRigidBodies()
-
         # Restore previous state
         self._detach()
-        if old_sim is not None:
-            self._simulation = old_sim
-        else:
-            self._remove()
 
-    def _attach(self):
-        super()._attach()
+    def _attach_hook(self):
+        super()._attach_hook()
         # Need to ensure body tags and molecule sizes are correct and that the
         # positions and orientations are accurate before integration.
         self._cpp_obj.validateRigidBodies()

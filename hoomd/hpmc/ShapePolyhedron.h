@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -36,7 +36,7 @@
   left in here for future experimentation, and can be enabled by uncommenting the below line.
 */
 // uncomment for parallel overlap checks
-//#define LEAVES_AGAINST_TREE_TRAVERSAL
+// #define LEAVES_AGAINST_TREE_TRAVERSAL
 
 namespace hoomd
     {
@@ -367,6 +367,11 @@ struct ShapePolyhedron
         {
         unsigned int n_verts = data.n_verts;
         unsigned int n_faces = data.n_faces;
+
+        if (n_verts == 0)
+            {
+            throw std::runtime_error("Shape definition not supported for 0-vertex polyhedra.");
+            }
 
         std::ostringstream shapedef;
         if (n_verts == 1 && data.verts[0].x == 0.0f && data.verts[0].y == data.verts[0].x

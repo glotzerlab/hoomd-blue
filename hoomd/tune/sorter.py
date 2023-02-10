@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the ParticleSorter class."""
@@ -65,11 +65,10 @@ class ParticleSorter(Tuner):
         except TypeError:
             raise ValueError("Expected positive integer.")
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'SFCPackTunerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'SFCPackTuner')
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.trigger)
-        super()._attach()

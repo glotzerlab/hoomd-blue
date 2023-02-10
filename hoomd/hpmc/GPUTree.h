@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "OBB.h"
@@ -39,7 +39,7 @@ class GPUTree
     {
     public:
     //! Empty constructor
-    DEVICE GPUTree() : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0) { }
+    HOSTDEVICE GPUTree() : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0) { }
 
 #ifndef __HIPCC__
     //! Constructor
