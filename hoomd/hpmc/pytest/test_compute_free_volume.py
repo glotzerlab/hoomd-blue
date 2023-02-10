@@ -108,7 +108,8 @@ def test_2D_free_volume(simulation_factory):
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
 
-    free_volume = hoomd.hpmc.compute.FreeVolume(test_particle_type='A', num_samples=100000)
+    free_volume = hoomd.hpmc.compute.FreeVolume(test_particle_type='A',
+                                                num_samples=100000)
 
     sim.operations.integrator = mc
     sim.operations.computes.append(free_volume)
@@ -116,5 +117,4 @@ def test_2D_free_volume(simulation_factory):
     sim.run(0)
     f = free_volume.free_volume
     if snapshot.communicator.rank == 0:
-        assert f == pytest.approx(expected = 100*100 - math.pi, rel = 1e-3)
-
+        assert f == pytest.approx(expected=100 * 100 - math.pi, rel=1e-3)
