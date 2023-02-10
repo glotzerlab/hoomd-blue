@@ -89,6 +89,8 @@ public:
 
         quat<Scalar> qpi;
         quat<Scalar> qpj;
+        Scalar ni;
+        Scalar nj;
         Scalar cosalpha;
         Scalar omega;
     }__attribute__((aligned(16)));
@@ -110,9 +112,20 @@ public:
             a1 = rotate(conj(qi), ex);
             a2 = rotate(conj(qi), ey);
             a3 = rotate(conj(qi), ez);
+            
             // patch points relative to x (a1) direction of particle
-            ni = rotate(params.qpi, a1);
+            
+            // When user provides ni directly, we don't need to rotate a1 by qpi to get ni anymore
+            // ni = rotate(params.qpi, a1);
 
+            
+
+            
+            // ni = \sum alpha_m * am
+            // alpha_1 = ni.x; = dot(ex, ni)
+            // alpha_2 = ni.y;
+            // alpha_3 = ni.z;
+            
             // TODO combine rotations ni = rotate(params.qpi * conj(qi), ex)
 
             ej = rotate(conj(qj), ex);
@@ -121,12 +134,11 @@ public:
             b3 = rotate(conj(qj), ez);
 
             // patch points relative to x (b1) direction of particle
-            nj = rotate(params.qpj, b1);
+            // nj = rotate(params.qpj, b1);
 
             // compute distance
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
-
 
             // Possible idea to rotate into particle frame so (1,0,0) is pointing in the direction of the patch
             // rotate dr
@@ -171,12 +183,12 @@ public:
     HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
 
 
-    DEVICE inline Scalar Modulatori()
+    DEVICE inline Scalar Modulatori() // called f(dr, ni) in the derivation
         {
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetai-params.cosalpha)) );
         }
 
-    DEVICE inline Scalar Modulatorj()
+    DEVICE inline Scalar Modulatorj() // called f(dr, nj) in the derivation
         {
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetaj-params.cosalpha)) );
         }
@@ -185,15 +197,13 @@ public:
         {
             Scalar fact = Modulatori();
             // weird way of writing out the derivative of f with respect to doti = Cos[theta] =
-            return params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
+            // the -1 comes because we are doing the derivative with respect to ni instead of costhetai
+            return Scalar(-1) * params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
         }
 
     DEVICE Scalar ModulatorPrimej()
         {
             Scalar fact = Modulatorj();
-            std::cout << "fact=Modulatorj = " + std::to_string(fact) + '\n';
-            std::cout << "costhetaj: " + std::to_string(costhetaj) + '\n'; // is near 1
-            std::cout << "cosalpha: " + std::to_string(params.cosalpha) + '\n';
             return params.omega * fast::exp(-params.omega*(costhetaj-params.cosalpha)) * fact * fact;
         }
 
@@ -233,25 +243,21 @@ public:
       // TODO update this
       \Param force Output parameter to write the computed force.
       \param envelope Output parameter to write the amount of modulation of the isotropic part
-      \param torque_i The torque exterted on the i^th particle.
-      \param torque_j The torque exterted on the j^th particle.
+      \param torque_div_energy_i The torque exterted on the i^th particle.
+      \param torque_div_energy_j The torque exterted on the j^th particle.
       \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPair from the PairModulator.
       \return Always true
     */
     DEVICE bool evaluate(Scalar3& force,
                          Scalar& envelope,
-                         Scalar3& torque_i, //torque_modulator
-                         Scalar3& torque_j) //torque_modulator
+                         Scalar3& torque_div_energy_i, //torque_modulator
+                         Scalar3& torque_div_energy_j) //torque_modulator
         {
             // common calculations
             Scalar modi = Modulatori();
             Scalar modj = Modulatorj();
             Scalar modPi = ModulatorPrimei();
             Scalar modPj = ModulatorPrimej();
-
-            std::cout << "in evaluate \n\n";
-            std::cout << "modPj: " + std::to_string(modPj) + '\n'; // this rapidly goes to 0
-            std::cout << "modi: " + std::to_string(modi) + '\n';
 
             // the overall modulation
             envelope = modi*modj;
@@ -261,9 +267,30 @@ public:
             Scalar jPi = modPj*modi/magdr; // something wrong here
             // TODO Jan 4 2023: I don't think this division by s.magdr should be here mathematically, but probably for efficiency
 
+
+            // NEW way with Philipp Feb 9
+
+            torque_div_energy_i =
+                vec_to_scalar3( ni.x * cross( vec3<Scalar>(a1), dr)) +
+                vec_to_scalar3( ni.y * cross( vec3<Scalar>(a2), dr)) +
+                vec_to_scalar3( ni.z * cross( vec3<Scalar>(a3), dr));
+
+            torque_div_energy_i *= Scalar(-1) * Modulatorj() * ModulatorPrimei() / magdr;
+            
+            
+            torque_div_energy_j =
+                vec_to_scalar3( nj.x * cross( vec3<Scalar>(b1), dr)) +
+                vec_to_scalar3( nj.y * cross( vec3<Scalar>(b2), dr)) +
+                vec_to_scalar3( nj.z * cross( vec3<Scalar>(b3), dr));
+
+            torque_div_energy_j *= Scalar(-1) * Modulatori() * ModulatorPrimej() / magdr;
+
+            //
+
+            
             // torque on ith
             // These are not the full torque. The pair energy is multiplied in PairModulator.
-            // torque_i = vec_to_scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
+            // torque_div_energy_i = vec_to_scalar3(iPj * cross(vec3<Scalar>(s.ei), vec3<Scalar>(s.dr))); // TODO: is all the casting efficient?
 
             // The component of a2x, a2y, a2z ends up zero because the orientation is tied to the a1 direction.
             // Same for the a3 part.
@@ -286,28 +313,26 @@ public:
 
 
             // I multiply iPj by magdr next for clarity during the derivation bc I did it above -Corwin
-            torque_i = vec_to_scalar3( (iPj*magdr) * cross(vec3<Scalar>(a1), -new_cross_fun(params.qpi)));
-            // TODO make the new_cross_term for torque_j depend on 
+//            torque_div_energy_i = vec_to_scalar3( (iPj*magdr) * cross(vec3<Scalar>(a1), -new_cross_fun(params.qpi)));
+            // TODO make the new_cross_term for torque_div_energy_j depend on 
             // Previously above, I would have s.ei which is the same, but I'm moving to a1 for clarity.
 
-                                                             vec3<Scalar> ii;
+//                                                             vec3<Scalar> ii;
             // torque on jth - note sign is opposite ith
-            ii = new_cross_fun(params.qpi);
+//            ii = new_cross_fun(params.qpi);
             // std::cout << vecString(ii);
-            vec3<Scalar> jj = new_cross_fun(params.qpj);
+//            vec3<Scalar> jj = new_cross_fun(params.qpj);
             // std::cout << vecString(jj);
             
-            torque_j = vec_to_scalar3( (jPi*magdr) * cross(vec3<Scalar>(b1), jj));
+//            torque_div_energy_j = vec_to_scalar3( (jPi*magdr) * cross(vec3<Scalar>(b1), jj));
 
-            std::cout << "iPj: " + std::to_string(iPj) + '\n';
-            std::cout << "jPi: " + std::to_string(jPi) + '\n'; // is always 0
+//            std::cout << "iPj: " + std::to_string(iPj) + '\n';
+//            std::cout << "jPi: " + std::to_string(jPi) + '\n'; // is always 0
 
             
             // std::cout << vecString(vec3<Scalar>(a1)); //okay
-            //std::cout << vecString(vec3<Scalar>(torque_i));
-            std::cout << "j: \n";
-            std::cout << vecString(vec3<Scalar>(b1)); // okay
-            //std::cout << vecString(vec3<Scalar>(torque_j));
+            //std::cout << vecString(vec3<Scalar>(torque_div_energy_i));
+            //std::cout << vecString(vec3<Scalar>(torque_div_energy_j));
             // TODO why is the order different than before?
             
             // compute force contribution
@@ -320,14 +345,10 @@ public:
             // TODO still need to update this with respect to the conj(quat) bug
 
             // x component
-            hi_i = Scalar(-1) * dot(dr, ni) / norm2(params.qpi);
-            dhi_i = ;
+            // hi_i = Scalar(-1) * dot(dr, ni) / norm2(params.qpi);
+            // dhi_i = ;
                 
-            hi_j = Scalar(1) * dot(dr, nj) / norm2(params.qpj);
-
-
-            
-            force.x = ;
+            // hi_j = Scalar(1) * dot(dr, nj) / norm2(params.qpj);
             
             force.x = -(iPj*(-ei.x - doti*dr.x/magdr) // iPj includes a factor of 1/magdr
                         + jPi*(ej.x - dotj*dr.x/magdr));
