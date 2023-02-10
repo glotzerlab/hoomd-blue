@@ -242,8 +242,7 @@ class GSD(Writer):
         elif log is not None:
             warnings.warn(
                 "log keyword arguments passed to write.GSD.write() is"
-                " deprecated since v3.9.0. Use logger instead.",
-                FutureWarning)
+                " deprecated since v3.9.0. Use logger instead.", FutureWarning)
             logger = log
 
         if logger is not None:
