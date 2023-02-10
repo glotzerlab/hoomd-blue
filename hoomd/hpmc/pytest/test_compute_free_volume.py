@@ -96,7 +96,7 @@ def test_logging():
         }})
 
 
-def test_2D_free_volume(simulation_factory):
+def test_2d_free_volume(simulation_factory):
     snapshot = hoomd.Snapshot()
     if snapshot.communicator.rank == 0:
         snapshot.configuration.box = (100, 100, 0, 0, 0, 0)
