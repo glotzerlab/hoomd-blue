@@ -274,7 +274,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng);
         Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng);
 
-        if (this->m_sysdef->getNDimensions() == 2)
+        if (dim == 2)
             {
             zrand = 0;
             }
