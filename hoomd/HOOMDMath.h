@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HOOMD_MATH_H__
@@ -226,7 +226,7 @@ inline HOSTDEVICE float rsqrt(float x)
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-#if defined(__HIP_DEVICE_COMPILE_) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_NVCC__)
     return ::rsqrt(x);
 #else
     return 1.0 / ::sqrt(x);

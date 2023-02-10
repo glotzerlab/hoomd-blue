@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Long-range potentials evaluated using the PPPM method."""
@@ -173,16 +173,8 @@ class Coulomb(Force):
         self.alpha = alpha
         self._pair_force = pair_force
 
-    def _attach(self):
-        if not self._nlist._added:
-            self._nlist._add(self._simulation)
-        else:
-            if self._simulation != self._nlist._simulation:
-                raise RuntimeError("{} object's neighbor list is used in a "
-                                   "different simulation.".format(type(self)))
-
-        if not self.nlist._attached:
-            self.nlist._attach()
+    def _attach_hook(self):
+        self.nlist._attach(self._simulation)
 
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = hoomd.md._md.PPPMForceCompute
@@ -262,8 +254,6 @@ class Coulomb(Force):
                 self._pair_force.r_cut[(a, b)] = rcut
 
         self._cpp_obj.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha)
-
-        super()._attach()
 
     @property
     def nlist(self):

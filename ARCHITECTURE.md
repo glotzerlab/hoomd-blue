@@ -234,13 +234,10 @@ except where necessary.
 ### Base Data Model
 
 #### Definitions
-- added: An object is associated with a `Simulation`.
 - attached: An object has its corresponding C++ class instantiated and is
   connected to a `Simulation`.
-- unattached: An object's data resides in pure Python and may be or not be
-  added.
+- unattached: An object's data resides in pure Python.
 - detach: The transition from attached to unattached.
-- removed: The removal of an unattached object from a `Simulation`.
 - sync: The process of making a C++ container match a corresponding Python
   container. See the section on `SyncedList` for a concrete example.
 - type parameter: An attribute that must be specified for all types or groups of
@@ -264,8 +261,7 @@ two objects. The class is inherited by `_HOOMDBaseObject` to handle dependent
 relationships between operations in Python. The class defines *dependents* and
 *dependencies* of an object whose removal from a simulation (detaching) can be
 handled by overwriting specific methods defined in `_DependencyRelation` in
-`hoomd/operation.py`. See the interface of neighbor lists to pair potentials as
-an example of this in `hoomd/md/nlist.py` and `hoomd/md/pair/pair.py`.
+`hoomd/operation.py`.
 
 #### `_HOOMDGetSetAttrBase`
 
@@ -290,9 +286,9 @@ provide dependency handling, validated and processed attribute setting,
 pickling, and pybind11 C++ class syncing in an automated and structured way.
 Most methods unique to or customized from base classes revolve around allowing
 `_param_dict` and `_typeparam_dict` to sync to and from C++ when attached and
-not when unattached. See `hoomd/operation.py` for source code. The `_add`,
-`_attach`, `_remove`, and `_detach` methods handle the process of adding,
-attaching, detaching, and removal.
+not when unattached. See `hoomd/operation.py` for source code. The
+`_attach_hook`, and `_detach_hook` methods handle the subclass specific logic
+of attaching and detaching.
 
 ### Attribute Validation and Defaults
 
@@ -362,9 +358,9 @@ be exposed by the internal C++ class `obj._cpp_obj` instance.
 `SyncedList` implements an arbitrary length list that is value validated and
 synced with C++. List objects do not need to have a C++ direct counterpart, but
 `SyncedList` must be provided a transform function from the Python object to the
-expected C++ one. `SyncedList` can also handle the added and attached status of
-its items automatically. An example of this class in use is in the MD integrator
-for forces and methods (see `hoomd/md/integrate.py`).
+expected C++ one. `SyncedList` can also handle the attached status of its items
+automatically. An example of this class in use is in the MD integrator for
+forces and methods (see `hoomd/md/integrate.py`).
 
 #### Value Validation
 
@@ -465,6 +461,14 @@ object then any necessary changes should be made (if the constructor is used
 then any new arguments to constructor must have defaults via semantic
 versioning and no changes should be needed to support pickling). The removal of
 internal attributes should not cause problems as well.
+
+## Zero Copy Buffer Access
+
+HOOMD allows for C++ classes to expose their GPU and CPU data buffers directly
+in Python using the `__cuda_array_interface__` and `__array_interface__`. This
+behavior is controlled using the `hoomd.data.local_access._LocalAcces` class in
+Python and the classes found in `hoomd/PythonLocalDataAccess.h`. See these files
+for more details. For example implementations look at `hoomd/ParticleData.h`.
 
 ## Directory structure
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleData.h
@@ -617,20 +617,6 @@ class PYBIND11_EXPORT ParticleData
         return has_bodies;
         }
 
-    //! Return the maximum diameter of all registered composite particles
-    Scalar getMaxCompositeParticleDiameter()
-        {
-        Scalar d_max = 0.0;
-        m_composite_particles_signal.emit_accumulate(
-            [&](Scalar d)
-            {
-                if (d > d_max)
-                    d_max = d;
-            });
-
-        return d_max;
-        }
-
     //! Return positions and types
     const GlobalArray<Scalar4>& getPositions() const
         {
@@ -917,15 +903,6 @@ class PYBIND11_EXPORT ParticleData
 
     //! Notify listeners that ghost particles have been removed
     void notifyGhostParticlesRemoved();
-
-    //! Connects a function to be called every time the maximum diameter of composite particles is
-    //! needed
-    /*! The signal slot returns the maximum diameter
-     */
-    Nano::Signal<Scalar()>& getCompositeParticlesSignal()
-        {
-        return m_composite_particles_signal;
-        }
 
     //! Gets the particle type index given a name
     unsigned int getTypeByName(const std::string& name) const;
@@ -1313,9 +1290,6 @@ class PYBIND11_EXPORT ParticleData
                                                            //!< particles are removed
     Nano::Signal<void()> m_global_particle_num_signal; //!< Signal that is triggered when the global
                                                        //!< number of particles changes
-    Nano::Signal<Scalar()>
-        m_composite_particles_signal; //!< Signal that is triggered when the maximum diameter of a
-                                      //!< composite particle is needed
 
 #ifdef ENABLE_MPI
     Nano::Signal<void(unsigned int, unsigned int, unsigned int)>
@@ -1430,15 +1404,19 @@ class PYBIND11_EXPORT ParticleData
  *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)
  */
 template<class Output>
-class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, ParticleData>
+class PYBIND11_EXPORT LocalParticleData : public GhostLocalDataAccess<Output, ParticleData>
     {
     public:
     LocalParticleData(ParticleData& data)
-        : LocalDataAccess<Output, ParticleData>(data), m_position_handle(), m_orientation_handle(),
-          m_velocities_handle(), m_angular_momentum_handle(), m_acceleration_handle(),
-          m_inertia_handle(), m_charge_handle(), m_diameter_handle(), m_image_handle(),
-          m_tag_handle(), m_rtag_handle(), m_rigid_body_ids_handle(), m_net_force_handle(),
-          m_net_virial_handle(), m_net_torque_handle()
+        : GhostLocalDataAccess<Output, ParticleData>(data,
+                                                     data.getN(),
+                                                     data.getNGhosts(),
+                                                     data.getNGlobal()),
+          m_position_handle(), m_orientation_handle(), m_velocities_handle(),
+          m_angular_momentum_handle(), m_acceleration_handle(), m_inertia_handle(),
+          m_charge_handle(), m_diameter_handle(), m_image_handle(), m_tag_handle(), m_rtag_handle(),
+          m_rigid_body_ids_handle(), m_net_force_handle(), m_net_virial_handle(),
+          m_net_torque_handle()
         {
         }
 
@@ -1446,162 +1424,166 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
 
     Output getPosition(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_position_handle,
-                                                         &ParticleData::getPositions,
-                                                         flag,
-                                                         true,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_position_handle,
+                                                              &ParticleData::getPositions,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getTypes(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, int>(m_position_handle,
-                                                      &ParticleData::getPositions,
-                                                      flag,
-                                                      true,
-                                                      0,
-                                                      3 * sizeof(Scalar));
+        return this->template getLocalBuffer<Scalar4, int>(m_position_handle,
+                                                           &ParticleData::getPositions,
+                                                           flag,
+                                                           true,
+                                                           0,
+                                                           3 * sizeof(Scalar));
         }
 
     Output getVelocities(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
-                                                         &ParticleData::getVelocities,
-                                                         flag,
-                                                         true,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_velocities_handle,
+                                                              &ParticleData::getVelocities,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getAcceleration(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar3, Scalar>(m_acceleration_handle,
-                                                         &ParticleData::getAccelerations,
-                                                         flag,
-                                                         true,
-                                                         3);
+        return this->template getLocalBuffer<Scalar3, Scalar>(m_acceleration_handle,
+                                                              &ParticleData::getAccelerations,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getMasses(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
-                                                         &ParticleData::getVelocities,
-                                                         flag,
-                                                         true,
-                                                         0,
-                                                         3 * sizeof(Scalar));
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_velocities_handle,
+                                                              &ParticleData::getVelocities,
+                                                              flag,
+                                                              true,
+                                                              0,
+                                                              3 * sizeof(Scalar));
         }
 
     Output getOrientation(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_orientation_handle,
-                                                         &ParticleData::getOrientationArray,
-                                                         flag,
-                                                         true,
-                                                         4);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_orientation_handle,
+                                                              &ParticleData::getOrientationArray,
+                                                              flag,
+                                                              true,
+                                                              4);
         }
 
     Output getAngularMomentum(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_angular_momentum_handle,
-                                                         &ParticleData::getAngularMomentumArray,
-                                                         flag,
-                                                         true,
-                                                         4);
+        return this->template getLocalBuffer<Scalar4, Scalar>(
+            m_angular_momentum_handle,
+            &ParticleData::getAngularMomentumArray,
+            flag,
+            true,
+            4);
         }
 
     Output getMomentsOfInertia(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar3, Scalar>(m_inertia_handle,
-                                                         &ParticleData::getMomentsOfInertiaArray,
-                                                         flag,
-                                                         true,
-                                                         3);
+        return this->template getLocalBuffer<Scalar3, Scalar>(
+            m_inertia_handle,
+            &ParticleData::getMomentsOfInertiaArray,
+            flag,
+            true,
+            3);
         }
 
     Output getCharge(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar, Scalar>(m_charge_handle,
-                                                        &ParticleData::getCharges,
-                                                        flag,
-                                                        true);
+        return this->template getLocalBuffer<Scalar, Scalar>(m_charge_handle,
+                                                             &ParticleData::getCharges,
+                                                             flag,
+                                                             true);
         }
 
     Output getDiameter(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar, Scalar>(m_diameter_handle,
-                                                        &ParticleData::getDiameters,
-                                                        flag,
-                                                        true);
+        return this->template getLocalBuffer<Scalar, Scalar>(m_diameter_handle,
+                                                             &ParticleData::getDiameters,
+                                                             flag,
+                                                             true);
         }
 
     Output getImages(GhostDataFlag flag)
         {
-        return this->template getBuffer<int3, int>(m_image_handle,
-                                                   &ParticleData::getImages,
-                                                   flag,
-                                                   true,
-                                                   3);
+        return this->template getLocalBuffer<int3, int>(m_image_handle,
+                                                        &ParticleData::getImages,
+                                                        flag,
+                                                        true,
+                                                        3);
         }
 
     Output getTags(GhostDataFlag flag)
         {
-        return this->template getBuffer<unsigned int, unsigned int>(m_tag_handle,
-                                                                    &ParticleData::getTags,
-                                                                    flag,
-                                                                    true);
+        return this->template getLocalBuffer<unsigned int, unsigned int>(m_tag_handle,
+                                                                         &ParticleData::getTags,
+                                                                         flag,
+                                                                         true);
         }
 
     Output getRTags()
         {
-        return this->template getGlobalBuffer<unsigned int>(m_rtag_handle, &ParticleData::getRTags);
+        return this->template getGlobalBuffer<unsigned int>(m_rtag_handle,
+                                                            &ParticleData::getRTags,
+                                                            false);
         }
 
     Output getBodies(GhostDataFlag flag)
         {
-        return this->template getBuffer<unsigned int, unsigned int>(m_rigid_body_ids_handle,
-                                                                    &ParticleData::getBodies,
-                                                                    flag,
-                                                                    true);
+        return this->template getLocalBuffer<unsigned int, unsigned int>(m_rigid_body_ids_handle,
+                                                                         &ParticleData::getBodies,
+                                                                         flag,
+                                                                         true);
         }
 
     Output getNetForce(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
-                                                         &ParticleData::getNetForce,
-                                                         flag,
-                                                         true,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_net_force_handle,
+                                                              &ParticleData::getNetForce,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getNetTorque(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_net_torque_handle,
-                                                         &ParticleData::getNetTorqueArray,
-                                                         flag,
-                                                         true,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_net_torque_handle,
+                                                              &ParticleData::getNetTorqueArray,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getNetVirial(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar, Scalar>(
+        return this->template getLocalBuffer<Scalar, Scalar>(
             m_net_virial_handle,
             &ParticleData::getNetVirial,
             flag,
             true,
             6,
             0,
-            std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
+            std::vector<size_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
         }
 
     Output getNetEnergy(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
-                                                         &ParticleData::getNetForce,
-                                                         flag,
-                                                         true,
-                                                         0,
-                                                         3 * sizeof(Scalar));
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_net_force_handle,
+                                                              &ParticleData::getNetForce,
+                                                              flag,
+                                                              true,
+                                                              0,
+                                                              3 * sizeof(Scalar));
         }
 
     protected:

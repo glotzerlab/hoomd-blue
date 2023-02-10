@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import numpy as np
@@ -108,16 +108,11 @@ def test_attaching(active_force, local_simulation_factory):
     with pytest.raises(hoomd.error.SimulationDefinitionError):
         sim.operations.integrator.forces.remove(active_force)
 
-    # Exception happens before removing "_simulation" attribute. We need to
-    # manual do this to perform the other checks. We don't worry about this,
-    # because a SimulationDefinitionError is not really meant to be caught and
-    # dealt with dynamically.
-    del active_force._simulation
+    sim.operations.remove(rd_updater)
+    sim.operations.integrator.forces.clear()
 
     # Reset simulation to test for variouos error conditions
     sim.operations._unschedule()
-    sim.operations.remove(rd_updater)
-    sim.operations.integrator.forces.clear()
 
     # ActiveRotationalDiffusion should error when active force is not attached
     sim.operations += rd_updater

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Box."""
@@ -297,7 +297,7 @@ class Box:
                 if not len(box) in [2, 3, 6]:
                     raise ValueError(
                         "List-like objects must have length 2, 3, or 6 to be "
-                        "converted to freud.box.Box.")
+                        "converted to hoomd.Box.")
                 # Handle list-like
                 Lx = box[0]
                 Ly = box[1]

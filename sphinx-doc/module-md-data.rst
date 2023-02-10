@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 md.data
@@ -13,6 +13,8 @@ md.data
 
     ForceLocalAccess
     ForceLocalAccessGPU
+    NeighborListLocalAccess
+    NeighborListLocalAccessGPU
 
 .. rubric:: Details
 
@@ -24,6 +26,12 @@ md.data
         :inherited-members:
 
     .. autoclass:: ForceLocalAccessGPU
+        :inherited-members:
+
+    .. autoclass:: NeighborListLocalAccess
+        :inherited-members:
+
+    .. autoclass:: NeighborListLocalAccessGPU
         :inherited-members:
 
 .. rubric:: Modules

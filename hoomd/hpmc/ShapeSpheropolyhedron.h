@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolyhedron.h"
@@ -201,6 +201,10 @@ template<> inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
     std::ostringstream shapedef;
     auto& verts = spoly.verts;
     unsigned int nverts = verts.N;
+    if (nverts == 0)
+        {
+        throw std::runtime_error("Shape definition not supported for 0-vertex spheropolyhedra.");
+        }
     if (nverts == 1)
         {
         shapedef << "{\"type\": \"Sphere\", "

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Anisotropic pair forces.
@@ -549,11 +549,11 @@ class ALJ(AnisotropicPair):
 
         self._extend_typeparam((params, shape))
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_class_name = "AnisoPotentialPairALJ{}".format(
             "2D" if self._simulation.state.box.is2D else "3D")
 
-        super()._attach()
+        super()._attach_hook()
 
     @staticmethod
     def _to_three_tuple(value):

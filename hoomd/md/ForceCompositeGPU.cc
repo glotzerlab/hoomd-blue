@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceCompositeGPU.h"
@@ -425,10 +425,11 @@ void ForceCompositeGPU::findRigidCenters()
 
     m_rigid_center.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
-    size_t old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
 #ifdef __HIP_PLATFORM_NVCC__
+    size_t old_size = m_lookup_center.getNumElements();
+
     if (m_exec_conf->allConcurrentManagedAccess() && m_lookup_center.getNumElements() != old_size)
         {
         // set memory hints

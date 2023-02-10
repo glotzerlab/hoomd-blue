@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExecutionConfiguration.h"
@@ -412,9 +412,10 @@ void ExecutionConfiguration::scanGPUs()
             continue;
             }
 
+#ifdef __HIP_PLATFORM_NVCC__
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
-#ifdef __HIP_PLATFORM_NVCC__
+
         if (compoundComputeVer < CUDA_ARCH)
             {
             ostringstream s;

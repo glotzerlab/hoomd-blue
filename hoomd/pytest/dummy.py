@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from hoomd.trigger import Trigger
@@ -80,7 +80,7 @@ class DummyOperation(Operation):
         self.id = self._current_obj_number
         self.__class__._current_obj_number += 1
 
-    def _attach(self):
+    def _attach_hook(self):
         self._cpp_obj = DummyCppObj()
 
     def __eq__(self, other):

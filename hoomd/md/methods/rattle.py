@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """MD integration methods with manifold constraints."""
@@ -43,13 +43,8 @@ class MethodRATTLE(Method):
         # set defaults
         self._param_dict.update(param_dict)
 
-    def _add(self, sim):
-        self.manifold_constraint._add(sim)
-        super()._add(sim)
-
     def _attach_constraint(self, sim):
-        if not self.manifold_constraint._attached:
-            self.manifold_constraint._attach()
+        self.manifold_constraint._attach(sim)
 
     def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":
@@ -115,8 +110,7 @@ class NVE(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _attach(self):
-
+    def _attach_hook(self):
         self._attach_constraint(self._simulation)
 
         # initialize the reflected c++ class
@@ -133,9 +127,6 @@ class NVE(MethodRATTLE):
                                  self._simulation.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class DisplacementCapped(NVE):
@@ -327,19 +318,10 @@ class Langevin(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Langevin uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
         sim = self._simulation
+        # Langevin uses RNGs. Warn the user if they did not set the seed.
+        sim._warn_if_seed_unset()
         self._attach_constraint(sim)
 
         if isinstance(sim.device, hoomd.device.CPU):
@@ -355,9 +337,6 @@ class Langevin(MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class Brownian(MethodRATTLE):
@@ -466,19 +445,10 @@ class Brownian(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        Brownian uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
         sim = self._simulation
+        # Brownian uses RNGs. Warn the user if they did not set the seed.
+        sim._warn_if_seed_unset()
         self._attach_constraint(sim)
 
         if isinstance(sim.device, hoomd.device.CPU):
@@ -494,9 +464,6 @@ class Brownian(MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj, self.kT,
                                  False, False, self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
 
 
 class OverdampedViscous(MethodRATTLE):
@@ -595,19 +562,11 @@ class OverdampedViscous(MethodRATTLE):
 
         super().__init__(manifold_constraint, tolerance)
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
-
-        OverdampedViscous uses RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-
+    def _attach_hook(self):
         sim = self._simulation
+        # OverdampedViscous uses RNGs. Warn the user if they did not set the
+        # seed.
+        sim._warn_if_seed_unset()
         self._attach_constraint(sim)
 
         if isinstance(sim.device, hoomd.device.CPU):
@@ -624,6 +583,3 @@ class OverdampedViscous(MethodRATTLE):
                                  self.manifold_constraint._cpp_obj,
                                  hoomd.variant.Constant(0.0), True, True,
                                  self.tolerance)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
