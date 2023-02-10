@@ -303,8 +303,6 @@ PYBIND11_MODULE(_md, m)
     export_HarmonicImproperForceCompute(m);
     export_BondTablePotential(m);
 
-        export_virtual_site_base(m);
-        export_virtual_siteType2(m);
 
     export_PotentialPairBuckingham(m);
     export_PotentialPairLJ(m);
@@ -377,6 +375,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWallGauss(m);
     export_PotentialExternalWallMorse(m);
 
+        export_virtual_site_base(m);
+        export_virtual_siteType2(m);
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
