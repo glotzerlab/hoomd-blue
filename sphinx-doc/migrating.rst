@@ -12,47 +12,53 @@ Breaking changes to existing functionalities
 
 For some functionalities, you will need to update your scripts to use a new API:
 
-.. list-table::
-   :header-rows: 1
+* ``hoomd.md.dihedral.Harmonic``
 
-   * - v3 Feature
-     - Replace with
-   * - ``hoomd.md.dihedral.Harmonic``
-     - `hoomd.md.dihedral.Periodic` - new name.
-   * - ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
-     - Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in
-       system state.
-   * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
-     - Set diameters in system state.
-   * - ``hoomd.md.methods.NVE``
-     - `hoomd.md.methods.ConstantVolume` with ``thermostat=None``.
-   * - ``hoomd.md.methods.NVT``
-     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
-   * - ``hoomd.md.methods.Berendsen``
-     - `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.Berendsen` thermostat.
-   * - ``hoomd.md.methods.NPH``
-     - `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
-   * - ``hoomd.md.methods.NPT``
-     - `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
-   * - ``hoomd.write.GSD.log``
-     - `hoomd.write.GSD.logger`
+  * Use `hoomd.md.dihedral.Periodic`.
+
+* ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`.
+
+  * Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in
+    the system state.
+
+* ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`.
+
+  * Set diameters in system state.
+
+* ``hoomd.md.methods.NVE``.
+
+  * Use `hoomd.md.methods.ConstantVolume` with ``thermostat=None``.
+
+* ``hoomd.md.methods.NVT``.
+
+  * Use `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
+
+* ``hoomd.md.methods.Berendsen``.
+
+  * Use `hoomd.md.methods.ConstantVolume` with a `hoomd.md.methods.thermostats.Berendsen`
+    thermostat.
+
+* ``hoomd.md.methods.NPH``.
+
+  * Use `hoomd.md.methods.ConstantPressure` with ``thermostat=None``.
+
+* ``hoomd.md.methods.NPT``.
+
+  * Use `hoomd.md.methods.ConstantPressure` with a `hoomd.md.methods.thermostats.MTTK` thermostat.
+
+* ``hoomd.write.GSD.log``.
+
+  * Use `hoomd.write.GSD.logger`.
+
 
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 HOOMD-blue v4 removes functionalities deprecated in v3.x releases:
 
-.. list-table::
-   :header-rows: 1
-
-   * - v3 Feature
-     - Replace with
-   * - ``hoomd.md.pair.aniso.ALJ.mode`` parameter
-     - n/a: ``mode`` has no effect since v3.0.0.
-   * - ``hoomd.md.pair.aniso.Dipole.mode`` parameter
-     - n/a: ``mode`` has no effect since v3.0.0.
-   * - ``hoomd.device.GPU.memory_traceback`` parameter
-     - n/a: ``memory_traceback`` has no effect since v3.0.0.
+* ``hoomd.md.pair.aniso.ALJ.mode`` parameter
+* ``hoomd.md.pair.aniso.Dipole.mode`` parameter
+* ``hoomd.device.GPU.memory_traceback`` parameter
 
 Compiling
 ^^^^^^^^^
