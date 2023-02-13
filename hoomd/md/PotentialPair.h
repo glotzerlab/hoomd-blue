@@ -1079,7 +1079,7 @@ template<class evaluator>
 void PotentialPair<evaluator>::setTypeOverridePython(std::string type)
 {
     if(type == "")
-        m_type_override == UINT32_MAX;
+        m_type_override = UINT32_MAX;
     else
     {
         auto typ = m_pdata->getTypeByName(type);
