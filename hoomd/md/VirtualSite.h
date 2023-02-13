@@ -41,7 +41,7 @@ namespace hoomd::md{
 #endif
     };
 
-    template<class Mapping = virtualsites::Type2>
+    template<class Mapping>
     class _VirtualSite : public VirtualSite{
     public:
         _VirtualSite(std::shared_ptr<SystemDefinition> sysdef) : VirtualSite(sysdef){}

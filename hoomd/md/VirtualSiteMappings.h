@@ -14,8 +14,7 @@ namespace hoomd::md {
         static constexpr unsigned int n_sites = 0;
         struct param_type{};
 
-        VSMap(std::array<uint64_t, n_sites> &_indices, uint64_t _site)
-                : indices(_indices), site(_site) {}
+        VSMap( uint64_t _site): site(_site) {}
 /*
  * The base VSMap should never be used as template param, only its derived structs
  * Derived types should implement the following quantities:
@@ -26,28 +25,55 @@ namespace hoomd::md {
 
         void reconstructSite(Scalar4 *position_array) {};
 */
-        const std::array<uint64_t, n_sites> indices;
         const uint64_t site;
     };
 
 namespace virtualsites {
+
+#ifdef __HIPCC__
+    __forceinline__ DEVICE void atAddScalar4(Scalar4* x, const Scalar4& y){
+        atomicAdd(&(x->x), y.x);
+        atomicAdd(&(x->y), y.y);
+        atomicAdd(&(x->z), y.z);
+        atomicAdd(&(x->w), y.w);
+    }
+
+    template<std::size_t N>
+    void linearSum(Scalar4* ptr,
+                   const Scalar4& f,
+                   const std::array<uint64_t, N>& indices,
+                   const std::array<Scalar, N>& coefficients){
+    for(unsigned char s = 0; s < N; s++){
+        atAddScalar4(&(ptr[indices[s]]), f * coefficients[s]);
+        }
+    }
+#endif
+    template<std::size_t N>
+    void linearReconstruction(Scalar4* pos,
+                              const uint64_t site,
+                              const std::array<uint64_t, N>& indices,
+                              const std::array<Scalar, N>& coefficients){
+        Scalar3 site_pos = {0., 0., 0.};
+        for(unsigned char s = 0; s < N; s++){
+        const auto& ibase = pos[indices[s]];
+        site_pos += make_scalar3(ibase.x, ibase.y, ibase.z) * coefficients[s];
+        }
+        pos[site].x = site_pos.x;
+        pos[site].y = site_pos.y;
+        pos[site].z = site_pos.z;
+    }
+
     struct Type2 : public VSMap{
         struct param_type{
             Scalar a;
         };
+        static constexpr unsigned int n_sites = 2;
 
         Type2(param_type params, std::array<uint64_t, n_sites> &_indices, uint64_t _site):
-        VSMap(_indices, _site), a(params.a){}
+        VSMap(_site), a(params.a), indices(_indices){}
 
         void reconstructSite(Scalar4* positions){
-            Scalar4 postype_i = positions[indices[0]];
-            Scalar3 pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
-            Scalar4 postype_j = positions[indices[1]];
-            Scalar3 pos_j = make_scalar3(postype_j.x, postype_j.y, postype_j.z);
-            Scalar3 pos_virtual = pos_i + (pos_j - pos_i) * a;
-            positions[site].x = pos_virtual.x;
-            positions[site].y = pos_virtual.y;
-            positions[site].z = pos_virtual.z;
+            linearReconstruction(positions, site, indices, {1-a, a});
         }
 
         void decomposeForce(Scalar4* forces){
@@ -59,17 +85,7 @@ namespace virtualsites {
             forces[indices[0]] += vsite_force * (1-a);
             forces[indices[1]] += vsite_force * a;
 #else
-            // implementation note, we should probably define a function to perform the atomic add on Scalar4 to simplify boilerplate
-
-            atomicAdd(&(forces[indices[0]].x), vsite_force.x * (1-a));
-            atomicAdd(&(forces[indices[0]].y), vsite_force.y * (1-a));
-            atomicAdd(&(forces[indices[0]].z), vsite_force.z * (1-a));
-            atomicAdd(&(forces[indices[0]].w), vsite_force.w * (1-a));
-
-            atomicAdd(&(forces[indices[1]].x), vsite_force.x * a);
-            atomicAdd(&(forces[indices[1]].y), vsite_force.y * a);
-            atomicAdd(&(forces[indices[1]].z), vsite_force.z * a);
-            atomicAdd(&(forces[indices[1]].w), vsite_force.w * a);
+            linearSum(forces, vsite_force, indices, {(1-a), a});
 #endif
             forces[site] = make_scalar4(0., 0., 0., 0.);
         }
@@ -78,6 +94,7 @@ namespace virtualsites {
 
     protected:
         Scalar a;
+        const std::array<uint64_t, n_sites> indices;
     };
 }
 
