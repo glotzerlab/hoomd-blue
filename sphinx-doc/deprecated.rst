@@ -19,51 +19,56 @@ documentation for more information on warning filters.
 v3.x
 ----
 
-.. list-table::
-   :header-rows: 1
+* Particle diameters (since v3.0.0).
 
-   * - Feature
-     - Replace with
-     - Deprecated in
-   * - Particle diameters
-     - Potentials such as `md.pair.ExpandedLJ`.
-     - v3.0.0
-   * - ``hoomd.md.pair.aniso.ALJ.mode`` parameter
-     - n/a: ``mode`` has no effect since v3.0.0.
-     - v3.1.0
-   * - ``hoomd.md.pair.aniso.Dipole.mode`` parameter
-     - n/a: ``mode`` has no effect since v3.0.0.
-     - v3.1.0
-   * - ``hoomd.device.GPU.memory_traceback`` parameter
-     - n/a: ``memory_traceback`` has no effect since v3.0.0.
-     - v3.4.0
-   * - ``hoomd.md.dihedral.Harmonic``
-     - `hoomd.md.dihedral.Periodic` - new name.
-     - v3.7.0
-   * - ``ENABLE_MPI_CUDA`` CMake option
-     - n/a
-     - v3.7.0
-   * - ``fix_cudart_rpath`` CMake macro
-     - n/a
-     - v3.7.0
-   * - ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
-     - Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in system state.
-     - v3.7.0
-   * - ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>`
-     - Set diameters in system state.
-     - v3.7.0
-   * - ``hoomd.md.methods.NVE``
-     - ``hoomd.md.methods.ConstantVolume`` with ``thermostat=None`` (available in >=4.0.0).
-     - v3.8.0
-   * - ``hoomd.md.methods.NVT``
-     - ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
-     - v3.8.0
-   * - ``hoomd.md.methods.Berendsen``
-     - ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.Berendsen`` thermostat (available in >=4.0.0).
-     - v3.8.0
-   * - ``hoomd.md.methods.NPH``
-     - ``hoomd.md.methods.ConstantPressure` with ``thermostat=None`` (available in >=4.0.0).
-     - v3.8.0
-   * - ``hoomd.md.methods.NPT``
-     - ``hoomd.md.methods.ConstantPressure`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
-     - v3.8.0
+  * Use potentials such as `md.pair.ExpandedLJ`.
+
+* ``hoomd.md.pair.aniso.ALJ.mode`` parameter (since v3.1.0).
+
+  * ``mode`` has no effect since v3.0.0.
+
+* ``hoomd.md.pair.aniso.Dipole.mode`` parameter (since v3.1.0)
+
+  * ``mode`` has no effect since v3.0.0.
+
+* ``hoomd.device.GPU.memory_traceback`` parameter (since v3.4.0)
+
+  * ``memory_traceback`` has no effect since v3.0.0.
+
+* ``hoomd.md.dihedral.Harmonic`` (since v3.7.0).
+
+  * Use `hoomd.md.dihedral.Periodic`.
+
+* ``ENABLE_MPI_CUDA`` CMake option (since v3.7.0).
+* ``fix_cudart_rpath`` CMake macro (since v3.7.0).
+* ``charges`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>` (since v3.7.0).
+
+  * Pass charges to `Rigid.create_bodies <hoomd.md.constrain.Rigid.create_bodies>` or set in system state.
+
+* ``diameters`` key in `Rigid.body <hoomd.md.constrain.Rigid.body>` (since v3.7.0).
+
+  * Set diameters in system state.
+
+* ``hoomd.md.methods.NVE`` (since v3.8.0).
+
+  * Use ``hoomd.md.methods.ConstantVolume`` with ``thermostat=None`` (available in >=4.0.0).
+
+* ``hoomd.md.methods.NVT`` (since v3.8.0).
+
+  * Use ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
+
+* ``hoomd.md.methods.Berendsen`` (since v3.8.0).
+
+  * Use ``hoomd.md.methods.ConstantVolume`` with a ``hoomd.md.methods.thermostats.Berendsen`` thermostat (available in >=4.0.0).
+
+* ``hoomd.md.methods.NPH`` (since v3.8.0).
+
+  * Use ``hoomd.md.methods.ConstantPressure` with ``thermostat=None`` (available in >=4.0.0).
+
+* ``hoomd.md.methods.NPT`` (since v3.8.0).
+
+  * Use ``hoomd.md.methods.ConstantPressure`` with a ``hoomd.md.methods.thermostats.MTTK`` thermostat (available in >=4.0.0).
+
+* ``log`` attribute and constructor parameter in `hoomd.write.GSD`.
+
+  * Use ``logger``.
