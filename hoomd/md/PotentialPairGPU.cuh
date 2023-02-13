@@ -340,6 +340,11 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
 
                 eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
+                // the usual decomposition in hoomd is 1/2 per particle, so if we're computing the change in energy
+                // for a single change, its twice of that.
+                if(type_override != UINT32_MAX)
+                    pair_eng *= Scalar(2.0);
+
                 if (shift_mode == 2)
                     {
                     if (rsq >= ronsq && rsq < rcutsq)

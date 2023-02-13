@@ -755,6 +755,11 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
 
             if (evaluated)
                 {
+                // the usual decomposition in hoomd is 1/2 per particle, so if we're computing the change in energy
+                // for a single change, its twice of that.
+                if(m_type_override != UINT32_MAX)
+                    pair_eng *= Scalar(2.0);
+
                 // modify the potential for xplor shifting
                 if (m_shift_mode == xplor)
                     {
