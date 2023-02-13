@@ -187,6 +187,10 @@ template<class evaluator> class PotentialPair : public ForceCompute
         return m_tail_correction_enabled;
         }
 
+    void setTypeOverridePython(std::string);
+
+    std::string getTypeOverridePython();
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     virtual CommFlags getRequestedCommFlags(uint64_t timestep);
@@ -246,6 +250,8 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
     /// Keep track of number of each type of particle
     std::vector<unsigned int> m_num_particles_by_type;
+
+    unsigned int m_type_override = UINT32_MAX;
 
 #ifdef ENABLE_MPI
     /// The system's communicator.
@@ -617,7 +623,9 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-
+    if(third_law && m_type_override != UINT32_MAX){
+        throw std::runtime_error("Extended per-type alchemical transformation calculation require full neighborlists!");
+        }
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
                                         access_location::host,
@@ -711,7 +719,11 @@ template<class evaluator> void PotentialPair<evaluator>::computeForces(uint64_t 
             Scalar rsq = dot(dx, dx);
 
             // get parameters for this type pair
-            unsigned int typpair_idx = m_typpair_idx(typei, typej);
+            unsigned int typpair_idx;
+            if(m_type_override == UINT32_MAX)
+                typpair_idx = m_typpair_idx(typei, typej);
+            else
+                typpair_idx = m_typpair_idx(m_type_override, typej);
             const param_type& param = m_params[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
             Scalar ronsq = Scalar(0.0);
@@ -1058,6 +1070,27 @@ Scalar PotentialPair<evaluator>::computeEnergyBetweenSetsPythonList(
     return eng;
     }
 
+template<class evaluator>
+void PotentialPair<evaluator>::setTypeOverridePython(std::string type)
+{
+    if(type == "")
+        m_type_override == UINT32_MAX;
+    else
+    {
+        auto typ = m_pdata->getTypeByName(type);
+        m_type_override = typ;
+    }
+}
+
+template<class evaluator>
+std::string PotentialPair<evaluator>::getTypeOverridePython()
+    {
+    if(m_type_override == UINT32_MAX)
+        return "";
+    else
+        return m_pdata->getNameByType(m_type_override);
+    }
+
 namespace detail
     {
 //! Export this pair potential to python
@@ -1084,7 +1117,9 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
                       &PotentialPair<T>::setTailCorrectionEnabled)
         .def("computeEnergyBetweenSets", &PotentialPair<T>::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &PotentialPair<T>::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &PotentialPair<T>::connectGSDShapeSpec);
+        .def("connectGSDShapeSpec", &PotentialPair<T>::connectGSDShapeSpec)
+        .def("getTypeOverride", &PotentialPair<T>::getTypeOverridePython)
+        .def("setTypeOverride", &PotentialPair<T>::setTypeOverridePython);
     }
 
     } // end namespace detail

@@ -160,6 +160,7 @@ template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64
                             this->m_shift_mode,
                             flags[pdata_flag::pressure_tensor],
                             threads_per_particle,
+                            this->m_type_override,
                             this->m_pdata->getGPUPartition(),
                             this->m_exec_conf->dev_prop),
         this->m_params.data());

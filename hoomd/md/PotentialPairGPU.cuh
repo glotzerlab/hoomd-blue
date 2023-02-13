@@ -64,6 +64,7 @@ struct pair_args_t
                 const unsigned int _shift_mode,
                 const unsigned int _compute_virial,
                 const unsigned int _threads_per_particle,
+                const unsigned int _type_override,
                 const GPUPartition& _gpu_partition,
                 const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
@@ -71,7 +72,7 @@ struct pair_args_t
           d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
           d_ronsq(_d_ronsq), size_neigh_list(_size_neigh_list), ntypes(_ntypes),
           block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
-          threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
+          threads_per_particle(_threads_per_particle), type_override(_type_override), gpu_partition(_gpu_partition),
           devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
@@ -95,6 +96,7 @@ struct pair_args_t
     const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 1 warp)
+    const unsigned int type_override; //!< Whether the particle type has to be overriden for alchemical calculations
     const GPUPartition& gpu_partition; //!< The load balancing partition of particles between GPUs
     const hipDeviceProp_t& devprop;    //!< CUDA device properties
     };
@@ -162,6 +164,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       const Scalar* d_ronsq,
                                       const unsigned int ntypes,
                                       const unsigned int offset,
+                                      const unsigned int type_override,
                                       unsigned int max_extra_bytes)
     {
     Index2D typpair_idx(ntypes);
@@ -287,8 +290,11 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 Scalar rsq = dot(dx, dx);
 
                 // access the per type pair parameters
-                unsigned int typpair
-                    = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+                unsigned int typpair;
+                if(type_override == UINT32_MAX)
+                typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+                else
+                typpair = typpair_idx(type_override, __scalar_as_int(postypej.w));
                 Scalar rcutsq;
                 const typename evaluator::param_type* param = nullptr;
                 Scalar ronsq = Scalar(0.0);
@@ -532,6 +538,7 @@ struct PairForceComputeKernel
                                    pair_args.d_ronsq,
                                    pair_args.ntypes,
                                    offset,
+                                   pair_args.type_override,
                                    max_extra_bytes);
                 }
             else
@@ -561,6 +568,7 @@ struct PairForceComputeKernel
                                    pair_args.d_ronsq,
                                    pair_args.ntypes,
                                    offset,
+                                   pair_args.type_override,
                                    max_extra_bytes);
                 }
             }
