@@ -155,7 +155,6 @@ def test_system_rotational_dof(simulation_factory, device):
     sim.operations.add(thermo)
 
     integrator = hoomd.md.Integrator(dt=0.0001, integrate_rotational_dof=True)
-    integrator.aniso = True
     integrator.methods.append(hoomd.md.methods.NVT(filt, tau=1, kT=1))
     sim.operations.integrator = integrator
 

@@ -335,6 +335,9 @@ void ForceComposite::validateRigidBodies()
     // number of bodies in system
     unsigned int nbodies = 0;
 
+    // number of free particles in the system
+    m_n_free_particles_global = 0;
+
     // Validate the body tags in the system and assign molecules into molecule tag
     if (m_exec_conf->getRank() == 0)
         {
@@ -419,6 +422,10 @@ void ForceComposite::validateRigidBodies()
                 // Mark consistent particle in molecule as belonging to its central particle.
                 molecule_tag[i] = molecule_tag[snap.body[i]];
                 }
+            else
+                {
+                m_n_free_particles_global++;
+                }
             }
         for (auto it = body_particle_count.begin(); it != body_particle_count.end(); ++it)
             {
@@ -442,6 +449,7 @@ void ForceComposite::validateRigidBodies()
         {
         bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
         bcast(nbodies, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_n_free_particles_global, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -611,6 +619,7 @@ void ForceComposite::createRigidBodies()
         std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
         }
     m_n_molecules_global = n_central_particles;
+    m_n_free_particles_global = n_free_particles;
 
     m_bodies_changed = false;
     m_particles_added_removed = false;

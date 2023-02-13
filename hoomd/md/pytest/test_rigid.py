@@ -2,7 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 from collections.abc import Sequence
-
+import itertools
 import numpy as np
 import pytest
 from hoomd.conftest import autotuned_kernel_parameter_check
@@ -340,3 +340,82 @@ def test_rigid_body_restart(simulation_factory, valid_body_definition):
         assert np.all(snapshot.particles.body[:N] == np.arange(N))
         should_be = np.arange(N * N_const) // N_const
         assert np.all(snapshot.particles.body[N:] == should_be)
+
+
+@pytest.mark.parametrize("reload_snapshot, n_free",
+                         itertools.product([False, True], [0, 10]))
+def test_rigid_dof(lattice_snapshot_factory, simulation_factory,
+                   valid_body_definition, reload_snapshot, n_free):
+    n = 7
+    n_bodies = n**3 - n_free
+    initial_snapshot = lattice_snapshot_factory(particle_types=['A', 'B'],
+                                                n=n,
+                                                dimensions=3,
+                                                a=5)
+
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.body[:n_bodies] = range(n_bodies)
+        initial_snapshot.particles.moment_inertia[:n_bodies] = (1, 1, 1)
+        initial_snapshot.particles.typeid[n_bodies:] = 1
+
+    sim = simulation_factory(initial_snapshot)
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body["A"] = valid_body_definition
+    rigid.create_bodies(sim.state)
+
+    if reload_snapshot:
+        # In C++, createRigidBodies follows a different code path than
+        # validateRigidBodies. When reload_snapshot is True, test the latter.
+        snapshot_with_constituents = sim.state.get_snapshot()
+        sim.state.set_snapshot(snapshot_with_constituents)
+
+    integrator = hoomd.md.Integrator(dt=0.0, integrate_rotational_dof=True)
+    integrator.rigid = rigid
+
+    thermo_all = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.All())
+    thermo_two = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Tags([0, 1]))
+    thermo_central = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Rigid(flags=("center",)))
+    thermo_central_free = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Rigid(flags=("center", "free")))
+    thermo_constituent = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Rigid(flags=("constituent",)))
+
+    sim.operations.computes.extend([
+        thermo_all, thermo_two, thermo_central, thermo_central_free,
+        thermo_constituent
+    ])
+    sim.operations.integrator = integrator
+    integrator.methods.append(
+        hoomd.md.methods.NVE(filter=hoomd.filter.Rigid(flags=("center",
+                                                              "free"))))
+
+    sim.run(0)
+
+    assert thermo_all.translational_degrees_of_freedom == (n_bodies
+                                                           + n_free) * 3 - 3
+    assert thermo_two.translational_degrees_of_freedom == 2 * 3 - 3 * (
+        2 / (n_bodies + n_free))
+    assert thermo_central.translational_degrees_of_freedom == (
+        n_bodies * 3 - 3 * (n_bodies / (n_bodies + n_free)))
+    assert thermo_central_free.translational_degrees_of_freedom == (
+        n_bodies + n_free) * 3 - 3
+    assert thermo_constituent.translational_degrees_of_freedom == 0
+
+    # Test again with the rigid body constraints removed. Now the integration
+    # method is applied only to part of the system, so the 3 degrees of freedom
+    # are not removed.
+    integrator.rigid = None
+    sim.state.update_group_dof()
+
+    sim.run(0)
+
+    assert thermo_all.translational_degrees_of_freedom == (n_bodies
+                                                           + n_free) * 3
+    assert thermo_two.translational_degrees_of_freedom == 2 * 3
+    assert thermo_central.translational_degrees_of_freedom == n_bodies * 3
+    assert thermo_central_free.translational_degrees_of_freedom == (
+        n_bodies + n_free) * 3
+    assert thermo_constituent.translational_degrees_of_freedom == 0
