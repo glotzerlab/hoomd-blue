@@ -14,7 +14,6 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
-import warnings
 
 
 def _array_to_strings(value):
