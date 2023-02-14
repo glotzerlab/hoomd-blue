@@ -27,9 +27,9 @@ patch_test_parameters = [
          },
         [[0,0,0], [2,0,0]], # positions
         [[1,0,0,0], [sqrt2inv, 0, 0, sqrt2inv]], # orientations
-        [0,0,0],
+        [0,0,0], # todo put in right force values
         -2.7559e-6,
-        [[0,0,0], [0,0,0]]
+        [[0,0,0], [0,0,0]] # todo put in right torque values
     )
 ]
 
@@ -114,9 +114,9 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
         # numpy.testing.assert_allclose(sim_forces[0],
         #                               force_array)
 
-        # test force
+        # todo test force
 
 
-        # test torque
+        # todo test torque
     
     
