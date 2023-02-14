@@ -7,8 +7,26 @@ Change Log
 v3.x
 ----
 
-v3.x.y (not yet released)
+v3.9.0 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* GPU code path for ``hoomd.update.BoxResize``
+  (`#1462 <https://github.com/glotzerlab/hoomd-blue/pull/1462>`_).
+* ``logger`` keyword argument and property to ``hoomd.write.GSD``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
+
+Changed:
+
+* Issue `FutureWarning` warnings when using deprecated APIs
+  (`#1485 <https://github.com/glotzerlab/hoomd-blue/pull/1485>`_).
+* Reformat the list of deprecated features.
+  (`#1490 <https://github.com/glotzerlab/hoomd-blue/pull/1490>`_).
+* In simulations with rigid bodies, remove D degrees of freedom when the system is momentum
+  conserving
+  (`#1467 <https://github.com/glotzerlab/hoomd-blue/issues/1467>`_).
 
 Fixed:
 
@@ -21,6 +39,11 @@ Fixed:
   (`#1476 <https://github.com/glotzerlab/hoomd-blue/issues/1476>`_).
 * ``hoomd.hpmc.compute.FreeVolume`` computes the free area correctly in 2D simulations
   (`#1473 <https://github.com/glotzerlab/hoomd-blue/issues/1473>`_).
+
+Deprecated:
+
+* Deprecate ``write.GSD`` ``log`` keyword argument and property in favor of ``logger``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
 
 v3.8.1 (2023-01-27)
 ^^^^^^^^^^^^^^^^^^^
