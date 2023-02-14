@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Write GSD files storing simulation trajectories and logging data."""
@@ -14,6 +14,7 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
+import warnings
 
 
 def _array_to_strings(value):
@@ -41,8 +42,13 @@ class GSD(Writer):
             each time this operation triggers. Defaults to `False`.
         dynamic (list[str]): Quantity categories to save in every frame.
             Defaults to ``['property']``.
+        logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
+            to `None`.
         log (hoomd.logging.Logger): Provide log quantities to write. Defaults to
             `None`.
+
+            .. deprecated:: v3.9.0
+               ``log`` will be renamed to ``logger`` in v4.
 
     `GSD` writes the simulation trajectory to the specified file in the GSD
     format. `GSD` can store all particle, bond, angle, dihedral, improper,
@@ -150,6 +156,7 @@ class GSD(Writer):
                  mode='ab',
                  truncate=False,
                  dynamic=None,
+                 logger=None,
                  log=None):
 
         super().__init__(trigger)
@@ -167,7 +174,18 @@ class GSD(Writer):
                           dynamic=[dynamic_validation],
                           _defaults=dict(filter=filter, dynamic=dynamic)))
 
-        self._log = None if log is None else _GSDLogWriter(log)
+        if all((logger is not None, log is not None)):
+            warnings.warn(
+                f"log and logger keyword arguments passed to {self}."
+                f" Keyword argument \"log\" is deprecated since v3.9.0."
+                f" Ignoring log and using logger instead.", FutureWarning)
+        elif logger is None and log is not None:
+            warnings.warn(
+                f"log keyword arguments passed to {self} is deprecated since"
+                f" v3.9.0. Use logger instead.", FutureWarning)
+            logger = log
+
+        self._logger = None if logger is None else _GSDLogWriter(logger)
 
     def _attach_hook(self):
         # validate dynamic property
@@ -191,10 +209,10 @@ class GSD(Writer):
         self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
         self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
         self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
-        self._cpp_obj.log_writer = self.log
+        self._cpp_obj.log_writer = self.logger
 
     @staticmethod
-    def write(state, filename, filter=All(), mode='wb', log=None):
+    def write(state, filename, filter=All(), mode='wb', logger=None, log=None):
         """Write the given simulation state out to a GSD file.
 
         Args:
@@ -202,7 +220,11 @@ class GSD(Writer):
             filename (str): File name to write.
             filter (hoomd.filter.filter_like): Select the particles to write.
             mode (str): The file open mode. Defaults to ``'wb'``.
+            logger (hoomd.logging.Logger): Provide log quantities to write.
             log (hoomd.logging.Logger): Provide log quantities to write.
+
+                .. deprecated:: v3.9.0
+                   ``log`` will be renamed to ``logger`` in v4.
 
         The valid file modes for `write` are ``'wb'`` and ``'xb'``.
         """
@@ -212,27 +234,59 @@ class GSD(Writer):
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, Periodic(1), filename,
                                       state._get_group(filter), mode, False)
 
-        if log is not None:
-            writer.log_writer = _GSDLogWriter(log)
+        if logger is not None and log is not None:
+            warnings.warn(
+                "log and logger keyword arguments passed to write.GSD.write()."
+                " Keyword argument \"log\" is deprecated since v3.9.0."
+                " Ignoring log and using logger instead.", RuntimeWarning)
+        elif log is not None:
+            warnings.warn(
+                "log keyword arguments passed to write.GSD.write() is"
+                " deprecated since v3.9.0. Use logger instead.", FutureWarning)
+            logger = log
+
+        if logger is not None:
+            writer.log_writer = _GSDLogWriter(logger)
         writer.analyze(state._simulation.timestep)
+
+    @property
+    def logger(self):
+        """hoomd.logging.Logger: Provide log quantities to write.
+
+        May be `None`.
+        """
+        return self._logger
 
     @property
     def log(self):
         """hoomd.logging.Logger: Provide log quantities to write.
 
         May be `None`.
+
+        .. deprecated:: v3.9.0
+           ``log`` will be renamed to ``logger`` in v4.
         """
-        return self._log
+        warnings.warn(
+            "log property is deprecated since v3.9.0. Use logger instead.",
+            FutureWarning)
+        return self.logger
+
+    @logger.setter
+    def logger(self, logger):
+        if logger is not None and isinstance(logger, Logger):
+            logger = _GSDLogWriter(logger)
+        else:
+            raise ValueError("GSD.logger can only be set with a Logger.")
+        if self._attached:
+            self._cpp_obj.log_writer = logger
+        self._logger = logger
 
     @log.setter
     def log(self, log):
-        if log is not None and isinstance(log, Logger):
-            log = _GSDLogWriter(log)
-        else:
-            raise ValueError("GSD.log can only be set with a Logger.")
-        if self._attached:
-            self._cpp_obj.log_writer = log
-        self._log = log
+        warnings.warn(
+            "log property is deprecated since v3.9.0. Use logger instead.",
+            FutureWarning)
+        self.logger = log
 
 
 def _iterable_is_incomplete(iterable):

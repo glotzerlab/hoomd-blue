@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Compute properties of molecular dynamics simulations.
@@ -224,6 +224,17 @@ class ThermodynamicQuantities(Compute):
         subset. The fraction :math:`\\frac{N}{N_\\mathrm{particles}}`
         distributes the momentum conservation constraint evenly when
         `ThermodynamicQuantities` is applied to multiple subsets.
+
+        Note:
+            When using rigid bodies (`hoomd.md.constrain.Rigid`), :math:`N`
+            is the number of rigid body centers plus free particles selected
+            by the filter and :math:`N_\\mathrm{particles}` is total number
+            of rigid body centers plus free particles in the whole system.
+
+            When `hoomd.md.Integrator.rigid` is not set, :math:`N` is the
+            total number of particles selected by the filter and
+            :math:`N_\\mathrm{particles}` is the total number of particles in
+            the system, regardless of their ``body`` value.
 
         When using multiple integration methods, a single integration method
         on fewer than all particles, or a single integration method that is

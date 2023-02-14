@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <pybind11/pybind11.h>
@@ -21,6 +21,7 @@ void export_ActiveForceConstraintComputeSphere(pybind11::module& m);
 void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
 void export_ComputeThermo(pybind11::module& m);
 void export_ComputeThermoHMA(pybind11::module& m);
+void export_ConstantForceCompute(pybind11::module& m);
 void export_HarmonicAngleForceCompute(pybind11::module& m);
 void export_CosineSqAngleForceCompute(pybind11::module& m);
 void export_TableAngleForceCompute(pybind11::module& m);
@@ -161,6 +162,7 @@ void export_ActiveForceConstraintComputeSphereGPU(pybind11::module& m);
 void export_ActiveForceComputeGPU(pybind11::module& m);
 void export_ComputeThermoGPU(pybind11::module& m);
 void export_ComputeThermoHMAGPU(pybind11::module& m);
+void export_ConstantForceComputeGPU(pybind11::module& m);
 void export_HarmonicAngleForceComputeGPU(pybind11::module& m);
 void export_CosineSqAngleForceComputeGPU(pybind11::module& m);
 void export_TableAngleForceComputeGPU(pybind11::module& m);
@@ -292,6 +294,7 @@ PYBIND11_MODULE(_md, m)
     export_ActiveRotationalDiffusionUpdater(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
+    export_ConstantForceCompute(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
@@ -447,6 +450,7 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintComputePlaneGPU(m);
     export_ActiveForceConstraintComputePrimitiveGPU(m);
     export_ActiveForceConstraintComputeSphereGPU(m);
+    export_ConstantForceComputeGPU(m);
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import copy as cp
@@ -232,7 +232,7 @@ def _setup_standard_rcut(sim_factory, snap_factory):
 
 
 def _setup_no_rcut(sim_factory, snap_factory):
-    nlist = hoomd.md.nlist.Cell(buffer=0.0, default_r_cut=0.0)
+    nlist = hoomd.md.nlist.Tree(buffer=0.0, default_r_cut=0.0)
     sim: hoomd.Simulation = sim_factory(snap_factory())
     sim.operations.computes.append(nlist)
     sim.run(0)
@@ -252,7 +252,7 @@ def _setup_set_rcut_later(sim_factory, snap_factory):
 
 
 def _setup_with_force_no_rcut(sim_factory, snap_factory):
-    nlist = hoomd.md.nlist.Cell(buffer=0.0, default_r_cut=0.0)
+    nlist = hoomd.md.nlist.Tree(buffer=0.0, default_r_cut=0.0)
     sim: hoomd.Simulation = sim_factory(snap_factory())
     sim.operations.computes.append(nlist)
 
@@ -268,7 +268,7 @@ def _setup_with_force_no_rcut(sim_factory, snap_factory):
 
 
 def _setup_with_force_rcut_later(sim_factory, snap_factory):
-    nlist = hoomd.md.nlist.Cell(buffer=0.0, default_r_cut=0.0)
+    nlist = hoomd.md.nlist.Tree(buffer=0.0, default_r_cut=0.0)
     sim: hoomd.Simulation = sim_factory(snap_factory())
     sim.operations.computes.append(nlist)
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply forces to particles."""
@@ -58,6 +58,13 @@ class Force(Compute):
 
         W^{kl}_i = \sum_j F^k_{ij} \cdot
         \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
+
+    Tip:
+        Add a `Force` to your integrator's `forces <hoomd.md.Integrator.forces>`
+        list to include it in the equations of motion of your system. Add a
+        `Force` to your simulation's `operations.computes
+        <hoomd.Operations.computes>` list to compute the forces and energy
+        without influencing the system dynamics.
 
     Warning:
         This class should not be instantiated by users. The class can be used
@@ -176,7 +183,9 @@ class Force(Compute):
             raise RuntimeError("Cannot enter cpu_local_force_arrays context "
                                "manager inside another local_force_arrays "
                                "context manager")
-        return hoomd.md.data.ForceLocalAccess(self)
+        if not self._attached:
+            raise hoomd.error.DataAccessError("cpu_local_force_arrays")
+        return hoomd.md.data.ForceLocalAccess(self, self._simulation.state)
 
     @property
     def gpu_local_force_arrays(self):
@@ -212,7 +221,9 @@ class Force(Compute):
             raise RuntimeError(
                 "Cannot enter gpu_local_force_arrays context manager inside "
                 "another local_force_arrays context manager")
-        return hoomd.md.data.ForceLocalAccessGPU(self)
+        if not self._attached:
+            raise hoomd.error.DataAccessError("gpu_local_force_arrays")
+        return hoomd.md.data.ForceLocalAccessGPU(self, self._simulation.state)
 
 
 class Custom(Force):
@@ -521,3 +532,83 @@ class ActiveOnManifold(Active):
             _md, base_class_str)(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj)
+
+
+class Constant(Force):
+    r"""Constant force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `Constant` applies a type dependent constant force and torque on all
+    particles selected by the filter. `Constant` sets the force and torque
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        constant = hoomd.md.force.Constant(
+            filter=hoomd.filter.All()
+            )
+        constant.constant_force['A'] = (1,0,0)
+        constant.constant_torque['A'] = (0,0,0)
+
+    Note:
+
+        The energy and virial associated with the constant force are 0.
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    .. py:attribute:: constant_force
+
+        Constant force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It is defined per particle type and
+        defaults to (0.0, 0.0, 0.0) for all types.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+
+    .. py:attribute:: constant_torque
+
+        Constant torque vector in the global reference frame of the system
+        :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
+        particle type and defaults to (0.0, 0.0, 0.0) for all types.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+    """
+
+    def __init__(self, filter):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        constant_force = TypeParameter(
+            "constant_force",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
+        )
+        constant_torque = TypeParameter(
+            "constant_torque",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
+        )
+
+        self._extend_typeparam([constant_force, constant_torque])
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.ConstantForceCompute
+        else:
+            my_class = _md.ConstantForceComputeGPU
+
+        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter))

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -379,7 +379,7 @@ def test_write_gsd_log(create_md_sim, tmp_path):
                                  trigger=hoomd.trigger.Periodic(1),
                                  filter=hoomd.filter.Null(),
                                  mode='wb',
-                                 log=logger)
+                                 logger=logger)
     sim.operations.writers.append(gsd_writer)
 
     kinetic_energy_list = []

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Devices.
@@ -19,6 +19,8 @@ Tip:
 See Also:
     `hoomd.Simulation`
 """
+
+import warnings
 
 import contextlib
 import hoomd
@@ -263,11 +265,14 @@ class GPU(Device):
         .. deprecated:: v3.4.0
            `memory_traceback` has no effect.
         """
+        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
+                      FutureWarning)
         return self._cpp_exec_conf.memoryTracingEnabled()
 
     @memory_traceback.setter
     def memory_traceback(self, mem_traceback):
-
+        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
+                      FutureWarning)
         self._cpp_exec_conf.setMemoryTracing(mem_traceback)
 
     @property

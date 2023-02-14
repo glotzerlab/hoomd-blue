@@ -137,6 +137,7 @@ endif(ENABLE_HIP)
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_hpmc_cu_sources})
+set_source_files_properties(${_hpmc_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
 pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)

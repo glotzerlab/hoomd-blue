@@ -1,4 +1,4 @@
-.. Copyright (c) 2009-2022 The Regents of the University of Michigan.
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
 .. Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 Change Log
@@ -6,6 +6,118 @@ Change Log
 
 v3.x
 ----
+
+v3.9.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* GPU code path for ``hoomd.update.BoxResize``
+  (`#1462 <https://github.com/glotzerlab/hoomd-blue/pull/1462>`_).
+* ``logger`` keyword argument and property to ``hoomd.write.GSD``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
+
+Changed:
+
+* Issue `FutureWarning` warnings when using deprecated APIs
+  (`#1485 <https://github.com/glotzerlab/hoomd-blue/pull/1485>`_).
+* Reformat the list of deprecated features.
+  (`#1490 <https://github.com/glotzerlab/hoomd-blue/pull/1490>`_).
+* In simulations with rigid bodies, remove D degrees of freedom when the system is momentum
+  conserving
+  (`#1467 <https://github.com/glotzerlab/hoomd-blue/issues/1467>`_).
+
+Fixed:
+
+* Compile without errors using ``hipcc`` and ROCM 5.1.0
+  (`#1478 <https://github.com/glotzerlab/hoomd-blue/pull/1478>`_).
+* Document that ``hoomd.md.force.Force`` can be added to ``Operations.computes``
+  (`#1489 <https://github.com/glotzerlab/hoomd-blue/pull/1489>`_).
+* ``hoomd.md.constrain.Rigid.create_bodies`` completes without segmentation faults when particle
+  body tags are not -1
+  (`#1476 <https://github.com/glotzerlab/hoomd-blue/issues/1476>`_).
+* ``hoomd.hpmc.compute.FreeVolume`` computes the free area correctly in 2D simulations
+  (`#1473 <https://github.com/glotzerlab/hoomd-blue/issues/1473>`_).
+
+Deprecated:
+
+* Deprecate ``write.GSD`` ``log`` keyword argument and property in favor of ``logger``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
+v3.8.1 (2023-01-27)
+^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* `#1468 <https://github.com/glotzerlab/hoomd-blue/issues/1468>`_: Conserve linear momentum in
+  simulations using ``hoomd.md.constrain.Rigid`` on more than 1 MPI rank.
+
+v3.8.0 (2023-01-12)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support Python 3.11.
+* Support CUDA 11.8.
+* Support CUDA 12.0.0 final.
+
+*Fixed*
+
+* Improve numerical stability of orientation quaternions when using
+  ``hoomd.md.update.ActiveRotationalDiffusion``
+* Reduced memory usage and fix spurious failures in ``test_nlist.py``.
+* Avoid triggering ``TypeError("expected x and y to have same length")`` in
+  ``hoomd.hpmc.compute.SDF.betaP``.
+
+*Deprecated*
+
+* The following integration methods are deprecated. Starting in v4.0.0, the same functionalities
+  will be available via ``hoomd.md.methods.ConstantVolume``/ ``hoomd.md.methods.ConstantPressure``
+  with an appropriately chosen ``thermostat`` argument.
+
+  * ``hoomd.md.methods.NVE``
+  * ``hoomd.md.methods.NVT``
+  * ``hoomd.md.methods.Berendsen``
+  * ``hoomd.md.methods.NPH``
+  * ``hoomd.md.methods.NPT``
+
+*Removed*
+
+* Support for CUDA 10.
+
+v3.7.0 (2022-11-29)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``Neighborlist.r_cut`` sets the base cutoff radius for neighbor search - for use when the neighbor
+  list is used for analysis or custom Python code.
+* ``Neighborlist.cpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.gpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.local_pair_list`` provides the rank local pair list by index.
+* ``Neighborlist.pair_list`` provides the global pair list by tag on rank 0.
+* ``hoomd.md.dihedral.Periodic`` - a new name for the previous ``Harmonic`` potential.
+* ``default_gamma`` and ``default_gamma_r`` arguments to the ``hoomd.md.methods``: ``Brownian``,
+  ``Langevin``, and ``OverdampedViscous``.
+* ``reservoir_energy`` loggable in ``hoomd.md.methods.Langevin``.
+* ``hoomd.md.force.Constant`` applies constant forces and torques to particles.
+
+*Changed*
+
+* [plugin developers] Refactored the ``LocalDataAccess`` C++ classes to add flexibility.
+
+*Fixed*
+
+* ``hoomd.hpmc.nec`` integrators compute non-infinite virial pressures for 2D simulations.
+* Raise an exception when attempting to get the shape specification of shapes with 0 elements.
+* Box conversion error message now names ``hoomd.Box``.
+
+*Deprecated*
+
+* ``hoomd.md.dihedral.Harmonic`` - use the functionally equivalent ``hoomd.md.dihedral.Periodic``.
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``.
+* ``diameters`` key in ``hoomd.md.constrain.Rigid.body``.
 
 v3.6.0 (2022-10-25)
 ^^^^^^^^^^^^^^^^^^^

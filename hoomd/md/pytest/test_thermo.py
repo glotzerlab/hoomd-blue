@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
@@ -155,7 +155,6 @@ def test_system_rotational_dof(simulation_factory, device):
     sim.operations.add(thermo)
 
     integrator = hoomd.md.Integrator(dt=0.0001, integrate_rotational_dof=True)
-    integrator.aniso = True
     integrator.methods.append(hoomd.md.methods.NVT(filt, tau=1, kT=1))
     sim.operations.integrator = integrator
 

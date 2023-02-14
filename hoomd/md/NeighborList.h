@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/Compute.h"
@@ -721,48 +721,42 @@ template<class Output>
 class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, NeighborList>
     {
     public:
-    LocalNeighborListData(NeighborList& data)
+    LocalNeighborListData(NeighborList& data, size_t N_particles)
         : LocalDataAccess<Output, NeighborList>(data), m_nlist_handle(), m_head_list_handle(),
-          m_n_neigh_handle()
+          m_n_neigh_handle(), m_N_particles(N_particles)
         {
         }
 
     virtual ~LocalNeighborListData() = default;
 
-    Output getHeadList(GhostDataFlag flag)
+    Output getHeadList()
         {
-        if (flag != GhostDataFlag::standard)
-            throw std::runtime_error("'getHeadList' does not support ghost data access.");
+        // This can cause errors when sizeof(unsigned long) != sizeof(size_t)
         return this->template getBuffer<size_t, unsigned long>(m_head_list_handle,
                                                                &NeighborList::getHeadList,
-                                                               flag,
+                                                               {m_N_particles},
                                                                false,
                                                                0);
         }
 
-    Output getNNeigh(GhostDataFlag flag)
+    Output getNNeigh()
         {
-        if (flag != GhostDataFlag::standard)
-            throw std::runtime_error("'getNNeigh' does not support ghost data access.");
         return this->template getBuffer<unsigned int, unsigned int>(m_n_neigh_handle,
                                                                     &NeighborList::getNNeighArray,
-                                                                    flag,
+                                                                    {m_N_particles},
                                                                     false,
                                                                     0);
         }
 
     // GhostDataFlag is ignored by this method, but required by the python interface
-    Output getNList(GhostDataFlag flag)
+    Output getNList()
         {
-        if (flag != GhostDataFlag::standard)
-            throw std::runtime_error("'getNList' does not support ghost data access.");
-        auto size = (unsigned int)this->m_data.getNListArray().getNumElements();
-        return this->template getBufferExplicitSize<unsigned int, unsigned int>(
-            m_nlist_handle,
-            &NeighborList::getNListArray,
-            false,
-            size,
-            0);
+        auto shape
+            = std::vector {static_cast<size_t>(this->m_data.getNListArray().getNumElements())};
+        return this->template getBuffer<unsigned int, unsigned int>(m_nlist_handle,
+                                                                    &NeighborList::getNListArray,
+                                                                    shape,
+                                                                    false);
         }
 
     bool isHalfNlist()
@@ -782,6 +776,7 @@ class PYBIND11_EXPORT LocalNeighborListData : public LocalDataAccess<Output, Nei
     std::unique_ptr<ArrayHandle<unsigned int>> m_nlist_handle;
     std::unique_ptr<ArrayHandle<size_t>> m_head_list_handle;
     std::unique_ptr<ArrayHandle<unsigned int>> m_n_neigh_handle;
+    size_t m_N_particles;
     };
 
 namespace detail
@@ -792,7 +787,7 @@ template<class Output> void export_LocalNeighborListData(pybind11::module& m, st
     pybind11::class_<LocalNeighborListData<Output>, std::shared_ptr<LocalNeighborListData<Output>>>(
         m,
         name.c_str())
-        .def(pybind11::init<NeighborList&>())
+        .def(pybind11::init<NeighborList&, size_t>())
         .def("getNList", &LocalNeighborListData<Output>::getNList)
         .def("getHeadList", &LocalNeighborListData<Output>::getHeadList)
         .def("getNNeigh", &LocalNeighborListData<Output>::getNNeigh)

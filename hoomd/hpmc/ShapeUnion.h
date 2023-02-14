@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
@@ -1507,6 +1507,12 @@ template<> inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere
     auto& members = sphere_union.members;
 
     unsigned int n_centers = members.N;
+
+    if (n_centers == 0)
+        {
+        throw std::runtime_error("Shape definition not supported for 0-center union.");
+        }
+
     std::ostringstream shapedef;
     shapedef << "{\"type\": \"SphereUnion\", \"centers\": [";
     for (unsigned int i = 0; i < n_centers - 1; i++)

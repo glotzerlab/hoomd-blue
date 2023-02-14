@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Dihedral forces.
@@ -40,6 +40,8 @@ Important:
     in the anti-parallel stretched state ( /\\/ ) and :math:`\phi = 0` in the
     parallel compact state ( \|_\| ).
 """
+
+import warnings
 
 from hoomd.md import _md
 from hoomd.md.force import Force
@@ -124,7 +126,12 @@ class Harmonic(Periodic):
     .. deprecated:: v3.7.0
         Use `Periodic`.
     """
-    pass
+
+    def __init__(self):
+        warnings.warn(
+            "Harmonic is deprecated and will be removed in hoomd 4.0. Use "
+            "Periodic instead.", FutureWarning)
+        super().__init__()
 
 
 class Table(Dihedral):

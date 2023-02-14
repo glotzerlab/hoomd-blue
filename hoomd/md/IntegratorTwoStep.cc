@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
@@ -75,17 +75,24 @@ void IntegratorTwoStep::update(uint64_t timestep)
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
+        // Update the rigid body consituent particles before communicating so that any such
+        // particles that move from one domain to another are migrated.
+        updateRigidBodies(timestep + 1);
+
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time
         // step
-
-        // also updates rigid bodies after ghost updating
         m_comm->communicate(timestep + 1);
+
+        // Communicator uses a compute callback to trigger updateRigidBodies again and ensure that
+        // all ghost constituent particle positions are set in accordance with any just communicated
+        // ghost and/or migrated rigid body centers.
         }
     else
 #endif
         {
+        // Update rigid body constituent particles in serial simulations.
         updateRigidBodies(timestep + 1);
         }
 
@@ -153,15 +160,29 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
 */
 Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
     {
+    Scalar periodic_dof_removed = 0;
+
+    unsigned int N_filter = group->getNumMembersGlobal();
+    unsigned int N_particles = m_pdata->getNGlobal();
+
+    // When using rigid bodies, adjust the number of particles to the number of rigid centers and
+    // free particles. The constituent particles are in the system, but not part of the equations
+    // of motion.
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->validateRigidBodies();
+        N_particles
+            = m_rigid_bodies->getNMoleculesGlobal() + m_rigid_bodies->getNFreeParticlesGlobal();
+        N_filter = group->getNCentralAndFreeGlobal();
+        }
+
     // proportionately remove n_dimensions DOF when there is only one momentum conserving
     // integration method
-    Scalar periodic_dof_removed = 0;
-    if (group->getNumMembersGlobal() == m_pdata->getNGlobal() && m_methods.size() == 1
-        && m_methods[0]->isMomentumConserving())
+    if (m_methods.size() == 1 && m_methods[0]->isMomentumConserving()
+        && m_methods[0]->getGroup()->getNumMembersGlobal() == N_particles)
         {
         periodic_dof_removed
-            = Scalar(m_sysdef->getNDimensions())
-              * (Scalar(group->getNumMembersGlobal()) / Scalar(m_pdata->getNGlobal()));
+            = Scalar(m_sysdef->getNDimensions()) * (Scalar(N_filter) / Scalar(N_particles));
         }
 
     // loop through all methods and add up the number of DOF They apply to the group

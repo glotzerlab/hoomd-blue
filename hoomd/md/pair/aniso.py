@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2022 The Regents of the University of Michigan.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 r"""Anisotropic pair forces.
@@ -18,6 +18,8 @@ energies and virials in the same manner as `hoomd.md.pair.Pair`
 `AnisotropicPair` does not support the ``'xplor'`` shifting mode or the ``r_on``
 parameter.
 """
+
+import warnings
 
 from collections.abc import Sequence
 import json
@@ -139,6 +141,13 @@ class Dipole(AnisotropicPair):
         mu = TypeParameter('mu', 'particle_types',
                            TypeParameterDict((float, float, float), len_keys=1))
         self._extend_typeparam((params, mu))
+
+    def _setattr_param(self, attr, value):
+        if attr == "mode":
+            warnings.warn(
+                "'mode' key is deprectated and will be removed in hoomd 4.0.",
+                FutureWarning)
+        super()._setattr_param(attr, value)
 
 
 class GayBerne(AnisotropicPair):
@@ -673,3 +682,5 @@ class JanusLJ(AnisotropicPair):
             A list of dictionaries, one for each particle type in the system.
         """
         return super()._return_type_shapes()
+
+

@@ -10,6 +10,7 @@ set(files __init__.py
     test_array_view.py
     test_bond.py
     test_constrain_distance.py
+    test_constant_force.py
     test_custom_force.py
     test_dihedral.py
     test_external.py
@@ -20,7 +21,8 @@ set(files __init__.py
     test_improper.py
     test_integrate.py
     test_kernel_parameters.py
-    test_lj_equation_of_state.py
+    test_potential.py
+    test_pppm_coulomb.py
     test_manifolds.py
     test_meshbond.py
     test_meta_wall_list.py

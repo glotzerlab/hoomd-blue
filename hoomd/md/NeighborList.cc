@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_MPI
@@ -543,13 +543,6 @@ void NeighborList::checkBoxSize()
     Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
-
-    if (m_filter_body)
-        {
-        // add the maximum diameter of all composite particles
-        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5 * max_d_comp;
-        }
 
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0)
         || (periodic.y && nearest_plane_distance.y <= rmax * 2.0)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_FREE_VOLUME_CUH_
@@ -273,6 +273,11 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng);
         Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng);
         Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng);
+
+        if (dim == 2)
+            {
+            zrand = 0;
+            }
 
         Scalar3 f = make_scalar3(xrand, yrand, zrand);
         pos_i = vec3<Scalar>(box.makeCoordinates(f));
