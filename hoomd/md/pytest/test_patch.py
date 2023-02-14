@@ -60,11 +60,11 @@ def patchy_snapshot_factory(device):
         return snapshot
 
     return make_snapshot
-    
+
 
 @pytest.mark.parametrize('patch_cls', 'patch_args', 'params', 'positions', 'orientations', 'force', 'energy', 'torques',
                          patch_test_parameters)
-def test_before_attaching(patch_cls, patch_args, params, force, energy, torques):
+def test_before_attaching(patch_cls, patch_args, params, positions, orientations, force, energy, torques):
     potential = patch_cls(**patch_args)
     potential.params['A','A'] = params
     for key in params:
@@ -74,7 +74,7 @@ def test_before_attaching(patch_cls, patch_args, params, force, energy, torques)
 @pytest.mark.parametrize('patch_cls', 'patch_args', 'params', 'positions', 'orientations', 'force', 'energy', 'torques',
                          patch_test_parameters)
 def test_after_attaching(patchy_snapshot_factory, simulation_factory,
-                         patch_cls, patch_args, params, force, energy, torques):
+                         patch_cls, patch_args, params, positions, orientations, force, energy, torques):
     sim = simulation_factory(patchy_snapshot_factory())
     potential.params['A','A'] = params
 
@@ -88,7 +88,7 @@ def test_after_attaching(patchy_snapshot_factory, simulation_factory,
 @pytest.mark.parametrize('patch_cls', 'patch_args', 'params', 'positions', 'orientations', 'force', 'energy', 'torques',
                          patch_test_parameters)
 def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
-                                 patch_cls, patch_args, params, force, energy, torques):
+                                 patch_cls, patch_args, params, positions, orientations, force, energy, torques):
 
     snapshot = patchy_snapshot_factory(position_i = positions[0],
                                        position_j = positions[1],
