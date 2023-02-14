@@ -67,10 +67,6 @@ public:
                 v["alpha"] = fast::acos(cosalpha);
                 v["omega"] = omega;
 
-                vec3<Scalar> ex(1,0,0);
-                //vec3<Scalar> ni = rotate(qpi, ex);
-                //vec3<Scalar> nj = rotate(qpj, ex);
-
                 v["ni"] = pybind11::make_tuple(ni.x, ni.y, ni.z);
                 v["nj"] = pybind11::make_tuple(nj.x, nj.y, nj.z);
 
@@ -100,19 +96,23 @@ public:
             a1 = rotate(conj(qi), ex);
             a2 = rotate(conj(qi), ey);
             a3 = rotate(conj(qi), ez);
+            // patch direction of particle a
+            ni_world = rotate(conj(qi), params.ni);
 
             // orientation vectors of particle b
             b1 = rotate(conj(qj), ex);
             b2 = rotate(conj(qj), ey);
             b3 = rotate(conj(qj), ez);
 
+            nj_world = rotate(conj(qj), params.nj);
+
             // compute distance
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
 
             // cos(angle between dr and pointing vector)
-            costhetai = -dot(vec3<Scalar>(dr), params.ni) / magdr; // negative because dr = dx = pi - pj
-            costhetaj = dot(vec3<Scalar>(dr), params.nj) / magdr;
+            costhetai = -dot(vec3<Scalar>(dr), ni_world) / magdr; // negative because dr = dx = pi - pj
+            costhetaj = dot(vec3<Scalar>(dr), nj_world) / magdr;
         }
 
     //! uses diameter
@@ -215,12 +215,13 @@ public:
 
             torque_div_energy_j *= Scalar(-1) * Modulatori() * ModulatorPrimej() / magdr;
 
-            force.x = -(iPj*(-a1.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr
-                        + jPi*(b1.x - costhetaj*dr.x/magdr));
-            force.y = -(iPj*(-a1.y - costhetai*dr.y/magdr)
-                        + jPi*(b1.y - costhetaj*dr.y/magdr));
-            force.z = -(iPj*(-a1.z - costhetai*dr.z/magdr)
-                        + jPi*(b1.z - costhetaj*dr.z/magdr));
+
+            force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr
+                        + jPi*(nj_world.x - costhetaj*dr.x/magdr));
+            force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
+                        + jPi*(nj_world.y - costhetaj*dr.y/magdr));
+            force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
+                        + jPi*(nj_world.z - costhetaj*dr.z/magdr));
 
             return true;
         }
@@ -237,6 +238,7 @@ private:
     vec3<Scalar> dr;
     quat<Scalar> qi;
     quat<Scalar> qj;
+    vec3<Scalar> ni_world, nj_world;
 
     const param_type& params;
 
