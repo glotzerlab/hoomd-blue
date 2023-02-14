@@ -115,7 +115,7 @@ Install prerequisites
 
 .. note::
 
-    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HHOOMD_GPU_PLATFORM=HIP`` to
+    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HOOMD_GPU_PLATFORM=HIP`` to
     choose HIP.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):

@@ -14,6 +14,7 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
+import warnings
 
 
 def _array_to_strings(value):
@@ -221,6 +222,7 @@ class GSD(Writer):
         """hoomd.logging.Logger: Provide log quantities to write.
 
         May be `None`.
+
         """
         return self._logger
 
@@ -233,7 +235,7 @@ class GSD(Writer):
         if self._attached:
             self._cpp_obj.log_writer = logger
         self._logger = logger
-
+        return self.logger
 
 def _iterable_is_incomplete(iterable):
     """Checks that any nested attribute has no instances of RequiredArg.
