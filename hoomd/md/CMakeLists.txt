@@ -524,7 +524,9 @@ set(_pair_evaluators Buckingham
                      TWF
                      LJGauss
                      ForceShiftedLJ
-                     Table)
+                     Table
+		     ShiftedGaussian)
+
 
 foreach(_evaluator ${_pair_evaluators})
     set(_evaluator_cpp ${_evaluator})
