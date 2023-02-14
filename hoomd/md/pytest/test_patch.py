@@ -27,9 +27,9 @@ patch_test_parameters = [
          },
         [[0,0,0], [2,0,0]], # positions
         [[1,0,0,0], [sqrt2inv, 0, 0, sqrt2inv]], # orientations
-        # force,
+        [0,0,0],
         -2.7559e-6,
-        # torques
+        [[0,0,0], [0,0,0]]
     )
 ]
 
@@ -52,40 +52,41 @@ def patchy_snapshot_factory(device):
                 box[2] = 0
             snapshot.configuration.box = box
             snapshot.particles.N = N
-            snapshot.particles.position[:] = [positions_i, position_j]
+            snapshot.particles.position[:] = [position_i, position_j]
             snapshot.particles.types = ['A']
             snapshot.particles.typeid[:] = 0
-            snap.particles.moment_inertia[:] = [(1,1,1)]*n
-            snap.particles.angmom[:] = [(0,0,0,0)]*n
+            snapshot.particles.moment_inertia[:] = [(1,1,1)]*N
+            snapshot.particles.angmom[:] = [(0,0,0,0)]*N
         return snapshot
 
     return make_snapshot
 
 
-@pytest.mark.parametrize('patch_cls', 'patch_args', 'params', 'positions', 'orientations', 'force', 'energy', 'torques',
+@pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
                          patch_test_parameters)
 def test_before_attaching(patch_cls, patch_args, params, positions, orientations, force, energy, torques):
-    potential = patch_cls(**patch_args)
-    potential.params['A','A'] = params
+    potential = patch_cls(nlist = hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=4, **patch_args)
+    potential.params[('A','A')] = params
     for key in params:
-        assert potential.params['A','A'][key] == pytest.approx(params[key])
+        assert potential.params[('A','A')][key] == pytest.approx(params[key])
 
         
-@pytest.mark.parametrize('patch_cls', 'patch_args', 'params', 'positions', 'orientations', 'force', 'energy', 'torques',
+@pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
                          patch_test_parameters)
 def test_after_attaching(patchy_snapshot_factory, simulation_factory,
                          patch_cls, patch_args, params, positions, orientations, force, energy, torques):
     sim = simulation_factory(patchy_snapshot_factory())
-    potential.params['A','A'] = params
+    potential = patch_cls(nlist = hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=4, **patch_args)
+    potential.params[('A','A')] = params
 
     sim.operations.integrator = hoomd.md.Integrator(dt = 0.05,
                                                     forces = [potential])
     sim.run(0)
     for key in params:
-        assert potential.params['A','A'][key] == pytest.approx(params[key])
+        assert potential.params[('A','A')][key] == pytest.approx(params[key])
 
 
-@pytest.mark.parametrize('patch_cls', 'patch_args', 'params', 'positions', 'orientations', 'force', 'energy', 'torques',
+@pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
                          patch_test_parameters)
 def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
                                  patch_cls, patch_args, params, positions, orientations, force, energy, torques):
@@ -96,8 +97,8 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
                                        orientation_j = orientations[1])
     sim = simulation_factory(snapshot)
 
-    potential = patch_cls(**patch_args)
-    potential.params['A','A'] = params
+    potential = patch_cls(nlist = hoomd.md.nlist.Cell(buffer=0.4), default_r_cut=4, **patch_args)
+    potential.params[('A','A')] = params
 
     sim.operations.integrator = hoomd.md.Integrator(dt = 0.005,
                                                     forces = [potential])
@@ -106,8 +107,8 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
 
     sim_forces = potential.forces
     sim_energy = potential.energy
-    sim_torques = potential.torque
-    if sim.device.commmunicator.rank == 0:
+    sim_torques = potential.torques
+    if sim.device.communicator.rank == 0:
         assert sim_energy == pytest.approx(energy, rel=1e-2)
         
         # numpy.testing.assert_allclose(sim_forces[0],
