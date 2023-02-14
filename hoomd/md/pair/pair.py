@@ -288,7 +288,7 @@ class ShiftedGauss(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `Gauss` computes the Gaussian pair force should on every particle in the
+    `ShiftedGauss` computes the Gaussian pair force should on every particle in the
     simulation state:
 
     .. math::
@@ -298,9 +298,9 @@ class ShiftedGauss(Pair):
     Example::
 
         nl = nlist.Cell()
-        gauss = pair.ShiftedGauss(default_r_cut=3.0, nlist=nl)
-        gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_0=0.5)
-        gauss.r_cut[('A', 'B')] = 3.0
+        sgauss = pair.ShiftedGauss(default_r_cut=3.0, nlist=nl)
+        sgauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_0=0.5)
+        sgauss.r_cut[('A', 'B')] = 3.0
 
     .. py:attribute:: params
 
