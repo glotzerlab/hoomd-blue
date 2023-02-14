@@ -39,7 +39,7 @@ class GPUTree
     {
     public:
     //! Empty constructor
-    DEVICE GPUTree() : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0) { }
+    HOSTDEVICE GPUTree() : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0) { }
 
 #ifndef __HIPCC__
     //! Constructor
