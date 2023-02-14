@@ -37,11 +37,11 @@ namespace md
     <b>Gauss specifics</b>
 
     EvaluatorPairShiftedGauss evaluates the function:
-    \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r-r_0}{\sigma}
+    \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r-r_{0}}{\sigma}
    \right)^2 \right] \f]
 
     The Gaussian potential does not need diameter or charge. Three parameters are specified and stored
-   in a Scalar3. \a epsilon is placed in \a params.x, \a sigma is in \a params.y, and \a r_0 is in \a params.z.
+   in a Scalar3. \a epsilon is placed in \a params.x, \a sigma is in \a params.y, and \a r_{0} is in \a params.z.
 
     \a epsilon and \a sigma are related to the standard lj parameters sigma and epsilon by:
     - \a epsilon = \f$ \varepsilon \f$
@@ -58,7 +58,7 @@ class EvaluatorPairShiftedGauss
         {
         Scalar epsilon;
         Scalar sigma;
-	Scalar r_0;
+        Scalar r_0;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -79,7 +79,7 @@ class EvaluatorPairShiftedGauss
             {
             sigma = v["sigma"].cast<Scalar>();
             epsilon = v["epsilon"].cast<Scalar>();
-	    r_0 = v["r_0"].cast<>(Scalar);
+            r_0 = v["r_0"].cast<>(Scalar);
             }
 
         // used to facilitate unit testing
@@ -87,7 +87,7 @@ class EvaluatorPairShiftedGauss
             {
             sigma = sig;
             epsilon = eps;
-	    r_0 = r;
+            r_0 = r;
             }
 
         pybind11::dict asDict()
