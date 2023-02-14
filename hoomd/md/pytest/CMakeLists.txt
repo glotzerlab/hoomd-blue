@@ -28,6 +28,7 @@ set(files __init__.py
     test_minimize_fire.py
     test_nlist.py
     test_nlist_tuner.py
+    test_patch.py
     test_potential.py
     test_pppm_coulomb.py
     test_reverse_perturbation_flow.py
