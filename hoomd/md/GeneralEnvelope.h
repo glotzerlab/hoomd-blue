@@ -52,8 +52,8 @@ public:
                 auto ni_ = (pybind11::tuple)params["ni"];
                 auto nj_ = (pybind11::tuple)params["nj"];
 
-                auto ni = vec3<Scalar>(ni_[0].cast<Scalar>(), ni_[1].cast<Scalar>(), ni_[2].cast<Scalar>());
-                auto nj = vec3<Scalar>(nj_[0].cast<Scalar>(), nj_[1].cast<Scalar>(), nj_[2].cast<Scalar>());
+                ni = vec3<Scalar>(ni_[0].cast<Scalar>(), ni_[1].cast<Scalar>(), ni_[2].cast<Scalar>());
+                nj = vec3<Scalar>(nj_[0].cast<Scalar>(), nj_[1].cast<Scalar>(), nj_[2].cast<Scalar>());
 
                 // normalize
                 ni = ni * fast::rsqrt(dot(ni, ni));
@@ -78,8 +78,8 @@ public:
                 v["omega"] = omega;
 
                 vec3<Scalar> ex(1,0,0);
-                vec3<Scalar> ni = rotate(qpi, ex);
-                vec3<Scalar> nj = rotate(qpj, ex);
+                //vec3<Scalar> ni = rotate(qpi, ex);
+                //vec3<Scalar> nj = rotate(qpj, ex);
 
                 v["ni"] = pybind11::make_tuple(ni.x, ni.y, ni.z);
                 v["nj"] = pybind11::make_tuple(nj.x, nj.y, nj.z);
@@ -89,8 +89,8 @@ public:
 
         quat<Scalar> qpi;
         quat<Scalar> qpj;
-        Scalar ni;
-        Scalar nj;
+        vec3<Scalar> ni;
+        vec3<Scalar> nj;
         Scalar cosalpha;
         Scalar omega;
     }__attribute__((aligned(16)));
@@ -149,8 +149,10 @@ public:
             doti = -dot(vec3<Scalar>(dr), ei) / magdr; // negative because dr = dx = pi - pj
             dotj = dot(vec3<Scalar>(dr), ej) / magdr;
 
-            costhetai = -dot(vec3<Scalar>(dr), ni) / magdr;
-            costhetaj = dot(vec3<Scalar>(dr), nj) / magdr;
+          //  std::cout << "ni when calculating costhetai" + vecString(vec3<Scalar>(ni));
+            // std::cout << "params.ni when calculating costhetai" + vecString(vec3<Scalar>(params.ni));
+            costhetai = -dot(vec3<Scalar>(dr), params.ni) / magdr;
+            costhetaj = dot(vec3<Scalar>(dr), params.nj) / magdr;
         }
 
     //! uses diameter
@@ -271,20 +273,37 @@ public:
             // NEW way with Philipp Feb 9
 
             torque_div_energy_i =
-                vec_to_scalar3( ni.x * cross( vec3<Scalar>(a1), dr)) +
-                vec_to_scalar3( ni.y * cross( vec3<Scalar>(a2), dr)) +
-                vec_to_scalar3( ni.z * cross( vec3<Scalar>(a3), dr));
+                vec_to_scalar3( params.ni.x * cross( vec3<Scalar>(a1), dr)) +
+                vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), dr)) +
+                vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), dr));
+            // std::cout << "torque_i before mult: " + vecString(vec3<Scalar>(torque_div_energy_i));
+            // std::cout << "dr: " + vecString(vec3<Scalar>(dr));
 
-            torque_div_energy_i *= Scalar(-1) * Modulatorj() * ModulatorPrimei() / magdr;
-            
-            
+            torque_div_energy_i *= Scalar(-1) * Modulatorj() * ModulatorPrimei() / magdr; // this last bit is iPj
+
             torque_div_energy_j =
-                vec_to_scalar3( nj.x * cross( vec3<Scalar>(b1), dr)) +
-                vec_to_scalar3( nj.y * cross( vec3<Scalar>(b2), dr)) +
-                vec_to_scalar3( nj.z * cross( vec3<Scalar>(b3), dr));
+                vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), dr)) +
+                vec_to_scalar3( params.nj.y * cross( vec3<Scalar>(b2), dr)) +
+                vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr));
 
             torque_div_energy_j *= Scalar(-1) * Modulatori() * ModulatorPrimej() / magdr;
 
+            // std::cout << "a1 " + vecString(vec3<Scalar>(a1));
+            // std::cout << "a2 " + vecString(vec3<Scalar>(a2));
+            // std::cout << "a3 " + vecString(vec3<Scalar>(a3));
+      //      std::cout << "ni " + vecString(vec3<Scalar>(ni)); // reset to 0 0 0?
+
+            // std::cout << "torque_i: " + vecString(vec3<Scalar>(torque_div_energy_i));
+
+            // std::cout << "b1 " + vecString(vec3<Scalar>(b1));
+            // std::cout << "b2 " + vecString(vec3<Scalar>(b2));
+            // std::cout << "b3 " + vecString(vec3<Scalar>(b3));
+        //    std::cout << "nj " + vecString(vec3<Scalar>(nj)); // reset to 0 0 0?
+
+            // std::cout << "iPj: " + std::to_string(iPj) + '\n';
+            // std::cout << "jPi: " + std::to_string(jPi) + '\n'; // is always 0
+
+            // std::cout << "torque_j: " + vecString(vec3<Scalar>(torque_div_energy_j));
             //
 
             
@@ -326,13 +345,10 @@ public:
             
 //            torque_div_energy_j = vec_to_scalar3( (jPi*magdr) * cross(vec3<Scalar>(b1), jj));
 
-//            std::cout << "iPj: " + std::to_string(iPj) + '\n';
-//            std::cout << "jPi: " + std::to_string(jPi) + '\n'; // is always 0
-
             
-            // std::cout << vecString(vec3<Scalar>(a1)); //okay
-            //std::cout << vecString(vec3<Scalar>(torque_div_energy_i));
-            //std::cout << vecString(vec3<Scalar>(torque_div_energy_j));
+
+            // std::cout << vecString(vec3<Scalar>(torque_div_energy_i));
+            // std::cout << vecString(vec3<Scalar>(torque_div_energy_j));
             // TODO why is the order different than before?
             
             // compute force contribution
@@ -376,9 +392,6 @@ private:
     quat<Scalar> qj;
 
     const param_type& params;
-
-    vec3<Scalar> ni; // pointing vector for patch on particle i
-    vec3<Scalar> nj; // pointing vector for patch on particle j
 
     vec3<Scalar> a1, a2, a3;
     vec3<Scalar> b1, b2, b3;
