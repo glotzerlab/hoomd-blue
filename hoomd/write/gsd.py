@@ -236,6 +236,7 @@ class GSD(Writer):
         self._logger = logger
         return self.logger
 
+
 def _iterable_is_incomplete(iterable):
     """Checks that any nested attribute has no instances of RequiredArg.
 
