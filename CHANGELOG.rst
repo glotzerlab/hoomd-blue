@@ -7,6 +7,21 @@ Change Log
 v3.x
 ----
 
+v3.x.y (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* Compile without errors using ``hipcc`` and ROCM 5.1.0
+  (`#1478 <https://github.com/glotzerlab/hoomd-blue/pull/1478>`_).
+* Document that ``hoomd.md.force.Force`` can be added to ``Operations.computes``
+  (`#1489 <https://github.com/glotzerlab/hoomd-blue/pull/1489>`_).
+* ``hoomd.md.constrain.Rigid.create_bodies`` completes without segmentation faults when particle
+  body tags are not -1
+  (`#1476 <https://github.com/glotzerlab/hoomd-blue/issues/1476>`_).
+* ``hoomd.hpmc.compute.FreeVolume`` computes the free area correctly in 2D simulations
+  (`#1473 <https://github.com/glotzerlab/hoomd-blue/issues/1473>`_).
+
 v3.8.1 (2023-01-27)
 ^^^^^^^^^^^^^^^^^^^
 

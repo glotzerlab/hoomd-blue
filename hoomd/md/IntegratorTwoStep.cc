@@ -160,15 +160,29 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
 */
 Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
     {
+    Scalar periodic_dof_removed = 0;
+
+    unsigned int N_filter = group->getNumMembersGlobal();
+    unsigned int N_particles = m_pdata->getNGlobal();
+
+    // When using rigid bodies, adjust the number of particles to the number of rigid centers and
+    // free particles. The constituent particles are in the system, but not part of the equations
+    // of motion.
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->validateRigidBodies();
+        N_particles
+            = m_rigid_bodies->getNMoleculesGlobal() + m_rigid_bodies->getNFreeParticlesGlobal();
+        N_filter = group->getNCentralAndFreeGlobal();
+        }
+
     // proportionately remove n_dimensions DOF when there is only one momentum conserving
     // integration method
-    Scalar periodic_dof_removed = 0;
-    if (group->getNumMembersGlobal() == m_pdata->getNGlobal() && m_methods.size() == 1
-        && m_methods[0]->isMomentumConserving())
+    if (m_methods.size() == 1 && m_methods[0]->isMomentumConserving()
+        && m_methods[0]->getGroup()->getNumMembersGlobal() == N_particles)
         {
         periodic_dof_removed
-            = Scalar(m_sysdef->getNDimensions())
-              * (Scalar(group->getNumMembersGlobal()) / Scalar(m_pdata->getNGlobal()));
+            = Scalar(m_sysdef->getNDimensions()) * (Scalar(N_filter) / Scalar(N_particles));
         }
 
     // loop through all methods and add up the number of DOF They apply to the group
