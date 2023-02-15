@@ -257,25 +257,6 @@ class GPU(Device):
             self.num_cpu_threads = num_cpu_threads
 
     @property
-    def memory_traceback(self):
-        """bool: Whether GPU memory tracebacks should be enabled.
-
-        Memory tracebacks are useful for developers when debugging GPU code.
-
-        .. deprecated:: v3.4.0
-           `memory_traceback` has no effect.
-        """
-        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
-                      FutureWarning)
-        return self._cpp_exec_conf.memoryTracingEnabled()
-
-    @memory_traceback.setter
-    def memory_traceback(self, mem_traceback):
-        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
-                      FutureWarning)
-        self._cpp_exec_conf.setMemoryTracing(mem_traceback)
-
-    @property
     def gpu_error_checking(self):
         """bool: Whether to check for GPU error conditions after every call.
 

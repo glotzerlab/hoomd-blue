@@ -19,30 +19,12 @@ Warning:
     instance solves for its constraints independently.
 """
 
-import warnings
-
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.md.force import Force
 import hoomd
-
-
-class _DeprecateKey:
-
-    def __init__(self, name, version="4.0", alt=""):
-        self.name = name
-        self.version = version
-        self.alt = alt
-
-    def __call__(self, value):
-        msg = f"The {self.name} key is deprecated and will be removed in hoomd "
-        msg += f"{self.version}."
-        if self.alt:
-            msg += f" Use {self.alt} in version {self.version} instead."
-        warnings.warn(msg, FutureWarning)
-        return value
 
 
 class Constraint(Force):
@@ -287,18 +269,6 @@ class Rigid(Constraint):
         - ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
           `float`]]): List of orientations (as quaternions) of constituent
           particles.
-
-        - ``charges`` (`list` [`float`]): List of charges of constituent
-          particles.
-
-          .. deprecated:: v3.7.0
-             ``charges`` will be removed in v4.
-
-        - ``diameters`` (`list` [`float`]): List of diameters of constituent
-          particles.
-
-          .. deprecated:: v3.7.0
-             ``diameters`` will be removed in v4.
 
         Of these, `Rigid` uses ``positions`` and ``orientation`` to set the
         constituent particle positions and orientations every time step.
