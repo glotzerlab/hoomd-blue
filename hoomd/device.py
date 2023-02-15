@@ -20,8 +20,6 @@ See Also:
     `hoomd.Simulation`
 """
 
-import warnings
-
 import contextlib
 import hoomd
 from hoomd import _hoomd

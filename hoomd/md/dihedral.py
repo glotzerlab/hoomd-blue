@@ -41,8 +41,6 @@ Important:
     parallel compact state ( \|_\| ).
 """
 
-import warnings
-
 from hoomd.md import _md
 from hoomd.md.force import Force
 from hoomd.data.parameterdicts import TypeParameterDict
