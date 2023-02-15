@@ -37,16 +37,19 @@ namespace md
     <b>Gauss specifics</b>
 
     EvaluatorPairShiftedGauss evaluates the function:
-    \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r-r_{0}}{\sigma}
-   \right)^2 \right] \f]
+    \f[ V_{\mathrm{shifted_gauss}}(r) = \varepsilon \exp \left[ -
+    \frac{1}{2}\left( \frac{r-r_{0}}{\sigma}\right)^2 \right] \f]
 
-    The Gaussian potential does not need diameter or charge. Three parameters are specified and stored
-   in a Scalar3. \a epsilon is placed in \a params.x, \a sigma is in \a params.y, and \a r_{0} is in \a params.z.
+    The Gaussian potential does not need diameter or charge. Three parameters
+    are specified and stored in a Scalar3.
+    \a epsilon is placed in \a params.x, \a sigma is in \a params.y, and
+    \a r_{0} is in \a params.z.
 
-    \a epsilon and \a sigma are related to the standard lj parameters sigma and epsilon by:
+    \a epsilon and \a sigma are related to the standard lj parameters sigma and
+    epsilon by:
     - \a epsilon = \f$ \varepsilon \f$
     - \a sigma = \f$ \sigma \f$
-    
+
     \a r_0 is the shifted distance of the gaussian potential.
 
 */
@@ -79,7 +82,7 @@ class EvaluatorPairShiftedGauss
             {
             sigma = v["sigma"].cast<Scalar>();
             epsilon = v["epsilon"].cast<Scalar>();
-            r_0 = v["r_0"].cast<>(Scalar);
+            r_0 = v["r_0"].cast<Scalar>();
             }
 
         // used to facilitate unit testing
@@ -111,8 +114,10 @@ class EvaluatorPairShiftedGauss
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairShiftedGauss(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma), r_0(_params.r_0)
+    DEVICE EvaluatorPairShiftedGauss(Scalar _rsq, Scalar _rcutsq,
+                                     const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon),
+          sigma(_params.sigma), r_0(_params.r_0)
         {
         }
 
@@ -153,10 +158,11 @@ class EvaluatorPairShiftedGauss
         if (rsq < rcutsq)
             {
             Scalar sigma_sq = sigma * sigma;
-            Scalar r_over_sigma_sq = rsq / sigma_sq;
+            Scalar r = fast::rsq**(Scalar(0.5));
+            Scalar r_over_sigma_sq = (r - r_0) * (r - r_0) / sigma_sq;
             Scalar exp_val = fast::exp(-Scalar(1.0) / Scalar(2.0) * r_over_sigma_sq);
 
-            force_divr = epsilon / sigma_sq * exp_val;
+            force_divr = epsilon / sigma_sq * exp_val * (Scalar(1.0) - r_0 / r);
             pair_eng = epsilon * exp_val;
 
             if (energy_shift)
@@ -185,7 +191,7 @@ class EvaluatorPairShiftedGauss
      */
     static std::string getName()
         {
-        return std::string("gauss");
+        return std::string("shiftedgauss");
         }
 
     std::string getShapeSpec() const

@@ -288,7 +288,7 @@ class ShiftedGauss(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `ShiftedGauss` computes the Gaussian pair force should on every particle 
+    `ShiftedGauss` computes the Gaussian pair force should on every particle
     in the simulation state:
 
     .. math::
@@ -309,7 +309,7 @@ class ShiftedGauss(Pair):
 
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float`, **required**) - particle size 
+        * ``sigma`` (`float`, **required**) - particle size
           :math:`\sigma` :math:`[\mathrm{length}]`
         * ``r_0`` (`float`, **required**) - shift distabce
           :math:`r_{0}` :math:`[\mathrm{length}]`
@@ -329,7 +329,8 @@ class ShiftedGauss(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, r_0 = float, len_keys=3))
+            TypeParameterDict(epsilon=float, sigma=float, r_0 = float,
+                              len_keys=3))
         self._add_typeparam(params)
 
 

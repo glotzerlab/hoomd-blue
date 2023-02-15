@@ -525,7 +525,7 @@ set(_pair_evaluators Buckingham
                      LJGauss
                      ForceShiftedLJ
                      Table
-		     ShiftedGauss)
+                     ShiftedGauss)
 
 
 foreach(_evaluator ${_pair_evaluators})
