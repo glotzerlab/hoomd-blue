@@ -272,6 +272,9 @@ void export_TwoStepRATTLENVEGPUGyroid(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUPlane(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUPrimitive(pybind11::module& m);
 void export_TwoStepRATTLENVEGPUSphere(pybind11::module& m);
+
+        void export_virtual_siteType2GPU(pybind11::module&);
+
 #endif
     } // namespace detail
     } // namespace md
@@ -466,6 +469,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWallMieGPU(m);
     export_PotentialExternalWallGaussGPU(m);
     export_PotentialExternalWallMorseGPU(m);
+
+    export_virtual_siteType2GPU(m);
 #endif
 
     // updaters

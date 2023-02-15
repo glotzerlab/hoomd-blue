@@ -12,9 +12,9 @@
 
 namespace hoomd::md{
 
-    class VirtualSite : public MolecularForceCompute{
+    class VirtualSiteBase : public MolecularForceCompute{
     public:
-        VirtualSite(std::shared_ptr<SystemDefinition> sysdef) : MolecularForceCompute(sysdef){}
+        VirtualSiteBase(std::shared_ptr<SystemDefinition> sysdef) : MolecularForceCompute(sysdef){}
 
         virtual void updateVirtualParticles(uint64_t){};
 
@@ -42,9 +42,9 @@ namespace hoomd::md{
     };
 
     template<class Mapping>
-    class _VirtualSite : public VirtualSite{
+    class VirtualSite : public VirtualSiteBase{
     public:
-        _VirtualSite(std::shared_ptr<SystemDefinition> sysdef) : VirtualSite(sysdef){}
+        VirtualSite(std::shared_ptr<SystemDefinition> sysdef) : VirtualSiteBase(sysdef){}
 
 
         /// Update the position of the virtual site
@@ -54,41 +54,27 @@ namespace hoomd::md{
                 return;
             }
 
-
-            // access molecule order (this needs to be on top because of ArrayHandle scope) and its
-            // pervasive use across this function.
-            ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(),
-                                                       access_location::host,
-                                                       access_mode::read);
-            ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(),
-                                                     access_location::host,
-                                                     access_mode::read);
-            ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(),
-                                                     access_location::host,
-                                                     access_mode::read);
-
             // access the particle data arrays
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                            access_location::host,
                                            access_mode::readwrite);
-            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+            /*ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                      access_location::host,
+                                      access_mode::readwrite);*/
 
             Index2D molecule_indexer = getMoleculeIndexer();
             auto nmol = molecule_indexer.getH();
-            ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(),
-                                                        access_location::host,
-                                                        access_mode::read);
             ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(),
                                                       access_location::host,
                                                       access_mode::read);
             for(auto isite = 0; isite < nmol; isite++){
                 // last particle of the molecule is the virtual site
                 std::array<uint64_t, Mapping::n_sites> indices;
-                auto siteLength = Mapping::n_sites;
-                assert(siteLength == h_molecule_length.data[isite]);
-                auto moleculeStart = &(h_molecule_list.data[isite]);
-                std::copy(moleculeStart, moleculeStart + siteLength - 1, indices.data());
-                uint64_t site = *(moleculeStart + siteLength);
+                constexpr auto siteLength = Mapping::n_sites;
+                for(unsigned char s = 0; s < siteLength; s++){
+                    indices[s] = h_molecule_list.data[molecule_indexer(s, isite)];
+                }
+                uint64_t site = h_molecule_list.data[molecule_indexer(siteLength, isite)];
 
                 // only distribute the force from the vsite if its local
                 if(site >= m_pdata->getN())
@@ -96,7 +82,6 @@ namespace hoomd::md{
                 Mapping map(m_site_parameters, indices, site);
                 map.reconstructSite(h_postype.data);
             }
-
         }
 
         //! Distribute the force & virial from the virtual site
@@ -109,16 +94,10 @@ namespace hoomd::md{
             Index2D molecule_indexer = getMoleculeIndexer();
             unsigned int nmol = molecule_indexer.getH();
 
-            ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(),
-                                                        access_location::host,
-                                                        access_mode::read);
             ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(),
                                                       access_location::host,
                                                       access_mode::read);
 
-            // access particle data
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                            access_location::host,
                                            access_mode::read);
@@ -126,20 +105,15 @@ namespace hoomd::md{
             ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(),
                                              access_location::host,
                                              access_mode::readwrite);
-            ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),
-                                              access_location::host,
-                                              access_mode::readwrite);
             ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(),
                                              access_location::host,
                                              access_mode::readwrite);
 
             ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
-            ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
-            // reset constraint forces and torques
+            // reset constraint forces
             memset(h_force.data, 0, sizeof(Scalar4) * m_pdata->getN());
-            memset(h_torque.data, 0, sizeof(Scalar4) * m_pdata->getN());
             memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
             unsigned int n_particles_local = m_pdata->getN() + m_pdata->getNGhosts();
@@ -153,23 +127,24 @@ namespace hoomd::md{
             }
 
             for (unsigned int isite = 0; isite < nmol; isite++) {
-
                 // last particle of the molecule is the virtual site
                 std::array<uint64_t, Mapping::n_sites> indices;
-                auto siteLength = Mapping::n_sites;
-                assert(siteLength == h_molecule_length.data[isite]);
-                auto moleculeStart = &(h_molecule_list.data[isite]);
-                std::copy(moleculeStart, moleculeStart + siteLength - 1, indices.data());
-                uint64_t site = *(moleculeStart + siteLength);
+                constexpr auto siteLength = Mapping::n_sites;
+
+                for(unsigned char s = 0; s < siteLength; s++){
+                    indices[s] = h_molecule_list.data[molecule_indexer(s, isite)];
+                }
+                uint64_t site = h_molecule_list.data[molecule_indexer(siteLength, isite)];
 
                 // only distribute the force from the vsite if its local
                 if(site >= m_pdata->getN())
                     continue;
                 Mapping map(m_site_parameters, indices, site);
-                map.decomposeForce(h_net_force.data);
 
                 if(compute_virial)
-                    map.decomposeVirial(h_virial.data, m_virial_pitch); // TODO: check definitions of forces / virial / net_virial required here. Net virial on virtual site should be zero.
+                    map.decomposeVirial(h_virial.data, h_net_virial.data, m_virial_pitch, net_virial_pitch, h_postype.data, h_net_force.data);
+
+                map.decomposeForce(h_force.data, h_net_force.data);
             }
         }
 
@@ -181,7 +156,7 @@ namespace hoomd::md{
     namespace detail{
         template<class Mapping>
         void export_virtual_site(pybind11::module& m, const std::string& name){
-            pybind11::class_<_VirtualSite<Mapping>, VirtualSite, std::shared_ptr<_VirtualSite<Mapping>>>(m, name.c_str())
+            pybind11::class_<VirtualSite<Mapping>, VirtualSiteBase, std::shared_ptr<VirtualSite<Mapping>>>(m, name.c_str())
                     .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
         }
     }

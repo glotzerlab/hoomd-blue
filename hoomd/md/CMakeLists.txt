@@ -201,6 +201,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVTMTK.h
                 AlchemostatTwoStep.h
                 TwoStepNVTAlchemy.h
+        VirtualSite.h
+        VirtualSiteGPU.h
+        VirtualSiteMappings.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
@@ -394,6 +397,21 @@ foreach(_vstype ${_virtual_types})
                    export_virtual_site${_vstype}.cc
                    @ONLY)
     set(_md_sources ${_md_sources} export_virtual_site${_vstype}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_virtual_siteGPU.cc.inc
+                export_virtual_site${_vstype}GPU.cc
+                @ONLY)
+        configure_file(VirtualSiteGPUKernel.cu.inc
+                VirtualSite${_vstype}GPUKernel.cu
+                @ONLY)
+        set(_md_sources ${_md_sources} export_virtual_site${_vstype}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+                VirtualSite${_vstype}GPUKernel.cu
+                )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+
 endforeach()
 
 set(_pairs LJ Coulomb)
