@@ -288,8 +288,8 @@ class ShiftedGauss(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `ShiftedGauss` computes the Gaussian pair force should on every particle in the
-    simulation state:
+    `ShiftedGauss` computes the Gaussian pair force should on every particle 
+    in the simulation state:
 
     .. math::
         U(r) = \varepsilon \exp \left( -\frac{1}{2}
