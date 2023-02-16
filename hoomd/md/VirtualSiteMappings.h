@@ -27,11 +27,16 @@ namespace hoomd::md {
  * The base VSMap should never be used as template param, only its derived structs
  * Derived types should implement the following quantities:
  *
-        void decomposeForce(Scalar4 *force_array) {};
+        void decomposeForce(Scalar4* forces, Scalar4* net_forces);
 
-        void decomposeVirial(Scalar *virialArray, uint64_t virial_pitch) {};
+        void decomposeVirial(Scalar* virial,
+                             Scalar* net_virial,
+                             uint64_t virial_pitch,
+                             uint64_t net_virial_pitch,
+                             Scalar4* postype,
+                             Scalar4* forces);
 
-        void reconstructSite(Scalar4 *position_array) {};
+        void reconstructSite(Scalar4 *position_array);
 */
         const uint64_t site;
     };
@@ -47,7 +52,7 @@ namespace virtualsites {
     }
 
     template<std::size_t N>
-    void linearSum(Scalar4* ptr,
+    inline void linearSum(Scalar4* ptr,
                    const Scalar4& f,
                    const std::array<uint64_t, N>& indices,
                    const std::array<Scalar, N>& coefficients){
