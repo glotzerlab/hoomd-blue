@@ -12,19 +12,51 @@ v4.0.0 (net yet released)
 
 *Added*
 
+* ``hoomd.md.ConstantVolume`` integration method
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+* ``hoomd.md.ConstantPressure`` integration method, implementing the Langevin piston barostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+* Thermostats in ``hoomd.md.methods.thermostats`` that work with ``ConstantVolume`` and
+  ``ConstantPressure``, including the new Bussi-Donadio-Parrinello thermostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+
 *Changed*
 
-*Fixed*
+* ``hoomd.md.constrain.Rigid`` no longer takes ``diameters`` or ``charges`` as keys in the ``body``
+  parameters. ``create_bodies`` method now takes an optional ``charges`` argument to set charges
+  (`#1350 <https://github.com/glotzerlab/hoomd-blue/issues/1350>`_).
+* Control the precision with the CMake options ``HOOMD_LONGREAL_SIZE`` (default: 64) and
+  ``HOOMD_SHORTREAL_SIZE`` (default: 32)
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
+* [developers] ``ShortReal`` and ``LongReal`` types enable mixed precision implementations
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
+* ``hoomd.md.constrain.Rigid`` now updates constituent particle types each step
+  (`#1440 <https://github.com/glotzerlab/hoomd-blue/pull/1440>`_).
+
+*Deprecated*
+
+* ``Scalar``, ``Scalar2``, ``Scalar3``, and ``Scalar4`` data types. Use ``LongReal[N]`` instead in
+  new code
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
 
 *Removed*
 
-* ``fix_cudart_rpath`` CMake macro.
+* ``fix_cudart_rpath`` CMake macro
+  (`#1383 <https://github.com/glotzerlab/hoomd-blue/issues/1383>`_).
+* ``ENABLE_MPI_CUDA`` CMake option
+  (`#1401 <https://github.com/glotzerlab/hoomd-blue/issues/1401>`_).
+* ``Berendsen``, ``NPH``, ``NPT``, ``NVE``, ``NVT`` MD integration methods
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+* ``hoomd.write.GSD.log``
+  (`#1480 <https://github.com/glotzerlab/hoomd-blue/issues/1480>`_).
+* CMake option and compiler definition ``SINGLE_PRECISION``
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
 
 v3.x
 ----
 
-v3.9.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.9.0 (2023-02-15)
+^^^^^^^^^^^^^^^^^^^
 
 Added:
 
