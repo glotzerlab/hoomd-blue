@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifndef __PAIR_EVALUATOR_SHIFTEDGAUSS_H__
-#define __PAIR_EVALUATOR_SHIFTEDGAUSS_H__
+#ifndef __PAIR_EVALUATOR_EXPANDEDGAUSSIAN_H__
+#define __PAIR_EVALUATOR_EXPANDEDGAUSSIAN_H__
 
 #ifndef __HIPCC__
 #include <string>
@@ -29,19 +29,19 @@ namespace hoomd
     {
 namespace md
     {
-//! Class for evaluating the shifted Gaussian pair potential
+//! Class for evaluating the expanded Gaussian pair potential
 /*! <b>General Overview</b>
 
     See EvaluatorPairLJ
 
     <b>Gauss specifics</b>
 
-    EvaluatorPairShiftedGauss evaluates the function:
-    \f[ V_{\mathrm{shifted_gauss}}(r) = \varepsilon \exp \left[ -
+    EvaluatorPairExpandedGaussian evaluates the function:
+    \f[ V_{\mathrm{expanded_gauss}}(r) = \varepsilon \exp \left[ -
     \frac{1}{2}\left( \frac{r-r_{0}}{\sigma}\right)^2 \right] \f]
 
-    The Gaussian potential does not need diameter or charge. Three parameters
-    are specified and stored in a Scalar3.
+    The expanded Gaussian potential does not need diameter or charge. Three
+    parameters are specified and stored in a Scalar3.
     \a epsilon is placed in \a params.x, \a sigma is in \a params.y, and
     \a r_{0} is in \a params.z.
 
@@ -53,7 +53,7 @@ namespace md
     \a r_0 is the shifted distance of the gaussian potential.
 
 */
-class EvaluatorPairShiftedGauss
+class EvaluatorPairExpandedGaussian
     {
     public:
     //! Define the parameter type used by this pair potential evaluator
@@ -158,7 +158,8 @@ class EvaluatorPairShiftedGauss
         if (rsq < rcutsq)
             {
             Scalar sigma_sq = sigma * sigma;
-            Scalar r = fast::rsq**(Scalar(0.5));
+            Scalar rinv = fast::rsqrt(rsq);
+
             Scalar r_over_sigma_sq = (r - r_0) * (r - r_0) / sigma_sq;
             Scalar exp_val = fast::exp(-Scalar(1.0) / Scalar(2.0) * r_over_sigma_sq);
 

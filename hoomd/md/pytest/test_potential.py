@@ -413,7 +413,7 @@ def _valid_params(particle_types=['A', 'B']):
                                          shiftedgauss_arg_dict)
     valid_params_list.append(
         paramtuple(md.pair.ShiftedGauss,
-                   dict(zip(combos,shiftedgauss_valid_param_dicts)),
+                   dict(zip(combos, shiftedgauss_valid_param_dicts)),
                    {}))
 
     yukawa_arg_dict = {
