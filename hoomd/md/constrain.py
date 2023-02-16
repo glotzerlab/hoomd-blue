@@ -126,10 +126,10 @@ class Rigid(Constraint):
     .. rubric:: Constituent particles
 
     Select one or more particle types in the simulation to use as the central
-    particles. For each rigid body particle type, you set the constituent
-    particle type, position and orientations in body coordinates (see `body`).
-    Then, `Rigid` takes control of the constituent particles and sets their
-    position and orientation in the simulation box relative to the position and
+    particles. For each rigid body particle type, set the constituent particle
+    type, position and orientations in body coordinates (see `body`). Then,
+    `Rigid` takes control of the constituent particles and sets their position
+    and orientation in the simulation box relative to the position and
     orientation of the central particle:
 
     .. math::
@@ -222,9 +222,9 @@ class Rigid(Constraint):
     `hoomd.write.GSD` and initialize the new `Simulation <hoomd.Simulation>`
     using `create_state_from_gsd <Simulation.create_state_from_gsd>`. GSD stores
     all the particle data fields needed to reconstruct the state of the system,
-    including the body, angular momentum, and orientation of the body. You must
-    specify the same local body space environment to `body` as you did in the
-    earlier simulation - GSD does not store this information.
+    including the body, angular momentum, and orientation of the body. Set the
+    same local body space environment to `body` as in the earlier simulation -
+    GSD does not store this information.
 
     Example::
 
