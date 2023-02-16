@@ -216,7 +216,8 @@ def _get_message_filename(msg_file, message_file):
 
     if msg_file is not None:
         warnings.warn(
-            f"msg_file is deprecated since v3.10.0. Use message_filename.", FutureWarning)
+            "msg_file is deprecated since v3.10.0. Use message_filename.",
+            FutureWarning)
         return msg_file
 
 
@@ -286,7 +287,8 @@ class GPU(Device):
                  notice_level=2,
                  message_filename=None):
 
-        super().__init__(communicator, notice_level, _get_message_filename(msg_file, message_filename))
+        super().__init__(communicator, notice_level,
+                         _get_message_filename(msg_file, message_filename))
 
         if gpu_ids is None:
             gpu_ids = []
@@ -424,7 +426,8 @@ class CPU(Device):
                  notice_level=2,
                  message_filename=None):
 
-        super().__init__(communicator, notice_level, _get_message_filename(msg_file, message_filename))
+        super().__init__(communicator, notice_level,
+                         _get_message_filename(msg_file, message_filename))
 
         self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
@@ -434,7 +437,10 @@ class CPU(Device):
             self.num_cpu_threads = num_cpu_threads
 
 
-def auto_select(communicator=None, msg_file=None, notice_level=2, message_filename=None):
+def auto_select(communicator=None,
+                msg_file=None,
+                notice_level=2,
+                message_filename=None):
     """Automatically select the hardware device.
 
     Args:
@@ -458,6 +464,10 @@ def auto_select(communicator=None, msg_file=None, notice_level=2, message_filena
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:
-        return GPU(None, None, communicator, _get_message_filename(msg_file, message_filename), notice_level)
+        return GPU(None, None, communicator,
+                   _get_message_filename(msg_file, message_filename),
+                   notice_level)
     else:
-        return CPU(None, communicator, _get_message_filename(msg_file, message_filename), notice_level)
+        return CPU(None, communicator,
+                   _get_message_filename(msg_file, message_filename),
+                   notice_level)
