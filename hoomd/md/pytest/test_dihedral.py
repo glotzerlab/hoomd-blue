@@ -35,27 +35,6 @@ dihedral_test_parameters = [
         0.0852,
     ),
     (
-        hoomd.md.dihedral.Periodic,
-        dict(),
-        dict(k=3.0, d=-1, n=2, phi0=numpy.pi / 2),
-        0,
-        3,
-    ),
-    (
-        hoomd.md.dihedral.Periodic,
-        dict(),
-        dict(k=10.0, d=1, n=1, phi0=numpy.pi / 4),
-        5.0,
-        5.0,
-    ),
-    (
-        hoomd.md.dihedral.Periodic,
-        dict(),
-        dict(k=5.0, d=1, n=3, phi0=numpy.pi / 6),
-        1.9411,
-        0.0852,
-    ),
-    (
         hoomd.md.dihedral.OPLS,
         dict(),
         dict(k1=1.0, k2=1.5, k3=0.5, k4=0.75),
