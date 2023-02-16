@@ -70,15 +70,15 @@ language = 'en'
 
 default_role = 'any'
 
-pygments_style = 'sphinx'
+pygments_style = "friendly"
+pygments_dark_style = "native"
 
 todo_include_todos = False
 
-html_theme = 'sphinx_rtd_theme'
-html_css_files = ['css/hoomd-theme.css']
+html_theme = 'furo'
 html_static_path = ['_static']
 html_logo = 'hoomdblue-logo-vertical.svg'
-html_theme_options = {'logo_only': True}
+html_theme_options = {'sidebar_hide_name': True,}
 html_favicon = 'hoomdblue-logo-favicon.svg'
 
 IGNORE_MODULES = ['hoomd._hoomd']
