@@ -126,10 +126,10 @@ class Rigid(Constraint):
     .. rubric:: Constituent particles
 
     Select one or more particle types in the simulation to use as the central
-    particles. For each rigid body particle type, ou specify the constituent
-    particle position and orientations in body coordinates (see `body`). Then,
-    `Rigid` takes control of the constituent particles and sets their position
-    and orientation in the simulation box relative to the position and
+    particles. For each rigid body particle type, you set the constituent
+    particle type, position and orientations in body coordinates (see `body`).
+    Then, `Rigid` takes control of the constituent particles and sets their
+    position and orientation in the simulation box relative to the position and
     orientation of the central particle:
 
     .. math::
@@ -146,11 +146,10 @@ class Rigid(Constraint):
     of the central particle of that rigid body. `Rigid` also sets the
     constituent particle image consistent with the image of the central particle
     and the location of the constituent particle wrapped back into the
-    box. `Rigid` does not modify the constituent particle type ids, charge,
-    or diameter.
+    box.
 
     Warning:
-        `Rigid` **overwrites** the constituent particle positions and
+        `Rigid` **overwrites** the constituent particle type ids, positions and
         orientations. To change the position and orientation of a body, set the
         desired position and orientation of the central particle and call
         `run(0) <Simulation.run>` to trigger `Rigid` to update the particles.
@@ -234,15 +233,11 @@ class Rigid(Constraint):
             "constituent_types": ['A_const', 'A_const'],
             "positions": [(0,0,1),(0,0,-1)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
-            "charges": [0.0, 0.0],
-            "diameters": [1.0, 1.0]
             }
         rigid.body['B'] = {
             "constituent_types": ['B_const', 'B_const'],
             "positions": [(0,0,.5),(0,0,-.5)],
             "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
-            "charges": [0.0, 1.0],
-            "diameters": [1.5, 1.0]
             }
 
         # Can set rigid body definition to be None explicitly.
@@ -270,11 +265,11 @@ class Rigid(Constraint):
           `float`]]): List of orientations (as quaternions) of constituent
           particles.
 
-        Of these, `Rigid` uses ``positions`` and ``orientation`` to set the
-        constituent particle positions and orientations every time step.
-        `create_bodies` uses ``constituent_types``, ``charges``, and
-        ``diameters`` to populate those particle properties when creating
-        constituent particles.
+        Of these, `Rigid` uses ``constituent_types``, ``positions`` and
+        ``orientations`` to set the constituent particle type ids, positions and
+        orientations every time step. `create_bodies` uses all these parameters
+        to populate those particle properties when creating constituent
+        particles.
 
         Type: `TypeParameter` [``particle_type``, `dict`]
     """
