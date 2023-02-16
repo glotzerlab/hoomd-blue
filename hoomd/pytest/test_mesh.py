@@ -45,15 +45,20 @@ def test_empty_mesh(simulation_factory, two_particle_snapshot_factory):
 
     assert mesh.size == 0
     assert mesh.types[0] == "mesh"
-    assert len(mesh.triangles) == 0
-    assert len(mesh.type_ids) == 0
+    assert mesh.triangulation is None
     with pytest.raises(DataAccessError):
         mesh.bonds
+    with pytest.raises(DataAccessError):
+        mesh.triangles
+    with pytest.raises(DataAccessError):
+        mesh.type_ids
 
     mesh._attach(sim)
 
     assert mesh.size == 0
     assert mesh.types[0] == "mesh"
+    assert len(mesh.triangulation["triangles"]) == 0
+    assert len(mesh.triangulation["type_ids"]) == 0
     assert len(mesh.triangles) == 0
     assert len(mesh.bonds) == 0
     assert len(mesh.type_ids) == 0
@@ -69,14 +74,17 @@ def test_mesh_setter():
     assert mesh.types == ["vesicle", "patch"]
 
     mesh_type_ids = numpy.array([0, 1])
-    mesh.type_ids = mesh_type_ids
 
     mesh_triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
-    mesh.triangles = mesh_triangles
+
+    with pytest.raises(ValueError):
+        mesh.triangulation = dict(type_ids=[0], triangles=mesh_triangles)
+
+    mesh.triangulation = dict(type_ids=mesh_type_ids, triangles=mesh_triangles)
 
     assert mesh.size == 2
-    assert numpy.array_equal(mesh.triangles, mesh_triangles)
-    assert numpy.array_equal(mesh.type_ids, mesh_type_ids)
+    assert numpy.array_equal(mesh.triangulation["triangles"], mesh_triangles)
+    assert numpy.array_equal(mesh.triangulation["type_ids"], mesh_type_ids)
 
 
 def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
@@ -91,12 +99,17 @@ def test_mesh_setter_attached(simulation_factory, mesh_snapshot_factory):
         mesh.size = 3
 
     mesh_type_ids = numpy.array([0, 0])
-    mesh.type_ids = mesh_type_ids
 
     mesh_triangles = numpy.array([[0, 1, 2], [1, 2, 3]])
-    mesh.triangles = mesh_triangles
+
+    with pytest.raises(ValueError):
+        mesh.triangulation = dict(type_ids=[0], triangles=mesh_triangles)
+
+    mesh.triangulation = dict(type_ids=mesh_type_ids, triangles=mesh_triangles)
 
     assert mesh.size == 2
+    assert numpy.array_equal(mesh.triangulation["triangles"], mesh_triangles)
+    assert numpy.array_equal(mesh.triangulation["type_ids"], mesh_type_ids)
     assert numpy.array_equal(mesh.triangles, mesh_triangles)
     assert numpy.array_equal(mesh.type_ids, mesh_type_ids)
     assert numpy.array_equal(

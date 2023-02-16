@@ -37,6 +37,7 @@ import hoomd
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyIf, to_type_converter, NDArrayValidator
 from hoomd.logging import log
 import numpy as np
 
@@ -60,12 +61,18 @@ class Mesh(_HOOMDBaseObject):
 
     def __init__(self):
 
-        param_dict = ParameterDict(size=int, types=[str])
+        param_dict = ParameterDict(
+            types=[str],
+            size=int,
+            triangulation=OnlyIf(to_type_converter({
+                "type_ids": NDArrayValidator(np.uint),
+                "triangles": NDArrayValidator(np.uint, shape=[None, 3])
+            }),
+                                 allow_none=True))
 
         param_dict["types"] = ["mesh"]
         param_dict["size"] = 0
-        self._triangles = np.empty([0, 3], dtype=int)
-        self._type_ids = np.empty(0, dtype=int)
+        param_dict["triangulation"] = None
 
         self._param_dict.update(param_dict)
 
@@ -74,7 +81,9 @@ class Mesh(_HOOMDBaseObject):
         self._cpp_obj = _hoomd.MeshDefinition(
             self._simulation.state._cpp_sys_def, len(self._param_dict["types"]))
 
-        self.triangles = self._triangles
+        self._cpp_obj.setTypes(list(self._param_dict['types']))
+        if self._param_dict._dict["triangulation"] is not None:
+            self._set_triangulation(self._param_dict._dict["triangulation"])
 
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
@@ -86,46 +95,48 @@ class Mesh(_HOOMDBaseObject):
                 self._cpp_obj.setCommunicator(
                     self._simulation._system_communicator)
 
-    @log(category='sequence')
+    def _ensure_same_size(self, triangulation):
+        if len(triangulation["triangles"]) != len(triangulation["type_ids"]):
+            raise ValueError(
+                "Number of type_ids do not match number of triangles.")
+
+    def _setattr_param(self, attr, value):
+        if attr == "triangulation":
+            self._ensure_same_size(value)
+            self._set_triangulation(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _getattr_param(self, attr):
+        if attr == "triangulation":
+            return self._get_triangulation()
+        return super()._getattr_param(attr)
+
+    def _get_triangulation(self):
+        if self._attached:
+            return dict(type_ids=self.type_ids, triangles=self.triangles)
+        return self._param_dict._dict["triangulation"]
+
+    def _set_triangulation(self, value):
+        if self._attached:
+            self._cpp_obj.setTriangleData(value["triangles"], value["type_ids"])
+        else:
+            self._param_dict._dict["triangulation"] = value
+            self.size = len(value["triangles"])
+
+    @log(category='sequence', requires_run=True)
+    def type_ids(self):
+        """((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids."""
+        return self._cpp_obj.getTriangleData().typeid
+
+    @log(category='sequence', requires_run=True)
     def triangles(self):
         """((*N*, 3) `numpy.ndarray` of ``uint32``): Mesh triangulation.
 
         A list of triplets of particle tags which encodes the
         triangulation of the mesh structure.
         """
-        if self._attached:
-            return self._cpp_obj.getTriangleData().group
-        return self._triangles
-
-    @triangles.setter
-    def triangles(self, triag):
-        if self._attached:
-
-            if len(triag) != len(self._type_ids):
-                raise ValueError(
-                    "Number of type_ids do not match number of triangles.")
-            else:
-                self._cpp_obj.setTypes(list(self._param_dict['types']))
-
-                self._cpp_obj.setTriangleData(triag, self._type_ids)
-        else:
-            self.size = len(triag)
-        self._triangles = triag
-
-    @log(category='sequence')
-    def type_ids(self):
-        """((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids."""
-        if self._attached:
-            return self._cpp_obj.getTriangleData().typeid
-        return self._type_ids
-
-    @type_ids.setter
-    def type_ids(self, tid):
-        if self._attached and self.size == len(tid):
-            self._cpp_obj.setTypes(list(self._param_dict['types']))
-
-            self._cpp_obj.setTriangleData(self._triagles, tid)
-        self._type_ids = tid
+        return self._cpp_obj.getTriangleData().group
 
     @log(category='sequence', requires_run=True)
     def bonds(self):
