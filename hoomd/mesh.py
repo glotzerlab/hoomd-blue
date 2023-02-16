@@ -54,8 +54,8 @@ class Mesh(_HOOMDBaseObject):
 
         mesh_obj = mesh.Mesh()
         mesh_obj.types = ["mesh"]
-        mesh_obj.type_ids = [0,0,0,0]
-        mesh_obj.triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]]
+        mesh_obj.triangulation = dict(type_ids = [0,0,0,0],
+              triangles = [[0,1,2],[0,2,3],[0,1,3],[1,2,3]])
 
     """
 
