@@ -51,19 +51,14 @@ def test_common_properties(device, tmp_path):
                               num_cpu_threads=10)
 
 
-def _assert_gpu_properties(dev, gpu_error_checking):
-    """Assert properties specific to GPU objects are correct."""
-    assert dev.gpu_error_checking == gpu_error_checking
-
-
 @pytest.mark.gpu
 def test_gpu_specific_properties(device):
     # assert the defaults are right
-    _assert_gpu_properties(device, True)
+    assert device.gpu_error_checking
 
     # make sure we can set the properties
     device.gpu_error_checking = False
-    _assert_gpu_properties(device, False)
+    assert not device.gpu_error_checking
 
     # make sure we can give a list of GPU ids to the constructor
     hoomd.device.GPU(gpu_ids=[0])
