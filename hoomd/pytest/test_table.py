@@ -58,8 +58,12 @@ def get_output_from_table_writer(writer_function, output):
 
 
 def write_table_lines(table_writer):
-    for i in range(10):
-        table_writer.write()
+
+    def _write_table_lines():
+        for i in range(10):
+            table_writer.write()
+
+    return _write_table_lines
 
 
 def get_stdout(writer_function, output):
@@ -113,21 +117,13 @@ def test_invalid_attrs(logger):
 def test_header_generation(device, logger, get_table_writer, get_output_str):
 
     table_writer, output = get_table_writer(device, logger)
-    output_str = get_output_str(lambda: write_table_lines(table_writer), output)
+    output_str = get_output_str(write_table_lines(table_writer), output)
     lines = output_str.split('\n')
     headers = lines[0].split()
     expected_headers = [
         'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string'
     ]
     assert all(hdr in headers for hdr in expected_headers)
-    """
-    for i in range(1, 10):
-        values = lines[i].split()
-        assert not any(v in expected_headers for v in values)
-    table_writer.logger[('new', 'quantity')] = (lambda: 53, 'scalar')
-    table_writer.write()
-    output_str = output.getvalue()
-    """
     for i in range(1, 10):
         values = lines[i].split()
         assert not any(v in expected_headers for v in values)
