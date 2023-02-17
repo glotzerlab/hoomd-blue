@@ -61,10 +61,44 @@ TriangleData::Snapshot MeshDefinition::getTriangleData()
     return triangle_data;
     }
 
-//! Triangle array setter
-void MeshDefinition::setTriangleData(pybind11::array_t<int> triangles,
-                                     pybind11::array_t<int> type_ids)
+//! Triangle array getter
+pybind11::object MeshDefinition::getTriangulationData()
     {
+    pybind11::dict triangulation;
+
+    TriangleData::Snapshot triangle_data = getTriangleData();
+
+    unsigned int len_triang = triangle_data.getSize();
+
+    std::vector<size_t> dims(2);
+    dims[0] = len_triang;
+    dims[1] = 3;
+    auto triangles = pybind11::array_t<unsigned int>(dims);
+    int* ptr1 = static_cast<int*>(triangles.request().ptr);
+
+    auto typeids = pybind11::array_t<unsigned int>(len_triang);
+    int* ptr2 = static_cast<int*>(typeids.request().ptr);
+
+    for (size_t i = 0; i < len_triang; i++)
+        {
+        ptr1[i * 3] = triangle_data.groups[i].tag[0];
+        ptr1[i * 3 + 1] = triangle_data.groups[i].tag[1];
+        ptr1[i * 3 + 2] = triangle_data.groups[i].tag[2];
+        ptr2[i] = triangle_data.type_id[i];
+        }
+
+    triangulation["type_ids"] = typeids;
+    triangulation["triangles"] = triangles;
+
+    return triangulation;
+    }
+
+//! Triangle array setter
+void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
+    {
+    pybind11::array_t<int> triangles = triangulation["triangles"].cast<pybind11::array_t<int>>();
+    pybind11::array_t<int> type_ids = triangulation["type_ids"].cast<pybind11::array_t<int>>();
+
     TriangleData::Snapshot triangle_data = getTriangleData();
     const int* ptr1 = static_cast<const int*>(triangles.request().ptr);
 
@@ -100,10 +134,12 @@ void export_MeshDefinition(pybind11::module& m)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
         .def("getBondData", &MeshDefinition::getBondData)
         .def("getTriangleData", &MeshDefinition::getTriangleData)
-        .def("setTriangleData", &MeshDefinition::setTriangleData)
         .def("setTypes", &MeshDefinition::setTypes)
+        .def("getSize", &MeshDefinition::getSize)
+        .def_property("triangulation",
+                      &MeshDefinition::getTriangulationData,
+                      &MeshDefinition::setTriangulationData)
         .def_property_readonly("types", &MeshDefinition::getTypes)
-        .def_property_readonly("size", &MeshDefinition::getSize)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &MeshDefinition::setCommunicator)
 #endif

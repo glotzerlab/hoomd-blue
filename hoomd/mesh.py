@@ -63,16 +63,16 @@ class Mesh(_HOOMDBaseObject):
 
         param_dict = ParameterDict(
             types=[str],
-            size=int,
             triangulation=OnlyIf(to_type_converter({
                 "type_ids": NDArrayValidator(np.uint),
                 "triangles": NDArrayValidator(np.uint, shape=[None, 3])
             }),
-                                 allow_none=True))
+                                 postprocess=self._ensure_same_size))
 
         param_dict["types"] = ["mesh"]
-        param_dict["size"] = 0
-        param_dict["triangulation"] = None
+        param_dict["triangulation"] = dict(type_ids=np.zeros(0, dtype=int),
+                                           triangles=np.zeros((0, 3),
+                                                              dtype=int))
 
         self._param_dict.update(param_dict)
 
@@ -82,8 +82,6 @@ class Mesh(_HOOMDBaseObject):
             self._simulation.state._cpp_sys_def, len(self._param_dict["types"]))
 
         self._cpp_obj.setTypes(list(self._param_dict['types']))
-        if self._param_dict._dict["triangulation"] is not None:
-            self._set_triangulation(self._param_dict._dict["triangulation"])
 
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
@@ -96,33 +94,12 @@ class Mesh(_HOOMDBaseObject):
                     self._simulation._system_communicator)
 
     def _ensure_same_size(self, triangulation):
+        if triangulation is None:
+            return None
         if len(triangulation["triangles"]) != len(triangulation["type_ids"]):
             raise ValueError(
                 "Number of type_ids do not match number of triangles.")
-
-    def _setattr_param(self, attr, value):
-        if attr == "triangulation":
-            self._ensure_same_size(value)
-            self._set_triangulation(value)
-            return
-        super()._setattr_param(attr, value)
-
-    def _getattr_param(self, attr):
-        if attr == "triangulation":
-            return self._get_triangulation()
-        return super()._getattr_param(attr)
-
-    def _get_triangulation(self):
-        if self._attached:
-            return dict(type_ids=self.type_ids, triangles=self.triangles)
-        return self._param_dict._dict["triangulation"]
-
-    def _set_triangulation(self, value):
-        if self._attached:
-            self._cpp_obj.setTriangleData(value["triangles"], value["type_ids"])
-        else:
-            self._param_dict._dict["triangulation"] = value
-            self.size = len(value["triangles"])
+        return triangulation
 
     @log(category='sequence', requires_run=True)
     def type_ids(self):
@@ -146,3 +123,12 @@ class Mesh(_HOOMDBaseObject):
         bonds within the mesh structure.
         """
         return self._cpp_obj.getBondData().group
+
+    @property
+    def size(self):
+        """(`uint32``): Number of triangles in the mesh."""
+        if self._attached:
+            return self._cpp_obj.getSize()
+        if self.triangulation is None:
+            return 0
+        return len(self.triangulation["triangles"])
