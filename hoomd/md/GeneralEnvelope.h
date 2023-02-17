@@ -88,7 +88,7 @@ public:
         : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params)
         {
             // compute current janus direction vectors
-            vec3<Scalar> ex(1,0,0); // ex = ni
+            vec3<Scalar> ex(1,0,0);
             vec3<Scalar> ey(0,1,0);
             vec3<Scalar> ez(0,0,1);
 
@@ -157,7 +157,7 @@ public:
 
     DEVICE Scalar ModulatorPrimei()
         {
-            Scalar fact = Modulatori();
+            Scalar fact = Modulatori(); // TODO only calculate Modulatori once per instantiation
             // the -1 comes from doing the derivative with respect to ni
             return Scalar(-1) * params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
         }
@@ -198,7 +198,6 @@ public:
             Scalar jPi = modPj*modi/magdr;
             // TODO Jan 4 2023: I don't think this division by s.magdr should be here mathematically, but probably for efficiency
 
-
             // NEW way with Philipp Feb 9
 
             torque_div_energy_i =
@@ -216,7 +215,9 @@ public:
             torque_div_energy_j *= Scalar(-1) * Modulatori() * ModulatorPrimej() / magdr;
 
 
-            force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr
+
+            // negative here bc forcedivr has the implicit negative in PairModulator
+            force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
                         + jPi*(nj_world.x - costhetaj*dr.x/magdr));
             force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
                         + jPi*(nj_world.y - costhetaj*dr.y/magdr));

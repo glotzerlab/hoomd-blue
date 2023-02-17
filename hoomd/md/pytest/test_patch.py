@@ -18,7 +18,7 @@ patch_test_parameters = [
     (
         hoomd.md.pair.aniso.JanusLJ,
         {},
-        {"pair_params": {"epsilon": 1,"sigma": 1},
+        {"pair_params": {"epsilon": 1, "sigma": 1},
          "envelope_params": {"alpha": numpy.pi/2,
                              "omega": 10,
                              "ni": (1,0,0),
@@ -26,11 +26,27 @@ patch_test_parameters = [
                              }
          },
         [[0,0,0], [2,0,0]], # positions
-        [[1,0,0,0], [sqrt2inv, 0, 0, sqrt2inv]], # orientations
-        [0,0,0], # todo put in right force values
-        -2.7559e-6,
+        [[1,0,0,0], [1, 0, 0, 0]], # orientations
+        [-8.245722889538097e-6, -8.245722889538097e-6, -8.245722889538097e-6],
+        -2.79291e-6, # energy
         [[0,0,0], [0,0,0]] # todo put in right torque values
-    )
+    ),
+    (
+        hoomd.md.pair.aniso.JanusLJ,
+        {},
+        {"pair_params": {"epsilon": 1, "sigma": 1},
+         "envelope_params": {"alpha": 1.5707963267948966,
+                             "omega": 10,
+                             "ni": (1, 0, 0),
+                             "nj": (1, 0, 0)
+                             }
+         },
+        [[0, 0, 0], [0, 2, 1]],
+        [[1., 0., 0., 0.], [1., 0., 0., 0.]],
+        [-0.009917854876042957, -0.045408725814919615, -0.045408725814919615],
+        -0.007936,
+        [[0., -0.01774543546943833, 0.03549087093887666],
+         [0., 0.01774543546943833, -0.03549087093887666]])
 ]
 
 
@@ -80,7 +96,8 @@ def test_after_attaching(patchy_snapshot_factory, simulation_factory,
     potential.params[('A','A')] = params
 
     sim.operations.integrator = hoomd.md.Integrator(dt = 0.05,
-                                                    forces = [potential])
+                                                    forces = [potential],
+                                                    integrate_rotational_dof = True)
     sim.run(0)
     for key in params:
         assert potential.params[('A','A')][key] == pytest.approx(params[key])
@@ -110,13 +127,22 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
     sim_torques = potential.torques
     if sim.device.communicator.rank == 0:
         assert sim_energy == pytest.approx(energy, rel=1e-2)
-        
-        # numpy.testing.assert_allclose(sim_forces[0],
-        #                               force_array)
 
-        # todo test force
+        print(sim_forces)
+        print(force)
+        numpy.testing.assert_allclose(sim_forces[0],
+                                      force,
+                                      rtol = 1e-2,
+                                      atol = 1e-5)
 
+        numpy.testing.assert_allclose(sim_torques[0],
+                                      torques[0],
+                                      rtol = 1e-2,
+                                      atol = 1e-5)
 
-        # todo test torque
+        numpy.testing.assert_allclose(sim_torques[1],
+                                      torques[1],
+                                      rtol = 1e-2,
+                                      atol = 1e-5)
     
     

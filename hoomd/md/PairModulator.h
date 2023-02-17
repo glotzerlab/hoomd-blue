@@ -219,6 +219,7 @@ public:
 
             // modulate forces
             // TODO check this math. yes.
+            // second term has the negative sign for force calculation in force_divr
             force.x = pair_eng*force.x + dr.x*force_divr*envelope;
             force.y = pair_eng*force.y + dr.y*force_divr*envelope;
             force.z = pair_eng*force.z + dr.z*force_divr*envelope;
