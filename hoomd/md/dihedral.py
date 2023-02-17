@@ -41,8 +41,6 @@ Important:
     parallel compact state ( \|_\| ).
 """
 
-import warnings
-
 from hoomd.md import _md
 from hoomd.md.force import Force
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -106,7 +104,7 @@ class Periodic(Dihedral):
 
     Examples::
 
-        harmonic = dihedral.Harmonic()
+        harmonic = dihedral.Periodic()
         harmonic.params['A-A-A-A'] = dict(k=3.0, d=-1, n=3, phi0=0)
         harmonic.params['A-B-C-D'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
     """
@@ -118,20 +116,6 @@ class Periodic(Dihedral):
             'params', 'dihedral_types',
             TypeParameterDict(k=float, d=float, n=int, phi0=float, len_keys=1))
         self._add_typeparam(params)
-
-
-class Harmonic(Periodic):
-    """Periodic dihedral force.
-
-    .. deprecated:: v3.7.0
-        Use `Periodic`.
-    """
-
-    def __init__(self):
-        warnings.warn(
-            "Harmonic is deprecated and will be removed in hoomd 4.0. Use "
-            "Periodic instead.", FutureWarning)
-        super().__init__()
 
 
 class Table(Dihedral):
