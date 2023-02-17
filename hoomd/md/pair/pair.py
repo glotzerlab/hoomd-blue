@@ -236,7 +236,7 @@ class Gaussian(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `Gauss` computes the Gaussian pair force should on every particle in the
+    `Gaussian` computes the Gaussian pair force should on every particle in the
     simulation state:
 
     .. math::
@@ -277,20 +277,6 @@ class Gaussian(Pair):
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
-
-
-class Gauss(Gaussian):
-    """Gaussian pair force.
-
-    .. deprecated:: v3.10.0
-        Use `Gaussian`.
-    """
-
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
-        warnings.warn(
-            "Gauss is deprecated and will be removed in hoomd 4.0. Use "
-            "Gaussian instead.", FutureWarning)
-        super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
 class ExpandedLJ(Pair):
