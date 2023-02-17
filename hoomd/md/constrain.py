@@ -19,12 +19,30 @@ Warning:
     instance solves for its constraints independently.
 """
 
+import warnings
+
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.md.force import Force
 import hoomd
+
+
+class _DeprecateKey:
+
+    def __init__(self, name, version="4.0", alt=""):
+        self.name = name
+        self.version = version
+        self.alt = alt
+
+    def __call__(self, value):
+        msg = f"The {self.name} key is deprecated and will be removed in hoomd "
+        msg += f"{self.version}."
+        if self.alt:
+            msg += f" Use {self.alt} in version {self.version} instead."
+        warnings.warn(msg, FutureWarning)
+        return value
 
 
 class Constraint(Force):
@@ -300,8 +318,12 @@ class Rigid(Constraint):
                 'constituent_types': [str],
                 'positions': [(float,) * 3],
                 'orientations': [(float,) * 4],
-                'charges': [float],
-                'diameters': [float]
+                'charges':
+                    OnlyIf(to_type_converter([float]),
+                           preprocess=_DeprecateKey("charges")),
+                'diameters':
+                    OnlyIf(to_type_converter([float]),
+                           preprocess=_DeprecateKey("diameters"))
             }),
                                      allow_none=True),
                               len_keys=1))
