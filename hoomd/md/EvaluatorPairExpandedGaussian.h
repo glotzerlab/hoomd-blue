@@ -10,7 +10,7 @@
 
 #include "hoomd/HOOMDMath.h"
 
-/*! \file EvaluatorPairShiftedGauss.h
+/*! \file EvaluatorPairEXPANDEDGAUSSIAN.h
     \brief Defines the pair evaluator class for shifted Gaussian potentials
 */
 
@@ -38,19 +38,19 @@ namespace md
 
     EvaluatorPairExpandedGaussian evaluates the function:
     \f[ V_{\mathrm{expanded_gauss}}(r) = \varepsilon \exp \left[ -
-    \frac{1}{2}\left( \frac{r-r_{0}}{\sigma}\right)^2 \right] \f]
+    \frac{1}{2}\left( \frac{r-\delta}}{\sigma}\right)^2 \right] \f]
 
     The expanded Gaussian potential does not need diameter or charge. Three
     parameters are specified and stored in a Scalar3.
     \a epsilon is placed in \a params.x, \a sigma is in \a params.y, and
-    \a r_{0} is in \a params.z.
+    \a delta is in \a params.z.
 
     \a epsilon and \a sigma are related to the standard lj parameters sigma and
     epsilon by:
     - \a epsilon = \f$ \varepsilon \f$
     - \a sigma = \f$ \sigma \f$
 
-    \a r_0 is the shifted distance of the gaussian potential.
+    \a delta is the shifted distance of the gaussian potential.
 
 */
 class EvaluatorPairExpandedGaussian
@@ -61,7 +61,7 @@ class EvaluatorPairExpandedGaussian
         {
         Scalar epsilon;
         Scalar sigma;
-        Scalar r_0;
+        Scalar delta;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -76,13 +76,13 @@ class EvaluatorPairExpandedGaussian
 #endif
 
 #ifndef __HIPCC__
-        param_type() : epsilon(0), sigma(0), r_0(0) { }
+        param_type() : epsilon(0), sigma(0), delta(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
             {
             sigma = v["sigma"].cast<Scalar>();
             epsilon = v["epsilon"].cast<Scalar>();
-            r_0 = v["r_0"].cast<Scalar>();
+            delta = v["delta"].cast<Scalar>();
             }
 
         // used to facilitate unit testing
@@ -90,7 +90,7 @@ class EvaluatorPairExpandedGaussian
             {
             sigma = sig;
             epsilon = eps;
-            r_0 = r;
+            delta = r;
             }
 
         pybind11::dict asDict()
@@ -98,7 +98,7 @@ class EvaluatorPairExpandedGaussian
             pybind11::dict v;
             v["sigma"] = sigma;
             v["epsilon"] = epsilon;
-            v["r_0"] = r_0;
+            v["delta"] = delta;
             return v;
             }
 #endif
@@ -114,10 +114,10 @@ class EvaluatorPairExpandedGaussian
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairShiftedGauss(Scalar _rsq, Scalar _rcutsq,
-                                     const param_type& _params)
+    DEVICE EvaluatorPairExpandedGaussian(Scalar _rsq, Scalar _rcutsq,
+                                         const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon),
-          sigma(_params.sigma), r_0(_params.r_0)
+          sigma(_params.sigma), delta(_params.delta)
         {
         }
 
@@ -154,16 +154,20 @@ class EvaluatorPairExpandedGaussian
     */
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
+        // precompute some quantities
+        Scalar r = fast::sqrt(rsq);
+        Scalar rinv = Scalar(1.0) / r;
+
         // compute the force divided by r in force_divr
         if (rsq < rcutsq)
             {
+            Scalar rmd = r - delta;
+            Scalar rmd_sq = (r - delta) * (r - delta);
             Scalar sigma_sq = sigma * sigma;
-            Scalar rinv = fast::rsqrt(rsq);
+            Scalar rmd_over_sigma_sq = rmd_sq / sigma_sq;
+            Scalar exp_val = fast::exp(-Scalar(1.0) / Scalar(2.0) * rmd_over_sigma_sq);
 
-            Scalar r_over_sigma_sq = (r - r_0) * (r - r_0) / sigma_sq;
-            Scalar exp_val = fast::exp(-Scalar(1.0) / Scalar(2.0) * r_over_sigma_sq);
-
-            force_divr = epsilon / sigma_sq * exp_val * (Scalar(1.0) - r_0 / r);
+            force_divr = epsilon / sigma_sq * exp_val * rmd * rinv;
             pair_eng = epsilon * exp_val;
 
             if (energy_shift)
@@ -192,7 +196,7 @@ class EvaluatorPairExpandedGaussian
      */
     static std::string getName()
         {
-        return std::string("shiftedgauss");
+        return std::string("expandedgaussian");
         }
 
     std::string getShapeSpec() const
@@ -206,10 +210,10 @@ class EvaluatorPairExpandedGaussian
     Scalar rcutsq;  //!< Stored rcutsq from the constructor
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
     Scalar sigma;   //!< sigma parameter extracted from the params passed to the constructor
-    Scalar r_0;     //!< r_0 parameter extracted from the params passed to the constructor
+    Scalar delta;     //!< delta parameter extracted from the params passed to the constructor
     };
 
     } // end namespace md
     } // end namespace hoomd
 
-#endif // __PAIR_EVALUATOR_SHIFTEDGAUSS_H__
+#endif // __PAIR_EVALUATOR_EXPANDEDGAUSSIAN_H__

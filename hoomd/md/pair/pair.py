@@ -279,8 +279,8 @@ class Gauss(Pair):
         self._add_typeparam(params)
 
 
-class ShiftedGauss(Pair):
-    r"""Shifted Gaussian pair force.
+class ExpandedGaussian(Pair):
+    r"""Expanded Gaussian pair force.
 
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list.
@@ -288,31 +288,31 @@ class ShiftedGauss(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `ShiftedGauss` computes the Gaussian pair force should on every particle
+    `ExpandedGaussian` computes the Gaussian pair force should on every particle
     in the simulation state:
 
     .. math::
         U(r) = \varepsilon \exp \left( -\frac{1}{2}
-               \left( \frac{r-r_{0}}{\sigma} \right)^2 \right)
+               \left( \frac{r-\delta}{\sigma} \right)^2 \right)
 
     Example::
 
         nl = nlist.Cell()
-        sgauss = pair.ShiftedGauss(default_r_cut=3.0, nlist=nl)
-        sgauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, r_0=0.5)
+        sgauss = pair.ExpandedGaussian(default_r_cut=3.0, nlist=nl)
+        sgauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, delta=0.5)
         sgauss.r_cut[('A', 'B')] = 3.0
 
     .. py:attribute:: params
 
-        The shifted Gauss potential parameters. The dictionary has the following
-        keys:
+        The expanded Gauss potential parameters. The dictionary has the
+        following keys:
 
         * ``epsilon`` (`float`, **required**) - energy parameter
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) - particle size
           :math:`\sigma` :math:`[\mathrm{length}]`
-        * ``r_0`` (`float`, **required**) - shift distabce
-          :math:`r_{0}` :math:`[\mathrm{length}]`
+        * ``delta`` (`float`, **required**) - shift distabce
+          :math:`\delta` :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -323,13 +323,13 @@ class ShiftedGauss(Pair):
 
         Type: `str`
     """
-    _cpp_class_name = "PotentialPairShiftedGauss"
+    _cpp_class_name = "PotentialPairExpandedGaussian"
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, r_0 = float,
+            TypeParameterDict(epsilon=float, sigma=float, delta = float,
                               len_keys=3))
         self._add_typeparam(params)
 

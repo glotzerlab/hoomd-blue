@@ -185,12 +185,12 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(gauss_invalid_dicts, md.pair.Gauss, {}))
 
-    shiftedgauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05, 'r_0': 0.1}
-    shiftedgauss_invalid_dicts = _make_invalid_param_dict(
-                                     shiftedgauss_valid_dict)
+    expandedgaussian_valid_dict = {'sigma': 0.05, 'epsilon': 0.05, 'delta': 0.1}
+    expandedgaussian_invalid_dicts = _make_invalid_param_dict(
+                                     expandedgaussian_valid_dict)
     invalid_params_list.extend(
-        _make_invalid_params(shiftedgauss_invalid_dicts,
-                             md.pair.ShiftedGauss, {}))
+        _make_invalid_params(expandedgaussian_invalid_dicts,
+                             md.pair.ExpandedGaussian, {}))
 
     yukawa_valid_dict = {"epsilon": 0.0005, "kappa": 1}
     yukawa_invalid_dicts = _make_invalid_param_dict(yukawa_valid_dict)
@@ -406,14 +406,14 @@ def _valid_params(particle_types=['A', 'B']):
         paramtuple(md.pair.Gauss, dict(zip(combos, gauss_valid_param_dicts)),
                    {}))
 
-    shiftedgauss_arg_dict = {'epsilon': [0.025, 0.05, 0.075],
+    expandedgaussian_arg_dict = {'epsilon': [0.025, 0.05, 0.075],
                              'sigma': [0.5, 1.0, 1.5],
-                             'r_0': [0.1, 0.2, 0.3]}
-    shiftedgauss_valid_param_dicts = _make_valid_param_dicts(
-                                         shiftedgauss_arg_dict)
+                             'delta': [0.1, 0.2, 0.3]}
+    expandedgaussian_valid_param_dicts = _make_valid_param_dicts(
+                                         expandedgaussian_arg_dict)
     valid_params_list.append(
-        paramtuple(md.pair.ShiftedGauss,
-                   dict(zip(combos, shiftedgauss_valid_param_dicts)),
+        paramtuple(md.pair.ExpandedGaussian,
+                   dict(zip(combos, expandedgaussian_valid_param_dicts)),
                    {}))
 
     yukawa_arg_dict = {
