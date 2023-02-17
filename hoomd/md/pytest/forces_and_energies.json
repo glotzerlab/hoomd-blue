@@ -1174,17 +1174,17 @@
       {
         "sigma": 0.5,
         "epsilon": 0.025,
-        "r_0": 0.1
+        "delta": 0.1
       },
       {
         "sigma": 1.0,
         "epsilon": 0.05,
-        "r_0": 0.2
+        "delta": 0.2
       },
       {
         "sigma": 1.5,
         "epsilon": 0.075,
-        "r_0": 0.3
+        "delta": 0.3
       }
     ],
     "forces": [
