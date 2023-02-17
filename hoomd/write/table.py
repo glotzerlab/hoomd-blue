@@ -406,9 +406,9 @@ class Table(_InternalCustomWriter):
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
-        output (``file-like`` object): A file-like object to output
-            the data from. The object must have ``write`` and ``flush`` methods
-            and a ``mode`` attribute.
+        output (``file-like`` object or str): Either a file-like object to
+            output the data from or the string 'notice'. The object must have
+            ``write`` and ``flush`` methods and a ``mode`` attribute.
         header_sep (str): String to use to separate names in
             the logger's namespace.'. For example, if logging the total energy
             of an `hoomd.md.pair.LJ` pair force object, the default header would
