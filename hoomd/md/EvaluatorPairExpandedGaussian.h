@@ -195,7 +195,7 @@ class EvaluatorPairExpandedGaussian
      */
     static std::string getName()
         {
-        return std::string("expandedgaussian");
+        return std::string("expanded_gaussian");
         }
 
     std::string getShapeSpec() const
