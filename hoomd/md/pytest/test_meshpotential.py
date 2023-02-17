@@ -157,7 +157,6 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.size = 1
     mesh.triangulation = dict(type_ids=[0], triangles=[[0, 1, 2]])
 
     mesh_bond_potential = mesh_bond_cls(mesh)
