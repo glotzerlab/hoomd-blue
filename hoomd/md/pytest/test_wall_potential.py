@@ -63,7 +63,7 @@ class WallGenerator:
 
 _potential_cls = (
     md.external.wall.LJ,
-    md.external.wall.Gauss,
+    md.external.wall.Gaussian,
     md.external.wall.Yukawa,
     md.external.wall.Morse,
     md.external.wall.ForceShiftedLJ,

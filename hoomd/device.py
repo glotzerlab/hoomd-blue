@@ -20,8 +20,6 @@ See Also:
     `hoomd.Simulation`
 """
 
-import warnings
-
 import contextlib
 import hoomd
 from hoomd import _hoomd
@@ -31,9 +29,9 @@ class Device:
     """Base class device object.
 
     Provides methods and properties common to `CPU` and `GPU`, including those
-    that control where status messages are stored (`msg_file`) how many status
-    messages HOOMD-blue prints (`notice_level`) and a method for user provided
-    status messages (`notice`).
+    that control where status messages are stored (`message_filename`) how many
+    status messages HOOMD-blue prints (`notice_level`) and a method for user
+    provided status messages (`notice`).
 
     Warning:
         `Device` cannot be used directly. Instantate a `CPU` or `GPU` object.
@@ -50,7 +48,7 @@ class Device:
         information.
     """
 
-    def __init__(self, communicator, notice_level, msg_file):
+    def __init__(self, communicator, notice_level, message_filename):
         # MPI communicator
         if communicator is None:
             self._comm = hoomd.communicator.Communicator()
@@ -59,13 +57,13 @@ class Device:
 
         # c++ messenger object
         self._cpp_msg = _create_messenger(self.communicator.cpp_mpi_conf,
-                                          notice_level, msg_file)
+                                          notice_level, message_filename)
 
         # c++ execution configuration mirror class
         self._cpp_exec_conf = None
 
         # name of the message file
-        self._msg_file = msg_file
+        self._message_filename = message_filename
 
     @property
     def communicator(self):
@@ -88,16 +86,18 @@ class Device:
         self._cpp_msg.setNoticeLevel(notice_level)
 
     @property
-    def msg_file(self):
+    def message_filename(self):
         """str: Filename to write messages to.
 
         By default, HOOMD prints all messages and errors to Python's
         `sys.stdout` and `sys.stderr` (or the system's ``stdout`` and ``stderr``
         when running in an MPI environment).
 
-        Set `msg_file` to a filename to redirect these messages to that file.
+        Set `message_filename` to a filename to redirect these messages to that
+        file.
 
-        Set `msg_file` to `None` to use the system's ``stdout`` and ``stderr``.
+        Set `message_filename` to `None` to use the system's ``stdout`` and
+        ``stderr``.
 
         Note:
             All MPI ranks within a given partition must open the same file.
@@ -111,15 +111,15 @@ class Device:
                     ranks_per_partition=2)
                 filename = f'messages.{communicator.partition}'
                 device = hoomd.device.GPU(communicator=communicator,
-                                          msg_file=filename)
+                                          message_filename=filename)
         """
-        return self._msg_file
+        return self._message_filename
 
-    @msg_file.setter
-    def msg_file(self, fname):
-        self._msg_file = fname
-        if fname is not None:
-            self._cpp_msg.openFile(fname)
+    @message_filename.setter
+    def message_filename(self, filename):
+        self._message_filename = filename
+        if filename is not None:
+            self._cpp_msg.openFile(filename)
         else:
             self._cpp_msg.openStd()
 
@@ -152,19 +152,19 @@ class Device:
             message (str): Message to write.
             level (int): Message notice level.
 
-        Write the given message string to the output defined by `msg_file`
-        on MPI rank 0 when `notice_level` >= ``level``.
+        Write the given message string to the output defined by
+        `message_filename` on MPI rank 0 when `notice_level` >= ``level``.
 
         Hint:
             Use `notice` instead of `print` to write status messages and your
             scripts will work well in parallel MPI jobs. `notice` writes message
-            only on rank 0. Use with a rank-specific `msg_file` to troubleshoot
-            issues with specific partitions.
+            only on rank 0. Use with a rank-specific `message_filename` to
+            troubleshoot issues with specific partitions.
         """
         self._cpp_msg.notice(level, str(message) + "\n")
 
 
-def _create_messenger(mpi_config, notice_level, msg_file):
+def _create_messenger(mpi_config, notice_level, message_filename):
     msg = _hoomd.Messenger(mpi_config)
 
     # try to detect if we're running inside an MPI job
@@ -177,8 +177,8 @@ def _create_messenger(mpi_config, notice_level, msg_file):
     if notice_level is not None:
         msg.setNoticeLevel(notice_level)
 
-    if msg_file is not None:
-        msg.openFile(msg_file)
+    if message_filename is not None:
+        msg.openFile(message_filename)
 
     return msg
 
@@ -196,7 +196,7 @@ class GPU(Device):
         communicator (hoomd.communicator.Communicator): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
 
-        msg_file (str): Filename to write messages to. When `None`, use
+        message_filename (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
             ranks are collected into this file.
 
@@ -236,14 +236,16 @@ class GPU(Device):
 
     """
 
-    def __init__(self,
-                 gpu_ids=None,
-                 num_cpu_threads=None,
-                 communicator=None,
-                 msg_file=None,
-                 notice_level=2):
+    def __init__(
+        self,
+        gpu_ids=None,
+        num_cpu_threads=None,
+        communicator=None,
+        message_filename=None,
+        notice_level=2,
+    ):
 
-        super().__init__(communicator, notice_level, msg_file)
+        super().__init__(communicator, notice_level, message_filename)
 
         if gpu_ids is None:
             gpu_ids = []
@@ -255,25 +257,6 @@ class GPU(Device):
 
         if num_cpu_threads is not None:
             self.num_cpu_threads = num_cpu_threads
-
-    @property
-    def memory_traceback(self):
-        """bool: Whether GPU memory tracebacks should be enabled.
-
-        Memory tracebacks are useful for developers when debugging GPU code.
-
-        .. deprecated:: v3.4.0
-           `memory_traceback` has no effect.
-        """
-        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
-                      FutureWarning)
-        return self._cpp_exec_conf.memoryTracingEnabled()
-
-    @memory_traceback.setter
-    def memory_traceback(self, mem_traceback):
-        warnings.warn("memory_traceback will be removed in hoomd 4.0.",
-                      FutureWarning)
-        self._cpp_exec_conf.setMemoryTracing(mem_traceback)
 
     @property
     def gpu_error_checking(self):
@@ -358,7 +341,7 @@ class CPU(Device):
         communicator (hoomd.communicator.Communicator): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
 
-        msg_file (str): Filename to write messages to. When `None` use
+        message_filename (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
             ranks are collected into this file.
 
@@ -369,13 +352,15 @@ class CPU(Device):
     In MPI execution environments, create a `CPU` device on every rank.
     """
 
-    def __init__(self,
-                 num_cpu_threads=None,
-                 communicator=None,
-                 msg_file=None,
-                 notice_level=2):
+    def __init__(
+        self,
+        num_cpu_threads=None,
+        communicator=None,
+        message_filename=None,
+        notice_level=2,
+    ):
 
-        super().__init__(communicator, notice_level, msg_file)
+        super().__init__(communicator, notice_level, message_filename)
 
         self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
@@ -385,7 +370,11 @@ class CPU(Device):
             self.num_cpu_threads = num_cpu_threads
 
 
-def auto_select(communicator=None, msg_file=None, notice_level=2):
+def auto_select(
+    communicator=None,
+    message_filename=None,
+    notice_level=2,
+):
     """Automatically select the hardware device.
 
     Args:
@@ -393,7 +382,7 @@ def auto_select(communicator=None, msg_file=None, notice_level=2):
         communicator (hoomd.communicator.Communicator): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
 
-        msg_file (str): Filename to write messages to. When `None` use
+        message_filename (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
             ranks are collected into this file.
 
@@ -404,6 +393,6 @@ def auto_select(communicator=None, msg_file=None, notice_level=2):
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:
-        return GPU(None, None, communicator, msg_file, notice_level)
+        return GPU(None, None, communicator, message_filename, notice_level)
     else:
-        return CPU(None, communicator, msg_file, notice_level)
+        return CPU(None, communicator, message_filename, notice_level)

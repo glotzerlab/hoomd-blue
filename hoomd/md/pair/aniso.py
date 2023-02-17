@@ -19,8 +19,6 @@ energies and virials in the same manner as `hoomd.md.pair.Pair`
 parameter.
 """
 
-import warnings
-
 from collections.abc import Sequence
 import json
 from numbers import Number
@@ -66,9 +64,6 @@ class Dipole(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        mode (str): energy shifting/smoothing mode (ignored).
-
-            .. deprecated:: v3.1.0
 
     `Dipole` computes the (screened) interaction between pairs of
     particles with dipoles and electrostatic charges:
@@ -94,10 +89,6 @@ class Dipole(AnisotropicPair):
     Note:
        All units are documented electronic dipole moments. However, `Dipole`
        can also be used to represent magnetic dipoles.
-
-    Note:
-        `Dipole` accepts the ``mode`` parameter, but computes the same energy
-        regardless of the value of ``mode`` (starting with v3.0.0).
 
     Example::
 
@@ -132,21 +123,14 @@ class Dipole(AnisotropicPair):
     """
     _cpp_class_name = "AnisoPotentialPairDipole"
 
-    def __init__(self, nlist, default_r_cut=None, mode='none'):
-        super().__init__(nlist, default_r_cut, mode)
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut, 'none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, kappa=float, len_keys=2))
         mu = TypeParameter('mu', 'particle_types',
                            TypeParameterDict((float, float, float), len_keys=1))
         self._extend_typeparam((params, mu))
-
-    def _setattr_param(self, attr, value):
-        if attr == "mode":
-            warnings.warn(
-                "'mode' key is deprectated and will be removed in hoomd 4.0.",
-                FutureWarning)
-        super()._setattr_param(attr, value)
 
 
 class GayBerne(AnisotropicPair):
@@ -253,10 +237,6 @@ class ALJ(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[length]`.
-        mode (`str`, optional): the energy shifting mode, defaults to "none".
-          Computes the same energy regardless of value passed.
-
-          .. deprecated:: v3.1.0
 
     `ALJ` computes the Lennard-Jones force between anisotropic particles as
     described in `Ramasubramani, V.  et al. 2020`_, using the formula:
@@ -533,8 +513,8 @@ class ALJ(AnisotropicPair):
     # parameter in C++, so use an instance level attribute instead that is
     # created in _attach based on the dimension of the associated simulation.
 
-    def __init__(self, nlist, default_r_cut=None, mode='none'):
-        super().__init__(nlist, default_r_cut, mode)
+    def __init__(self, nlist, default_r_cut=None):
+        super().__init__(nlist, default_r_cut, 'none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,
@@ -583,10 +563,3 @@ class ALJ(AnisotropicPair):
         log shape for visualization and storage through the GSD file type.
         """
         return self._return_type_shapes()
-
-    def _setattr_param(self, attr, value):
-        if attr == "mode":
-            warnings.warn(
-                "'mode' key is deprectated and will be removed in hoomd 4.0.",
-                FutureWarning)
-        super()._setattr_param(attr, value)
