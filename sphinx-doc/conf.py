@@ -80,6 +80,14 @@ html_static_path = ['_static']
 html_logo = 'hoomdblue-logo-vertical.svg'
 html_theme_options = {
     'sidebar_hide_name': True,
+    "dark_css_variables": {
+        "color-brand-primary": "#5187b2",
+        "color-brand-content": "#5187b2",
+    },
+    "light_css_variables": {
+        "color-brand-primary": "#406a8c",
+        "color-brand-content": "#406a8c",
+    },
 }
 html_favicon = 'hoomdblue-logo-favicon.svg'
 
