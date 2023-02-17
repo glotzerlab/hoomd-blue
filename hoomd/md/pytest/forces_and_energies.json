@@ -1,4 +1,4 @@
-{
+Expanded{
   "LJ": {
     "params": [
       {
@@ -1169,7 +1169,7 @@
       ]
     ]
   },
-  "ShiftedGauss": {
+  "ExpandedGaussian": {
     "params": [
       {
         "sigma": 0.5,
