@@ -49,6 +49,53 @@ def expected_values():
     }
 
 
+# TODO: Clean this up
+
+
+def get_output_from_table_writer(writer_function, output):
+    writer_function()
+    return output.getvalue()
+
+
+def write_table_lines(table_writer):
+    for i in range(10):
+        table_writer.write()
+
+
+def get_stdout(writer_function, output):
+    stdout = sys.stdout
+    output_IO = StringIO()
+    sys.stdout = output_IO
+    writer_function()
+    sys.stdout = stdout
+    return output_IO.getvalue()
+
+
+def get_table_writer_string_io(device, logger):
+    output = StringIO("")
+    table_writer = hoomd.write.Table(1, logger, output)
+    table_writer._comm = device.communicator
+    return table_writer, output
+
+
+def get_table_writer_output(device, logger):
+    output = "notice"
+    table_writer = hoomd.write.Table(trigger=1, logger=logger, output=output)
+    table_writer._comm = device.communicator
+    table_writer._notice = device.notice
+    return table_writer, output
+
+
+table_writer_functions = [
+    (get_table_writer_string_io, lambda table_writer_function, output:
+     get_output_from_table_writer(table_writer_function, output)),
+    (get_table_writer_output, lambda table_writer_function, output: get_stdout(
+        table_writer_function, output))
+]
+
+# Clean this up
+
+
 def test_invalid_attrs(logger):
     output = StringIO("")
     table_writer = hoomd.write.Table(1, logger, output)
@@ -60,26 +107,32 @@ def test_invalid_attrs(logger):
         table_writer.attach
 
 
+@pytest.mark.parametrize("get_table_writer,get_output_str",
+                         table_writer_functions)
 @pytest.mark.serial
-def test_header_generation(device, logger):
-    output = StringIO("")
-    table_writer = hoomd.write.Table(1, logger, output)
-    table_writer._comm = device.communicator
-    for i in range(10):
-        table_writer.write()
-    output_str = output.getvalue()
+def test_header_generation(device, logger, get_table_writer, get_output_str):
+
+    table_writer, output = get_table_writer(device, logger)
+    output_str = get_output_str(lambda: write_table_lines(table_writer), output)
     lines = output_str.split('\n')
     headers = lines[0].split()
     expected_headers = [
         'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string'
     ]
     assert all(hdr in headers for hdr in expected_headers)
+    """
     for i in range(1, 10):
         values = lines[i].split()
         assert not any(v in expected_headers for v in values)
     table_writer.logger[('new', 'quantity')] = (lambda: 53, 'scalar')
     table_writer.write()
     output_str = output.getvalue()
+    """
+    for i in range(1, 10):
+        values = lines[i].split()
+        assert not any(v in expected_headers for v in values)
+    table_writer.logger[('new', 'quantity')] = (lambda: 53, 'scalar')
+    output_str = get_output_str(table_writer.write, output)
     lines = output_str.split('\n')
     headers = lines[-3].split()
     expected_headers.append('new.quantity')
@@ -213,16 +266,22 @@ def test_table_output_notice(device, logger):
     table_writer = hoomd.write.Table(trigger=1, logger=logger, output=output)
     table_writer._comm = device.communicator
     table_writer._notice = device.notice
-    stdout = sys.stdout
-    output_IO = StringIO()
-    sys.stdout = output_IO
-    for i in range(10):
-        table_writer.write()
-    sys.stdout = stdout
-    output_str = output_IO.getvalue()
+
+    output_str = get_stdout(lambda: write_table_lines(table_writer), output)
     lines = output_str.split('\n')
     headers = lines[0].split()
     expected_headers = [
         'dummy.loggable.int', 'dummy.loggable.float', 'dummy.loggable.string'
     ]
+    assert all(hdr in headers for hdr in expected_headers)
+
+    for i in range(1, 10):
+        values = lines[i].split()
+        assert not any(v in expected_headers for v in values)
+    table_writer.logger[('new', 'quantity')] = (lambda: 53, 'scalar')
+    output_str = get_stdout(table_writer.write, output)
+    lines = output_str.split('\n')
+    headers = lines[-3].split()
+    expected_headers.append('new.quantity')
+    breakpoint()
     assert all(hdr in headers for hdr in expected_headers)
