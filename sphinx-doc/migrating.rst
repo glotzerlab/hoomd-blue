@@ -50,6 +50,17 @@ For some functionalities, you will need to update your scripts to use a new API:
 
   * Use `hoomd.write.GSD.logger`.
 
+* ``hoomd.md.pair.Gauss``.
+
+  * Use `hoomd.md.pair.Gaussian`.
+
+* ``hoomd.md.external.wall.Gauss``.
+
+  * Use `hoomd.md.external.wall.Gaussian`.
+
+* ``msg_file`` property and argument in `hoomd.device.Device`.
+
+  * Use `message_filename <hoomd.device.Device.message_filename>`.
 
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
