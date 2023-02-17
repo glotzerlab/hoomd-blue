@@ -227,7 +227,7 @@ class LJ(Pair):
             ParameterDict(tail_correction=bool(tail_correction)))
 
 
-class Gauss(Pair):
+class Gaussian(Pair):
     r"""Gaussian pair force.
 
     Args:
@@ -246,7 +246,7 @@ class Gauss(Pair):
     Example::
 
         nl = nlist.Cell()
-        gauss = pair.Gauss(default_r_cut=3.0, nlist=nl)
+        gauss = pair.Gaussian(default_r_cut=3.0, nlist=nl)
         gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
         gauss.r_cut[('A', 'B')] = 3.0
 
@@ -277,6 +277,20 @@ class Gauss(Pair):
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
+
+
+class Gauss(Gaussian):
+    """Gaussian pair force.
+
+    .. deprecated:: v3.10.0
+        Use `Gaussian`.
+    """
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+        warnings.warn(
+            "Gauss is deprecated and will be removed in hoomd 4.0. Use "
+            "Gaussian instead.", FutureWarning)
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
 class ExpandedLJ(Pair):
