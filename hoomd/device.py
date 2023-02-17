@@ -115,18 +115,6 @@ class Device:
         """
         return self._message_filename
 
-    @property
-    def msg_file(self):
-        """str: Filename to write messages to.
-
-        .. deprecated:: v3.10.0
-           ``msg_file`` will be renamed to ``message_Filename`` in v4.
-        """
-        warnings.warn(
-            "msg_file is deprecated since v3.10.0. Use message_filename.",
-            FutureWarning)
-        return self.message_filename
-
     @message_filename.setter
     def message_filename(self, filename):
         self._message_filename = filename
@@ -134,13 +122,6 @@ class Device:
             self._cpp_msg.openFile(filename)
         else:
             self._cpp_msg.openStd()
-
-    @msg_file.setter
-    def msg_file(self, filename):
-        warnings.warn(
-            "msg_file is deprecated since v3.10.0. Use message_filename.",
-            FutureWarning)
-        self.message_filename = filename
 
     @property
     def devices(self):
@@ -202,23 +183,6 @@ def _create_messenger(mpi_config, notice_level, message_filename):
     return msg
 
 
-def _get_message_filename(msg_file, message_file):
-    if msg_file is None and message_file is None:
-        return None
-
-    if msg_file is not None and message_file is not None:
-        raise ValueError("Pass in msg_file or message_file, not both")
-
-    if message_file is not None:
-        return message_file
-
-    if msg_file is not None:
-        warnings.warn(
-            "msg_file is deprecated since v3.10.0. Use message_filename.",
-            FutureWarning)
-        return msg_file
-
-
 class GPU(Device):
     """Select a GPU or GPU(s) to execute simulations.
 
@@ -232,16 +196,11 @@ class GPU(Device):
         communicator (hoomd.communicator.Communicator): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
 
-        msg_file (str): Alias for ``message_filename``.
-
-            .. deprecated:: v3.10.0
-               ``msg_file`` will be renamed to ``message_filename`` in v4.
-
-        notice_level (int): Minimum level of messages to print.
-
         message_filename (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
             ranks are collected into this file.
+
+        notice_level (int): Minimum level of messages to print.
 
     Tip:
         Call `GPU.get_available_devices` to get a human readable list of
@@ -277,16 +236,16 @@ class GPU(Device):
 
     """
 
-    def __init__(self,
-                 gpu_ids=None,
-                 num_cpu_threads=None,
-                 communicator=None,
-                 msg_file=None,
-                 notice_level=2,
-                 message_filename=None):
+    def __init__(
+        self,
+        gpu_ids=None,
+        num_cpu_threads=None,
+        communicator=None,
+        message_filename=None,
+        notice_level=2,
+    ):
 
-        super().__init__(communicator, notice_level,
-                         _get_message_filename(msg_file, message_filename))
+        super().__init__(communicator, notice_level, message_filename)
 
         if gpu_ids is None:
             gpu_ids = []
@@ -382,31 +341,26 @@ class CPU(Device):
         communicator (hoomd.communicator.Communicator): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
 
-        msg_file (str): Alias for ``message_filename``.
-
-            .. deprecated:: v3.10.0
-               ``msg_file`` will be renamed to ``message_filename`` in v4.
-
-        notice_level (int): Minimum level of messages to print.
-
         message_filename (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
             ranks are collected into this file.
+
+        notice_level (int): Minimum level of messages to print.
 
     .. rubric:: MPI
 
     In MPI execution environments, create a `CPU` device on every rank.
     """
 
-    def __init__(self,
-                 num_cpu_threads=None,
-                 communicator=None,
-                 msg_file=None,
-                 notice_level=2,
-                 message_filename=None):
+    def __init__(
+        self,
+        num_cpu_threads=None,
+        communicator=None,
+        message_filename=None,
+        notice_level=2,
+    ):
 
-        super().__init__(communicator, notice_level,
-                         _get_message_filename(msg_file, message_filename))
+        super().__init__(communicator, notice_level, message_filename)
 
         self._cpp_exec_conf = _hoomd.ExecutionConfiguration(
             _hoomd.ExecutionConfiguration.executionMode.CPU, [],
@@ -416,10 +370,11 @@ class CPU(Device):
             self.num_cpu_threads = num_cpu_threads
 
 
-def auto_select(communicator=None,
-                msg_file=None,
-                notice_level=2,
-                message_filename=None):
+def auto_select(
+    communicator=None,
+    message_filename=None,
+    notice_level=2,
+):
     """Automatically select the hardware device.
 
     Args:
@@ -427,26 +382,17 @@ def auto_select(communicator=None,
         communicator (hoomd.communicator.Communicator): MPI communicator object.
             When `None`, create a default communicator that uses all MPI ranks.
 
-        msg_file (str): Alias for ``message_filename``.
-
-            .. deprecated:: v3.10.0
-               ``msg_file`` will be renamed to ``message_filename`` in v4.
-
-        notice_level (int): Minimum level of messages to print.
-
         message_filename (str): Filename to write messages to. When `None`, use
             `sys.stdout` and `sys.stderr`. Messages from multiple MPI
             ranks are collected into this file.
+
+        notice_level (int): Minimum level of messages to print.
 
     Returns:
         Instance of `GPU` if availabile, otherwise `CPU`.
     """
     # Set class according to C++ object
     if len(GPU.get_available_devices()) > 0:
-        return GPU(None, None, communicator,
-                   _get_message_filename(msg_file, message_filename),
-                   notice_level)
+        return GPU(None, None, communicator, message_filename, notice_level)
     else:
-        return CPU(None, communicator,
-                   _get_message_filename(msg_file, message_filename),
-                   notice_level)
+        return CPU(None, communicator, message_filename, notice_level)

@@ -16,11 +16,11 @@ def test_gpu_profile(device):
 
 def _assert_common_properties(dev,
                               notice_level,
-                              msg_file,
+                              message_filename,
                               num_cpu_threads=None):
     """Assert the properties common to all devices are correct."""
     assert dev.notice_level == notice_level
-    assert dev.msg_file == msg_file
+    assert dev.message_filename == message_filename
     if num_cpu_threads is not None:
         if hoomd.version.tbb_enabled:
             assert dev.num_cpu_threads == num_cpu_threads
@@ -36,18 +36,18 @@ def test_common_properties(device, tmp_path):
 
     # make sure we can set those properties
     device.notice_level = 3
-    device.msg_file = str(tmp_path / "example.txt")
+    device.message_filename = str(tmp_path / "example.txt")
     device.num_cpu_threads = 5
     _assert_common_properties(device, 3, str(tmp_path / "example.txt"), 5)
 
     # now make a device with non-default arguments
     device_type = type(device)
-    dev = device_type(msg_file=str(tmp_path / "example2.txt"),
+    dev = device_type(message_filename=str(tmp_path / "example2.txt"),
                       notice_level=10,
                       num_cpu_threads=10)
     _assert_common_properties(dev,
                               notice_level=10,
-                              msg_file=str(tmp_path / "example2.txt"),
+                              message_filename=str(tmp_path / "example2.txt"),
                               num_cpu_threads=10)
 
 
@@ -106,28 +106,28 @@ def test_cpu_build_specifics():
 def test_device_notice(device, tmp_path):
     # Message file declared. Should output in specified file.
     device.notice_level = 4
-    device.msg_file = str(tmp_path / "str_message")
+    device.message_filename = str(tmp_path / "str_message")
     msg = "This message should output."
     device.notice(msg)
 
     if device.communicator.rank == 0:
-        with open(device.msg_file) as fh:
+        with open(device.message_filename) as fh:
             assert fh.read() == msg + "\n"
 
     # Test notice with a message that is not a string.
-    device.msg_file = str(tmp_path / "int_message")
+    device.message_filename = str(tmp_path / "int_message")
     msg = 123456
     device.notice(msg)
 
     if device.communicator.rank == 0:
-        with open(device.msg_file) as fh:
+        with open(device.message_filename) as fh:
             assert fh.read() == str(msg) + "\n"
 
     # Test the level argument.
-    device.msg_file = str(tmp_path / "empty_notice")
+    device.message_filename = str(tmp_path / "empty_notice")
     msg = "This message should not output."
     device.notice(msg, level=5)
 
     if device.communicator.rank == 0:
-        with open(device.msg_file) as fh:
+        with open(device.message_filename) as fh:
             assert fh.read() == ""
