@@ -329,7 +329,9 @@ class ExpandedGaussian(Pair):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float, sigma=float, delta = float,
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              delta=float,
                               len_keys=3))
         self._add_typeparam(params)
 

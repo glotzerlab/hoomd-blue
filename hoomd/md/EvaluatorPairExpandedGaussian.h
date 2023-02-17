@@ -114,10 +114,9 @@ class EvaluatorPairExpandedGaussian
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairExpandedGaussian(Scalar _rsq, Scalar _rcutsq,
-                                         const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon),
-          sigma(_params.sigma), delta(_params.delta)
+    DEVICE EvaluatorPairExpandedGaussian(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma),
+          delta(_params.delta)
         {
         }
 
@@ -210,7 +209,7 @@ class EvaluatorPairExpandedGaussian
     Scalar rcutsq;  //!< Stored rcutsq from the constructor
     Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
     Scalar sigma;   //!< sigma parameter extracted from the params passed to the constructor
-    Scalar delta;     //!< delta parameter extracted from the params passed to the constructor
+    Scalar delta;   //!< delta parameter extracted from the params passed to the constructor
     };
 
     } // end namespace md
