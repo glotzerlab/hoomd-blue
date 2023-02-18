@@ -1,7 +1,6 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import copy as cp
 import hoomd
 import pytest
 import numpy as np
@@ -266,8 +265,8 @@ def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
     harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
     harmonic.params["mesh"] = dict(k=1, r0=1)
 
-    harmonic_2 = cp.deepcopy(harmonic)
-    harmonic_2.mesh = mesh
+    harmonic_2 = hoomd.md.mesh.bond.Harmonic(mesh)
+    harmonic.params["mesh"] = dict(k=5, r0=1.1)
 
     integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
 
