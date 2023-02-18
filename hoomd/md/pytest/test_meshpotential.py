@@ -265,7 +265,7 @@ def test_auto_detach_simulation(simulation_factory, mesh_snapshot_factory):
     harmonic.params["mesh"] = dict(k=1, r0=1)
 
     harmonic_2 = hoomd.md.mesh.bond.Harmonic(mesh)
-    harmonic.params["mesh"] = dict(k=5, r0=1.1)
+    harmonic_2.params["mesh"] = dict(k=5, r0=1.1)
 
     integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
 
