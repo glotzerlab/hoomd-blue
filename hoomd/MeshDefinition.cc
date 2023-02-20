@@ -142,6 +142,7 @@ void export_MeshDefinition(pybind11::module& m)
         .def_property_readonly("types", &MeshDefinition::getTypes)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &MeshDefinition::setCommunicator)
+        .def("setTriangulation", &MeshDefinition::setTriangulationData)
 #endif
         ;
     }

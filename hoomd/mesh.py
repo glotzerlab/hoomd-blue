@@ -82,13 +82,13 @@ class Mesh(_HOOMDBaseObject):
             self._simulation.state._cpp_sys_def, len(self._param_dict["types"]))
 
         self._cpp_obj.setTypes(list(self._param_dict['types']))
-        self.triangulation = self._param_dict['triangulation']
 
         if hoomd.version.mpi_enabled:
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
                 # create the c++ Communicator
+                self._cpp_obj.setTriangulation(dict(self._param_dict['triangulation']))
                 self._simulation._system_communicator.addMeshDefinition(
                     self._cpp_obj)
                 self._cpp_obj.setCommunicator(
