@@ -14,6 +14,9 @@ import itertools
 
 sqrt2inv = 1/numpy.sqrt(2)
 
+
+TOLERANCES = {"rtol": 1e-2, "atol": 1e-5}
+
 patch_test_parameters = [
     (
         hoomd.md.pair.aniso.JanusLJ,
@@ -77,7 +80,7 @@ def patchy_snapshot_factory(device):
 
     return make_snapshot
 
-
+# TODO: exclude the one that is not normalized
 @pytest.mark.parametrize('patch_cls, patch_args, params, positions, orientations, force, energy, torques',
                          patch_test_parameters)
 def test_before_attaching(patch_cls, patch_args, params, positions, orientations, force, energy, torques):
@@ -118,8 +121,8 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
     potential.params[('A','A')] = params
 
     sim.operations.integrator = hoomd.md.Integrator(dt = 0.005,
-                                                    forces = [potential])
-
+                                                    forces = [potential],
+                                                    integrate_rotational_dof = True)
     sim.run(0)
 
     sim_forces = potential.forces
@@ -130,19 +133,12 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
 
         print(sim_forces)
         print(force)
-        numpy.testing.assert_allclose(sim_forces[0],
-                                      force,
-                                      rtol = 1e-2,
-                                      atol = 1e-5)
+        numpy.testing.assert_allclose(sim_forces[0], force, **TOLERANCES)
 
-        numpy.testing.assert_allclose(sim_torques[0],
-                                      torques[0],
-                                      rtol = 1e-2,
-                                      atol = 1e-5)
+        numpy.testing.assert_allclose(sim_forces[1],  [-force[0], -force[1], -force[2]], **TOLERANCES)
 
-        numpy.testing.assert_allclose(sim_torques[1],
-                                      torques[1],
-                                      rtol = 1e-2,
-                                      atol = 1e-5)
+        numpy.testing.assert_allclose(sim_torques[0], torques[0], **TOLERANCES)
+
+        numpy.testing.assert_allclose(sim_torques[1], torques[1], **TOLERANCES)
     
     
