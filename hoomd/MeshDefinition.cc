@@ -70,9 +70,7 @@ pybind11::object MeshDefinition::getTriangulationData()
 
     unsigned int len_triang = triangle_data.getSize();
 
-    std::vector<size_t> dims(2);
-    dims[0] = len_triang;
-    dims[1] = 3;
+    std::vector<size_t> dims {len_triang, 3};
     auto triangles = pybind11::array_t<unsigned int>(dims);
     int* ptr1 = static_cast<int*>(triangles.request().ptr);
 

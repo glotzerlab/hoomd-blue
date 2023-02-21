@@ -15,7 +15,6 @@
 
 #include <memory>
 #include <pybind11/pybind11.h>
-// #include <pybind11/numpy.h>
 
 #ifndef __MESH_DEFINITION_H__
 #define __MESH_DEFINITION_H__
@@ -110,7 +109,7 @@ class PYBIND11_EXPORT MeshDefinition
 
     TriangleData::Snapshot getTriangleData();
 
-    pybind11::object getTriangulationData(); // pybind11::object self);
+    pybind11::object getTriangulationData();
 
     void setTriangulationData(pybind11::dict triangulation);
 
