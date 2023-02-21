@@ -11,7 +11,7 @@
 #include "EvaluatorPairBuckingham.h"
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairEwald.h"
-#include "EvaluatorPairExpandedGaussian"
+#include "EvaluatorPairExpandedGaussian.h"
 #include "EvaluatorPairExpandedLJ.h"
 #include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
