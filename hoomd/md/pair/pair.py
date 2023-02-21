@@ -332,7 +332,7 @@ class ExpandedGaussian(Pair):
             TypeParameterDict(epsilon=float,
                               sigma=float,
                               delta=float,
-                              len_keys=3))
+                              len_keys=2))
         self._add_typeparam(params)
 
 
