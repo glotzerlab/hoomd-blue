@@ -11,10 +11,10 @@
 #include "EvaluatorPairBuckingham.h"
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairExpandedGaussian"
 #include "EvaluatorPairExpandedLJ.h"
 #include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
-#include "EvaluatorPairExpandedGaussian"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairGauss.h"
 #include "EvaluatorPairLJ.h"
@@ -58,7 +58,7 @@ gpu_compute_expanded_lj_forces(const pair_args_t& pair_args,
 // PairEvaluatorExpandedGaussian
 hipError_t __attribute__((visibility("default")))
 gpu_compute_expanded_gaussian_forces(const pair_args_t& pair_args,
-                         const EvaluatorPairExpandedGaussian::param_type* d_params);
+                                     const EvaluatorPairExpandedGaussian::param_type* d_params);
 
 //! Compute yukawa pair forces on the GPU with PairEvaluatorGauss
 hipError_t __attribute__((visibility("default")))
