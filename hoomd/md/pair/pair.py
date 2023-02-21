@@ -301,8 +301,8 @@ class ExpandedLJ(Pair):
         \end{cases}
 
     Note:
-        To replicate the behavior of the SLJ potential in HOOMD-blue v2, set
-        `hoomd.md.pair.Pair.r_cut` to ``r_cut_unshifted + delta``.
+        To replicate the behavior of the SLJ potential in HOOMD-blue v2, set the
+        `hoomd.md.pair.Pair.r_cut` to ``r_cut(for delta=0) + delta``.
 
     Example::
 
