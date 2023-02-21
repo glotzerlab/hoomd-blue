@@ -88,7 +88,8 @@ class Mesh(_HOOMDBaseObject):
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
                 # create the c++ Communicator
-                self._cpp_obj.setTriangulation(dict(self._param_dict['triangulation']))
+                self._cpp_obj.setTriangulation(
+                    dict(self._param_dict['triangulation']))
                 self._simulation._system_communicator.addMeshDefinition(
                     self._cpp_obj)
                 self._cpp_obj.setCommunicator(
@@ -105,7 +106,7 @@ class Mesh(_HOOMDBaseObject):
     @log(category='sequence', requires_run=True)
     def type_ids(self):
         """((*N*) `numpy.ndarray` of ``uint32``): Triangle type ids."""
-        return self._cpp_obj.getTriangleData().typeid
+        return self.triangulation["type_ids"]
 
     @log(category='sequence', requires_run=True)
     def triangles(self):
@@ -114,7 +115,7 @@ class Mesh(_HOOMDBaseObject):
         A list of triplets of particle tags which encodes the
         triangulation of the mesh structure.
         """
-        return self._cpp_obj.getTriangleData().group
+        return self.triangulation["triangles"]
 
     @log(category='sequence', requires_run=True)
     def bonds(self):

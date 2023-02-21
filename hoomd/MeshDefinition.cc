@@ -133,7 +133,6 @@ void export_MeshDefinition(pybind11::module& m)
         .def("getMeshTriangleData", &MeshDefinition::getMeshTriangleData)
         .def("getMeshBondData", &MeshDefinition::getMeshBondData)
         .def("getBondData", &MeshDefinition::getBondData)
-        .def("getTriangleData", &MeshDefinition::getTriangleData)
         .def("setTypes", &MeshDefinition::setTypes)
         .def("getSize", &MeshDefinition::getSize)
         .def_property("triangulation",
