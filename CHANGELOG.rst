@@ -12,16 +12,86 @@ v4.0.0 (net yet released)
 
 *Added*
 
+* ``hoomd.md.ConstantVolume`` integration method
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+* ``hoomd.md.ConstantPressure`` integration method, implementing the Langevin piston barostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+* Thermostats in ``hoomd.md.methods.thermostats`` that work with ``ConstantVolume`` and
+  ``ConstantPressure``, including the new Bussi-Donadio-Parrinello thermostat
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+
 *Changed*
 
-*Fixed*
+* ``hoomd.md.constrain.Rigid`` no longer takes ``diameters`` or ``charges`` as keys in the ``body``
+  parameters. ``create_bodies`` method now takes an optional ``charges`` argument to set charges
+  (`#1350 <https://github.com/glotzerlab/hoomd-blue/issues/1350>`_).
+* Control the precision with the CMake options ``HOOMD_LONGREAL_SIZE`` (default: 64) and
+  ``HOOMD_SHORTREAL_SIZE`` (default: 32)
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
+* [developers] ``ShortReal`` and ``LongReal`` types enable mixed precision implementations
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
+* ``hoomd.md.constrain.Rigid`` now updates constituent particle types each step
+  (`#1440 <https://github.com/glotzerlab/hoomd-blue/pull/1440>`_).
+
+*Deprecated*
+
+* ``Scalar``, ``Scalar2``, ``Scalar3``, and ``Scalar4`` data types. Use ``LongReal[N]`` instead in
+  new code
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
 
 *Removed*
 
-* ``fix_cudart_rpath`` CMake macro.
+* ``fix_cudart_rpath`` CMake macro
+  (`#1383 <https://github.com/glotzerlab/hoomd-blue/issues/1383>`_).
+* ``ENABLE_MPI_CUDA`` CMake option
+  (`#1401 <https://github.com/glotzerlab/hoomd-blue/issues/1401>`_).
+* ``Berendsen``, ``NPH``, ``NPT``, ``NVE``, ``NVT`` MD integration methods
+  (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`_).
+* ``hoomd.write.GSD.log``
+  (`#1480 <https://github.com/glotzerlab/hoomd-blue/issues/1480>`_).
+* CMake option and compiler definition ``SINGLE_PRECISION``
+  (`#355 <https://github.com/glotzerlab/hoomd-blue/issues/355>`_).
 
 v3.x
 ----
+
+v3.9.0 (2023-02-15)
+^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* GPU code path for ``hoomd.update.BoxResize``
+  (`#1462 <https://github.com/glotzerlab/hoomd-blue/pull/1462>`_).
+* ``logger`` keyword argument and property to ``hoomd.write.GSD``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
+
+Changed:
+
+* Issue `FutureWarning` warnings when using deprecated APIs
+  (`#1485 <https://github.com/glotzerlab/hoomd-blue/pull/1485>`_).
+* Reformat the list of deprecated features.
+  (`#1490 <https://github.com/glotzerlab/hoomd-blue/pull/1490>`_).
+* In simulations with rigid bodies, remove D degrees of freedom when the system is momentum
+  conserving
+  (`#1467 <https://github.com/glotzerlab/hoomd-blue/issues/1467>`_).
+
+Fixed:
+
+* Compile without errors using ``hipcc`` and ROCM 5.1.0
+  (`#1478 <https://github.com/glotzerlab/hoomd-blue/pull/1478>`_).
+* Document that ``hoomd.md.force.Force`` can be added to ``Operations.computes``
+  (`#1489 <https://github.com/glotzerlab/hoomd-blue/pull/1489>`_).
+* ``hoomd.md.constrain.Rigid.create_bodies`` completes without segmentation faults when particle
+  body tags are not -1
+  (`#1476 <https://github.com/glotzerlab/hoomd-blue/issues/1476>`_).
+* ``hoomd.hpmc.compute.FreeVolume`` computes the free area correctly in 2D simulations
+  (`#1473 <https://github.com/glotzerlab/hoomd-blue/issues/1473>`_).
+
+Deprecated:
+
+* Deprecate ``write.GSD`` ``log`` keyword argument and property in favor of ``logger``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
 
 v3.8.1 (2023-01-27)
 ^^^^^^^^^^^^^^^^^^^

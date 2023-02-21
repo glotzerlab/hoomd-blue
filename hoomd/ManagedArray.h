@@ -30,7 +30,7 @@ template<class T> class ManagedArray
     {
     public:
     //! Default constructor
-    DEVICE ManagedArray()
+    HOSTDEVICE ManagedArray()
         : data(nullptr), ptr(nullptr), N(0), managed(0), align(0), allocation_ptr(nullptr),
           allocation_bytes(0)
         {
@@ -48,7 +48,7 @@ template<class T> class ManagedArray
         }
 #endif
 
-    DEVICE ~ManagedArray()
+    HOSTDEVICE ~ManagedArray()
         {
 #ifndef __HIPCC__
         deallocate();
@@ -60,7 +60,7 @@ template<class T> class ManagedArray
        the host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU
        synchronization needs to be ensured
      */
-    DEVICE ManagedArray(const ManagedArray<T>& other)
+    HOSTDEVICE ManagedArray(const ManagedArray<T>& other)
         : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
           allocation_ptr(nullptr), allocation_bytes(0)
         {
@@ -82,7 +82,7 @@ template<class T> class ManagedArray
        the host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU
        synchronization needs to be ensured
      */
-    DEVICE ManagedArray(const ManagedArray<T>&& other)
+    HOSTDEVICE ManagedArray(const ManagedArray<T>&& other)
         : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
           allocation_ptr(nullptr), allocation_bytes(0)
         {
@@ -104,7 +104,7 @@ template<class T> class ManagedArray
        available on the host. If the GPU isn't synced up, this can lead to errors, so proper
        multi-GPU synchronization needs to be ensured
      */
-    DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
+    HOSTDEVICE ManagedArray& operator=(const ManagedArray<T>& other)
         {
 #ifndef __HIPCC__
         deallocate();
@@ -134,7 +134,7 @@ template<class T> class ManagedArray
        available on the host. If the GPU isn't synced up, this can lead to errors, so proper
        multi-GPU synchronization needs to be ensured
      */
-    DEVICE ManagedArray& operator=(const ManagedArray<T>&& other)
+    HOSTDEVICE ManagedArray& operator=(const ManagedArray<T>&& other)
         {
 #ifndef __HIPCC__
         deallocate();
@@ -236,7 +236,7 @@ template<class T> class ManagedArray
 
         \returns true if array was loaded into shared memory
      */
-    DEVICE bool load_shared(char*& s_ptr, unsigned int& available_bytes)
+    HOSTDEVICE bool load_shared(char*& s_ptr, unsigned int& available_bytes)
         {
         // align ptr to size of data type
         void* ptr_align = allocate_shared(s_ptr, available_bytes);

@@ -115,7 +115,7 @@ Install prerequisites
 
 .. note::
 
-    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HHOOMD_GPU_PLATFORM=HIP`` to
+    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HOOMD_GPU_PLATFORM=HIP`` to
     choose HIP.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
@@ -145,7 +145,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.8.1.tar.gz`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.9.0.tar.gz`_.
 
 .. seealso::
 
@@ -158,7 +158,7 @@ Release tarballs are also available as `GitHub release`_ assets: `Download hoomd
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _Download hoomd-v3.8.1.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.8.1/hoomd-v3.8.1.tar.gz
+.. _Download hoomd-v3.9.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.9.0/hoomd-v3.9.0.tar.gz
 .. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/

@@ -21,7 +21,7 @@ md.pair
     ExpandedMie
     ForceShiftedLJ
     Fourier
-    Gauss
+    Gaussian
     LJ
     LJ1208
     LJ0804
@@ -51,7 +51,7 @@ md.pair
         ExpandedMie,
         ForceShiftedLJ,
         Fourier,
-        Gauss,
+        Gaussian,
         LJ,
         LJ1208,
         LJ0804,

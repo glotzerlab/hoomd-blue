@@ -109,7 +109,9 @@ class PYBIND11_EXPORT MeshDefinition
 
     TriangleData::Snapshot getTriangleData();
 
-    void setTriangleData(pybind11::array_t<int> triangles, pybind11::array_t<int> type_ids);
+    pybind11::object getTriangulationData();
+
+    void setTriangulationData(pybind11::dict triangulation);
 
     private:
     std::shared_ptr<SystemDefinition>
