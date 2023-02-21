@@ -59,6 +59,13 @@ class Force(Compute):
         W^{kl}_i = \sum_j F^k_{ij} \cdot
         \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
 
+    Tip:
+        Add a `Force` to your integrator's `forces <hoomd.md.Integrator.forces>`
+        list to include it in the equations of motion of your system. Add a
+        `Force` to your simulation's `operations.computes
+        <hoomd.Operations.computes>` list to compute the forces and energy
+        without influencing the system dynamics.
+
     Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.

@@ -24,6 +24,7 @@ md.force
 
     .. autoclass:: Force
         :members:
+        :show-inheritance:
 
     .. autoclass:: Active
         :show-inheritance:

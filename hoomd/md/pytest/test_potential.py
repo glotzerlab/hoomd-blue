@@ -183,7 +183,7 @@ def _invalid_params():
     gauss_valid_dict = {'sigma': 0.05, 'epsilon': 0.05}
     gauss_invalid_dicts = _make_invalid_param_dict(gauss_valid_dict)
     invalid_params_list.extend(
-        _make_invalid_params(gauss_invalid_dicts, md.pair.Gauss, {}))
+        _make_invalid_params(gauss_invalid_dicts, md.pair.Gaussian, {}))
 
     yukawa_valid_dict = {"epsilon": 0.0005, "kappa": 1}
     yukawa_invalid_dicts = _make_invalid_param_dict(yukawa_valid_dict)
@@ -396,7 +396,7 @@ def _valid_params(particle_types=['A', 'B']):
     gauss_arg_dict = {'epsilon': [0.025, 0.05, 0.075], 'sigma': [0.5, 1.0, 1.5]}
     gauss_valid_param_dicts = _make_valid_param_dicts(gauss_arg_dict)
     valid_params_list.append(
-        paramtuple(md.pair.Gauss, dict(zip(combos, gauss_valid_param_dicts)),
+        paramtuple(md.pair.Gaussian, dict(zip(combos, gauss_valid_param_dicts)),
                    {}))
 
     yukawa_arg_dict = {
@@ -1167,11 +1167,12 @@ def test_lrc_non_lj(simulation_factory, two_particle_snapshot_factory):
     # test we can't pass in tail_correction to non-LJ pair potential
     cell = md.nlist.Cell(buffer=0.4)
     with pytest.raises(TypeError):
-        # flake8 complains about unused variable with gauss = md.pair.Gauss(...)
-        md.pair.Gauss(nlist=cell,
-                      default_r_cut=2.5,
-                      mode='none',
-                      tail_correction=True)
+        # flake8 complains about unused variable with
+        # gauss = md.pair.Gaussian(...)
+        md.pair.Gaussian(nlist=cell,
+                         default_r_cut=2.5,
+                         mode='none',
+                         tail_correction=True)
 
 
 def test_tail_corrections(simulation_factory, two_particle_snapshot_factory):
