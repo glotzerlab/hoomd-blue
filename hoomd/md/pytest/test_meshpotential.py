@@ -1,7 +1,6 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-import copy as cp
 import hoomd
 import pytest
 import numpy as np
@@ -148,8 +147,9 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.type_ids = [0, 0, 0, 0]
-    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    type_ids = [0, 0, 0, 0]
+    triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
@@ -184,8 +184,9 @@ def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.types = ["mesh", "patch"]
-    mesh.type_ids = [0, 0, 0, 1]
-    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    type_ids = [0, 0, 0, 1]
+    triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params.default = potential_kwargs
@@ -224,8 +225,9 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
 
     mesh = hoomd.mesh.Mesh()
     mesh.types = ["mesh", "patch"]
-    mesh.type_ids = [0, 0, 0, 1]
-    mesh.triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    type_ids = [0, 0, 0, 1]
+    triangles = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+    mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
@@ -257,14 +259,13 @@ def test_auto_detach_simulation(simulation_factory,
                                 tetrahedron_snapshot_factory):
     sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
-    mesh.type_ids = [0, 0]
-    mesh.triangles = [[0, 1, 2], [0, 2, 3]]
+    mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
 
     harmonic = hoomd.md.mesh.bond.Harmonic(mesh)
     harmonic.params["mesh"] = dict(k=1, r0=1)
 
-    harmonic_2 = cp.deepcopy(harmonic)
-    harmonic_2.mesh = mesh
+    harmonic_2 = hoomd.md.mesh.bond.Harmonic(mesh)
+    harmonic_2.params["mesh"] = dict(k=5, r0=1.1)
 
     integrator = hoomd.md.Integrator(dt=0.005, forces=[harmonic, harmonic_2])
 

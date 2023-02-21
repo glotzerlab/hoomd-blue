@@ -227,7 +227,7 @@ class LJ(Pair):
             ParameterDict(tail_correction=bool(tail_correction)))
 
 
-class Gauss(Pair):
+class Gaussian(Pair):
     r"""Gaussian pair force.
 
     Args:
@@ -236,7 +236,7 @@ class Gauss(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `Gauss` computes the Gaussian pair force should on every particle in the
+    `Gaussian` computes the Gaussian pair force should on every particle in the
     simulation state:
 
     .. math::
@@ -246,7 +246,7 @@ class Gauss(Pair):
     Example::
 
         nl = nlist.Cell()
-        gauss = pair.Gauss(default_r_cut=3.0, nlist=nl)
+        gauss = pair.Gaussian(default_r_cut=3.0, nlist=nl)
         gauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
         gauss.r_cut[('A', 'B')] = 3.0
 

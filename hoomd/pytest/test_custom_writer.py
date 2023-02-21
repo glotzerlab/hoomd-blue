@@ -49,7 +49,7 @@ class TestCustomWriter:
         action = WriteTimestep()
         action.flags = [hoomd.custom.Action.Flags.PRESSURE_TENSOR]
         sim.operations += hoomd.write.CustomWriter(2, action)
-        gauss = hoomd.md.pair.Gauss(hoomd.md.nlist.Cell(0.5))
+        gauss = hoomd.md.pair.Gaussian(hoomd.md.nlist.Cell(0.5))
         gauss.params[("A", "A")] = {"sigma": 1.0, "epsilon": 1.0}
         gauss.r_cut[("A", "A")] = 2.0
         sim.operations += hoomd.md.Integrator(
