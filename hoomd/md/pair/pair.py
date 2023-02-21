@@ -296,8 +296,8 @@ class ExpandedLJ(Pair):
         \begin{cases}
         4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12}
         - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]
-        & r < (r_{\mathrm{cut}}) \\\\
-        0 & r \ge (r_{\mathrm{cut}})
+        & r < r_{\mathrm{cut}} \\\\
+        0 & r \ge r_{\mathrm{cut}}
         \end{cases}
 
     Note:
