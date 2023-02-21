@@ -65,7 +65,7 @@ class Mesh(_HOOMDBaseObject):
             types=[str],
             triangulation=OnlyIf(to_type_converter({
                 "type_ids": NDArrayValidator(np.uint),
-                "triangles": NDArrayValidator(np.uint, shape=[None, 3])
+                "triangles": NDArrayValidator(np.uint, shape=(None, 3))
             }),
                                  postprocess=self._ensure_same_size))
 
