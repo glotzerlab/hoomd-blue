@@ -12,7 +12,7 @@ md.external.wall
     :nosignatures:
 
     ForceShiftedLJ
-    Gauss
+    Gaussian
     LJ
     Mie
     Morse
@@ -24,7 +24,7 @@ md.external.wall
 .. automodule:: hoomd.md.external.wall
     :synopsis: MD wall potentials.
     :members: ForceShiftedLJ,
-        Gauss,
+        Gaussian,
         LJ,
         Mie,
         Morse,

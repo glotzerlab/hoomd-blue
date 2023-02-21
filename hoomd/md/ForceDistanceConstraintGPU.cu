@@ -347,7 +347,6 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                  &nnz);
     return hipSuccess;
     }
-#endif
 
 #ifndef CUSPARSE_NEW_API
 hipError_t gpu_dense2sparse(unsigned int n_constraint,
@@ -375,6 +374,7 @@ hipError_t gpu_dense2sparse(unsigned int n_constraint,
 
     return hipSuccess;
     }
+#endif
 #endif
 
 hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,

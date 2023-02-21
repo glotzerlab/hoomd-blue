@@ -412,9 +412,10 @@ void ExecutionConfiguration::scanGPUs()
             continue;
             }
 
+#ifdef __HIP_PLATFORM_NVCC__
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
-#ifdef __HIP_PLATFORM_NVCC__
+
         if (compoundComputeVer < CUDA_ARCH)
             {
             ostringstream s;
