@@ -292,21 +292,13 @@ class ExpandedLJ(Pair):
     particle in the simulation state:
 
     .. math::
-        U(r) = 4 \varepsilon \left[ \left(
-               \frac{\sigma}{r - \Delta} \right)^{12} -
-               \left( \frac{\sigma}{r - \Delta}
-               \right)^{6} \right]
-
-
-    .. math::
-        V_{\mathrm{ExpandedLJ}}(r) =
-        \\begin{cases}
-        4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12}\\\\
-        - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]\\\\
+        U(r) =
+        \begin{cases}
+        4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12}
+        - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right]
         & r < (r_{\mathrm{cut}}) \\\\
         0 & r \ge (r_{\mathrm{cut}})
-        \\end{cases}
-
+        \end{cases}
 
     Note:
         To replicate the behavior of the SLJ potential in HOOMD-blue v2, set
