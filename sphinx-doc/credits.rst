@@ -77,6 +77,7 @@ The following people have contributed to the to HOOMD-blue:
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
 * Martin Girard, Max-Planck-Institut für Polymerforschung
 * Matthew Spellings, University of Michgan
+* Melody Zhang, University of Michigan
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
 * Nathan Horst

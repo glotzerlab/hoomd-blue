@@ -64,7 +64,7 @@
       ]
     ]
   },
-  "Gauss": {
+  "Gaussian": {
     "params": [
       {
         "sigma": 0.5,

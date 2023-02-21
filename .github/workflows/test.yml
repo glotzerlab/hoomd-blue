@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.2.0
+      uses: glotzerlab/jetstream2-admin/start@v1.2.1
       with:
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
@@ -59,7 +59,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2022.12-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -170,7 +170,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2022.12-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -228,7 +228,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2022.12-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -279,7 +279,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2022.12-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -321,7 +321,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2022.12-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -437,7 +437,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2022.12-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -504,7 +504,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2022.12-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:

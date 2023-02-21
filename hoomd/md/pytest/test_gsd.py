@@ -379,7 +379,7 @@ def test_write_gsd_log(create_md_sim, tmp_path):
                                  trigger=hoomd.trigger.Periodic(1),
                                  filter=hoomd.filter.Null(),
                                  mode='wb',
-                                 log=logger)
+                                 logger=logger)
     sim.operations.writers.append(gsd_writer)
 
     kinetic_energy_list = []

@@ -12,7 +12,6 @@ md.dihedral
     :nosignatures:
 
     Dihedral
-    Harmonic
     Periodic
     OPLS
     Table
@@ -23,7 +22,6 @@ md.dihedral
     :synopsis: Dihedral potentials.
     :show-inheritance:
     :members: Dihedral,
-              Harmonic,
               Periodic,
               OPLS,
               Table
