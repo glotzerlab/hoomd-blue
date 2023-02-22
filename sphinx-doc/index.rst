@@ -154,7 +154,7 @@ Molecular dynamics:
     howto/molecular
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Python API
 
    package-hoomd

@@ -41,6 +41,8 @@ Important:
     parallel compact state ( \|_\| ).
 """
 
+import warnings
+
 from hoomd.md import _md
 from hoomd.md.force import Force
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -124,7 +126,12 @@ class Harmonic(Periodic):
     .. deprecated:: v3.7.0
         Use `Periodic`.
     """
-    pass
+
+    def __init__(self):
+        warnings.warn(
+            "Harmonic is deprecated and will be removed in hoomd 4.0. Use "
+            "Periodic instead.", FutureWarning)
+        super().__init__()
 
 
 class Table(Dihedral):
