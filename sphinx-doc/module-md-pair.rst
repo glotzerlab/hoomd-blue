@@ -23,6 +23,7 @@ md.pair
     Fourier
     Gauss
     Gaussian
+    ExpandedGaussian
     LJ
     LJ1208
     LJ0804
@@ -54,6 +55,7 @@ md.pair
         Fourier,
         Gauss,
         Gaussian,
+        ExpandedGaussian,
         LJ,
         LJ1208,
         LJ0804,

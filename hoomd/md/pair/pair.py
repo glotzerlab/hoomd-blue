@@ -302,8 +302,8 @@ class ExpandedGaussian(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `ExpandedGaussian` computes the Gaussian pair force should on every particle
-    in the simulation state:
+    `ExpandedGaussian` computes the radially-shifted Gaussian pair force should
+    on every particle in the simulation state:
 
     .. math::
         U(r) = \varepsilon \exp \left( -\frac{1}{2}
@@ -312,13 +312,14 @@ class ExpandedGaussian(Pair):
     Example::
 
         nl = nlist.Cell()
-        sgauss = pair.ExpandedGaussian(default_r_cut=3.0, nlist=nl)
-        sgauss.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, delta=0.5)
-        sgauss.r_cut[('A', 'B')] = 3.0
+        expanded_gauss = pair.ExpandedGaussian(default_r_cut=3.0, nlist=nl)
+        expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0,
+        sigma=1.0, delta=0.5)
+        expanded_gauss.r_cut[('A', 'B')] = 3.0
 
     .. py:attribute:: params
 
-        The expanded Gauss potential parameters. The dictionary has the
+        The expanded Gaussian potential parameters. The dictionary has the
         following keys:
 
         * ``epsilon`` (`float`, **required**) - energy parameter
