@@ -110,6 +110,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairExpandedLJ.h
+		EvaluatorPairShoulder.h
                 EvaluatorPairTable.h
                 EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
@@ -521,6 +522,7 @@ set(_pair_evaluators Buckingham
                      DLVO
                      Fourier
                      OPP
+		     Shoulder
                      TWF
                      LJGauss
                      ForceShiftedLJ

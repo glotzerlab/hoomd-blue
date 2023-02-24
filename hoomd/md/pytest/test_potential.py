@@ -238,6 +238,11 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(buckingham_invalid_dicts, md.pair.Buckingham, {}))
 
+    shoulder_valid_dict = {"A": 0.05, "m": 0.5, "l": 2}
+    shoulder_invalid_dicts = _make_invalid_param_dict(shoulder_valid_dict)
+    invalid_params_list.extend(
+        _make_invalid_params(shoulder_invalid_dicts, md.pair.Shoulder, {}))
+
     lj1208_valid_dict = {"sigma": 0.5, "epsilon": 0.0005}
     lj1208_invalid_dicts = _make_invalid_param_dict(lj1208_valid_dict)
     invalid_params_list.extend(
@@ -489,6 +494,16 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(
         paramtuple(md.pair.Buckingham,
                    dict(zip(combos, buckingham_valid_param_dicts)), {}))
+
+    shoulder_arg_dict = {
+        'A': [.05, .025, .010],
+        'm': [.5, 1, 1.5],
+        'l': [5, 2.5, 1]
+    }
+    shoulder_valid_param_dicts = _make_valid_param_dicts(shoulder_arg_dict)
+    valid_params_list.append(
+        paramtuple(md.pair.Shoulder,
+                   dict(zip(combos, shoulder_valid_param_dicts)), {}))
 
     lj1208_arg_dict = {
         'sigma': [0.5, 1.0, 1.5],

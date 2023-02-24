@@ -1774,6 +1774,56 @@ class TWF(Pair):
         self._add_typeparam(params)
 
 
+class Shoulder(Pair):
+    r"""Shoulder pair potential.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+
+    `Shoulder` computes a force that mimicks a hard shoulder on all particles
+    in the simulation state:
+
+    .. math::
+        U(r) = \frac{A}{2} \cdot \left[ 1 -
+            \frac{1 - \exp \left( - m \cdot ( r - l) \right)}
+            {1 + \exp \left( - m \cdot ( r - l) \right)}\right]
+
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
+        * ``A`` (`float`, **required**) -
+          shoulder height :math:`A` :math:`[\mathrm{energy}]`
+        * ``m`` (`float`, **required**) -
+          Shoulder depth :math:`m` :math:`[\mathrm{length}^{-1}]`
+        * ``l`` (`float`, **required**) -
+          Shoulder width :math:`l` :math:`[\mathrm{length}]`
+
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        sp = pair.Shoulder(nl)
+        sp.params[('A', 'A')] = dict(A=1.0, m=10, l=2)
+        sp.params[('A', 'B')] = {'A' : 2.0, 'm' : 50, 'l' : 5}
+
+    .. versionadded:: 3.1.0
+    """
+    _cpp_class_name = "PotentialPairShoulder"
+
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(A=float, m=float, l=float, len_keys=2))
+        self._add_typeparam(params)
+
+
 class LJGauss(Pair):
     r"""Lennard-Jones-Gauss pair potential.
 
