@@ -10,10 +10,6 @@
 
 #include "hoomd/HOOMDMath.h"
 
-/*! \file EvaluatorPairEXPANDEDGAUSSIAN.h
-    \brief Defines the pair evaluator class for shifted Gaussian potentials
-*/
-
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
@@ -40,17 +36,7 @@ namespace md
     \f[ V_{\mathrm{expanded_gauss}}(r) = \varepsilon \exp \left[ -
     \frac{1}{2}\left( \frac{r-\delta}}{\sigma}\right)^2 \right] \f]
 
-    The expanded Gaussian potential does not need diameter or charge. Three
-    parameters are specified and stored in a Scalar3.
-    \a epsilon is placed in \a params.x, \a sigma is in \a params.y, and
-    \a delta is in \a params.z.
-
-    \a epsilon and \a sigma are related to the standard lj parameters sigma and
-    epsilon by:
-    - \a epsilon = \f$ \varepsilon \f$
-    - \a sigma = \f$ \sigma \f$
-
-    \a delta is the shifted distance of the gaussian potential.
+    The expanded Gaussian potential does not need diameter or charge.
 
 */
 class EvaluatorPairExpandedGaussian
@@ -85,14 +71,6 @@ class EvaluatorPairExpandedGaussian
             delta = v["delta"].cast<Scalar>();
             }
 
-        // used to facilitate unit testing
-        param_type(Scalar eps, Scalar sig, Scalar r, bool managed = false)
-            {
-            sigma = sig;
-            epsilon = eps;
-            delta = r;
-            }
-
         pybind11::dict asDict()
             {
             pybind11::dict v;
@@ -103,11 +81,8 @@ class EvaluatorPairExpandedGaussian
             }
 #endif
         }
-#ifdef SINGLE_PRECISION
-        __attribute__((aligned(8)));
-#else
+
         __attribute__((aligned(16)));
-#endif
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
@@ -155,6 +130,7 @@ class EvaluatorPairExpandedGaussian
         {
         // precompute some quantities
         Scalar r = fast::sqrt(rsq);
+        Scalar rcut = fast::sqrt(rcutsq);
         Scalar rinv = Scalar(1.0) / r;
 
         // compute the force divided by r in force_divr
@@ -169,9 +145,13 @@ class EvaluatorPairExpandedGaussian
             force_divr = epsilon / sigma_sq * exp_val * rmd * rinv;
             pair_eng = epsilon * exp_val;
 
+            Scalar rcutmd = rcut - delta;
+            Scalar rcutmd_sq = (rcut - delta) * (rcut - delta);
+            Scalar rcutmd_over_sigma_sq = rcutmd_sq / sigma_sq;
+
             if (energy_shift)
                 {
-                pair_eng -= epsilon * fast::exp(-Scalar(1.0) / Scalar(2.0) * rcutsq / sigma_sq);
+                pair_eng -= epsilon * fast::exp(-Scalar(1.0) / Scalar(2.0) * rcutmd_over_sigma_sq);
                 }
             return true;
             }

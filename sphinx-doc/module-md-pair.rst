@@ -17,13 +17,13 @@ md.pair
     DPDLJ
     DPDConservative
     Ewald
+    ExpandedGaussian
     ExpandedLJ
     ExpandedMie
     ForceShiftedLJ
     Fourier
     Gauss
     Gaussian
-    ExpandedGaussian
     LJ
     LJ1208
     LJ0804
@@ -50,12 +50,12 @@ md.pair
         DPDLJ,
         DPDConservative,
         Ewald,
+        ExpandedGaussian,
         ExpandedMie,
         ForceShiftedLJ,
         Fourier,
         Gauss,
         Gaussian,
-        ExpandedGaussian,
         LJ,
         LJ1208,
         LJ0804,
