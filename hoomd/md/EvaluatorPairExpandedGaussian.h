@@ -145,7 +145,6 @@ class EvaluatorPairExpandedGaussian
             force_divr = epsilon / sigma_sq * exp_val * rmd * rinv;
             pair_eng = epsilon * exp_val;
 
-            Scalar rcutmd = rcut - delta;
             Scalar rcutmd_sq = (rcut - delta) * (rcut - delta);
             Scalar rcutmd_over_sigma_sq = rcutmd_sq / sigma_sq;
 
