@@ -60,6 +60,41 @@ def test_detaching(make_simulation, integrator_elements):
     assert not integrator._constraints._synced
 
 
+def test_validate_group():
+    CUBE_VERTS = [
+        (-0.5, -0.5, -0.5),
+        (-0.5, -0.5, 0.5),
+        (-0.5, 0.5, -0.5),
+        (-0.5, 0.5, 0.5),
+        (0.5, -0.5, -0.5),
+        (0.5, -0.5, 0.5),
+        (0.5, 0.5, -0.5),
+        (0.5, 0.5, 0.5),
+    ]
+
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body['R'] = {
+        "constituent_types": ['A'] * 8,
+        "positions": CUBE_VERTS,
+        "orientations": [(1.0, 0.0, 0.0, 0.0)] * 8,
+    }
+
+    nve1 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+    nve2 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+    integrator = hoomd.md.Integrator(dt=0,
+                                     methods=[nve1, nve2],
+                                     integrate_rotational_dof=True)
+    integrator.rigid = rigid
+
+    sim = hoomd.Simulation(device=hoomd.device.CPU())
+    sim.create_state_from_gsd('init.gsd')
+
+    sim.operations.integrator = integrator
+
+    with pytest.raises(RuntimeError):
+        sim.run(10)
+
+
 def test_linear_momentum(simulation_factory, lattice_snapshot_factory):
     snapshot = lattice_snapshot_factory()
     if snapshot.communicator.rank == 0:

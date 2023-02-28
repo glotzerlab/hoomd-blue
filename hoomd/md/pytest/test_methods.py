@@ -14,6 +14,41 @@ paramtuple = namedtuple('paramtuple', [
 ])
 
 
+def test_validate_group():
+    CUBE_VERTS = [
+        (-0.5, -0.5, -0.5),
+        (-0.5, -0.5, 0.5),
+        (-0.5, 0.5, -0.5),
+        (-0.5, 0.5, 0.5),
+        (0.5, -0.5, -0.5),
+        (0.5, -0.5, 0.5),
+        (0.5, 0.5, -0.5),
+        (0.5, 0.5, 0.5),
+    ]
+
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body['R'] = {
+        "constituent_types": ['A'] * 8,
+        "positions": CUBE_VERTS,
+        "orientations": [(1.0, 0.0, 0.0, 0.0)] * 8,
+    }
+
+    nve1 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+    nve2 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+    integrator = hoomd.md.Integrator(dt=0,
+                                     methods=[nve1, nve2],
+                                     integrate_rotational_dof=True)
+    integrator.rigid = rigid
+
+    sim = hoomd.Simulation(device=hoomd.device.CPU())
+    sim.create_state_from_gsd('init.gsd')
+
+    sim.operations.integrator = integrator
+
+    with pytest.raises(RuntimeError):
+        sim.run(10)
+
+
 def _method_base_params():
     method_base_params_list = []
     # Start with valid parameters to get the keys and placeholder values

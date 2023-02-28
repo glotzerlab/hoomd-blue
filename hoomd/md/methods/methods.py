@@ -39,7 +39,7 @@ class Method(AutotunedObject):
         Users can call `validate_group` to verify the groups after changing
         them.
         """
-        self._cpp.obj.validateGroup()
+        self._cpp_obj.validateGroup()
 
 
 class NVT(Method):
