@@ -136,12 +136,13 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     for (unsigned int i = 0; i < 6; i++)
         triangle_area_conservation_virial[i] = Scalar(0.0);
 
+    const unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+    std::vector<Scalar> global_area(n_types);
+    for (unsigned int i = 0; i < n_types; i++)
+        global_area[i] = 0;
+
     // for each of the triangles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
-
-    for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
-        m_area[i] = 0;
-
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the triangle
@@ -246,7 +247,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
-            m_area[triangle_type] += tri_area;
+            global_area[triangle_type] += tri_area;
 
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
@@ -271,7 +272,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (idx_b < m_pdata->getN())
             {
-            m_area[triangle_type] += tri_area;
+            global_area[triangle_type] += tri_area;
 
             h_force.data[idx_b].x += Fb.x;
             h_force.data[idx_b].y += Fb.y;
@@ -293,7 +294,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (idx_c < m_pdata->getN())
             {
-            m_area[triangle_type] += tri_area;
+            global_area[triangle_type] += tri_area;
 
             h_force.data[idx_c].x += Fc.x;
             h_force.data[idx_c].y += Fc.y;
@@ -303,6 +304,21 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
                 h_virial.data[j * virial_pitch + idx_c] += triangle_area_conservation_virial[j];
             }
         }
+
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &global_area[0],
+                          n_types,
+                          MPI_HOOMD_SCALAR,
+                          MPI_SUM,
+                          m_exec_conf->getMPICommunicator());
+            }
+#endif
+
+    	for (unsigned int i = 0; i < n_types; i++)
+        	m_area[i] = global_area[i];
     }
 
 namespace detail
