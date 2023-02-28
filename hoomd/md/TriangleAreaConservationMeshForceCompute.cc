@@ -223,9 +223,8 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         // from whole surface area A0 to the surface of individual triangle A0 -> At
         Scalar At = m_A0[triangle_type] / size;
 
-        Scalar Ut;
-        m_area[triangle_type] += rab * rac * s_baac / 2;
-        Ut = rab * rac * s_baac / 2 - At;
+        Scalar tri_area = rab * rac * s_baac / 6; //triangle area/3
+        Scalar Ut = 3*tri_area - At;
 
         Scalar3 Fa, Fb, Fc;
         Fa = -m_K[triangle_type] / (2 * At) * Ut
@@ -247,6 +246,8 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
+            m_area[triangle_type] += tri_area;
+
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
@@ -270,6 +271,8 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (idx_b < m_pdata->getN())
             {
+            m_area[triangle_type] += tri_area;
+
             h_force.data[idx_b].x += Fb.x;
             h_force.data[idx_b].y += Fb.y;
             h_force.data[idx_b].z += Fb.z;
@@ -290,6 +293,8 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         if (idx_c < m_pdata->getN())
             {
+            m_area[triangle_type] += tri_area;
+
             h_force.data[idx_c].x += Fc.x;
             h_force.data[idx_c].y += Fc.y;
             h_force.data[idx_c].z += Fc.z;
