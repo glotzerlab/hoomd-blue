@@ -297,8 +297,13 @@ void AreaConservationMeshForceCompute::precomputeParameter()
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
-    for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
-        m_area[i] = 0;
+
+    const unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+
+    std::vector<Scalar> global_area(n_types);
+
+    for (unsigned int i = 0; i < n_types; i++)
+        global_area[i] = 0;
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
@@ -359,8 +364,36 @@ void AreaConservationMeshForceCompute::precomputeParameter()
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
-        m_area[triangle_type] += area_tri;
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+ 	    area_tri /= 3;
+
+	    if(idx_a < m_pdata->getN())  global_area[triangle_type] += area_tri;
+	    if(idx_b < m_pdata->getN())  global_area[triangle_type] += area_tri;
+	    if(idx_c < m_pdata->getN())  global_area[triangle_type] += area_tri;
+            }
+	    else
+#endif
+            {
+            global_area[triangle_type] += area_tri;
+	   }
         }
+
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &global_area[0],
+                          n_types,
+                          MPI_HOOMD_SCALAR,
+                          MPI_SUM,
+                          m_exec_conf->getMPICommunicator());
+            }
+#endif
+
+    	for (unsigned int i = 0; i < n_types; i++)
+        	m_area[i] = global_area[i];
     }
 
 namespace detail
