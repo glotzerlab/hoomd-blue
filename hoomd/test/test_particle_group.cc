@@ -382,40 +382,6 @@ UP_TEST(ParticleGroup_tag_test)
     CHECK_EQUAL_UINT(tags59.getMemberTag(4), 9);
     }
 
-//! Checks that ParticleGroup can initialize by cuboid
-UP_TEST(ParticleGroup_cuboid_test)
-    {
-    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-
-    // create a group containing only particle 0
-    std::shared_ptr<ParticleFilter> selector0(
-        new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5), make_scalar3(0.5, 0.5, 0.5)));
-    ParticleGroup tags0(sysdef, selector0);
-    CHECK_EQUAL_UINT(tags0.getNumMembers(), 1);
-    CHECK_EQUAL_UINT(tags0.getIndexArray().getNumElements(), 1);
-    CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
-
-    // create a group containing particles 0 and 1
-    std::shared_ptr<ParticleFilter> selector1(
-        new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5), make_scalar3(1.5, 2.5, 3.5)));
-    ParticleGroup tags1(sysdef, selector1);
-    CHECK_EQUAL_UINT(tags1.getNumMembers(), 2);
-    CHECK_EQUAL_UINT(tags1.getIndexArray().getNumElements(), 2);
-    CHECK_EQUAL_UINT(tags1.getMemberTag(0), 0);
-    CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
-
-    // create a group containing particles 0, 1 and 2
-    std::shared_ptr<ParticleFilter> selector2(
-        new ParticleFilterCuboid(make_scalar3(-1.5, -2.5, -3.5), make_scalar3(1.5, 2.5, 3.5)));
-    ParticleGroup tags2(sysdef, selector2);
-    CHECK_EQUAL_UINT(tags2.getNumMembers(), 3);
-    CHECK_EQUAL_UINT(tags2.getIndexArray().getNumElements(), 3);
-    CHECK_EQUAL_UINT(tags2.getMemberTag(0), 0);
-    CHECK_EQUAL_UINT(tags2.getMemberTag(1), 1);
-    CHECK_EQUAL_UINT(tags2.getMemberTag(2), 2);
-    }
-
 //! Checks that the ParticleGroup boolean operation work correctly
 UP_TEST(ParticleGroup_boolean_tests)
     {

@@ -438,7 +438,7 @@ def test_aniso_force_computes(make_two_particle_simulation,
 
     """
     pot = aniso_forces_and_energies.pair_potential(
-        nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5, mode='none')
+        nlist=md.nlist.Cell(buffer=0.4), default_r_cut=2.5)
     for param, value in aniso_forces_and_energies.pair_potential_params.items():
         getattr(pot, param)[('A', 'A')] = value
     sim = make_two_particle_simulation(types=['A'], d=0.75, force=pot)

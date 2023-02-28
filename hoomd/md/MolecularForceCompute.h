@@ -114,6 +114,12 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
         return m_molecule_idx;
         }
 
+    /// Get the number of molecules (global)
+    unsigned int getNMoleculesGlobal() const
+        {
+        return m_n_molecules_global;
+        }
+
     protected:
     GlobalVector<unsigned int> m_molecule_tag; //!< Molecule tag per particle tag
     unsigned int m_n_molecules_global;         //!< Global number of molecules

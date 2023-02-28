@@ -104,7 +104,7 @@ class Periodic(Dihedral):
 
     Examples::
 
-        harmonic = dihedral.Harmonic()
+        harmonic = dihedral.Periodic()
         harmonic.params['A-A-A-A'] = dict(k=3.0, d=-1, n=3, phi0=0)
         harmonic.params['A-B-C-D'] = dict(k=100.0, d=1, n=4, phi0=math.pi/2)
     """
@@ -116,15 +116,6 @@ class Periodic(Dihedral):
             'params', 'dihedral_types',
             TypeParameterDict(k=float, d=float, n=int, phi0=float, len_keys=1))
         self._add_typeparam(params)
-
-
-class Harmonic(Periodic):
-    """Periodic dihedral force.
-
-    .. deprecated:: v3.7.0
-        Use `Periodic`.
-    """
-    pass
 
 
 class Table(Dihedral):
