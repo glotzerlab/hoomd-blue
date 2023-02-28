@@ -272,8 +272,10 @@ void VolumeConservationMeshForceCompute::computeVolume()
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
-    for (unsigned int i = 0; i < m_mesh_data->getMeshTriangleData()->getNTypes(); i++)
-        m_volume[i] = 0;
+    const unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
+    std::vector<Scalar> global_volume(n_types);
+    for (unsigned int i = 0; i < n_types; i++)
+        global_volume[i] = 0;
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
@@ -307,12 +309,41 @@ void VolumeConservationMeshForceCompute::computeVolume()
         pos_b = box.shift(pos_b, h_image.data[idx_b]);
         pos_c = box.shift(pos_c, h_image.data[idx_c]);
 
-        Scalar vol_tri = dot(cross(pos_c, pos_b), pos_a) / 6.0;
+        Scalar volume_tri = dot(cross(pos_c, pos_b), pos_a) / 6.0;
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
-        m_volume[triangle_type] += vol_tri;
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+ 	    volume_tri /= 3;
+
+	    if(idx_a < m_pdata->getN()) global_volume[triangle_type] += volume_tri;
+	    if(idx_b < m_pdata->getN()) global_volume[triangle_type] += volume_tri;
+	    if(idx_c < m_pdata->getN()) global_volume[triangle_type] += volume_tri;
+            }
+        else
+#endif
+            {
+            global_volume[triangle_type] += volume_tri;
+	    }
         }
+
+#ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &global_volume[0],
+                          n_types,
+                          MPI_HOOMD_SCALAR,
+                          MPI_SUM,
+                          m_exec_conf->getMPICommunicator());
+            }
+#endif
+
+    	for (unsigned int i = 0; i < n_types; i++)
+        	m_volume[i] = global_volume[i];
+
     }
 
 namespace detail
