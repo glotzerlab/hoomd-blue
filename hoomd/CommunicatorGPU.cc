@@ -53,6 +53,7 @@ CommunicatorGPU::~CommunicatorGPU()
 
 void CommunicatorGPU::updateMeshDefinition()
     {
+    Communicator::updateMeshDefinition();
     m_meshbond_comm.addGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.addGroupData(m_meshdef->getMeshTriangleData());
     }
