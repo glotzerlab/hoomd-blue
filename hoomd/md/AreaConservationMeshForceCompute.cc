@@ -134,6 +134,8 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
+
+    std::cout << m_exec_conf->getRank() << ": " << size << " " << m_mesh_data->getMeshTriangleData() << std::endl;
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
@@ -210,7 +212,7 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         Scalar AreaDiff = m_area[triangle_type] - m_A0[triangle_type];
 
         Scalar energy = m_K[triangle_type] * AreaDiff * AreaDiff
-                        / (2 * m_A0[triangle_type] * m_pdata->getN());
+                        / (2 * m_A0[triangle_type] * m_pdata->getNGlobal());
 
         AreaDiff = -m_K[triangle_type] / m_A0[triangle_type] * AreaDiff / 2.0;
 

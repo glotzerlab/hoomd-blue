@@ -266,6 +266,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
                                                          Scalar* d_virial,
                                                          const size_t virial_pitch,
                                                          const unsigned int N,
+                                                         const unsigned int gN,
                                                          const Scalar4* d_pos,
                                                          BoxDim box,
                                                          const Scalar* area,
@@ -313,7 +314,7 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
         Scalar AreaDiff = area[cur_triangle_type] - A_mesh;
 
-        Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * N);
+        Scalar energy = K * AreaDiff * AreaDiff / (2 * A_mesh * gN);
 
         AreaDiff = -K / A_mesh * AreaDiff / 2.0;
 
@@ -454,6 +455,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                                              Scalar* d_virial,
                                              const size_t virial_pitch,
                                              const unsigned int N,
+                                             const unsigned int gN,
                                              const Scalar4* d_pos,
                                              const BoxDim& box,
                                              const Scalar* area,
@@ -487,6 +489,7 @@ hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
                        d_virial,
                        virial_pitch,
                        N,
+                       gN,
                        d_pos,
                        box,
                        area,
