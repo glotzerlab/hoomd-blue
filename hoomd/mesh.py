@@ -87,13 +87,8 @@ class Mesh(_HOOMDBaseObject):
             pdata = self._simulation.state._cpp_sys_def.getParticleData()
             decomposition = pdata.getDomainDecomposition()
             if decomposition is not None:
-                # create the c++ Communicator
-                self._cpp_obj.setTriangulation(
-                    dict(self._param_dict['triangulation']))
                 self._simulation._system_communicator.addMeshDefinition(
                     self._cpp_obj)
-                self._cpp_obj.setCommunicator(
-                    self._simulation._system_communicator)
 
     def _ensure_same_size(self, triangulation):
         if triangulation is None:

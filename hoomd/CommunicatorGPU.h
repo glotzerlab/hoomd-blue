@@ -79,7 +79,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         }
 
     //! Helper function to initialize adjacency arrays
-    void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
+    virual void updateMeshDefinition();
 
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
