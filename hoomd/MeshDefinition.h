@@ -21,10 +21,6 @@
 
 namespace hoomd
     {
-#ifdef ENABLE_MPI
-//! Forward declaration of Communicator
-class Communicator;
-#endif
 //! Mesh class that contains all infrastructure necessary to combine a set of particles into a mesh
 //! triangulation
 /*! MeshDefinition is a container class to define a mesh tringulation comprised of the
@@ -67,20 +63,6 @@ class PYBIND11_EXPORT MeshDefinition
     //! Constructs a MeshDefinition with a simply initialized ParticleData
     MeshDefinition(std::shared_ptr<SystemDefinition> sysdef, unsigned int n_types);
 
-#ifdef ENABLE_MPI
-    void setCommunicator(std::shared_ptr<Communicator> communicator)
-        {
-        // Communicator holds a shared pointer to the SystemDefinition, so hold a weak pointer
-        // to break the circular reference.
-        m_communicator = communicator;
-        }
-
-    std::weak_ptr<Communicator> getCommunicator()
-        {
-        return m_communicator;
-        }
-#endif
-
     //! Access the mesh triangle data defined for the simulation
     std::shared_ptr<TriangleData> getMeshTriangleData()
         {
@@ -118,11 +100,6 @@ class PYBIND11_EXPORT MeshDefinition
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
     std::shared_ptr<TriangleData> m_meshtriangle_data; //!< Triangle data for the mesh
-
-#ifdef ENABLE_MPI
-    /// The system communicator
-    std::weak_ptr<Communicator> m_communicator;
-#endif
     };
 
 namespace detail

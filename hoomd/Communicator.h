@@ -384,8 +384,8 @@ class PYBIND11_EXPORT Communicator
         };
 
     //@}
+    virtual void updateMeshDefinition();
 
-    //! Helper function to initialize adjacency arrays
     void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
 
     protected:

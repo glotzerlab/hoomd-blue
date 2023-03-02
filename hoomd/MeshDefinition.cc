@@ -119,6 +119,18 @@ void MeshDefinition::setTriangulationData(pybind11::dict triangulation)
         new TriangleData(m_sysdef->getParticleData(), triangle_data));
     m_meshbond_data = std::shared_ptr<MeshBondData>(
         new MeshBondData(m_sysdef->getParticleData(), triangle_data));
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        auto comm = comm_weak.lock();
+
+        // register this class with the communicator
+        comm->updateMeshDefinition();
+        }
+#endif
     }
 
 namespace detail
@@ -138,7 +150,6 @@ void export_MeshDefinition(pybind11::module& m)
                       &MeshDefinition::setTriangulationData)
         .def_property_readonly("types", &MeshDefinition::getTypes)
 #ifdef ENABLE_MPI
-        .def("setCommunicator", &MeshDefinition::setCommunicator)
         .def("setTriangulation", &MeshDefinition::setTriangulationData)
 #endif
         ;
