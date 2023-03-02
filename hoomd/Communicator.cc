@@ -1381,10 +1381,8 @@ Communicator::~Communicator()
     MPI_Type_free(&m_mpi_pdata_element);
     }
 
-void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
+void Communicator::updateMeshDefinition()
     {
-    m_meshdef = meshdef;
-
     m_meshbond_comm.setGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.setGroupData(m_meshdef->getMeshTriangleData());
 
@@ -1397,6 +1395,11 @@ void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
     m_meshdef->getMeshTriangleData()
         ->getGroupNumChangeSignal()
         .connect<Communicator, &Communicator::setMeshtrianglesChanged>(this);
+    }
+
+void Communicator::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
+    {
+    m_meshdef = meshdef;
     }
 
 void Communicator::initializeNeighborArrays()
