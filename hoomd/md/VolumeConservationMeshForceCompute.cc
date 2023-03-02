@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceCompute.h"
@@ -177,8 +177,8 @@ void VolumeConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         Scalar VolDiff = m_volume[triangle_type] - m_V0[triangle_type];
 
-        Scalar energy
-            = m_K[triangle_type] * VolDiff * VolDiff / (2 * m_V0[triangle_type] * m_pdata->getN());
+        Scalar energy = m_K[triangle_type] * VolDiff * VolDiff
+                        / (2 * m_V0[triangle_type] * m_pdata->getNGlobal());
 
         VolDiff = -m_K[triangle_type] / m_V0[triangle_type] * VolDiff / 6.0;
 
@@ -316,34 +316,36 @@ void VolumeConservationMeshForceCompute::computeVolume()
 #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
             {
- 	    volume_tri /= 3;
+            volume_tri /= 3;
 
-	    if(idx_a < m_pdata->getN()) global_volume[triangle_type] += volume_tri;
-	    if(idx_b < m_pdata->getN()) global_volume[triangle_type] += volume_tri;
-	    if(idx_c < m_pdata->getN()) global_volume[triangle_type] += volume_tri;
+            if (idx_a < m_pdata->getN())
+                global_volume[triangle_type] += volume_tri;
+            if (idx_b < m_pdata->getN())
+                global_volume[triangle_type] += volume_tri;
+            if (idx_c < m_pdata->getN())
+                global_volume[triangle_type] += volume_tri;
             }
         else
 #endif
             {
             global_volume[triangle_type] += volume_tri;
-	    }
+            }
         }
 
 #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            MPI_Allreduce(MPI_IN_PLACE,
-                          &global_volume[0],
-                          n_types,
-                          MPI_HOOMD_SCALAR,
-                          MPI_SUM,
-                          m_exec_conf->getMPICommunicator());
-            }
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &global_volume[0],
+                      n_types,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
 #endif
 
-    	for (unsigned int i = 0; i < n_types; i++)
-        	m_volume[i] = global_volume[i];
-
+    for (unsigned int i = 0; i < n_types; i++)
+        m_volume[i] = global_volume[i];
     }
 
 namespace detail

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -51,10 +51,10 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    Scalar *volume_transfer = (Scalar*)malloc(tN * sizeof *volume_transfer);
+    Scalar* volume_transfer = (Scalar*)malloc(tN * sizeof *volume_transfer);
 
-    for( int i_types = 0; i_types < tN; i_types++)
-	    volume_transfer[i_types]=0;
+    for (int i_types = 0; i_types < tN; i_types++)
+        volume_transfer[i_types] = 0;
 
     if (idx < N)
         {
@@ -63,7 +63,6 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
         Scalar3 pos_a = make_scalar3(postype.x, postype.y, postype.z);
         int3 image_a = d_image[idx];
         pos_a = box.shift(pos_a, image_a);
-    
 
         for (int triangle_idx = 0; triangle_idx < n_triangles; triangle_idx++)
             {
@@ -105,31 +104,30 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             }
         }
 
+    for (int i_types = 0; i_types < tN; i_types++)
+        {
+        volume_sdata[threadIdx.x] = volume_transfer[i_types];
 
-    for( int i_types = 0; i_types < tN; i_types++)
-       {
-       volume_sdata[threadIdx.x]  = volume_transfer[i_types];
+        __syncthreads();
 
-       __syncthreads();
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                {
+                volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
+                }
+            offs >>= 1;
+            __syncthreads();
+            }
 
-       // reduce the sum in parallel
-       int offs = blockDim.x >> 1;
-       while (offs > 0)
-           {
-           if (threadIdx.x < offs)
-               {
-               volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
-               }
-           offs >>= 1;
-           __syncthreads();
-           }
-
-       // write out our partial sum
-       if (threadIdx.x == 0)
-           {
-           d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[0];
-           }
-       }
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            {
+            d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[0];
+            }
+        }
     }
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
@@ -145,36 +143,35 @@ __global__ void gpu_volume_reduce_partial_sum_kernel(Scalar* d_sum,
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* volume_sdata = (Scalar*)&s_data[0];
 
+    for (int i_types = 0; i_types < tN; i_types++)
+        {
+        // sum up the values in the partial sum via a sliding window
+        Scalar sum = Scalar(0.0);
+        for (int start = 0; start < num_blocks; start += blockDim.x)
+            {
+            __syncthreads();
+            if (start + threadIdx.x < num_blocks)
+                volume_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * tN + i_types];
+            else
+                volume_sdata[threadIdx.x] = Scalar(0.0);
+            __syncthreads();
 
-    for( int i_types = 0; i_types < tN; i_types++)
-       {
-       // sum up the values in the partial sum via a sliding window
-       Scalar sum = Scalar(0.0);
-       for (int start = 0; start < num_blocks; start += blockDim.x)
-           {
-           __syncthreads();
-           if (start + threadIdx.x < num_blocks)
-               volume_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * tN + i_types];
-           else
-               volume_sdata[threadIdx.x] = Scalar(0.0);
-           __syncthreads();
+            // reduce the sum in parallel
+            int offs = blockDim.x >> 1;
+            while (offs > 0)
+                {
+                if (threadIdx.x < offs)
+                    volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
+                offs >>= 1;
+                }
 
-           // reduce the sum in parallel
-           int offs = blockDim.x >> 1;
-           while (offs > 0)
-               {
-               if (threadIdx.x < offs)
-                   volume_sdata[threadIdx.x] += volume_sdata[threadIdx.x + offs];
-               offs >>= 1;
-               }
+            // everybody sums up sum2K
+            sum += volume_sdata[0];
+            }
 
-           // everybody sums up sum2K
-           sum += volume_sdata[0];
-           }
-
-       if (threadIdx.x == 0)
-           d_sum[i_types] = sum;
-       }
+        if (threadIdx.x == 0)
+            d_sum[i_types] = sum;
+        }
     }
 
 /*! \param d_sigma Device memory to write per paricle sigma
@@ -261,6 +258,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
                                                            Scalar* d_virial,
                                                            const size_t virial_pitch,
                                                            const unsigned int N,
+                                                           const unsigned int gN,
                                                            const Scalar4* d_pos,
                                                            const int3* d_image,
                                                            BoxDim box,
@@ -278,7 +276,6 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
 
     if (idx >= N)
         return;
-
 
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_triangles = n_triangles_list[idx];
@@ -312,7 +309,7 @@ __global__ void gpu_compute_volume_constraint_force_kernel(Scalar4* d_force,
 
         Scalar VolDiff = volume[cur_triangle_type] - V0;
 
-        Scalar energy = K * VolDiff * VolDiff / (2 * V0 * N);
+        Scalar energy = K * VolDiff * VolDiff / (2 * V0 * gN);
 
         VolDiff = -K / V0 * VolDiff / 6.0;
 
@@ -394,6 +391,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                                                Scalar* d_virial,
                                                const size_t virial_pitch,
                                                const unsigned int N,
+                                               const unsigned int gN,
                                                const Scalar4* d_pos,
                                                const int3* d_image,
                                                const BoxDim& box,
@@ -428,6 +426,7 @@ hipError_t gpu_compute_volume_constraint_force(Scalar4* d_force,
                        d_virial,
                        virial_pitch,
                        N,
+                       gN,
                        d_pos,
                        d_image,
                        box,

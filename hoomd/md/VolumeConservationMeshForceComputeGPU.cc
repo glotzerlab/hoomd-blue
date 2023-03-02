@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "VolumeConservationMeshForceComputeGPU.h"
@@ -115,6 +115,7 @@ void VolumeConservationMeshForceComputeGPU::computeForces(uint64_t timestep)
                                                 d_virial.data,
                                                 m_virial.getPitch(),
                                                 m_pdata->getN(),
+                                                m_pdata->getNGlobal(),
                                                 d_pos.data,
                                                 d_image.data,
                                                 box,
@@ -181,7 +182,7 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
                                          access_mode::overwrite);
     ArrayHandle<Scalar> d_sumVol(m_sum, access_location::device, access_mode::overwrite);
 
-    unsigned int NTypes =  m_mesh_data->getMeshTriangleData()->getNTypes();
+    unsigned int NTypes = m_mesh_data->getMeshTriangleData()->getNTypes();
 
     kernel::gpu_compute_volume_constraint_volume(d_sumVol.data,
                                                  d_partial_sumVol.data,
@@ -216,7 +217,7 @@ void VolumeConservationMeshForceComputeGPU::computeVolume()
         }
 #endif
     for (unsigned int i = 0; i < NTypes; i++)
-    	h_volume.data[i] = h_sumVol.data[i];
+        h_volume.data[i] = h_sumVol.data[i];
     }
 
 namespace detail
