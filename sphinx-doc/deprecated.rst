@@ -75,8 +75,8 @@ v3.x
 
 * ``hoomd.md.pair.Gauss`` (since v3.10.0)
 
-    * Use `hoomd.md.pair.Gaussian`.
+  * Use `hoomd.md.pair.Gaussian`.
 
 * ``msg_file`` property and argument to ``Device`` and subclasses (since v3.10.0)
 
-    * Use `message_filename <hoomd.device.Device.message_filename>`.
+  * Use `message_filename <hoomd.device.Device.message_filename>`.

@@ -51,9 +51,9 @@ CommunicatorGPU::~CommunicatorGPU()
     hipEventDestroy(m_event);
     }
 
-void CommunicatorGPU::addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef)
+void CommunicatorGPU::updateMeshDefinition()
     {
-    Communicator::addMeshDefinition(meshdef);
+    Communicator::updateMeshDefinition();
     m_meshbond_comm.addGroupData(m_meshdef->getMeshBondData());
     m_meshtriangle_comm.addGroupData(m_meshdef->getMeshTriangleData());
     }
@@ -3681,7 +3681,6 @@ void export_CommunicatorGPU(pybind11::module& m)
         "CommunicatorGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<DomainDecomposition>>())
-        .def("addMeshDefinition", &CommunicatorGPU::addMeshDefinition)
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
     } // end namespace detail
