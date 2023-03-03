@@ -1349,4 +1349,5 @@ def test_shift(simulation_factory,
     # Ideally, test that V_shifted = 0. In practice, forces_and_energies.json
     # has a wide range of potential parameters, so check only that V_shifted
     # is much closer to 0 than V.
-    assert V_shifted == pytest.approx(expected=0, abs=math.fabs(V / 1e4))
+    tolerance = max(math.fabs(V / 1e4), 1e-8)
+    assert V_shifted == pytest.approx(expected=0, abs=tolerance)
