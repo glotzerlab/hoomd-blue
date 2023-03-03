@@ -1708,8 +1708,8 @@ class TWF(Pair):
 
     .. math::
         U(r) = \frac{4 \epsilon}{\alpha^2} {\left[
-        {\left(\frac{\sigma^2}{r^2} - 1 \right)}^6 -
-        \alpha {\left(\frac{\sigma^2}{r^2} - 1 \right)}^3\right]}
+        {\left(\frac{\sigma^2}{r^2} - 1 \right)}^{-6} -
+        \alpha {\left(\frac{\sigma^2}{r^2} - 1 \right)}^{-3}\right]}
 
     The potential was introdcued in `Pieter Rein ten Wolde and Daan Frenkel
     1997`_.
