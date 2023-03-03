@@ -163,11 +163,9 @@ class EvaluatorPairExpandedLJ
         // precompute some quantities
         Scalar rinv = fast::rsqrt(rsq);
         Scalar r = Scalar(1.0) / rinv;
-        Scalar rcutinv = fast::rsqrt(rcutsq);
-        Scalar rcut = Scalar(1.0) / rcutinv;
 
         // compute the force divided by r in force_divr
-        if (r < rcut && lj1 != 0)
+        if (rsq < rcutsq && lj1 != 0)
             {
             Scalar rmd = r - delta;
             Scalar rmdinv = Scalar(1.0) / rmd;
@@ -180,8 +178,12 @@ class EvaluatorPairExpandedLJ
 
             if (energy_shift)
                 {
-                Scalar rcut2inv = rcutinv * rcutinv;
-                Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+                Scalar rcut = fast::sqrt(rcutsq);
+                Scalar r_cut_shifted = rcut - delta;
+                Scalar r_cut_shifted_inv = Scalar(1.0) / r_cut_shifted;
+
+                Scalar r_cut2inv = r_cut_shifted_inv * r_cut_shifted_inv;
+                Scalar rcut6inv = r_cut2inv * r_cut2inv * r_cut2inv;
                 pair_eng -= rcut6inv * (lj1 * rcut6inv - lj2);
                 }
             return true;
