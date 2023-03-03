@@ -1318,26 +1318,28 @@ def test_forces_multiple_lists(simulation_factory,
 @pytest.mark.parametrize("forces_and_energies",
                          _forces_and_energies(),
                          ids=lambda x: x.pair_potential.__name__)
-def test_shift(simulation_factory,
-               two_particle_snapshot_factory,
+def test_shift(simulation_factory, two_particle_snapshot_factory,
                forces_and_energies):
     if 'shift' not in forces_and_energies.pair_potential._accepted_modes:
         pytest.skip("Potential does not support the shift mode.")
 
     r_cut = 2.0
 
-    potential = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
-                                             nlist=md.nlist.Cell(buffer=0.4),
-                                             default_r_cut=r_cut)
+    potential = forces_and_energies.pair_potential(
+        **forces_and_energies.extra_args,
+        nlist=md.nlist.Cell(buffer=0.4),
+        default_r_cut=r_cut)
     potential.params[('A', 'A')] = forces_and_energies.pair_potential_params
 
-    potential_shifted = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
-                                             nlist=md.nlist.Cell(buffer=0.4),
-                                             default_r_cut=r_cut)
-    potential_shifted.params[('A', 'A')] = forces_and_energies.pair_potential_params
+    potential_shifted = forces_and_energies.pair_potential(
+        **forces_and_energies.extra_args,
+        nlist=md.nlist.Cell(buffer=0.4),
+        default_r_cut=r_cut)
+    potential_shifted.params[('A',
+                              'A')] = forces_and_energies.pair_potential_params
     potential_shifted.mode = 'shift'
 
-    snap = two_particle_snapshot_factory(particle_types=['A'], d=r_cut-1e-7)
+    snap = two_particle_snapshot_factory(particle_types=['A'], d=r_cut - 1e-7)
     _update_snap(forces_and_energies.pair_potential, snap)
     sim = simulation_factory(snap)
     sim.operations.computes.extend([potential, potential_shifted])
