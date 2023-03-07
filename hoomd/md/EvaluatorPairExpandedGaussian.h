@@ -155,7 +155,9 @@ class EvaluatorPairExpandedGaussian
             return true;
             }
         else
+            {
             return false;
+            }
         }
 
     DEVICE Scalar evalPressureLRCIntegral()
