@@ -178,13 +178,13 @@ class EvaluatorPairExpandedLJ
 
             if (energy_shift)
                 {
-                Scalar rcut = fast::sqrt(rcutsq);
-                Scalar r_cut_shifted = rcut - delta;
+                Scalar r_cut = fast::sqrt(rcutsq);
+                Scalar r_cut_shifted = r_cut - delta;
                 Scalar r_cut_shifted_inv = Scalar(1.0) / r_cut_shifted;
 
-                Scalar r_cut2inv = r_cut_shifted_inv * r_cut_shifted_inv;
-                Scalar rcut6inv = r_cut2inv * r_cut2inv * r_cut2inv;
-                pair_eng -= rcut6inv * (lj1 * rcut6inv - lj2);
+                Scalar r_cut2_inv = r_cut_shifted_inv * r_cut_shifted_inv;
+                Scalar r_cut6_inv = r_cut2_inv * r_cut2_inv * r_cut2_inv;
+                pair_eng -= r_cut6_inv * (lj1 * r_cut6_inv - lj2);
                 }
             return true;
             }

@@ -189,12 +189,12 @@ class EvaluatorPairExpandedMie
 
             if (energy_shift)
                 {
-                Scalar rcut = fast::sqrt(rcutsq);
-                Scalar r_cut_shifted = rcut - delta;
+                Scalar r_cut = fast::sqrt(rcutsq);
+                Scalar r_cut_shifted = r_cut - delta;
 
-                Scalar rcutninv = fast::pow(r_cut_shifted, -n_pow);
-                Scalar rcutminv = fast::pow(r_cut_shifted, -m_pow);
-                pair_eng -= repulsive * rcutninv - attractive * rcutminv;
+                Scalar r_cut_n_inv = fast::pow(r_cut_shifted, -n_pow);
+                Scalar r_cut_m_inv = fast::pow(r_cut_shifted, -m_pow);
+                pair_eng -= repulsive * r_cut_n_inv - attractive * r_cut_m_inv;
                 }
             return true;
             }
