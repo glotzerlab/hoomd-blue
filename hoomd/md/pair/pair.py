@@ -326,7 +326,7 @@ class ExpandedGaussian(Pair):
           :math:`\varepsilon` :math:`[\mathrm{energy}]`
         * ``sigma`` (`float`, **required**) - particle size
           :math:`\sigma` :math:`[\mathrm{length}]`
-        * ``Delta`` (`float`, **required**) - shift distabce
+        * ``delta`` (`float`, **required**) - shift distance
           :math:`\delta` :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
