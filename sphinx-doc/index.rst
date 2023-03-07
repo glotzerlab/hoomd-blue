@@ -152,6 +152,7 @@ Molecular dynamics:
     :caption: How to guides
 
     howto/molecular
+    howto/cpppotential
 
 .. toctree::
    :maxdepth: 1
