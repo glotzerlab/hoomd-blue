@@ -149,6 +149,10 @@ void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
         ArrayHandle<typename Bonds::members_t> d_gpu_bondlist(gpu_bond_list,
                                                               access_location::device,
                                                               access_mode::read);
+
+        ArrayHandle<unsigned int> d_gpu_bond_pos_list(this->m_bond_data->getGPUPosTable(),
+                                                      access_location::device,
+                                                      access_mode::read);
         ArrayHandle<unsigned int> d_gpu_n_bonds(this->m_bond_data->getNGroupsArray(),
                                                 access_location::device,
                                                 access_mode::read);
@@ -169,6 +173,7 @@ void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
                                              box,
                                              d_gpu_bondlist.data,
                                              gpu_table_indexer,
+                                             d_gpu_bond_pos_list.data,
                                              d_gpu_n_bonds.data,
                                              this->m_bond_data->getNTypes(),
                                              this->m_tuner->getParam()[0],

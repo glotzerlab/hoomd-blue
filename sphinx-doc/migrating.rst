@@ -50,6 +50,10 @@ For some functionalities, you will need to update your scripts to use a new API:
 
   * Use `hoomd.write.GSD.logger`.
 
+* ``hoomd.mesh.Mesh().triangles``.
+
+  * Use ``hoomd.mesh.Mesh().triangulation`` in `hoomd.mesh.Mesh` to define the mesh triangulation.
+
 * ``hoomd.md.pair.Gauss``.
 
   * Use `hoomd.md.pair.Gaussian`.
