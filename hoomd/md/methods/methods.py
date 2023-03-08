@@ -27,19 +27,9 @@ class Method(AutotunedObject):
 
     def _attach_hook(self):
         self._simulation.state.update_group_dof()
-        self.validate_group()
 
     def _detach_hook(self):
         self._simulation.state.update_group_dof()
-
-    def validate_group(self):
-        """Verify groups.
-
-        Groups may change after attaching.
-        Users can call `validate_group` to verify the groups after changing
-        them.
-        """
-        self._cpp_obj.validateGroup()
 
 
 class NVT(Method):
