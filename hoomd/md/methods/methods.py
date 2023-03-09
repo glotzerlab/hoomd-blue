@@ -487,7 +487,7 @@ class NPH(Method):
            :math:`[\\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
-            can be "none", "xy", "xz","yz", or "all", default to "all".
+            can be "none", "xy", "xz","yz", or "xyz".
 
         box_dof(`tuple` [ `bool` ]): Box degrees of freedom with six boolean
             elements corresponding to x, y, z, xy, xz, yz, each. Default to
