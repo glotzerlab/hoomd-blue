@@ -17,5 +17,5 @@ This code demonstrates the hard sphere square well potential.
 .. literalinclude:: cpppotential.py
     :language: python
 
-Use HPMC with pair potentials when to model hard particle core interactions or discontinuous steps
-in the potential. Use Molecular dynamics for models with continuous potentials.
+Use HPMC with pair potentials to model interactions with discontinuous steps
+in the potential. Use molecular dynamics for models with continuous potentials.
