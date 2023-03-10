@@ -293,6 +293,64 @@ class Gauss(Gaussian):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
 
 
+class ExpandedGaussian(Pair):
+    r"""Expanded Gaussian pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `ExpandedGaussian` computes the radially-shifted Gaussian pair force should
+    on every particle in the simulation state:
+
+    .. math::
+        U(r) = \varepsilon \exp \left( -\frac{1}{2}
+               \left( \frac{r-\Delta}{\sigma} \right)^2 \right)
+
+    Example::
+
+        nl = nlist.Cell()
+        expanded_gauss = pair.ExpandedGaussian(default_r_cut=3.0, nlist=nl)
+        expanded_gauss.params[('A', 'A')] = dict(epsilon=1.0,
+        sigma=1.0, delta=0.5)
+        expanded_gauss.r_cut[('A', 'B')] = 3.0
+
+    .. py:attribute:: params
+
+        The expanded Gaussian potential parameters. The dictionary has the
+        following keys:
+
+        * ``epsilon`` (`float`, **required**) - energy parameter
+          :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) - particle size
+          :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``delta`` (`float`, **required**) - shift distance
+          :math:`\delta` :math:`[\mathrm{length}]`
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: mode
+
+        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+
+        Type: `str`
+    """
+    _cpp_class_name = "PotentialPairExpandedGaussian"
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              delta=float,
+                              len_keys=2))
+        self._add_typeparam(params)
+
+
 class ExpandedLJ(Pair):
     r"""Expanded Lennard-Jones pair force.
 
