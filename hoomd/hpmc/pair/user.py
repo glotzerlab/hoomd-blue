@@ -336,6 +336,9 @@ class CPPPotentialUnion(CPPPotentialBase):
 
     CPPPotentialUnion uses threaded execution on multiple CPU cores.
 
+    See Also:
+        :doc:`howto/cpppotential`.
+
     .. py:attribute:: positions
 
         The positions of the constituent particles.
