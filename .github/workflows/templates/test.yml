@@ -172,7 +172,7 @@ env:
       if: ${{ contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
     - name: Run howto guides (serial)
-      if: ${{ !contains(matrix.config, 'mpi') }}
+      if: ${{ contains(matrix.config, 'llvm') }}  # some examples require LLVM
       run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
       working-directory: code/sphinx-doc/howto
 <% endset %>

@@ -324,7 +324,7 @@ jobs:
       if: ${{ contains(matrix.config, 'mpi') }}
       run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
     - name: Run howto guides (serial)
-      if: ${{ !contains(matrix.config, 'mpi') }}
+      if: ${{ contains(matrix.config, 'llvm') }}  # some examples require LLVM
       run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
       working-directory: code/sphinx-doc/howto
 
