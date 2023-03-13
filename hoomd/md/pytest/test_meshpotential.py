@@ -180,6 +180,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
+    mesh.types = ["mesh"]
     type_ids = [0, 0, 0, 0]
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
@@ -250,12 +251,13 @@ def test_area(simulation_factory, tetrahedron_snapshot_factory):
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    type_ids = [0, 0, 0, 0]
+    mesh.types = ["mesh", "patch"]
+    type_ids = [0, 0, 0, 1]
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = hoomd.md.mesh.conservation.Area(mesh)
-    mesh_potential.params["mesh"] = dict(k=1, A0=1)
+    mesh_potential.params.default = dict(k=1, A0=1)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -269,10 +271,10 @@ def test_area(simulation_factory, tetrahedron_snapshot_factory):
 
     sim.run(0)
 
-    assert math.isclose(mesh_potential.area,
-                        1.62633,
-                        rel_tol=1e-2,
-                        abs_tol=1e-5)
+    np.testing.assert_allclose(mesh_potential.area,
+                        [1.2197475,0.4065825],
+                        rtol=1e-2,
+                        atol=1e-5)
 
 
 def test_triangle_area(simulation_factory, tetrahedron_snapshot_factory):
@@ -280,12 +282,13 @@ def test_triangle_area(simulation_factory, tetrahedron_snapshot_factory):
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    type_ids = [0, 0, 0, 0]
+    mesh.types = ["mesh", "patch"]
+    type_ids = [0, 0, 0, 1]
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = hoomd.md.mesh.conservation.TriangleArea(mesh)
-    mesh_potential.params["mesh"] = dict(k=1, A0=1)
+    mesh_potential.params.default = dict(k=1, A0=1)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -299,10 +302,10 @@ def test_triangle_area(simulation_factory, tetrahedron_snapshot_factory):
 
     sim.run(0)
 
-    assert math.isclose(mesh_potential.area,
-                        1.62633,
-                        rel_tol=1e-2,
-                        abs_tol=1e-5)
+    np.testing.assert_allclose(mesh_potential.area,
+                        [1.2197475,0.4065825],
+                        rtol=1e-2,
+                        atol=1e-5)
 
 
 @pytest.mark.parametrize("mesh_potential_cls, potential_kwargs, force, energy",
@@ -314,14 +317,12 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
-    mesh.types = ["mesh", "patch"]
     type_ids = [0, 0, 0, 0]
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
-    mesh_potential.params["patch"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
