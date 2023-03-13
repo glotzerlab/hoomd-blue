@@ -82,6 +82,7 @@ void export_PotentialMeshBondTether(pybind11::module& m);
 
 void export_TriangleAreaConservationMeshForceCompute(pybind11::module& m);
 void export_AreaConservationMeshForceCompute(pybind11::module& m);
+void export_VolumeConservationMeshForceCompute(pybind11::module& m);
 
 void export_PotentialSpecialPairLJ(pybind11::module& m);
 void export_PotentialSpecialPairCoulomb(pybind11::module& m);
@@ -228,6 +229,7 @@ void export_PotentialMeshBondTetherGPU(pybind11::module& m);
 
 void export_TriangleAreaConservationMeshForceComputeGPU(pybind11::module& m);
 void export_AreaConservationMeshForceComputeGPU(pybind11::module& m);
+void export_VolumeConservationMeshForceComputeGPU(pybind11::module& m);
 
 void export_PotentialSpecialPairLJGPU(pybind11::module& m);
 void export_PotentialSpecialPairCoulombGPU(pybind11::module& m);
@@ -365,6 +367,7 @@ PYBIND11_MODULE(_md, m)
 
     export_TriangleAreaConservationMeshForceCompute(m);
     export_AreaConservationMeshForceCompute(m);
+    export_VolumeConservationMeshForceCompute(m);
 
     export_PotentialSpecialPairLJ(m);
     export_PotentialSpecialPairCoulomb(m);
@@ -446,6 +449,7 @@ PYBIND11_MODULE(_md, m)
 
     export_TriangleAreaConservationMeshForceComputeGPU(m);
     export_AreaConservationMeshForceComputeGPU(m);
+    export_VolumeConservationMeshForceComputeGPU(m);
 
     export_PotentialSpecialPairLJGPU(m);
     export_PotentialSpecialPairCoulombGPU(m);

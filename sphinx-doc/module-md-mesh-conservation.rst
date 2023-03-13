@@ -13,12 +13,14 @@ md.mesh.conservation
 
     Area
     TriangleArea
+    Volume
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.mesh.conservation
     :synopsis: Conservation potentials applied to a mesh data structure.
     :members: Area,
-              TriangleArea
+              TriangleArea,
+              Volume
     :no-inherited-members:
     :show-inheritance:
