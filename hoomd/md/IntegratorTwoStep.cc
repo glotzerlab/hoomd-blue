@@ -389,6 +389,31 @@ bool IntegratorTwoStep::areForcesAnisotropic()
     return is_anisotropic;
     }
 
+void IntegratorTwoStep::validateGroups()
+    {
+    // to do
+    size_t group_size = 0;
+    for (auto& method : m_methods)
+        {
+        method->validateGroup();
+        group_size += method->getGroup()->getNumMembersGlobal();
+        }
+    if (m_methods.size() <= 1)
+        {
+        return;
+        }
+    auto group_union
+        = ParticleGroup::groupUnion(m_methods[0]->getGroup(), m_methods[1]->getGroup());
+    for (size_t i = 2; i < m_methods.size(); i++)
+        {
+        group_union = ParticleGroup::groupUnion(m_methods[i]->getGroup(), group_union);
+        }
+    if (group_size != group_union->getNumMembersGlobal())
+        {
+        throw std : runtime_error("message")
+        }
+    }
+
 namespace detail
     {
 void export_IntegratorTwoStep(pybind11::module& m)
@@ -408,7 +433,8 @@ void export_IntegratorTwoStep(pybind11::module& m)
                       &IntegratorTwoStep::setIntegrateRotationalDOF)
         .def_property("half_step_hook",
                       &IntegratorTwoStep::getHalfStepHook,
-                      &IntegratorTwoStep::setHalfStepHook);
+                      &IntegratorTwoStep::setHalfStepHook)
+        .def("validate_groups", &IntegratorTwoStep::validateGroups);
     }
 
     } // end namespace detail
