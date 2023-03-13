@@ -3,6 +3,7 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
+                   AreaConservationMeshForceCompute.cc
                    AlchemostatTwoStep.cc
                    AnisoPotentialPairALJ2.cc
                    AnisoPotentialPairALJ3.cc
@@ -44,6 +45,7 @@ set(_md_sources module-md.cc
                    PPPMForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
+                   TriangleAreaConservationMeshForceCompute.cc
                    TwoStepBD.cc
                    TwoStepLangevinBase.cc
                    TwoStepLangevin.cc
@@ -65,6 +67,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
+                AreaConservationMeshForceCompute.h
+                AreaConservationMeshForceComputeGPU.h
+                AreaConservationMeshForceComputeGPU.cuh
                 BendingRigidityMeshForceComputeGPU.h
                 BendingRigidityMeshForceCompute.h
                 BondTablePotentialGPU.h
@@ -178,6 +183,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
                 TableDihedralForceCompute.h
+                TriangleAreaConservationMeshForceCompute.h
+                TriangleAreaConservationMeshForceComputeGPU.h
+                TriangleAreaConservationMeshForceComputeGPU.cuh
                 TwoStepBDGPU.h
                 TwoStepRATTLEBDGPU.h
                 TwoStepRATTLEBDGPU.cuh
@@ -203,6 +211,7 @@ set(_md_headers ActiveForceComputeGPU.h
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
+                           AreaConservationMeshForceComputeGPU.cc
                            AnisoPotentialPairALJ2GPU.cc
                            AnisoPotentialPairALJ3GPU.cc
                            AnisoPotentialPairDipoleGPU.cc
@@ -228,6 +237,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
+                           TriangleAreaConservationMeshForceComputeGPU.cc
                            TwoStepBDGPU.cc
                            TwoStepLangevinGPU.cc
                            TwoStepConstantVolumeGPU.cc
@@ -238,6 +248,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
 endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
+                      AreaConservationMeshForceComputeGPU.cu
                       AnisoPotentialPairALJ2GPUKernel.cu
                       AnisoPotentialPairALJ3GPUKernel.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
@@ -263,6 +274,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
+                      TriangleAreaConservationMeshForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepLangevinGPU.cu
                       TwoStepRATTLELangevinGPU.cu
@@ -382,7 +394,6 @@ foreach(_bond ${_bonds})
         set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
     endif()
 endforeach()
-
 
 set(_pairs LJ Coulomb)
 
