@@ -171,8 +171,8 @@ class EvaluatorPairExpandedMie
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift) const
         {
         // precompute some quantities
-        const Scalar r = fast::sqrt(rsq);
-        const Scalar rinv = fast::rsqrt(rsq);
+        Scalar rinv = fast::rsqrt(rsq);
+        Scalar r = Scalar(1.0) / rinv;
 
         // compute the force divided by r in force_divr
         if (rsq < rcutsq && repulsive != 0)
@@ -189,9 +189,12 @@ class EvaluatorPairExpandedMie
 
             if (energy_shift)
                 {
-                Scalar rcutninv = fast::pow(rcutsq, -n_pow / Scalar(2.0));
-                Scalar rcutminv = fast::pow(rcutsq, -m_pow / Scalar(2.0));
-                pair_eng -= repulsive * rcutninv - attractive * rcutminv;
+                Scalar r_cut = fast::sqrt(rcutsq);
+                Scalar r_cut_shifted = r_cut - delta;
+
+                Scalar r_cut_n_inv = fast::pow(r_cut_shifted, -n_pow);
+                Scalar r_cut_m_inv = fast::pow(r_cut_shifted, -m_pow);
+                pair_eng -= repulsive * r_cut_n_inv - attractive * r_cut_m_inv;
                 }
             return true;
             }

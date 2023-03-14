@@ -97,6 +97,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairEwald.h
                 EvaluatorPairForceShiftedLJ.h
                 EvaluatorPairGauss.h
+                EvaluatorPairExpandedGaussian.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
                 EvaluatorPairLJ1208.h
@@ -515,7 +516,9 @@ set(_pair_evaluators Buckingham
                      TWF
                      LJGauss
                      ForceShiftedLJ
-                     Table)
+                     Table
+                     ExpandedGaussian)
+
 
 foreach(_evaluator ${_pair_evaluators})
     set(_evaluator_cpp ${_evaluator})
