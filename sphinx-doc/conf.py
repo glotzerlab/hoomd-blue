@@ -63,22 +63,33 @@ year = datetime.date.today().year
 copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.9.0'
-release = '3.9.0'
+version = '3.10.0'
+release = '3.10.0'
 
 language = 'en'
 
 default_role = 'any'
 
-pygments_style = 'sphinx'
+pygments_style = "friendly"
+pygments_dark_style = "native"
 
 todo_include_todos = False
 
-html_theme = 'sphinx_rtd_theme'
-html_css_files = ['css/hoomd-theme.css']
+html_theme = 'furo'
 html_static_path = ['_static']
 html_logo = 'hoomdblue-logo-vertical.svg'
-html_theme_options = {'logo_only': True}
+html_theme_options = {
+    'sidebar_hide_name': True,
+    'top_of_page_button': None,
+    "dark_css_variables": {
+        "color-brand-primary": "#5187b2",
+        "color-brand-content": "#5187b2",
+    },
+    "light_css_variables": {
+        "color-brand-primary": "#406a8c",
+        "color-brand-content": "#406a8c",
+    },
+}
 html_favicon = 'hoomdblue-logo-favicon.svg'
 
 IGNORE_MODULES = ['hoomd._hoomd']

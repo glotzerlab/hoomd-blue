@@ -152,9 +152,10 @@ Molecular dynamics:
     :caption: How to guides
 
     howto/molecular
+    howto/cpppotential
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Python API
 
    package-hoomd
