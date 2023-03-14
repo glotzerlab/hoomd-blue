@@ -7,6 +7,21 @@ Change Log
 v3.x
 ----
 
+v3.10.0 (2023-03-14)
+^^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* The ``hoomd.md.pair`` potentials ``ExpandedLJ``, ``ExpandedMie``, ``LJGauss``, and ``TWF`` now
+  shift ``V(r_cut)`` to 0 properly when ``mode == 'shift'``
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issue/1504>`_).
+* Corrected errors in the pair potential documentation
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issue/1504>`_).
+* Note that the ``'body'`` exclusion should be used with ``hoomd.md.constrain.Rigid``
+  (`#1465 <https://github.com/glotzerlab/hoomd-blue/issue/1465>`_).
+* Correctly identify the ``'xyz'`` mode in ``hoomd.md.methods.NPH``
+  (`#1509 <https://github.com/glotzerlab/hoomd-blue/pull/1509>`_).
+
 v3.9.0 (2023-02-15)
 ^^^^^^^^^^^^^^^^^^^
 

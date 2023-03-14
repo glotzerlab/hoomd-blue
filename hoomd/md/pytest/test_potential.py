@@ -765,6 +765,14 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     autotuned_kernel_parameter_check(instance=pot, activate=lambda: sim.run(1))
 
 
+def set_distance(simulation, distance):
+    snap = simulation.state.get_snapshot()
+    if snap.communicator.rank == 0:
+        snap.particles.position[0] = [0, 0, .1]
+        snap.particles.position[1] = [0, 0, distance + .1]
+    simulation.state.set_snapshot(snap)
+
+
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     # A subtle bug existed where we used "shifted" instead of "shift" in Python
     # and in C++ we used else if clauses with no error raised if the set Python
@@ -778,13 +786,6 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
         numerator = ((r_cut**2 - r**2)**2) * (r_cut**2 + 2 * r**2 - 3 * r_on**2)
         denominator = (r_cut**2 - r_on**2)**3
         return numerator / denominator
-
-    def set_distance(simulation, distance):
-        snap = sim.state.get_snapshot()
-        if snap.communicator.rank == 0:
-            snap.particles.position[0] = [0, 0, .1]
-            snap.particles.position[1] = [0, 0, distance + .1]
-        sim.state.set_snapshot(snap)
 
     def get_energy(simulation):
         energies = sim.operations.integrator.forces[0].energies
@@ -1334,3 +1335,43 @@ def test_forces_multiple_lists(simulation_factory,
     sim.operations.computes.clear()
     assert not lj._attached
     assert lj._use_count == 0
+
+
+@pytest.mark.parametrize("forces_and_energies",
+                         _forces_and_energies(),
+                         ids=lambda x: x.pair_potential.__name__)
+def test_shift(simulation_factory, two_particle_snapshot_factory,
+               forces_and_energies):
+    if 'shift' not in forces_and_energies.pair_potential._accepted_modes:
+        pytest.skip("Potential does not support the shift mode.")
+
+    r_cut = 2.0
+
+    potential = forces_and_energies.pair_potential(
+        **forces_and_energies.extra_args,
+        nlist=md.nlist.Cell(buffer=0.4),
+        default_r_cut=r_cut)
+    potential.params[('A', 'A')] = forces_and_energies.pair_potential_params
+
+    potential_shifted = forces_and_energies.pair_potential(
+        **forces_and_energies.extra_args,
+        nlist=md.nlist.Cell(buffer=0.4),
+        default_r_cut=r_cut)
+    potential_shifted.params[('A',
+                              'A')] = forces_and_energies.pair_potential_params
+    potential_shifted.mode = 'shift'
+
+    snap = two_particle_snapshot_factory(particle_types=['A'], d=r_cut - 1e-7)
+    _update_snap(forces_and_energies.pair_potential, snap)
+    sim = simulation_factory(snap)
+    sim.operations.computes.extend([potential, potential_shifted])
+    sim.run(0)
+
+    V = potential.energy
+    V_shifted = potential_shifted.energy
+
+    # Ideally, test that V_shifted = 0. In practice, forces_and_energies.json
+    # has a wide range of potential parameters, so check only that V_shifted
+    # is much closer to 0 than V.
+    tolerance = max(math.fabs(V / 1e4), 1e-8)
+    assert V_shifted == pytest.approx(expected=0, abs=tolerance)

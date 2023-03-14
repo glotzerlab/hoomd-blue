@@ -1673,11 +1673,12 @@ class Fourier(Pair):
 
     .. py:attribute:: mode
 
-        Energy shifting/smoothing mode: ``"none"``, ``"shift"``, or ``"xplor"``.
+        Energy shifting/smoothing mode: ``"none"`` or ``"xplor"``.
 
         Type: `str`
     """
     _cpp_class_name = "PotentialPairFourier"
+    _accepted_modes = ("none", "xplor")
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
@@ -1779,8 +1780,8 @@ class TWF(Pair):
 
     .. math::
         U(r) = \frac{4 \epsilon}{\alpha^2} {\left[
-        {\left(\frac{\sigma^2}{r^2} - 1 \right)}^6 -
-        \alpha {\left(\frac{\sigma^2}{r^2} - 1 \right)}^3\right]}
+        {\left(\frac{\sigma^2}{r^2} - 1 \right)}^{-6} -
+        \alpha {\left(\frac{\sigma^2}{r^2} - 1 \right)}^{-3}\right]}
 
     The potential was introdcued in `Pieter Rein ten Wolde and Daan Frenkel
     1997`_.

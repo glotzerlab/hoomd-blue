@@ -212,6 +212,13 @@ class Rigid(Constraint):
     constraint force (see `Glaser 2020
     <https://dx.doi.org/10.1016/j.commatsci.2019.109430>`_).
 
+    Note:
+        Include ``'body'`` in the `Neighborlist exclusions
+        <hoomd.md.nlist.NeighborList.exclusions>` to avoid calculating
+        inter-body forces that will sum to 0. This is *required* in many cases
+        where nearby particles lead to numerical errors from extremely large
+        forces.
+
     .. rubric:: Integrating bodies
 
     Set the ``rigid`` attribute of `hoomd.md.Integrator` to an instance of

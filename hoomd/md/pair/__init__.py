@@ -53,7 +53,7 @@ potential :math:`U(r)` (by the `Pair` subclass)  and the mode (`Pair.mode`):
 .. math::
     U_\mathrm{pair}(r) =
     \begin{cases}
-    U_(r) & \mathrm{mode\ is\ no\_shift} \\
+    U_(r) & \mathrm{mode\ is\ \mathrm{none}} \\
     U(r) - U(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
     S(r) \cdot U_(r) & \mathrm{mode\ is\ xplor}
     \land r_{\mathrm{on}} < r_{\mathrm{cut}} \\
