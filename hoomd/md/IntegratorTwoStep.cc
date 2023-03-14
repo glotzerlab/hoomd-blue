@@ -391,7 +391,7 @@ bool IntegratorTwoStep::areForcesAnisotropic()
 
 void IntegratorTwoStep::validateGroups()
     {
-    // to do
+    // Check if user-provided groups overlap
     size_t group_size = 0;
     for (auto& method : m_methods)
         {
@@ -410,7 +410,7 @@ void IntegratorTwoStep::validateGroups()
         }
     if (group_size != group_union->getNumMembersGlobal())
         {
-        throw std : runtime_error("message")
+        throw std::runtime_error("Error: the provided groups overlap.");
         }
     }
 

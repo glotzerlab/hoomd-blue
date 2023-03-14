@@ -60,7 +60,7 @@ def test_detaching(make_simulation, integrator_elements):
     assert not integrator._constraints._synced
 
 
-def test_validate_group():
+def test_validate_groups():
     CUBE_VERTS = [
         (-0.5, -0.5, -0.5),
         (-0.5, -0.5, 0.5),
