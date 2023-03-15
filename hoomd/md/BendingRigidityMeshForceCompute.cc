@@ -331,7 +331,77 @@ Scalar BendingRigidityMeshForceCompute::energyDiff(unsigned int idx_a,
                                                    unsigned int idx_d,
                                                    unsigned int type_id)
     {
-    return 0;
+    Scalar3 dab;
+    dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+    dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+    dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+
+    Scalar3 dac;
+    dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+    dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+    dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+
+    Scalar3 dad;
+    dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+    dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+    dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+
+    Scalar3 dcd;
+    dcd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
+    dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
+    dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
+
+    Scalar3 dca = -dac;
+
+    Scalar3 dcb;
+    dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
+    dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
+    dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
+
+    // apply minimum image conventions to all 3 vectors
+    dab = box.minImage(dab);
+    dac = box.minImage(dac);
+    dad = box.minImage(dad);
+
+    dcd = box.minImage(dcd);
+    dca = box.minImage(dca);
+    dcb = box.minImage(dcb);
+
+    Scalar3 z1;
+    z1.x = dab.y * dac.z - dab.z * dac.y;
+    z1.y = dab.z * dac.x - dab.x * dac.z;
+    z1.z = dab.x * dac.y - dab.y * dac.x;
+
+    Scalar3 z2;
+    z2.x = dad.y * dab.z - dad.z * dab.y;
+    z2.y = dad.z * dab.x - dad.x * dab.z;
+    z2.z = dad.x * dab.y - dad.y * dab.x;
+
+    Scalar3 zz1;
+    zz1.x = dcd.y * dca.z - dcd.z * dca.y;
+    zz1.y = dcd.z * dca.x - dcd.x * dca.z;
+    zz1.z = dcd.x * dca.y - dcd.y * dca.x;
+
+    Scalar3 zz2;
+    zz2.x = dcb.y * dcd.z - dcb.z * dcd.y;
+    zz2.y = dcb.z * dcd.x - dcb.x * dcd.z;
+    zz2.z = dcb.x * dcd.y - dcb.y * dcd.x;
+
+    // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+    Scalar n1 = fast::rsqrt(z1.x * z1.x + z1.y * z1.y + z1.z * z1.z);
+    Scalar n2 = fast::rsqrt(z2.x * z2.x + z2.y * z2.y + z2.z * z2.z);
+    Scalar z1z2 = z1.x * z2.x + z1.y * z2.y + z1.z * z2.z;
+
+    Scalar cosinus1 = z1z2 * n1 * n2;
+
+    // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+    Scalar nn1 = fast::rsqrt(zz1.x * zz1.x + zz1.y * zz1.y + zz1.z * zz1.z);
+    Scalar nn2 = fast::rsqrt(zz2.x * zz2.x + zz2.y * zz2.y + zz2.z * zz2.z);
+    Scalar zz1zz2 = zz1.x * zz2.x + zz1.y * zz2.y + zz1.z * zz2.z;
+
+    Scalar cosinus2 = zz1zz2 * nn1 * nn2;
+
+    return m_K[0] * 0.5 * (cosinus1 - cosinus2);
     }
 
 namespace detail
