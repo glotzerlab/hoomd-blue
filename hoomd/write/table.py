@@ -210,7 +210,9 @@ class _TableInternal(_InternalAction):
         # Ensure that only scalar and potentially string are set for the logger
         if LoggerCategories.scalar not in logger.categories:
             raise ValueError("Given Logger must have the scalar categories set.")
-        elif logger.categories & self._invalid_logger_categories != LoggerCategories.NONE:
+        elif (
+            logger.categories & self._invalid_logger_categories != LoggerCategories.NONE
+        ):
             raise ValueError(
                 "{} are incompatible with write.Table: use write.GSD instead.".format(
                     logger.categories & self._invalid_logger_categories
