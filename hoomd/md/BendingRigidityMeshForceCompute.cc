@@ -331,6 +331,9 @@ Scalar BendingRigidityMeshForceCompute::energyDiff(unsigned int idx_a,
                                                    unsigned int idx_d,
                                                    unsigned int type_id)
     {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 dab;
     dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
     dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
