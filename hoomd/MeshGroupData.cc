@@ -123,6 +123,8 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
 
     std::vector<unsigned int> all_types;
 
+    unsigned int bond_idx = 0;
+
     if (group_size == 4)
         {
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
@@ -169,8 +171,11 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
                     if (bonds[j].tag[0] == all_helper[i].tag[0]
                         && bonds[j].tag[1] == all_helper[i].tag[1])
                         {
-                        // all_helper[i].tag[3] = group_idx;
-                        all_helper[i].tag[3] = bonds[j].tag[2];
+			unsigned int find_idx = all_helper[i].tag[2];
+			all_groups[find_idx].tag[3] = bonds[j].tag[2];
+
+			all_helper.erase(all_helper.begin() + i);
+			i -= 1;
                         bonds.erase(bonds.begin() + j);
                         break;
                         }
@@ -178,11 +183,15 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
                 }
             for (unsigned int i = 0; i < bonds.size(); ++i)
                 {
+                all_groups.push_back(bonds[i]);
                 all_helper.push_back(bonds[i]);
+		long unsigned int all_helper_size = all_helper.size()-1;
+		all_helper[all_helper_size].tag[2] = bond_idx;
+		bond_idx++;
+
                 all_types.push_back(snapshot.type_id[group_idx]);
                 }
             }
-        all_groups = all_helper;
         }
     else // this part will be important later for dynamical bonding
         {
@@ -239,7 +248,6 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromSnapshot(
 
             for (unsigned int i = 0; i < bonds.size(); ++i)
                 {
-                // triag.tag[3 + j] = static_cast<unsigned int>(all_helper.size());
                 triag.tag[3 + j] = bonds[i].tag[2];
                 all_helper.push_back(bonds[i]);
                 j++;
