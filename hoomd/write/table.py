@@ -208,12 +208,14 @@ class _TableInternal(_InternalAction):
 
         # internal variables that are not part of the state.
         # Ensure that only scalar and potentially string are set for the logger
-        if (LoggerCategories.scalar not in logger.categories
-                or logger.categories & self._invalid_logger_categories
-                !=  # noqa: W504 (yapf formats this incorrectly
-                LoggerCategories.NONE):
+        if LoggerCategories.scalar not in logger.categories:
+            raise ValueError("Given Logger must have the scalar categories set.")
+        elif logger.categories & self._invalid_logger_categories != LoggerCategories.NONE:
             raise ValueError(
-                "Given Logger must have the scalar categories set.")
+                "{} are incompatible with write.Table: use write.GSD instead.".format(
+                    logger.categories & self._invalid_logger_categories
+                )
+            )
 
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)
