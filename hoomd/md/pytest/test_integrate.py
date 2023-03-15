@@ -79,8 +79,8 @@ def test_validate_groups():
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 8,
     }
 
-    nve1 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
-    nve2 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+    nve1 = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve2 = hoomd.md.methods.NVE(filter=hoomd.filter.All())
     integrator = hoomd.md.Integrator(dt=0,
                                      methods=[nve1, nve2],
                                      integrate_rotational_dof=True)
