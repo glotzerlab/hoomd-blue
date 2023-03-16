@@ -51,7 +51,9 @@ class _DynamicIntegrator(BaseIntegrator):
         if self.rigid is not None:
             self.rigid._attach(self._simulation)
         super()._attach_hook()
-        self.validate_group()
+
+    def _post_attach_hook(self):
+        self.validate_groups()
 
     def _detach_hook(self):
         self._forces._unsync()
