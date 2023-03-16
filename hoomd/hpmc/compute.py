@@ -267,7 +267,8 @@ class SDF(Compute):
             [x - \delta x \le x_i < x] \cdot (1 - \exp(-\beta \Delta U_{i}))
 
     where :math:`s_{\mathrm{exp}}(x - \delta x/2)` is evaluated for :math:`\{ x
-    \in \mathbb{R}, -|x_\mathrm{max}| < x \le 0, x = -k \cdot \delta x, k \in
+    \in \mathbb{R}, -|x_\mathrm{max}| < x \le 0, x = (k - \lfloor
+    x_\mathrm{max} / \delta x \rfloor + 1) \cdot \delta x, k \in
     \mathbb{Z}^* \}`.
 
     .. rubric:: Pressure
