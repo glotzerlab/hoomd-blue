@@ -144,6 +144,13 @@ template<class Shape> class ComputeSDF : public Compute
         m_dx = dx;
         }
 
+    /// Get the number of bins
+    size_t getNumBins()
+        {
+        assert (m_hist_compression.size() == m_hist_expansion.size());
+        return m_hist_compression.size();
+        }
+
     //! Analyze the current configuration
     virtual void compute(uint64_t timestep);
 
@@ -767,7 +774,10 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property("xmax", &ComputeSDF<Shape>::getXMax, &ComputeSDF<Shape>::setXMax)
         .def_property("dx", &ComputeSDF<Shape>::getDx, &ComputeSDF<Shape>::setDx)
         .def_property_readonly("sdf_compression", &ComputeSDF<Shape>::getSDFCompression)
-        .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDFExpansion);
+        .def_property_readonly("sdf_expansion", &ComputeSDF<Shape>::getSDFExpansion)
+        .def_property_readonly("num_bins", &ComputeSDF<Shape>::getNumBins)
+        ;
+
     }
 
     } // end namespace detail

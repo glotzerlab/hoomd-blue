@@ -20,6 +20,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 import hoomd
 import numpy
+import warnings
 
 
 class FreeVolume(Compute):
@@ -355,6 +356,9 @@ class SDF(Compute):
         .. deprecated:: v3.11.0
             Use `sdf_compression`.
         """
+        warnings.warn(
+            "sdf is deprecated since v3.11.0. Use sdf_compression.",
+            FutureWarning)
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf_compression
 
@@ -388,29 +392,29 @@ class SDF(Compute):
             `sdf_expansion` is `None` on ranks >= 1.
         """
         self._cpp_obj.compute(self._simulation.timestep)
-        return self._cpp_obj.sdf_expansion
+        cpp_expansion = self._cpp_obj.sdf_expansion
+        if cpp_expansion is not None:
+            return numpy.array(self._cpp_obj.sdf_expansion[::-1])
+        else:
+            return None
 
-    @log(category='sequence', requires_run=False)
+    @log(category='sequence', requires_run=True)
     def x_compression(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): The x \
         values at the center of each bin corresponding to the scale \
         distribution function for the compressive perturbations \
         :math:`[\\mathrm{length}]`."""
-        sdf_compression = numpy.array(self.sdf_compression)
-        x = numpy.arange(0, len(sdf_compression), 1) * self.dx
-        x += self.dx / 2
+        x = numpy.arange(0, self._cpp_obj.num_bins, 1) * self.dx + self.dx / 2
         return x
 
-    @log(category='sequence', requires_run=False)
+    @log(category='sequence', requires_run=True)
     def x_expansion(self):
         """(*N_bins*,) `numpy.ndarray` of `float`): The x \
         values at the center of each bin corresponding to the scale \
         distribution function for the expansion moves \
         :math:`[\\mathrm{length}]`."""
-        sdf_expansion = numpy.array(self.sdf_expansion)
-        x = numpy.arange(0, len(sdf_expansion), 1) * self.dx
-        x += self.dx / 2
-        return -x[::-1]
+        x = numpy.arange(-self._cpp_obj.num_bins, 0, 1) * self.dx + self.dx / 2
+        return x
 
     @log(requires_run=True)
     def betaP(self):  # noqa: N802 - allow function name
@@ -433,8 +437,13 @@ class SDF(Compute):
             In MPI parallel execution, `betaP` is available on rank 0 only.
             `betaP` is `None` on ranks >= 1.
         """
-        if not (numpy.isnan(self.sdf_compression).all()
-                or numpy.isnan(self.sdf_expansion).all()):
+        sdf_fit_compression = self.sdf_compression
+        x_fit_compression = self.x_compression
+
+        sdf_fit_expansion = self.sdf_expansion
+        x_fit_expansion = self.x_expansion
+
+        if self.sdf_compression is not None and self.sdf_expansion is not None:
             compression_contribution = 0
             expansion_contribution = 0
             box = self._simulation.state.box
@@ -442,25 +451,15 @@ class SDF(Compute):
             rho = N / box.volume
 
             # compressive contribution
-            # get the values to fit
-            sdf_fit_compression = numpy.array(self.sdf_compression)
-            x_fit = numpy.arange(0, len(sdf_fit_compression), 1) * self.dx
-            x_fit += self.dx / 2
-            # construct the x coordinates
             # perform the fit and extrapolation
-            p = numpy.polyfit(x_fit, sdf_fit_compression, 5)
+            p = numpy.polyfit(x_fit_compression, sdf_fit_compression, 5)
             p0_compression = numpy.polyval(p, 0.0)
             compression_contribution = rho * p0_compression / (2
                                                                * box.dimensions)
 
             # expansive contribution
-            # reverse the x-coordinates
-            x_fit = -x_fit[::-1]
-            # also reverse the sdf so that it starts at the bin for x = 0 and
-            # goes negative
-            sdf_fit_expansion = self.sdf_expansion[::-1]
             # perform the fit and extrapolation
-            p = numpy.polyfit(x_fit, sdf_fit_expansion, 5)
+            p = numpy.polyfit(x_fit_expansion, sdf_fit_expansion, 5)
             p0_expansion = numpy.polyval(p, 0.0)
             expansion_contribution = -rho * p0_expansion / (2 * box.dimensions)
 
