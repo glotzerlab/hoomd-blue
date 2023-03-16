@@ -53,7 +53,7 @@ potential :math:`U(r)` (by the `Pair` subclass)  and the mode (`Pair.mode`):
 .. math::
     U_\mathrm{pair}(r) =
     \begin{cases}
-    U_(r) & \mathrm{mode\ is\ no\_shift} \\
+    U_(r) & \mathrm{mode\ is\ \mathrm{none}} \\
     U(r) - U(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
     S(r) \cdot U_(r) & \mathrm{mode\ is\ xplor}
     \land r_{\mathrm{on}} < r_{\mathrm{cut}} \\
@@ -133,7 +133,32 @@ For anisotropic potentials see `hoomd.md.pair.aniso`
 """
 
 from . import aniso
-from .pair import (Pair, LJ, Gauss, ExpandedLJ, Yukawa, Ewald, Morse, DPD,
-                   DPDConservative, DPDLJ, ForceShiftedLJ, Moliere, ZBL, Mie,
-                   ExpandedMie, ReactionField, DLVO, Buckingham, LJ1208, LJ0804,
-                   Fourier, OPP, Table, TWF, LJGauss)
+from .pair import (
+    Pair,
+    LJ,
+    Gauss,
+    Gaussian,
+    ExpandedLJ,
+    ExpandedGaussian,
+    Yukawa,
+    Ewald,
+    Morse,
+    DPD,
+    DPDConservative,
+    DPDLJ,
+    ForceShiftedLJ,
+    Moliere,
+    ZBL,
+    Mie,
+    ExpandedMie,
+    ReactionField,
+    DLVO,
+    Buckingham,
+    LJ1208,
+    LJ0804,
+    Fourier,
+    OPP,
+    Table,
+    TWF,
+    LJGauss,
+)

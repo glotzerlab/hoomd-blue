@@ -3,6 +3,8 @@
 
 """MD integration methods."""
 
+import warnings
+
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import AutotunedObject
@@ -97,7 +99,10 @@ class NVT(Method):
     """
 
     def __init__(self, filter, kT, tau):
-
+        warnings.warn(
+            "NVT is deprecated and wil be removed in hoomd 4.0. In version "
+            "4.0, use the ConstantVolume method with the desired thermostat "
+            "from hoomd.md.methods.thermostats.", FutureWarning)
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
@@ -357,6 +362,10 @@ class NPT(Method):
                  box_dof=[True, True, True, False, False, False],
                  rescale_all=False,
                  gamma=0.0):
+        warnings.warn(
+            "NPT is deprecated and wil be removed in hoomd 4.0. In version "
+            "4.0, use the ConstantPressure method with the desired thermostat "
+            "from hoomd.md.methods.thermostats.", FutureWarning)
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
@@ -478,7 +487,7 @@ class NPH(Method):
            :math:`[\\mathrm{time}]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
-            can be "none", "xy", "xz","yz", or "all", default to "all".
+            can be "none", "xy", "xz","yz", or "xyz".
 
         box_dof(`tuple` [ `bool` ]): Box degrees of freedom with six boolean
             elements corresponding to x, y, z, xy, xz, yz, each. Default to
@@ -562,6 +571,10 @@ class NPH(Method):
                  box_dof=(True, True, True, False, False, False),
                  rescale_all=False,
                  gamma=0.0):
+        warnings.warn(
+            "NPH is deprecated and wil be removed in hoomd 4.0. In version "
+            "4.0, use the ConstantPressure method without a thermostat.",
+            FutureWarning)
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,
@@ -683,6 +696,10 @@ class NVE(Method):
     """
 
     def __init__(self, filter):
+        warnings.warn(
+            "NVE is deprecated and wil be removed in hoomd 4.0. In version "
+            "4.0, use the ConstantVolume method without a thermostat.",
+            FutureWarning)
 
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
@@ -1176,6 +1193,10 @@ class Berendsen(Method):
     """
 
     def __init__(self, filter, kT, tau):
+        warnings.warn(
+            "Berendsen is deprecated and wil be removed in hoomd 4.0. In "
+            "version 4.0, use the ConstantVolume method with the Berendsen "
+            "thermostat from hoomd.md.methods.thermostats.", FutureWarning)
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,
                                    kT=Variant,

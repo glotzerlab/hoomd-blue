@@ -19,6 +19,8 @@ energies and virials in the same manner as `hoomd.md.pair.Pair`
 parameter.
 """
 
+import warnings
+
 from collections.abc import Sequence
 import json
 from numbers import Number
@@ -138,6 +140,13 @@ class Dipole(AnisotropicPair):
         mu = TypeParameter('mu', 'particle_types',
                            TypeParameterDict((float, float, float), len_keys=1))
         self._extend_typeparam((params, mu))
+
+    def _setattr_param(self, attr, value):
+        if attr == "mode":
+            warnings.warn(
+                "'mode' key is deprectated and will be removed in hoomd 4.0.",
+                FutureWarning)
+        super()._setattr_param(attr, value)
 
 
 class GayBerne(AnisotropicPair):
@@ -574,3 +583,10 @@ class ALJ(AnisotropicPair):
         log shape for visualization and storage through the GSD file type.
         """
         return self._return_type_shapes()
+
+    def _setattr_param(self, attr, value):
+        if attr == "mode":
+            warnings.warn(
+                "'mode' key is deprectated and will be removed in hoomd 4.0.",
+                FutureWarning)
+        super()._setattr_param(attr, value)

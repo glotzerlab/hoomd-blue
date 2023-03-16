@@ -75,7 +75,7 @@ class CPPPotentialBase(AutotunedObject):
                 HOOMD-blue source code.
 
     .. _VectorMath.h: https://github.com/glotzerlab/hoomd-blue/blob/\
-            v3.8.1/hoomd/VectorMath.h
+            v3.10.0/hoomd/VectorMath.h
 
     Note:
         Your code *must* return a value.
@@ -215,6 +215,9 @@ class CPPPotential(CPPPotentialBase):
         `CPPPotential` is **experimental** and subject to change in future minor
         releases.
 
+    Example:
+        See :doc:`howto/cpppotential`.
+
     Attributes:
         code (str): The C++ code that defines the body of the patch energy
             function. After running zero or more steps, this property cannot be
@@ -226,20 +229,6 @@ class CPPPotential(CPPPotentialBase):
             be changed.
         energy (float): The potential energy resulting from the interactions
             defind in the C++ code at the current timestep.
-
-    Examples:
-        .. code-block:: python
-
-            sq_well = '''float rsq = dot(r_ij, r_ij);
-                                if (rsq < 1.21f)
-                                    return -1.0f;
-                                else
-                                    return 0.0f;
-                        '''
-            patch = hoomd.hpmc.pair.user.CPPPotential(r_cut=1.1, code=sq_well,
-                                                      param_array=[])
-            mc.pair_potential = patch
-            sim.run(1000)
     """
 
     _is_union = False
@@ -346,6 +335,9 @@ class CPPPotentialUnion(CPPPotentialBase):
     .. rubric:: Threading
 
     CPPPotentialUnion uses threaded execution on multiple CPU cores.
+
+    See Also:
+        :doc:`howto/cpppotential`.
 
     .. py:attribute:: positions
 

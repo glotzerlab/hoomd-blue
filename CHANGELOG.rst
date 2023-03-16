@@ -7,6 +7,80 @@ Change Log
 v3.x
 ----
 
+v3.10.0 (2023-03-14)
+^^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* The ``message_filename`` property and argument to ``Device``, ``CPU``, and ``GPU`` to replace
+  ``msg_file`` (`#1497 <https://github.com/glotzerlab/hoomd-blue/pull/1497>`_).
+* ``hoomd.md.pair.Gaussian`` to replace ``hoomd.md.pair.Gauss``
+  (`#1497 <https://github.com/glotzerlab/hoomd-blue/pull/1497>`_).
+* ``hoomd.md.pair.ExpandedGaussian`` - the expanded Gaussian pair force
+  (`#1493 <https://github.com/glotzerlab/hoomd-blue/pull/1493>`_).
+* Guide: How to apply arbitrary pair potentials in HPMC
+  (`#1505 <https://github.com/glotzerlab/hoomd-blue/issues/1505>`_).
+
+Changed:
+
+* Use ``furo`` style for HTML documentation
+  (`#1498 <https://github.com/glotzerlab/hoomd-blue/pull/1498>`_).
+
+Fixed:
+
+* The ``hoomd.md.pair`` potentials ``ExpandedLJ``, ``ExpandedMie``, ``LJGauss``, and ``TWF`` now
+  shift ``V(r_cut)`` to 0 properly when ``mode == 'shift'``
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issues/1504>`_).
+* Corrected errors in the pair potential documentation
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issues/1504>`_).
+* Note that the ``'body'`` exclusion should be used with ``hoomd.md.constrain.Rigid``
+  (`#1465 <https://github.com/glotzerlab/hoomd-blue/issues/1465>`_).
+* Correctly identify the ``'xyz'`` mode in ``hoomd.md.methods.NPH``
+  (`#1509 <https://github.com/glotzerlab/hoomd-blue/pull/1509>`_).
+
+Deprecated:
+
+* The ``msg_file`` property and argument to ``Device``, ``CPU``, and ``GPU``.
+* ``hoomd.md.pair.Gauss``.
+
+v3.9.0 (2023-02-15)
+^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* GPU code path for ``hoomd.update.BoxResize``
+  (`#1462 <https://github.com/glotzerlab/hoomd-blue/pull/1462>`_).
+* ``logger`` keyword argument and property to ``hoomd.write.GSD``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
+
+Changed:
+
+* Issue `FutureWarning` warnings when using deprecated APIs
+  (`#1485 <https://github.com/glotzerlab/hoomd-blue/pull/1485>`_).
+* Reformat the list of deprecated features.
+  (`#1490 <https://github.com/glotzerlab/hoomd-blue/pull/1490>`_).
+* In simulations with rigid bodies, remove D degrees of freedom when the system is momentum
+  conserving
+  (`#1467 <https://github.com/glotzerlab/hoomd-blue/issues/1467>`_).
+
+Fixed:
+
+* Compile without errors using ``hipcc`` and ROCM 5.1.0
+  (`#1478 <https://github.com/glotzerlab/hoomd-blue/pull/1478>`_).
+* Document that ``hoomd.md.force.Force`` can be added to ``Operations.computes``
+  (`#1489 <https://github.com/glotzerlab/hoomd-blue/pull/1489>`_).
+* ``hoomd.md.constrain.Rigid.create_bodies`` completes without segmentation faults when particle
+  body tags are not -1
+  (`#1476 <https://github.com/glotzerlab/hoomd-blue/issues/1476>`_).
+* ``hoomd.hpmc.compute.FreeVolume`` computes the free area correctly in 2D simulations
+  (`#1473 <https://github.com/glotzerlab/hoomd-blue/issues/1473>`_).
+
+Deprecated:
+
+* Deprecate ``write.GSD`` ``log`` keyword argument and property in favor of ``logger``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
 v3.8.1 (2023-01-27)
 ^^^^^^^^^^^^^^^^^^^
 
