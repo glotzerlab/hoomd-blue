@@ -69,7 +69,7 @@ class _DynamicIntegrator(BaseIntegrator):
         Users can call `validate_groups` to verify the groups after changing
         them.
         """
-        self._cpp_obj.validateGroups()
+        self._cpp_obj.validate_groups()
 
     @property
     def forces(self):

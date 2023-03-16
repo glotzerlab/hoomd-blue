@@ -60,7 +60,7 @@ def test_detaching(make_simulation, integrator_elements):
     assert not integrator._constraints._synced
 
 
-def test_validate_groups():
+def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
     CUBE_VERTS = [
         (-0.5, -0.5, -0.5),
         (-0.5, -0.5, 0.5),
@@ -77,22 +77,33 @@ def test_validate_groups():
         "constituent_types": ['A'] * 8,
         "positions": CUBE_VERTS,
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 8,
+        "charges": [0] * 8,
+        "diameters": [0] * 8,
     }
 
     nve1 = hoomd.md.methods.NVE(filter=hoomd.filter.All())
-    nve2 = hoomd.md.methods.NVE(filter=hoomd.filter.All())
     integrator = hoomd.md.Integrator(dt=0,
-                                     methods=[nve1, nve2],
+                                     methods=[nve1],
                                      integrate_rotational_dof=True)
     integrator.rigid = rigid
 
-    sim = hoomd.Simulation(device=hoomd.device.CPU())
-    sim.create_state_from_gsd('init.gsd')
+    snapshot = two_particle_snapshot_factory(particle_types=['R', 'A'])
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.body[:] = [0, 1]
 
+    sim = simulation_factory(snapshot)
+    rigid.create_bodies(sim.state)
     sim.operations.integrator = integrator
 
     with pytest.raises(RuntimeError):
         sim.run(10)
+
+    nve1 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
+    nve2 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
+    integrator.methods = [nve1, nve2]
+
+    with pytest.raises(RuntimeError):
+        integrator.validate_groups()
 
 
 def test_linear_momentum(simulation_factory, lattice_snapshot_factory):
