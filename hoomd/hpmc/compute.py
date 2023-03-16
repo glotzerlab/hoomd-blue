@@ -357,9 +357,8 @@ class SDF(Compute):
         .. deprecated:: v3.11.0
             Use `sdf_compression`.
         """
-        warnings.warn(
-            "sdf is deprecated since v3.11.0. Use sdf_compression.",
-            FutureWarning)
+        warnings.warn("sdf is deprecated since v3.11.0. Use sdf_compression.",
+                      FutureWarning)
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.sdf_compression
 

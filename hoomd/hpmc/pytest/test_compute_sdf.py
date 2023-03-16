@@ -82,7 +82,7 @@ def test_after_attaching(valid_args, simulation_factory,
 
     x_expansion = sdf.x_expansion
     assert x_expansion[0] == pytest.approx(-xmax + dx / 2)
-    assert x_expansion[-1] == pytest.approx(- dx / 2)
+    assert x_expansion[-1] == pytest.approx(-dx / 2)
 
     sdf_compression = sdf.sdf_compression
     betaP = sdf.betaP
@@ -311,19 +311,21 @@ def test_sdf_expansion(simulation_factory, two_particle_snapshot_factory):
     snapshot = two_particle_snapshot_factory(dimensions=2)
     if snapshot.communicator.rank == 0:
         snapshot.particles.position[0] = [0, 0, 0]
-        snapshot.particles.position[1] = [2 - dx/4, 0.5, 0]
+        snapshot.particles.position[1] = [2 - dx / 4, 0.5, 0]
         snapshot.particles.orientation[1] = [0, 0, 0, -1]
 
     sim = simulation_factory(snapshot)
     mc = hoomd.hpmc.integrate.SimplePolygon()
-    mc.shape['A'] = dict(vertices=[(-2, 1),
-                                   (-2, -1),
-                                   (2, -1),
-                                   (2, 1),
-                                   (1, 1),
-                                   (1, -0.9),
-                                   (-1, -0.9),
-                                   (-1, 1),])
+    mc.shape['A'] = dict(vertices=[
+        (-2, 1),
+        (-2, -1),
+        (2, -1),
+        (2, 1),
+        (1, 1),
+        (1, -0.9),
+        (-1, -0.9),
+        (-1, 1),
+    ])
     sim.operations.add(mc)
 
     # sdf compute
