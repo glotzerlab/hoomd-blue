@@ -370,7 +370,7 @@ class SDF(Compute):
         :math:`[\\mathrm{probability\\ density}]`.
 
         See Also:
-            `x_compression`.
+            `x_compression` defines the bin center locations.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -386,7 +386,7 @@ class SDF(Compute):
         :math:`[\\mathrm{probability\\ density}]`.
 
         See Also:
-            `x_expansion`.
+            `x_expansion`  defines the bin center locations..
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -405,6 +405,9 @@ class SDF(Compute):
         values at the center of each bin corresponding to the scale \
         distribution function for the compressive perturbations \
         :math:`[\\mathrm{length}]`."""
+        # Ensure that num_bins is up to date.
+        self._cpp_obj.compute(self._simulation.timestep)
+
         x = numpy.arange(0, self._cpp_obj.num_bins, 1) * self.dx + self.dx / 2
         return x
 
@@ -414,6 +417,9 @@ class SDF(Compute):
         values at the center of each bin corresponding to the scale \
         distribution function for the expansion moves \
         :math:`[\\mathrm{length}]`."""
+        # Ensure that num_bins is up to date.
+        self._cpp_obj.compute(self._simulation.timestep)
+
         x = numpy.arange(-self._cpp_obj.num_bins, 0, 1) * self.dx + self.dx / 2
         return x
 
