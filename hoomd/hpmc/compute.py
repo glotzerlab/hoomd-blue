@@ -210,11 +210,11 @@ class SDF(Compute):
         x_{ij}(\vec{A}) = \max \{ & x \in \mathbb{R}_{< 0} : \\
            & \mathrm{overlap}\left(
                 S_i(\mathbf{q}_i),
-                S_j(\mathbf{q}_j, (1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})))
+                S_j(\mathbf{q}_j, (1+x)(\vec{r}_j - (\vec{r}_i + \vec{A})))
             \right) \ne \emptyset
             \\
             &\lor \\
-            & U_{\mathrm{pair},ij}((1-x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
+            & U_{\mathrm{pair},ij}((1+x)(\vec{r}_j - (\vec{r}_i + \vec{A})),
                                  \mathbf{q}_i,
                                  \mathbf{q}_j)
                 \ne
@@ -224,8 +224,8 @@ class SDF(Compute):
             \} &
 
 
-    :math:`x_i` is the minimum (maximum for expansive perturbations) value of
-    :math:`x_{ij}` for a single particle. For compressive perturbations:
+    For particle :math:`i`, `SDF` finds th the minimum (maximum for expansive
+    perturbations) value :math:`x_i`. For compressive perturbations:
 
     .. math::
 
@@ -271,10 +271,10 @@ class SDF(Compute):
 
     .. rubric:: Pressure
 
-    The pressure :math:`P` is related to the extrapolations of
-    :math:`s_{\mathrm{comp}}` and :math:`s_{\mathrm{exp}}` to :math:`x = 0` to
-    evaluate the appropriate one-sided limits :math:`s_{\mathrm{comp}}(0+)` and
-    :math:`s_{\mathrm{exp}}(0-)`:
+    The pressure :math:`P` is related to the one-sided limits
+    :math:`s_{\mathrm{comp}}(0+)` and :math:`s_{\mathrm{exp}}(0-)`, computed by
+    fitting and extrapolating :math:`s_{\mathrm{comp}}` and
+    :math:`s_{\mathrm{exp}}` to :math:`x = 0`.
 
     .. math::
         \beta P = \rho \left(
@@ -288,16 +288,17 @@ class SDF(Compute):
     Assuming particle diameters are ~1, these parameter values typically
     achieve good results:
 
-      * ``xmax = 0.02``
-      * ``dx = 1e-4``
+    * ``xmax = 0.02``
+    * ``dx = 1e-4``
 
     In systems near densest packings, ``dx=1e-5`` may be needed along with
-    smaller ``xmax``. Check that :math:`\sum_k s(x_k) \cdot dx \approx 0.5`.
+    smaller ``xmax``. Check that :math:`\sum_k s_\mathrm{comp}(x_k) \cdot dx
+    \approx 0.5`.
 
-    Warning:
-        Because SDF samples pair configurations at discrete separations, the
-        computed pressure is correct only for potentials with constant values
-        and step discontinuities, e.g., square well potentials.
+    Important:
+        `SDF` samples pair configurations at discrete separations. Therefore,
+        the computed pressure is correct only for potentials with constant
+        values and step discontinuities.
 
     Note:
         `SDF` always runs on the CPU.
@@ -351,7 +352,7 @@ class SDF(Compute):
         distribution function for compression moves \
         :math:`[\\mathrm{probability\\ density}]`.
 
-        .. deprecated:: v3.8.0
+        .. deprecated:: v3.11.0
             Use `sdf_compression`.
         """
         self._cpp_obj.compute(self._simulation.timestep)
@@ -359,12 +360,12 @@ class SDF(Compute):
 
     @log(category='sequence', requires_run=True)
     def sdf_compression(self):
-        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
-        distribution function for compression moves \
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s_\\mathrm{comp}[k]`\
+        - The scale distribution function for compression moves \
         :math:`[\\mathrm{probability\\ density}]`.
 
-        The :math:`x` at the center of bin :math:`k` is:
-        :math:`x = k \\cdot \\delta x + \\delta x/2`.
+        See Also:
+            `x_compression`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -375,12 +376,12 @@ class SDF(Compute):
 
     @log(category='sequence', requires_run=True)
     def sdf_expansion(self):
-        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s[k]` - The scale \
-        distribution function for the expansion moves \
+        """(*N_bins*,) `numpy.ndarray` of `float`): :math:`s_\\mathrm{exp}[k]` \
+        - The scale distribution function for the expansion moves \
         :math:`[\\mathrm{probability\\ density}]`.
 
-        The :math:`x` at the center of bin :math:`k` is:
-        :math:`x = -k \\cdot \\delta x - \\delta x/2`.
+        See Also:
+            `x_expansion`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -416,11 +417,13 @@ class SDF(Compute):
         """float: Beta times pressure in NVT simulations \
         :math:`\\left[ \\mathrm{length}^{-d} \\right]`.
 
-        Uses a polynomial curve fit of degree 5 to estimate :math:`s(0+)` (and
-        :math:`s(0-)` if required) and computes the pressure via:
+        Uses a polynomial curve fit of degree 5 to estimate
+        :math:`s_\\mathrm{comp}(0+)` (and :math:`s_\\mathrm{exp}(0-)` if
+        required) and computes the pressure via:
 
         .. math::
-            \\beta P = \\rho \\left(1 + \\frac{s(0+)}{2d} + \\frac{s(0-)}{2d} \
+            \\beta P = \\rho \\left(1 + \\frac{s_\\mathrm{comp}(0+)}{2d} +
+            \\frac{s_\\mathrm{exp}(0-)}{2d} \
             \\right)
 
         where :math:`d` is the dimensionality of the system, :math:`\\rho` is
