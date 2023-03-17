@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "hoomd/HOOMDMath.h"
 #include "ShapeConvexPolygon.h"    // check
 #include "ShapeConvexPolyhedron.h" // check
 #include "ShapeEllipsoid.h"        // check
@@ -439,10 +440,10 @@ template<> struct gsd_shape_schema<hpmc::detail::PolyhedronVertices> : public gs
         count = 0;
         for (unsigned int i = 0; i < Ntypes; i++)
             {
-            std::vector<vec3<hpmc::OverlapReal>> verts;
+            std::vector<vec3<ShortReal>> verts;
             for (unsigned int v = 0; v < N[i]; v++)
                 {
-                verts.push_back(vec3<hpmc::OverlapReal>(vertices[count * 3 + 0],
+                verts.push_back(vec3<ShortReal>(vertices[count * 3 + 0],
                                                         vertices[count * 3 + 1],
                                                         vertices[count * 3 + 2]));
                 count++;
@@ -566,7 +567,7 @@ template<> struct gsd_shape_schema<hpmc::detail::PolygonVertices> : public gsd_s
                 dsq = fmax(shape[i].x[v] * shape[i].x[v] + shape[i].y[v] * shape[i].y[v], dsq);
                 count++;
                 }
-            shape[i].diameter = hpmc::OverlapReal(2.0 * (sqrt(dsq) + shape[i].sweep_radius));
+            shape[i].diameter = ShortReal(2.0 * (sqrt(dsq) + shape[i].sweep_radius));
             shape[i].N = N[i];
             shape[i].sweep_radius = sweep_radius[i];
             shape[i].ignore = 0;

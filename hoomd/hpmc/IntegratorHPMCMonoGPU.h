@@ -2047,15 +2047,15 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
-        OverlapReal d_i(shape_i.getCircumsphereDiameter());
+        ShortReal d_i(shape_i.getCircumsphereDiameter());
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
             Shape shape_j(quat<Scalar>(), this->m_params[j_type]);
-            OverlapReal d_j(shape_j.getCircumsphereDiameter());
+            ShortReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            OverlapReal range = std::max(d_i, d_j);
+            ShortReal range = std::max(d_i, d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {

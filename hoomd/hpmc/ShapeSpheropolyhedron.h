@@ -92,17 +92,17 @@ struct ShapeSpheropolyhedron
         }
 
     //! Get the circumsphere diameter
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return verts.diameter;
         }
 
     //! Get the in-sphere radius
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     //! Return the bounding box of the shape in world coordinates
@@ -112,16 +112,16 @@ struct ShapeSpheropolyhedron
         // detail::SupportFuncSpheropolyhedron sfunc(verts);
 
         // // use support function of the to determine the furthest extent in each direction
-        // quat<OverlapReal> o(orientation);
-        // vec3<OverlapReal> e_x(1,0,0);
-        // vec3<OverlapReal> e_y(0,1,0);
-        // vec3<OverlapReal> e_z(0,0,1);
-        // vec3<OverlapReal> s_x = rotate(o, sfunc(rotate(conj(o),e_x)));
-        // vec3<OverlapReal> s_y = rotate(o, sfunc(rotate(conj(o),e_y)));
-        // vec3<OverlapReal> s_z = rotate(o, sfunc(rotate(conj(o),e_z)));
-        // vec3<OverlapReal> s_neg_x = rotate(o, sfunc(rotate(conj(o),-e_x)));
-        // vec3<OverlapReal> s_neg_y = rotate(o, sfunc(rotate(conj(o),-e_y)));
-        // vec3<OverlapReal> s_neg_z = rotate(o, sfunc(rotate(conj(o),-e_z)));
+        // quat<ShortReal> o(orientation);
+        // vec3<ShortReal> e_x(1,0,0);
+        // vec3<ShortReal> e_y(0,1,0);
+        // vec3<ShortReal> e_z(0,0,1);
+        // vec3<ShortReal> s_x = rotate(o, sfunc(rotate(conj(o),e_x)));
+        // vec3<ShortReal> s_y = rotate(o, sfunc(rotate(conj(o),e_y)));
+        // vec3<ShortReal> s_z = rotate(o, sfunc(rotate(conj(o),e_z)));
+        // vec3<ShortReal> s_neg_x = rotate(o, sfunc(rotate(conj(o),-e_x)));
+        // vec3<ShortReal> s_neg_y = rotate(o, sfunc(rotate(conj(o),-e_y)));
+        // vec3<ShortReal> s_neg_z = rotate(o, sfunc(rotate(conj(o),-e_z)));
 
         // // translate out from the position by the furthest extents
         // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
@@ -173,15 +173,15 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeSpheropolyhedron& b,
                                 unsigned int& err)
     {
-    vec3<OverlapReal> dr = r_ab;
+    vec3<ShortReal> dr = r_ab;
 
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
     return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts, a.verts.sweep_radius),
                           detail::SupportFuncConvexPolyhedron(b.verts, b.verts.sweep_radius),
-                          rotate(conj(quat<OverlapReal>(a.orientation)), dr),
-                          conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb / OverlapReal(2.0),
+                          rotate(conj(quat<ShortReal>(a.orientation)), dr),
+                          conj(quat<ShortReal>(a.orientation)) * quat<ShortReal>(b.orientation),
+                          DaDb / ShortReal(2.0),
                           err);
 
     /*

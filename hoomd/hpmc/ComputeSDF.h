@@ -9,7 +9,6 @@
 #include "hoomd/Compute.h"
 
 #include "HPMCCounters.h"
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 
 #ifdef ENABLE_MPI
@@ -508,16 +507,16 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
 
         // construct the AABB around the particle's circumsphere
         // pad with enough extra width so that when scaled by xmax, found particles might touch
-        OverlapReal r_cut_patch = 0;
+        ShortReal r_cut_patch = 0;
         if (m_mc->getPatchEnergy())
             {
-            r_cut_patch = static_cast<OverlapReal>(
+            r_cut_patch = static_cast<ShortReal>(
                 m_mc->getPatchEnergy()->getRCut()
                 + 0.5 * m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i));
             }
-        const OverlapReal R_query
-            = std::max(shape_i.getCircumsphereDiameter() / OverlapReal(2.0),
-                       r_cut_patch - m_mc->getMinCoreDiameter() / (OverlapReal)2.0);
+        const ShortReal R_query
+            = std::max(shape_i.getCircumsphereDiameter() / ShortReal(2.0),
+                       r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
         hoomd::detail::AABB aabb_i_local(vec3<Scalar>(0, 0, 0), R_query + extra_width);
 
         const size_t n_images = image_list.size();

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "HPMCPrecisionSetup.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -29,7 +28,7 @@ namespace detail
 // introducing a math function that I need and didn't find in VectorMath.h
 // this function calculates the square of a vector
 
-DEVICE inline OverlapReal norm2(const vec3<OverlapReal>& v)
+DEVICE inline ShortReal norm2(const vec3<ShortReal>& v)
     {
     return dot(v, v);
     }
@@ -50,69 +49,69 @@ DEVICE inline OverlapReal norm2(const vec3<OverlapReal>& v)
 
 #define EPS 1e-12
 
-DEVICE inline OverlapReal ang4(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal af,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal bf,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal cf,
-                               OverlapReal de,
-                               OverlapReal df,
-                               OverlapReal ef);
-DEVICE inline OverlapReal ang5(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal af,
-                               OverlapReal ag,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal bf,
-                               OverlapReal bg,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal cf,
-                               OverlapReal cg,
-                               OverlapReal de,
-                               OverlapReal df,
-                               OverlapReal dg,
-                               OverlapReal ef,
-                               OverlapReal eg,
-                               OverlapReal fg);
+DEVICE inline ShortReal ang4(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal af,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal bf,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal cf,
+                               ShortReal de,
+                               ShortReal df,
+                               ShortReal ef);
+DEVICE inline ShortReal ang5(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal af,
+                               ShortReal ag,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal bf,
+                               ShortReal bg,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal cf,
+                               ShortReal cg,
+                               ShortReal de,
+                               ShortReal df,
+                               ShortReal dg,
+                               ShortReal ef,
+                               ShortReal eg,
+                               ShortReal fg);
 DEVICE inline bool
-sep2(bool convex, OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab);
+sep2(bool convex, ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab);
 DEVICE inline bool
-seq2(OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab);
+seq2(ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab);
 
-DEVICE inline OverlapReal vok4(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal de)
+DEVICE inline ShortReal vok4(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal de)
     {
-    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
-    OverlapReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
-    OverlapReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
-    OverlapReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
-    OverlapReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
+    ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    ShortReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
+    ShortReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
+    ShortReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
+    ShortReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
 
-    OverlapReal Qabcd = acbd + adbc - abcd, Qacbd = abcd + adbc - acbd, Qadbc = abcd + acbd - adbc;
-    OverlapReal Qabce = acbe + aebc - abce, Qacbe = abce + aebc - acbe, Qaebc = abce + acbe - aebc;
-    OverlapReal Qabde = adbe + aebd - abde, Qadbe = abde + aebd - adbe, Qaebd = abde + adbe - aebd;
-    OverlapReal Qacde = adce + aecd - acde, Qadce = acde + aecd - adce, Qaecd = acde + adce - aecd;
-    OverlapReal Qbcde = bdce + becd - bcde, Qbdce = bcde + becd - bdce, Qbecd = bcde + bdce - becd;
+    ShortReal Qabcd = acbd + adbc - abcd, Qacbd = abcd + adbc - acbd, Qadbc = abcd + acbd - adbc;
+    ShortReal Qabce = acbe + aebc - abce, Qacbe = abce + aebc - acbe, Qaebc = abce + acbe - aebc;
+    ShortReal Qabde = adbe + aebd - abde, Qadbe = abde + aebd - adbe, Qaebd = abde + adbe - aebd;
+    ShortReal Qacde = adce + aecd - acde, Qadce = acde + aecd - adce, Qaecd = acde + adce - aecd;
+    ShortReal Qbcde = bdce + becd - bcde, Qbdce = bcde + becd - bdce, Qbecd = bcde + bdce - becd;
 
     return +abcd * (Qabce + Qabde + Qaecd + Qbecd - Qabcd - 4 * (ae * be + ce * de))
            + acbd * (Qacbe + Qaebd + Qacde + Qbdce - Qacbd - 4 * (ae * ce + be * de))
@@ -131,53 +130,53 @@ DEVICE inline OverlapReal vok4(OverlapReal ab,
            + becd * (Qabcd + Qacbe + Qadbe + Qaecd - Qbecd);
     }
 
-DEVICE inline bool vok5(OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal ae,
-                        OverlapReal af,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal be,
-                        OverlapReal bf,
-                        OverlapReal cd,
-                        OverlapReal ce,
-                        OverlapReal cf,
-                        OverlapReal de,
-                        OverlapReal df,
-                        OverlapReal ef)
+DEVICE inline bool vok5(ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal ae,
+                        ShortReal af,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal be,
+                        ShortReal bf,
+                        ShortReal cd,
+                        ShortReal ce,
+                        ShortReal cf,
+                        ShortReal de,
+                        ShortReal df,
+                        ShortReal ef)
     {
-    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
-    OverlapReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
-    OverlapReal abcf = ab * cf, acbf = ac * bf, afbc = af * bc;
-    OverlapReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
-    OverlapReal abdf = ab * df, adbf = ad * bf, afbd = af * bd;
-    OverlapReal abef = ab * ef, aebf = ae * bf, afbe = af * be;
-    OverlapReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
-    OverlapReal acdf = ac * df, adcf = ad * cf, afcd = af * cd;
-    OverlapReal acef = ac * ef, aecf = ae * cf, afce = af * ce;
-    OverlapReal adef = ad * ef, aedf = ae * df, afde = af * de;
-    OverlapReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
-    OverlapReal bcdf = bc * df, bdcf = bd * cf, bfcd = bf * cd;
-    OverlapReal bcef = bc * ef, becf = be * cf, bfce = bf * ce;
-    OverlapReal bdef = bd * ef, bedf = be * df, bfde = bf * de;
-    OverlapReal cdef = cd * ef, cedf = ce * df, cfde = cf * de;
+    ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    ShortReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
+    ShortReal abcf = ab * cf, acbf = ac * bf, afbc = af * bc;
+    ShortReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
+    ShortReal abdf = ab * df, adbf = ad * bf, afbd = af * bd;
+    ShortReal abef = ab * ef, aebf = ae * bf, afbe = af * be;
+    ShortReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
+    ShortReal acdf = ac * df, adcf = ad * cf, afcd = af * cd;
+    ShortReal acef = ac * ef, aecf = ae * cf, afce = af * ce;
+    ShortReal adef = ad * ef, aedf = ae * df, afde = af * de;
+    ShortReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
+    ShortReal bcdf = bc * df, bdcf = bd * cf, bfcd = bf * cd;
+    ShortReal bcef = bc * ef, becf = be * cf, bfce = bf * ce;
+    ShortReal bdef = bd * ef, bedf = be * df, bfde = bf * de;
+    ShortReal cdef = cd * ef, cedf = ce * df, cfde = cf * de;
 
-    OverlapReal Qabcd = acbd + adbc - abcd, Qacbd = abcd + adbc - acbd, Qadbc = abcd + acbd - adbc;
-    OverlapReal Qabce = acbe + aebc - abce, Qacbe = abce + aebc - acbe, Qaebc = abce + acbe - aebc;
-    OverlapReal Qabcf = acbf + afbc - abcf, Qacbf = abcf + afbc - acbf, Qafbc = abcf + acbf - afbc;
-    OverlapReal Qabde = adbe + aebd - abde, Qadbe = abde + aebd - adbe, Qaebd = abde + adbe - aebd;
-    OverlapReal Qabdf = adbf + afbd - abdf, Qadbf = abdf + afbd - adbf, Qafbd = abdf + adbf - afbd;
-    OverlapReal Qabef = aebf + afbe - abef, Qaebf = abef + afbe - aebf, Qafbe = abef + aebf - afbe;
-    OverlapReal Qacde = adce + aecd - acde, Qadce = acde + aecd - adce, Qaecd = acde + adce - aecd;
-    OverlapReal Qacdf = adcf + afcd - acdf, Qadcf = acdf + afcd - adcf, Qafcd = acdf + adcf - afcd;
-    OverlapReal Qacef = aecf + afce - acef, Qaecf = acef + afce - aecf, Qafce = acef + aecf - afce;
-    OverlapReal Qadef = aedf + afde - adef, Qaedf = adef + afde - aedf, Qafde = adef + aedf - afde;
-    OverlapReal Qbcde = bdce + becd - bcde, Qbdce = bcde + becd - bdce, Qbecd = bcde + bdce - becd;
-    OverlapReal Qbcdf = bdcf + bfcd - bcdf, Qbdcf = bcdf + bfcd - bdcf, Qbfcd = bcdf + bdcf - bfcd;
-    OverlapReal Qbcef = becf + bfce - bcef, Qbecf = bcef + bfce - becf, Qbfce = bcef + becf - bfce;
-    OverlapReal Qbdef = bedf + bfde - bdef, Qbedf = bdef + bfde - bedf, Qbfde = bdef + bedf - bfde;
-    OverlapReal Qcdef = cedf + cfde - cdef, Qcedf = cdef + cfde - cedf, Qcfde = cdef + cedf - cfde;
+    ShortReal Qabcd = acbd + adbc - abcd, Qacbd = abcd + adbc - acbd, Qadbc = abcd + acbd - adbc;
+    ShortReal Qabce = acbe + aebc - abce, Qacbe = abce + aebc - acbe, Qaebc = abce + acbe - aebc;
+    ShortReal Qabcf = acbf + afbc - abcf, Qacbf = abcf + afbc - acbf, Qafbc = abcf + acbf - afbc;
+    ShortReal Qabde = adbe + aebd - abde, Qadbe = abde + aebd - adbe, Qaebd = abde + adbe - aebd;
+    ShortReal Qabdf = adbf + afbd - abdf, Qadbf = abdf + afbd - adbf, Qafbd = abdf + adbf - afbd;
+    ShortReal Qabef = aebf + afbe - abef, Qaebf = abef + afbe - aebf, Qafbe = abef + aebf - afbe;
+    ShortReal Qacde = adce + aecd - acde, Qadce = acde + aecd - adce, Qaecd = acde + adce - aecd;
+    ShortReal Qacdf = adcf + afcd - acdf, Qadcf = acdf + afcd - adcf, Qafcd = acdf + adcf - afcd;
+    ShortReal Qacef = aecf + afce - acef, Qaecf = acef + afce - aecf, Qafce = acef + aecf - afce;
+    ShortReal Qadef = aedf + afde - adef, Qaedf = adef + afde - aedf, Qafde = adef + aedf - afde;
+    ShortReal Qbcde = bdce + becd - bcde, Qbdce = bcde + becd - bdce, Qbecd = bcde + bdce - becd;
+    ShortReal Qbcdf = bdcf + bfcd - bcdf, Qbdcf = bcdf + bfcd - bdcf, Qbfcd = bcdf + bdcf - bfcd;
+    ShortReal Qbcef = becf + bfce - bcef, Qbecf = bcef + bfce - becf, Qbfce = bcef + becf - bfce;
+    ShortReal Qbdef = bedf + bfde - bdef, Qbedf = bdef + bfde - bedf, Qbfde = bdef + bedf - bfde;
+    ShortReal Qcdef = cedf + cfde - cdef, Qcedf = cdef + cfde - cedf, Qcfde = cdef + cedf - cfde;
 
     return bool(
         +ab * cd * ef
@@ -264,309 +263,309 @@ DEVICE inline bool vok5(OverlapReal ab,
            + bd * (becf * (cdef + cedf) + bfce * (cdef + cfde)) + be * (bfcd * (cedf + cfde))));
     }
 
-DEVICE inline OverlapReal vok6(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal af,
-                               OverlapReal ag,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal bf,
-                               OverlapReal bg,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal cf,
-                               OverlapReal cg,
-                               OverlapReal de,
-                               OverlapReal df,
-                               OverlapReal dg,
-                               OverlapReal ef,
-                               OverlapReal eg,
-                               OverlapReal fg)
+DEVICE inline ShortReal vok6(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal af,
+                               ShortReal ag,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal bf,
+                               ShortReal bg,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal cf,
+                               ShortReal cg,
+                               ShortReal de,
+                               ShortReal df,
+                               ShortReal dg,
+                               ShortReal ef,
+                               ShortReal eg,
+                               ShortReal fg)
     {
-    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
-    OverlapReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
-    OverlapReal abcf = ab * cf, acbf = ac * bf, afbc = af * bc;
-    OverlapReal abcg = ab * cg, acbg = ac * bg, agbc = ag * bc;
-    OverlapReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
-    OverlapReal abdf = ab * df, adbf = ad * bf, afbd = af * bd;
-    OverlapReal abdg = ab * dg, adbg = ad * bg, agbd = ag * bd;
-    OverlapReal abef = ab * ef, aebf = ae * bf, afbe = af * be;
-    OverlapReal abeg = ab * eg, aebg = ae * bg, agbe = ag * be;
-    OverlapReal abfg = ab * fg, afbg = af * bg, agbf = ag * bf;
-    OverlapReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
-    OverlapReal acdf = ac * df, adcf = ad * cf, afcd = af * cd;
-    OverlapReal acdg = ac * dg, adcg = ad * cg, agcd = ag * cd;
-    OverlapReal acef = ac * ef, aecf = ae * cf, afce = af * ce;
-    OverlapReal aceg = ac * eg, aecg = ae * cg, agce = ag * ce;
-    OverlapReal acfg = ac * fg, afcg = af * cg, agcf = ag * cf;
-    OverlapReal adef = ad * ef, aedf = ae * df, afde = af * de;
-    OverlapReal adeg = ad * eg, aedg = ae * dg, agde = ag * de;
-    OverlapReal adfg = ad * fg, afdg = af * dg, agdf = ag * df;
-    OverlapReal aefg = ae * fg, afeg = af * eg, agef = ag * ef;
-    OverlapReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
-    OverlapReal bcdf = bc * df, bdcf = bd * cf, bfcd = bf * cd;
-    OverlapReal bcdg = bc * dg, bdcg = bd * cg, bgcd = bg * cd;
-    OverlapReal bcef = bc * ef, becf = be * cf, bfce = bf * ce;
-    OverlapReal bceg = bc * eg, becg = be * cg, bgce = bg * ce;
-    OverlapReal bcfg = bc * fg, bfcg = bf * cg, bgcf = bg * cf;
-    OverlapReal bdef = bd * ef, bedf = be * df, bfde = bf * de;
-    OverlapReal bdeg = bd * eg, bedg = be * dg, bgde = bg * de;
-    OverlapReal bdfg = bd * fg, bfdg = bf * dg, bgdf = bg * df;
-    OverlapReal befg = be * fg, bfeg = bf * eg, bgef = bg * ef;
-    OverlapReal cdef = cd * ef, cedf = ce * df, cfde = cf * de;
-    OverlapReal cdeg = cd * eg, cedg = ce * dg, cgde = cg * de;
-    OverlapReal cdfg = cd * fg, cfdg = cf * dg, cgdf = cg * df;
-    OverlapReal cefg = ce * fg, cfeg = cf * eg, cgef = cg * ef;
-    OverlapReal defg = de * fg, dfeg = df * eg, dgef = dg * ef;
+    ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    ShortReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
+    ShortReal abcf = ab * cf, acbf = ac * bf, afbc = af * bc;
+    ShortReal abcg = ab * cg, acbg = ac * bg, agbc = ag * bc;
+    ShortReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
+    ShortReal abdf = ab * df, adbf = ad * bf, afbd = af * bd;
+    ShortReal abdg = ab * dg, adbg = ad * bg, agbd = ag * bd;
+    ShortReal abef = ab * ef, aebf = ae * bf, afbe = af * be;
+    ShortReal abeg = ab * eg, aebg = ae * bg, agbe = ag * be;
+    ShortReal abfg = ab * fg, afbg = af * bg, agbf = ag * bf;
+    ShortReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
+    ShortReal acdf = ac * df, adcf = ad * cf, afcd = af * cd;
+    ShortReal acdg = ac * dg, adcg = ad * cg, agcd = ag * cd;
+    ShortReal acef = ac * ef, aecf = ae * cf, afce = af * ce;
+    ShortReal aceg = ac * eg, aecg = ae * cg, agce = ag * ce;
+    ShortReal acfg = ac * fg, afcg = af * cg, agcf = ag * cf;
+    ShortReal adef = ad * ef, aedf = ae * df, afde = af * de;
+    ShortReal adeg = ad * eg, aedg = ae * dg, agde = ag * de;
+    ShortReal adfg = ad * fg, afdg = af * dg, agdf = ag * df;
+    ShortReal aefg = ae * fg, afeg = af * eg, agef = ag * ef;
+    ShortReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
+    ShortReal bcdf = bc * df, bdcf = bd * cf, bfcd = bf * cd;
+    ShortReal bcdg = bc * dg, bdcg = bd * cg, bgcd = bg * cd;
+    ShortReal bcef = bc * ef, becf = be * cf, bfce = bf * ce;
+    ShortReal bceg = bc * eg, becg = be * cg, bgce = bg * ce;
+    ShortReal bcfg = bc * fg, bfcg = bf * cg, bgcf = bg * cf;
+    ShortReal bdef = bd * ef, bedf = be * df, bfde = bf * de;
+    ShortReal bdeg = bd * eg, bedg = be * dg, bgde = bg * de;
+    ShortReal bdfg = bd * fg, bfdg = bf * dg, bgdf = bg * df;
+    ShortReal befg = be * fg, bfeg = bf * eg, bgef = bg * ef;
+    ShortReal cdef = cd * ef, cedf = ce * df, cfde = cf * de;
+    ShortReal cdeg = cd * eg, cedg = ce * dg, cgde = cg * de;
+    ShortReal cdfg = cd * fg, cfdg = cf * dg, cgdf = cg * df;
+    ShortReal cefg = ce * fg, cfeg = cf * eg, cgef = cg * ef;
+    ShortReal defg = de * fg, dfeg = df * eg, dgef = dg * ef;
 
-    OverlapReal abcdef = ab * cdef, abcedf = ab * cedf, abcfde = ab * cfde;
-    OverlapReal acbdef = ac * bdef, acbedf = ac * bedf, acbfde = ac * bfde;
-    OverlapReal adbcef = ad * bcef, adbecf = ad * becf, adbfce = ad * bfce;
-    OverlapReal aebcdf = ae * bcdf, aebdcf = ae * bdcf, aebfcd = ae * bfcd;
-    OverlapReal afbcde = af * bcde, afbdce = af * bdce, afbecd = af * becd;
-    OverlapReal abcdeg = ab * cdeg, abcedg = ab * cedg, abcgde = ab * cgde;
-    OverlapReal acbdeg = ac * bdeg, acbedg = ac * bedg, acbgde = ac * bgde;
-    OverlapReal adbceg = ad * bceg, adbecg = ad * becg, adbgce = ad * bgce;
-    OverlapReal aebcdg = ae * bcdg, aebdcg = ae * bdcg, aebgcd = ae * bgcd;
-    OverlapReal agbcde = ag * bcde, agbdce = ag * bdce, agbecd = ag * becd;
-    OverlapReal abcdfg = ab * cdfg, abcfdg = ab * cfdg, abcgdf = ab * cgdf;
-    OverlapReal acbdfg = ac * bdfg, acbfdg = ac * bfdg, acbgdf = ac * bgdf;
-    OverlapReal adbcfg = ad * bcfg, adbfcg = ad * bfcg, adbgcf = ad * bgcf;
-    OverlapReal afbcdg = af * bcdg, afbdcg = af * bdcg, afbgcd = af * bgcd;
-    OverlapReal agbcdf = ag * bcdf, agbdcf = ag * bdcf, agbfcd = ag * bfcd;
-    OverlapReal abcefg = ab * cefg, abcfeg = ab * cfeg, abcgef = ab * cgef;
-    OverlapReal acbefg = ac * befg, acbfeg = ac * bfeg, acbgef = ac * bgef;
-    OverlapReal aebcfg = ae * bcfg, aebfcg = ae * bfcg, aebgcf = ae * bgcf;
-    OverlapReal afbceg = af * bceg, afbecg = af * becg, afbgce = af * bgce;
-    OverlapReal agbcef = ag * bcef, agbecf = ag * becf, agbfce = ag * bfce;
-    OverlapReal abdefg = ab * defg, abdfeg = ab * dfeg, abdgef = ab * dgef;
-    OverlapReal adbefg = ad * befg, adbfeg = ad * bfeg, adbgef = ad * bgef;
-    OverlapReal aebdfg = ae * bdfg, aebfdg = ae * bfdg, aebgdf = ae * bgdf;
-    OverlapReal afbdeg = af * bdeg, afbedg = af * bedg, afbgde = af * bgde;
-    OverlapReal agbdef = ag * bdef, agbedf = ag * bedf, agbfde = ag * bfde;
-    OverlapReal acdefg = ac * defg, acdfeg = ac * dfeg, acdgef = ac * dgef;
-    OverlapReal adcefg = ad * cefg, adcfeg = ad * cfeg, adcgef = ad * cgef;
-    OverlapReal aecdfg = ae * cdfg, aecfdg = ae * cfdg, aecgdf = ae * cgdf;
-    OverlapReal afcdeg = af * cdeg, afcedg = af * cedg, afcgde = af * cgde;
-    OverlapReal agcdef = ag * cdef, agcedf = ag * cedf, agcfde = ag * cfde;
-    OverlapReal bcdefg = bc * defg, bcdfeg = bc * dfeg, bcdgef = bc * dgef;
-    OverlapReal bdcefg = bd * cefg, bdcfeg = bd * cfeg, bdcgef = bd * cgef;
-    OverlapReal becdfg = be * cdfg, becfdg = be * cfdg, becgdf = be * cgdf;
-    OverlapReal bfcdeg = bf * cdeg, bfcedg = bf * cedg, bfcgde = bf * cgde;
-    OverlapReal bgcdef = bg * cdef, bgcedf = bg * cedf, bgcfde = bg * cfde;
+    ShortReal abcdef = ab * cdef, abcedf = ab * cedf, abcfde = ab * cfde;
+    ShortReal acbdef = ac * bdef, acbedf = ac * bedf, acbfde = ac * bfde;
+    ShortReal adbcef = ad * bcef, adbecf = ad * becf, adbfce = ad * bfce;
+    ShortReal aebcdf = ae * bcdf, aebdcf = ae * bdcf, aebfcd = ae * bfcd;
+    ShortReal afbcde = af * bcde, afbdce = af * bdce, afbecd = af * becd;
+    ShortReal abcdeg = ab * cdeg, abcedg = ab * cedg, abcgde = ab * cgde;
+    ShortReal acbdeg = ac * bdeg, acbedg = ac * bedg, acbgde = ac * bgde;
+    ShortReal adbceg = ad * bceg, adbecg = ad * becg, adbgce = ad * bgce;
+    ShortReal aebcdg = ae * bcdg, aebdcg = ae * bdcg, aebgcd = ae * bgcd;
+    ShortReal agbcde = ag * bcde, agbdce = ag * bdce, agbecd = ag * becd;
+    ShortReal abcdfg = ab * cdfg, abcfdg = ab * cfdg, abcgdf = ab * cgdf;
+    ShortReal acbdfg = ac * bdfg, acbfdg = ac * bfdg, acbgdf = ac * bgdf;
+    ShortReal adbcfg = ad * bcfg, adbfcg = ad * bfcg, adbgcf = ad * bgcf;
+    ShortReal afbcdg = af * bcdg, afbdcg = af * bdcg, afbgcd = af * bgcd;
+    ShortReal agbcdf = ag * bcdf, agbdcf = ag * bdcf, agbfcd = ag * bfcd;
+    ShortReal abcefg = ab * cefg, abcfeg = ab * cfeg, abcgef = ab * cgef;
+    ShortReal acbefg = ac * befg, acbfeg = ac * bfeg, acbgef = ac * bgef;
+    ShortReal aebcfg = ae * bcfg, aebfcg = ae * bfcg, aebgcf = ae * bgcf;
+    ShortReal afbceg = af * bceg, afbecg = af * becg, afbgce = af * bgce;
+    ShortReal agbcef = ag * bcef, agbecf = ag * becf, agbfce = ag * bfce;
+    ShortReal abdefg = ab * defg, abdfeg = ab * dfeg, abdgef = ab * dgef;
+    ShortReal adbefg = ad * befg, adbfeg = ad * bfeg, adbgef = ad * bgef;
+    ShortReal aebdfg = ae * bdfg, aebfdg = ae * bfdg, aebgdf = ae * bgdf;
+    ShortReal afbdeg = af * bdeg, afbedg = af * bedg, afbgde = af * bgde;
+    ShortReal agbdef = ag * bdef, agbedf = ag * bedf, agbfde = ag * bfde;
+    ShortReal acdefg = ac * defg, acdfeg = ac * dfeg, acdgef = ac * dgef;
+    ShortReal adcefg = ad * cefg, adcfeg = ad * cfeg, adcgef = ad * cgef;
+    ShortReal aecdfg = ae * cdfg, aecfdg = ae * cfdg, aecgdf = ae * cgdf;
+    ShortReal afcdeg = af * cdeg, afcedg = af * cedg, afcgde = af * cgde;
+    ShortReal agcdef = ag * cdef, agcedf = ag * cedf, agcfde = ag * cfde;
+    ShortReal bcdefg = bc * defg, bcdfeg = bc * dfeg, bcdgef = bc * dgef;
+    ShortReal bdcefg = bd * cefg, bdcfeg = bd * cfeg, bdcgef = bd * cgef;
+    ShortReal becdfg = be * cdfg, becfdg = be * cfdg, becgdf = be * cgdf;
+    ShortReal bfcdeg = bf * cdeg, bfcedg = bf * cedg, bfcgde = bf * cgde;
+    ShortReal bgcdef = bg * cdef, bgcedf = bg * cedf, bgcfde = bg * cfde;
 
-    OverlapReal Qabcdef = abcdef + acbedf + acbfde + adbecf + adbfce + aebcdf + aebdcf + afbcde
+    ShortReal Qabcdef = abcdef + acbedf + acbfde + adbecf + adbfce + aebcdf + aebdcf + afbcde
                           + afbdce - abcedf - abcfde - acbdef - adbcef - aebfcd - afbecd;
-    OverlapReal Qabcedf = abcedf + acbdef + acbfde + adbcef + adbecf + aebdcf + aebfcd + afbcde
+    ShortReal Qabcedf = abcedf + acbdef + acbfde + adbcef + adbecf + aebdcf + aebfcd + afbcde
                           + afbecd - abcdef - abcfde - acbedf - adbfce - aebcdf - afbdce;
-    OverlapReal Qabcfde = abcfde + acbdef + acbedf + adbcef + adbfce + aebcdf + aebfcd + afbdce
+    ShortReal Qabcfde = abcfde + acbdef + acbedf + adbcef + adbfce + aebcdf + aebfcd + afbdce
                           + afbecd - abcdef - abcedf - acbfde - adbecf - aebdcf - afbcde;
-    OverlapReal Qacbdef = abcedf + abcfde + acbdef + adbecf + adbfce + aebcdf + aebfcd + afbcde
+    ShortReal Qacbdef = abcedf + abcfde + acbdef + adbecf + adbfce + aebcdf + aebfcd + afbcde
                           + afbecd - abcdef - acbedf - acbfde - adbcef - aebdcf - afbdce;
-    OverlapReal Qacbedf = abcdef + abcfde + acbedf + adbcef + adbfce + aebdcf + aebfcd + afbcde
+    ShortReal Qacbedf = abcdef + abcfde + acbedf + adbcef + adbfce + aebdcf + aebfcd + afbcde
                           + afbdce - abcedf - acbdef - acbfde - adbecf - aebcdf - afbecd;
-    OverlapReal Qacbfde = abcdef + abcedf + acbfde + adbcef + adbecf + aebcdf + aebdcf + afbdce
+    ShortReal Qacbfde = abcdef + abcedf + acbfde + adbcef + adbecf + aebcdf + aebdcf + afbdce
                           + afbecd - abcfde - acbdef - acbedf - adbfce - aebfcd - afbcde;
-    OverlapReal Qadbcef = abcedf + abcfde + acbedf + acbfde + adbcef + aebdcf + aebfcd + afbdce
+    ShortReal Qadbcef = abcedf + abcfde + acbedf + acbfde + adbcef + aebdcf + aebfcd + afbdce
                           + afbecd - abcdef - acbdef - adbecf - adbfce - aebcdf - afbcde;
-    OverlapReal Qadbecf = abcdef + abcedf + acbdef + acbfde + adbecf + aebcdf + aebfcd + afbcde
+    ShortReal Qadbecf = abcdef + abcedf + acbdef + acbfde + adbecf + aebcdf + aebfcd + afbcde
                           + afbdce - abcfde - acbedf - adbcef - adbfce - aebdcf - afbecd;
-    OverlapReal Qadbfce = abcdef + abcfde + acbdef + acbedf + adbfce + aebcdf + aebdcf + afbcde
+    ShortReal Qadbfce = abcdef + abcfde + acbdef + acbedf + adbfce + aebcdf + aebdcf + afbcde
                           + afbecd - abcedf - acbfde - adbcef - adbecf - aebfcd - afbdce;
-    OverlapReal Qaebcdf = abcdef + abcfde + acbdef + acbfde + adbecf + adbfce + aebcdf + afbdce
+    ShortReal Qaebcdf = abcdef + abcfde + acbdef + acbfde + adbecf + adbfce + aebcdf + afbdce
                           + afbecd - abcedf - acbedf - adbcef - aebdcf - aebfcd - afbcde;
-    OverlapReal Qaebdcf = abcdef + abcedf + acbedf + acbfde + adbcef + adbfce + aebdcf + afbcde
+    ShortReal Qaebdcf = abcdef + abcedf + acbedf + acbfde + adbcef + adbfce + aebdcf + afbcde
                           + afbecd - abcfde - acbdef - adbecf - aebcdf - aebfcd - afbdce;
-    OverlapReal Qaebfcd = abcedf + abcfde + acbdef + acbedf + adbcef + adbecf + aebfcd + afbcde
+    ShortReal Qaebfcd = abcedf + abcfde + acbdef + acbedf + adbcef + adbecf + aebfcd + afbcde
                           + afbdce - abcdef - acbfde - adbfce - aebcdf - aebdcf - afbecd;
-    OverlapReal Qafbcde = abcdef + abcedf + acbdef + acbedf + adbecf + adbfce + aebdcf + aebfcd
+    ShortReal Qafbcde = abcdef + abcedf + acbdef + acbedf + adbecf + adbfce + aebdcf + aebfcd
                           + afbcde - abcfde - acbfde - adbcef - aebcdf - afbdce - afbecd;
-    OverlapReal Qafbdce = abcdef + abcfde + acbedf + acbfde + adbcef + adbecf + aebcdf + aebfcd
+    ShortReal Qafbdce = abcdef + abcfde + acbedf + acbfde + adbcef + adbecf + aebcdf + aebfcd
                           + afbdce - abcedf - acbdef - adbfce - aebdcf - afbcde - afbecd;
-    OverlapReal Qafbecd = abcedf + abcfde + acbdef + acbfde + adbcef + adbfce + aebcdf + aebdcf
+    ShortReal Qafbecd = abcedf + abcfde + acbdef + acbfde + adbcef + adbfce + aebcdf + aebdcf
                           + afbecd - abcdef - acbedf - adbecf - aebfcd - afbcde - afbdce;
-    OverlapReal Qabcdeg = abcdeg + acbedg + acbgde + adbecg + adbgce + aebcdg + aebdcg + agbcde
+    ShortReal Qabcdeg = abcdeg + acbedg + acbgde + adbecg + adbgce + aebcdg + aebdcg + agbcde
                           + agbdce - abcedg - abcgde - acbdeg - adbceg - aebgcd - agbecd;
-    OverlapReal Qabcedg = abcedg + acbdeg + acbgde + adbceg + adbecg + aebdcg + aebgcd + agbcde
+    ShortReal Qabcedg = abcedg + acbdeg + acbgde + adbceg + adbecg + aebdcg + aebgcd + agbcde
                           + agbecd - abcdeg - abcgde - acbedg - adbgce - aebcdg - agbdce;
-    OverlapReal Qabcgde = abcgde + acbdeg + acbedg + adbceg + adbgce + aebcdg + aebgcd + agbdce
+    ShortReal Qabcgde = abcgde + acbdeg + acbedg + adbceg + adbgce + aebcdg + aebgcd + agbdce
                           + agbecd - abcdeg - abcedg - acbgde - adbecg - aebdcg - agbcde;
-    OverlapReal Qacbdeg = abcedg + abcgde + acbdeg + adbecg + adbgce + aebcdg + aebgcd + agbcde
+    ShortReal Qacbdeg = abcedg + abcgde + acbdeg + adbecg + adbgce + aebcdg + aebgcd + agbcde
                           + agbecd - abcdeg - acbedg - acbgde - adbceg - aebdcg - agbdce;
-    OverlapReal Qacbedg = abcdeg + abcgde + acbedg + adbceg + adbgce + aebdcg + aebgcd + agbcde
+    ShortReal Qacbedg = abcdeg + abcgde + acbedg + adbceg + adbgce + aebdcg + aebgcd + agbcde
                           + agbdce - abcedg - acbdeg - acbgde - adbecg - aebcdg - agbecd;
-    OverlapReal Qacbgde = abcdeg + abcedg + acbgde + adbceg + adbecg + aebcdg + aebdcg + agbdce
+    ShortReal Qacbgde = abcdeg + abcedg + acbgde + adbceg + adbecg + aebcdg + aebdcg + agbdce
                           + agbecd - abcgde - acbdeg - acbedg - adbgce - aebgcd - agbcde;
-    OverlapReal Qadbceg = abcedg + abcgde + acbedg + acbgde + adbceg + aebdcg + aebgcd + agbdce
+    ShortReal Qadbceg = abcedg + abcgde + acbedg + acbgde + adbceg + aebdcg + aebgcd + agbdce
                           + agbecd - abcdeg - acbdeg - adbecg - adbgce - aebcdg - agbcde;
-    OverlapReal Qadbecg = abcdeg + abcedg + acbdeg + acbgde + adbecg + aebcdg + aebgcd + agbcde
+    ShortReal Qadbecg = abcdeg + abcedg + acbdeg + acbgde + adbecg + aebcdg + aebgcd + agbcde
                           + agbdce - abcgde - acbedg - adbceg - adbgce - aebdcg - agbecd;
-    OverlapReal Qadbgce = abcdeg + abcgde + acbdeg + acbedg + adbgce + aebcdg + aebdcg + agbcde
+    ShortReal Qadbgce = abcdeg + abcgde + acbdeg + acbedg + adbgce + aebcdg + aebdcg + agbcde
                           + agbecd - abcedg - acbgde - adbceg - adbecg - aebgcd - agbdce;
-    OverlapReal Qaebcdg = abcdeg + abcgde + acbdeg + acbgde + adbecg + adbgce + aebcdg + agbdce
+    ShortReal Qaebcdg = abcdeg + abcgde + acbdeg + acbgde + adbecg + adbgce + aebcdg + agbdce
                           + agbecd - abcedg - acbedg - adbceg - aebdcg - aebgcd - agbcde;
-    OverlapReal Qaebdcg = abcdeg + abcedg + acbedg + acbgde + adbceg + adbgce + aebdcg + agbcde
+    ShortReal Qaebdcg = abcdeg + abcedg + acbedg + acbgde + adbceg + adbgce + aebdcg + agbcde
                           + agbecd - abcgde - acbdeg - adbecg - aebcdg - aebgcd - agbdce;
-    OverlapReal Qaebgcd = abcedg + abcgde + acbdeg + acbedg + adbceg + adbecg + aebgcd + agbcde
+    ShortReal Qaebgcd = abcedg + abcgde + acbdeg + acbedg + adbceg + adbecg + aebgcd + agbcde
                           + agbdce - abcdeg - acbgde - adbgce - aebcdg - aebdcg - agbecd;
-    OverlapReal Qagbcde = abcdeg + abcedg + acbdeg + acbedg + adbecg + adbgce + aebdcg + aebgcd
+    ShortReal Qagbcde = abcdeg + abcedg + acbdeg + acbedg + adbecg + adbgce + aebdcg + aebgcd
                           + agbcde - abcgde - acbgde - adbceg - aebcdg - agbdce - agbecd;
-    OverlapReal Qagbdce = abcdeg + abcgde + acbedg + acbgde + adbceg + adbecg + aebcdg + aebgcd
+    ShortReal Qagbdce = abcdeg + abcgde + acbedg + acbgde + adbceg + adbecg + aebcdg + aebgcd
                           + agbdce - abcedg - acbdeg - adbgce - aebdcg - agbcde - agbecd;
-    OverlapReal Qagbecd = abcedg + abcgde + acbdeg + acbgde + adbceg + adbgce + aebcdg + aebdcg
+    ShortReal Qagbecd = abcedg + abcgde + acbdeg + acbgde + adbceg + adbgce + aebcdg + aebdcg
                           + agbecd - abcdeg - acbedg - adbecg - aebgcd - agbcde - agbdce;
-    OverlapReal Qabcdfg = abcdfg + acbfdg + acbgdf + adbfcg + adbgcf + afbcdg + afbdcg + agbcdf
+    ShortReal Qabcdfg = abcdfg + acbfdg + acbgdf + adbfcg + adbgcf + afbcdg + afbdcg + agbcdf
                           + agbdcf - abcfdg - abcgdf - acbdfg - adbcfg - afbgcd - agbfcd;
-    OverlapReal Qabcfdg = abcfdg + acbdfg + acbgdf + adbcfg + adbfcg + afbdcg + afbgcd + agbcdf
+    ShortReal Qabcfdg = abcfdg + acbdfg + acbgdf + adbcfg + adbfcg + afbdcg + afbgcd + agbcdf
                           + agbfcd - abcdfg - abcgdf - acbfdg - adbgcf - afbcdg - agbdcf;
-    OverlapReal Qabcgdf = abcgdf + acbdfg + acbfdg + adbcfg + adbgcf + afbcdg + afbgcd + agbdcf
+    ShortReal Qabcgdf = abcgdf + acbdfg + acbfdg + adbcfg + adbgcf + afbcdg + afbgcd + agbdcf
                           + agbfcd - abcdfg - abcfdg - acbgdf - adbfcg - afbdcg - agbcdf;
-    OverlapReal Qacbdfg = abcfdg + abcgdf + acbdfg + adbfcg + adbgcf + afbcdg + afbgcd + agbcdf
+    ShortReal Qacbdfg = abcfdg + abcgdf + acbdfg + adbfcg + adbgcf + afbcdg + afbgcd + agbcdf
                           + agbfcd - abcdfg - acbfdg - acbgdf - adbcfg - afbdcg - agbdcf;
-    OverlapReal Qacbfdg = abcdfg + abcgdf + acbfdg + adbcfg + adbgcf + afbdcg + afbgcd + agbcdf
+    ShortReal Qacbfdg = abcdfg + abcgdf + acbfdg + adbcfg + adbgcf + afbdcg + afbgcd + agbcdf
                           + agbdcf - abcfdg - acbdfg - acbgdf - adbfcg - afbcdg - agbfcd;
-    OverlapReal Qacbgdf = abcdfg + abcfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbdcg + agbdcf
+    ShortReal Qacbgdf = abcdfg + abcfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbdcg + agbdcf
                           + agbfcd - abcgdf - acbdfg - acbfdg - adbgcf - afbgcd - agbcdf;
-    OverlapReal Qadbcfg = abcfdg + abcgdf + acbfdg + acbgdf + adbcfg + afbdcg + afbgcd + agbdcf
+    ShortReal Qadbcfg = abcfdg + abcgdf + acbfdg + acbgdf + adbcfg + afbdcg + afbgcd + agbdcf
                           + agbfcd - abcdfg - acbdfg - adbfcg - adbgcf - afbcdg - agbcdf;
-    OverlapReal Qadbfcg = abcdfg + abcfdg + acbdfg + acbgdf + adbfcg + afbcdg + afbgcd + agbcdf
+    ShortReal Qadbfcg = abcdfg + abcfdg + acbdfg + acbgdf + adbfcg + afbcdg + afbgcd + agbcdf
                           + agbdcf - abcgdf - acbfdg - adbcfg - adbgcf - afbdcg - agbfcd;
-    OverlapReal Qadbgcf = abcdfg + abcgdf + acbdfg + acbfdg + adbgcf + afbcdg + afbdcg + agbcdf
+    ShortReal Qadbgcf = abcdfg + abcgdf + acbdfg + acbfdg + adbgcf + afbcdg + afbdcg + agbcdf
                           + agbfcd - abcfdg - acbgdf - adbcfg - adbfcg - afbgcd - agbdcf;
-    OverlapReal Qafbcdg = abcdfg + abcgdf + acbdfg + acbgdf + adbfcg + adbgcf + afbcdg + agbdcf
+    ShortReal Qafbcdg = abcdfg + abcgdf + acbdfg + acbgdf + adbfcg + adbgcf + afbcdg + agbdcf
                           + agbfcd - abcfdg - acbfdg - adbcfg - afbdcg - afbgcd - agbcdf;
-    OverlapReal Qafbdcg = abcdfg + abcfdg + acbfdg + acbgdf + adbcfg + adbgcf + afbdcg + agbcdf
+    ShortReal Qafbdcg = abcdfg + abcfdg + acbfdg + acbgdf + adbcfg + adbgcf + afbdcg + agbcdf
                           + agbfcd - abcgdf - acbdfg - adbfcg - afbcdg - afbgcd - agbdcf;
-    OverlapReal Qafbgcd = abcfdg + abcgdf + acbdfg + acbfdg + adbcfg + adbfcg + afbgcd + agbcdf
+    ShortReal Qafbgcd = abcfdg + abcgdf + acbdfg + acbfdg + adbcfg + adbfcg + afbgcd + agbcdf
                           + agbdcf - abcdfg - acbgdf - adbgcf - afbcdg - afbdcg - agbfcd;
-    OverlapReal Qagbcdf = abcdfg + abcfdg + acbdfg + acbfdg + adbfcg + adbgcf + afbdcg + afbgcd
+    ShortReal Qagbcdf = abcdfg + abcfdg + acbdfg + acbfdg + adbfcg + adbgcf + afbdcg + afbgcd
                           + agbcdf - abcgdf - acbgdf - adbcfg - afbcdg - agbdcf - agbfcd;
-    OverlapReal Qagbdcf = abcdfg + abcgdf + acbfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbgcd
+    ShortReal Qagbdcf = abcdfg + abcgdf + acbfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbgcd
                           + agbdcf - abcfdg - acbdfg - adbgcf - afbdcg - agbcdf - agbfcd;
-    OverlapReal Qagbfcd = abcfdg + abcgdf + acbdfg + acbgdf + adbcfg + adbgcf + afbcdg + afbdcg
+    ShortReal Qagbfcd = abcfdg + abcgdf + acbdfg + acbgdf + adbcfg + adbgcf + afbcdg + afbdcg
                           + agbfcd - abcdfg - acbfdg - adbfcg - afbgcd - agbcdf - agbdcf;
-    OverlapReal Qabcefg = abcefg + acbfeg + acbgef + aebfcg + aebgcf + afbceg + afbecg + agbcef
+    ShortReal Qabcefg = abcefg + acbfeg + acbgef + aebfcg + aebgcf + afbceg + afbecg + agbcef
                           + agbecf - abcfeg - abcgef - acbefg - aebcfg - afbgce - agbfce;
-    OverlapReal Qabcfeg = abcfeg + acbefg + acbgef + aebcfg + aebfcg + afbecg + afbgce + agbcef
+    ShortReal Qabcfeg = abcfeg + acbefg + acbgef + aebcfg + aebfcg + afbecg + afbgce + agbcef
                           + agbfce - abcefg - abcgef - acbfeg - aebgcf - afbceg - agbecf;
-    OverlapReal Qabcgef = abcgef + acbefg + acbfeg + aebcfg + aebgcf + afbceg + afbgce + agbecf
+    ShortReal Qabcgef = abcgef + acbefg + acbfeg + aebcfg + aebgcf + afbceg + afbgce + agbecf
                           + agbfce - abcefg - abcfeg - acbgef - aebfcg - afbecg - agbcef;
-    OverlapReal Qacbefg = abcfeg + abcgef + acbefg + aebfcg + aebgcf + afbceg + afbgce + agbcef
+    ShortReal Qacbefg = abcfeg + abcgef + acbefg + aebfcg + aebgcf + afbceg + afbgce + agbcef
                           + agbfce - abcefg - acbfeg - acbgef - aebcfg - afbecg - agbecf;
-    OverlapReal Qacbfeg = abcefg + abcgef + acbfeg + aebcfg + aebgcf + afbecg + afbgce + agbcef
+    ShortReal Qacbfeg = abcefg + abcgef + acbfeg + aebcfg + aebgcf + afbecg + afbgce + agbcef
                           + agbecf - abcfeg - acbefg - acbgef - aebfcg - afbceg - agbfce;
-    OverlapReal Qacbgef = abcefg + abcfeg + acbgef + aebcfg + aebfcg + afbceg + afbecg + agbecf
+    ShortReal Qacbgef = abcefg + abcfeg + acbgef + aebcfg + aebfcg + afbceg + afbecg + agbecf
                           + agbfce - abcgef - acbefg - acbfeg - aebgcf - afbgce - agbcef;
-    OverlapReal Qaebcfg = abcfeg + abcgef + acbfeg + acbgef + aebcfg + afbecg + afbgce + agbecf
+    ShortReal Qaebcfg = abcfeg + abcgef + acbfeg + acbgef + aebcfg + afbecg + afbgce + agbecf
                           + agbfce - abcefg - acbefg - aebfcg - aebgcf - afbceg - agbcef;
-    OverlapReal Qaebfcg = abcefg + abcfeg + acbefg + acbgef + aebfcg + afbceg + afbgce + agbcef
+    ShortReal Qaebfcg = abcefg + abcfeg + acbefg + acbgef + aebfcg + afbceg + afbgce + agbcef
                           + agbecf - abcgef - acbfeg - aebcfg - aebgcf - afbecg - agbfce;
-    OverlapReal Qaebgcf = abcefg + abcgef + acbefg + acbfeg + aebgcf + afbceg + afbecg + agbcef
+    ShortReal Qaebgcf = abcefg + abcgef + acbefg + acbfeg + aebgcf + afbceg + afbecg + agbcef
                           + agbfce - abcfeg - acbgef - aebcfg - aebfcg - afbgce - agbecf;
-    OverlapReal Qafbceg = abcefg + abcgef + acbefg + acbgef + aebfcg + aebgcf + afbceg + agbecf
+    ShortReal Qafbceg = abcefg + abcgef + acbefg + acbgef + aebfcg + aebgcf + afbceg + agbecf
                           + agbfce - abcfeg - acbfeg - aebcfg - afbecg - afbgce - agbcef;
-    OverlapReal Qafbecg = abcefg + abcfeg + acbfeg + acbgef + aebcfg + aebgcf + afbecg + agbcef
+    ShortReal Qafbecg = abcefg + abcfeg + acbfeg + acbgef + aebcfg + aebgcf + afbecg + agbcef
                           + agbfce - abcgef - acbefg - aebfcg - afbceg - afbgce - agbecf;
-    OverlapReal Qafbgce = abcfeg + abcgef + acbefg + acbfeg + aebcfg + aebfcg + afbgce + agbcef
+    ShortReal Qafbgce = abcfeg + abcgef + acbefg + acbfeg + aebcfg + aebfcg + afbgce + agbcef
                           + agbecf - abcefg - acbgef - aebgcf - afbceg - afbecg - agbfce;
-    OverlapReal Qagbcef = abcefg + abcfeg + acbefg + acbfeg + aebfcg + aebgcf + afbecg + afbgce
+    ShortReal Qagbcef = abcefg + abcfeg + acbefg + acbfeg + aebfcg + aebgcf + afbecg + afbgce
                           + agbcef - abcgef - acbgef - aebcfg - afbceg - agbecf - agbfce;
-    OverlapReal Qagbecf = abcefg + abcgef + acbfeg + acbgef + aebcfg + aebfcg + afbceg + afbgce
+    ShortReal Qagbecf = abcefg + abcgef + acbfeg + acbgef + aebcfg + aebfcg + afbceg + afbgce
                           + agbecf - abcfeg - acbefg - aebgcf - afbecg - agbcef - agbfce;
-    OverlapReal Qagbfce = abcfeg + abcgef + acbefg + acbgef + aebcfg + aebgcf + afbceg + afbecg
+    ShortReal Qagbfce = abcfeg + abcgef + acbefg + acbgef + aebcfg + aebgcf + afbceg + afbecg
                           + agbfce - abcefg - acbfeg - aebfcg - afbgce - agbcef - agbecf;
-    OverlapReal Qabdefg = abdefg + adbfeg + adbgef + aebfdg + aebgdf + afbdeg + afbedg + agbdef
+    ShortReal Qabdefg = abdefg + adbfeg + adbgef + aebfdg + aebgdf + afbdeg + afbedg + agbdef
                           + agbedf - abdfeg - abdgef - adbefg - aebdfg - afbgde - agbfde;
-    OverlapReal Qabdfeg = abdfeg + adbefg + adbgef + aebdfg + aebfdg + afbedg + afbgde + agbdef
+    ShortReal Qabdfeg = abdfeg + adbefg + adbgef + aebdfg + aebfdg + afbedg + afbgde + agbdef
                           + agbfde - abdefg - abdgef - adbfeg - aebgdf - afbdeg - agbedf;
-    OverlapReal Qabdgef = abdgef + adbefg + adbfeg + aebdfg + aebgdf + afbdeg + afbgde + agbedf
+    ShortReal Qabdgef = abdgef + adbefg + adbfeg + aebdfg + aebgdf + afbdeg + afbgde + agbedf
                           + agbfde - abdefg - abdfeg - adbgef - aebfdg - afbedg - agbdef;
-    OverlapReal Qadbefg = abdfeg + abdgef + adbefg + aebfdg + aebgdf + afbdeg + afbgde + agbdef
+    ShortReal Qadbefg = abdfeg + abdgef + adbefg + aebfdg + aebgdf + afbdeg + afbgde + agbdef
                           + agbfde - abdefg - adbfeg - adbgef - aebdfg - afbedg - agbedf;
-    OverlapReal Qadbfeg = abdefg + abdgef + adbfeg + aebdfg + aebgdf + afbedg + afbgde + agbdef
+    ShortReal Qadbfeg = abdefg + abdgef + adbfeg + aebdfg + aebgdf + afbedg + afbgde + agbdef
                           + agbedf - abdfeg - adbefg - adbgef - aebfdg - afbdeg - agbfde;
-    OverlapReal Qadbgef = abdefg + abdfeg + adbgef + aebdfg + aebfdg + afbdeg + afbedg + agbedf
+    ShortReal Qadbgef = abdefg + abdfeg + adbgef + aebdfg + aebfdg + afbdeg + afbedg + agbedf
                           + agbfde - abdgef - adbefg - adbfeg - aebgdf - afbgde - agbdef;
-    OverlapReal Qaebdfg = abdfeg + abdgef + adbfeg + adbgef + aebdfg + afbedg + afbgde + agbedf
+    ShortReal Qaebdfg = abdfeg + abdgef + adbfeg + adbgef + aebdfg + afbedg + afbgde + agbedf
                           + agbfde - abdefg - adbefg - aebfdg - aebgdf - afbdeg - agbdef;
-    OverlapReal Qaebfdg = abdefg + abdfeg + adbefg + adbgef + aebfdg + afbdeg + afbgde + agbdef
+    ShortReal Qaebfdg = abdefg + abdfeg + adbefg + adbgef + aebfdg + afbdeg + afbgde + agbdef
                           + agbedf - abdgef - adbfeg - aebdfg - aebgdf - afbedg - agbfde;
-    OverlapReal Qaebgdf = abdefg + abdgef + adbefg + adbfeg + aebgdf + afbdeg + afbedg + agbdef
+    ShortReal Qaebgdf = abdefg + abdgef + adbefg + adbfeg + aebgdf + afbdeg + afbedg + agbdef
                           + agbfde - abdfeg - adbgef - aebdfg - aebfdg - afbgde - agbedf;
-    OverlapReal Qafbdeg = abdefg + abdgef + adbefg + adbgef + aebfdg + aebgdf + afbdeg + agbedf
+    ShortReal Qafbdeg = abdefg + abdgef + adbefg + adbgef + aebfdg + aebgdf + afbdeg + agbedf
                           + agbfde - abdfeg - adbfeg - aebdfg - afbedg - afbgde - agbdef;
-    OverlapReal Qafbedg = abdefg + abdfeg + adbfeg + adbgef + aebdfg + aebgdf + afbedg + agbdef
+    ShortReal Qafbedg = abdefg + abdfeg + adbfeg + adbgef + aebdfg + aebgdf + afbedg + agbdef
                           + agbfde - abdgef - adbefg - aebfdg - afbdeg - afbgde - agbedf;
-    OverlapReal Qafbgde = abdfeg + abdgef + adbefg + adbfeg + aebdfg + aebfdg + afbgde + agbdef
+    ShortReal Qafbgde = abdfeg + abdgef + adbefg + adbfeg + aebdfg + aebfdg + afbgde + agbdef
                           + agbedf - abdefg - adbgef - aebgdf - afbdeg - afbedg - agbfde;
-    OverlapReal Qagbdef = abdefg + abdfeg + adbefg + adbfeg + aebfdg + aebgdf + afbedg + afbgde
+    ShortReal Qagbdef = abdefg + abdfeg + adbefg + adbfeg + aebfdg + aebgdf + afbedg + afbgde
                           + agbdef - abdgef - adbgef - aebdfg - afbdeg - agbedf - agbfde;
-    OverlapReal Qagbedf = abdefg + abdgef + adbfeg + adbgef + aebdfg + aebfdg + afbdeg + afbgde
+    ShortReal Qagbedf = abdefg + abdgef + adbfeg + adbgef + aebdfg + aebfdg + afbdeg + afbgde
                           + agbedf - abdfeg - adbefg - aebgdf - afbedg - agbdef - agbfde;
-    OverlapReal Qagbfde = abdfeg + abdgef + adbefg + adbgef + aebdfg + aebgdf + afbdeg + afbedg
+    ShortReal Qagbfde = abdfeg + abdgef + adbefg + adbgef + aebdfg + aebgdf + afbdeg + afbedg
                           + agbfde - abdefg - adbfeg - aebfdg - afbgde - agbdef - agbedf;
-    OverlapReal Qacdefg = acdefg + adcfeg + adcgef + aecfdg + aecgdf + afcdeg + afcedg + agcdef
+    ShortReal Qacdefg = acdefg + adcfeg + adcgef + aecfdg + aecgdf + afcdeg + afcedg + agcdef
                           + agcedf - acdfeg - acdgef - adcefg - aecdfg - afcgde - agcfde;
-    OverlapReal Qacdfeg = acdfeg + adcefg + adcgef + aecdfg + aecfdg + afcedg + afcgde + agcdef
+    ShortReal Qacdfeg = acdfeg + adcefg + adcgef + aecdfg + aecfdg + afcedg + afcgde + agcdef
                           + agcfde - acdefg - acdgef - adcfeg - aecgdf - afcdeg - agcedf;
-    OverlapReal Qacdgef = acdgef + adcefg + adcfeg + aecdfg + aecgdf + afcdeg + afcgde + agcedf
+    ShortReal Qacdgef = acdgef + adcefg + adcfeg + aecdfg + aecgdf + afcdeg + afcgde + agcedf
                           + agcfde - acdefg - acdfeg - adcgef - aecfdg - afcedg - agcdef;
-    OverlapReal Qadcefg = acdfeg + acdgef + adcefg + aecfdg + aecgdf + afcdeg + afcgde + agcdef
+    ShortReal Qadcefg = acdfeg + acdgef + adcefg + aecfdg + aecgdf + afcdeg + afcgde + agcdef
                           + agcfde - acdefg - adcfeg - adcgef - aecdfg - afcedg - agcedf;
-    OverlapReal Qadcfeg = acdefg + acdgef + adcfeg + aecdfg + aecgdf + afcedg + afcgde + agcdef
+    ShortReal Qadcfeg = acdefg + acdgef + adcfeg + aecdfg + aecgdf + afcedg + afcgde + agcdef
                           + agcedf - acdfeg - adcefg - adcgef - aecfdg - afcdeg - agcfde;
-    OverlapReal Qadcgef = acdefg + acdfeg + adcgef + aecdfg + aecfdg + afcdeg + afcedg + agcedf
+    ShortReal Qadcgef = acdefg + acdfeg + adcgef + aecdfg + aecfdg + afcdeg + afcedg + agcedf
                           + agcfde - acdgef - adcefg - adcfeg - aecgdf - afcgde - agcdef;
-    OverlapReal Qaecdfg = acdfeg + acdgef + adcfeg + adcgef + aecdfg + afcedg + afcgde + agcedf
+    ShortReal Qaecdfg = acdfeg + acdgef + adcfeg + adcgef + aecdfg + afcedg + afcgde + agcedf
                           + agcfde - acdefg - adcefg - aecfdg - aecgdf - afcdeg - agcdef;
-    OverlapReal Qaecfdg = acdefg + acdfeg + adcefg + adcgef + aecfdg + afcdeg + afcgde + agcdef
+    ShortReal Qaecfdg = acdefg + acdfeg + adcefg + adcgef + aecfdg + afcdeg + afcgde + agcdef
                           + agcedf - acdgef - adcfeg - aecdfg - aecgdf - afcedg - agcfde;
-    OverlapReal Qaecgdf = acdefg + acdgef + adcefg + adcfeg + aecgdf + afcdeg + afcedg + agcdef
+    ShortReal Qaecgdf = acdefg + acdgef + adcefg + adcfeg + aecgdf + afcdeg + afcedg + agcdef
                           + agcfde - acdfeg - adcgef - aecdfg - aecfdg - afcgde - agcedf;
-    OverlapReal Qafcdeg = acdefg + acdgef + adcefg + adcgef + aecfdg + aecgdf + afcdeg + agcedf
+    ShortReal Qafcdeg = acdefg + acdgef + adcefg + adcgef + aecfdg + aecgdf + afcdeg + agcedf
                           + agcfde - acdfeg - adcfeg - aecdfg - afcedg - afcgde - agcdef;
-    OverlapReal Qafcedg = acdefg + acdfeg + adcfeg + adcgef + aecdfg + aecgdf + afcedg + agcdef
+    ShortReal Qafcedg = acdefg + acdfeg + adcfeg + adcgef + aecdfg + aecgdf + afcedg + agcdef
                           + agcfde - acdgef - adcefg - aecfdg - afcdeg - afcgde - agcedf;
-    OverlapReal Qafcgde = acdfeg + acdgef + adcefg + adcfeg + aecdfg + aecfdg + afcgde + agcdef
+    ShortReal Qafcgde = acdfeg + acdgef + adcefg + adcfeg + aecdfg + aecfdg + afcgde + agcdef
                           + agcedf - acdefg - adcgef - aecgdf - afcdeg - afcedg - agcfde;
-    OverlapReal Qagcdef = acdefg + acdfeg + adcefg + adcfeg + aecfdg + aecgdf + afcedg + afcgde
+    ShortReal Qagcdef = acdefg + acdfeg + adcefg + adcfeg + aecfdg + aecgdf + afcedg + afcgde
                           + agcdef - acdgef - adcgef - aecdfg - afcdeg - agcedf - agcfde;
-    OverlapReal Qagcedf = acdefg + acdgef + adcfeg + adcgef + aecdfg + aecfdg + afcdeg + afcgde
+    ShortReal Qagcedf = acdefg + acdgef + adcfeg + adcgef + aecdfg + aecfdg + afcdeg + afcgde
                           + agcedf - acdfeg - adcefg - aecgdf - afcedg - agcdef - agcfde;
-    OverlapReal Qagcfde = acdfeg + acdgef + adcefg + adcgef + aecdfg + aecgdf + afcdeg + afcedg
+    ShortReal Qagcfde = acdfeg + acdgef + adcefg + adcgef + aecdfg + aecgdf + afcdeg + afcedg
                           + agcfde - acdefg - adcfeg - aecfdg - afcgde - agcdef - agcedf;
-    OverlapReal Qbcdefg = bcdefg + bdcfeg + bdcgef + becfdg + becgdf + bfcdeg + bfcedg + bgcdef
+    ShortReal Qbcdefg = bcdefg + bdcfeg + bdcgef + becfdg + becgdf + bfcdeg + bfcedg + bgcdef
                           + bgcedf - bcdfeg - bcdgef - bdcefg - becdfg - bfcgde - bgcfde;
-    OverlapReal Qbcdfeg = bcdfeg + bdcefg + bdcgef + becdfg + becfdg + bfcedg + bfcgde + bgcdef
+    ShortReal Qbcdfeg = bcdfeg + bdcefg + bdcgef + becdfg + becfdg + bfcedg + bfcgde + bgcdef
                           + bgcfde - bcdefg - bcdgef - bdcfeg - becgdf - bfcdeg - bgcedf;
-    OverlapReal Qbcdgef = bcdgef + bdcefg + bdcfeg + becdfg + becgdf + bfcdeg + bfcgde + bgcedf
+    ShortReal Qbcdgef = bcdgef + bdcefg + bdcfeg + becdfg + becgdf + bfcdeg + bfcgde + bgcedf
                           + bgcfde - bcdefg - bcdfeg - bdcgef - becfdg - bfcedg - bgcdef;
-    OverlapReal Qbdcefg = bcdfeg + bcdgef + bdcefg + becfdg + becgdf + bfcdeg + bfcgde + bgcdef
+    ShortReal Qbdcefg = bcdfeg + bcdgef + bdcefg + becfdg + becgdf + bfcdeg + bfcgde + bgcdef
                           + bgcfde - bcdefg - bdcfeg - bdcgef - becdfg - bfcedg - bgcedf;
-    OverlapReal Qbdcfeg = bcdefg + bcdgef + bdcfeg + becdfg + becgdf + bfcedg + bfcgde + bgcdef
+    ShortReal Qbdcfeg = bcdefg + bcdgef + bdcfeg + becdfg + becgdf + bfcedg + bfcgde + bgcdef
                           + bgcedf - bcdfeg - bdcefg - bdcgef - becfdg - bfcdeg - bgcfde;
-    OverlapReal Qbdcgef = bcdefg + bcdfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcedg + bgcedf
+    ShortReal Qbdcgef = bcdefg + bcdfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcedg + bgcedf
                           + bgcfde - bcdgef - bdcefg - bdcfeg - becgdf - bfcgde - bgcdef;
-    OverlapReal Qbecdfg = bcdfeg + bcdgef + bdcfeg + bdcgef + becdfg + bfcedg + bfcgde + bgcedf
+    ShortReal Qbecdfg = bcdfeg + bcdgef + bdcfeg + bdcgef + becdfg + bfcedg + bfcgde + bgcedf
                           + bgcfde - bcdefg - bdcefg - becfdg - becgdf - bfcdeg - bgcdef;
-    OverlapReal Qbecfdg = bcdefg + bcdfeg + bdcefg + bdcgef + becfdg + bfcdeg + bfcgde + bgcdef
+    ShortReal Qbecfdg = bcdefg + bcdfeg + bdcefg + bdcgef + becfdg + bfcdeg + bfcgde + bgcdef
                           + bgcedf - bcdgef - bdcfeg - becdfg - becgdf - bfcedg - bgcfde;
-    OverlapReal Qbecgdf = bcdefg + bcdgef + bdcefg + bdcfeg + becgdf + bfcdeg + bfcedg + bgcdef
+    ShortReal Qbecgdf = bcdefg + bcdgef + bdcefg + bdcfeg + becgdf + bfcdeg + bfcedg + bgcdef
                           + bgcfde - bcdfeg - bdcgef - becdfg - becfdg - bfcgde - bgcedf;
-    OverlapReal Qbfcdeg = bcdefg + bcdgef + bdcefg + bdcgef + becfdg + becgdf + bfcdeg + bgcedf
+    ShortReal Qbfcdeg = bcdefg + bcdgef + bdcefg + bdcgef + becfdg + becgdf + bfcdeg + bgcedf
                           + bgcfde - bcdfeg - bdcfeg - becdfg - bfcedg - bfcgde - bgcdef;
-    OverlapReal Qbfcedg = bcdefg + bcdfeg + bdcfeg + bdcgef + becdfg + becgdf + bfcedg + bgcdef
+    ShortReal Qbfcedg = bcdefg + bcdfeg + bdcfeg + bdcgef + becdfg + becgdf + bfcedg + bgcdef
                           + bgcfde - bcdgef - bdcefg - becfdg - bfcdeg - bfcgde - bgcedf;
-    OverlapReal Qbfcgde = bcdfeg + bcdgef + bdcefg + bdcfeg + becdfg + becfdg + bfcgde + bgcdef
+    ShortReal Qbfcgde = bcdfeg + bcdgef + bdcefg + bdcfeg + becdfg + becfdg + bfcgde + bgcdef
                           + bgcedf - bcdefg - bdcgef - becgdf - bfcdeg - bfcedg - bgcfde;
-    OverlapReal Qbgcdef = bcdefg + bcdfeg + bdcefg + bdcfeg + becfdg + becgdf + bfcedg + bfcgde
+    ShortReal Qbgcdef = bcdefg + bcdfeg + bdcefg + bdcfeg + becfdg + becgdf + bfcedg + bfcgde
                           + bgcdef - bcdgef - bdcgef - becdfg - bfcdeg - bgcedf - bgcfde;
-    OverlapReal Qbgcedf = bcdefg + bcdgef + bdcfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcgde
+    ShortReal Qbgcedf = bcdefg + bcdgef + bdcfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcgde
                           + bgcedf - bcdfeg - bdcefg - becgdf - bfcedg - bgcdef - bgcfde;
-    OverlapReal Qbgcfde = bcdfeg + bcdgef + bdcefg + bdcgef + becdfg + becgdf + bfcdeg + bfcedg
+    ShortReal Qbgcfde = bcdfeg + bcdgef + bdcefg + bdcgef + becdfg + becgdf + bfcdeg + bfcedg
                           + bgcfde - bcdefg - bdcfeg - becfdg - bfcgde - bgcdef - bgcedf;
 
     return (abcdef * (Qabcdeg + Qabcdfg + Qabcgef + Qabdgef + Qagcdef + Qbgcdef - Qabcdef)
@@ -899,31 +898,31 @@ DEVICE inline OverlapReal vok6(OverlapReal ab,
     }
 
 DEVICE inline bool
-seq2(OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab)
+seq2(ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab)
     {
-    if (as * (ab + br - ar) < OverlapReal(-EPS))
+    if (as * (ab + br - ar) < ShortReal(-EPS))
         return false;
-    if (bs * (ab + ar - br) < OverlapReal(-EPS))
+    if (bs * (ab + ar - br) < ShortReal(-EPS))
         return false;
 
     return (ab * (ar + br - ab) + ar * (ab + br - ar) + br * (ab + ar - br) <= 0);
     }
 
-DEVICE inline bool seq3(OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal bc)
+DEVICE inline bool seq3(ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal bc)
     {
-    if (as * (bc * (ab + ac - bc + br + cr - ar - ar) - (ab - ac) * (br - cr)) < OverlapReal(-EPS))
+    if (as * (bc * (ab + ac - bc + br + cr - ar - ar) - (ab - ac) * (br - cr)) < ShortReal(-EPS))
         return false;
-    if (bs * (ac * (ab + bc - ac + ar + cr - br - br) - (ab - bc) * (ar - cr)) < OverlapReal(-EPS))
+    if (bs * (ac * (ab + bc - ac + ar + cr - br - br) - (ab - bc) * (ar - cr)) < ShortReal(-EPS))
         return false;
-    if (cs * (ab * (ac + bc - ab + ar + br - cr - cr) - (ac - bc) * (ar - br)) < OverlapReal(-EPS))
+    if (cs * (ab * (ac + bc - ab + ar + br - cr - cr) - (ac - bc) * (ar - br)) < ShortReal(-EPS))
         return false;
 
     return (2
@@ -931,114 +930,114 @@ DEVICE inline bool seq3(OverlapReal as,
                        + ac * br * (ab + bc - ac + ar + cr - br)
                        + ab * cr * (ac + bc - ab + ar + br - cr))
                 - (bc + ar) * (ac + br) * (ab + cr) - (bc - ar) * (ac - br) * (ab - cr)
-            <= OverlapReal(EPS));
+            <= ShortReal(EPS));
     }
 
-DEVICE inline bool seq4(OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal cd)
+DEVICE inline bool seq4(ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal cd)
     {
     if (as
             * ((bc * (ad + dr - ar) - (ab - ac) * (br - cr)) * (bd + cd - bc)
                + (bd * (ac + cr - ar) - (ab - ad) * (br - dr)) * (bc + cd - bd)
                + (cd * (ab + br - ar) - (ac - ad) * (cr - dr)) * (bc + bd - cd) - 2 * bc * bd * cd)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (bs
             * ((ac * (bd + dr - br) - (ab - bc) * (ar - cr)) * (ad + cd - ac)
                + (ad * (bc + cr - br) - (ab - bd) * (ar - dr)) * (ac + cd - ad)
                + (cd * (ab + ar - br) - (bc - bd) * (cr - dr)) * (ac + ad - cd) - 2 * ac * ad * cd)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (cs
             * ((ab * (cd + dr - cr) - (ac - bc) * (ar - br)) * (ad + bd - ab)
                + (ad * (bc + br - cr) - (ac - cd) * (ar - dr)) * (ab + bd - ad)
                + (bd * (ac + ar - cr) - (bc - cd) * (br - dr)) * (ab + ad - bd) - 2 * ab * ad * bd)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (ds
             * ((ab * (cd + cr - dr) - (ad - bd) * (ar - br)) * (ac + bc - ab)
                + (ac * (bd + br - dr) - (ad - cd) * (ar - cr)) * (ab + bc - ac)
                + (bc * (ad + ar - dr) - (bd - cd) * (br - cr)) * (ab + ac - bc) - 2 * ab * ac * bc)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
 
-    return (vok4(ab, ac, ad, ar, bc, bd, br, cd, cr, dr) <= OverlapReal(EPS));
+    return (vok4(ab, ac, ad, ar, bc, bd, br, cd, cr, dr) <= ShortReal(EPS));
     }
 
-DEVICE inline bool seq5(OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal es,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal er,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal ae,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal be,
-                        OverlapReal cd,
-                        OverlapReal ce,
-                        OverlapReal de)
+DEVICE inline bool seq5(ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal es,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal er,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal ae,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal be,
+                        ShortReal cd,
+                        ShortReal ce,
+                        ShortReal de)
     {
-    if (as * ang4(bc, bd, be, ab, br, cd, ce, ac, cr, de, ad, dr, ae, er, ar) < OverlapReal(-EPS))
+    if (as * ang4(bc, bd, be, ab, br, cd, ce, ac, cr, de, ad, dr, ae, er, ar) < ShortReal(-EPS))
         return false;
-    if (bs * ang4(ac, ad, ae, ab, ar, cd, ce, bc, cr, de, bd, dr, be, er, br) < OverlapReal(-EPS))
+    if (bs * ang4(ac, ad, ae, ab, ar, cd, ce, bc, cr, de, bd, dr, be, er, br) < ShortReal(-EPS))
         return false;
-    if (cs * ang4(ab, ad, ae, ac, ar, bd, be, bc, br, de, cd, dr, ce, er, cr) < OverlapReal(-EPS))
+    if (cs * ang4(ab, ad, ae, ac, ar, bd, be, bc, br, de, cd, dr, ce, er, cr) < ShortReal(-EPS))
         return false;
-    if (ds * ang4(ab, ac, ae, ad, ar, bc, be, bd, br, ce, cd, cr, de, er, dr) < OverlapReal(-EPS))
+    if (ds * ang4(ab, ac, ae, ad, ar, bc, be, bd, br, ce, cd, cr, de, er, dr) < ShortReal(-EPS))
         return false;
-    if (es * ang4(ab, ac, ad, ae, ar, bc, bd, be, br, cd, ce, cr, de, dr, er) < OverlapReal(-EPS))
+    if (es * ang4(ab, ac, ad, ae, ar, bc, bd, be, br, cd, ce, cr, de, dr, er) < ShortReal(-EPS))
         return false;
 
-    return (vok5(ab, ac, ad, ae, ar, bc, bd, be, br, cd, ce, cr, de, dr, er) <= OverlapReal(EPS));
+    return (vok5(ab, ac, ad, ae, ar, bc, bd, be, br, cd, ce, cr, de, dr, er) <= ShortReal(EPS));
     }
 
-DEVICE inline bool seq6(OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal es,
-                        OverlapReal fs,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal er,
-                        OverlapReal fr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal ae,
-                        OverlapReal af,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal be,
-                        OverlapReal bf,
-                        OverlapReal cd,
-                        OverlapReal ce,
-                        OverlapReal cf,
-                        OverlapReal de,
-                        OverlapReal df,
-                        OverlapReal ef)
+DEVICE inline bool seq6(ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal es,
+                        ShortReal fs,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal er,
+                        ShortReal fr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal ae,
+                        ShortReal af,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal be,
+                        ShortReal bf,
+                        ShortReal cd,
+                        ShortReal ce,
+                        ShortReal cf,
+                        ShortReal de,
+                        ShortReal df,
+                        ShortReal ef)
     {
     if (as
             * ang5(bc,
@@ -1062,7 +1061,7 @@ DEVICE inline bool seq6(OverlapReal as,
                    af,
                    fr,
                    ar)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (bs
             * ang5(ac,
@@ -1086,7 +1085,7 @@ DEVICE inline bool seq6(OverlapReal as,
                    bf,
                    fr,
                    br)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (cs
             * ang5(ab,
@@ -1110,7 +1109,7 @@ DEVICE inline bool seq6(OverlapReal as,
                    cf,
                    fr,
                    cr)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (ds
             * ang5(ab,
@@ -1134,7 +1133,7 @@ DEVICE inline bool seq6(OverlapReal as,
                    df,
                    fr,
                    dr)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (es
             * ang5(ab,
@@ -1158,7 +1157,7 @@ DEVICE inline bool seq6(OverlapReal as,
                    ef,
                    fr,
                    er)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
     if (fs
             * ang5(ab,
@@ -1182,15 +1181,15 @@ DEVICE inline bool seq6(OverlapReal as,
                    ef,
                    er,
                    fr)
-        < OverlapReal(-EPS))
+        < ShortReal(-EPS))
         return false;
 
     return (vok6(ab, ac, ad, ae, af, ar, bc, bd, be, bf, br, cd, ce, cf, cr, de, df, dr, ef, er, fr)
-            <= OverlapReal(EPS));
+            <= ShortReal(EPS));
     }
 
 DEVICE inline bool
-sep2(bool convex, OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab)
+sep2(bool convex, ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab)
     {
     if (convex && (DIM == 0))
         return false;
@@ -1199,15 +1198,15 @@ sep2(bool convex, OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br
     }
 
 DEVICE inline bool sep3(bool convex,
-                        OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal bc)
+                        ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal bc)
     {
     if (convex && (DIM == 0))
         return false;
@@ -1226,20 +1225,20 @@ DEVICE inline bool sep3(bool convex,
     }
 
 DEVICE inline bool sep4(bool convex,
-                        OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal cd)
+                        ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal cd)
     {
     if (convex && (DIM == 0))
         return false;
@@ -1276,26 +1275,26 @@ DEVICE inline bool sep4(bool convex,
     }
 
 DEVICE inline bool sep5(bool convex,
-                        OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal es,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal er,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal ae,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal be,
-                        OverlapReal cd,
-                        OverlapReal ce,
-                        OverlapReal de)
+                        ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal es,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal er,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal ae,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal be,
+                        ShortReal cd,
+                        ShortReal ce,
+                        ShortReal de)
     {
     if (convex && (DIM == 0))
         return false;
@@ -1366,33 +1365,33 @@ DEVICE inline bool sep5(bool convex,
     }
 
 DEVICE inline bool sep6(bool convex,
-                        OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal es,
-                        OverlapReal fs,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal er,
-                        OverlapReal fr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal ae,
-                        OverlapReal af,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal be,
-                        OverlapReal bf,
-                        OverlapReal cd,
-                        OverlapReal ce,
-                        OverlapReal cf,
-                        OverlapReal de,
-                        OverlapReal df,
-                        OverlapReal ef)
+                        ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal es,
+                        ShortReal fs,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal er,
+                        ShortReal fr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal ae,
+                        ShortReal af,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal be,
+                        ShortReal bf,
+                        ShortReal cd,
+                        ShortReal ce,
+                        ShortReal cf,
+                        ShortReal de,
+                        ShortReal df,
+                        ShortReal ef)
     {
     if (convex && (DIM == 0))
         return false;
@@ -1555,41 +1554,41 @@ DEVICE inline bool sep6(bool convex,
     }
 
 DEVICE inline bool sep7(bool convex,
-                        OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal es,
-                        OverlapReal fs,
-                        OverlapReal gs,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal er,
-                        OverlapReal fr,
-                        OverlapReal gr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal ae,
-                        OverlapReal af,
-                        OverlapReal ag,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal be,
-                        OverlapReal bf,
-                        OverlapReal bg,
-                        OverlapReal cd,
-                        OverlapReal ce,
-                        OverlapReal cf,
-                        OverlapReal cg,
-                        OverlapReal de,
-                        OverlapReal df,
-                        OverlapReal dg,
-                        OverlapReal ef,
-                        OverlapReal eg,
-                        OverlapReal fg)
+                        ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal es,
+                        ShortReal fs,
+                        ShortReal gs,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal er,
+                        ShortReal fr,
+                        ShortReal gr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal ae,
+                        ShortReal af,
+                        ShortReal ag,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal be,
+                        ShortReal bf,
+                        ShortReal bg,
+                        ShortReal cd,
+                        ShortReal ce,
+                        ShortReal cf,
+                        ShortReal cg,
+                        ShortReal de,
+                        ShortReal df,
+                        ShortReal dg,
+                        ShortReal ef,
+                        ShortReal eg,
+                        ShortReal fg)
     {
     if (convex && (DIM == 0))
         return false;
@@ -2040,50 +2039,50 @@ DEVICE inline bool sep7(bool convex,
     }
 
 DEVICE inline bool sep8(bool convex,
-                        OverlapReal as,
-                        OverlapReal bs,
-                        OverlapReal cs,
-                        OverlapReal ds,
-                        OverlapReal es,
-                        OverlapReal fs,
-                        OverlapReal gs,
-                        OverlapReal hs,
-                        OverlapReal ar,
-                        OverlapReal br,
-                        OverlapReal cr,
-                        OverlapReal dr,
-                        OverlapReal er,
-                        OverlapReal fr,
-                        OverlapReal gr,
-                        OverlapReal hr,
-                        OverlapReal ab,
-                        OverlapReal ac,
-                        OverlapReal ad,
-                        OverlapReal ae,
-                        OverlapReal af,
-                        OverlapReal ag,
-                        OverlapReal ah,
-                        OverlapReal bc,
-                        OverlapReal bd,
-                        OverlapReal be,
-                        OverlapReal bf,
-                        OverlapReal bg,
-                        OverlapReal bh,
-                        OverlapReal cd,
-                        OverlapReal ce,
-                        OverlapReal cf,
-                        OverlapReal cg,
-                        OverlapReal ch,
-                        OverlapReal de,
-                        OverlapReal df,
-                        OverlapReal dg,
-                        OverlapReal dh,
-                        OverlapReal ef,
-                        OverlapReal eg,
-                        OverlapReal eh,
-                        OverlapReal fg,
-                        OverlapReal fh,
-                        OverlapReal gh)
+                        ShortReal as,
+                        ShortReal bs,
+                        ShortReal cs,
+                        ShortReal ds,
+                        ShortReal es,
+                        ShortReal fs,
+                        ShortReal gs,
+                        ShortReal hs,
+                        ShortReal ar,
+                        ShortReal br,
+                        ShortReal cr,
+                        ShortReal dr,
+                        ShortReal er,
+                        ShortReal fr,
+                        ShortReal gr,
+                        ShortReal hr,
+                        ShortReal ab,
+                        ShortReal ac,
+                        ShortReal ad,
+                        ShortReal ae,
+                        ShortReal af,
+                        ShortReal ag,
+                        ShortReal ah,
+                        ShortReal bc,
+                        ShortReal bd,
+                        ShortReal be,
+                        ShortReal bf,
+                        ShortReal bg,
+                        ShortReal bh,
+                        ShortReal cd,
+                        ShortReal ce,
+                        ShortReal cf,
+                        ShortReal cg,
+                        ShortReal ch,
+                        ShortReal de,
+                        ShortReal df,
+                        ShortReal dg,
+                        ShortReal dh,
+                        ShortReal ef,
+                        ShortReal eg,
+                        ShortReal eh,
+                        ShortReal fg,
+                        ShortReal fh,
+                        ShortReal gh)
     {
     if (convex && (DIM == 0))
         return false;
@@ -3337,17 +3336,17 @@ DEVICE inline bool sep8(bool convex,
     return false;
     }
 
-/*  OverlapReal op3(OverlapReal ab,OverlapReal ac,OverlapReal ad,
-               OverlapReal bc,OverlapReal bd,
-               OverlapReal cd)
+/*  ShortReal op3(ShortReal ab,ShortReal ac,ShortReal ad,
+               ShortReal bc,ShortReal bd,
+               ShortReal cd)
     {
         return 2*(ab*cd*(ac+bd+ad+bc)+ad*bc*(ab+cd+ac+bd)+ac*bd*(ab+cd+ad+bc));
     }
 
-    OverlapReal op4(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,
-               OverlapReal bc,OverlapReal bd,OverlapReal be,
-               OverlapReal cd,OverlapReal ce,
-               OverlapReal de)
+    ShortReal op4(ShortReal ab,ShortReal ac,ShortReal ad,ShortReal ae,
+               ShortReal bc,ShortReal bd,ShortReal be,
+               ShortReal cd,ShortReal ce,
+               ShortReal de)
     {
         return 2*(ac*ae*bc*bd+ad*ae*bc*bd+ac*ad*bc*be+ad*ae*bc*be+ac*ad*bd*be+ac*ae*bd*be+
                   ab*ae*bc*cd+ad*ae*bc*cd+ab*ae*bd*cd+ac*ae*bd*cd+ab*ac*be*cd+ab*ad*be*cd+
@@ -3362,11 +3361,11 @@ DEVICE inline bool sep8(bool convex,
 
     }
 
-    OverlapReal op5(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,
-               OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,
-               OverlapReal cd,OverlapReal ce,OverlapReal cf,
-               OverlapReal de,OverlapReal df,
-               OverlapReal ef)
+    ShortReal op5(ShortReal ab,ShortReal ac,ShortReal ad,ShortReal ae,ShortReal af,
+               ShortReal bc,ShortReal bd,ShortReal be,ShortReal bf,
+               ShortReal cd,ShortReal ce,ShortReal cf,
+               ShortReal de,ShortReal df,
+               ShortReal ef)
     {
         return
    2*(ad*af*bc*be*cd+ae*af*bc*be*cd+ac*af*bd*be*cd+ae*af*bd*be*cd+ad*ae*bc*bf*cd+ae*af*bc*bf*cd+
@@ -3431,12 +3430,12 @@ DEVICE inline bool sep8(bool convex,
                   ab*ac*ce*df*ef+ab*ad*ce*df*ef+ab*bc*ce*df*ef+ad*bc*ce*df*ef+ab*bd*ce*df*ef+ac*bd*ce*df*ef);
     }
 
-    OverlapReal op6(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal
-   af,OverlapReal ag, OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,
-               OverlapReal cd,OverlapReal ce,OverlapReal cf,OverlapReal cg,
-               OverlapReal de,OverlapReal df,OverlapReal dg,
-               OverlapReal ef,OverlapReal eg,
-               OverlapReal fg)
+    ShortReal op6(ShortReal ab,ShortReal ac,ShortReal ad,ShortReal ae,ShortReal
+   af,ShortReal ag, ShortReal bc,ShortReal bd,ShortReal be,ShortReal bf,ShortReal bg,
+               ShortReal cd,ShortReal ce,ShortReal cf,ShortReal cg,
+               ShortReal de,ShortReal df,ShortReal dg,
+               ShortReal ef,ShortReal eg,
+               ShortReal fg)
     {
         return
    2*(ae*ag*bd*bf*cd*ce+af*ag*bd*bf*cd*ce+ad*ag*be*bf*cd*ce+af*ag*be*bf*cd*ce+ae*af*bd*bg*cd*ce+af*ag*bd*bg*cd*ce+
@@ -3861,23 +3860,23 @@ DEVICE inline bool sep8(bool convex,
                   ab*ac*ce*df*eg*fg+ab*ad*ce*df*eg*fg+ab*bc*ce*df*eg*fg+ad*bc*ce*df*eg*fg+ab*bd*ce*df*eg*fg+ac*bd*ce*df*eg*fg);
     }*/
 
-DEVICE inline OverlapReal
-gam4(OverlapReal ab, OverlapReal ac, OverlapReal ad, OverlapReal bc, OverlapReal bd, OverlapReal cd)
+DEVICE inline ShortReal
+gam4(ShortReal ab, ShortReal ac, ShortReal ad, ShortReal bc, ShortReal bd, ShortReal cd)
     {
-    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
     return abcd * (abcd - acbd - adbc) + acbd * (acbd - abcd - adbc) + adbc * (adbc - abcd - acbd);
     }
 
-DEVICE inline OverlapReal gam5(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal de)
+DEVICE inline ShortReal gam5(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal de)
     {
     return -2
                * (ab * bc * cd * de * ae + ac * ce * be * bd * ad + ab * bd * cd * ce * ae
@@ -3892,21 +3891,21 @@ DEVICE inline OverlapReal gam5(OverlapReal ab,
                     + de * de * ab * ac * bc);
     }
 
-DEVICE inline OverlapReal gam6(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal af,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal bf,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal cf,
-                               OverlapReal de,
-                               OverlapReal df,
-                               OverlapReal ef)
+DEVICE inline ShortReal gam6(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal af,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal bf,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal cf,
+                               ShortReal de,
+                               ShortReal df,
+                               ShortReal ef)
     {
     return -2
                * (ae * af * bd * bf * cd * ce + ad * af * be * bf * cd * ce
@@ -3975,18 +3974,18 @@ DEVICE inline OverlapReal gam6(OverlapReal ab,
                     + ab * ab * cd * cd * ef * ef);
     }
 
-DEVICE inline OverlapReal beta4(OverlapReal ab,
-                                OverlapReal ac,
-                                OverlapReal ad,
-                                OverlapReal ae,
-                                OverlapReal bc,
-                                OverlapReal bd,
-                                OverlapReal be,
-                                OverlapReal cd,
-                                OverlapReal ce,
-                                OverlapReal de)
+DEVICE inline ShortReal beta4(ShortReal ab,
+                                ShortReal ac,
+                                ShortReal ad,
+                                ShortReal ae,
+                                ShortReal bc,
+                                ShortReal bd,
+                                ShortReal be,
+                                ShortReal cd,
+                                ShortReal ce,
+                                ShortReal de)
     {
-    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
     return abcd * (abcd - acbd - adbc) + acbd * (acbd - abcd - adbc) + adbc * (adbc - abcd - acbd)
            + ae
                  * (abcd * (bc + bd - cd) + acbd * (bc + cd - bd) + adbc * (bd + cd - bc)
@@ -4002,40 +4001,40 @@ DEVICE inline OverlapReal beta4(OverlapReal ab,
                     - 2 * ab * ac * bc);
     }
 
-DEVICE inline OverlapReal ang3(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal de)
+DEVICE inline ShortReal ang3(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal de)
     {
     return (ab * (cd + ce - de) - (ad - bd) * (ae - be)) * (ac + bc - ab)
            + (ac * (bd + be - de) - (ad - cd) * (ae - ce)) * (ab + bc - ac)
            + (bc * (ad + ae - de) - (bd - cd) * (be - ce)) * (ab + ac - bc) - 2 * ab * ac * bc;
     }
 
-DEVICE inline OverlapReal ang4(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal af,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal bf,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal cf,
-                               OverlapReal de,
-                               OverlapReal df,
-                               OverlapReal ef)
+DEVICE inline ShortReal ang4(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal af,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal bf,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal cf,
+                               ShortReal de,
+                               ShortReal df,
+                               ShortReal ef)
     {
-    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
-    OverlapReal abc = ab * ac * bc, abd = ab * ad * bd, acd = ac * ad * cd, bcd = bc * bd * cd;
+    ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    ShortReal abc = ab * ac * bc, abd = ab * ad * bd, acd = ac * ad * cd, bcd = bc * bd * cd;
 
     return abcd * (abcd - acbd - adbc) + acbd * (acbd - abcd - adbc) + adbc * (adbc - abcd - acbd)
 
@@ -4066,27 +4065,27 @@ DEVICE inline OverlapReal ang4(OverlapReal ab,
                  * ((ab + ac + bc) * (ab + ad + bd) - 2 * (ab * (ab + cd) + ac * ad + bc * bd));
     }
 
-DEVICE inline OverlapReal ang5(OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal ae,
-                               OverlapReal af,
-                               OverlapReal ag,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal be,
-                               OverlapReal bf,
-                               OverlapReal bg,
-                               OverlapReal cd,
-                               OverlapReal ce,
-                               OverlapReal cf,
-                               OverlapReal cg,
-                               OverlapReal de,
-                               OverlapReal df,
-                               OverlapReal dg,
-                               OverlapReal ef,
-                               OverlapReal eg,
-                               OverlapReal fg)
+DEVICE inline ShortReal ang5(ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal ae,
+                               ShortReal af,
+                               ShortReal ag,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal be,
+                               ShortReal bf,
+                               ShortReal bg,
+                               ShortReal cd,
+                               ShortReal ce,
+                               ShortReal cf,
+                               ShortReal cg,
+                               ShortReal de,
+                               ShortReal df,
+                               ShortReal dg,
+                               ShortReal ef,
+                               ShortReal eg,
+                               ShortReal fg)
     {
     return gam5(ab, ac, ad, ae, bc, bd, be, cd, ce, de)
 
@@ -4112,34 +4111,34 @@ DEVICE inline OverlapReal ang5(OverlapReal ab,
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-DEVICE inline OverlapReal t2(OverlapReal ab, OverlapReal ac, OverlapReal bc)
+DEVICE inline ShortReal t2(ShortReal ab, ShortReal ac, ShortReal bc)
     {
-    OverlapReal ab2 = ab * ab;
-    OverlapReal ac2 = ac * ac;
-    OverlapReal bc2 = bc * bc;
+    ShortReal ab2 = ab * ab;
+    ShortReal ac2 = ac * ac;
+    ShortReal bc2 = bc * bc;
 
     return sqrt(4 * (ab2 * ac2 + ab2 * bc2 + ac2 * bc2) - (ab2 + ac2 + bc2) * (ab2 + ac2 + bc2))
            / 4;
     }
 
-DEVICE inline OverlapReal cos2(OverlapReal ab, OverlapReal ac, OverlapReal bc)
+DEVICE inline ShortReal cos2(ShortReal ab, ShortReal ac, ShortReal bc)
     {
     return (ab * ab + ac * ac - bc * bc) / (2 * ab * ac);
     }
 
-DEVICE inline OverlapReal
-t3(OverlapReal ab, OverlapReal ac, OverlapReal ad, OverlapReal bc, OverlapReal bd, OverlapReal cd)
+DEVICE inline ShortReal
+t3(ShortReal ab, ShortReal ac, ShortReal ad, ShortReal bc, ShortReal bd, ShortReal cd)
     {
-    OverlapReal ab2 = ab * ab;
-    OverlapReal ac2 = ac * ac;
-    OverlapReal ad2 = ad * ad;
-    OverlapReal bc2 = bc * bc;
-    OverlapReal bd2 = bd * bd;
-    OverlapReal cd2 = cd * cd;
+    ShortReal ab2 = ab * ab;
+    ShortReal ac2 = ac * ac;
+    ShortReal ad2 = ad * ad;
+    ShortReal bc2 = bc * bc;
+    ShortReal bd2 = bd * bd;
+    ShortReal cd2 = cd * cd;
 
-    OverlapReal abTcd = ab2 * cd2, abPcd = ab2 + cd2;
-    OverlapReal acTbd = ac2 * bd2, acPbd = ac2 + bd2;
-    OverlapReal adTbc = ad2 * bc2, adPbc = ad2 + bc2;
+    ShortReal abTcd = ab2 * cd2, abPcd = ab2 + cd2;
+    ShortReal acTbd = ac2 * bd2, acPbd = ac2 + bd2;
+    ShortReal adTbc = ad2 * bc2, adPbc = ad2 + bc2;
 
     return sqrt((abTcd + acTbd + adTbc) * (abPcd + acPbd + adPbc)
                 - 2 * (abTcd * abPcd + acTbd * acPbd + adTbc * adPbc)
@@ -4147,59 +4146,59 @@ t3(OverlapReal ab, OverlapReal ac, OverlapReal ad, OverlapReal bc, OverlapReal b
            / 12;
     }
 
-DEVICE inline OverlapReal
-cos3(OverlapReal ab, OverlapReal ac, OverlapReal ad, OverlapReal bc, OverlapReal bd, OverlapReal cd)
+DEVICE inline ShortReal
+cos3(ShortReal ab, ShortReal ac, ShortReal ad, ShortReal bc, ShortReal bd, ShortReal cd)
     {
-    OverlapReal ab2 = ab * ab;
-    OverlapReal ac2 = ac * ac;
-    OverlapReal ad2 = ad * ad;
-    OverlapReal bc2 = bc * bc;
-    OverlapReal bd2 = bd * bd;
-    OverlapReal cd2 = cd * cd;
+    ShortReal ab2 = ab * ab;
+    ShortReal ac2 = ac * ac;
+    ShortReal ad2 = ad * ad;
+    ShortReal bc2 = bc * bc;
+    ShortReal bd2 = bd * bd;
+    ShortReal cd2 = cd * cd;
 
     return ((ab2 + ac2 + bc2) * (ab2 + ad2 + bd2) - 2 * (ab2 * (ab2 + cd2) + ac2 * ad2 + bc2 * bd2))
            / (16 * t2(ab, ac, bc) * t2(ab, ad, bd));
     }
 
-DEVICE inline bool flag3(OverlapReal ab,
-                         OverlapReal ac,
-                         OverlapReal ad,
-                         OverlapReal bc,
-                         OverlapReal bd,
-                         OverlapReal cd)
+DEVICE inline bool flag3(ShortReal ab,
+                         ShortReal ac,
+                         ShortReal ad,
+                         ShortReal bc,
+                         ShortReal bd,
+                         ShortReal cd)
     {
-    OverlapReal ab2 = ab * ab;
-    OverlapReal ac2 = ac * ac;
-    OverlapReal ad2 = ad * ad;
-    OverlapReal bc2 = bc * bc;
-    OverlapReal bd2 = bd * bd;
-    OverlapReal cd2 = cd * cd;
+    ShortReal ab2 = ab * ab;
+    ShortReal ac2 = ac * ac;
+    ShortReal ad2 = ad * ad;
+    ShortReal bc2 = bc * bc;
+    ShortReal bd2 = bd * bd;
+    ShortReal cd2 = cd * cd;
 
     return (ab2 + ac2 + bc2) * (ab2 + ad2 + bd2) - 2 * (ab2 * (ab2 + cd2) + ac2 * ad2 + bc2 * bd2)
            >= 16 * t2(ab, ac, bc) * t2(ab, ad, bd);
     }
 
-DEVICE inline bool flag4(OverlapReal ab,
-                         OverlapReal ac,
-                         OverlapReal ad,
-                         OverlapReal ae,
-                         OverlapReal bc,
-                         OverlapReal bd,
-                         OverlapReal be,
-                         OverlapReal cd,
-                         OverlapReal ce,
-                         OverlapReal de)
+DEVICE inline bool flag4(ShortReal ab,
+                         ShortReal ac,
+                         ShortReal ad,
+                         ShortReal ae,
+                         ShortReal bc,
+                         ShortReal bd,
+                         ShortReal be,
+                         ShortReal cd,
+                         ShortReal ce,
+                         ShortReal de)
     {
-    OverlapReal ab2 = ab * ab;
-    OverlapReal ac2 = ac * ac;
-    OverlapReal ad2 = ad * ad;
-    OverlapReal ae2 = ae * ae;
-    OverlapReal bc2 = bc * bc;
-    OverlapReal bd2 = bd * bd;
-    OverlapReal be2 = be * be;
-    OverlapReal cd2 = cd * cd;
-    OverlapReal ce2 = ce * ce;
-    OverlapReal de2 = de * de;
+    ShortReal ab2 = ab * ab;
+    ShortReal ac2 = ac * ac;
+    ShortReal ad2 = ad * ad;
+    ShortReal ae2 = ae * ae;
+    ShortReal bc2 = bc * bc;
+    ShortReal bd2 = bd * bd;
+    ShortReal be2 = be * be;
+    ShortReal cd2 = cd * cd;
+    ShortReal ce2 = ce * ce;
+    ShortReal de2 = de * de;
 
     return (ab2 + ac2 + bc2)
                    * (ad2 * be2 + ae2 * bd2 + ad2 * ce2 + ae2 * cd2 + bd2 * ce2 + be2 * cd2)
@@ -4214,73 +4213,73 @@ DEVICE inline bool flag4(OverlapReal ab,
            >= 288 * t3(ab, ac, ad, bc, bd, cd) * t3(ab, ac, ae, bc, be, ce);
     }
 
-DEVICE inline OverlapReal wol2(OverlapReal ar, OverlapReal br, OverlapReal ab);
-DEVICE inline OverlapReal wol3(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal bc);
-DEVICE inline OverlapReal wol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd);
-DEVICE inline OverlapReal vol2(OverlapReal ar, OverlapReal br, OverlapReal ab);
-DEVICE inline OverlapReal vol3(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal bc);
-DEVICE inline OverlapReal vol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd);
-DEVICE inline OverlapReal xol3(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal bc);
-DEVICE inline OverlapReal xol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd);
-DEVICE inline OverlapReal yol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd);
+DEVICE inline ShortReal wol2(ShortReal ar, ShortReal br, ShortReal ab);
+DEVICE inline ShortReal wol3(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal bc);
+DEVICE inline ShortReal wol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd);
+DEVICE inline ShortReal vol2(ShortReal ar, ShortReal br, ShortReal ab);
+DEVICE inline ShortReal vol3(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal bc);
+DEVICE inline ShortReal vol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd);
+DEVICE inline ShortReal xol3(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal bc);
+DEVICE inline ShortReal xol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd);
+DEVICE inline ShortReal yol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd);
 
-DEVICE inline OverlapReal uol1(OverlapReal ar)
+DEVICE inline ShortReal uol1(ShortReal ar)
     {
-    return OverlapReal(M_PI * 4.0 / 3.0) * ar * ar * ar;
+    return ShortReal(M_PI * 4.0 / 3.0) * ar * ar * ar;
     }
 
-DEVICE inline OverlapReal uol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
+DEVICE inline ShortReal uol2(ShortReal ar, ShortReal br, ShortReal ab)
     {
     if (((ar > 0) || (br > 0)) && (ar + br <= ab))
         return 0;
@@ -4293,7 +4292,7 @@ DEVICE inline OverlapReal uol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
     return vol2(ar, br, ab);
     }
 
-DEVICE inline OverlapReal vol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
+DEVICE inline ShortReal vol2(ShortReal ar, ShortReal br, ShortReal ab)
     {
     if (((ar < 0) || (br < 0)) && (-ar - br <= ab))
         return uol1(ar) + uol1(br);
@@ -4301,14 +4300,14 @@ DEVICE inline OverlapReal vol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
     return wol2(ar, br, ab);
     }
 
-DEVICE inline OverlapReal wol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
+DEVICE inline ShortReal wol2(ShortReal ar, ShortReal br, ShortReal ab)
     {
     return +uol1(ar) * (1 - cos2(ar, ab, br)) / 2 + uol1(br) * (1 - cos2(br, ab, ar)) / 2
-           - OverlapReal(M_PI * 4.0 / 3.0) * t2(ar, br, ab) * t2(ar, br, ab) / ab;
+           - ShortReal(M_PI * 4.0 / 3.0) * t2(ar, br, ab) * t2(ar, br, ab) / ab;
     }
 
-DEVICE inline OverlapReal
-uol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
+DEVICE inline ShortReal
+uol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, ShortReal bc)
     {
     if (((ar > 0) || (br > 0)) && (ar + br <= ab))
         return 0;
@@ -4342,8 +4341,8 @@ uol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal
     return vol3(ar, br, cr, ab, ac, bc);
     }
 
-DEVICE inline OverlapReal
-vol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
+DEVICE inline ShortReal
+vol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, ShortReal bc)
     {
     bool abR = ((ar < 0) || (br < 0)) && (-ar - br <= ab);
     bool acR = ((ar < 0) || (cr < 0)) && (-ar - cr <= ac);
@@ -4369,8 +4368,8 @@ vol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal
     return wol3(ar, br, cr, ab, ac, bc);
     }
 
-DEVICE inline OverlapReal
-wol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
+DEVICE inline ShortReal
+wol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, ShortReal bc)
     {
     bool abf = flag3(ab, ac, ar, bc, br, cr);
     bool acf = flag3(ac, ab, ar, bc, cr, br);
@@ -4396,42 +4395,42 @@ wol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal
     return xol3(ar, br, cr, ab, ac, bc);
     }
 
-DEVICE inline OverlapReal sign(OverlapReal val)
+DEVICE inline ShortReal sign(ShortReal val)
     {
-    OverlapReal s(1.0);
+    ShortReal s(1.0);
     s = copysignf(s, val);
     return s;
     }
 
-DEVICE inline OverlapReal
-xol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
+DEVICE inline ShortReal
+xol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, ShortReal bc)
     {
-    OverlapReal tar = acos(cos3(ar, ab, ac, br, cr, bc) * sign(bc));
-    OverlapReal tbr = acos(cos3(br, ab, bc, ar, cr, ac) * sign(ac));
-    OverlapReal tcr = acos(cos3(cr, ac, bc, ar, br, ab) * sign(ab));
-    OverlapReal tbc = acos(cos3(bc, ab, br, ac, cr, ar) * sign(ar));
-    OverlapReal tac = acos(cos3(ac, ab, ar, bc, cr, br) * sign(br));
-    OverlapReal tab = acos(cos3(ab, ac, ar, bc, br, cr) * sign(cr));
+    ShortReal tar = acos(cos3(ar, ab, ac, br, cr, bc) * sign(bc));
+    ShortReal tbr = acos(cos3(br, ab, bc, ar, cr, ac) * sign(ac));
+    ShortReal tcr = acos(cos3(cr, ac, bc, ar, br, ab) * sign(ab));
+    ShortReal tbc = acos(cos3(bc, ab, br, ac, cr, ar) * sign(ar));
+    ShortReal tac = acos(cos3(ac, ab, ar, bc, cr, br) * sign(br));
+    ShortReal tab = acos(cos3(ab, ac, ar, bc, br, cr) * sign(cr));
 
     return +2 * t3(ar, br, cr, ab, ac, bc) * sign(ar) * sign(br) * sign(cr)
            + (wol2(ar, br, ab) * tab + wol2(ar, cr, ac) * tac + wol2(br, cr, bc) * tbc)
-                 / OverlapReal(M_PI)
-           - (uol1(ar) * (tab + tac + tar - OverlapReal(M_PI))
-              + uol1(br) * (tab + tbc + tbr - OverlapReal(M_PI))
-              + uol1(cr) * (tac + tbc + tcr - OverlapReal(M_PI)))
-                 / (2 * OverlapReal(M_PI));
+                 / ShortReal(M_PI)
+           - (uol1(ar) * (tab + tac + tar - ShortReal(M_PI))
+              + uol1(br) * (tab + tbc + tbr - ShortReal(M_PI))
+              + uol1(cr) * (tac + tbc + tcr - ShortReal(M_PI)))
+                 / (2 * ShortReal(M_PI));
     }
 
-DEVICE inline OverlapReal uol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd)
+DEVICE inline ShortReal uol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd)
     {
     if (((ar > 0) || (br > 0)) && (ar + br <= ab))
         return 0;
@@ -4495,16 +4494,16 @@ DEVICE inline OverlapReal uol4(OverlapReal ar,
     return vol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-DEVICE inline OverlapReal vol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd)
+DEVICE inline ShortReal vol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd)
     {
     bool abR = ((ar < 0) || (br < 0)) && (-ar - br <= ab);
     bool acR = ((ar < 0) || (cr < 0)) && (-ar - cr <= ac);
@@ -4655,16 +4654,16 @@ DEVICE inline OverlapReal vol4(OverlapReal ar,
     return wol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-DEVICE inline OverlapReal wol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd)
+DEVICE inline ShortReal wol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd)
     {
     bool bcag = flag3(bc, bd, br, cd, cr, dr);
     bool bdag = flag3(bd, bc, br, cd, dr, cr);
@@ -4769,16 +4768,16 @@ DEVICE inline OverlapReal wol4(OverlapReal ar,
     return xol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-DEVICE inline OverlapReal xol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd)
+DEVICE inline ShortReal xol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd)
     {
     bool abcf = flag4(ab, ac, ad, ar, bc, bd, br, cd, cr, dr);
     bool abdf = flag4(ab, ad, ac, ar, bd, bc, br, cd, dr, cr);
@@ -4830,23 +4829,23 @@ DEVICE inline OverlapReal xol4(OverlapReal ar,
     return yol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-DEVICE inline OverlapReal yol4(OverlapReal ar,
-                               OverlapReal br,
-                               OverlapReal cr,
-                               OverlapReal dr,
-                               OverlapReal ab,
-                               OverlapReal ac,
-                               OverlapReal ad,
-                               OverlapReal bc,
-                               OverlapReal bd,
-                               OverlapReal cd)
+DEVICE inline ShortReal yol4(ShortReal ar,
+                               ShortReal br,
+                               ShortReal cr,
+                               ShortReal dr,
+                               ShortReal ab,
+                               ShortReal ac,
+                               ShortReal ad,
+                               ShortReal bc,
+                               ShortReal bd,
+                               ShortReal cd)
     {
-    OverlapReal tad = acos(cos3(ad, ab, ac, bd, cd, bc) * sign(bc));
-    OverlapReal tbd = acos(cos3(bd, ab, bc, ad, cd, ac) * sign(ac));
-    OverlapReal tcd = acos(cos3(cd, ac, bc, ad, bd, ab) * sign(ab));
-    OverlapReal tbc = acos(cos3(bc, ab, bd, ac, cd, ad) * sign(ad));
-    OverlapReal tac = acos(cos3(ac, ab, ad, bc, cd, bd) * sign(bd));
-    OverlapReal tab = acos(cos3(ab, ac, ad, bc, bd, cd) * sign(cd));
+    ShortReal tad = acos(cos3(ad, ab, ac, bd, cd, bc) * sign(bc));
+    ShortReal tbd = acos(cos3(bd, ab, bc, ad, cd, ac) * sign(ac));
+    ShortReal tcd = acos(cos3(cd, ac, bc, ad, bd, ab) * sign(ab));
+    ShortReal tbc = acos(cos3(bc, ab, bd, ac, cd, ad) * sign(ad));
+    ShortReal tac = acos(cos3(ac, ab, ad, bc, cd, bd) * sign(bd));
+    ShortReal tab = acos(cos3(ab, ac, ad, bc, bd, cd) * sign(cd));
 
     return -t3(ab, ac, ad, bc, bd, cd) * sign(ar) * sign(br) * sign(cr) * sign(dr)
            + (xol3(ar, br, cr, ab, ac, bc) + xol3(ar, br, dr, ab, ad, bd)
@@ -4854,12 +4853,12 @@ DEVICE inline OverlapReal yol4(OverlapReal ar,
                  / 2
            - (wol2(ar, br, ab) * tab + wol2(ar, cr, ac) * tac + wol2(ar, dr, ad) * tad
               + wol2(br, cr, bc) * tbc + wol2(br, dr, bd) * tbd + wol2(cr, dr, cd) * tcd)
-                 / (2 * OverlapReal(M_PI))
-           + (uol1(ar) * (tab + tac + tad - OverlapReal(M_PI))
-              + uol1(br) * (tab + tbc + tbd - OverlapReal(M_PI))
-              + uol1(cr) * (tac + tbc + tcd - OverlapReal(M_PI))
-              + uol1(dr) * (tad + tbd + tcd - OverlapReal(M_PI)))
-                 / (4 * OverlapReal(M_PI));
+                 / (2 * ShortReal(M_PI))
+           + (uol1(ar) * (tab + tac + tad - ShortReal(M_PI))
+              + uol1(br) * (tab + tbc + tbd - ShortReal(M_PI))
+              + uol1(cr) * (tac + tbc + tcd - ShortReal(M_PI))
+              + uol1(dr) * (tad + tbd + tcd - ShortReal(M_PI)))
+                 / (4 * ShortReal(M_PI));
     }
 
     }  // namespace detail

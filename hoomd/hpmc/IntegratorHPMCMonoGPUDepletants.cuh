@@ -223,7 +223,7 @@ __launch_bounds__(max_threads)
         if (dim == 3)
             obb_i.lengths.z += r;
         else
-            obb_i.lengths.z = OverlapReal(0.5);
+            obb_i.lengths.z = ShortReal(0.5);
         }
 
     if (master && group == 0)

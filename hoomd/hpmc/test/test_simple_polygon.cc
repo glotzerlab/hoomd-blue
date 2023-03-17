@@ -28,7 +28,7 @@ using namespace hoomd::hpmc::detail;
 unsigned int err_count;
 
 // helper function to compute poly radius
-PolygonVertices setup_verts(const vector<vec2<OverlapReal>> vlist)
+PolygonVertices setup_verts(const vector<vec2<ShortReal>> vlist)
     {
     if (vlist.size() > MAX_POLY2D_VERTS)
         throw runtime_error("Too many polygon vertices");
@@ -38,10 +38,10 @@ PolygonVertices setup_verts(const vector<vec2<OverlapReal>> vlist)
     result.ignore = 0;
 
     // extract the verts from the python list and compute the radius on the way
-    OverlapReal radius_sq = OverlapReal(0.0);
+    ShortReal radius_sq = ShortReal(0.0);
     for (unsigned int i = 0; i < vlist.size(); i++)
         {
-        vec2<OverlapReal> vert = vlist[i];
+        vec2<ShortReal> vert = vlist[i];
         result.x[i] = vert.x;
         result.y[i] = vert.y;
         radius_sq = std::max(radius_sq, dot(vert, vert));
@@ -58,33 +58,33 @@ PolygonVertices setup_verts(const vector<vec2<OverlapReal>> vlist)
     return result;
     }
 
-// void write_gle_header(ostream& o, OverlapReal s)
+// void write_gle_header(ostream& o, ShortReal s)
 //     {
 //     o << "size " << s << " " << s << endl;
 //     o << "set hei 0.15" << endl;
 //     o << "set just tc" << endl;
 //     }
 
-// void write_poly_gle(ostream& o, const ShapeSimplePolygon& poly, vec3<OverlapReal> pos)
+// void write_poly_gle(ostream& o, const ShapeSimplePolygon& poly, vec3<ShortReal> pos)
 //     {
 //     // first transform all verts into screen space (rotation only, translation handled by an
 //     rmove) PolygonVertices ss_verts = poly.verts;
 
 //     for (unsigned int i = 0; i < ss_verts.N; i++)
-//         ss_verts.v[i] = rotate(quat<OverlapReal>(poly.orientation), ss_verts.v[i]);
+//         ss_verts.v[i] = rotate(quat<ShortReal>(poly.orientation), ss_verts.v[i]);
 
 //     o << "rmove " << pos.x << " " << pos.y << endl;
 //     o << "rmove " << ss_verts.v[0].x << " " << ss_verts.v[0].y << endl;
 
 //     for (unsigned int i = 0; i < ss_verts.N-1; i++)
 //         {
-//         vec2<OverlapReal> line = ss_verts.v[i+1] - ss_verts.v[i];
+//         vec2<ShortReal> line = ss_verts.v[i+1] - ss_verts.v[i];
 //         o << "text " << i << endl;
 //         o << "rline " << line.x << " " << line.y << endl;
 //         }
 
 //     o << "text " << ss_verts.N-1 << endl;
-//     vec2<OverlapReal> line = ss_verts.v[0] - ss_verts.v[ss_verts.N-1];
+//     vec2<ShortReal> line = ss_verts.v[0] - ss_verts.v[ss_verts.N-1];
 //     o << "rline " << line.x << " " << line.y << endl;
 //     }
 
@@ -96,10 +96,10 @@ UP_TEST(construction)
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(0, 0));
-    vlist.push_back(vec2<OverlapReal>(1, 0));
-    vlist.push_back(vec2<OverlapReal>(0, 1.25));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(0, 0));
+    vlist.push_back(vec2<ShortReal>(1, 0));
+    vlist.push_back(vec2<ShortReal>(0, 1.25));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o, verts);
@@ -129,11 +129,11 @@ UP_TEST(overlap_square_no_rot)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o, verts);
@@ -208,11 +208,11 @@ UP_TEST(overlap_square_rot1)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o_a, verts);
@@ -287,11 +287,11 @@ UP_TEST(overlap_square_rot2)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts = setup_verts(vlist);
 
     ShapeSimplePolygon a(o_b, verts);
@@ -368,17 +368,17 @@ UP_TEST(overlap_square_tri)
     BoxDim box(100);
 
     // build a square
-    std::vector<vec2<OverlapReal>> vlist_a;
-    vlist_a.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist_a.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist_a.push_back(vec2<OverlapReal>(0.5, 0.5));
-    vlist_a.push_back(vec2<OverlapReal>(-0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist_a;
+    vlist_a.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist_a.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist_a.push_back(vec2<ShortReal>(0.5, 0.5));
+    vlist_a.push_back(vec2<ShortReal>(-0.5, 0.5));
     PolygonVertices verts_a = setup_verts(vlist_a);
 
-    std::vector<vec2<OverlapReal>> vlist_b;
-    vlist_b.push_back(vec2<OverlapReal>(-0.5, -0.5));
-    vlist_b.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist_b.push_back(vec2<OverlapReal>(0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist_b;
+    vlist_b.push_back(vec2<ShortReal>(-0.5, -0.5));
+    vlist_b.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist_b.push_back(vec2<ShortReal>(0.5, 0.5));
     PolygonVertices verts_b = setup_verts(vlist_b);
 
     ShapeSimplePolygon a(o_a, verts_a);
@@ -439,11 +439,11 @@ UP_TEST(overlap_concave_norot)
     BoxDim box(20);
 
     // build a dart
-    std::vector<vec2<OverlapReal>> vlist_a;
-    vlist_a.push_back(vec2<OverlapReal>(-0.5, 0));
-    vlist_a.push_back(vec2<OverlapReal>(0.5, -0.5));
-    vlist_a.push_back(vec2<OverlapReal>(0, 0));
-    vlist_a.push_back(vec2<OverlapReal>(0.5, 0.5));
+    std::vector<vec2<ShortReal>> vlist_a;
+    vlist_a.push_back(vec2<ShortReal>(-0.5, 0));
+    vlist_a.push_back(vec2<ShortReal>(0.5, -0.5));
+    vlist_a.push_back(vec2<ShortReal>(0, 0));
+    vlist_a.push_back(vec2<ShortReal>(0.5, 0.5));
     PolygonVertices verts_a = setup_verts(vlist_a);
 
     ShapeSimplePolygon a(o_a, verts_a);
@@ -490,11 +490,11 @@ UP_TEST(no_overlap_bug)
     o_j.v.y = std::strtof("0x1.cfead6fedd6a4p-58", NULL);
     o_j.v.z = std::strtof("-0x1.a4925729b867bp-4", NULL);
 
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
 
     vlist[0].x = std::strtof("-0x1.7954933782004p+0", NULL);
     vlist[1].x = std::strtof("0x1.0d56d990fbff8p-1", NULL);
@@ -544,21 +544,21 @@ UP_TEST(no_overlap_bug2)
     o_i.v.z = 0.92105877604252651;
     o_j = o_i;
 
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
 
-    vlist[0].x = OverlapReal(-1.31406224);
-    vlist[1].x = OverlapReal(0.685937762);
-    vlist[2].x = OverlapReal(1.31406224);
-    vlist[3].x = OverlapReal(-0.685937762);
+    vlist[0].x = ShortReal(-1.31406224);
+    vlist[1].x = ShortReal(0.685937762);
+    vlist[2].x = ShortReal(1.31406224);
+    vlist[3].x = ShortReal(-0.685937762);
 
-    vlist[0].y = OverlapReal(-0.323377937);
-    vlist[1].y = OverlapReal(-0.323377937);
-    vlist[2].y = OverlapReal(0.323377937);
-    vlist[3].y = OverlapReal(0.323377937);
+    vlist[0].y = ShortReal(-0.323377937);
+    vlist[1].y = ShortReal(-0.323377937);
+    vlist[2].y = ShortReal(0.323377937);
+    vlist[3].y = ShortReal(0.323377937);
 
     PolygonVertices verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);
@@ -598,21 +598,21 @@ UP_TEST(no_overlap_bug3)
     o_i.v.z = -0.87724881782452713;
     o_j = o_i;
 
-    std::vector<vec2<OverlapReal>> vlist;
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
-    vlist.push_back(vec2<OverlapReal>());
+    std::vector<vec2<ShortReal>> vlist;
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
+    vlist.push_back(vec2<ShortReal>());
 
-    vlist[0].x = OverlapReal(-0.541489005);
-    vlist[1].x = OverlapReal(1.45851099);
-    vlist[2].x = OverlapReal(0.541489005);
-    vlist[3].x = OverlapReal(-1.45851099);
+    vlist[0].x = ShortReal(-0.541489005);
+    vlist[1].x = ShortReal(1.45851099);
+    vlist[2].x = ShortReal(0.541489005);
+    vlist[3].x = ShortReal(-1.45851099);
 
-    vlist[0].y = OverlapReal(-0.716278672);
-    vlist[1].y = OverlapReal(-0.716278672);
-    vlist[2].y = OverlapReal(0.716278672);
-    vlist[3].y = OverlapReal(0.716278672);
+    vlist[0].y = ShortReal(-0.716278672);
+    vlist[1].y = ShortReal(-0.716278672);
+    vlist[2].y = ShortReal(0.716278672);
+    vlist[3].y = ShortReal(0.716278672);
 
     PolygonVertices verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);

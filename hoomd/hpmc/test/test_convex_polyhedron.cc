@@ -27,7 +27,7 @@ UP_TEST(construction)
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    vector<vec3<OverlapReal>> vlist;
+    vector<vec3<ShortReal>> vlist;
     vlist.push_back(vec3<Scalar>(0, 0, 0));
     vlist.push_back(vec3<Scalar>(1, 0, 0));
     vlist.push_back(vec3<Scalar>(0, 1.25, 0));
@@ -59,28 +59,28 @@ UP_TEST(support)
     // Find the support of a tetrahedron
     quat<Scalar> o;
 
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
     SupportFuncConvexPolyhedron sa = SupportFuncConvexPolyhedron(verts);
-    vec3<OverlapReal> v1, v2;
+    vec3<ShortReal> v1, v2;
 
-    v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    v2 = vec3<OverlapReal>(-0.5, -0.5, -0.5);
+    v1 = sa(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    v2 = vec3<ShortReal>(-0.5, -0.5, -0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(-0.125, 0.125, 0.125));
-    v2 = vec3<OverlapReal>(-0.5, 0.5, 0.5);
+    v1 = sa(vec3<ShortReal>(-0.125, 0.125, 0.125));
+    v2 = vec3<ShortReal>(-0.5, 0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(1, -1, 1));
-    v2 = vec3<OverlapReal>(0.5, -0.5, 0.5);
+    v1 = sa(vec3<ShortReal>(1, -1, 1));
+    v2 = vec3<ShortReal>(0.5, -0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(OverlapReal(0.51), OverlapReal(0.49), OverlapReal(-0.1)));
-    v2 = vec3<OverlapReal>(0.5, 0.5, -0.5);
+    v1 = sa(vec3<ShortReal>(ShortReal(0.51), ShortReal(0.49), ShortReal(-0.1)));
+    v2 = vec3<ShortReal>(0.5, 0.5, -0.5);
     UP_ASSERT(v1 == v2);
     }
 
@@ -90,7 +90,7 @@ UP_TEST( composite_support )
     // Find the support of the Minkowski difference of two offset cubes
     quat<Scalar> o;
 
-    vector< vec3<OverlapReal> > vlist;
+    vector< vec3<ShortReal> > vlist;
     vlist.push_back(vec3<Scalar>(-0.5, -0.5, -0.5));
     vlist.push_back(vec3<Scalar>(-0.5, 0.5, 0.5));
     vlist.push_back(vec3<Scalar>(0.5, -0.5, 0.5));
@@ -131,13 +131,13 @@ UP_TEST(overlap_octahedron_no_rot)
     quat<Scalar> o;
 
     // build a square
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0));
-    vlist.push_back(vec3<OverlapReal>(0, 0, OverlapReal(0.707106781186548)));
-    vlist.push_back(vec3<OverlapReal>(0, 0, OverlapReal(-0.707106781186548)));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0));
+    vlist.push_back(vec3<ShortReal>(0, 0, ShortReal(0.707106781186548)));
+    vlist.push_back(vec3<ShortReal>(0, 0, ShortReal(-0.707106781186548)));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
@@ -217,15 +217,15 @@ UP_TEST(overlap_cube_no_rot)
     quat<Scalar> o;
 
     // build a square
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
@@ -320,15 +320,15 @@ UP_TEST(overlap_cube_rot1)
                      (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternion
 
     // build a square
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o_a, verts);
@@ -401,15 +401,15 @@ UP_TEST(overlap_cube_rot2)
                      (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternion
 
     // build a cube
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o_b, verts);
@@ -485,15 +485,15 @@ UP_TEST(overlap_cube_rot3)
     quat<Scalar> o_b(q2 * q1);
 
     // build a cube
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o_a, verts);
@@ -592,15 +592,15 @@ UP_TEST(closest_pt_cube_no_rot)
     quat<Scalar> o;
 
     // build a cube
-    vector<vec3<OverlapReal>> vlist;
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(0.5, 0.5, 0.5));
-    vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
+    vector<vec3<ShortReal>> vlist;
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, -0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, -0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(0.5, 0.5, 0.5));
+    vlist.push_back(vec3<ShortReal>(-0.5, 0.5, 0.5));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
@@ -608,37 +608,37 @@ UP_TEST(closest_pt_cube_no_rot)
     // a point inside
     ProjectionFuncConvexPolyhedron P(a.verts);
 
-    vec3<OverlapReal> p = P(vec3<OverlapReal>(0, 0, 0));
+    vec3<ShortReal> p = P(vec3<ShortReal>(0, 0, 0));
     MY_CHECK_CLOSE(p.x, 0, tol);
     MY_CHECK_CLOSE(p.y, 0, tol);
     MY_CHECK_CLOSE(p.z, 0, tol);
 
     // a point out on the x axis
-    p = P(vec3<OverlapReal>(1, 0, 0));
+    p = P(vec3<ShortReal>(1, 0, 0));
     MY_CHECK_CLOSE(p.x, 0.5, tol);
     MY_CHECK_CLOSE(p.y, 0, tol);
     MY_CHECK_CLOSE(p.z, 0, tol);
 
     // a point out on the y axis
-    p = P(vec3<OverlapReal>(0, 2, 0));
+    p = P(vec3<ShortReal>(0, 2, 0));
     MY_CHECK_CLOSE(p.x, 0, tol);
     MY_CHECK_CLOSE(p.y, 0.5, tol);
     MY_CHECK_CLOSE(p.z, 0, tol);
 
     // a point out on the z axis
-    p = P(vec3<OverlapReal>(0, 0, 3));
+    p = P(vec3<ShortReal>(0, 0, 3));
     MY_CHECK_CLOSE(p.x, 0, tol);
     MY_CHECK_CLOSE(p.y, 0, tol);
     MY_CHECK_CLOSE(p.z, 0.5, tol);
 
     // a point nearest to the +yz face
-    p = P(vec3<OverlapReal>(1, .25, .25));
+    p = P(vec3<ShortReal>(1, .25, .25));
     MY_CHECK_CLOSE(p.x, 0.5, tol);
     MY_CHECK_CLOSE(p.y, 0.25, tol);
     MY_CHECK_CLOSE(p.z, 0.25, tol);
 
     // a point nearest to a corner
-    p = P(vec3<OverlapReal>(1, 1, 1));
+    p = P(vec3<ShortReal>(1, 1, 1));
     MY_CHECK_CLOSE(p.x, 0.5, tol);
     MY_CHECK_CLOSE(p.y, 0.5, tol);
     MY_CHECK_CLOSE(p.z, 0.5, tol);
