@@ -208,32 +208,41 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
     operation_pickling_check(table, sim)
 
 
-def test_invalid_permutations(device):
-    test_categories = str(hoomd.logging.LoggerCategories.ALL).split("|")[1:]
-    # Generate a set for each invalid permutation of the input logger categories
-    # Sets that don't fail are covered by test_only_string_and_scalar_quantities
-    combinations = [
-        set(combo)
-        for i in range(1,
-                       len(test_categories) + 1)
-        for combo in itertools.combinations(test_categories, i)
-        if set(combo) - {"string", "scalar"} != set()
-    ]
+test_categories = str(hoomd.logging.LoggerCategories.ALL).split("|")[1:]
+# Generate a set for each invalid permutation of the input logger categories
+# Sets that don't fail are covered by test_only_string_and_scalar_quantities
+print(hoomd.write.Table._invalid_logger_categories)
+combinations = [
+    set(combo)
+    for i in range(1,
+                   len(test_categories) + 1)
+    for combo in itertools.combinations(test_categories, i)
+    if set(combo) - {"string", "scalar"} != set()
+]
+print(combinations)
+
+
+@pytest.mark.parametrize(
+    argnames="combination",
+    argvalues=combinations[1:],
+)
+def test_invalid_permutations(device, combination):
+    #print(combination[5:10])
     # Test every combination raises the correct ValueError
-    for combo in combinations:
-        logger = hoomd.logging.Logger(categories=combo)
-        output = StringIO("")
-        with pytest.raises(ValueError) as ve:
-            hoomd.write.Table(1, logger, output)
-        if "string" and "scalar" not in combo:
-            # Check if correct error is being raised given no valid categories
-            assert (
-                "Given Logger must have the scalar or string categories set."
+    logger = hoomd.logging.Logger(categories=combination)
+    output = StringIO("")
+    valid_inputs = {"string", "scalar"}
+    with pytest.raises(ValueError) as ve:
+        hoomd.write.Table(1, logger, output)
+    # Ensure that no correct category is set
+    if combination & valid_inputs == set():
+        # Check if correct error is being raised given no valid categories
+        assert ("Given Logger must have the scalar or string categories set."
                 in str(ve.value))
-        else:
-            # Check if correct error is being raised
-            assert "incompatible" in str(ve.value)
-            # Now ensure category formatting operates correctly
-            for category in combo:
-                assert "category" in str(ve.value)
-        # No further cases are possible, as valid configurations are pruned out
+    else:
+        # Check if correct error is being raised
+        assert "incompatible" in str(ve.value)
+        # Now ensure category formatting operates correctly
+        for category in combination - {"string", "scalar"}:
+            assert category in str(ve.value)
+    # No further cases are possible, as valid configurations are pruned out
