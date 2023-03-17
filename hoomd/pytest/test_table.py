@@ -227,7 +227,6 @@ print(combinations)
     argvalues=combinations[1:],
 )
 def test_invalid_permutations(device, combination):
-    #print(combination[5:10])
     # Test every combination raises the correct ValueError
     logger = hoomd.logging.Logger(categories=combination)
     output = StringIO("")
