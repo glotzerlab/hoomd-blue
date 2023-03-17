@@ -87,6 +87,8 @@ def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
                                      integrate_rotational_dof=True)
     integrator.rigid = rigid
 
+
+def test_overlapping_filters(simulation_factory, two_particles_snapshot_factory):
     snapshot = two_particle_snapshot_factory(particle_types=['R', 'A'])
     if snapshot.communicator.rank == 0:
         snapshot.particles.body[:] = [0, 1]
