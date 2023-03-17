@@ -144,6 +144,8 @@ class NeighborList(Compute):
 
     def _attach_hook(self):
         if self._mesh is not None:
+            if not self._mesh._attached:
+               self._mesh._attach(self._simulation)
             self._cpp_obj.addMesh(self._mesh._cpp_obj)
 
     def _detach_hook(self):
