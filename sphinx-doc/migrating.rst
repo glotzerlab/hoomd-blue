@@ -89,6 +89,7 @@ Components
 * Remove ``fix_cudart_rpath(_${COMPONENT_NAME})`` from your components ``CMakeLists.txt``
 * Use ``LongReal`` and ``ShortReal`` types in new code. ``Scalar`` will be removed in a future
   release (v5 or later).
+* Replace any use of ``hpmc::OverlapReal`` with ``ShortReal``.
 
 Migrating to HOOMD v3
 ---------------------
