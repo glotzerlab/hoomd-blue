@@ -211,8 +211,12 @@ class _TableInternal(_InternalAction):
         _invalid_inputs = logger.categories & self._invalid_logger_categories
 
         # Ensure that only scalar and potentially string are set for the logger
-        if (LoggerCategories.scalar & LoggerCategories.string
-                not in logger.categories):
+        # If logger.categories == none, pass automatically
+        if logger.categories == LoggerCategories.NONE:
+            pass
+        elif LoggerCategories.any([
+                LoggerCategories.scalar, LoggerCategories.string
+        ]) & logger.categories != LoggerCategories.NONE:
             raise ValueError(
                 "Given Logger must have the scalar or string categories set.")
         elif _invalid_inputs != LoggerCategories.NONE:
