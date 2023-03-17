@@ -101,7 +101,7 @@ class PYBIND11_EXPORT MeshDefinition
     void setTriangulationData(pybind11::dict triangulation);
 
     private:
-    unsigned int* m_global;
+    unsigned int* m_globalN;
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
