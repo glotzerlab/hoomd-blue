@@ -128,6 +128,7 @@ __global__ void gpu_compute_volume_constraint_volume_kernel(Scalar* d_partial_su
             d_partial_sum_volume[blockIdx.x * tN + i_types] = volume_sdata[0];
             }
         }
+    free(volume_transfer);
     }
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
