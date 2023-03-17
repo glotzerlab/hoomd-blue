@@ -79,6 +79,24 @@ v4.0.0 (net yet released)
 v3.x
 ----
 
+v3.11.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Changed:
+
+* ``hoomd.hpmc.compute.SDF`` computes pressures for systems of concave and non-monotonic patch
+  interactions (`#1391 <https://github.com/glotzerlab/hoomd-blue/pull/1391>`__).
+
+Fixed:
+
+* Improved readability of images in the documentation
+  (`#1521 <https://github.com/glotzerlab/hoomd-blue/issues/1521>`__).
+
+Deprecated:
+
+* The ``sdf`` attribute of ``hoomd.hpmc.compute.SDF`` - use ``sdf_compression``
+  (`#1391 <https://github.com/glotzerlab/hoomd-blue/pull/1391>`__).
+
 v3.10.0 (2023-03-14)
 ^^^^^^^^^^^^^^^^^^^^
 
