@@ -399,7 +399,7 @@ void IntegratorTwoStep::validateGroups()
         group_size += method->getGroup()->getNumMembersGlobal();
         }
 
-    // Check that methods have non-overlapping groups.   
+    // Check that methods have non-overlapping groups.
     if (m_methods.size() <= 1)
         {
         return;
