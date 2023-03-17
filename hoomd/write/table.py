@@ -208,11 +208,13 @@ class _TableInternal(_InternalAction):
 
         # internal variables that are not part of the state.
         # Ensure that only scalar and potentially string are set for the logger
-        if LoggerCategories.scalar not in logger.categories:
-            raise ValueError("Given Logger must have the scalar categories set.")
+        if LoggerCategories.scalar & LoggerCategories.string not in logger.categories:
+            raise ValueError("Given Logger must have the scalar or string categories set.")
         elif (
             logger.categories & self._invalid_logger_categories != LoggerCategories.NONE
         ):
+            # logger.categories != NONE passes if the logger is empty (no invalid categories)
+            # invalid_categories != NONE passes if the 
             raise ValueError(
                 "{} are incompatible with write.Table: use write.GSD instead.".format(
                     logger.categories & self._invalid_logger_categories
