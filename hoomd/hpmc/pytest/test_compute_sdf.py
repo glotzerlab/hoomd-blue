@@ -352,10 +352,6 @@ def test_logging():
                 'category': LoggerCategories.scalar,
                 'default': True
             },
-            'sdf': {
-                'category': LoggerCategories.sequence,
-                'default': True
-            },
             'sdf_compression': {
                 'category': LoggerCategories.sequence,
                 'default': True
