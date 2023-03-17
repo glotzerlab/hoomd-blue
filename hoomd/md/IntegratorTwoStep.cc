@@ -391,13 +391,15 @@ bool IntegratorTwoStep::areForcesAnisotropic()
 
 void IntegratorTwoStep::validateGroups()
     {
-    // Check if user-provided groups overlap
+    // Check that methods have valid groups.
     size_t group_size = 0;
     for (auto& method : m_methods)
         {
         method->validateGroup();
         group_size += method->getGroup()->getNumMembersGlobal();
         }
+
+    // Check that methods have non-overlapping groups.   
     if (m_methods.size() <= 1)
         {
         return;
