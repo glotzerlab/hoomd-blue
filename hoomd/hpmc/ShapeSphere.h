@@ -322,11 +322,11 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
     \ingroup shape
 */
 DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
-                                         const ShapeSphere& a,
-                                         const ShapeSphere& b,
-                                         const vec3<Scalar>& direction,
-                                         unsigned int& err,
-                                         vec3<Scalar>& collisionPlaneVector)
+                                       const ShapeSphere& a,
+                                       const ShapeSphere& b,
+                                       const vec3<Scalar>& direction,
+                                       unsigned int& err,
+                                       vec3<Scalar>& collisionPlaneVector)
     {
     ShortReal sumR = a.params.radius + b.params.radius;
     ShortReal distSQ = ShortReal(dot(r_ab, r_ab));
@@ -621,11 +621,11 @@ sampleInExcludedVolumeIntersection(RNG& rng,
  */
 template<typename Method, class Shape>
 DEVICE inline ShortReal getSamplingVolumeIntersection(const Shape& shape_a,
-                                                        const Shape& shape_b,
-                                                        const vec3<Scalar>& r_ab,
-                                                        ShortReal r,
-                                                        unsigned int dim,
-                                                        const Method)
+                                                      const Shape& shape_b,
+                                                      const vec3<Scalar>& r_ab,
+                                                      ShortReal r,
+                                                      unsigned int dim,
+                                                      const Method)
     {
     if (dim == 3)
         {

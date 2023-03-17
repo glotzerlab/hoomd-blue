@@ -510,9 +510,9 @@ template<class Shape> void ComputeSDF<Shape>::countHistogramLinearSearch(uint64_
         ShortReal r_cut_patch = 0;
         if (m_mc->getPatchEnergy())
             {
-            r_cut_patch = static_cast<ShortReal>(
-                m_mc->getPatchEnergy()->getRCut()
-                + 0.5 * m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i));
+            r_cut_patch
+                = static_cast<ShortReal>(m_mc->getPatchEnergy()->getRCut()
+                                         + 0.5 * m_mc->getPatchEnergy()->getAdditiveCutoff(typ_i));
             }
         const ShortReal R_query
             = std::max(shape_i.getCircumsphereDiameter() / ShortReal(2.0),

@@ -431,8 +431,8 @@ UP_TEST(random_support_test)
     for (unsigned int i = 0; i < n; ++i)
         {
         p.n[i] = vec3<ShortReal>(slow::sin(theta) * slow::cos(ShortReal(i) * phi),
-                                   slow::sin(theta) * slow::sin(ShortReal(i) * phi),
-                                   slow::cos(theta));
+                                 slow::sin(theta) * slow::sin(ShortReal(i) * phi),
+                                 slow::cos(theta));
         p.offset[i] = ShortReal(-1.1 * cos(theta) / 2.0);
         }
     // p.n[n] = vec3<ShortReal>(0,0,1);
@@ -446,15 +446,14 @@ UP_TEST(random_support_test)
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
-        ShortReal theta = hoomd::UniformDistribution<ShortReal>(ShortReal(0.0),
-                                                                    ShortReal(2.0 * M_PI))(rng);
-        ShortReal z
-            = hoomd::UniformDistribution<ShortReal>(ShortReal(-1.0), ShortReal(1.0))(rng);
+        ShortReal theta
+            = hoomd::UniformDistribution<ShortReal>(ShortReal(0.0), ShortReal(2.0 * M_PI))(rng);
+        ShortReal z = hoomd::UniformDistribution<ShortReal>(ShortReal(-1.0), ShortReal(1.0))(rng);
 
         // random normalized vector
         vec3<ShortReal> n(fast::sqrt(ShortReal(1.0) - z * z) * fast::cos(theta),
-                            fast::sqrt(ShortReal(1.0) - z * z) * fast::sin(theta),
-                            z);
+                          fast::sqrt(ShortReal(1.0) - z * z) * fast::sin(theta),
+                          z);
 
         vec3<ShortReal> s = support(n);
         // printf("%f %f %f\n", s.x, s.y, s.z);
@@ -478,8 +477,8 @@ UP_TEST(random_support_test_2)
     for (unsigned int i = 0; i < n; ++i)
         {
         p.n[i] = vec3<ShortReal>(slow::sin(theta) * slow::cos(ShortReal(i) * phi),
-                                   slow::sin(theta) * slow::sin(ShortReal(i) * phi),
-                                   slow::cos(theta));
+                                 slow::sin(theta) * slow::sin(ShortReal(i) * phi),
+                                 slow::cos(theta));
         p.offset[i] = 0;
         }
     // p.n[n] = vec3<ShortReal>(0,0,1);
@@ -493,15 +492,14 @@ UP_TEST(random_support_test_2)
     for (unsigned int i = 0; i < 10000; ++i)
         {
         // draw a random vector in the excluded volume sphere of the colloid
-        ShortReal theta = hoomd::UniformDistribution<ShortReal>(ShortReal(0.0),
-                                                                    ShortReal(2.0 * M_PI))(rng);
-        ShortReal z
-            = hoomd::UniformDistribution<ShortReal>(ShortReal(-1.0), ShortReal(1.0))(rng);
+        ShortReal theta
+            = hoomd::UniformDistribution<ShortReal>(ShortReal(0.0), ShortReal(2.0 * M_PI))(rng);
+        ShortReal z = hoomd::UniformDistribution<ShortReal>(ShortReal(-1.0), ShortReal(1.0))(rng);
 
         // random normalized vector
         vec3<ShortReal> n(fast::sqrt(ShortReal(1.0) - z * z) * fast::cos(theta),
-                            fast::sqrt(ShortReal(1.0) - z * z) * fast::sin(theta),
-                            z);
+                          fast::sqrt(ShortReal(1.0) - z * z) * fast::sin(theta),
+                          z);
 
         vec3<ShortReal> s = support(n);
         // printf("%f %f %f\n", s.x, s.y, s.z);
@@ -528,8 +526,8 @@ UP_TEST(overlap_special_case)
     for (unsigned int i = 0; i < n; ++i)
         {
         p.n[i] = vec3<ShortReal>(slow::sin(theta) * slow::cos(ShortReal(i) * phi),
-                                   slow::sin(theta) * slow::sin(ShortReal(i) * phi),
-                                   slow::cos(theta));
+                                 slow::sin(theta) * slow::sin(ShortReal(i) * phi),
+                                 slow::cos(theta));
         p.offset[i] = 0;
         }
 

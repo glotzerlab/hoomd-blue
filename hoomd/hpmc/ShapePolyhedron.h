@@ -89,8 +89,8 @@ struct TriangleMesh : ShapeParams
         n_verts = (unsigned int)pybind11::len(verts_list);
         n_faces = (unsigned int)pybind11::len(face_list);
         origin = vec3<ShortReal>(pybind11::cast<ShortReal>(origin_tuple[0]),
-                                   pybind11::cast<ShortReal>(origin_tuple[1]),
-                                   pybind11::cast<ShortReal>(origin_tuple[2]));
+                                 pybind11::cast<ShortReal>(origin_tuple[1]),
+                                 pybind11::cast<ShortReal>(origin_tuple[2]));
 
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
@@ -473,14 +473,14 @@ DEVICE inline ShortReal clamp(ShortReal n, ShortReal min, ShortReal max)
    distance between between S1(s) and S2(t)
 */
 DEVICE inline ShortReal closestPtSegmentSegment(const vec3<ShortReal> p1,
-                                                  const vec3<ShortReal>& q1,
-                                                  const vec3<ShortReal>& p2,
-                                                  const vec3<ShortReal>& q2,
-                                                  ShortReal& s,
-                                                  ShortReal& t,
-                                                  vec3<ShortReal>& c1,
-                                                  vec3<ShortReal>& c2,
-                                                  ShortReal abs_tol)
+                                                const vec3<ShortReal>& q1,
+                                                const vec3<ShortReal>& p2,
+                                                const vec3<ShortReal>& q2,
+                                                ShortReal& s,
+                                                ShortReal& t,
+                                                vec3<ShortReal>& c1,
+                                                vec3<ShortReal>& c2,
+                                                ShortReal abs_tol)
     {
     vec3<ShortReal> d1 = q1 - p1; // Direction vector of segment S1
     vec3<ShortReal> d2 = q2 - p2; // Direction vector of segment S2
@@ -623,8 +623,7 @@ DEVICE inline bool test_line_segment_overlap(const vec3<ShortReal>& p,
     ShortReal t = (del.x * s.y - del.y * s.x) / denom;
     ShortReal u = (del.x * r.y - del.y * r.x) / denom;
 
-    if (t >= ShortReal(0.0) && t <= ShortReal(1.0) && u >= ShortReal(0.0)
-        && u <= ShortReal(1.0))
+    if (t >= ShortReal(0.0) && t <= ShortReal(1.0) && u >= ShortReal(0.0) && u <= ShortReal(1.0))
         {
         // intersection
         return true;
@@ -636,12 +635,12 @@ DEVICE inline bool test_line_segment_overlap(const vec3<ShortReal>& p,
     @returns square of shortest distance
 */
 DEVICE inline ShortReal shortest_distance_triangles(const vec3<ShortReal>& a1,
-                                                      const vec3<ShortReal>& b1,
-                                                      const vec3<ShortReal>& c1,
-                                                      const vec3<ShortReal>& a2,
-                                                      const vec3<ShortReal>& b2,
-                                                      const vec3<ShortReal>& c2,
-                                                      ShortReal abs_tol)
+                                                    const vec3<ShortReal>& b1,
+                                                    const vec3<ShortReal>& c1,
+                                                    const vec3<ShortReal>& a2,
+                                                    const vec3<ShortReal>& b2,
+                                                    const vec3<ShortReal>& c2,
+                                                    ShortReal abs_tol)
     {
     // nine pairs of edges
     ShortReal dmin_sq(FLT_MAX);
@@ -735,8 +734,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<ShortReal> dr,
         unsigned mask_a = a.data.face_overlap[iface];
 
         float U[3][3];
-        quat<ShortReal> q(conj(quat<ShortReal>(b.orientation))
-                            * quat<ShortReal>(a.orientation));
+        quat<ShortReal> q(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation));
         if (nverts_a > 2)
             {
             for (unsigned int ivert = 0; ivert < 3; ++ivert)
@@ -1107,7 +1105,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         // Check if s0 is contained in s1 by shooting a ray from its origin
         // in direction of origin separation
         vec3<ShortReal> n = dr + rotate(quat<ShortReal>(b.orientation), b.data.origin)
-                              - rotate(quat<ShortReal>(a.orientation), a.data.origin);
+                            - rotate(quat<ShortReal>(a.orientation), a.data.origin);
         // rotate ray in coordinate system of shape s1
         p = rotate(conj(quat<ShortReal>(s1.orientation)), p);
         n = rotate(conj(quat<ShortReal>(s1.orientation)), n);

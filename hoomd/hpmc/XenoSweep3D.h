@@ -51,13 +51,13 @@ namespace detail
 */
 template<class SupportFuncA, class SupportFuncB>
 DEVICE inline ShortReal xenosweep_3d(const SupportFuncA& sa,
-                                       const SupportFuncB& sb,
-                                       const vec3<ShortReal>& ab_t,
-                                       const quat<ShortReal>& q,
-                                       const vec3<ShortReal>& direction,
-                                       const ShortReal R,
-                                       unsigned int& err_count,
-                                       vec3<ShortReal>& collisionPlaneVector)
+                                     const SupportFuncB& sb,
+                                     const vec3<ShortReal>& ab_t,
+                                     const quat<ShortReal>& q,
+                                     const vec3<ShortReal>& direction,
+                                     const ShortReal R,
+                                     unsigned int& err_count,
+                                     vec3<ShortReal>& collisionPlaneVector)
     {
     vec3<ShortReal> v0, v1, v2, v3, v4, n, x;
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, q);

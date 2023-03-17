@@ -621,7 +621,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 5) && (q.n == 1))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = x + pv[3], e = x + pv[4],
-                          f = y + qv[0];
+                        f = y + qv[0];
         return !detail::sep6(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -654,7 +654,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 4) && (q.n == 2))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = x + pv[3], e = y + qv[0],
-                          f = y + qv[1];
+                        f = y + qv[1];
         return !detail::sep6(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -687,7 +687,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 3) && (q.n == 3))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = y + qv[0], e = y + qv[1],
-                          f = y + qv[2];
+                        f = y + qv[2];
         return !detail::sep6(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -720,7 +720,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 2) && (q.n == 4))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = y + qv[0], d = y + qv[1], e = y + qv[2],
-                          f = y + qv[3];
+                        f = y + qv[3];
         return !detail::sep6(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -753,7 +753,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 1) && (q.n == 5))
         {
         vec3<ShortReal> a = x + pv[0], b = y + qv[0], c = y + qv[1], d = y + qv[2], e = y + qv[3],
-                          f = y + qv[4];
+                        f = y + qv[4];
         return !detail::sep6(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(q.s[0]),
@@ -787,7 +787,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 5) && (q.n == 2))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = x + pv[3], e = x + pv[4],
-                          f = y + qv[0], g = y + qv[1];
+                        f = y + qv[0], g = y + qv[1];
         return !detail::sep7(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -828,7 +828,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 4) && (q.n == 3))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = x + pv[3], e = y + qv[0],
-                          f = y + qv[1], g = y + qv[2];
+                        f = y + qv[1], g = y + qv[2];
         return !detail::sep7(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -869,7 +869,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 3) && (q.n == 4))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = y + qv[0], e = y + qv[1],
-                          f = y + qv[2], g = y + qv[3];
+                        f = y + qv[2], g = y + qv[3];
         return !detail::sep7(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -910,7 +910,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 2) && (q.n == 5))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = y + qv[0], d = y + qv[1], e = y + qv[2],
-                          f = y + qv[3], g = y + qv[4];
+                        f = y + qv[3], g = y + qv[4];
         return !detail::sep7(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -952,7 +952,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 5) && (q.n == 3))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = x + pv[3], e = x + pv[4],
-                          f = y + qv[0], g = y + qv[1], h = y + qv[2];
+                        f = y + qv[0], g = y + qv[1], h = y + qv[2];
         return !detail::sep8(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -1002,7 +1002,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 4) && (q.n == 4))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = x + pv[3], e = y + qv[0],
-                          f = y + qv[1], g = y + qv[2], h = y + qv[3];
+                        f = y + qv[1], g = y + qv[2], h = y + qv[3];
         return !detail::sep8(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),
@@ -1052,7 +1052,7 @@ DEVICE inline bool test_overlap<ShapeSphinx, ShapeSphinx>(const vec3<Scalar>& r_
     if ((p.n == 3) && (q.n == 5))
         {
         vec3<ShortReal> a = x + pv[0], b = x + pv[1], c = x + pv[2], d = y + qv[0], e = y + qv[1],
-                          f = y + qv[2], g = y + qv[3], h = y + qv[4];
+                        f = y + qv[2], g = y + qv[3], h = y + qv[4];
         return !detail::sep8(p.convex && q.convex,
                              ShortReal(p.s[0]),
                              ShortReal(p.s[1]),

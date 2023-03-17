@@ -2032,9 +2032,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                                  access_mode::read);
 
             Shape shape(orientation, params[type]);
-            ShortReal R_query
-                = std::max(shape.getCircumsphereDiameter() / ShortReal(2.0),
-                           r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
+            ShortReal R_query = std::max(shape.getCircumsphereDiameter() / ShortReal(2.0),
+                                         r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)

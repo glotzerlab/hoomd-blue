@@ -161,8 +161,8 @@ struct PolyhedronVertices : ShapeParams
             if (len(verts_i) != 3)
                 throw std::runtime_error("Each vertex must have 3 elements");
             vec3<ShortReal> vert = vec3<ShortReal>(pybind11::cast<ShortReal>(verts_i[0]),
-                                                       pybind11::cast<ShortReal>(verts_i[1]),
-                                                       pybind11::cast<ShortReal>(verts_i[2]));
+                                                   pybind11::cast<ShortReal>(verts_i[1]),
+                                                   pybind11::cast<ShortReal>(verts_i[2]));
             vert_vector.push_back(vert);
             }
 
@@ -470,7 +470,7 @@ class SupportFuncConvexPolyhedron
 
     private:
     const PolyhedronVertices& verts; //!< Vertices of the polyhedron
-    const ShortReal sweep_radius;  //!< Extra sweep radius
+    const ShortReal sweep_radius;    //!< Extra sweep radius
     };
 
 /** Geometric primitives for closest point calculation
@@ -479,9 +479,9 @@ class SupportFuncConvexPolyhedron
     https://doi.org/10.1201/b14581
 */
 DEVICE inline vec3<ShortReal> closestPointOnTriangle(const vec3<ShortReal>& p,
-                                                       const vec3<ShortReal>& a,
-                                                       const vec3<ShortReal>& b,
-                                                       const vec3<ShortReal>& c)
+                                                     const vec3<ShortReal>& a,
+                                                     const vec3<ShortReal>& b,
+                                                     const vec3<ShortReal>& c)
     {
     vec3<ShortReal> ab = b - a;
     vec3<ShortReal> ac = c - a;
@@ -547,9 +547,9 @@ DEVICE inline bool PointOutsideOfPlane(const vec3<ShortReal>& p,
 
 /// Find the point on a segment closest to point p
 DEVICE inline vec3<ShortReal> ClosestPtPointSegment(const vec3<ShortReal>& c,
-                                                      const vec3<ShortReal>& a,
-                                                      const vec3<ShortReal>& b,
-                                                      ShortReal& t)
+                                                    const vec3<ShortReal>& a,
+                                                    const vec3<ShortReal>& b,
+                                                    ShortReal& t)
     {
     vec3<ShortReal> ab = b - a;
 
@@ -693,7 +693,7 @@ class ProjectionFuncConvexPolyhedron
 
     private:
     const PolyhedronVertices& verts; //!< Vertices of the polyhedron
-    const ShortReal sweep_radius;  //!< extra sphere sweep radius
+    const ShortReal sweep_radius;    //!< extra sphere sweep radius
     };
 
     }; // end namespace detail
@@ -850,11 +850,11 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     \ingroup shape
 */
 DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
-                                         const ShapeConvexPolyhedron& a,
-                                         const ShapeConvexPolyhedron& b,
-                                         const vec3<Scalar>& direction,
-                                         unsigned int& err,
-                                         vec3<Scalar>& collisionPlaneVector)
+                                       const ShapeConvexPolyhedron& a,
+                                       const ShapeConvexPolyhedron& b,
+                                       const vec3<Scalar>& direction,
+                                       unsigned int& err,
+                                       vec3<Scalar>& collisionPlaneVector)
     {
     vec3<ShortReal> dr(r_ab);
     vec3<ShortReal> to(direction);
@@ -864,14 +864,14 @@ DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
     ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
     ShortReal distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
-                                                detail::SupportFuncConvexPolyhedron(b.verts),
-                                                rotate(conj(quat<ShortReal>(a.orientation)), dr),
-                                                conj(quat<ShortReal>(a.orientation))
-                                                    * quat<ShortReal>(b.orientation),
-                                                rotate(conj(quat<ShortReal>(a.orientation)), to),
-                                                DaDb / ShortReal(2.0),
-                                                err,
-                                                csp);
+                                              detail::SupportFuncConvexPolyhedron(b.verts),
+                                              rotate(conj(quat<ShortReal>(a.orientation)), dr),
+                                              conj(quat<ShortReal>(a.orientation))
+                                                  * quat<ShortReal>(b.orientation),
+                                              rotate(conj(quat<ShortReal>(a.orientation)), to),
+                                              DaDb / ShortReal(2.0),
+                                              err,
+                                              csp);
     collisionPlaneVector = vec3<Scalar>(rotate(quat<ShortReal>(a.orientation), csp));
 
     return distance;

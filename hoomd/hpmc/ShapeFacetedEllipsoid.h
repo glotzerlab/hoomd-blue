@@ -78,8 +78,8 @@ struct FacetedEllipsoidParams : ShapeParams
                                          + pybind11::str(normals_i).cast<std::string>() + " in "
                                          + pybind11::str(normals).cast<std::string>());
             n[i] = vec3<ShortReal>(pybind11::cast<ShortReal>(normals_i[0]),
-                                     pybind11::cast<ShortReal>(normals_i[1]),
-                                     pybind11::cast<ShortReal>(normals_i[2]));
+                                   pybind11::cast<ShortReal>(normals_i[1]),
+                                   pybind11::cast<ShortReal>(normals_i[2]));
             offset[i] = pybind11::cast<ShortReal>(offsets[i]);
             }
 
@@ -107,8 +107,8 @@ struct FacetedEllipsoidParams : ShapeParams
 
         // set the origin
         origin = vec3<ShortReal>(pybind11::cast<ShortReal>(origin_tuple[0]),
-                                   pybind11::cast<ShortReal>(origin_tuple[1]),
-                                   pybind11::cast<ShortReal>(origin_tuple[2]));
+                                 pybind11::cast<ShortReal>(origin_tuple[1]),
+                                 pybind11::cast<ShortReal>(origin_tuple[2]));
 
         // add the edge-sphere vertices
         initializeVertices(managed);

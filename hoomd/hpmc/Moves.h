@@ -283,12 +283,11 @@ generatePositionInOBB(RNG& rng, const detail::OBB& obb, unsigned int dim)
         else
             {
             // disk
-            ShortReal alpha
-                = hoomd::UniformDistribution<ShortReal>((float)-M_PI, (float)M_PI)(rng);
+            ShortReal alpha = hoomd::UniformDistribution<ShortReal>((float)-M_PI, (float)M_PI)(rng);
             return obb.center
                    + vec3<ShortReal>(obb.lengths.x * fast::cos(alpha),
-                                       obb.lengths.x * fast::sin(alpha),
-                                       0);
+                                     obb.lengths.x * fast::sin(alpha),
+                                     0);
             }
         }
     else

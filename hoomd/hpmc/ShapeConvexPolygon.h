@@ -63,8 +63,7 @@ struct PolygonVertices : ShapeParams
     unsigned int ignore;
 
     /// Default constructor initializes zero values.
-    DEVICE PolygonVertices()
-        : N(0), diameter(ShortReal(0)), sweep_radius(ShortReal(0)), ignore(0)
+    DEVICE PolygonVertices() : N(0), diameter(ShortReal(0)), sweep_radius(ShortReal(0)), ignore(0)
         {
         for (unsigned int i = 0; i < MAX_POLY2D_VERTS; i++)
             {
@@ -99,7 +98,7 @@ struct PolygonVertices : ShapeParams
                 throw std::runtime_error("Each vertex must have 2 elements");
 
             vec2<ShortReal> vert = vec2<ShortReal>(pybind11::cast<ShortReal>(verts_i[0]),
-                                                       pybind11::cast<ShortReal>(verts_i[1]));
+                                                   pybind11::cast<ShortReal>(verts_i[1]));
             x[i] = vert.x;
             y[i] = vert.y;
             radius_sq = max(radius_sq, dot(vert, vert));

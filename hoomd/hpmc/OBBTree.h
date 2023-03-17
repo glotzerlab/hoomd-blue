@@ -269,8 +269,7 @@ OBBTree::buildTree(OBB* obbs, unsigned int N, unsigned int leaf_capacity, bool s
         {
         if (obbs[i].isSphere())
             {
-            internal_coordinates.push_back(
-                std::vector<vec3<ShortReal>>(1, obbs[i].getPosition()));
+            internal_coordinates.push_back(std::vector<vec3<ShortReal>>(1, obbs[i].getPosition()));
 
             // all OBB lengths are equal to the radius
             vertex_radii.push_back(std::vector<ShortReal>(1, obbs[i].lengths.x));

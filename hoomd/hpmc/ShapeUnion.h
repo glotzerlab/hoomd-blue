@@ -210,8 +210,8 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
                                          + pybind11::str(positions).cast<std::string>());
 
             vec3<ShortReal> pos = vec3<ShortReal>(pybind11::cast<ShortReal>(position[0]),
-                                                      pybind11::cast<ShortReal>(position[1]),
-                                                      pybind11::cast<ShortReal>(position[2]));
+                                                  pybind11::cast<ShortReal>(position[1]),
+                                                  pybind11::cast<ShortReal>(position[2]));
 
             mparams[i] = param;
             mpos[i] = pos;
@@ -598,8 +598,7 @@ DEVICE inline bool test_narrow_phase_excluded_volume_overlap(vec3<ShortReal> dr,
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
             shape_i.orientation = conj(quat<ShortReal>(b.orientation))
-                                  * quat<ShortReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
         vec3<ShortReal> pos_i(
             rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
@@ -793,12 +792,12 @@ allocateDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
 
 template<class Shape>
 DEVICE inline ShortReal sampling_volume_narrow_phase(vec3<ShortReal> dr,
-                                                       const ShapeUnion<Shape>& a,
-                                                       const ShapeUnion<Shape>& b,
-                                                       unsigned int cur_node_a,
-                                                       unsigned int cur_node_b,
-                                                       ShortReal r,
-                                                       unsigned int dim)
+                                                     const ShapeUnion<Shape>& a,
+                                                     const ShapeUnion<Shape>& b,
+                                                     unsigned int cur_node_a,
+                                                     unsigned int cur_node_b,
+                                                     ShortReal r,
+                                                     unsigned int dim)
     {
     vec3<ShortReal> r_ab = rotate(conj(quat<ShortReal>(b.orientation)), vec3<ShortReal>(dr));
 
@@ -816,8 +815,7 @@ DEVICE inline ShortReal sampling_volume_narrow_phase(vec3<ShortReal> dr,
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
             shape_i.orientation = conj(quat<ShortReal>(b.orientation))
-                                  * quat<ShortReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
         vec3<ShortReal> pos_i(
             rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
@@ -962,11 +960,11 @@ initializeDepletionTemporaryStorage(const ShapeUnion<Shape>& a,
  */
 template<class Shape>
 DEVICE inline ShortReal getSamplingVolumeIntersection(const ShapeUnion<Shape>& a,
-                                                        const ShapeUnion<Shape>& b,
-                                                        const vec3<Scalar>& r_ab,
-                                                        ShortReal r,
-                                                        unsigned int dim,
-                                                        const detail::SamplingMethod::enumAccurate)
+                                                      const ShapeUnion<Shape>& b,
+                                                      const vec3<Scalar>& r_ab,
+                                                      ShortReal r,
+                                                      unsigned int dim,
+                                                      const detail::SamplingMethod::enumAccurate)
     {
     // perform a tandem tree traversal
     const detail::GPUTree& tree_a = a.members.tree;
@@ -1063,8 +1061,7 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
             shape_i.orientation = conj(quat<ShortReal>(b.orientation))
-                                  * quat<ShortReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
         vec3<ShortReal> pos_i(
             rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
@@ -1118,8 +1115,7 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
     Shape shape_j(b.orientation * quat<Scalar>(b.members.morientation[jshape]),
                   b.members.mparams[jshape]);
     vec3<ShortReal> pos_i = rotate(quat<ShortReal>(a.orientation), a.members.mpos[ishape]);
-    vec3<Scalar> r_ij
-        = rotate(quat<ShortReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
+    vec3<Scalar> r_ij = rotate(quat<ShortReal>(b.orientation), b.members.mpos[jshape]) + dr - pos_i;
 
     // set up temp storage on stack / in local memory
     unsigned int ntemp = allocateDepletionTemporaryStorage(shape_i,
@@ -1165,8 +1161,7 @@ DEVICE inline bool sample_narrow_phase(RNG& rng,
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
             shape_i.orientation = conj(quat<ShortReal>(b.orientation))
-                                  * quat<ShortReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
         vec3<ShortReal> pos_i(
             rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),
@@ -1244,8 +1239,7 @@ DEVICE inline bool pt_in_intersection_narrow_phase(vec3<ShortReal> dr,
         Shape shape_i(quat<Scalar>(), params_i);
         if (shape_i.hasOrientation())
             shape_i.orientation = conj(quat<ShortReal>(b.orientation))
-                                  * quat<ShortReal>(a.orientation)
-                                  * a.members.morientation[ishape];
+                                  * quat<ShortReal>(a.orientation) * a.members.morientation[ishape];
 
         vec3<ShortReal> pos_i(
             rotate(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation),

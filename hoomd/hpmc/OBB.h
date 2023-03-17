@@ -412,7 +412,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<ShortReal>& p,
                                    vec3<ShortReal>& q,
                                    ShortReal abs_tol)
     {
-    tmin = 0.0f;                // set to -FLT_MAX to get first hit on line
+    tmin = 0.0f;              // set to -FLT_MAX to get first hit on line
     ShortReal tmax = FLT_MAX; // set to max distance ray can travel (for segment)
 
     // rotate ray in local coordinate system
@@ -592,8 +592,8 @@ merge_two_spheres(vec3<ShortReal>& c, ShortReal r, vec3<ShortReal> p, ShortReal 
     }
 
 inline ShortReal eigen_sphere(const std::vector<vec3<ShortReal>>& verts,
-                                vec3<ShortReal>& center,
-                                const std::vector<ShortReal>& vertex_radii)
+                              vec3<ShortReal>& center,
+                              const std::vector<ShortReal>& vertex_radii)
     {
     // compute covariance matrix
     Eigen::MatrixXd m(3, 3);
@@ -637,14 +637,14 @@ inline ShortReal eigen_sphere(const std::vector<vec3<ShortReal>>& verts,
         Eigen::MatrixXd eigenvec = es.eigenvectors();
 
         r.row0 = vec3<ShortReal>(ShortReal(eigenvec(0, 0)),
-                                   ShortReal(eigenvec(0, 1)),
-                                   ShortReal(eigenvec(0, 2)));
+                                 ShortReal(eigenvec(0, 1)),
+                                 ShortReal(eigenvec(0, 2)));
         r.row1 = vec3<ShortReal>(ShortReal(eigenvec(1, 0)),
-                                   ShortReal(eigenvec(1, 1)),
-                                   ShortReal(eigenvec(1, 2)));
+                                 ShortReal(eigenvec(1, 1)),
+                                 ShortReal(eigenvec(1, 2)));
         r.row2 = vec3<ShortReal>(ShortReal(eigenvec(2, 0)),
-                                   ShortReal(eigenvec(2, 1)),
-                                   ShortReal(eigenvec(2, 2)));
+                                 ShortReal(eigenvec(2, 1)),
+                                 ShortReal(eigenvec(2, 2)));
         eigen_val = es.eigenvalues();
         }
 
@@ -691,8 +691,8 @@ inline ShortReal eigen_sphere(const std::vector<vec3<ShortReal>>& verts,
     }
 
 inline ShortReal ritter_eigen_sphere(const std::vector<vec3<ShortReal>>& verts,
-                                       vec3<ShortReal>& c,
-                                       const std::vector<ShortReal>& vertex_radii)
+                                     vec3<ShortReal>& c,
+                                     const std::vector<ShortReal>& vertex_radii)
     {
     ShortReal r = eigen_sphere(verts, c, vertex_radii);
     for (unsigned int i = 0; i < verts.size(); ++i)
@@ -704,8 +704,8 @@ inline ShortReal ritter_eigen_sphere(const std::vector<vec3<ShortReal>>& verts,
     }
 
 inline ShortReal ritter_iterative(std::vector<vec3<ShortReal>> verts,
-                                    vec3<ShortReal>& c,
-                                    std::vector<ShortReal> vertex_radii)
+                                  vec3<ShortReal>& c,
+                                  std::vector<ShortReal> vertex_radii)
     {
     const unsigned int MAX_IT = 16;
 
@@ -873,14 +873,14 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<ShortReal>>& pts,
             Eigen::MatrixXd eigenvec_ortho = qr.householderQ();
 
             r.row0 = vec3<ShortReal>(ShortReal(eigenvec_ortho(0, 0)),
-                                       ShortReal(eigenvec_ortho(0, 1)),
-                                       ShortReal(eigenvec_ortho(0, 2)));
+                                     ShortReal(eigenvec_ortho(0, 1)),
+                                     ShortReal(eigenvec_ortho(0, 2)));
             r.row1 = vec3<ShortReal>(ShortReal(eigenvec_ortho(1, 0)),
-                                       ShortReal(eigenvec_ortho(1, 1)),
-                                       ShortReal(eigenvec_ortho(1, 2)));
+                                     ShortReal(eigenvec_ortho(1, 1)),
+                                     ShortReal(eigenvec_ortho(1, 2)));
             r.row2 = vec3<ShortReal>(ShortReal(eigenvec_ortho(2, 0)),
-                                       ShortReal(eigenvec_ortho(2, 1)),
-                                       ShortReal(eigenvec_ortho(2, 2)));
+                                     ShortReal(eigenvec_ortho(2, 1)),
+                                     ShortReal(eigenvec_ortho(2, 2)));
             }
 
         if (pts.size() >= 3)

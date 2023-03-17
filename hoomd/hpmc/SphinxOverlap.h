@@ -50,56 +50,55 @@ DEVICE inline ShortReal norm2(const vec3<ShortReal>& v)
 #define EPS 1e-12
 
 DEVICE inline ShortReal ang4(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal af,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal bf,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal cf,
-                               ShortReal de,
-                               ShortReal df,
-                               ShortReal ef);
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal af,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal bf,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal cf,
+                             ShortReal de,
+                             ShortReal df,
+                             ShortReal ef);
 DEVICE inline ShortReal ang5(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal af,
-                               ShortReal ag,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal bf,
-                               ShortReal bg,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal cf,
-                               ShortReal cg,
-                               ShortReal de,
-                               ShortReal df,
-                               ShortReal dg,
-                               ShortReal ef,
-                               ShortReal eg,
-                               ShortReal fg);
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal af,
+                             ShortReal ag,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal bf,
+                             ShortReal bg,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal cf,
+                             ShortReal cg,
+                             ShortReal de,
+                             ShortReal df,
+                             ShortReal dg,
+                             ShortReal ef,
+                             ShortReal eg,
+                             ShortReal fg);
 DEVICE inline bool
 sep2(bool convex, ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab);
-DEVICE inline bool
-seq2(ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab);
+DEVICE inline bool seq2(ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab);
 
 DEVICE inline ShortReal vok4(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal de)
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal de)
     {
     ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
     ShortReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
@@ -264,26 +263,26 @@ DEVICE inline bool vok5(ShortReal ab,
     }
 
 DEVICE inline ShortReal vok6(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal af,
-                               ShortReal ag,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal bf,
-                               ShortReal bg,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal cf,
-                               ShortReal cg,
-                               ShortReal de,
-                               ShortReal df,
-                               ShortReal dg,
-                               ShortReal ef,
-                               ShortReal eg,
-                               ShortReal fg)
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal af,
+                             ShortReal ag,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal bf,
+                             ShortReal bg,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal cf,
+                             ShortReal cg,
+                             ShortReal de,
+                             ShortReal df,
+                             ShortReal dg,
+                             ShortReal ef,
+                             ShortReal eg,
+                             ShortReal fg)
     {
     ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
     ShortReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
@@ -358,215 +357,215 @@ DEVICE inline ShortReal vok6(ShortReal ab,
     ShortReal bgcdef = bg * cdef, bgcedf = bg * cedf, bgcfde = bg * cfde;
 
     ShortReal Qabcdef = abcdef + acbedf + acbfde + adbecf + adbfce + aebcdf + aebdcf + afbcde
-                          + afbdce - abcedf - abcfde - acbdef - adbcef - aebfcd - afbecd;
+                        + afbdce - abcedf - abcfde - acbdef - adbcef - aebfcd - afbecd;
     ShortReal Qabcedf = abcedf + acbdef + acbfde + adbcef + adbecf + aebdcf + aebfcd + afbcde
-                          + afbecd - abcdef - abcfde - acbedf - adbfce - aebcdf - afbdce;
+                        + afbecd - abcdef - abcfde - acbedf - adbfce - aebcdf - afbdce;
     ShortReal Qabcfde = abcfde + acbdef + acbedf + adbcef + adbfce + aebcdf + aebfcd + afbdce
-                          + afbecd - abcdef - abcedf - acbfde - adbecf - aebdcf - afbcde;
+                        + afbecd - abcdef - abcedf - acbfde - adbecf - aebdcf - afbcde;
     ShortReal Qacbdef = abcedf + abcfde + acbdef + adbecf + adbfce + aebcdf + aebfcd + afbcde
-                          + afbecd - abcdef - acbedf - acbfde - adbcef - aebdcf - afbdce;
+                        + afbecd - abcdef - acbedf - acbfde - adbcef - aebdcf - afbdce;
     ShortReal Qacbedf = abcdef + abcfde + acbedf + adbcef + adbfce + aebdcf + aebfcd + afbcde
-                          + afbdce - abcedf - acbdef - acbfde - adbecf - aebcdf - afbecd;
+                        + afbdce - abcedf - acbdef - acbfde - adbecf - aebcdf - afbecd;
     ShortReal Qacbfde = abcdef + abcedf + acbfde + adbcef + adbecf + aebcdf + aebdcf + afbdce
-                          + afbecd - abcfde - acbdef - acbedf - adbfce - aebfcd - afbcde;
+                        + afbecd - abcfde - acbdef - acbedf - adbfce - aebfcd - afbcde;
     ShortReal Qadbcef = abcedf + abcfde + acbedf + acbfde + adbcef + aebdcf + aebfcd + afbdce
-                          + afbecd - abcdef - acbdef - adbecf - adbfce - aebcdf - afbcde;
+                        + afbecd - abcdef - acbdef - adbecf - adbfce - aebcdf - afbcde;
     ShortReal Qadbecf = abcdef + abcedf + acbdef + acbfde + adbecf + aebcdf + aebfcd + afbcde
-                          + afbdce - abcfde - acbedf - adbcef - adbfce - aebdcf - afbecd;
+                        + afbdce - abcfde - acbedf - adbcef - adbfce - aebdcf - afbecd;
     ShortReal Qadbfce = abcdef + abcfde + acbdef + acbedf + adbfce + aebcdf + aebdcf + afbcde
-                          + afbecd - abcedf - acbfde - adbcef - adbecf - aebfcd - afbdce;
+                        + afbecd - abcedf - acbfde - adbcef - adbecf - aebfcd - afbdce;
     ShortReal Qaebcdf = abcdef + abcfde + acbdef + acbfde + adbecf + adbfce + aebcdf + afbdce
-                          + afbecd - abcedf - acbedf - adbcef - aebdcf - aebfcd - afbcde;
+                        + afbecd - abcedf - acbedf - adbcef - aebdcf - aebfcd - afbcde;
     ShortReal Qaebdcf = abcdef + abcedf + acbedf + acbfde + adbcef + adbfce + aebdcf + afbcde
-                          + afbecd - abcfde - acbdef - adbecf - aebcdf - aebfcd - afbdce;
+                        + afbecd - abcfde - acbdef - adbecf - aebcdf - aebfcd - afbdce;
     ShortReal Qaebfcd = abcedf + abcfde + acbdef + acbedf + adbcef + adbecf + aebfcd + afbcde
-                          + afbdce - abcdef - acbfde - adbfce - aebcdf - aebdcf - afbecd;
+                        + afbdce - abcdef - acbfde - adbfce - aebcdf - aebdcf - afbecd;
     ShortReal Qafbcde = abcdef + abcedf + acbdef + acbedf + adbecf + adbfce + aebdcf + aebfcd
-                          + afbcde - abcfde - acbfde - adbcef - aebcdf - afbdce - afbecd;
+                        + afbcde - abcfde - acbfde - adbcef - aebcdf - afbdce - afbecd;
     ShortReal Qafbdce = abcdef + abcfde + acbedf + acbfde + adbcef + adbecf + aebcdf + aebfcd
-                          + afbdce - abcedf - acbdef - adbfce - aebdcf - afbcde - afbecd;
+                        + afbdce - abcedf - acbdef - adbfce - aebdcf - afbcde - afbecd;
     ShortReal Qafbecd = abcedf + abcfde + acbdef + acbfde + adbcef + adbfce + aebcdf + aebdcf
-                          + afbecd - abcdef - acbedf - adbecf - aebfcd - afbcde - afbdce;
+                        + afbecd - abcdef - acbedf - adbecf - aebfcd - afbcde - afbdce;
     ShortReal Qabcdeg = abcdeg + acbedg + acbgde + adbecg + adbgce + aebcdg + aebdcg + agbcde
-                          + agbdce - abcedg - abcgde - acbdeg - adbceg - aebgcd - agbecd;
+                        + agbdce - abcedg - abcgde - acbdeg - adbceg - aebgcd - agbecd;
     ShortReal Qabcedg = abcedg + acbdeg + acbgde + adbceg + adbecg + aebdcg + aebgcd + agbcde
-                          + agbecd - abcdeg - abcgde - acbedg - adbgce - aebcdg - agbdce;
+                        + agbecd - abcdeg - abcgde - acbedg - adbgce - aebcdg - agbdce;
     ShortReal Qabcgde = abcgde + acbdeg + acbedg + adbceg + adbgce + aebcdg + aebgcd + agbdce
-                          + agbecd - abcdeg - abcedg - acbgde - adbecg - aebdcg - agbcde;
+                        + agbecd - abcdeg - abcedg - acbgde - adbecg - aebdcg - agbcde;
     ShortReal Qacbdeg = abcedg + abcgde + acbdeg + adbecg + adbgce + aebcdg + aebgcd + agbcde
-                          + agbecd - abcdeg - acbedg - acbgde - adbceg - aebdcg - agbdce;
+                        + agbecd - abcdeg - acbedg - acbgde - adbceg - aebdcg - agbdce;
     ShortReal Qacbedg = abcdeg + abcgde + acbedg + adbceg + adbgce + aebdcg + aebgcd + agbcde
-                          + agbdce - abcedg - acbdeg - acbgde - adbecg - aebcdg - agbecd;
+                        + agbdce - abcedg - acbdeg - acbgde - adbecg - aebcdg - agbecd;
     ShortReal Qacbgde = abcdeg + abcedg + acbgde + adbceg + adbecg + aebcdg + aebdcg + agbdce
-                          + agbecd - abcgde - acbdeg - acbedg - adbgce - aebgcd - agbcde;
+                        + agbecd - abcgde - acbdeg - acbedg - adbgce - aebgcd - agbcde;
     ShortReal Qadbceg = abcedg + abcgde + acbedg + acbgde + adbceg + aebdcg + aebgcd + agbdce
-                          + agbecd - abcdeg - acbdeg - adbecg - adbgce - aebcdg - agbcde;
+                        + agbecd - abcdeg - acbdeg - adbecg - adbgce - aebcdg - agbcde;
     ShortReal Qadbecg = abcdeg + abcedg + acbdeg + acbgde + adbecg + aebcdg + aebgcd + agbcde
-                          + agbdce - abcgde - acbedg - adbceg - adbgce - aebdcg - agbecd;
+                        + agbdce - abcgde - acbedg - adbceg - adbgce - aebdcg - agbecd;
     ShortReal Qadbgce = abcdeg + abcgde + acbdeg + acbedg + adbgce + aebcdg + aebdcg + agbcde
-                          + agbecd - abcedg - acbgde - adbceg - adbecg - aebgcd - agbdce;
+                        + agbecd - abcedg - acbgde - adbceg - adbecg - aebgcd - agbdce;
     ShortReal Qaebcdg = abcdeg + abcgde + acbdeg + acbgde + adbecg + adbgce + aebcdg + agbdce
-                          + agbecd - abcedg - acbedg - adbceg - aebdcg - aebgcd - agbcde;
+                        + agbecd - abcedg - acbedg - adbceg - aebdcg - aebgcd - agbcde;
     ShortReal Qaebdcg = abcdeg + abcedg + acbedg + acbgde + adbceg + adbgce + aebdcg + agbcde
-                          + agbecd - abcgde - acbdeg - adbecg - aebcdg - aebgcd - agbdce;
+                        + agbecd - abcgde - acbdeg - adbecg - aebcdg - aebgcd - agbdce;
     ShortReal Qaebgcd = abcedg + abcgde + acbdeg + acbedg + adbceg + adbecg + aebgcd + agbcde
-                          + agbdce - abcdeg - acbgde - adbgce - aebcdg - aebdcg - agbecd;
+                        + agbdce - abcdeg - acbgde - adbgce - aebcdg - aebdcg - agbecd;
     ShortReal Qagbcde = abcdeg + abcedg + acbdeg + acbedg + adbecg + adbgce + aebdcg + aebgcd
-                          + agbcde - abcgde - acbgde - adbceg - aebcdg - agbdce - agbecd;
+                        + agbcde - abcgde - acbgde - adbceg - aebcdg - agbdce - agbecd;
     ShortReal Qagbdce = abcdeg + abcgde + acbedg + acbgde + adbceg + adbecg + aebcdg + aebgcd
-                          + agbdce - abcedg - acbdeg - adbgce - aebdcg - agbcde - agbecd;
+                        + agbdce - abcedg - acbdeg - adbgce - aebdcg - agbcde - agbecd;
     ShortReal Qagbecd = abcedg + abcgde + acbdeg + acbgde + adbceg + adbgce + aebcdg + aebdcg
-                          + agbecd - abcdeg - acbedg - adbecg - aebgcd - agbcde - agbdce;
+                        + agbecd - abcdeg - acbedg - adbecg - aebgcd - agbcde - agbdce;
     ShortReal Qabcdfg = abcdfg + acbfdg + acbgdf + adbfcg + adbgcf + afbcdg + afbdcg + agbcdf
-                          + agbdcf - abcfdg - abcgdf - acbdfg - adbcfg - afbgcd - agbfcd;
+                        + agbdcf - abcfdg - abcgdf - acbdfg - adbcfg - afbgcd - agbfcd;
     ShortReal Qabcfdg = abcfdg + acbdfg + acbgdf + adbcfg + adbfcg + afbdcg + afbgcd + agbcdf
-                          + agbfcd - abcdfg - abcgdf - acbfdg - adbgcf - afbcdg - agbdcf;
+                        + agbfcd - abcdfg - abcgdf - acbfdg - adbgcf - afbcdg - agbdcf;
     ShortReal Qabcgdf = abcgdf + acbdfg + acbfdg + adbcfg + adbgcf + afbcdg + afbgcd + agbdcf
-                          + agbfcd - abcdfg - abcfdg - acbgdf - adbfcg - afbdcg - agbcdf;
+                        + agbfcd - abcdfg - abcfdg - acbgdf - adbfcg - afbdcg - agbcdf;
     ShortReal Qacbdfg = abcfdg + abcgdf + acbdfg + adbfcg + adbgcf + afbcdg + afbgcd + agbcdf
-                          + agbfcd - abcdfg - acbfdg - acbgdf - adbcfg - afbdcg - agbdcf;
+                        + agbfcd - abcdfg - acbfdg - acbgdf - adbcfg - afbdcg - agbdcf;
     ShortReal Qacbfdg = abcdfg + abcgdf + acbfdg + adbcfg + adbgcf + afbdcg + afbgcd + agbcdf
-                          + agbdcf - abcfdg - acbdfg - acbgdf - adbfcg - afbcdg - agbfcd;
+                        + agbdcf - abcfdg - acbdfg - acbgdf - adbfcg - afbcdg - agbfcd;
     ShortReal Qacbgdf = abcdfg + abcfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbdcg + agbdcf
-                          + agbfcd - abcgdf - acbdfg - acbfdg - adbgcf - afbgcd - agbcdf;
+                        + agbfcd - abcgdf - acbdfg - acbfdg - adbgcf - afbgcd - agbcdf;
     ShortReal Qadbcfg = abcfdg + abcgdf + acbfdg + acbgdf + adbcfg + afbdcg + afbgcd + agbdcf
-                          + agbfcd - abcdfg - acbdfg - adbfcg - adbgcf - afbcdg - agbcdf;
+                        + agbfcd - abcdfg - acbdfg - adbfcg - adbgcf - afbcdg - agbcdf;
     ShortReal Qadbfcg = abcdfg + abcfdg + acbdfg + acbgdf + adbfcg + afbcdg + afbgcd + agbcdf
-                          + agbdcf - abcgdf - acbfdg - adbcfg - adbgcf - afbdcg - agbfcd;
+                        + agbdcf - abcgdf - acbfdg - adbcfg - adbgcf - afbdcg - agbfcd;
     ShortReal Qadbgcf = abcdfg + abcgdf + acbdfg + acbfdg + adbgcf + afbcdg + afbdcg + agbcdf
-                          + agbfcd - abcfdg - acbgdf - adbcfg - adbfcg - afbgcd - agbdcf;
+                        + agbfcd - abcfdg - acbgdf - adbcfg - adbfcg - afbgcd - agbdcf;
     ShortReal Qafbcdg = abcdfg + abcgdf + acbdfg + acbgdf + adbfcg + adbgcf + afbcdg + agbdcf
-                          + agbfcd - abcfdg - acbfdg - adbcfg - afbdcg - afbgcd - agbcdf;
+                        + agbfcd - abcfdg - acbfdg - adbcfg - afbdcg - afbgcd - agbcdf;
     ShortReal Qafbdcg = abcdfg + abcfdg + acbfdg + acbgdf + adbcfg + adbgcf + afbdcg + agbcdf
-                          + agbfcd - abcgdf - acbdfg - adbfcg - afbcdg - afbgcd - agbdcf;
+                        + agbfcd - abcgdf - acbdfg - adbfcg - afbcdg - afbgcd - agbdcf;
     ShortReal Qafbgcd = abcfdg + abcgdf + acbdfg + acbfdg + adbcfg + adbfcg + afbgcd + agbcdf
-                          + agbdcf - abcdfg - acbgdf - adbgcf - afbcdg - afbdcg - agbfcd;
+                        + agbdcf - abcdfg - acbgdf - adbgcf - afbcdg - afbdcg - agbfcd;
     ShortReal Qagbcdf = abcdfg + abcfdg + acbdfg + acbfdg + adbfcg + adbgcf + afbdcg + afbgcd
-                          + agbcdf - abcgdf - acbgdf - adbcfg - afbcdg - agbdcf - agbfcd;
+                        + agbcdf - abcgdf - acbgdf - adbcfg - afbcdg - agbdcf - agbfcd;
     ShortReal Qagbdcf = abcdfg + abcgdf + acbfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbgcd
-                          + agbdcf - abcfdg - acbdfg - adbgcf - afbdcg - agbcdf - agbfcd;
+                        + agbdcf - abcfdg - acbdfg - adbgcf - afbdcg - agbcdf - agbfcd;
     ShortReal Qagbfcd = abcfdg + abcgdf + acbdfg + acbgdf + adbcfg + adbgcf + afbcdg + afbdcg
-                          + agbfcd - abcdfg - acbfdg - adbfcg - afbgcd - agbcdf - agbdcf;
+                        + agbfcd - abcdfg - acbfdg - adbfcg - afbgcd - agbcdf - agbdcf;
     ShortReal Qabcefg = abcefg + acbfeg + acbgef + aebfcg + aebgcf + afbceg + afbecg + agbcef
-                          + agbecf - abcfeg - abcgef - acbefg - aebcfg - afbgce - agbfce;
+                        + agbecf - abcfeg - abcgef - acbefg - aebcfg - afbgce - agbfce;
     ShortReal Qabcfeg = abcfeg + acbefg + acbgef + aebcfg + aebfcg + afbecg + afbgce + agbcef
-                          + agbfce - abcefg - abcgef - acbfeg - aebgcf - afbceg - agbecf;
+                        + agbfce - abcefg - abcgef - acbfeg - aebgcf - afbceg - agbecf;
     ShortReal Qabcgef = abcgef + acbefg + acbfeg + aebcfg + aebgcf + afbceg + afbgce + agbecf
-                          + agbfce - abcefg - abcfeg - acbgef - aebfcg - afbecg - agbcef;
+                        + agbfce - abcefg - abcfeg - acbgef - aebfcg - afbecg - agbcef;
     ShortReal Qacbefg = abcfeg + abcgef + acbefg + aebfcg + aebgcf + afbceg + afbgce + agbcef
-                          + agbfce - abcefg - acbfeg - acbgef - aebcfg - afbecg - agbecf;
+                        + agbfce - abcefg - acbfeg - acbgef - aebcfg - afbecg - agbecf;
     ShortReal Qacbfeg = abcefg + abcgef + acbfeg + aebcfg + aebgcf + afbecg + afbgce + agbcef
-                          + agbecf - abcfeg - acbefg - acbgef - aebfcg - afbceg - agbfce;
+                        + agbecf - abcfeg - acbefg - acbgef - aebfcg - afbceg - agbfce;
     ShortReal Qacbgef = abcefg + abcfeg + acbgef + aebcfg + aebfcg + afbceg + afbecg + agbecf
-                          + agbfce - abcgef - acbefg - acbfeg - aebgcf - afbgce - agbcef;
+                        + agbfce - abcgef - acbefg - acbfeg - aebgcf - afbgce - agbcef;
     ShortReal Qaebcfg = abcfeg + abcgef + acbfeg + acbgef + aebcfg + afbecg + afbgce + agbecf
-                          + agbfce - abcefg - acbefg - aebfcg - aebgcf - afbceg - agbcef;
+                        + agbfce - abcefg - acbefg - aebfcg - aebgcf - afbceg - agbcef;
     ShortReal Qaebfcg = abcefg + abcfeg + acbefg + acbgef + aebfcg + afbceg + afbgce + agbcef
-                          + agbecf - abcgef - acbfeg - aebcfg - aebgcf - afbecg - agbfce;
+                        + agbecf - abcgef - acbfeg - aebcfg - aebgcf - afbecg - agbfce;
     ShortReal Qaebgcf = abcefg + abcgef + acbefg + acbfeg + aebgcf + afbceg + afbecg + agbcef
-                          + agbfce - abcfeg - acbgef - aebcfg - aebfcg - afbgce - agbecf;
+                        + agbfce - abcfeg - acbgef - aebcfg - aebfcg - afbgce - agbecf;
     ShortReal Qafbceg = abcefg + abcgef + acbefg + acbgef + aebfcg + aebgcf + afbceg + agbecf
-                          + agbfce - abcfeg - acbfeg - aebcfg - afbecg - afbgce - agbcef;
+                        + agbfce - abcfeg - acbfeg - aebcfg - afbecg - afbgce - agbcef;
     ShortReal Qafbecg = abcefg + abcfeg + acbfeg + acbgef + aebcfg + aebgcf + afbecg + agbcef
-                          + agbfce - abcgef - acbefg - aebfcg - afbceg - afbgce - agbecf;
+                        + agbfce - abcgef - acbefg - aebfcg - afbceg - afbgce - agbecf;
     ShortReal Qafbgce = abcfeg + abcgef + acbefg + acbfeg + aebcfg + aebfcg + afbgce + agbcef
-                          + agbecf - abcefg - acbgef - aebgcf - afbceg - afbecg - agbfce;
+                        + agbecf - abcefg - acbgef - aebgcf - afbceg - afbecg - agbfce;
     ShortReal Qagbcef = abcefg + abcfeg + acbefg + acbfeg + aebfcg + aebgcf + afbecg + afbgce
-                          + agbcef - abcgef - acbgef - aebcfg - afbceg - agbecf - agbfce;
+                        + agbcef - abcgef - acbgef - aebcfg - afbceg - agbecf - agbfce;
     ShortReal Qagbecf = abcefg + abcgef + acbfeg + acbgef + aebcfg + aebfcg + afbceg + afbgce
-                          + agbecf - abcfeg - acbefg - aebgcf - afbecg - agbcef - agbfce;
+                        + agbecf - abcfeg - acbefg - aebgcf - afbecg - agbcef - agbfce;
     ShortReal Qagbfce = abcfeg + abcgef + acbefg + acbgef + aebcfg + aebgcf + afbceg + afbecg
-                          + agbfce - abcefg - acbfeg - aebfcg - afbgce - agbcef - agbecf;
+                        + agbfce - abcefg - acbfeg - aebfcg - afbgce - agbcef - agbecf;
     ShortReal Qabdefg = abdefg + adbfeg + adbgef + aebfdg + aebgdf + afbdeg + afbedg + agbdef
-                          + agbedf - abdfeg - abdgef - adbefg - aebdfg - afbgde - agbfde;
+                        + agbedf - abdfeg - abdgef - adbefg - aebdfg - afbgde - agbfde;
     ShortReal Qabdfeg = abdfeg + adbefg + adbgef + aebdfg + aebfdg + afbedg + afbgde + agbdef
-                          + agbfde - abdefg - abdgef - adbfeg - aebgdf - afbdeg - agbedf;
+                        + agbfde - abdefg - abdgef - adbfeg - aebgdf - afbdeg - agbedf;
     ShortReal Qabdgef = abdgef + adbefg + adbfeg + aebdfg + aebgdf + afbdeg + afbgde + agbedf
-                          + agbfde - abdefg - abdfeg - adbgef - aebfdg - afbedg - agbdef;
+                        + agbfde - abdefg - abdfeg - adbgef - aebfdg - afbedg - agbdef;
     ShortReal Qadbefg = abdfeg + abdgef + adbefg + aebfdg + aebgdf + afbdeg + afbgde + agbdef
-                          + agbfde - abdefg - adbfeg - adbgef - aebdfg - afbedg - agbedf;
+                        + agbfde - abdefg - adbfeg - adbgef - aebdfg - afbedg - agbedf;
     ShortReal Qadbfeg = abdefg + abdgef + adbfeg + aebdfg + aebgdf + afbedg + afbgde + agbdef
-                          + agbedf - abdfeg - adbefg - adbgef - aebfdg - afbdeg - agbfde;
+                        + agbedf - abdfeg - adbefg - adbgef - aebfdg - afbdeg - agbfde;
     ShortReal Qadbgef = abdefg + abdfeg + adbgef + aebdfg + aebfdg + afbdeg + afbedg + agbedf
-                          + agbfde - abdgef - adbefg - adbfeg - aebgdf - afbgde - agbdef;
+                        + agbfde - abdgef - adbefg - adbfeg - aebgdf - afbgde - agbdef;
     ShortReal Qaebdfg = abdfeg + abdgef + adbfeg + adbgef + aebdfg + afbedg + afbgde + agbedf
-                          + agbfde - abdefg - adbefg - aebfdg - aebgdf - afbdeg - agbdef;
+                        + agbfde - abdefg - adbefg - aebfdg - aebgdf - afbdeg - agbdef;
     ShortReal Qaebfdg = abdefg + abdfeg + adbefg + adbgef + aebfdg + afbdeg + afbgde + agbdef
-                          + agbedf - abdgef - adbfeg - aebdfg - aebgdf - afbedg - agbfde;
+                        + agbedf - abdgef - adbfeg - aebdfg - aebgdf - afbedg - agbfde;
     ShortReal Qaebgdf = abdefg + abdgef + adbefg + adbfeg + aebgdf + afbdeg + afbedg + agbdef
-                          + agbfde - abdfeg - adbgef - aebdfg - aebfdg - afbgde - agbedf;
+                        + agbfde - abdfeg - adbgef - aebdfg - aebfdg - afbgde - agbedf;
     ShortReal Qafbdeg = abdefg + abdgef + adbefg + adbgef + aebfdg + aebgdf + afbdeg + agbedf
-                          + agbfde - abdfeg - adbfeg - aebdfg - afbedg - afbgde - agbdef;
+                        + agbfde - abdfeg - adbfeg - aebdfg - afbedg - afbgde - agbdef;
     ShortReal Qafbedg = abdefg + abdfeg + adbfeg + adbgef + aebdfg + aebgdf + afbedg + agbdef
-                          + agbfde - abdgef - adbefg - aebfdg - afbdeg - afbgde - agbedf;
+                        + agbfde - abdgef - adbefg - aebfdg - afbdeg - afbgde - agbedf;
     ShortReal Qafbgde = abdfeg + abdgef + adbefg + adbfeg + aebdfg + aebfdg + afbgde + agbdef
-                          + agbedf - abdefg - adbgef - aebgdf - afbdeg - afbedg - agbfde;
+                        + agbedf - abdefg - adbgef - aebgdf - afbdeg - afbedg - agbfde;
     ShortReal Qagbdef = abdefg + abdfeg + adbefg + adbfeg + aebfdg + aebgdf + afbedg + afbgde
-                          + agbdef - abdgef - adbgef - aebdfg - afbdeg - agbedf - agbfde;
+                        + agbdef - abdgef - adbgef - aebdfg - afbdeg - agbedf - agbfde;
     ShortReal Qagbedf = abdefg + abdgef + adbfeg + adbgef + aebdfg + aebfdg + afbdeg + afbgde
-                          + agbedf - abdfeg - adbefg - aebgdf - afbedg - agbdef - agbfde;
+                        + agbedf - abdfeg - adbefg - aebgdf - afbedg - agbdef - agbfde;
     ShortReal Qagbfde = abdfeg + abdgef + adbefg + adbgef + aebdfg + aebgdf + afbdeg + afbedg
-                          + agbfde - abdefg - adbfeg - aebfdg - afbgde - agbdef - agbedf;
+                        + agbfde - abdefg - adbfeg - aebfdg - afbgde - agbdef - agbedf;
     ShortReal Qacdefg = acdefg + adcfeg + adcgef + aecfdg + aecgdf + afcdeg + afcedg + agcdef
-                          + agcedf - acdfeg - acdgef - adcefg - aecdfg - afcgde - agcfde;
+                        + agcedf - acdfeg - acdgef - adcefg - aecdfg - afcgde - agcfde;
     ShortReal Qacdfeg = acdfeg + adcefg + adcgef + aecdfg + aecfdg + afcedg + afcgde + agcdef
-                          + agcfde - acdefg - acdgef - adcfeg - aecgdf - afcdeg - agcedf;
+                        + agcfde - acdefg - acdgef - adcfeg - aecgdf - afcdeg - agcedf;
     ShortReal Qacdgef = acdgef + adcefg + adcfeg + aecdfg + aecgdf + afcdeg + afcgde + agcedf
-                          + agcfde - acdefg - acdfeg - adcgef - aecfdg - afcedg - agcdef;
+                        + agcfde - acdefg - acdfeg - adcgef - aecfdg - afcedg - agcdef;
     ShortReal Qadcefg = acdfeg + acdgef + adcefg + aecfdg + aecgdf + afcdeg + afcgde + agcdef
-                          + agcfde - acdefg - adcfeg - adcgef - aecdfg - afcedg - agcedf;
+                        + agcfde - acdefg - adcfeg - adcgef - aecdfg - afcedg - agcedf;
     ShortReal Qadcfeg = acdefg + acdgef + adcfeg + aecdfg + aecgdf + afcedg + afcgde + agcdef
-                          + agcedf - acdfeg - adcefg - adcgef - aecfdg - afcdeg - agcfde;
+                        + agcedf - acdfeg - adcefg - adcgef - aecfdg - afcdeg - agcfde;
     ShortReal Qadcgef = acdefg + acdfeg + adcgef + aecdfg + aecfdg + afcdeg + afcedg + agcedf
-                          + agcfde - acdgef - adcefg - adcfeg - aecgdf - afcgde - agcdef;
+                        + agcfde - acdgef - adcefg - adcfeg - aecgdf - afcgde - agcdef;
     ShortReal Qaecdfg = acdfeg + acdgef + adcfeg + adcgef + aecdfg + afcedg + afcgde + agcedf
-                          + agcfde - acdefg - adcefg - aecfdg - aecgdf - afcdeg - agcdef;
+                        + agcfde - acdefg - adcefg - aecfdg - aecgdf - afcdeg - agcdef;
     ShortReal Qaecfdg = acdefg + acdfeg + adcefg + adcgef + aecfdg + afcdeg + afcgde + agcdef
-                          + agcedf - acdgef - adcfeg - aecdfg - aecgdf - afcedg - agcfde;
+                        + agcedf - acdgef - adcfeg - aecdfg - aecgdf - afcedg - agcfde;
     ShortReal Qaecgdf = acdefg + acdgef + adcefg + adcfeg + aecgdf + afcdeg + afcedg + agcdef
-                          + agcfde - acdfeg - adcgef - aecdfg - aecfdg - afcgde - agcedf;
+                        + agcfde - acdfeg - adcgef - aecdfg - aecfdg - afcgde - agcedf;
     ShortReal Qafcdeg = acdefg + acdgef + adcefg + adcgef + aecfdg + aecgdf + afcdeg + agcedf
-                          + agcfde - acdfeg - adcfeg - aecdfg - afcedg - afcgde - agcdef;
+                        + agcfde - acdfeg - adcfeg - aecdfg - afcedg - afcgde - agcdef;
     ShortReal Qafcedg = acdefg + acdfeg + adcfeg + adcgef + aecdfg + aecgdf + afcedg + agcdef
-                          + agcfde - acdgef - adcefg - aecfdg - afcdeg - afcgde - agcedf;
+                        + agcfde - acdgef - adcefg - aecfdg - afcdeg - afcgde - agcedf;
     ShortReal Qafcgde = acdfeg + acdgef + adcefg + adcfeg + aecdfg + aecfdg + afcgde + agcdef
-                          + agcedf - acdefg - adcgef - aecgdf - afcdeg - afcedg - agcfde;
+                        + agcedf - acdefg - adcgef - aecgdf - afcdeg - afcedg - agcfde;
     ShortReal Qagcdef = acdefg + acdfeg + adcefg + adcfeg + aecfdg + aecgdf + afcedg + afcgde
-                          + agcdef - acdgef - adcgef - aecdfg - afcdeg - agcedf - agcfde;
+                        + agcdef - acdgef - adcgef - aecdfg - afcdeg - agcedf - agcfde;
     ShortReal Qagcedf = acdefg + acdgef + adcfeg + adcgef + aecdfg + aecfdg + afcdeg + afcgde
-                          + agcedf - acdfeg - adcefg - aecgdf - afcedg - agcdef - agcfde;
+                        + agcedf - acdfeg - adcefg - aecgdf - afcedg - agcdef - agcfde;
     ShortReal Qagcfde = acdfeg + acdgef + adcefg + adcgef + aecdfg + aecgdf + afcdeg + afcedg
-                          + agcfde - acdefg - adcfeg - aecfdg - afcgde - agcdef - agcedf;
+                        + agcfde - acdefg - adcfeg - aecfdg - afcgde - agcdef - agcedf;
     ShortReal Qbcdefg = bcdefg + bdcfeg + bdcgef + becfdg + becgdf + bfcdeg + bfcedg + bgcdef
-                          + bgcedf - bcdfeg - bcdgef - bdcefg - becdfg - bfcgde - bgcfde;
+                        + bgcedf - bcdfeg - bcdgef - bdcefg - becdfg - bfcgde - bgcfde;
     ShortReal Qbcdfeg = bcdfeg + bdcefg + bdcgef + becdfg + becfdg + bfcedg + bfcgde + bgcdef
-                          + bgcfde - bcdefg - bcdgef - bdcfeg - becgdf - bfcdeg - bgcedf;
+                        + bgcfde - bcdefg - bcdgef - bdcfeg - becgdf - bfcdeg - bgcedf;
     ShortReal Qbcdgef = bcdgef + bdcefg + bdcfeg + becdfg + becgdf + bfcdeg + bfcgde + bgcedf
-                          + bgcfde - bcdefg - bcdfeg - bdcgef - becfdg - bfcedg - bgcdef;
+                        + bgcfde - bcdefg - bcdfeg - bdcgef - becfdg - bfcedg - bgcdef;
     ShortReal Qbdcefg = bcdfeg + bcdgef + bdcefg + becfdg + becgdf + bfcdeg + bfcgde + bgcdef
-                          + bgcfde - bcdefg - bdcfeg - bdcgef - becdfg - bfcedg - bgcedf;
+                        + bgcfde - bcdefg - bdcfeg - bdcgef - becdfg - bfcedg - bgcedf;
     ShortReal Qbdcfeg = bcdefg + bcdgef + bdcfeg + becdfg + becgdf + bfcedg + bfcgde + bgcdef
-                          + bgcedf - bcdfeg - bdcefg - bdcgef - becfdg - bfcdeg - bgcfde;
+                        + bgcedf - bcdfeg - bdcefg - bdcgef - becfdg - bfcdeg - bgcfde;
     ShortReal Qbdcgef = bcdefg + bcdfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcedg + bgcedf
-                          + bgcfde - bcdgef - bdcefg - bdcfeg - becgdf - bfcgde - bgcdef;
+                        + bgcfde - bcdgef - bdcefg - bdcfeg - becgdf - bfcgde - bgcdef;
     ShortReal Qbecdfg = bcdfeg + bcdgef + bdcfeg + bdcgef + becdfg + bfcedg + bfcgde + bgcedf
-                          + bgcfde - bcdefg - bdcefg - becfdg - becgdf - bfcdeg - bgcdef;
+                        + bgcfde - bcdefg - bdcefg - becfdg - becgdf - bfcdeg - bgcdef;
     ShortReal Qbecfdg = bcdefg + bcdfeg + bdcefg + bdcgef + becfdg + bfcdeg + bfcgde + bgcdef
-                          + bgcedf - bcdgef - bdcfeg - becdfg - becgdf - bfcedg - bgcfde;
+                        + bgcedf - bcdgef - bdcfeg - becdfg - becgdf - bfcedg - bgcfde;
     ShortReal Qbecgdf = bcdefg + bcdgef + bdcefg + bdcfeg + becgdf + bfcdeg + bfcedg + bgcdef
-                          + bgcfde - bcdfeg - bdcgef - becdfg - becfdg - bfcgde - bgcedf;
+                        + bgcfde - bcdfeg - bdcgef - becdfg - becfdg - bfcgde - bgcedf;
     ShortReal Qbfcdeg = bcdefg + bcdgef + bdcefg + bdcgef + becfdg + becgdf + bfcdeg + bgcedf
-                          + bgcfde - bcdfeg - bdcfeg - becdfg - bfcedg - bfcgde - bgcdef;
+                        + bgcfde - bcdfeg - bdcfeg - becdfg - bfcedg - bfcgde - bgcdef;
     ShortReal Qbfcedg = bcdefg + bcdfeg + bdcfeg + bdcgef + becdfg + becgdf + bfcedg + bgcdef
-                          + bgcfde - bcdgef - bdcefg - becfdg - bfcdeg - bfcgde - bgcedf;
+                        + bgcfde - bcdgef - bdcefg - becfdg - bfcdeg - bfcgde - bgcedf;
     ShortReal Qbfcgde = bcdfeg + bcdgef + bdcefg + bdcfeg + becdfg + becfdg + bfcgde + bgcdef
-                          + bgcedf - bcdefg - bdcgef - becgdf - bfcdeg - bfcedg - bgcfde;
+                        + bgcedf - bcdefg - bdcgef - becgdf - bfcdeg - bfcedg - bgcfde;
     ShortReal Qbgcdef = bcdefg + bcdfeg + bdcefg + bdcfeg + becfdg + becgdf + bfcedg + bfcgde
-                          + bgcdef - bcdgef - bdcgef - becdfg - bfcdeg - bgcedf - bgcfde;
+                        + bgcdef - bcdgef - bdcgef - becdfg - bfcdeg - bgcedf - bgcfde;
     ShortReal Qbgcedf = bcdefg + bcdgef + bdcfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcgde
-                          + bgcedf - bcdfeg - bdcefg - becgdf - bfcedg - bgcdef - bgcfde;
+                        + bgcedf - bcdfeg - bdcefg - becgdf - bfcedg - bgcdef - bgcfde;
     ShortReal Qbgcfde = bcdfeg + bcdgef + bdcefg + bdcgef + becdfg + becgdf + bfcdeg + bfcedg
-                          + bgcfde - bcdefg - bdcfeg - becfdg - bfcgde - bgcdef - bgcedf;
+                        + bgcfde - bcdefg - bdcfeg - becfdg - bfcgde - bgcdef - bgcedf;
 
     return (abcdef * (Qabcdeg + Qabcdfg + Qabcgef + Qabdgef + Qagcdef + Qbgcdef - Qabcdef)
             + abcedf * (Qabcedg + Qabcgdf + Qabcefg + Qabdfeg + Qagcedf + Qbgcedf - Qabcedf)
@@ -897,8 +896,7 @@ DEVICE inline ShortReal vok6(ShortReal ab,
                     + agbe * (bfcd * (cedf + cfde)));
     }
 
-DEVICE inline bool
-seq2(ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab)
+DEVICE inline bool seq2(ShortReal as, ShortReal bs, ShortReal ar, ShortReal br, ShortReal ab)
     {
     if (as * (ab + br - ar) < ShortReal(-EPS))
         return false;
@@ -3868,15 +3866,15 @@ gam4(ShortReal ab, ShortReal ac, ShortReal ad, ShortReal bc, ShortReal bd, Short
     }
 
 DEVICE inline ShortReal gam5(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal de)
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal de)
     {
     return -2
                * (ab * bc * cd * de * ae + ac * ce * be * bd * ad + ab * bd * cd * ce * ae
@@ -3892,20 +3890,20 @@ DEVICE inline ShortReal gam5(ShortReal ab,
     }
 
 DEVICE inline ShortReal gam6(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal af,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal bf,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal cf,
-                               ShortReal de,
-                               ShortReal df,
-                               ShortReal ef)
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal af,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal bf,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal cf,
+                             ShortReal de,
+                             ShortReal df,
+                             ShortReal ef)
     {
     return -2
                * (ae * af * bd * bf * cd * ce + ad * af * be * bf * cd * ce
@@ -3975,15 +3973,15 @@ DEVICE inline ShortReal gam6(ShortReal ab,
     }
 
 DEVICE inline ShortReal beta4(ShortReal ab,
-                                ShortReal ac,
-                                ShortReal ad,
-                                ShortReal ae,
-                                ShortReal bc,
-                                ShortReal bd,
-                                ShortReal be,
-                                ShortReal cd,
-                                ShortReal ce,
-                                ShortReal de)
+                              ShortReal ac,
+                              ShortReal ad,
+                              ShortReal ae,
+                              ShortReal bc,
+                              ShortReal bd,
+                              ShortReal be,
+                              ShortReal cd,
+                              ShortReal ce,
+                              ShortReal de)
     {
     ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
     return abcd * (abcd - acbd - adbc) + acbd * (acbd - abcd - adbc) + adbc * (adbc - abcd - acbd)
@@ -4002,15 +4000,15 @@ DEVICE inline ShortReal beta4(ShortReal ab,
     }
 
 DEVICE inline ShortReal ang3(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal de)
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal de)
     {
     return (ab * (cd + ce - de) - (ad - bd) * (ae - be)) * (ac + bc - ab)
            + (ac * (bd + be - de) - (ad - cd) * (ae - ce)) * (ab + bc - ac)
@@ -4018,20 +4016,20 @@ DEVICE inline ShortReal ang3(ShortReal ab,
     }
 
 DEVICE inline ShortReal ang4(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal af,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal bf,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal cf,
-                               ShortReal de,
-                               ShortReal df,
-                               ShortReal ef)
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal af,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal bf,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal cf,
+                             ShortReal de,
+                             ShortReal df,
+                             ShortReal ef)
     {
     ShortReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
     ShortReal abc = ab * ac * bc, abd = ab * ad * bd, acd = ac * ad * cd, bcd = bc * bd * cd;
@@ -4066,26 +4064,26 @@ DEVICE inline ShortReal ang4(ShortReal ab,
     }
 
 DEVICE inline ShortReal ang5(ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal ae,
-                               ShortReal af,
-                               ShortReal ag,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal be,
-                               ShortReal bf,
-                               ShortReal bg,
-                               ShortReal cd,
-                               ShortReal ce,
-                               ShortReal cf,
-                               ShortReal cg,
-                               ShortReal de,
-                               ShortReal df,
-                               ShortReal dg,
-                               ShortReal ef,
-                               ShortReal eg,
-                               ShortReal fg)
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal ae,
+                             ShortReal af,
+                             ShortReal ag,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal be,
+                             ShortReal bf,
+                             ShortReal bg,
+                             ShortReal cd,
+                             ShortReal ce,
+                             ShortReal cf,
+                             ShortReal cg,
+                             ShortReal de,
+                             ShortReal df,
+                             ShortReal dg,
+                             ShortReal ef,
+                             ShortReal eg,
+                             ShortReal fg)
     {
     return gam5(ab, ac, ad, ae, bc, bd, be, cd, ce, de)
 
@@ -4160,12 +4158,8 @@ cos3(ShortReal ab, ShortReal ac, ShortReal ad, ShortReal bc, ShortReal bd, Short
            / (16 * t2(ab, ac, bc) * t2(ab, ad, bd));
     }
 
-DEVICE inline bool flag3(ShortReal ab,
-                         ShortReal ac,
-                         ShortReal ad,
-                         ShortReal bc,
-                         ShortReal bd,
-                         ShortReal cd)
+DEVICE inline bool
+flag3(ShortReal ab, ShortReal ac, ShortReal ad, ShortReal bc, ShortReal bd, ShortReal cd)
     {
     ShortReal ab2 = ab * ab;
     ShortReal ac2 = ac * ac;
@@ -4214,65 +4208,53 @@ DEVICE inline bool flag4(ShortReal ab,
     }
 
 DEVICE inline ShortReal wol2(ShortReal ar, ShortReal br, ShortReal ab);
-DEVICE inline ShortReal wol3(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal bc);
+DEVICE inline ShortReal
+wol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, ShortReal bc);
 DEVICE inline ShortReal wol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd);
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd);
 DEVICE inline ShortReal vol2(ShortReal ar, ShortReal br, ShortReal ab);
-DEVICE inline ShortReal vol3(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal bc);
+DEVICE inline ShortReal
+vol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, ShortReal bc);
 DEVICE inline ShortReal vol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd);
-DEVICE inline ShortReal xol3(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal bc);
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd);
+DEVICE inline ShortReal
+xol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, ShortReal bc);
 DEVICE inline ShortReal xol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd);
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd);
 DEVICE inline ShortReal yol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd);
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd);
 
 DEVICE inline ShortReal uol1(ShortReal ar)
     {
@@ -4422,15 +4404,15 @@ xol3(ShortReal ar, ShortReal br, ShortReal cr, ShortReal ab, ShortReal ac, Short
     }
 
 DEVICE inline ShortReal uol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd)
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd)
     {
     if (((ar > 0) || (br > 0)) && (ar + br <= ab))
         return 0;
@@ -4495,15 +4477,15 @@ DEVICE inline ShortReal uol4(ShortReal ar,
     }
 
 DEVICE inline ShortReal vol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd)
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd)
     {
     bool abR = ((ar < 0) || (br < 0)) && (-ar - br <= ab);
     bool acR = ((ar < 0) || (cr < 0)) && (-ar - cr <= ac);
@@ -4655,15 +4637,15 @@ DEVICE inline ShortReal vol4(ShortReal ar,
     }
 
 DEVICE inline ShortReal wol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd)
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd)
     {
     bool bcag = flag3(bc, bd, br, cd, cr, dr);
     bool bdag = flag3(bd, bc, br, cd, dr, cr);
@@ -4769,15 +4751,15 @@ DEVICE inline ShortReal wol4(ShortReal ar,
     }
 
 DEVICE inline ShortReal xol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd)
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd)
     {
     bool abcf = flag4(ab, ac, ad, ar, bc, bd, br, cd, cr, dr);
     bool abdf = flag4(ab, ad, ac, ar, bd, bc, br, cd, dr, cr);
@@ -4830,15 +4812,15 @@ DEVICE inline ShortReal xol4(ShortReal ar,
     }
 
 DEVICE inline ShortReal yol4(ShortReal ar,
-                               ShortReal br,
-                               ShortReal cr,
-                               ShortReal dr,
-                               ShortReal ab,
-                               ShortReal ac,
-                               ShortReal ad,
-                               ShortReal bc,
-                               ShortReal bd,
-                               ShortReal cd)
+                             ShortReal br,
+                             ShortReal cr,
+                             ShortReal dr,
+                             ShortReal ab,
+                             ShortReal ac,
+                             ShortReal ad,
+                             ShortReal bc,
+                             ShortReal bd,
+                             ShortReal cd)
     {
     ShortReal tad = acos(cos3(ad, ab, ac, bd, cd, bc) * sign(bc));
     ShortReal tbd = acos(cos3(bd, ab, bc, ad, cd, ac) * sign(ac));

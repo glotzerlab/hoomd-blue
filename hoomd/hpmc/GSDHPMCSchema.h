@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hoomd/HOOMDMath.h"
 #include "ShapeConvexPolygon.h"    // check
 #include "ShapeConvexPolyhedron.h" // check
 #include "ShapeEllipsoid.h"        // check
@@ -16,6 +15,7 @@
 #include "hoomd/GSDDumpWriter.h"
 #include "hoomd/GSDReader.h"
 #include "hoomd/HOOMDMPI.h"
+#include "hoomd/HOOMDMath.h"
 #include "hoomd/extern/gsd.h"
 
 #include <algorithm>
@@ -444,8 +444,8 @@ template<> struct gsd_shape_schema<hpmc::detail::PolyhedronVertices> : public gs
             for (unsigned int v = 0; v < N[i]; v++)
                 {
                 verts.push_back(vec3<ShortReal>(vertices[count * 3 + 0],
-                                                        vertices[count * 3 + 1],
-                                                        vertices[count * 3 + 2]));
+                                                vertices[count * 3 + 1],
+                                                vertices[count * 3 + 2]));
                 count++;
                 }
             shape[i] = hpmc::detail::PolyhedronVertices(verts, sweep_radius[i], 0);
