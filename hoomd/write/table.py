@@ -216,9 +216,9 @@ class _TableInternal(_InternalAction):
             pass
         elif LoggerCategories.any([
                 LoggerCategories.scalar, LoggerCategories.string
-        ]) & logger.categories != LoggerCategories.NONE:
+        ]) & logger.categories == LoggerCategories.NONE:
             raise ValueError(
-                "Given Logger must have the scalar or string categories set.")
+                "Table Logger may only have scalar or string categories set.")
         elif _invalid_inputs != LoggerCategories.NONE:
             # If logger.categories != NONE passes:
             # - Logger is empty (no invalid categories)

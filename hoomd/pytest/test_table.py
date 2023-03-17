@@ -5,6 +5,7 @@ from io import StringIO
 from math import isclose
 import pytest
 import itertools
+import re
 
 from hoomd.conftest import operation_pickling_check
 import hoomd
@@ -208,10 +209,9 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
     operation_pickling_check(table, sim)
 
 
-test_categories = str(hoomd.logging.LoggerCategories.ALL).split("|")[1:]
+test_categories = re.split(r'[.|]', str(hoomd.logging.LoggerCategories.ALL))[1:]
 # Generate a set for each invalid permutation of the input logger categories
 # Sets that don't fail are covered by test_only_string_and_scalar_quantities
-print(hoomd.write.Table._invalid_logger_categories)
 combinations = [
     set(combo)
     for i in range(1,
@@ -219,12 +219,11 @@ combinations = [
     for combo in itertools.combinations(test_categories, i)
     if set(combo) - {"string", "scalar"} != set()
 ]
-print(combinations)
 
 
 @pytest.mark.parametrize(
     argnames="combination",
-    argvalues=combinations[1:],
+    argvalues=combinations,
 )
 def test_invalid_permutations(device, combination):
     # Test every combination raises the correct ValueError
@@ -236,7 +235,7 @@ def test_invalid_permutations(device, combination):
     # Ensure that no correct category is set
     if combination & valid_inputs == set():
         # Check if correct error is being raised given no valid categories
-        assert ("Given Logger must have the scalar or string categories set."
+        assert ("Table Logger may only have scalar or string categories set."
                 in str(ve.value))
     else:
         # Check if correct error is being raised
