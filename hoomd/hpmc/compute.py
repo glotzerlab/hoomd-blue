@@ -225,7 +225,7 @@ class SDF(Compute):
             \} &
 
 
-    For particle :math:`i`, `SDF` finds th the minimum (maximum for expansive
+    For particle :math:`i`, `SDF` finds the the minimum (maximum for expansive
     perturbations) value :math:`x_i`. For compressive perturbations:
 
     .. math::
