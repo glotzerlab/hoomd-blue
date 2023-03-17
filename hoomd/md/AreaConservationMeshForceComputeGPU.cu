@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -50,11 +50,11 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    Scalar *area_transfer = (Scalar*)malloc(tN * sizeof *area_transfer);
+    Scalar* area_transfer = (Scalar*)malloc(tN * sizeof *area_transfer);
 
-    for( int i_types = 0; i_types < tN; i_types++)
-	    area_transfer[i_types]=0;
-     
+    for (int i_types = 0; i_types < tN; i_types++)
+        area_transfer[i_types] = 0;
+
     if (idx < N)
         {
         int n_triangles = n_triangles_list[idx];
@@ -117,25 +117,26 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
             }
         }
 
-    for( int i_types = 0; i_types < tN; i_types++)
-       {
-       area_sdata[threadIdx.x] = area_transfer[i_types];
-       __syncthreads();
+    for (int i_types = 0; i_types < tN; i_types++)
+        {
+        area_sdata[threadIdx.x] = area_transfer[i_types];
+        __syncthreads();
 
-       // reduce the sum in parallel
-       int offs = blockDim.x >> 1;
-       while (offs > 0)
-           {
-           if (threadIdx.x < offs)
-               area_sdata[threadIdx.x] += area_sdata[threadIdx.x + offs];
-           offs >>= 1;
-           __syncthreads();
-           }
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                area_sdata[threadIdx.x] += area_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
 
-       // write out our partial sum
-       if (threadIdx.x == 0)
-           d_partial_sum_area[blockIdx.x * tN + i_types] = area_sdata[0];
-       }
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            d_partial_sum_area[blockIdx.x * tN + i_types] = area_sdata[0];
+        }
+    free(area_transfer);
     }
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
@@ -151,37 +152,36 @@ __global__ void gpu_area_reduce_partial_sum_kernel(Scalar* d_sum,
     HIP_DYNAMIC_SHARED(char, s_data)
     Scalar* area_sdata = (Scalar*)&s_data[0];
 
+    for (int i_types = 0; i_types < tN; i_types++)
+        {
+        Scalar sum = Scalar(0.0);
+        // sum up the values in the partial sum via a sliding window
+        for (int start = 0; start < num_blocks; start += blockDim.x)
+            {
+            __syncthreads();
+            if (start + threadIdx.x < num_blocks)
+                area_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * tN + i_types];
+            else
+                area_sdata[threadIdx.x] = Scalar(0.0);
+            __syncthreads();
 
-    for( int i_types = 0; i_types < tN; i_types++)
-       {
-       Scalar sum = Scalar(0.0);
-       // sum up the values in the partial sum via a sliding window
-       for (int start = 0; start < num_blocks; start += blockDim.x)
-           {
-           __syncthreads();
-           if (start + threadIdx.x < num_blocks)
-               area_sdata[threadIdx.x] = d_partial_sum[(start + threadIdx.x) * tN + i_types];
-           else
-               area_sdata[threadIdx.x] = Scalar(0.0);
-           __syncthreads();
+            // reduce the sum in parallel
+            int offs = blockDim.x >> 1;
+            while (offs > 0)
+                {
+                if (threadIdx.x < offs)
+                    area_sdata[threadIdx.x] += area_sdata[threadIdx.x + offs];
+                offs >>= 1;
+                __syncthreads();
+                }
 
-           // reduce the sum in parallel
-           int offs = blockDim.x >> 1;
-           while (offs > 0)
-               {
-               if (threadIdx.x < offs)
-                   area_sdata[threadIdx.x] += area_sdata[threadIdx.x + offs];
-               offs >>= 1;
-               __syncthreads();
-               }
+            // everybody sums up sum2K
+            sum += area_sdata[0];
+            }
 
-           // everybody sums up sum2K
-           sum += area_sdata[0];
-           }
-
-       if (threadIdx.x == 0)
-           d_sum[i_types] = sum;
-       }
+        if (threadIdx.x == 0)
+            d_sum[i_types] = sum;
+        }
     }
 
 /*! \param d_sigma Device memory to write per paricle sigma
