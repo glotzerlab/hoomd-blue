@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TriangleAreaConservationMeshForceComputeGPU.h"
@@ -108,7 +108,7 @@ void TriangleAreaConservationMeshForceComputeGPU::computeForces(uint64_t timeste
         d_virial.data,
         m_virial.getPitch(),
         m_pdata->getN(),
-        m_mesh_data->getMeshTriangleData()->getN(),
+        m_mesh_data->getPerTypeSize(0);
         d_pos.data,
         box,
         d_gpu_meshtrianglelist.data,
@@ -170,20 +170,20 @@ void TriangleAreaConservationMeshForceComputeGPU::computeArea()
                                        access_mode::overwrite);
     ArrayHandle<Scalar> d_sumA(m_sum, access_location::device, access_mode::overwrite);
 
-    unsigned int NTypes =  m_mesh_data->getMeshTriangleData()->getNTypes();
+    unsigned int NTypes = m_mesh_data->getMeshTriangleData()->getNTypes();
 
     kernel::gpu_compute_area_constraint_area(d_sumA.data,
-                                         d_partial_sumA.data,
-                                         m_pdata->getN(),
-                                         NTypes,
-                                         d_pos.data,
-                                         box,
-                                         d_gpu_meshtrianglelist.data,
-                                         d_gpu_meshtriangle_pos_list.data,
-                                         gpu_table_indexer,
-                                         d_gpu_n_meshtriangle.data,
-                                         m_block_size,
-                                         m_num_blocks);
+                                             d_partial_sumA.data,
+                                             m_pdata->getN(),
+                                             NTypes,
+                                             d_pos.data,
+                                             box,
+                                             d_gpu_meshtrianglelist.data,
+                                             d_gpu_meshtriangle_pos_list.data,
+                                             gpu_table_indexer,
+                                             d_gpu_n_meshtriangle.data,
+                                             m_block_size,
+                                             m_num_blocks);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         {

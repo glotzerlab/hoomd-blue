@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AreaConservationMeshForceCompute.h"
@@ -134,8 +134,6 @@ void AreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
     // for each of the angles
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
-
-    std::cout << m_exec_conf->getRank() << ": " << size << " " << m_mesh_data->getMeshTriangleData() << std::endl;
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
@@ -299,7 +297,6 @@ void AreaConservationMeshForceCompute::precomputeParameter()
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getGlobalBox();
 
-
     const unsigned int n_types = m_mesh_data->getMeshTriangleData()->getNTypes();
 
     std::vector<Scalar> global_area(n_types);
@@ -369,33 +366,36 @@ void AreaConservationMeshForceCompute::precomputeParameter()
 #ifdef ENABLE_MPI
         if (m_pdata->getDomainDecomposition())
             {
- 	    area_tri /= 3;
+            area_tri /= 3;
 
-	    if(idx_a < m_pdata->getN())  global_area[triangle_type] += area_tri;
-	    if(idx_b < m_pdata->getN())  global_area[triangle_type] += area_tri;
-	    if(idx_c < m_pdata->getN())  global_area[triangle_type] += area_tri;
+            if (idx_a < m_pdata->getN())
+                global_area[triangle_type] += area_tri;
+            if (idx_b < m_pdata->getN())
+                global_area[triangle_type] += area_tri;
+            if (idx_c < m_pdata->getN())
+                global_area[triangle_type] += area_tri;
             }
-	    else
+        else
 #endif
             {
             global_area[triangle_type] += area_tri;
-	   }
+            }
         }
 
 #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            MPI_Allreduce(MPI_IN_PLACE,
-                          &global_area[0],
-                          n_types,
-                          MPI_HOOMD_SCALAR,
-                          MPI_SUM,
-                          m_exec_conf->getMPICommunicator());
-            }
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &global_area[0],
+                      n_types,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
 #endif
 
-    	for (unsigned int i = 0; i < n_types; i++)
-        	m_area[i] = global_area[i];
+    for (unsigned int i = 0; i < n_types; i++)
+        m_area[i] = global_area[i];
     }
 
 namespace detail

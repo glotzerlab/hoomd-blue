@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Regents of the University of Michigan.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TriangleAreaConservationMeshForceCompute.h"
@@ -222,10 +222,12 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
         // from whole surface area A0 to the surface of individual triangle A0 -> At
+        unsigned int Ntriags = m_mesh_data->getPerTypeSize(triangle_type);
+        Scalar At = m_A0[triangle_type] / Ntriags;
         Scalar At = m_A0[triangle_type] / size;
 
-        Scalar tri_area = rab * rac * s_baac / 6; //triangle area/3
-        Scalar Ut = 3*tri_area - At;
+        Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
+        Scalar Ut = 3 * tri_area - At;
 
         Scalar3 Fa, Fb, Fc;
         Fa = -m_K[triangle_type] / (2 * At) * Ut
@@ -306,19 +308,19 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
         }
 
 #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            MPI_Allreduce(MPI_IN_PLACE,
-                          &global_area[0],
-                          n_types,
-                          MPI_HOOMD_SCALAR,
-                          MPI_SUM,
-                          m_exec_conf->getMPICommunicator());
-            }
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &global_area[0],
+                      n_types,
+                      MPI_HOOMD_SCALAR,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        }
 #endif
 
-    	for (unsigned int i = 0; i < n_types; i++)
-        	m_area[i] = global_area[i];
+    for (unsigned int i = 0; i < n_types; i++)
+        m_area[i] = global_area[i];
     }
 
 namespace detail
