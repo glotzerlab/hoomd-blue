@@ -85,6 +85,11 @@ class PYBIND11_EXPORT MeshDefinition
         return triangles.getSize();
         }
 
+    unsigned int getPerTypeSize(unsigned int type)
+        {
+        return m_globalN[type];
+        }
+
     void setTypes(pybind11::list types);
 
     BondData::Snapshot getBondData();
@@ -96,6 +101,7 @@ class PYBIND11_EXPORT MeshDefinition
     void setTriangulationData(pybind11::dict triangulation);
 
     private:
+    unsigned int* m_global;
     std::shared_ptr<SystemDefinition>
         m_sysdef; //!< System definition later needed for dynamic bonding
     std::shared_ptr<MeshBondData> m_meshbond_data;     //!< Bond data for the mesh
