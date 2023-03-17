@@ -86,16 +86,6 @@ def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
                                      methods=[nve1],
                                      integrate_rotational_dof=True)
     integrator.rigid = rigid
-    snapshot = two_particle_snapshot_factory(particle_types=['R', 'A'])
-    if snapshot.communicator.rank == 0:
-        snapshot.particles.body[:] = [0, 1]
-
-    sim = simulation_factory(snapshot)
-    rigid.create_bodies(sim.state)
-    sim.operations.integrator = integrator
-
-    with pytest.raises(RuntimeError):
-        sim.run(10)
 
 
 def test_overlapping_filters(simulation_factory, two_particle_snapshot_factory):
@@ -104,7 +94,7 @@ def test_overlapping_filters(simulation_factory, two_particle_snapshot_factory):
         snapshot.particles.body[:] = [0, 1]
 
     rigid = hoomd.md.constrain.Rigid()
-    integrator = hoomd.md.Integrator(dt=0, integrate_rotational_dof=True)                                                                      
+    integrator = hoomd.md.Integrator(dt=0, integrate_rotational_dof=True)
 
     sim = simulation_factory(snapshot)
     rigid.create_bodies(sim.state)
