@@ -393,8 +393,9 @@ class SDF(Compute):
         """
         self._cpp_obj.compute(self._simulation.timestep)
         cpp_expansion = self._cpp_obj.sdf_expansion
+
         if cpp_expansion is not None:
-            return numpy.array(self._cpp_obj.sdf_expansion[::-1])
+            return numpy.array(cpp_expansion[::-1])
         else:
             return None
 

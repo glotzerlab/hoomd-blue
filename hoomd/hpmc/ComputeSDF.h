@@ -155,8 +155,8 @@ template<class Shape> class ComputeSDF : public Compute
     virtual void compute(uint64_t timestep);
 
     //! Return an sdf
-    virtual pybind11::array_t<double> getSDFCompression();
-    virtual pybind11::array_t<double> getSDFExpansion();
+    virtual pybind11::object getSDFCompression();
+    virtual pybind11::object getSDFExpansion();
 
     protected:
     std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc; //!< The parent integrator
@@ -288,7 +288,7 @@ template<class Shape> void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     }
 
 // \return the sdf histogram
-template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDFCompression()
+template<class Shape> pybind11::object ComputeSDF<Shape>::getSDFCompression()
     {
 #ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
@@ -299,7 +299,7 @@ template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDFCompres
     }
 
 // \return the sdf histogram for expansion moves
-template<class Shape> pybind11::array_t<double> ComputeSDF<Shape>::getSDFExpansion()
+template<class Shape> pybind11::object ComputeSDF<Shape>::getSDFExpansion()
     {
 #ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())

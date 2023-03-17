@@ -76,7 +76,6 @@ def test_after_attaching(valid_args, simulation_factory,
     sim.run(1)
 
     x_compression = sdf.x_compression
-    print(x_compression)
     assert x_compression[0] == pytest.approx(dx / 2)
     assert x_compression[-1] == pytest.approx(xmax - dx / 2)
 
