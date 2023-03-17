@@ -205,29 +205,24 @@ class _TableInternal(_InternalAction):
                  output=output,
                  logger=logger))
         self._param_dict = param_dict
-
         # internal variables that are not part of the state.
+
+        # Generate list of current invalid categories
+        _invalid_inputs = logger.categories & self._invalid_logger_categories
+
         # Ensure that only scalar and potentially string are set for the logger
-        if (
-            LoggerCategories.scalar & LoggerCategories.string
-            not in logger.categories
-        ):
+        if (LoggerCategories.scalar & LoggerCategories.string
+                not in logger.categories):
             raise ValueError(
-                "Given Logger must have the scalar or string categories set."
-            )
-        elif (
-            logger.categories & self._invalid_logger_categories
-            != LoggerCategories.NONE
-        ):
+                "Given Logger must have the scalar or string categories set.")
+        elif _invalid_inputs != LoggerCategories.NONE:
             # If logger.categories != NONE passes:
-            # -  Logger is empty (no invalid categories)
-            # If invalid_categories != NONE passes: 
+            # - Logger is empty (no invalid categories)
+            # If invalid_categories != NONE passes:
             # - No invalid categories are set
             raise ValueError(
-                "{} are incompatible with write.Table: use write.GSD instead.".format(
-                    logger.categories & self._invalid_logger_categories
-                )
-            )
+                "{} are incompatible with write.Table: use write.GSD instead."
+                .format(_invalid_inputs))
 
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)

@@ -207,14 +207,16 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
     table = hoomd.write.Table(1, logger)
     operation_pickling_check(table, sim)
 
+
 def test_invalid_permutations(device):
-    _test_categories = str(hoomd.logging.LoggerCategories.ALL).split("|")[1:]
+    test_categories = str(hoomd.logging.LoggerCategories.ALL).split("|")[1:]
     # Generate a set for each invalid permutation of the input logger categories
     # Sets that don't fail are covered by test_only_string_and_scalar_quantities
     combinations = [
         set(combo)
-        for i in range(1, len(_test_categories) + 1)
-        for combo in itertools.combinations(_test_categories, i)
+        for i in range(1,
+                       len(test_categories) + 1)
+        for combo in itertools.combinations(test_categories, i)
         if set(combo) - {"string", "scalar"} != set()
     ]
     # Test every combination raises the correct ValueError
@@ -227,8 +229,7 @@ def test_invalid_permutations(device):
             # Check if correct error is being raised given no valid categories
             assert (
                 "Given Logger must have the scalar or string categories set."
-                in str(ve.value)
-            )
+                in str(ve.value))
         else:
             # Check if correct error is being raised
             assert "incompatible" in str(ve.value)
@@ -236,5 +237,3 @@ def test_invalid_permutations(device):
             for category in combo:
                 assert "category" in str(ve.value)
         # No further cases are possible, as valid configurations are pruned out
-
-
