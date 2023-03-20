@@ -7,6 +7,14 @@ Change Log
 v3.x
 ----
 
+v3.11.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* Improved readability of images in the documentation
+  (`#1521 <https://github.com/glotzerlab/hoomd-blue/issues/1521>`__).
+
 v3.10.0 (2023-03-14)
 ^^^^^^^^^^^^^^^^^^^^
 
