@@ -381,25 +381,7 @@ struct ShapeConvexPolygon
     /// Return the bounding box of the shape in world coordinates
     DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        // generate a tight AABB
-        // detail::SupportFuncConvexPolygon sfunc(verts);
-
-        // // // use support function of the to determine the furthest extent in each direction
-        // quat<ShortReal> o(orientation);
-        // vec2<ShortReal> e_x(rotate(conj(o), vec2<ShortReal>(1,0)));
-        // vec2<ShortReal> e_y(rotate(conj(o), vec2<ShortReal>(0,1)));
-
-        // vec2<ShortReal> s_x = rotate(o, sfunc(e_x));
-        // vec2<ShortReal> s_y = rotate(o, sfunc(e_y));
-        // vec2<ShortReal> s_neg_x = rotate(o, sfunc(-e_x));
-        // vec2<ShortReal> s_neg_y = rotate(o, sfunc(-e_y));
-
-        // // translate out from the position by the furthest extents
-        // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, 0.1);
-        // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, -0.1);
-
-        // return hoomd::detail::AABB(lower, upper);
-        // ^^^^^^^^^^ The above method is slow, just use the bounding sphere
+        // Generate the AABB of a bounding sphere, computing tight fitting AABBs is slow.
         return hoomd::detail::AABB(pos, verts.diameter / Scalar(2));
         }
 

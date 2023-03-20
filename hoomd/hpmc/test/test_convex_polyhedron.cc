@@ -84,46 +84,6 @@ UP_TEST(support)
     UP_ASSERT(v1 == v2);
     }
 
-/*! Not sure how best to test this because not sure what a valid support has to be...
-UP_TEST( composite_support )
-    {
-    // Find the support of the Minkowski difference of two offset cubes
-    quat<Scalar> o;
-
-    vector< vec3<ShortReal> > vlist;
-    vlist.push_back(vec3<Scalar>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, 0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(0.5, 0.5, 0.5));
-    PolyhedronVertices verts(vlist, 0, 0);
-
-    ShapeConvexPolyhedron a(vec3<Scalar>(0,0,0), o, verts);
-    ShapeConvexPolyhedron b(vec3<Scalar>(0,0,0), o, verts);
-    SupportFuncConvexPolyhedron s = SupportFuncConvexPolyhedron(verts);
-    CompositeSupportFunc3D<SupportFuncConvexPolyhedron, SupportFuncConvexPolyhedron>* S;
-    vec3<Scalar> v1;
-
-    S = new CompositeSupportFunc3D<SupportFuncConvexPolyhedron, SupportFuncConvexPolyhedron>(s, s,
-b.pos - a.pos, a.orientation, b.orientation);
-
-    // v1 should always be the half-body-diagonal of a cube with corners at ([-]1,[-]1,[-]1)
-    v1 = (*S)(vec3<Scalar>(0.6,0.4,1));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    v1 = (*S)(vec3<Scalar>(.1,0,0));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    v1 = (*S)(vec3<Scalar>(.1,.1,0));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    cout << flush;
-    }
-*/
-
 UP_TEST(overlap_octahedron_no_rot)
     {
     // first set of simple overlap checks is two octahedra at unit orientation

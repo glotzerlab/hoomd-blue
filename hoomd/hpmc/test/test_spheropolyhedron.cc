@@ -143,46 +143,6 @@ UP_TEST(support)
     UP_ASSERT(v1 == v2);
     }
 
-/*! Not sure how best to test this because not sure what a valid support has to be...
-UP_TEST( composite_support )
-    {
-    // Find the support of the Minkowski difference of two offset cubes
-    quat<Scalar> o;
-
-    vector< vec3<ShortReal> > vlist;
-    vlist.push_back(vec3<Scalar>(-0.5, -0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, 0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(0.5, -0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(0.5, 0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, -0.5, 0.5));
-    vlist.push_back(vec3<Scalar>(-0.5, 0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(0.5, -0.5, -0.5));
-    vlist.push_back(vec3<Scalar>(0.5, 0.5, 0.5));
-    PolyhedronVertices verts = setup_verts(vlist, 0.0);
-
-    ShapeSpheropolyhedron a(o, verts);
-    ShapeSpheropolyhedron b(o, verts);
-    SupportFuncSpheropolyhedron s = SupportFuncSpheropolyhedron(verts);
-    CompositeSupportFunc3D<SupportFuncSpheropolyhedron, SupportFuncSpheropolyhedron>* S;
-    vec3<Scalar> v1;
-
-    S = new CompositeSupportFunc3D<SupportFuncSpheropolyhedron, SupportFuncSpheropolyhedron>(s, s,
-b.pos - a.pos, a.orientation, b.orientation);
-
-    // v1 should always be the half-body-diagonal of a cube with corners at ([-]1,[-]1,[-]1)
-    v1 = (*S)(vec3<Scalar>(0.6,0.4,1));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    v1 = (*S)(vec3<Scalar>(.1,0,0));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    v1 = (*S)(vec3<Scalar>(.1,.1,0));
-    cout << "v1 is (" << v1.x << "," << v1.y << "," << v1.z << ")\n";
-    UP_ASSERT(dot(v1,v1) == 3);
-    cout << flush;
-    }
-*/
-
 UP_TEST(sphere)
     {
     // test sphere: zero-vertex special case

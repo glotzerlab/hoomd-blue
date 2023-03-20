@@ -747,28 +747,7 @@ struct ShapeConvexPolyhedron
     /// Return the bounding box of the shape in world coordinates
     DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        // generate a tight AABB around the polyhedron
-        // detail::SupportFuncConvexPolyhedron sfunc(verts);
-
-        // // use support function of the to determine the furthest extent in each direction
-        // quat<ShortReal> o(orientation);
-        // vec3<ShortReal> e_x(1,0,0);
-        // vec3<ShortReal> e_y(0,1,0);
-        // vec3<ShortReal> e_z(0,0,1);
-        // vec3<ShortReal> s_x = rotate(o, sfunc(rotate(conj(o),e_x)));
-        // vec3<ShortReal> s_y = rotate(o, sfunc(rotate(conj(o),e_y)));
-        // vec3<ShortReal> s_z = rotate(o, sfunc(rotate(conj(o),e_z)));
-        // vec3<ShortReal> s_neg_x = rotate(o, sfunc(rotate(conj(o),-e_x)));
-        // vec3<ShortReal> s_neg_y = rotate(o, sfunc(rotate(conj(o),-e_y)));
-        // vec3<ShortReal> s_neg_z = rotate(o, sfunc(rotate(conj(o),-e_z)));
-
-        // // translate out from the position by the furthest extents
-        // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
-        // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, pos.z + s_neg_z.z);
-
-        // return hoomd::detail::AABB(lower, upper);
-
-        // ^^^^^^^ The above method is slow, just use a box that bounds the circumsphere
+        // Generate the AABB of a bounding sphere, computing tight fitting AABBs is slow.
         return hoomd::detail::AABB(pos, getCircumsphereDiameter() / Scalar(2));
         }
 
