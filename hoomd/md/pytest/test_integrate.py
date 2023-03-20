@@ -61,6 +61,9 @@ def test_detaching(make_simulation, integrator_elements):
 
 
 def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
+    snapshot = two_particle_snapshot_factory(particle_types=['R', 'A'])
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.body[:] = [0, 1]
     CUBE_VERTS = [
         (-0.5, -0.5, -0.5),
         (-0.5, -0.5, 0.5),
@@ -86,26 +89,27 @@ def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
                                      methods=[nve1],
                                      integrate_rotational_dof=True)
     integrator.rigid = rigid
-
-
-def test_overlapping_filters(simulation_factory, two_particle_snapshot_factory):
-    snapshot = two_particle_snapshot_factory(particle_types=['R', 'A'])
-    if snapshot.communicator.rank == 0:
-        snapshot.particles.body[:] = [0, 1]
-
-    rigid = hoomd.md.constrain.Rigid()
-    integrator = hoomd.md.Integrator(dt=0, integrate_rotational_dof=True)
-
     sim = simulation_factory(snapshot)
-    rigid.create_bodies(sim.state)
     sim.operations.integrator = integrator
 
     with pytest.raises(RuntimeError):
         sim.run(10)
 
+
+def test_overlapping_filters(simulation_factory, lattice_snapshot_factory):
+    snapshot = lattice_snapshot_factory()
+
+    integrator = hoomd.md.Integrator(dt=0, integrate_rotational_dof=True)
+
+    sim = simulation_factory(snapshot)
+    sim.operations.integrator = integrator
+
+    sim.run(0)
+
     nve1 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
     nve2 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
     integrator.methods = [nve1, nve2]
+    sim.run(0)
 
     with pytest.raises(RuntimeError):
         integrator.validate_groups()
