@@ -224,7 +224,7 @@ def test_values(simulation_factory, lattice_snapshot_factory):
     sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
     sim.operations.add(sdf)
 
-    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf')
+    sdf_log = hoomd.conftest.ListWriter(sdf, 'sdf_compression')
     sim.operations.writers.append(
         hoomd.write.CustomWriter(action=sdf_log,
                                  trigger=hoomd.trigger.Periodic(10)))
