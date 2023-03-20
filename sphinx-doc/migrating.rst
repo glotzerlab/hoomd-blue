@@ -66,6 +66,10 @@ For some functionalities, you will need to update your scripts to use a new API:
 
   * Use `message_filename <hoomd.device.Device.message_filename>`.
 
+* ``sdf`` property of `hoomd.hpmc.compute.SDF`.
+
+  * Use `sdf_compression <hoomd.hpmc.compute.SDF.sdf_compression>`.
+
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
