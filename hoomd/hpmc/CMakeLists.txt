@@ -57,7 +57,6 @@ set(_hpmc_headers
     GPUTree.h
     HPMCCounters.h
     HPMCMiscFunctions.h
-    HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
     IntegratorHPMCMonoGPUMoves.cuh

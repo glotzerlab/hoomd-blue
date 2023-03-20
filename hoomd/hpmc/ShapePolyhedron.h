@@ -3,7 +3,6 @@
 
 #pragma once
 #include "GPUTree.h"
-#include "HPMCPrecisionSetup.h"
 #include "ShapeConvexPolyhedron.h"
 #include "ShapeSphere.h"
 #include "ShapeSpheropolyhedron.h"
@@ -66,7 +65,7 @@ struct TriangleMesh : ShapeParams
                  bool managed)
         : n_verts(n_verts_), n_faces(n_faces_), hull_only(0), sweep_radius(0), diameter(0.0)
         {
-        verts = ManagedArray<vec3<OverlapReal>>(n_verts, managed);
+        verts = ManagedArray<vec3<ShortReal>>(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces + 1, managed);
         face_verts = ManagedArray<unsigned int>(n_face_verts_, managed);
         face_overlap = ManagedArray<unsigned int>(n_faces, managed);
@@ -84,18 +83,18 @@ struct TriangleMesh : ShapeParams
         if (len(origin_tuple) != 3)
             throw std::runtime_error("origin must have 3 elements");
 
-        OverlapReal R = v["sweep_radius"].cast<OverlapReal>();
+        ShortReal R = v["sweep_radius"].cast<ShortReal>();
         ignore = v["ignore_statistics"].cast<unsigned int>();
         hull_only = v["hull_only"].cast<unsigned int>();
         n_verts = (unsigned int)pybind11::len(verts_list);
         n_faces = (unsigned int)pybind11::len(face_list);
-        origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]),
-                                   pybind11::cast<OverlapReal>(origin_tuple[1]),
-                                   pybind11::cast<OverlapReal>(origin_tuple[2]));
+        origin = vec3<ShortReal>(pybind11::cast<ShortReal>(origin_tuple[0]),
+                                 pybind11::cast<ShortReal>(origin_tuple[1]),
+                                 pybind11::cast<ShortReal>(origin_tuple[2]));
 
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
-        verts = ManagedArray<vec3<OverlapReal>>(n_verts, managed);
+        verts = ManagedArray<vec3<ShortReal>>(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces + 1, managed);
         face_verts = ManagedArray<unsigned int>(n_faces * 3, managed);
         face_overlap = ManagedArray<unsigned int>(n_faces, managed);
@@ -129,16 +128,16 @@ struct TriangleMesh : ShapeParams
                 }
             }
         // extract the verts from the python list and compute the radius on the way
-        OverlapReal radius_sq = OverlapReal(0.0);
+        ShortReal radius_sq = ShortReal(0.0);
         for (unsigned int i = 0; i < n_verts; i++)
             {
             pybind11::list vert_list = verts_list[i];
             if (len(vert_list) != 3)
                 throw std::runtime_error("Each vertex must have 3 elements");
-            vec3<OverlapReal> vert;
-            vert.x = pybind11::cast<OverlapReal>(vert_list[0]);
-            vert.y = pybind11::cast<OverlapReal>(vert_list[1]);
-            vert.z = pybind11::cast<OverlapReal>(vert_list[2]);
+            vec3<ShortReal> vert;
+            vert.x = pybind11::cast<ShortReal>(vert_list[0]);
+            vert.y = pybind11::cast<ShortReal>(vert_list[1]);
+            vert.z = pybind11::cast<ShortReal>(vert_list[2]);
             verts[i] = vert;
             radius_sq = max(radius_sq, dot(vert, vert));
             }
@@ -166,11 +165,11 @@ struct TriangleMesh : ShapeParams
 
         // construct bounding box tree
         hpmc::detail::OBB* obbs = new hpmc::detail::OBB[n_faces];
-        std::vector<std::vector<vec3<OverlapReal>>> internal_coordinates;
+        std::vector<std::vector<vec3<ShortReal>>> internal_coordinates;
 
         for (unsigned int i = 0; i < n_faces; ++i)
             {
-            std::vector<vec3<OverlapReal>> face_vec;
+            std::vector<vec3<ShortReal>> face_vec;
 
             unsigned int n_vert = 0;
             for (unsigned int j = face_offs[i]; j < face_offs[i + 1]; ++j)
@@ -179,7 +178,7 @@ struct TriangleMesh : ShapeParams
                 n_vert++;
                 }
 
-            std::vector<OverlapReal> vertex_radii(n_vert, sweep_radius);
+            std::vector<ShortReal> vertex_radii(n_vert, sweep_radius);
             obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
             obbs[i].mask = face_overlap[i];
             internal_coordinates.push_back(face_vec);
@@ -247,7 +246,7 @@ struct TriangleMesh : ShapeParams
     GPUTree tree;
 
     /// Vertex coordinates
-    ManagedArray<vec3<OverlapReal>> verts;
+    ManagedArray<vec3<ShortReal>> verts;
 
     /// Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_offs;
@@ -268,16 +267,16 @@ struct TriangleMesh : ShapeParams
     unsigned int ignore;
 
     /// Origin point inside the shape
-    vec3<OverlapReal> origin;
+    vec3<ShortReal> origin;
 
     /// If 1, only the hull of the shape is considered for overlaps
     unsigned int hull_only;
 
     /// Radius of a sweeping sphere
-    OverlapReal sweep_radius;
+    ShortReal sweep_radius;
 
     /// Pre-calculated diameter
-    OverlapReal diameter;
+    ShortReal diameter;
 
     DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
         {
@@ -343,23 +342,23 @@ struct ShapePolyhedron
         }
 
     /// Get the circumsphere diameter of the shape
-    DEVICE OverlapReal getCircumsphereDiameter() const
+    DEVICE ShortReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
         return data.diameter;
         }
 
     /// Get the in-sphere radius of the shape
-    DEVICE OverlapReal getInsphereRadius() const
+    DEVICE ShortReal getInsphereRadius() const
         {
         // not implemented
-        return OverlapReal(0.0);
+        return ShortReal(0.0);
         }
 
     /// Return true if this is a sphero-shape
-    DEVICE OverlapReal isSpheroPolyhedron() const
+    DEVICE ShortReal isSpheroPolyhedron() const
         {
-        return data.sweep_radius != OverlapReal(0.0);
+        return data.sweep_radius != ShortReal(0.0);
         }
 
 #ifndef __HIPCC__
@@ -378,7 +377,7 @@ struct ShapePolyhedron
             && data.verts[0].y == data.verts[0].z)
             {
             shapedef << "{\"type\": \"Sphere\", \"diameter\": "
-                     << data.sweep_radius * OverlapReal(2.0) << "}";
+                     << data.sweep_radius * ShortReal(2.0) << "}";
             }
         else
             {
@@ -452,14 +451,14 @@ struct ShapePolyhedron
     const detail::GPUTree& tree;
     };
 
-DEVICE inline OverlapReal
-det_4x4(vec3<OverlapReal> a, vec3<OverlapReal> b, vec3<OverlapReal> c, vec3<OverlapReal> d)
+DEVICE inline ShortReal
+det_4x4(vec3<ShortReal> a, vec3<ShortReal> b, vec3<ShortReal> c, vec3<ShortReal> d)
     {
     return dot(cross(c, d), b - a) + dot(cross(a, b), d - c);
     }
 
 // Clamp n to lie within the range [min, max]
-DEVICE inline OverlapReal clamp(OverlapReal n, OverlapReal min, OverlapReal max)
+DEVICE inline ShortReal clamp(ShortReal n, ShortReal min, ShortReal max)
     {
     if (n < min)
         return min;
@@ -473,28 +472,28 @@ DEVICE inline OverlapReal clamp(OverlapReal n, OverlapReal min, OverlapReal max)
    S2(t)=P2+t*(Q2-P2), returning s and t. Function result is squared
    distance between between S1(s) and S2(t)
 */
-DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal> p1,
-                                                  const vec3<OverlapReal>& q1,
-                                                  const vec3<OverlapReal>& p2,
-                                                  const vec3<OverlapReal>& q2,
-                                                  OverlapReal& s,
-                                                  OverlapReal& t,
-                                                  vec3<OverlapReal>& c1,
-                                                  vec3<OverlapReal>& c2,
-                                                  OverlapReal abs_tol)
+DEVICE inline ShortReal closestPtSegmentSegment(const vec3<ShortReal> p1,
+                                                const vec3<ShortReal>& q1,
+                                                const vec3<ShortReal>& p2,
+                                                const vec3<ShortReal>& q2,
+                                                ShortReal& s,
+                                                ShortReal& t,
+                                                vec3<ShortReal>& c1,
+                                                vec3<ShortReal>& c2,
+                                                ShortReal abs_tol)
     {
-    vec3<OverlapReal> d1 = q1 - p1; // Direction vector of segment S1
-    vec3<OverlapReal> d2 = q2 - p2; // Direction vector of segment S2
-    vec3<OverlapReal> r = p1 - p2;
-    OverlapReal a = dot(d1, d1); // Squared length of segment S1, always nonnegative
-    OverlapReal e = dot(d2, d2); // Squared length of segment S2, always nonnegative
-    OverlapReal f = dot(d2, r);
+    vec3<ShortReal> d1 = q1 - p1; // Direction vector of segment S1
+    vec3<ShortReal> d2 = q2 - p2; // Direction vector of segment S2
+    vec3<ShortReal> r = p1 - p2;
+    ShortReal a = dot(d1, d1); // Squared length of segment S1, always nonnegative
+    ShortReal e = dot(d2, d2); // Squared length of segment S2, always nonnegative
+    ShortReal f = dot(d2, r);
 
     // Check if either or both segments degenerate into points
     if (CHECK_ZERO(a, abs_tol) && CHECK_ZERO(e, abs_tol))
         {
         // Both segments degenerate into points
-        s = t = OverlapReal(0.0);
+        s = t = ShortReal(0.0);
         c1 = p1;
         c2 = p2;
         return dot(c1 - c2, c1 - c2);
@@ -503,36 +502,36 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal> p1,
     if (CHECK_ZERO(a, abs_tol))
         {
         // First segment degenerates into a point
-        s = OverlapReal(0.0);
+        s = ShortReal(0.0);
         t = f / e; // s = 0 => t = (b*s + f) / e = f / e
-        t = clamp(t, OverlapReal(0.0), OverlapReal(1.0));
+        t = clamp(t, ShortReal(0.0), ShortReal(1.0));
         }
     else
         {
-        OverlapReal c = dot(d1, r);
+        ShortReal c = dot(d1, r);
 
         if (CHECK_ZERO(e, abs_tol))
             {
             // Second segment degenerates into a point
-            t = OverlapReal(0.0);
+            t = ShortReal(0.0);
             s = clamp(-c / a,
-                      OverlapReal(0.0),
-                      OverlapReal(1.0)); // t = 0 => s = (b*t - c) / a = -c / a
+                      ShortReal(0.0),
+                      ShortReal(1.0)); // t = 0 => s = (b*t - c) / a = -c / a
             }
         else
             {
             // The general nondegenerate case starts here
-            OverlapReal b = dot(d1, d2);
-            OverlapReal denom = a * e - b * b; // Always nonnegative
+            ShortReal b = dot(d1, d2);
+            ShortReal denom = a * e - b * b; // Always nonnegative
 
             // If segments not parallel, compute closest point on L1 to L2 and
             // clamp to segment S1. Else pick arbitrary s (here 0)
-            if (denom != OverlapReal(0.0))
+            if (denom != ShortReal(0.0))
                 {
-                s = clamp((b * f - c * e) / denom, OverlapReal(0.0), OverlapReal(1.0));
+                s = clamp((b * f - c * e) / denom, ShortReal(0.0), ShortReal(1.0));
                 }
             else
-                s = OverlapReal(0.0);
+                s = ShortReal(0.0);
 
             // Compute point on L2 closest to S1(s) using
             // t = dot((P1 + D1*s) - P2,D2) / dot(D2,D2) = (b*s + f) / e
@@ -540,15 +539,15 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal> p1,
             // If t in [0,1] done. Else clamp t, recompute s for the new value
             // of t using s = dot((P2 + D2*t) - P1,D1) / dot(D1,D1)= (t*b - c) / a
             // and clamp s to [0, 1]
-            if (t < OverlapReal(0.0))
+            if (t < ShortReal(0.0))
                 {
-                t = OverlapReal(0.0);
-                s = clamp(-c / a, OverlapReal(0.0), OverlapReal(1.0));
+                t = ShortReal(0.0);
+                s = clamp(-c / a, ShortReal(0.0), ShortReal(1.0));
                 }
-            else if (t > OverlapReal(1.0))
+            else if (t > ShortReal(1.0))
                 {
-                t = OverlapReal(1.0);
-                s = clamp((b - c) / a, OverlapReal(0.0), OverlapReal(1.0));
+                t = ShortReal(1.0);
+                s = clamp((b - c) / a, ShortReal(0.0), ShortReal(1.0));
                 }
             }
         }
@@ -563,14 +562,14 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal> p1,
     @param a First point of line segment
     @param b Second point of line segment
  */
-DEVICE inline bool test_vertex_line_segment_overlap(const vec3<OverlapReal>& v,
-                                                    const vec3<OverlapReal>& a,
-                                                    const vec3<OverlapReal>& b,
-                                                    OverlapReal abs_tol)
+DEVICE inline bool test_vertex_line_segment_overlap(const vec3<ShortReal>& v,
+                                                    const vec3<ShortReal>& a,
+                                                    const vec3<ShortReal>& b,
+                                                    ShortReal abs_tol)
     {
-    vec3<OverlapReal> c = cross(v - a, b - a);
-    OverlapReal d = dot(v - a, b - a) / dot(b - a, b - a);
-    return (CHECK_ZERO(dot(c, c), abs_tol) && d >= OverlapReal(0.0) && d <= OverlapReal(1.0));
+    vec3<ShortReal> c = cross(v - a, b - a);
+    ShortReal d = dot(v - a, b - a) / dot(b - a, b - a);
+    return (CHECK_ZERO(dot(c, c), abs_tol) && d >= ShortReal(0.0) && d <= ShortReal(1.0));
     }
 /** Test for intersection of line segments in 3D
 
@@ -580,40 +579,40 @@ DEVICE inline bool test_vertex_line_segment_overlap(const vec3<OverlapReal>& v,
     @param b Vector between endpoints of second line segment
     @returns true if line segments intersect or overlap
 */
-DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
-                                             const vec3<OverlapReal>& q,
-                                             const vec3<OverlapReal>& a,
-                                             const vec3<OverlapReal>& b,
-                                             OverlapReal abs_tol)
+DEVICE inline bool test_line_segment_overlap(const vec3<ShortReal>& p,
+                                             const vec3<ShortReal>& q,
+                                             const vec3<ShortReal>& a,
+                                             const vec3<ShortReal>& b,
+                                             ShortReal abs_tol)
     {
     /*
     if (det_4x4(p,q,p+a,q+b))
         return false; // line segments are skew
     */
     // 2d coordinate frame ex,ey
-    vec3<OverlapReal> ex = a;
-    OverlapReal mag_r = fast::sqrt(dot(ex, ex));
+    vec3<ShortReal> ex = a;
+    ShortReal mag_r = fast::sqrt(dot(ex, ex));
     ex /= mag_r;
-    vec3<OverlapReal> ey = cross(ex, b);
+    vec3<ShortReal> ey = cross(ex, b);
     ey = cross(ey, ex);
 
     if (dot(ey, ey) != 0)
         ey *= fast::rsqrt(dot(ey, ey));
 
-    vec2<OverlapReal> r(mag_r, OverlapReal(0.0));
-    vec2<OverlapReal> s(dot(b, ex), dot(b, ey));
-    OverlapReal denom = (r.x * s.y - r.y * s.x);
-    vec2<OverlapReal> del(dot(q - p, ex), dot(q - p, ey));
+    vec2<ShortReal> r(mag_r, ShortReal(0.0));
+    vec2<ShortReal> s(dot(b, ex), dot(b, ey));
+    ShortReal denom = (r.x * s.y - r.y * s.x);
+    vec2<ShortReal> del(dot(q - p, ex), dot(q - p, ey));
 
     if (CHECK_ZERO(denom, abs_tol))
         {
         // collinear or parallel?
-        vec3<OverlapReal> c = cross(q - p, a);
+        vec3<ShortReal> c = cross(q - p, a);
         if (dot(c, c) != 0)
             return false; // parallel
 
-        OverlapReal t = dot(del, r);
-        OverlapReal u = -dot(del, s);
+        ShortReal t = dot(del, r);
+        ShortReal u = -dot(del, s);
         if ((t < 0 || t > dot(r, r)) && (u < 0 || u > dot(s, s)))
             return false; // collinear, disjoint
 
@@ -621,11 +620,10 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
         return true;
         }
 
-    OverlapReal t = (del.x * s.y - del.y * s.x) / denom;
-    OverlapReal u = (del.x * r.y - del.y * r.x) / denom;
+    ShortReal t = (del.x * s.y - del.y * s.x) / denom;
+    ShortReal u = (del.x * r.y - del.y * r.x) / denom;
 
-    if (t >= OverlapReal(0.0) && t <= OverlapReal(1.0) && u >= OverlapReal(0.0)
-        && u <= OverlapReal(1.0))
+    if (t >= ShortReal(0.0) && t <= ShortReal(1.0) && u >= ShortReal(0.0) && u <= ShortReal(1.0))
         {
         // intersection
         return true;
@@ -636,19 +634,19 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
 /** compute shortest distance between two triangles
     @returns square of shortest distance
 */
-DEVICE inline OverlapReal shortest_distance_triangles(const vec3<OverlapReal>& a1,
-                                                      const vec3<OverlapReal>& b1,
-                                                      const vec3<OverlapReal>& c1,
-                                                      const vec3<OverlapReal>& a2,
-                                                      const vec3<OverlapReal>& b2,
-                                                      const vec3<OverlapReal>& c2,
-                                                      OverlapReal abs_tol)
+DEVICE inline ShortReal shortest_distance_triangles(const vec3<ShortReal>& a1,
+                                                    const vec3<ShortReal>& b1,
+                                                    const vec3<ShortReal>& c1,
+                                                    const vec3<ShortReal>& a2,
+                                                    const vec3<ShortReal>& b2,
+                                                    const vec3<ShortReal>& c2,
+                                                    ShortReal abs_tol)
     {
     // nine pairs of edges
-    OverlapReal dmin_sq(FLT_MAX);
-    vec3<OverlapReal> p1, p2;
-    OverlapReal s, t;
-    OverlapReal dsq;
+    ShortReal dmin_sq(FLT_MAX);
+    vec3<ShortReal> p1, p2;
+    ShortReal s, t;
+    ShortReal dsq;
     dsq = closestPtSegmentSegment(a1, b1, a2, b2, s, t, p1, p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
@@ -678,7 +676,7 @@ DEVICE inline OverlapReal shortest_distance_triangles(const vec3<OverlapReal>& a
         dmin_sq = dsq;
 
     // six vertex-triangle distances
-    vec3<OverlapReal> p;
+    vec3<ShortReal> p;
     p = detail::closestPointOnTriangle(a1, a2, b2, c2);
     dsq = dot(p - a1, p - a1);
     if (dsq < dmin_sq)
@@ -715,13 +713,13 @@ DEVICE inline OverlapReal shortest_distance_triangles(const vec3<OverlapReal>& a
     @param err gets incremented if there are errors (not currently implemented)
     @param abs_tol an absolute tolerance for the triangle triangle check
  */
-DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
+DEVICE inline bool test_narrow_phase_overlap(vec3<ShortReal> dr,
                                              const ShapePolyhedron& a,
                                              const ShapePolyhedron& b,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b,
                                              unsigned int& err,
-                                             OverlapReal abs_tol)
+                                             ShortReal abs_tol)
     {
     // loop through faces of cur_node_a
     unsigned int na = a.tree.getNumParticles(cur_node_a);
@@ -736,8 +734,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         unsigned mask_a = a.data.face_overlap[iface];
 
         float U[3][3];
-        quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))
-                            * quat<OverlapReal>(a.orientation));
+        quat<ShortReal> q(conj(quat<ShortReal>(b.orientation)) * quat<ShortReal>(a.orientation));
         if (nverts_a > 2)
             {
             for (unsigned int ivert = 0; ivert < 3; ++ivert)
@@ -784,15 +781,15 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
             if (bool(a.isSpheroPolyhedron()) || bool(b.isSpheroPolyhedron()))
                 {
-                OverlapReal dsqmin(FLT_MAX);
+                ShortReal dsqmin(FLT_MAX);
                 // Load vertex 0 on a
                 unsigned int idx_a = a.data.face_verts[offs_a];
-                vec3<OverlapReal> a0 = a.data.verts[idx_a];
+                vec3<ShortReal> a0 = a.data.verts[idx_a];
                 a0 = rotate(q, a0) + dr;
                 // vertex 0 on b
                 unsigned int idx_b = b.data.face_verts[offs_b];
-                vec3<OverlapReal> b0 = b.data.verts[idx_b];
-                vec3<OverlapReal> b1, b2;
+                vec3<ShortReal> b0 = b.data.verts[idx_b];
+                vec3<ShortReal> b1, b2;
                 if (nverts_b > 1)
                     {
                     // vertex 1 on b
@@ -805,11 +802,11 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                 if (nverts_b > 1 && nverts_a == 1)
                     {
                     // optimization, test vertex against triangle b
-                    vec3<OverlapReal> p;
+                    vec3<ShortReal> p;
                     p = detail::closestPointOnTriangle(a0, b0, b1, b2);
                     dsqmin = dot(p - a0, p - a0);
                     }
-                vec3<OverlapReal> a1, a2;
+                vec3<ShortReal> a1, a2;
                 if (nverts_a > 1)
                     {
                     // vertex 1 on a
@@ -824,7 +821,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                 if (nverts_a > 1 && nverts_b == 1)
                     {
                     // optimization, test vertex against triangle a
-                    vec3<OverlapReal> p;
+                    vec3<ShortReal> p;
                     p = detail::closestPointOnTriangle(b0, a0, a1, a2);
                     dsqmin = dot(p - b0, p - b0);
                     }
@@ -837,7 +834,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                     // trivial case
                     dsqmin = dot(a0 - b0, a0 - b0);
                     }
-                OverlapReal R_ab = a.data.sweep_radius + b.data.sweep_radius;
+                ShortReal R_ab = a.data.sweep_radius + b.data.sweep_radius;
                 if (R_ab * R_ab >= dsqmin)
                     {
                     // overlap of spherotriangles
@@ -856,50 +853,50 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     Note: the triangle is assumed to be oriented counter-clockwise when viewed from the direction of
    p
 */
-DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p,
-                                        const vec3<OverlapReal>& q,
-                                        const vec3<OverlapReal>& a,
-                                        const vec3<OverlapReal>& b,
-                                        const vec3<OverlapReal>& c,
-                                        OverlapReal& u,
-                                        OverlapReal& v,
-                                        OverlapReal& w,
-                                        OverlapReal& t)
+DEVICE inline bool IntersectRayTriangle(const vec3<ShortReal>& p,
+                                        const vec3<ShortReal>& q,
+                                        const vec3<ShortReal>& a,
+                                        const vec3<ShortReal>& b,
+                                        const vec3<ShortReal>& c,
+                                        ShortReal& u,
+                                        ShortReal& v,
+                                        ShortReal& w,
+                                        ShortReal& t)
     {
-    vec3<OverlapReal> ab = b - a;
-    vec3<OverlapReal> ac = c - a;
-    vec3<OverlapReal> qp = p - q;
+    vec3<ShortReal> ab = b - a;
+    vec3<ShortReal> ac = c - a;
+    vec3<ShortReal> qp = p - q;
     // Compute triangle normal. Can be precalculated or cached if
     // intersecting multiple segments against the same triangle
-    vec3<OverlapReal> n = cross(ab, ac);
+    vec3<ShortReal> n = cross(ab, ac);
     // Compute denominator d. If d <= 0, segment is parallel to or points
     // away from triangle, so exit early
     float d = dot(qp, n);
-    if (d <= OverlapReal(0.0))
+    if (d <= ShortReal(0.0))
         return false;
     // Compute intersection t value of pq with plane of triangle. A ray
     // intersects iff 0 <= t. Segment intersects iff 0 <= t <= 1. Delay
     // dividing by d until intersection has been found to pierce triangle
-    vec3<OverlapReal> ap = p - a;
+    vec3<ShortReal> ap = p - a;
     t = dot(ap, n);
-    if (t < OverlapReal(0.0))
+    if (t < ShortReal(0.0))
         return false;
     // For segment; exclude this code line for a ray test
     // Compute barycentric coordinate components and test if within bounds
-    vec3<OverlapReal> e = cross(qp, ap);
+    vec3<ShortReal> e = cross(qp, ap);
     v = dot(ac, e);
-    if (v < OverlapReal(0.0) || v > d)
+    if (v < ShortReal(0.0) || v > d)
         return false;
     w = -dot(ab, e);
-    if (w < OverlapReal(0.0) || v + w > d)
+    if (w < ShortReal(0.0) || v + w > d)
         return false;
     // Segment/ray intersects triangle. Perform delayed division and
     // compute the last barycentric coordinate component
-    float ood = OverlapReal(1.0) / d;
+    float ood = ShortReal(1.0) / d;
     t *= ood;
     v *= ood;
     w *= ood;
-    u = OverlapReal(1.0) - v - w;
+    u = ShortReal(1.0) - v - w;
     return true;
     }
 
@@ -909,10 +906,10 @@ inline bool BVHCollision(const ShapePolyhedron& a,
                          const ShapePolyhedron& b,
                          unsigned int cur_node_a,
                          unsigned int cur_node_b,
-                         const quat<OverlapReal>& q,
-                         const vec3<OverlapReal>& dr,
+                         const quat<ShortReal>& q,
+                         const vec3<ShortReal>& dr,
                          unsigned int& err,
-                         OverlapReal abs_tol)
+                         ShortReal abs_tol)
     {
     detail::OBB obb_a = a.tree.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr);
@@ -971,9 +968,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapePolyhedron& b,
                                 unsigned int& err)
     {
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    const OverlapReal abs_tol(OverlapReal(DaDb * 1e-12));
-    vec3<OverlapReal> dr = r_ab;
+    ShortReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    const ShortReal abs_tol(ShortReal(DaDb * 1e-12));
+    vec3<ShortReal> dr = r_ab;
 
 /*
  * This overlap test checks if an edge of one polyhedron is overlapping with a face of the other
@@ -1004,7 +1001,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
             hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
             // rotate and translate a's obb into b's body frame
-            vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+            vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
             obb_a.affineTransform(conj(b.orientation) * a.orientation, dr_rot);
             unsigned cur_node_b = 0;
             while (cur_node_b < tree_b.getNumNodes())
@@ -1030,7 +1027,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
             hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
             // rotate and translate b's obb into a's body frame
-            vec3<OverlapReal> dr_rot(rotate(conj(a.orientation), r_ab));
+            vec3<ShortReal> dr_rot(rotate(conj(a.orientation), r_ab));
             obb_b.affineTransform(conj(a.orientation) * b.orientation, dr_rot);
             unsigned cur_node_a = 0;
             while (cur_node_a < tree_a.getNumNodes())
@@ -1050,8 +1047,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         }
 #else
 
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation), -r_ab));
-    quat<OverlapReal> q(conj(b.orientation) * a.orientation);
+    vec3<ShortReal> dr_rot(rotate(conj(b.orientation), -r_ab));
+    quat<ShortReal> q(conj(b.orientation) * a.orientation);
 
 #ifndef __HIPCC__
     if (BVHCollision(a, b, 0, 0, q, dr_rot, err, abs_tol))
@@ -1095,29 +1092,29 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         // if the shape is a hull only, skip
         if (s1.data.hull_only)
             continue;
-        vec3<OverlapReal> p;
+        vec3<ShortReal> p;
         if (ord == 0)
             {
-            p = -dr + rotate(quat<OverlapReal>(a.orientation), a.data.origin);
+            p = -dr + rotate(quat<ShortReal>(a.orientation), a.data.origin);
             }
         else
             {
-            p = dr + rotate(quat<OverlapReal>(b.orientation), b.data.origin);
+            p = dr + rotate(quat<ShortReal>(b.orientation), b.data.origin);
             }
 
         // Check if s0 is contained in s1 by shooting a ray from its origin
         // in direction of origin separation
-        vec3<OverlapReal> n = dr + rotate(quat<OverlapReal>(b.orientation), b.data.origin)
-                              - rotate(quat<OverlapReal>(a.orientation), a.data.origin);
+        vec3<ShortReal> n = dr + rotate(quat<ShortReal>(b.orientation), b.data.origin)
+                            - rotate(quat<ShortReal>(a.orientation), a.data.origin);
         // rotate ray in coordinate system of shape s1
-        p = rotate(conj(quat<OverlapReal>(s1.orientation)), p);
-        n = rotate(conj(quat<OverlapReal>(s1.orientation)), n);
+        p = rotate(conj(quat<ShortReal>(s1.orientation)), p);
+        n = rotate(conj(quat<ShortReal>(s1.orientation)), n);
         if (ord != 0)
             {
             n = -n;
             }
 
-        vec3<OverlapReal> q = p + n;
+        vec3<ShortReal> q = p + n;
         unsigned int n_overlap = 0;
         // query ray against OBB tree
         unsigned cur_node_s1 = 0;
@@ -1136,7 +1133,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                     if (s1.data.face_offs[jface + 1] - offs_b < 3)
                         continue;
                     // Load vertex 0
-                    vec3<OverlapReal> v_b[3];
+                    vec3<ShortReal> v_b[3];
                     unsigned int idx_v = s1.data.face_verts[offs_b];
                     v_b[0] = s1.data.verts[idx_v];
                     // vertex 1
@@ -1145,7 +1142,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                     // vertex 2
                     idx_v = s1.data.face_verts[offs_b + 2];
                     v_b[2] = s1.data.verts[idx_v];
-                    OverlapReal u, v, w, t;
+                    ShortReal u, v, w, t;
                     // two-sided triangle test
                     if (IntersectRayTriangle(p, q, v_b[0], v_b[1], v_b[2], u, v, w, t)
                         || IntersectRayTriangle(p, q, v_b[2], v_b[1], v_b[0], u, v, w, t))

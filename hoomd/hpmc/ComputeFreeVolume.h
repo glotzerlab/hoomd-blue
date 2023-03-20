@@ -8,7 +8,6 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Compute.h"
 
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/RNGIdentifiers.h"
 

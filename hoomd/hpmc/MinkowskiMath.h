@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "HPMCPrecisionSetup.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -51,12 +50,12 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
     */
     DEVICE CompositeSupportFunc3D(const SupportFuncA& _sa,
                                   const SupportFuncB& _sb,
-                                  const vec3<OverlapReal>& _ab_t,
-                                  const quat<OverlapReal>& _q)
+                                  const vec3<ShortReal>& _ab_t,
+                                  const quat<ShortReal>& _q)
 #ifdef __HIPCC__
         : sa(_sa), sb(_sb), ab_t(_ab_t), q(_q)
 #else
-        : sa(_sa), sb(_sb), ab_t(_ab_t), R(rotmat3<OverlapReal>(_q))
+        : sa(_sa), sb(_sb), ab_t(_ab_t), R(rotmat3<ShortReal>(_q))
 #endif
         {
         }
@@ -66,15 +65,15 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
         \returns S_B(n) - S_A(n) in world space coords (transformations put n into local coords for
        S_A and S_b)
     */
-    DEVICE vec3<OverlapReal> operator()(const vec3<OverlapReal>& n) const
+    DEVICE vec3<ShortReal> operator()(const vec3<ShortReal>& n) const
         {
             // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
 #ifdef __HIPCC__
-        vec3<OverlapReal> SB_n = rotate(q, sb(rotate(conj(q), n))) + ab_t;
-        vec3<OverlapReal> SA_n = sa(-n);
+        vec3<ShortReal> SB_n = rotate(q, sb(rotate(conj(q), n))) + ab_t;
+        vec3<ShortReal> SA_n = sa(-n);
 #else
-        vec3<OverlapReal> SB_n = R * sb(transpose(R) * n) + ab_t;
-        vec3<OverlapReal> SA_n = sa(-n);
+        vec3<ShortReal> SB_n = R * sb(transpose(R) * n) + ab_t;
+        vec3<ShortReal> SA_n = sa(-n);
 #endif
         return SB_n - SA_n;
         }
@@ -82,13 +81,13 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
     private:
     const SupportFuncA& sa; //!< Support function for shape A
     const SupportFuncB& sb; //!< Support function for shape B
-    const vec3<OverlapReal>&
+    const vec3<ShortReal>&
         ab_t; //!< Vector pointing from a's center to b's center, in the space frame
 #ifdef __HIPCC__
-    const quat<OverlapReal>& q; //!< Orientation of shape B in frame A
+    const quat<ShortReal>& q; //!< Orientation of shape B in frame A
 
 #else
-    const rotmat3<OverlapReal> R; //!< Orientation of shape B in A frame
+    const rotmat3<ShortReal> R; //!< Orientation of shape B in A frame
 
 #endif
     };
