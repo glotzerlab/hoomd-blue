@@ -94,6 +94,21 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         }
 
     //! Total the potential energy
+    //
+    //! Computes surrounding enegry differences for dynamical mesh bonding
+    virtual Scalar energyDiffSurrounding(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int idx_e,
+                              unsigned int type_id)
+        {
+        return 0;
+        }
+
+
+    virtual bool checkSurrounding(){return false;}
+
     Scalar calcEnergySum();
 
     //! Sum the potential energy of a group

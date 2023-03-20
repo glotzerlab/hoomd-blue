@@ -407,6 +407,70 @@ Scalar BendingRigidityMeshForceCompute::energyDiff(unsigned int idx_a,
     return m_K[0] * 0.5 * (cosinus1 - cosinus2);
     }
 
+Scalar BendingRigidityMeshForceCompute::energyDiffSurrounding(unsigned int idx_a,
+                                                   unsigned int idx_b,
+                                                   unsigned int idx_c,
+                                                   unsigned int idx_d,
+                                                   unsigned int idx_e,
+                                                   unsigned int type_id)
+    {
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getGlobalBox();
+    Scalar3 dab;
+    dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
+    dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
+    dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
+
+    Scalar3 dac;
+    dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x;
+    dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
+    dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
+
+    Scalar3 dad;
+    dad.x = h_pos.data[idx_a].x - h_pos.data[idx_d].x;
+    dad.y = h_pos.data[idx_a].y - h_pos.data[idx_d].y;
+    dad.z = h_pos.data[idx_a].z - h_pos.data[idx_d].z;
+
+    Scalar3 dae;
+    dae.x = h_pos.data[idx_a].x - h_pos.data[idx_e].x;
+    dae.y = h_pos.data[idx_a].y - h_pos.data[idx_e].y;
+    dae.z = h_pos.data[idx_a].z - h_pos.data[idx_e].z;
+
+    // apply minimum image conventions to all 3 vectors
+    dab = box.minImage(dab);
+    dac = box.minImage(dac);
+    dad = box.minImage(dad);
+    dae = box.minImage(dae);
+
+    Scalar3 z1;
+    z1.x = dab.y * dac.z - dab.z * dac.y;
+    z1.y = dab.z * dac.x - dab.x * dac.z;
+    z1.z = dab.x * dac.y - dab.y * dac.x;
+
+    Scalar3 z2;
+    z2.x = dad.y * dab.z - dad.z * dab.y;
+    z2.y = dad.z * dab.x - dad.x * dab.z;
+    z2.z = dad.x * dab.y - dad.y * dab.x;
+
+    Scalar3 z3;
+    z3.x = dae.y * dab.z - dae.z * dab.y;
+    z3.y = dae.z * dab.x - dae.x * dab.z;
+    z3.z = dae.x * dab.y - dae.y * dab.x;
+
+    // FLOPS: 42 / MEM TRANSFER: 6 Scalars
+    Scalar n1 = fast::rsqrt(z1.x * z1.x + z1.y * z1.y + z1.z * z1.z);
+    Scalar n2 = fast::rsqrt(z2.x * z2.x + z2.y * z2.y + z2.z * z2.z);
+    Scalar n3 = fast::rsqrt(z3.x * z3.x + z3.y * z3.y + z3.z * z3.z);
+    Scalar z1z2 = z1.x * z2.x + z1.y * z2.y + z1.z * z2.z;
+    Scalar z1z3 = z1.x * z3.x + z1.y * z3.y + z1.z * z3.z;
+
+    Scalar cosinus1 = z1z2 * n1 * n2;
+    Scalar cosinus2 = z1z3 * n1 * n3;
+
+    return m_K[0] * 0.5 * (cosinus1 - cosinus2);
+    }
+
 namespace detail
     {
 void export_BendingRigidityMeshForceCompute(pybind11::module& m)

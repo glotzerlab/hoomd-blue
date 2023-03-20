@@ -97,6 +97,15 @@ class PYBIND11_EXPORT BendingRigidityMeshForceCompute : public ForceCompute
                               unsigned int idx_c,
                               unsigned int idx_d,
                               unsigned int type_id);
+
+    virtual Scalar energyDiffSurrounding(unsigned int idx_a,
+                              unsigned int idx_b,
+                              unsigned int idx_c,
+                              unsigned int idx_d,
+                              unsigned int idx_e,
+                              unsigned int type_id);
+
+    virtual bool checkSurrounding(){return true;}
     };
 
 namespace detail

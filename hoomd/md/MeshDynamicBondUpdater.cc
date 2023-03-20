@@ -210,15 +210,88 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
         Scalar energyDifference = 0;
 
+        unsigned int idx_cc = idx_d;
+        unsigned int idx_dd = idx_c;
+
         if (a_before_b)
             {
-            for (auto& force : forces)
-                energyDifference += force->energyDiff(idx_a, idx_b, idx_c, idx_d, type_id);
-            }
-        else
-            {
-            for (auto& force : forces)
-                energyDifference += force->energyDiff(idx_a, idx_b, idx_d, idx_c, type_id);
+	    idx_cc = idx_c;
+	    idx_dd = idx_d;
+	    }
+
+        for (auto& force : forces)
+	    {
+            energyDifference += force->energyDiff(idx_a, idx_b, idx_cc, idx_dd, type_id);
+
+	    if(force->checkSurrounding())
+                {
+		for( int tr_i = 3; tr_i < 6; tr_i++)
+		   {
+	           unsigned int new_tr = triangle1.tag[tr_i];
+		   if( new_tr == tr_idx2) continue;
+		   unsigned int idx_v1, idx_v2, idx_e;
+
+                   const typename MeshTriangle::members_t& new_triangle = h_triangles.data[new_tr];
+
+		   for( iterator = 0; iterator < 3; iterator++)
+	               {
+		   	unsigned int tag_e = new_triangle.tag[iterator];
+                   	unsigned int idx_ee = h_rtag.data[tag_e];
+			if(idx_ee == idx_a)
+			    {
+			    idx_v1 = idx_a;
+			    idx_v2 = idx_b;
+			    }
+			else{
+			if(idx_ee == idx_b)
+			    {
+			    idx_v1 = idx_b;
+			    idx_v2 = idx_a;
+			    }
+			else{
+			if(idx_ee != idx_c)
+			    {
+			    idx_e = idx_ee;
+			    }
+                        }}
+		   }
+		   energyDifference += force->energyDiffSurrounding(idx_c, idx_v1, idx_e, idx_v2, idx_d, type_id);
+		   
+		   }
+		for( int tr_i = 3; tr_i < 6; tr_i++)
+		   {
+	           unsigned int new_tr = triangle2.tag[tr_i];
+		   if( new_tr == tr_idx1) continue;
+		   unsigned int idx_v1, idx_v2, idx_e;
+
+                   const typename MeshTriangle::members_t& new_triangle = h_triangles.data[new_tr];
+
+		   for( iterator = 0; iterator < 3; iterator++)
+	               {
+		   	unsigned int tag_e = new_triangle.tag[iterator];
+                   	unsigned int idx_ee = h_rtag.data[tag_e];
+			if(idx_ee == idx_a)
+			    {
+			    idx_v1 = idx_a;
+			    idx_v2 = idx_b;
+			    }
+			else{
+			if(idx_ee == idx_b)
+			    {
+			    idx_v1 = idx_b;
+			    idx_v2 = idx_a;
+			    }
+			else{
+			if(idx_ee != idx_d)
+			    {
+			    idx_e = idx_ee;
+			    }
+                        }}
+		   }
+		   energyDifference += force->energyDiffSurrounding(idx_d, idx_v1, idx_e, idx_v2, idx_c, type_id);
+		   
+		   }
+		}
             }
 
         // Initialize the RNG
