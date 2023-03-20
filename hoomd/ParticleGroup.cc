@@ -726,16 +726,22 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                                m_sysdef->getSeed()),
                                    hoomd::Counter(ptag));
 
-        // Generate a random velocity
+        // Generate zero velocities and momenta for constituent particles 
         Scalar mass = h_vel.data[j].w;
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
-        h_vel.data[j].x = normal(rng);
-        h_vel.data[j].y = normal(rng);
-        if (n_dimensions > 2)
-            h_vel.data[j].z = normal(rng);
+        // check if the particles are constituent particles
+        if (h_tag_data != h_body_data && h_body_data != -1)
+            h_vel.data[j].x = 0;
+            h_vel.data[j].y = 0;
+            h_vel.data[j].z = 0;
         else
-            h_vel.data[j].z = 0; // For 2D systems
+            h_vel.data[j].x = normal(rng);
+            h_vel.data[j].y = normal(rng); 
+            if (n_dimensions > 2)
+                h_vel.data[j].z = normal(rng);
+            else
+                h_vel.data[j].z = 0; // For 2D systems
 
         tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
 
