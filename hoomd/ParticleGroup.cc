@@ -726,22 +726,21 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                                m_sysdef->getSeed()),
                                    hoomd::Counter(ptag));
 
-        // Generate zero velocities and momenta for constituent particles 
+        // Generate zero velocities and momenta for constituent particles
         Scalar mass = h_vel.data[j].w;
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
-        // check if the particles are constituent particles
-        if (h_tag_data != h_body_data && h_body_data != -1)
+        // check if particles are constituent particles
+        if (h_tag.data != h_body.data && h_body.data != -1)
             h_vel.data[j].x = 0;
-            h_vel.data[j].y = 0;
-            h_vel.data[j].z = 0;
+        h_vel.data[j].y = 0;
+        h_vel.data[j].z = 0;
+        else h_vel.data[j].x = normal(rng);
+        h_vel.data[j].y = normal(rng);
+        if (n_dimensions > 2)
+            h_vel.data[j].z = normal(rng);
         else
-            h_vel.data[j].x = normal(rng);
-            h_vel.data[j].y = normal(rng); 
-            if (n_dimensions > 2)
-                h_vel.data[j].z = normal(rng);
-            else
-                h_vel.data[j].z = 0; // For 2D systems
+            h_vel.data[j].z = 0; // For 2D systems
 
         tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
 
@@ -750,12 +749,10 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (I.x > 0)
-            p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
-        if (I.y > 0)
-            p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
-        if (I.z > 0)
-            p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
+        if (h_tag.data != h_body.data && h_body.data != -1)
+            p_vec.x = 0;
+        p_vec.y = 0;
+        p_vec.z = 0;
 
         // Store the angular momentum quaternion
         quat<Scalar> p = Scalar(2.0) * q * p_vec;
