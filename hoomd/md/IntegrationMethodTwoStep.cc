@@ -125,12 +125,7 @@ void IntegrationMethodTwoStep::validateGroup()
 
         if (body < MIN_FLOPPY && body != tag)
             {
-            m_exec_conf->msg->error()
-                << "Particle " << tag
-                << " belongs to a rigid body, but is not its center particle. " << std::endl
-                << "This integration method does not operate on constituent particles." << std::endl
-                << std::endl;
-            throw std::runtime_error("Error initializing integration method");
+            throw std::runtime_error("Integration methods may not be applied to constituents.");
             }
         }
     }
