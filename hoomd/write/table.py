@@ -211,7 +211,6 @@ class _TableInternal(_InternalAction):
         _invalid_inputs = logger.categories & self._invalid_logger_categories
 
         # Ensure that only scalar and potentially string are set for the logger
-        # If logger.categories == none, pass automatically
         if logger.categories == LoggerCategories.NONE:
             pass
         elif LoggerCategories.any([
