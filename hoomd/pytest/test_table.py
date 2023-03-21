@@ -229,18 +229,11 @@ def test_invalid_permutations(device, combination):
     # Test every combination raises the correct ValueError
     logger = hoomd.logging.Logger(categories=combination)
     output = StringIO("")
-    valid_inputs = {"string", "scalar"}
     with pytest.raises(ValueError) as ve:
         hoomd.write.Table(1, logger, output)
-    # Ensure that no correct category is set
-    if combination & valid_inputs == set():
-        # Check if correct error is being raised given no valid categories
-        assert ("Table Logger may only have scalar or string categories set."
-                in str(ve.value))
-    else:
-        # Check if correct error is being raised
-        assert "incompatible" in str(ve.value)
-        # Now ensure category formatting operates correctly
-        for category in combination - {"string", "scalar"}:
-            assert category in str(ve.value)
-    # No further cases are possible, as valid configurations are pruned out
+    # Ensure that correct error message is sent
+    assert "Table Logger may only have scalar or string categories set." in str(
+        ve.value)
+    # Now ensure category formatting operates correctly
+    for category in combination - {"string", "scalar"}:
+        assert category in str(ve.value)
