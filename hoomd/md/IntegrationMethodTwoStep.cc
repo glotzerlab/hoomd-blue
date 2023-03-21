@@ -140,8 +140,6 @@ void IntegrationMethodTwoStep::validateGroup()
                       MPI_LOR,
                       this->m_exec_conf->getMPICommunicator());
         }
-
-    cout << "Rank " << this->m_exec_conf->getRank() << " error: " << error << std::endl;
     #endif
 
     if (error)
