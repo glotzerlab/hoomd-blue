@@ -221,9 +221,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
 
         unsigned int triangle_type = m_mesh_data->getMeshTriangleData()->getTypeByIndex(i);
 
-        // from whole surface area A0 to the surface of individual triangle A0 -> At
-        unsigned int Ntriags = m_mesh_data->getPerTypeSize(triangle_type);
-        Scalar At = m_A0[triangle_type] / Ntriags;
+        Scalar At = m_A0[triangle_type];
 
         Scalar tri_area = rab * rac * s_baac / 6; // triangle area/3
         Scalar Ut = 3 * tri_area - At;

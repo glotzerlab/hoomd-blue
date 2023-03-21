@@ -38,15 +38,20 @@ _BendingRigidity_arg_list = [(hoomd.md.mesh.bending.BendingRigidity,
                               dict(zip(_BendingRigidity_args, val)))
                              for val in zip(*_BendingRigidity_args.values())]
 
+_TriangleAreaConservation_args = {
+    'k': [1.0, 20.0, 100.0],
+    'A0': [6 * np.sqrt(3)/4, 5 * np.sqrt(3)/4, 7 * np.sqrt(3)/4]
+}
+_TriangleAreaConservation_arg_list = [
+    (hoomd.md.mesh.conservation.TriangleArea,
+     dict(zip(_TriangleAreaConservation_args, val)))
+    for val in zip(*_TriangleAreaConservation_args.values())
+]
+
 _AreaConservation_args = {
     'k': [1.0, 20.0, 100.0],
     'A0': [6 * np.sqrt(3), 5 * np.sqrt(3), 7 * np.sqrt(3)]
 }
-_TriangleAreaConservation_arg_list = [
-    (hoomd.md.mesh.conservation.TriangleArea,
-     dict(zip(_AreaConservation_args, val)))
-    for val in zip(*_AreaConservation_args.values())
-]
 _AreaConservation_arg_list = [(hoomd.md.mesh.conservation.Area,
                                dict(zip(_AreaConservation_args, val)))
                               for val in zip(*_AreaConservation_args.values())]
@@ -135,7 +140,7 @@ def get_mesh_potential_args_forces_and_energies():
             (*_BendingRigidity_arg_list[i], BendingRigidity_forces[i],
              BendingRigidity_energies[i]))
         TriangleAreaConservation_args_and_vals.append(
-            (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
+            (*_TriangleAreaConservation_arg_list[i], AreaConservation_forces[i],
              AreaConservation_energies[i]))
         AreaConservation_args_and_vals.append(
             (*_AreaConservation_arg_list[i], AreaConservation_forces[i],
