@@ -45,7 +45,6 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
                                                   Scalar* d_virial,
                                                   const size_t virial_pitch,
                                                   const unsigned int N,
-                                                  const unsigned int N_tri,
                                                   const Scalar4* d_pos,
                                                   BoxDim box,
                                                   const group_storage<3>* tlist,
@@ -145,7 +144,6 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         Scalar2 params = __ldg(d_params + cur_triangle_type);
         Scalar K = params.x;
         Scalar A0 = params.y;
-        Scalar At = A0 / N_tri;
 
         Scalar3 dc_dra;
         if (cur_triangle_abc == 0)
@@ -167,7 +165,7 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
         Scalar3 ds_dra = -c_baac * inv_s_baac * dc_dra;
 
         Scalar numerator_base;
-        numerator_base = rab * rac * s_baac / 2 - At;
+        numerator_base = rab * rac * s_baac / 2 - A0;
 
         Scalar3 Fa;
 
@@ -187,13 +185,13 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
                 }
             }
 
-        Fa = -K / (2 * At) * numerator_base * Fa;
+        Fa = -K / (2 * A0) * numerator_base * Fa;
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
         force.w
-            += K / (6.0 * At) * numerator_base * numerator_base; // divided by 3 because of three
+            += K / (6.0 * A0) * numerator_base * numerator_base; // divided by 3 because of three
                                                                  // particles sharing the energy
 
         virial[0] += Scalar(1. / 2.) * pos_a.x * Fa.x; // xx
@@ -265,7 +263,6 @@ hipError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
                        d_virial,
                        virial_pitch,
                        N,
-                       N_tri,
                        d_pos,
                        box,
                        tlist,

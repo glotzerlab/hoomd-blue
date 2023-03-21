@@ -79,8 +79,8 @@ class TriangleArea(MeshPotential):
             to be stated. The dictionary has the following keys:
             * ``k`` (`float`, **required**) - area conservation coefficient
               :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
-            * ``A0`` (`float`, **required**) - targeted total surface area
-              of the whole mesh
+            * ``A0`` (`float`, **required**) - target surface area
+              of a single triangle in the mesh
               :math:`[\mathrm{length}]^2`
 
     Examples::
