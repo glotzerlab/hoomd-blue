@@ -92,6 +92,8 @@ def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(snapshot)
     sim.operations.integrator = integrator
 
+    # Confirm that 1) Attaching calls `validate_groups` and 2) That
+    # rigid constituent particles trigger an error.
     with pytest.raises(RuntimeError):
         sim.run(10)
 
@@ -104,13 +106,20 @@ def test_overlapping_filters(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(snapshot)
     sim.operations.integrator = integrator
 
+    # Attach the integrator. No methods are set, so no error.
     sim.run(0)
 
     nve1 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
     nve2 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
+    # Setting invalid methods does not trigger an error.
     integrator.methods = [nve1, nve2]
+
+    # Running does not trigger an error, `validate_groups` is only called on
+    # attach.
     sim.run(0)
 
+    # Check that 1) Users can call `validate_groups` and 2) That overlapping
+    # groups result in an error.
     with pytest.raises(RuntimeError):
         integrator.validate_groups()
 
