@@ -92,10 +92,12 @@ def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(snapshot)
     sim.operations.integrator = integrator
 
+    rigid.create_bodies(sim.state)
+
     # Confirm that 1) Attaching calls `validate_groups` and 2) That
     # rigid constituent particles trigger an error.
     with pytest.raises(RuntimeError):
-        sim.run(10)
+        sim.run(1)
 
 
 def test_overlapping_filters(simulation_factory, lattice_snapshot_factory):
