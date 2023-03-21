@@ -130,7 +130,7 @@ void IntegrationMethodTwoStep::validateGroup()
             }
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (this->m_sysdef->isDomainDecomposed())
         {
         MPI_Allreduce(MPI_IN_PLACE,
@@ -140,7 +140,7 @@ void IntegrationMethodTwoStep::validateGroup()
                       MPI_LOR,
                       this->m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
 
     if (error)
         {
