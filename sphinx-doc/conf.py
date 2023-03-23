@@ -52,7 +52,7 @@ autodoc_mock_imports = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'figures']
+exclude_patterns = ['_build', 'figures', '**/create-figures.ipynb']
 
 source_suffix = '.rst'
 

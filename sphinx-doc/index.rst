@@ -146,6 +146,7 @@ Molecular dynamics:
     tutorial/04-Custom-Actions-In-Python/00-index
     tutorial/05-Organizing-and-Executing-Simulations/00-index
     tutorial/06-Modelling-Rigid-Bodies/00-index
+    tutorial/07-Modelling-Patchy-Particles/00-index
 
 .. toctree::
     :maxdepth: 1
