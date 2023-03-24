@@ -710,6 +710,9 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                    access_mode::read);
 
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::readwrite);
 
     // Total the system's linear momentum
     vec3<Scalar> tot_momentum(0, 0, 0);
@@ -731,16 +734,21 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
         // check if particles are constituent particles
-        if (h_tag.data != h_body.data && h_body.data != -1)
-            h_vel.data[j].x = 0;
-        h_vel.data[j].y = 0;
-        h_vel.data[j].z = 0;
-        else h_vel.data[j].x = normal(rng);
-        h_vel.data[j].y = normal(rng);
-        if (n_dimensions > 2)
-            h_vel.data[j].z = normal(rng);
+        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != -1)
+            {
+            h_vel.data[j].x = normal(rng);
+            h_vel.data[j].y = normal(rng);
+            if (n_dimensions > 2)
+                h_vel.data[j].z = normal(rng);
+            else
+                h_vel.data[j].z = 0; // For 2D systems
+            }
         else
-            h_vel.data[j].z = 0; // For 2D systems
+            {
+            h_vel.data[j].x = 0;
+            h_vel.data[j].y = 0;
+            h_vel.data[j].z = 0;
+            }
 
         tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
 
@@ -749,10 +757,21 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (h_tag.data != h_body.data && h_body.data != -1)
+        if (h_tag.data[j] == h_body.data[j])
+            {
+            if (I.x > 0)
+                p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
+            if (I.y > 0)
+                p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
+            if (I.z > 0)
+                p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
+            }
+        else
+            {
             p_vec.x = 0;
-        p_vec.y = 0;
-        p_vec.z = 0;
+            p_vec.y = 0;
+            p_vec.z = 0;
+            }
 
         // Store the angular momentum quaternion
         quat<Scalar> p = Scalar(2.0) * q * p_vec;
