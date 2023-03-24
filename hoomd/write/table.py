@@ -205,15 +205,23 @@ class _TableInternal(_InternalAction):
                  output=output,
                  logger=logger))
         self._param_dict = param_dict
-
         # internal variables that are not part of the state.
-        # Ensure that only scalar and potentially string are set for the logger
-        if (LoggerCategories.scalar not in logger.categories
-                or logger.categories & self._invalid_logger_categories
-                !=  # noqa: W504 (yapf formats this incorrectly
-                LoggerCategories.NONE):
+
+        # Generate LoggerCategories for valid and invalid categories
+        _valid_categories = LoggerCategories.any(
+            [LoggerCategories.scalar, LoggerCategories.string])
+        _invalid_inputs = logger.categories & self._invalid_logger_categories
+
+        # Ensure that only scalar and string categories are set for the logger
+        if logger.categories == LoggerCategories.NONE:
+            pass
+        elif (_valid_categories ^ LoggerCategories.ALL
+              ) & logger.categories == LoggerCategories.NONE:
+            pass
+        else:
             raise ValueError(
-                "Given Logger must have the scalar categories set.")
+                "Table Logger may only have scalar or string categories set. \
+                    Use hoomd.write.GSD for {}.".format(_invalid_inputs))
 
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)
