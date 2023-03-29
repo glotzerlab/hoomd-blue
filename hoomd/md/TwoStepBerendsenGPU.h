@@ -40,7 +40,8 @@ class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
     virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-    unsigned int m_block_size; //!< Block size to launch on the GPU
+    std::shared_ptr<Autotuner<1>> m_tuner_step_one; //!< step one kernel tuner
+    std::shared_ptr<Autotuner<1>> m_tuner_step_two; //!< step two kernel tuner
     };
 
     } // end namespace md

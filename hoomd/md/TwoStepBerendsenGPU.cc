@@ -34,7 +34,12 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
         throw std::runtime_error("Cannot create BerendsenGPU on a CPU device.");
         }
 
-    m_block_size = 256;
+    m_tuner_step_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "integrate_step_one"));
+    m_tuner_step_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "integrate_step_two"));
     }
 
 /*! Perform the needed calculations to zero the system's velocity
@@ -72,6 +77,7 @@ void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
                                             access_mode::read);
 
     // perform the integration on the GPU
+    m_tuner_step_one->begin();
     kernel::gpu_berendsen_step_one(d_pos.data,
                                    d_vel.data,
                                    d_accel.data,
@@ -79,9 +85,10 @@ void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
                                    d_index_array.data,
                                    group_size,
                                    box,
-                                   m_block_size,
+                                   m_tuner_step_one->getParam()[0],
                                    lambda,
                                    m_deltaT);
+    m_tuner_step_one->end();
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -108,13 +115,15 @@ void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
                                             access_mode::read);
 
     // perform the second step of the integration on the GPU
+    m_tuner_step_two->begin();
     kernel::gpu_berendsen_step_two(d_vel.data,
                                    d_accel.data,
                                    d_index_array.data,
                                    group_size,
                                    d_net_force.data,
-                                   m_block_size,
+                                   m_tuner_step_two->getParam()[0],
                                    m_deltaT);
+    m_tuner_step_two->end();
 
     // check if an error occurred
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
