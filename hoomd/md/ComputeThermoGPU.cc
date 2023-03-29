@@ -36,7 +36,9 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing ComputeThermoGPU");
         }
 
-    m_block_size = 256;
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "partial_reduction_tuner"));
 
     hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }
@@ -59,9 +61,9 @@ void ComputeThermoGPU::computeProperties()
 
     assert(m_pdata);
 
-    // number of blocks in reduction (round up for every GPU)
-    unsigned int num_blocks
-        = m_group->getNumMembers() / m_block_size + m_exec_conf->getNumActiveGPUs();
+    // number of blocks in partial reduction (round up for every GPU)
+    unsigned int block_size = m_tuner->getParam()[0] unsigned int num_blocks
+        = m_group->getNumMembers() / block_size + m_exec_conf->getNumActiveGPUs();
 
     // resize work space
     size_t old_size = m_scratch.size();
@@ -172,7 +174,7 @@ void ComputeThermoGPU::computeProperties()
         args.d_scratch = d_scratch.data;
         args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
         args.d_scratch_rot = d_scratch_rot.data;
-        args.block_size = m_block_size;
+        args.block_size = block_size;
         args.external_virial_xx = m_pdata->getExternalVirial(0);
         args.external_virial_xy = m_pdata->getExternalVirial(1);
         args.external_virial_xz = m_pdata->getExternalVirial(2);
@@ -182,6 +184,7 @@ void ComputeThermoGPU::computeProperties()
         args.external_energy = m_pdata->getExternalEnergy();
 
         // perform the computation on the GPU(s)
+        m_tuner->begin();
         gpu_compute_thermo_partial(d_properties.data,
                                    d_vel.data,
                                    d_body.data,
@@ -193,12 +196,19 @@ void ComputeThermoGPU::computeProperties()
                                    flags[pdata_flag::pressure_tensor],
                                    flags[pdata_flag::rotational_kinetic_energy],
                                    m_group->getGPUPartition());
+        m_tuner->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         // converge GPUs
         m_exec_conf->endMultiGPU();
+
+        // number of blocks in the partial reduction will be the same as the
+        // size of the only block in the final reduction, rounded up to the
+        // nearest multiple of the warp size
+        args.block_size = 32 * ((num_blocks / 32) + 1);
+        args.n_blocks = 1;
 
         // perform the computation on GPU 0
         gpu_compute_thermo_final(d_properties.data,

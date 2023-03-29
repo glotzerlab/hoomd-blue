@@ -676,11 +676,10 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
     assert(args.d_scratch);
 
     // setup the grid to run the final kernel
-    int final_block_size = 256;
-    dim3 grid = dim3(1, 1, 1);
-    dim3 threads = dim3(final_block_size, 1, 1);
+    dim3 grid = dim3(args.n_blocks, 1, 1);
+    dim3 threads = dim3(args.block_size, 1, 1);
 
-    size_t shared_bytes = sizeof(Scalar4) * final_block_size;
+    size_t shared_bytes = sizeof(Scalar4) * args.block_size;
 
     Scalar external_virial
         = Scalar(1.0 / 3.0)
