@@ -62,7 +62,8 @@ void ComputeThermoGPU::computeProperties()
     assert(m_pdata);
 
     // number of blocks in partial reduction (round up for every GPU)
-    unsigned int block_size = m_tuner->getParam()[0] unsigned int num_blocks
+    unsigned int block_size = m_tuner->getParam()[0];
+    unsigned int num_blocks
         = m_group->getNumMembers() / block_size + m_exec_conf->getNumActiveGPUs();
 
     // resize work space

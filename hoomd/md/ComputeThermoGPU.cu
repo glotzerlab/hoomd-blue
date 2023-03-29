@@ -704,7 +704,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
 
     if (compute_pressure_tensor)
         {
-        shared_bytes = 6 * sizeof(Scalar) * final_block_size;
+        shared_bytes = 6 * sizeof(Scalar) * args.block_size;
         // run the kernel
         hipLaunchKernelGGL(gpu_compute_pressure_tensor_final_sums,
                            dim3(grid),
