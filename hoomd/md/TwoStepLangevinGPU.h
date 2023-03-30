@@ -37,16 +37,20 @@ class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
     virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-    unsigned int m_block_size;       //!< block size for partial sum memory
-    unsigned int m_num_blocks;       //!< number of memory blocks reserved for partial sum memory
-    GPUArray<Scalar> m_partial_sum1; //!< memory space for partial sum over bd energy transfers
-    GPUArray<Scalar> m_sum;          //!< memory space for sum over bd energy transfers
+    GPUVector<Scalar> m_partial_sum1; //!< memory space for partial sum over bd energy transfers
+    GPUArray<Scalar> m_sum;           //!< memory space for sum over bd energy transfers
 
     /// Autotuner for block size (step one kernel)
     std::shared_ptr<Autotuner<1>> m_tuner_one;
 
+    /// Autotuner for block size (step two kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_two;
+
     /// Autotuner for block size (angular step one kernel).
     std::shared_ptr<Autotuner<1>> m_tuner_angular_one;
+
+    /// Autotuner for block size (angular step two kernel).
+    std::shared_ptr<Autotuner<1>> m_tuner_angular_two;
     };
 
     } // end namespace md

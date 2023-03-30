@@ -435,9 +435,8 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
                                          Scalar scale)
     {
     // setup the grid to run the kernel
-    int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid(langevin_args.num_blocks, 1, 1);
+    dim3 threads(langevin_args.block_size, 1, 1);
 
     auto shared_bytes = max((sizeof(Scalar3) * langevin_args.n_types),
                             (langevin_args.block_size * sizeof(Scalar)));
@@ -506,9 +505,7 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
     {
     // setup the grid to run the kernel
     dim3 grid(langevin_args.num_blocks, 1, 1);
-    dim3 grid1(1, 1, 1);
     dim3 threads(langevin_args.block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
 
     auto shared_bytes = max((sizeof(Scalar) * langevin_args.n_types),
                             (langevin_args.block_size * sizeof(Scalar)));
@@ -551,6 +548,13 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
 
     // run the summation kernel
     if (langevin_args.tally)
+        {
+        // block size in this kernel is determined by grid size in previous kernel
+        unsigned int block_size_tally = 32 * ((langevin_args.num_blocks / 32) + 1);
+        dim3 threads1(block_size_tally, 1, 1);
+        dim3 grid1(1, 1, 1);
+
+        // launch final reduction kernel
         hipLaunchKernelGGL((gpu_bdtally_reduce_partial_sum_kernel),
                            dim3(grid1),
                            dim3(threads1),
@@ -559,6 +563,7 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
                            &langevin_args.d_sum_bdenergy[0],
                            langevin_args.d_partial_sum_bdenergy,
                            langevin_args.num_blocks);
+        }
 
     return hipSuccess;
     }

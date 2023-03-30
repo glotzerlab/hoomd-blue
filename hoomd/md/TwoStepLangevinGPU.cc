@@ -34,21 +34,27 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_sum.swap(sum);
 
     // initialize the partial sum array
-    m_block_size = 256;
-    unsigned int group_size = m_group->getNumMembers();
-    m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
+    GPUVector<Scalar> partial_sum1(256, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
 
     m_tuner_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                        m_exec_conf,
-                                       "langevin_nve"));
+                                       "langevin_nve_one"));
+    m_tuner_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "langevin_nve_two"));
     m_tuner_angular_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                                m_exec_conf,
-                                               "langevin_angular",
+                                               "langevin_angular_one",
                                                5,
                                                true));
-    m_autotuners.insert(m_autotuners.end(), {m_tuner_one, m_tuner_angular_one});
+    m_tuner_angular_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                               m_exec_conf,
+                                               "langevin_angular_two",
+                                               5,
+                                               true));
+    m_autotuners.insert(m_autotuners.end(),
+                        {m_tuner_one, m_tuner_angular_one, m_tuner_two, m_tuner_angular_two});
     }
 
 /*! \param timestep Current time step
@@ -142,6 +148,22 @@ void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
 */
 void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    unsigned int block_size = m_tuner_two->getParam()[0];
+    unsigned int num_blocks = group_size / block_size + 1;
+
+    // update scratch space if needed
+    if (num_blocks != m_partial_sum1.size())
+        {
+        m_partial_sum1.resize(num_blocks);
+
+        // zero memory to be safe
+        ArrayHandle<Scalar> d_partial_sum1(m_partial_sum1,
+                                           access_location::device,
+                                           access_mode::overwrite);
+        hipMemset(d_partial_sum1.data, 0, sizeof(Scalar) * num_blocks);
+        }
+
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // get the dimensionality of the system
@@ -175,9 +197,6 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
                                         access_location::device,
                                         access_mode::read);
 
-        unsigned int group_size = m_group->getNumMembers();
-        m_num_blocks = group_size / m_block_size + 1;
-
         // perform the update on the GPU
         kernel::langevin_step_two_args args(d_gamma.data,
                                             (unsigned int)m_gamma.getNumElements(),
@@ -188,13 +207,14 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
                                             m_sysdef->getSeed(),
                                             d_sumBD.data,
                                             d_partial_sumBD.data,
-                                            m_block_size,
-                                            m_num_blocks,
+                                            block_size,
+                                            num_blocks,
                                             m_noiseless_t,
                                             m_noiseless_r,
                                             m_tally,
                                             m_exec_conf->dev_prop);
 
+        m_tuner_two->begin();
         kernel::gpu_langevin_step_two(d_pos.data,
                                       d_vel.data,
                                       d_accel.data,
@@ -206,6 +226,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
                                       args,
                                       m_deltaT,
                                       D);
+        m_tuner_two->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -226,7 +247,13 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
                                            access_location::device,
                                            access_mode::read);
 
-            unsigned int group_size = m_group->getNumMembers();
+            // set the block and grid size to prep for next kernel launch
+            unsigned int block_size_angular = m_tuner_angular_two->getParam()[0];
+            unsigned int num_blocks_angular = group_size / block_size_angular + 1;
+            args.block_size = block_size_angular;
+            args.num_blocks = num_blocks_angular;
+
+            m_tuner_angular_two->begin();
             gpu_langevin_angular_step_two(d_pos.data,
                                           d_orientation.data,
                                           d_angmom.data,
@@ -240,6 +267,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
                                           m_deltaT,
                                           D,
                                           1.0);
+            m_tuner_angular_two->end();
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
