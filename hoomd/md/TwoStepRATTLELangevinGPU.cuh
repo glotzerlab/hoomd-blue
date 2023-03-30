@@ -386,9 +386,7 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
     {
     // setup the grid to run the kernel
     dim3 grid(rattle_langevin_args.num_blocks, 1, 1);
-    dim3 grid1(1, 1, 1);
     dim3 threads(rattle_langevin_args.block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
 
     size_t shared_bytes = max((unsigned int)(sizeof(Scalar) * rattle_langevin_args.n_types),
                               (unsigned int)(rattle_langevin_args.block_size * sizeof(Scalar)));
@@ -430,6 +428,12 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
 
     // run the summation kernel
     if (rattle_langevin_args.tally)
+        {
+        // block size on final reduction computed from number of blocks on
+        // partial reduction
+        unsigned int block_size_tally = 32 * ((rattle_langevin_args.num_blocks / 32) + 1);
+        dim3 threads1(block_size_tally, 1, 1);
+        dim3 grid1(1, 1, 1);
         hipLaunchKernelGGL((gpu_rattle_bdtally_reduce_partial_sum_kernel),
                            dim3(grid1),
                            dim3(threads1),
@@ -438,6 +442,7 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
                            &rattle_langevin_args.d_sum_bdenergy[0],
                            rattle_langevin_args.d_partial_sum_bdenergy,
                            rattle_langevin_args.num_blocks);
+        }
 
     return hipSuccess;
     }
