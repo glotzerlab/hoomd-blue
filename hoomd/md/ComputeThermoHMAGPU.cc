@@ -40,7 +40,9 @@ ComputeThermoHMAGPU::ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysde
         throw std::runtime_error("Error initializing ComputeThermoHMAGPU");
         }
 
-    m_block_size = 512;
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "compute_thermo_hma_partial_reduce"));
 
 #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
@@ -84,8 +86,9 @@ void ComputeThermoHMAGPU::computeProperties()
     assert(m_pdata);
 
     // number of blocks in reduction (round up for every GPU)
+    unsigned int block_size = m_tuner->getParam()[0];
     unsigned int num_blocks
-        = m_group->getNumMembers() / m_block_size + m_exec_conf->getNumActiveGPUs();
+        = m_group->getNumMembers() / block_size + m_exec_conf->getNumActiveGPUs();
 
     // resize work space
     size_t old_size = m_scratch.size();
@@ -153,7 +156,7 @@ void ComputeThermoHMAGPU::computeProperties()
         args.virial_pitch = net_virial.getPitch();
         args.D = m_sysdef->getNDimensions();
         args.d_scratch = d_scratch.data;
-        args.block_size = m_block_size;
+        args.block_size = block_size;
         args.external_virial_xx = m_pdata->getExternalVirial(0);
         args.external_virial_yy = m_pdata->getExternalVirial(3);
         args.external_virial_zz = m_pdata->getExternalVirial(5);
@@ -162,6 +165,7 @@ void ComputeThermoHMAGPU::computeProperties()
         args.harmonicPressure = m_harmonicPressure;
 
         // perform the computation on the GPU(s)
+        m_tuner->begin();
         gpu_compute_thermo_hma_partial(d_pos.data,
                                        d_lattice_site.data,
                                        d_image.data,
@@ -172,12 +176,18 @@ void ComputeThermoHMAGPU::computeProperties()
                                        box,
                                        args,
                                        m_group->getGPUPartition());
+        m_tuner->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         // converge GPUs
         m_exec_conf->endMultiGPU();
+
+        // block size in final reduction is the same as number of blocks in
+        // the initial reduction, rounded up to a multiple of the warp size
+        args.block_size = 32 * ((num_blocks / 32) + 1);
+        args.n_blocks = 1;
 
         // perform the computation on GPU 0
         gpu_compute_thermo_hma_final(d_properties.data,

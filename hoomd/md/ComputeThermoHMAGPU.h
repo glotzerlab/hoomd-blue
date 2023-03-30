@@ -35,9 +35,9 @@ class PYBIND11_EXPORT ComputeThermoHMAGPU : public ComputeThermoHMA
     virtual ~ComputeThermoHMAGPU();
 
     protected:
-    GlobalVector<Scalar3> m_scratch; //!< Scratch space for partial sums
-    unsigned int m_block_size;       //!< Block size executed
-    hipEvent_t m_event;              //!< CUDA event for synchronization
+    GlobalVector<Scalar3> m_scratch;       //!< Scratch space for partial sums
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< tuner for kernel block size
+    hipEvent_t m_event;                    //!< CUDA event for synchronization
 
     //! Does the actual computation
     virtual void computeProperties();
