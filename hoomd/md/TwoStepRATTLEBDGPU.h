@@ -51,7 +51,8 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoSt
     virtual void includeRATTLEForce(uint64_t timestep);
 
     protected:
-    unsigned int m_block_size; //!< block size
+    std::shared_ptr<Autotuner<1>> m_tuner_step_one;     //!< tuner for the step one kernel
+    std::shared_ptr<Autotuner<1>> m_tuner_rattle_force; //!< tuner for the rattle force kernel
     };
 
 /*! \param timestep Current time step
@@ -76,7 +77,13 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
         throw std::runtime_error("Error initializing TwoStepRATTLEBDGPU");
         }
 
-    m_block_size = 256;
+    m_tuner_step_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                            this->m_exec_conf,
+                                            "rattle_bd_step_one"));
+    m_tuner_rattle_force.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "rattle_bd_force"));
     }
 
 template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
@@ -132,6 +139,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
                                   access_location::device,
                                   access_mode::readwrite);
 
+    unsigned int block_size = m_tuner_step_one->getParam()[0];
     kernel::rattle_bd_step_one_args args(d_gamma.data,
                                          this->m_gamma.getNumElements(),
                                          this->m_use_alpha,
@@ -140,7 +148,8 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
                                          this->m_tolerance,
                                          timestep,
                                          this->m_sysdef->getSeed(),
-                                         this->m_exec_conf->dev_prop);
+                                         this->m_exec_conf->dev_prop,
+                                         block_size);
     bool aniso = this->m_aniso;
 
 #if defined(__HIP_PLATFORM_NVCC__)
@@ -165,6 +174,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
+    m_tuner_step_one->begin();
     kernel::gpu_rattle_brownian_step_one(d_pos.data,
                                          d_image.data,
                                          d_vel.data,
@@ -187,6 +197,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
                                          this->m_noiseless_t,
                                          this->m_noiseless_r,
                                          this->m_group->getGPUPartition());
+    m_tuner_step_one->end();
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -222,6 +233,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 
     size_t net_virial_pitch = net_virial.getPitch();
 
+    unsigned int block_size = m_tuner_rattle_force->getParam()[0];
     kernel::rattle_bd_step_one_args args(d_gamma.data,
                                          this->m_gamma.getNumElements(),
                                          this->m_use_alpha,
@@ -230,7 +242,8 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
                                          this->m_tolerance,
                                          timestep,
                                          this->m_sysdef->getSeed(),
-                                         this->m_exec_conf->dev_prop);
+                                         this->m_exec_conf->dev_prop,
+                                         block_size);
 
 #if defined(__HIP_PLATFORM_NVCC__)
     if (this->m_exec_conf->allConcurrentManagedAccess())
@@ -251,6 +264,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
+    m_tuner_rattle_force->begin();
     kernel::gpu_include_rattle_force_bd<Manifold>(d_pos.data,
                                                   d_net_force.data,
                                                   d_net_virial.data,
@@ -264,6 +278,7 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
                                                   this->m_deltaT,
                                                   this->m_noiseless_t,
                                                   this->m_group->getGPUPartition());
+    m_tuner_rattle_force->end();
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

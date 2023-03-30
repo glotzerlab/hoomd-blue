@@ -45,9 +45,11 @@ struct rattle_bd_step_one_args
                             Scalar _tolerance,
                             uint64_t _timestep,
                             uint16_t _seed,
-                            const hipDeviceProp_t& _devprop)
+                            const hipDeviceProp_t& _devprop,
+                            unsigned int _block_size)
         : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha), alpha(_alpha), T(_T),
-          tolerance(_tolerance), timestep(_timestep), seed(_seed), devprop(_devprop)
+          tolerance(_tolerance), timestep(_timestep), seed(_seed), devprop(_devprop),
+          block_size(_block_size)
         {
         }
 
@@ -60,6 +62,7 @@ struct rattle_bd_step_one_args
     uint64_t timestep;              //!< Current timestep
     uint16_t seed;                  //!< User chosen random number seed
     const hipDeviceProp_t& devprop; //!< Device properties.
+    unsigned int block_size;        //!< kernel block size
     };
 
 template<class Manifold>
@@ -388,7 +391,7 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
                                         const bool d_noiseless_r,
                                         const GPUPartition& gpu_partition)
     {
-    unsigned int run_block_size = 256;
+    unsigned int run_block_size = rattle_bd_args.block_size;
 
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
@@ -650,7 +653,8 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
                                        const bool d_noiseless_t,
                                        const GPUPartition& gpu_partition)
     {
-    unsigned int run_block_size = 256;
+    unsigned int run_block_size = rattle_bd_args.block_size;
+    ;
 
     // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
     for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
