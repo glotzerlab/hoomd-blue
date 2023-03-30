@@ -202,7 +202,7 @@ gpu_rattle_langevin_angular_step_two(const Scalar4* d_pos,
                                      Scalar scale)
     {
     // setup the grid to run the kernel
-    int block_size = rattle_langevin_args.block_size;;
+    int block_size = rattle_langevin_args.block_size;
     dim3 grid(rattle_langevin_args.num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
 

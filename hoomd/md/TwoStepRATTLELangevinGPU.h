@@ -53,7 +53,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
 
     protected:
     GPUVector<Scalar> m_partial_sum1; //!< memory space for partial sum over bd energy transfers
-    GPUArray<Scalar> m_sum;          //!< memory space for sum over bd energy transfers
+    GPUArray<Scalar> m_sum;           //!< memory space for sum over bd energy transfers
 
     /// Autotuner for block size (step one kernel).
     std::shared_ptr<Autotuner<1>> m_tuner_one;
@@ -127,9 +127,9 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(
                          "rattle_langevin_angular_two",
                          5,
                          true));
-    this->m_autotuners.insert(this->m_autotuners.end(),
-                              {m_tuner_one, m_tuner_force, m_tuner_angular_one,
-                              m_tuner_two, m_tuner_angular_two});
+    this->m_autotuners.insert(
+        this->m_autotuners.end(),
+        {m_tuner_one, m_tuner_force, m_tuner_angular_one, m_tuner_two, m_tuner_angular_two});
     }
 template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(uint64_t timestep)
@@ -235,7 +235,9 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         m_partial_sum1.resize(num_blocks);
 
         // reset memory to 0 just in case
-        ArrayHandle<Scalar> d_partial_sum1(m_partial_sum1, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_partial_sum1(m_partial_sum1,
+                                           access_location::device,
+                                           access_mode::overwrite);
         hipMemset(d_partial_sum1.data, 0, sizeof(Scalar) * m_partial_sum1.size());
         }
 
