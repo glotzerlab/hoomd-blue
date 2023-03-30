@@ -237,8 +237,14 @@ def test_zero_particle_velocity_angmom():
     thermalized_snapshot = sim.state.get_snapshot()
 
     if snapshot.communicator.rank == 0:
-        assert thermalized_snapshot.particles.velocity.all() == 0
-        assert thermalized_snapshot.particles.angmom.all() == 0
+        numpy.testing.assert_allclose(
+            thermalized_snapshot.particles.velocity[1], [0, 0, 0])
+        numpy.testing.assert_allclose(
+            thermalized_snapshot.particles.velocity[3], [0, 0, 0])
+        numpy.testing.assert_allclose(thermalized_snapshot.particles.angmom[1],
+                                      [0, 0, 0, 0])
+        numpy.testing.assert_allclose(thermalized_snapshot.particles.angmom[3],
+                                      [0, 0, 0, 0])
 
 
 def test_replicate(simulation_factory, lattice_snapshot_factory):
