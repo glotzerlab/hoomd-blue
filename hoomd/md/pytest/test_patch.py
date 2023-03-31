@@ -154,7 +154,7 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
     sim_energy = potential.energy
     sim_torques = potential.torques
     if sim.device.communicator.rank == 0:
-        assert sim_energy == pytest.approx(energy, rel=1e-2)
+        numpy.testing.assert_allclose(sim_energy, energy, **TOLERANCES)
 
         print(sim_forces)
         print(force)
