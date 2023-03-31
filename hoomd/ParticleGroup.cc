@@ -735,7 +735,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
         // check if particles are constituent particles
-        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != -1)
+        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != static_cast<unsigned int>(-1))
             {
             h_vel.data[j].x = 0;
             h_vel.data[j].y = 0;
@@ -757,7 +757,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == -1)
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == static_cast<unsigned int>(-1))
             {
             if (I.x > 0)
                 p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
@@ -793,7 +793,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         {
         unsigned int j = this->getMemberIndex(group_idx);
         Scalar mass = h_vel.data[j].w;
-        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == -1)
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == static_cast<unsigned int>(-1))
             {
             h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
             h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
