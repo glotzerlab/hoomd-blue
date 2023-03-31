@@ -159,7 +159,8 @@ public:
         {
             Scalar fact = Modulatori(); // TODO only calculate Modulatori once per instantiation
             // the -1 comes from doing the derivative with respect to ni
-            return Scalar(-1) * params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
+            // return Scalar(-1) * params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
+            return params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
         }
 
     DEVICE Scalar ModulatorPrimej()
@@ -212,7 +213,7 @@ public:
                 vec_to_scalar3( params.nj.y * cross( vec3<Scalar>(b2), dr)) +
                 vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr));
 
-            torque_div_energy_j *= Scalar(-1) * Modulatori() * ModulatorPrimej() / magdr;
+            torque_div_energy_j *= Modulatori() * ModulatorPrimej() / magdr;
 
 
 
