@@ -586,7 +586,11 @@ class ALJ(AnisotropicPair):
         return self._return_type_shapes()
 
 
-class JanusLJ(AnisotropicPair):
+class Patchy(AnisotropicPair):
+    """"""
+    pass
+
+class PatchyLJ(AnisotropicPair):
     r"""Patchy Lennard-Jones pair force.
 
     Args:
@@ -612,6 +616,7 @@ class JanusLJ(AnisotropicPair):
             * ``alpha`` (`float`) - the patch half-angle :math:`\alpha`
             * ``omega`` (`float`) - the patch steepness :math:`\omega`
 
+    # todo rename
     `JanusLJ` computes the Lennard-Jones potential between particles with
     spherical cap patches with an implementation based on
     `Beltran-Villegas et. al.`_. With particle displacement vector
@@ -684,3 +689,42 @@ class JanusLJ(AnisotropicPair):
         return super()._return_type_shapes()
 
 
+class PatchyYukawa(AnisotropicPair):
+    _cpp_class_name = "AnisoPotentialPairJanusYukawa"
+
+    @staticmethod
+    def _check_0_pi(input):
+        if 0 <= input <= np.pi:
+            return input
+        else:
+            raise ValueError(f"Value {input} is not between 0 and pi")
+        # can we get the keys here to check for A A being ni=nj
+
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict({
+                "pair_params": {"epsilon": float,
+                                 "kappa": float},
+                "envelope_params": {"alpha": OnlyTypes(float,
+                                                       postprocess = self._check_0_pi),
+                                    "omega": float,
+                                    "ni": (float, float, float),
+                                    "nj": (float, float, float)}},
+                              len_keys=2))
+        self._add_typeparam(params)
+
+
+    @log(category="object")
+    def type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> TODO
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super()._return_type_shapes()

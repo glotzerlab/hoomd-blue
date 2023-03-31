@@ -6,6 +6,7 @@
 #include "GeneralEnvelope.h"
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairMie.h"
+#include "EvaluatorPairYukawa.h"
 
 namespace hoomd
     {
@@ -17,15 +18,22 @@ template void export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEn
                                                                                                       const std::string& name);
 template void export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope>>(pybind11::module& m,
                                                                                                        const std::string& name);
+template void export_AnisoPotentialPair<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(pybind11::module& m,
+                                                                                                       const std::string& name);
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
     export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope>>(m, "AnisoPotentialPairJanusLJ");
     }
 
-void export_AnisoPotentialPairMie(pybind11::module& m)
+void export_AnisoPotentialPairJanusMie(pybind11::module& m)
     {
     export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope>>(m, "AnisoPotentialPairJanusMie");
+    }
+
+void export_AnisoPotentialPairJanusYukawa(pybind11::module& m)
+    {
+    export_AnisoPotentialPair<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(m, "AnisoPotentialPairJanusYukawa");
     }
 
 
