@@ -712,7 +712,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
                                      access_location::host,
-                                     access_mode::readwrite);
+                                     access_mode::read);
 
     // Total the system's linear momentum
     vec3<Scalar> tot_momentum(0, 0, 0);
