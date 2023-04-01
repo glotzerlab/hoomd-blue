@@ -730,7 +730,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                                m_sysdef->getSeed()),
                                    hoomd::Counter(ptag));
 
-        // Generate zero velocities and momenta for constituent particles
+        // Generate a random velocity, excluding constituent particles
         Scalar mass = h_vel.data[j].w;
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
