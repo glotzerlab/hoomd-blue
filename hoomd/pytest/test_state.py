@@ -226,10 +226,11 @@ def test_thermalize_angular_momentum(simulation_factory,
 def test_zero_particle_velocity_angmom():
     snapshot = hoomd.Snapshot()
     snapshot.configuration.box = (10, 10, 10, 0, 0, 0)
-    snapshot.particles.N = 4
-    snapshot.particles.types = ['A']
-    snapshot.particles.body[:] = [0, 0, 2, 2]
-    snapshot.particles.moment_inertia[:] = [[1, 1, 1]] * 4
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.N = 4
+        snapshot.particles.types = ['A']
+        snapshot.particles.body[:] = [0, 0, 2, 2]
+        snapshot.particles.moment_inertia[:] = [[1, 1, 1]] * 4
 
     sim = hoomd.Simulation(device=hoomd.device.CPU())
     sim.create_state_from_snapshot(snapshot)
