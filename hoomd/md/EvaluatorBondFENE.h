@@ -186,7 +186,7 @@ class EvaluatorBondFENE
     Scalar delta; //!< Radial shift
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_FENE_H__

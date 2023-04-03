@@ -486,8 +486,8 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal> p1,
     vec3<OverlapReal> d1 = q1 - p1; // Direction vector of segment S1
     vec3<OverlapReal> d2 = q2 - p2; // Direction vector of segment S2
     vec3<OverlapReal> r = p1 - p2;
-    OverlapReal a = dot(d1, d1); // Squared length of segment S1, always nonnegative
-    OverlapReal e = dot(d2, d2); // Squared length of segment S2, always nonnegative
+    OverlapReal a = dot(d1, d1);    // Squared length of segment S1, always nonnegative
+    OverlapReal e = dot(d2, d2);    // Squared length of segment S2, always nonnegative
     OverlapReal f = dot(d2, r);
 
     // Check if either or both segments degenerate into points

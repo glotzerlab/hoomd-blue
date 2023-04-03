@@ -79,18 +79,18 @@ struct hpmc_patch_args_t
         {
         }
 
-    const Scalar4* d_postype;              //!< postype array
-    const Scalar4* d_orientation;          //!< orientation array
-    const Scalar4* d_trial_postype;        //!< New positions (and type) of particles
-    const Scalar4* d_trial_orientation;    //!< New orientations of particles
-    const unsigned int* d_trial_move_type; //!< 0=no move, 1/2 = translate/rotate
-    const Index3D& ci;                     //!< Cell indexer
-    const uint3& cell_dim;                 //!< Cell dimensions
-    const Scalar3& ghost_width;            //!< Width of the ghost layer
-    const unsigned int N;                  //!< Number of particles
-    const uint16_t seed;                   //!< RNG seed
-    const unsigned int rank;               //!< MPI Rank
-    const uint64_t timestep;               //!< Current timestep
+    const Scalar4* d_postype;                  //!< postype array
+    const Scalar4* d_orientation;              //!< orientation array
+    const Scalar4* d_trial_postype;            //!< New positions (and type) of particles
+    const Scalar4* d_trial_orientation;        //!< New orientations of particles
+    const unsigned int* d_trial_move_type;     //!< 0=no move, 1/2 = translate/rotate
+    const Index3D& ci;                         //!< Cell indexer
+    const uint3& cell_dim;                     //!< Cell dimensions
+    const Scalar3& ghost_width;                //!< Width of the ghost layer
+    const unsigned int N;                      //!< Number of particles
+    const uint16_t seed;                       //!< RNG seed
+    const unsigned int rank;                   //!< MPI Rank
+    const uint64_t timestep;                   //!< Current timestep
     const unsigned int select;
     const unsigned int num_types;              //!< Number of particle types
     const BoxDim box;                          //!< Current simulation box
@@ -441,14 +441,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
 
-    GPUVector<Scalar> m_d; //!< Maximum move displacement by type
-    GPUVector<Scalar> m_a; //!< Maximum angular displacement by type
+    GPUVector<Scalar> m_d;                       //!< Maximum move displacement by type
+    GPUVector<Scalar> m_a;                       //!< Maximum angular displacement by type
 
-    GlobalArray<hpmc_counters_t> m_count_total; //!< Accept/reject total count
+    GlobalArray<hpmc_counters_t> m_count_total;  //!< Accept/reject total count
 
-    Scalar m_nominal_width;     //!< nominal cell width
-    Scalar m_extra_ghost_width; //!< extra ghost width to add
-    ClockSource m_clock;        //!< Timer for self-benchmarking
+    Scalar m_nominal_width;                      //!< nominal cell width
+    Scalar m_extra_ghost_width;                  //!< extra ghost width to add
+    ClockSource m_clock;                         //!< Timer for self-benchmarking
 
     /// Moves-per-second value last recorded
     double m_mps = 0;
@@ -456,7 +456,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be
                                     //! used in a more general setting.
 
-    bool m_past_first_run; //!< Flag to test if the first run() has started
+    bool m_past_first_run;          //!< Flag to test if the first run() has started
     //! Update the nominal width of the cells
     /*! This method is virtual so that derived classes can set appropriate widths
         (for example, some may want max diameter while others may want a buffer distance).
@@ -490,9 +490,9 @@ namespace detail
 //! Export the IntegratorHPMC class to python
 void export_IntegratorHPMC(pybind11::module& m);
 
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hpmc
+    }  // end namespace hpmc
 
     }  // end namespace hoomd
 #endif // _INTEGRATOR_HPMC_H_

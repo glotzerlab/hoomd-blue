@@ -642,8 +642,8 @@ template<class Manifold> void export_TwoStepRATTLENVE(pybind11::module& m, const
                       &TwoStepRATTLENVE<Manifold>::getTolerance,
                       &TwoStepRATTLENVE<Manifold>::setTolerance);
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLENVE_H__

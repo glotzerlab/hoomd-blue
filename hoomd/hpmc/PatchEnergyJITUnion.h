@@ -323,7 +323,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     std::vector<std::vector<float>> m_diameter; // The diameters of the constituent particles
     std::vector<std::vector<float>> m_charge;   // The charges of the constituent particles
     std::vector<std::vector<unsigned int>>
-        m_type; // The type identifiers of the constituent particles
+        m_type;                                 // The type identifiers of the constituent particles
     unsigned int
         m_leaf_capacity;   // The number of particles in a leaf of the internal tree data structure
     bool m_managed_memory; // Flag to managed memory on the GPU (only used for OBB construction)
@@ -338,10 +338,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                    unsigned int cur_node_b);
 
     std::shared_ptr<EvalFactory>
-        m_factory_constituent; //!< The factory for the evaluator function, for constituent ptls
+        m_factory_constituent;     //!< The factory for the evaluator function, for constituent ptls
     EvalFactory::EvalFnPtr
-        m_eval_constituent;     //!< Pointer to evaluator function inside the JIT module
-    Scalar m_r_cut_constituent; //!< Cutoff on constituent particles
+        m_eval_constituent;        //!< Pointer to evaluator function inside the JIT module
+    Scalar m_r_cut_constituent;    //!< Cutoff on constituent particles
     std::vector<float, hoomd::detail::managed_allocator<float>>
         m_param_array_constituent; //!< Data array for constituent particles
     };

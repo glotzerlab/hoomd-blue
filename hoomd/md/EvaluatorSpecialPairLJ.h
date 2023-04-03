@@ -156,7 +156,7 @@ class EvaluatorSpecialPairLJ
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_LJ_H__

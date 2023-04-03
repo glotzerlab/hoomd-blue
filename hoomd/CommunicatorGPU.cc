@@ -3845,9 +3845,9 @@ void export_CommunicatorGPU(pybind11::module& m)
         .def("addMeshDefinition", &CommunicatorGPU::addMeshDefinition)
         .def("setMaxStages", &CommunicatorGPU::setMaxStages);
     }
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // ENABLE_MPI

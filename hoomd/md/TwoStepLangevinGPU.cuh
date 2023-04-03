@@ -90,8 +90,8 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
                                          unsigned int D,
                                          Scalar scale);
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__TWO_STEP_LANGEVIN_GPU_CUH__

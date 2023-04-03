@@ -123,7 +123,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     std::shared_ptr<EvalFactory> m_factory; //!< The factory for the evaluator function
     EvalFactory::EvalFnPtr m_eval;          //!< Pointer to evaluator function inside the JIT module
     std::vector<float, hoomd::detail::managed_allocator<float>>
-        m_param_array; //!< Array containing adjustable parameters
+        m_param_array;                      //!< Array containing adjustable parameters
     const bool m_is_union;
     };
 
@@ -132,8 +132,8 @@ namespace detail
 //! Exports the PatchEnergyJIT class to python
 void export_PatchEnergyJIT(pybind11::module& m);
 
-    } // end namespace detail
-    } // end namespace hpmc
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 
 #endif // _PATCH_ENERGY_JIT_H_

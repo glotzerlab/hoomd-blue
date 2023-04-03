@@ -52,11 +52,11 @@ struct OBBNode
         escape = 0;
         }
 
-    OBB obb;             //!< The box bounding this node's volume
-    unsigned int left;   //!< Index of the left child
-    unsigned int right;  //!< Index of the right child
-    unsigned int parent; //!< Index of the parent node
-    unsigned int escape; //!< Index of next node in in-order traversal
+    OBB obb;                             //!< The box bounding this node's volume
+    unsigned int left;                   //!< Index of the left child
+    unsigned int right;                  //!< Index of the right child
+    unsigned int parent;                 //!< Index of the parent node
+    unsigned int escape;                 //!< Index of next node in in-order traversal
 
     std::vector<unsigned int> particles; //!< Indices of the particles contained in the node
     };
@@ -517,9 +517,9 @@ inline unsigned int OBBTree::allocateNode()
 
 #endif // __HIPCC__
 
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hpmc
-    } // end namespace hoomd
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 
 #endif //__OBB_TREE_H__

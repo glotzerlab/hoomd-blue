@@ -124,7 +124,7 @@ class ManifoldSphere
     Scalar R_sq;
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_SPHERE_H__

@@ -69,7 +69,7 @@ class PYBIND11_EXPORT CellListGPU : public CellList
     GlobalArray<Scalar4> m_orientation_scratch; //!< Cell list with orientation, one list per GPU
     GlobalArray<unsigned int> m_idx_scratch;    //!< Cell list with index, one list per GPU
 
-    bool m_per_device; //!< True if we maintain a per-GPU cell list
+    bool m_per_device;                          //!< True if we maintain a per-GPU cell list
 
     //! Compute the cell list
     virtual void computeCellList();

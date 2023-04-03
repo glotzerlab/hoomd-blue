@@ -193,7 +193,7 @@ class EvaluatorPairExpandedGaussian
     Scalar delta;   //!< delta parameter extracted from the params passed to the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDGAUSSIAN_H__
