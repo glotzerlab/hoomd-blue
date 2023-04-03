@@ -10,10 +10,23 @@ v3.x
 v3.11.0 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Added:
+
+* ``hoomd.md.Integrator.validate_groups`` verifies that MD integration methods are applied to
+  distinct subsets of the system and that those subsets consist of integrable particles
+  (automatically called when attached)
+  (`#1466 <https://github.com/glotzerlab/hoomd-blue/issues/1466>`__).
+
 Fixed:
 
 * Improved readability of images in the documentation
   (`#1521 <https://github.com/glotzerlab/hoomd-blue/issues/1521>`__).
+* ``hoomd.write.Table`` now raises a meaningful error when given incorrect logger categories
+  (`#1510 <https://github.com/glotzerlab/hoomd-blue/issues/1510>`__).
+* Correctly document the 1/2 scaling factor in the pairwise virial computation
+  (`#1525 <https://github.com/glotzerlab/hoomd-blue/pull/1525>`_).
+* ``thermalize_particle_momenta`` now sets 0 velocity and angular momentum for rigid constituent
+  particles  (`#1472 <https://github.com/glotzerlab/hoomd-blue/issues/1472>`__).
 
 v3.10.0 (2023-03-14)
 ^^^^^^^^^^^^^^^^^^^^
