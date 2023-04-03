@@ -735,7 +735,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
         // check if particles are constituent particles
-        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != static_cast<unsigned int>(-1))
+        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != NO_BODY)
             {
             h_vel.data[j].x = 0;
             h_vel.data[j].y = 0;
