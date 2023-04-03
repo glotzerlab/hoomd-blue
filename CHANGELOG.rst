@@ -75,6 +75,8 @@ v4.0.0 (net yet released)
   (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
 * ``msg_file`` property and argument in ``hoomd.device.Device``.
   (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
+* The ``sdf`` attribute of ``hoomd.hpmc.compute.SDF`` - use ``sdf_compression``
+  (`#1523 <https://github.com/glotzerlab/hoomd-blue/pull/1523>`__).
 
 v3.x
 ----
