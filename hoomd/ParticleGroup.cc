@@ -710,12 +710,16 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                    access_mode::read);
 
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
 
     // Total the system's linear momentum
     vec3<Scalar> tot_momentum(0, 0, 0);
 
     // Loop over all particles in the group
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
         {
         unsigned int j = this->getMemberIndex(group_idx);
         unsigned int ptag = h_tag.data[j];
@@ -726,17 +730,26 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
                                                m_sysdef->getSeed()),
                                    hoomd::Counter(ptag));
 
-        // Generate a random velocity
+        // Generate a random velocity, excluding constituent particles
         Scalar mass = h_vel.data[j].w;
         Scalar sigma = slow::sqrt(kT / mass);
         hoomd::NormalDistribution<Scalar> normal(sigma);
-        h_vel.data[j].x = normal(rng);
-        h_vel.data[j].y = normal(rng);
-        if (n_dimensions > 2)
-            h_vel.data[j].z = normal(rng);
+        // check if particles are constituent particles
+        if (h_tag.data[j] != h_body.data[j] && h_body.data[j] != NO_BODY)
+            {
+            h_vel.data[j].x = 0;
+            h_vel.data[j].y = 0;
+            h_vel.data[j].z = 0;
+            }
         else
-            h_vel.data[j].z = 0; // For 2D systems
-
+            {
+            h_vel.data[j].x = normal(rng);
+            h_vel.data[j].y = normal(rng);
+            if (n_dimensions > 2)
+                h_vel.data[j].z = normal(rng);
+            else
+                h_vel.data[j].z = 0; // For 2D systems
+            }
         tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
 
         // Generate random angular momentum if the particle has rotational degrees of freedom.
@@ -744,12 +757,15 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (I.x > 0)
-            p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
-        if (I.y > 0)
-            p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
-        if (I.z > 0)
-            p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
+            {
+            if (I.x > 0)
+                p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
+            if (I.y > 0)
+                p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
+            if (I.z > 0)
+                p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
+            }
 
         // Store the angular momentum quaternion
         quat<Scalar> p = Scalar(2.0) * q * p_vec;
@@ -777,12 +793,15 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         {
         unsigned int j = this->getMemberIndex(group_idx);
         Scalar mass = h_vel.data[j].w;
-        h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
-        h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
-        if (n_dimensions > 2)
-            h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
-        else
-            h_vel.data[j].z = 0; // For 2D systems
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
+            {
+            h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
+            h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
+            if (n_dimensions > 2)
+                h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
+            else
+                h_vel.data[j].z = 0; // For 2D systems
+            }
         }
     }
 
