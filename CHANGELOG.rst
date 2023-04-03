@@ -21,6 +21,8 @@ Changed:
 
 * ``hoomd.hpmc.compute.SDF`` computes pressures for systems of concave and non-monotonic patch
   interactions (`#1391 <https://github.com/glotzerlab/hoomd-blue/pull/1391>`__).
+* Reorganize documentation contents to fit in the sidebar, including landing pages for tutorials and
+  how-to guides (`#1526 <https://github.com/glotzerlab/hoomd-blue/pull/1526>`_).
 
 Fixed:
 
