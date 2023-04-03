@@ -38,7 +38,7 @@ struct access_location
     //! The enum
     enum Enum
         {
-        host, //!< Ask to acquire the data on the host
+        host,  //!< Ask to acquire the data on the host
 #ifdef ENABLE_HIP
         device //!< Ask to acquire the data on the device
 #endif
@@ -51,7 +51,7 @@ struct data_location
     //! The enum
     enum Enum
         {
-        host, //!< Data was last updated on the host
+        host,      //!< Data was last updated on the host
 #ifdef ENABLE_HIP
         device,    //!< Data was last updated on the device
         hostdevice //!< Data is up to date on both the host and device
@@ -168,7 +168,7 @@ template<class T> class host_deleter
     bool m_use_device;                                         //!< Whether to use hostMallocManaged
     size_t m_N;                                                //!< Number of elements in array
     };
-    } // end namespace detail
+    }                                                          // end namespace detail
 
 //! Forward declarations
 template<class T> class ArrayHandleDispatch;
@@ -597,14 +597,14 @@ template<class T> class GPUArray : public GPUArrayBase<T, GPUArray<T>>
     friend class GlobalArray<T>;
 
     private:
-    size_t m_num_elements; //!< Number of elements
-    size_t m_pitch;        //!< Pitch of the rows in elements
-    size_t m_height;       //!< Number of allocated rows
+    size_t m_num_elements;                       //!< Number of elements
+    size_t m_pitch;                              //!< Pitch of the rows in elements
+    size_t m_height;                             //!< Number of allocated rows
 
     mutable bool m_acquired;                     //!< Tracks whether the data has been acquired
     mutable data_location::Enum m_data_location; //!< Tracks the current location of the data
 #ifdef ENABLE_HIP
-    bool m_mapped; //!< True if we are using mapped memory
+    bool m_mapped;                               //!< True if we are using mapped memory
 #endif
 
     // ok, this looks weird, but I want m_exec_conf to be protected and not have to go reorder all
@@ -1195,7 +1195,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
         else if (m_data_location == data_location::hostdevice)
             {
             // finally perform the action based on the access mode requested
-            if (mode == access_mode::read) // state stays on hostdevice
+            if (mode == access_mode::read)           // state stays on hostdevice
                 m_data_location = data_location::hostdevice;
             else if (mode == access_mode::readwrite) // state goes to host
                 m_data_location = data_location::host;
@@ -1296,7 +1296,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
         else if (m_data_location == data_location::hostdevice)
             {
             // finally perform the action based on the access mode requested
-            if (mode == access_mode::read) // state stays on hostdevice
+            if (mode == access_mode::read)           // state stays on hostdevice
                 m_data_location = data_location::hostdevice;
             else if (mode == access_mode::readwrite) // state goes to device
                 m_data_location = data_location::device;

@@ -155,8 +155,8 @@ template<class Shape> class ComputeSDF : public Compute
     double m_xmax;                                   //!< Maximum lambda value
     double m_dx;                                     //!< Histogram step size
 
-    std::vector<double> m_hist; //!< Raw histogram data
-    std::vector<double> m_sdf;  //!< Computed SDF
+    std::vector<double> m_hist;                      //!< Raw histogram data
+    std::vector<double> m_sdf;                       //!< Computed SDF
 
     //! Find the maximum particle separation beyond which all interactions are zero
     Scalar getMaxInteractionDiameter();
@@ -671,9 +671,9 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property_readonly("sdf", &ComputeSDF<Shape>::getSDF);
     }
 
-    } // end namespace detail
-    } // end namespace hpmc
+    }  // end namespace detail
+    }  // end namespace hpmc
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // __COMPUTE_SDF__H__

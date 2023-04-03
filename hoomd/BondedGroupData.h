@@ -641,10 +641,10 @@ class BondedGroupData
         m_exec_conf;                       //!< Execution configuration for CUDA context
     std::shared_ptr<ParticleData> m_pdata; //!< Particle Data these bonds belong to
 
-    GPUVector<members_t> m_groups;        //!< List of groups
-    GPUVector<typeval_t> m_group_typeval; //!< List of group types/constraint values
-    GPUVector<unsigned int> m_group_tag;  //!< List of group tags
-    GPUVector<unsigned int> m_group_rtag; //!< Global reverse-lookup table for group tags
+    GPUVector<members_t> m_groups;         //!< List of groups
+    GPUVector<typeval_t> m_group_typeval;  //!< List of group types/constraint values
+    GPUVector<unsigned int> m_group_tag;   //!< List of group tags
+    GPUVector<unsigned int> m_group_rtag;  //!< Global reverse-lookup table for group tags
     GPUVector<members_t>
         m_gpu_table; //!< Storage for groups by particle index for access on the GPU
     GPUVector<unsigned int> m_gpu_pos_table; //!< Position of particle idx in group table
@@ -652,8 +652,8 @@ class BondedGroupData
     GPUVector<unsigned int> m_gpu_n_groups;  //!< Number of entries in lookup table per particle
     std::vector<std::string> m_type_mapping; //!< Mapping of types of bonded groups
 
-    unsigned int m_n_groups; //!< Number of local groups
-    unsigned int m_n_ghost;  //!< Number of ghost groups with no local ptl
+    unsigned int m_n_groups;                 //!< Number of local groups
+    unsigned int m_n_ghost;                  //!< Number of ghost groups with no local ptl
 
 #ifdef ENABLE_MPI
     GPUVector<ranks_t> m_group_ranks; //!< 2D list of group member ranks
@@ -664,7 +664,7 @@ class BondedGroupData
     GPUVector<typeval_t> m_group_typeval_alt; //!< List of group types/constraint values (swap-in)
     GPUVector<unsigned int> m_group_tag_alt;  //!< List of group tags (swap-in)
 #ifdef ENABLE_MPI
-    GPUVector<ranks_t> m_group_ranks_alt; //!< 2D list of group member ranks (swap-in)
+    GPUVector<ranks_t> m_group_ranks_alt;     //!< 2D list of group member ranks (swap-in)
 #endif
 
     unsigned int m_nglobal;                   //!< Global number of groups

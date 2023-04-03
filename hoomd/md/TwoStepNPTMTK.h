@@ -242,28 +242,28 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         };
 
     std::shared_ptr<ComputeThermo>
-        m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t+dt/2
+        m_thermo_half_step;       //!< ComputeThermo operating on the integrated group at t+dt/2
     std::shared_ptr<ComputeThermo>
-        m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
-    Scalar m_ndof;          //!< Number of degrees of freedom from ComputeThermo
+        m_thermo_full_step;       //!< ComputeThermo operating on the integrated group at t
+    Scalar m_ndof;                //!< Number of degrees of freedom from ComputeThermo
 
     Scalar m_tau;                 //!< tau value for Nose-Hoover
     Scalar m_tauS;                //!< tauS value for the barostat
     std::shared_ptr<Variant> m_T; //!< Temperature set point
     std::vector<std::shared_ptr<Variant>>
-        m_S;    //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
-    Scalar m_V; //!< Current volume
+        m_S;               //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
+    Scalar m_V;            //!< Current volume
 
-    couplingMode m_couple;     //!< Coupling of diagonal elements
-    unsigned int m_flags;      //!< Coupling flags for barostat
-    bool m_nph;                //!< True if integrating without thermostat
-    Scalar m_mat_exp_v[6];     //!< Matrix exponential for velocity update (upper triangular)
-    Scalar m_mat_exp_r[6];     //!< Matrix exponential for position update (upper triangular)
+    couplingMode m_couple; //!< Coupling of diagonal elements
+    unsigned int m_flags;  //!< Coupling flags for barostat
+    bool m_nph;            //!< True if integrating without thermostat
+    Scalar m_mat_exp_v[6]; //!< Matrix exponential for velocity update (upper triangular)
+    Scalar m_mat_exp_r[6]; //!< Matrix exponential for position update (upper triangular)
     Scalar m_mat_exp_r_int[6]; //!< Integrated matrix exp. for velocity update (upper triangular)
 
-    bool m_rescale_all; //!< If true, rescale all particles in the system irrespective of group
+    bool m_rescale_all;      //!< If true, rescale all particles in the system irrespective of group
 
-    Scalar m_gamma; //!< Optional damping factor for box degrees of freedom
+    Scalar m_gamma;          //!< Optional damping factor for box degrees of freedom
 
     Thermostat m_thermostat; //!< thermostat degrees of freedom
     Barostat m_barostat;     //!< barostat degrees of freedom
@@ -284,7 +284,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     couplingMode getRelevantCouplings();
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_H__

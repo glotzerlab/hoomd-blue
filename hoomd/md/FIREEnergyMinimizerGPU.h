@@ -40,7 +40,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     virtual void update(uint64_t timestep);
 
     protected:
-    unsigned int m_block_size; //!< block size for partial sum memory
+    unsigned int m_block_size;        //!< block size for partial sum memory
 
     GPUVector<Scalar> m_partial_sum1; //!< memory space for partial sum over P and E
     GPUVector<Scalar> m_partial_sum2; //!< memory space for partial sum over vsq
@@ -53,7 +53,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     void resizePartialSumArrays();
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__

@@ -40,7 +40,7 @@ repos:
     - --remove
   - id: mixed-line-ending
 - repo: https://github.com/glotzerlab/fix-license-header
-  rev: 43eb3ff2d02cba5e572f86af5c15337823fb2c66
+  rev: v0.2.0
   hooks:
   - id: fix-license-header
     name: Fix license headers (Python)
@@ -97,7 +97,7 @@ repos:
         ^hoomd/metal/
       )
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v15.0.6
+  rev: v16.0.0
   hooks:
   - id: clang-format
     types_or: [c, c++, cuda, inc]

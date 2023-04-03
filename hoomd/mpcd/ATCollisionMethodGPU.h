@@ -48,7 +48,7 @@ namespace detail
     {
 //! Export ATCollisionMethodGPU to python
 void export_ATCollisionMethodGPU(pybind11::module& m);
-    } // end namespace detail
+    }  // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

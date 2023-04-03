@@ -178,8 +178,8 @@ class LBVHTraverserWrapper
     neighbor::LBVHTraverser* trav_; //!< Underlying neighbor::LBVHTraverser
     };
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

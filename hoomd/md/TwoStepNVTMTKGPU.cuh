@@ -42,8 +42,8 @@ hipError_t gpu_nvt_mtk_step_two(Scalar4* d_vel,
                                 Scalar exp_v_fac_thermo,
                                 const GPUPartition& gpu_partition);
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__TWO_STEP_NVT_MTK_GPU_CUH__

@@ -59,7 +59,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
         my_seed
             += m_exec_conf->getRank(); // each rank must get a different seed value for C++11 PRNG
         }
-#endif // ENABLE_MPI
+#endif                                 // ENABLE_MPI
 
     initializeRandom(N, local_box, kT, my_seed, ndimensions);
     }

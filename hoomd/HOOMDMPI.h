@@ -485,7 +485,7 @@ template<typename T> void recv(T& val, const unsigned int src, const MPI_Comm mp
     delete[] buf;
     }
 
-    } // namespace hoomd
+    }  // namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MPI_H__

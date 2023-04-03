@@ -69,7 +69,7 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     Scalar4 idx_postype = d_pos[idx]; // we can be either a, b, or c in the a-b-c triplet
     Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
-    Scalar3 a_pos, b_pos, c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
+    Scalar3 a_pos, b_pos, c_pos;      // allocate space for the a,b, and c atom in the a-b-c triplet
 
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(0.0, 0.0, 0.0, 0.0);
