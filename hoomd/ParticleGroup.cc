@@ -793,7 +793,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         {
         unsigned int j = this->getMemberIndex(group_idx);
         Scalar mass = h_vel.data[j].w;
-        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == static_cast<unsigned int>(-1))
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
             {
             h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
             h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
