@@ -757,7 +757,7 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
         quat<Scalar> q(h_orientation.data[j]);
         vec3<Scalar> I(h_inertia.data[j]);
 
-        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == static_cast<unsigned int>(-1))
+        if (h_tag.data[j] == h_body.data[j] || h_body.data[j] == NO_BODY)
             {
             if (I.x > 0)
                 p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
