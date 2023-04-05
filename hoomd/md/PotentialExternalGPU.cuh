@@ -32,14 +32,12 @@ struct external_potential_args_t
                               const size_t _virial_pitch,
                               const unsigned int _N,
                               const Scalar4* _d_pos,
-                              const Scalar* _d_diameter,
                               const Scalar* _d_charge,
                               const BoxDim& _box,
                               const unsigned int _block_size,
                               const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), box(_box), N(_N),
-          d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), block_size(_block_size),
-          devprop(_devprop) {};
+          d_pos(_d_pos), d_charge(_d_charge), block_size(_block_size), devprop(_devprop) {};
 
     Scalar4* d_force;               //!< Force to write out
     Scalar* d_virial;               //!< Virial to write out
@@ -47,7 +45,6 @@ struct external_potential_args_t
     const BoxDim box;               //!< Simulation box in GPU format
     const unsigned int N;           //!< Number of particles
     const Scalar4* d_pos;           //!< Device array of particle positions
-    const Scalar* d_diameter;       //!< particle diameters
     const Scalar* d_charge;         //!< particle charges
     const unsigned int block_size;  //!< Block size to execute
     const hipDeviceProp_t& devprop; //!< Device properties
@@ -86,7 +83,6 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
                                                    const size_t virial_pitch,
                                                    const unsigned int N,
                                                    const Scalar4* d_pos,
-                                                   const Scalar* d_diameter,
                                                    const Scalar* d_charge,
                                                    const BoxDim box,
                                                    const typename evaluator::param_type* params,
@@ -120,19 +116,13 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
         return;
 
     // read in the position of our particle.
-    // (MEM TRANSFER: 16 bytes)
     Scalar4 posi = d_pos[idx];
-    Scalar di;
     Scalar qi;
-    if (evaluator::needsDiameter())
-        di = d_diameter[idx];
-    else
-        di += Scalar(1.0); // shut up compiler warning
 
     if (evaluator::needsCharge())
         qi = d_charge[idx];
     else
-        qi = Scalar(0.0); // shut up compiler warning
+        qi = Scalar(0.0); // Silence compiler warning
 
     // initialize the force to 0
     Scalar3 force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -145,8 +135,6 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
     evaluator eval(Xi, box, params[typei], field);
 
-    if (evaluator::needsDiameter())
-        eval.setDiameter(di);
     if (evaluator::needsCharge())
         eval.setCharge(qi);
 
@@ -203,7 +191,6 @@ hipError_t gpu_compute_potential_external_forces(
                        external_potential_args.virial_pitch,
                        external_potential_args.N,
                        external_potential_args.d_pos,
-                       external_potential_args.d_diameter,
                        external_potential_args.d_charge,
                        external_potential_args.box,
                        d_params,

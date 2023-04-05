@@ -121,9 +121,6 @@ void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
                                  access_location::device,
                                  access_mode::read);
@@ -169,7 +166,6 @@ void PotentialBondGPU<evaluator, Bonds>::computeForces(uint64_t timestep)
                                              this->m_pdata->getMaxN(),
                                              d_pos.data,
                                              d_charge.data,
-                                             d_diameter.data,
                                              box,
                                              d_gpu_bondlist.data,
                                              gpu_table_indexer,

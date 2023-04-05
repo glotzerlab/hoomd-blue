@@ -83,18 +83,6 @@ class EvaluatorBondHarmonic
         {
         }
 
-    //! Harmonic doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param da Diameter of particle a
-        \param db Diameter of particle b
-    */
-    DEVICE void setDiameter(Scalar da, Scalar db) { }
-
     //! Harmonic doesn't use charge
     DEVICE static bool needsCharge()
         {

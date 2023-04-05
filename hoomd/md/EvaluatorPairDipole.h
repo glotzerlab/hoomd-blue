@@ -141,12 +141,6 @@ class EvaluatorPairDipole
         {
         }
 
-    //! uses diameter
-    HOSTDEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
     //! Whether the pair potential uses shape.
     HOSTDEVICE static bool needsShape()
         {
@@ -170,12 +164,6 @@ class EvaluatorPairDipole
         {
         return false;
         }
-
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
 
     //! Accept the optional shape values
     /*! \param shape_i Shape of particle i
