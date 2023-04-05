@@ -80,11 +80,9 @@ def test_validate_groups(simulation_factory, two_particle_snapshot_factory):
         "constituent_types": ['A'] * 8,
         "positions": CUBE_VERTS,
         "orientations": [(1.0, 0.0, 0.0, 0.0)] * 8,
-        "charges": [0] * 8,
-        "diameters": [0] * 8,
     }
 
-    nve1 = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    nve1 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator = hoomd.md.Integrator(dt=0,
                                      methods=[nve1],
                                      integrate_rotational_dof=True)
@@ -111,8 +109,8 @@ def test_overlapping_filters(simulation_factory, lattice_snapshot_factory):
     # Attach the integrator. No methods are set, so no error.
     sim.run(0)
 
-    nve1 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
-    nve2 = hoomd.md.methods.NVE(filter=hoomd.filter.Tags([0, 1]))
+    nve1 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.Tags([0, 1]))
+    nve2 = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.Tags([0, 1]))
     # Setting invalid methods does not trigger an error.
     integrator.methods = [nve1, nve2]
 
