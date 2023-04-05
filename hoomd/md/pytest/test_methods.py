@@ -65,17 +65,14 @@ _method_definitions = (
                      generator=generator),
     MethodDefinition(hoomd.md.methods.Langevin, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None),
         "tally_reservoir_energy": bool
     },
                      generator=generator),
     MethodDefinition(hoomd.md.methods.Brownian, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None)
     },
                      generator=generator),
-    MethodDefinition(hoomd.md.methods.OverdampedViscous,
-                     {"alpha": Either(float, None)},
+    MethodDefinition(hoomd.md.methods.OverdampedViscous, {},
                      generator=generator),
 )
 
@@ -451,21 +448,17 @@ _rattle_definitions = (
                      generator=generator),
     RattleDefinition(hoomd.md.methods.rattle.Langevin, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None),
         "tally_reservoir_energy": bool,
         "tolerance": float
     },
                      generator=generator),
     RattleDefinition(hoomd.md.methods.rattle.Brownian, {
         "kT": hoomd.variant.Variant,
-        "alpha": Either(float, None),
         "tolerance": float
     },
                      generator=generator),
-    RattleDefinition(hoomd.md.methods.rattle.OverdampedViscous, {
-        "alpha": Either(float, None),
-        "tolerance": float
-    },
+    RattleDefinition(hoomd.md.methods.rattle.OverdampedViscous,
+                     {"tolerance": float},
                      generator=generator),
 )
 
