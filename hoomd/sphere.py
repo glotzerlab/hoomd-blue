@@ -64,13 +64,12 @@ class Sphere:
     def R(self):  # noqa: N802: Allow function name
         """float: The radius of the confining sphere \
         :math:`[\\mathrm{length}]`."""
-        return self.R
+        return self._cpp_obj.getR()
 
     @R.setter
     def R(self, value):  # noqa: N802: Allow function name
-        R = self.R
         R = float(value)
-        self.R = R
+        self._cpp_obj.setR(R)
 
     @property
     def volume(self):
