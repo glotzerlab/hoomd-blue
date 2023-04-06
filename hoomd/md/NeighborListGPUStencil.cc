@@ -34,7 +34,7 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
 
     m_cl->setRadius(1);
     // types are always required now
-    m_cl->setComputeTDB(true);
+    m_cl->setComputeTypeBody(true);
     m_cl->setFlagIndex();
     m_cl->setComputeAdjList(false);
 
@@ -201,9 +201,9 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(),
                                      access_location::device,
                                      access_mode::read);
-    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(),
-                                    access_location::device,
-                                    access_mode::read);
+    ArrayHandle<uint2> d_cell_type_body(m_cl->getTypeBodyArray(),
+                                        access_location::device,
+                                        access_mode::read);
     ArrayHandle<Scalar4> d_stencil(m_cls->getStencils(),
                                    access_location::device,
                                    access_mode::read);
@@ -269,7 +269,7 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
                                       m_pdata->getN(),
                                       d_cell_size.data,
                                       d_cell_xyzf.data,
-                                      d_cell_tdb.data,
+                                      d_cell_type_body.data,
                                       m_cl->getCellIndexer(),
                                       m_cl->getCellListIndexer(),
                                       d_stencil.data,

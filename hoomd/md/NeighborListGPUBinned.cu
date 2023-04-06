@@ -34,7 +34,7 @@ namespace kernel
     \param d_cell_size Number of particles in each cell
     \param d_cell_xyzf Cell contents (xyzf array from CellList with flag=type)
     \param d_cell_idx Cell contents (particle indices)
-    \param d_cell_tdb Cell contents (tdb array from CellList with)
+    \param d_cell_type_body Cell contents (TypeBody array from CellList with)
     \param d_cell_adj Cell adjacency list
     \param ci Cell indexer for indexing cells
     \param cli Cell list indexer for indexing into d_cell_xyzf
@@ -65,7 +65,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                                                 const unsigned int* d_cell_size,
                                                 const Scalar4* d_cell_xyzf,
                                                 const unsigned int* d_cell_idx,
-                                                const Scalar4* d_cell_tdb,
+                                                const uint2* d_cell_type_body,
                                                 const unsigned int* d_cell_adj,
                                                 const Index3D ci,
                                                 const Index2D cli,
@@ -191,8 +191,8 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                 }
             if (!done)
                 {
-                neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
-                neigh_size = d_cell_size[neigh_cell + igpu * ci.getNumElements()];
+                neigh_cell = __ldg(d_cell_adj + cadji(cur_adj, my_cell));
+                neigh_size = __ldg(d_cell_size + neigh_cell + igpu * ci.getNumElements());
                 }
             }
         // check for a neighbor if thread is still working
@@ -205,21 +205,21 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
                 cur_xyzf = __ldg(d_cell_xyzf + cli(cur_offset, neigh_cell));
             else
                 {
-                j = d_cell_idx[cli(cur_offset, neigh_cell) + igpu * cli.getNumElements()];
+                j = __ldg(d_cell_idx + cli(cur_offset, neigh_cell) + igpu * cli.getNumElements());
                 postype_j = d_pos[j];
                 cur_xyzf = make_scalar4(postype_j.x, postype_j.y, postype_j.z, __int_as_scalar(j));
                 }
 
-            Scalar4 cur_tdb;
+            uint2 cur_type_body;
             if (!use_index)
-                cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
+                cur_type_body = __ldg(d_cell_type_body + cli(cur_offset, neigh_cell));
             else
-                cur_tdb = make_scalar4(postype_j.w, 0, __int_as_scalar(d_body[j]), 0);
+                cur_type_body = make_uint2(__scalar_as_int(postype_j.w), __ldg(d_body + j));
 
             // advance cur_offset
             cur_offset += threads_per_particle;
 
-            unsigned int neigh_type = __scalar_as_int(cur_tdb.x);
+            unsigned int neigh_type = cur_type_body.x;
 
             // Only do the hard work if the particle should be included by r_cut(i,j)
             Scalar r_list;
@@ -237,7 +237,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int* d_nlist,
 
             if (r_list > Scalar(0.0))
                 {
-                unsigned int neigh_body = __scalar_as_int(cur_tdb.z);
+                unsigned int neigh_body = cur_type_body.y;
 
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
                 int cur_neigh = __scalar_as_int(cur_xyzf.w);
@@ -323,7 +323,7 @@ inline void launcher(unsigned int* d_nlist,
                      const unsigned int* d_cell_size,
                      const Scalar4* d_cell_xyzf,
                      const unsigned int* d_cell_idx,
-                     const Scalar4* d_cell_tdb,
+                     const uint2* d_cell_type_body,
                      const unsigned int* d_cell_adj,
                      const Index3D ci,
                      const Index2D cli,
@@ -386,7 +386,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -426,7 +426,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -466,7 +466,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -506,7 +506,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -549,7 +549,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -589,7 +589,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -629,7 +629,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -669,7 +669,7 @@ inline void launcher(unsigned int* d_nlist,
                                    d_cell_size,
                                    d_cell_xyzf,
                                    d_cell_idx,
-                                   d_cell_tdb,
+                                   d_cell_type_body,
                                    d_cell_adj,
                                    ci,
                                    cli,
@@ -699,7 +699,7 @@ inline void launcher(unsigned int* d_nlist,
                               d_cell_size,
                               d_cell_xyzf,
                               d_cell_idx,
-                              d_cell_tdb,
+                              d_cell_type_body,
                               d_cell_adj,
                               ci,
                               cli,
@@ -733,7 +733,7 @@ inline void launcher<min_threads_per_particle / 2>(unsigned int* d_nlist,
                                                    const unsigned int* d_cell_size,
                                                    const Scalar4* d_cell_xyzf,
                                                    const unsigned int* d_cell_idx,
-                                                   const Scalar4* d_cell_tdb,
+                                                   const uint2* d_cell_type_body,
                                                    const unsigned int* d_cell_adj,
                                                    const Index3D ci,
                                                    const Index2D cli,
@@ -765,7 +765,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     const unsigned int* d_cell_size,
                                     const Scalar4* d_cell_xyzf,
                                     const unsigned int* d_cell_idx,
-                                    const Scalar4* d_cell_tdb,
+                                    const uint2* d_cell_type_body,
                                     const unsigned int* d_cell_adj,
                                     const Index3D& ci,
                                     const Index2D& cli,
@@ -801,7 +801,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                            d_cell_size,
                                            d_cell_xyzf,
                                            d_cell_idx,
-                                           d_cell_tdb,
+                                           d_cell_type_body,
                                            d_cell_adj,
                                            ci,
                                            cli,

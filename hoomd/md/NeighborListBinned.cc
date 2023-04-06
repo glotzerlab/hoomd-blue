@@ -24,7 +24,7 @@ NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
 
     m_cl->setRadius(1);
     m_cl->setComputeXYZF(true);
-    m_cl->setComputeTDB(false);
+    m_cl->setComputeTypeBody(false);
     m_cl->setFlagIndex();
     }
 
@@ -132,7 +132,8 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
                 Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
 
-                // get the current neighbor type from the position data (will use tdb on the GPU)
+                // get the current neighbor type from the position data (will use TypeBody on the
+                // GPU)
                 unsigned int cur_neigh_type = __scalar_as_int(h_pos.data[cur_neigh].w);
                 Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i, cur_neigh_type)];
 

@@ -33,7 +33,7 @@ NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysde
     m_exec_conf->msg->notice(5) << "Constructing NeighborListStencil" << endl;
 
     m_cl->setRadius(1);
-    m_cl->setComputeTDB(true);
+    m_cl->setComputeTypeBody(true);
     m_cl->setFlagIndex();
     m_cl->setComputeAdjList(false);
     }
@@ -130,7 +130,9 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
     ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(),
                                      access_location::host,
                                      access_mode::read);
-    ArrayHandle<Scalar4> h_cell_tdb(m_cl->getTDBArray(), access_location::host, access_mode::read);
+    ArrayHandle<uint2> h_cell_type_body(m_cl->getTypeBodyArray(),
+                                        access_location::host,
+                                        access_mode::read);
     ArrayHandle<Scalar4> h_stencil(m_cls->getStencils(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_stencil(m_cls->getStencilSizes(),
                                           access_location::host,
@@ -241,9 +243,9 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
                 {
                 // read in the particle type (diameter and body as well while we've got the Scalar4
                 // in)
-                const Scalar4& neigh_tdb = h_cell_tdb.data[cli(cur_offset, neigh_cell)];
-                const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
-                const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
+                const uint2& neigh_type_body = h_cell_type_body.data[cli(cur_offset, neigh_cell)];
+                const unsigned int type_j = neigh_type_body.x;
+                const unsigned int body_j = neigh_type_body.y;
 
                 // skip any particles belonging to the same body if requested
                 if (m_filter_body && body_i != NO_BODY && body_i == body_j)

@@ -30,7 +30,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     m_cl->setComputeIdx(m_use_index);
 
     m_cl->setRadius(1);
-    m_cl->setComputeTDB(!m_use_index);
+    m_cl->setComputeTypeBody(!m_use_index);
     m_cl->setFlagIndex();
 
     CHECK_CUDA_ERROR();
@@ -82,9 +82,9 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     ArrayHandle<unsigned int> d_cell_idx(m_cl->getIndexArray(),
                                          access_location::device,
                                          access_mode::read);
-    ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(),
-                                    access_location::device,
-                                    access_mode::read);
+    ArrayHandle<uint2> d_cell_type_body(m_cl->getTypeBodyArray(),
+                                        access_location::device,
+                                        access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(),
                                          access_location::device,
                                          access_mode::read);
@@ -155,7 +155,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
         d_cell_xyzf.data,
         m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
-        d_cell_tdb.data,
+        d_cell_type_body.data,
         d_cell_adj.data,
         m_cl->getCellIndexer(),
         m_cl->getCellListIndexer(),

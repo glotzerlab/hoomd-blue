@@ -36,7 +36,7 @@ namespace kernel
     \param N Number of particles
     \param d_cell_size Number of particles in each cell
     \param d_cell_xyzf Cell contents (xyzf array from CellList with flag=type)
-    \param d_cell_tdb Cell contents (tdb array from CellList with)
+    \param d_cell_type_body Cell contents (TypeBody array from CellList with)
     \param ci Cell indexer for indexing cells
     \param cli Cell list indexer for indexing into d_cell_xyzf
     \param d_stencil 2D array of stencil offsets per type
@@ -63,7 +63,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                                                  const unsigned int N,
                                                  const unsigned int* d_cell_size,
                                                  const Scalar4* d_cell_xyzf,
-                                                 const Scalar4* d_cell_tdb,
+                                                 const uint2* d_cell_type_body,
                                                  const Index3D ci,
                                                  const Index2D cli,
                                                  const Scalar4* d_stencil,
@@ -215,11 +215,10 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
             // it's a little easier to read than having 4 levels of if{} statements nested
             do
                 {
-                // read in the particle type (diameter and body as well while we've got the Scalar4
-                // in)
-                const Scalar4 neigh_tdb = __ldg(d_cell_tdb + cli(cur_offset, neigh_cell));
-                const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
-                const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
+                // read in the particle type and body
+                const uint2 neigh_type_body = __ldg(d_cell_type_body + cli(cur_offset, neigh_cell));
+                const unsigned int type_j = neigh_type_body.x;
+                const unsigned int body_j = neigh_type_body.y;
 
                 // skip any particles belonging to the same rigid body if requested
                 if (filter_body && my_body != 0xffffffff && my_body == body_j)
@@ -319,7 +318,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                              const unsigned int N,
                              const unsigned int* d_cell_size,
                              const Scalar4* d_cell_xyzf,
-                             const Scalar4* d_cell_tdb,
+                             const uint2* d_cell_type_body,
                              const Index3D& ci,
                              const Index2D& cli,
                              const Scalar4* d_stencil,
@@ -374,7 +373,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                N,
                                d_cell_size,
                                d_cell_xyzf,
-                               d_cell_tdb,
+                               d_cell_type_body,
                                ci,
                                cli,
                                d_stencil,
@@ -412,7 +411,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                N,
                                d_cell_size,
                                d_cell_xyzf,
-                               d_cell_tdb,
+                               d_cell_type_body,
                                ci,
                                cli,
                                d_stencil,
@@ -439,7 +438,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                       N,
                                       d_cell_size,
                                       d_cell_xyzf,
-                                      d_cell_tdb,
+                                      d_cell_type_body,
                                       ci,
                                       cli,
                                       d_stencil,
@@ -471,7 +470,7 @@ inline void stencil_launcher<min_threads_per_particle / 2>(unsigned int* d_nlist
                                                            const unsigned int N,
                                                            const unsigned int* d_cell_size,
                                                            const Scalar4* d_cell_xyzf,
-                                                           const Scalar4* d_cell_tdb,
+                                                           const uint2* d_cell_type_body,
                                                            const Index3D& ci,
                                                            const Index2D& cli,
                                                            const Scalar4* d_stencil,
@@ -501,7 +500,7 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      const unsigned int N,
                                      const unsigned int* d_cell_size,
                                      const Scalar4* d_cell_xyzf,
-                                     const Scalar4* d_cell_tdb,
+                                     const uint2* d_cell_type_body,
                                      const Index3D& ci,
                                      const Index2D& cli,
                                      const Scalar4* d_stencil,
@@ -529,7 +528,7 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                                N,
                                                d_cell_size,
                                                d_cell_xyzf,
-                                               d_cell_tdb,
+                                               d_cell_type_body,
                                                ci,
                                                cli,
                                                d_stencil,
