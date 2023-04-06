@@ -25,6 +25,8 @@
 #define HOSTDEVICE inline __attribute__((always_inline))
 #endif
 
+namespace hoomd
+    {
 //! Stores the radius of the sphere, on which particle coordinates are defined
 /*! This class stores the sphere radius of the spherical coordinate system on which the simulation
     is carried out, in three embedding dimensions. It also provides some helper methods
@@ -87,4 +89,6 @@ struct
     private:
         Scalar R;        //!< Sphere radius
     };
+
+    } // end namespace hoomd
 #undef HOSTDEVICE
