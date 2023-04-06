@@ -434,35 +434,38 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
                 m_nondefault["particles/charge"] = true;
             }
 
-        all_default = true;
-
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
+        if (m_write_diameter)
             {
-            unsigned int t = m_group->getMemberTag(group_idx);
+            all_default = true;
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
+            for (unsigned int group_idx = 0; group_idx < N; group_idx++)
+                {
+                unsigned int t = m_group->getMemberTag(group_idx);
 
-            if (snapshot.diameter[it->second] != float(1.0))
-                all_default = false;
+                // look up tag in snapshot
+                auto it = map.find(t);
+                assert(it != map.end());
 
-            data[group_idx] = float(snapshot.diameter[it->second]);
-            }
+                if (snapshot.diameter[it->second] != float(1.0))
+                    all_default = false;
 
-        if (!all_default || (nframes > 0 && m_nondefault["particles/diameter"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/diameter" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/diameter",
-                                     GSD_TYPE_FLOAT,
-                                     N,
-                                     1,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/diameter"] = true;
+                data[group_idx] = float(snapshot.diameter[it->second]);
+                }
+
+            if (!all_default || (nframes > 0 && m_nondefault["particles/diameter"]))
+                {
+                m_exec_conf->msg->notice(10) << "GSD: writing particles/diameter" << endl;
+                retval = gsd_write_chunk(&m_handle,
+                                         "particles/diameter",
+                                         GSD_TYPE_FLOAT,
+                                         N,
+                                         1,
+                                         0,
+                                         (void*)&data[0]);
+                GSDUtils::checkError(retval, m_fname);
+                if (nframes == 0)
+                    m_nondefault["particles/diameter"] = true;
+                }
             }
         }
 

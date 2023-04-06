@@ -25,7 +25,6 @@ def hoomd_snapshot(lattice_snapshot_factory):
                                                  (snap.particles.N, 1))
         snap.particles.mass[:] = snap.particles.N * [1]
         snap.particles.charge[:] = snap.particles.N * [2]
-        snap.particles.diameter[:] = snap.particles.N * [0.5]
         snap.particles.angmom[:] = snap.particles.N * [[0, 0, 0, 1]]
 
         # bonds
@@ -306,7 +305,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     if snap.communicator.rank == 0:
         snap.particles.typeid[:] = N_particles * [1]
         snap.particles.mass[:] = N_particles * [0.8]
-        snap.particles.diameter[:] = N_particles * [0.2]
         snap.particles.charge[:] = N_particles * [0]
 
     sim.state.set_snapshot(snap)
@@ -328,10 +326,6 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
                                            atol=1.5e-07)
                 np.testing.assert_allclose(traj[step].particles.charge,
                                            N_particles * [0],
-                                           rtol=1e-07,
-                                           atol=1.5e-07)
-                np.testing.assert_allclose(traj[step].particles.diameter,
-                                           N_particles * [0.2],
                                            rtol=1e-07,
                                            atol=1.5e-07)
                 np.testing.assert_allclose(traj[step].particles.body,
