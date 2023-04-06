@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_REACTION_FIELD_H__
 #define __PAIR_EVALUATOR_REACTION_FIELD_H__
@@ -27,6 +25,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Onsager reaction field pair potential
 /*! <b>General Overview</b>
 
@@ -164,6 +166,16 @@ class EvaluatorPairReactionField
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -187,5 +199,8 @@ class EvaluatorPairReactionField
     bool use_charge; //!< True if we are using the particle charges
     Scalar qiqj;     //!< Product of charges
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_REACTION_FIELD_H__

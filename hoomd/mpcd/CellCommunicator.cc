@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellCommunicator.cc
@@ -12,6 +10,8 @@
 
 #include "CellCommunicator.h"
 
+namespace hoomd
+    {
 // initialize with zero instances of the communicator
 unsigned int mpcd::CellCommunicator::num_instances = 0;
 
@@ -30,20 +30,13 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
-        m_tuner_pack.reset(new Autotuner(32,
-                                         1024,
-                                         32,
-                                         5,
-                                         100000,
-                                         "mpcd_cell_comm_pack_" + std::to_string(m_id),
-                                         m_exec_conf));
-        m_tuner_unpack.reset(new Autotuner(32,
-                                           1024,
-                                           32,
-                                           5,
-                                           100000,
-                                           "mpcd_cell_comm_unpack_" + std::to_string(m_id),
-                                           m_exec_conf));
+        m_tuner_pack.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "mpcd_cell_comm_pack_" + std::to_string(m_id)));
+        m_tuner_unpack.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                              m_exec_conf,
+                                              "mpcd_cell_comm_unpack_" + std::to_string(m_id)));
+        m_autotuners.insert(m_autotuners.end(), {m_tuner_pack, m_tuner_unpack});
         }
 #endif // ENABLE_HIP
 
@@ -129,7 +122,7 @@ void mpcd::CellCommunicator::initialize()
         ci.getH() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::north)],
         ci.getD() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::up)]);
 
-    // check to make sure box is not overdecomposed
+        // check to make sure box is not overdecomposed
         {
         const unsigned int nextra = m_cl->getNExtraCells();
         unsigned int err = ((max_lo.x + nextra) > min_hi.x || (max_lo.y + nextra) > min_hi.y
@@ -228,14 +221,14 @@ void mpcd::CellCommunicator::initialize()
             }                 // j
         }                     // k
 
-    // allocate send / receive index arrays
+        // allocate send / receive index arrays
         {
         GPUArray<unsigned int> send_idx(send_map.size(), m_exec_conf);
         m_send_idx.swap(send_idx);
         }
 
-    // fill the send indexes with the global values
-    // flood the array of unique neighbors and count the number to send
+        // fill the send indexes with the global values
+        // flood the array of unique neighbors and count the number to send
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx,
                                              access_location::host,
@@ -289,7 +282,7 @@ void mpcd::CellCommunicator::initialize()
         MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
 
-    // transform all of the global cell indexes back into local cell indexes
+        // transform all of the global cell indexes back into local cell indexes
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx,
                                              access_location::host,
@@ -303,7 +296,7 @@ void mpcd::CellCommunicator::initialize()
         std::transform(recv_idx.begin(), recv_idx.end(), recv_idx.begin(), wrapper);
         }
 
-    // map the received cells from a rank-basis to a cell-basis
+        // map the received cells from a rank-basis to a cell-basis
         {
         std::multimap<unsigned int, unsigned int> cell_map;
         std::set<unsigned int> unique_cells;
@@ -315,9 +308,9 @@ void mpcd::CellCommunicator::initialize()
             }
         m_num_cells = (unsigned int)unique_cells.size();
 
-        /*
-         * Allocate auxiliary memory for receiving cell reordering
-         */
+            /*
+             * Allocate auxiliary memory for receiving cell reordering
+             */
             {
             GPUArray<unsigned int> recv(recv_idx.size(), m_exec_conf);
             m_recv.swap(recv);
@@ -376,5 +369,6 @@ void mpcd::CellCommunicator::initialize()
         h_recv_end.data[cell_idx] = idx;
         }
     }
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

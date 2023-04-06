@@ -1,11 +1,8 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BondTablePotentialGPU.h"
 
-namespace py = pybind11;
 #include <stdexcept>
 
 /*! \file BondTablePotentialGPU.cc
@@ -14,6 +11,10 @@ namespace py = pybind11;
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
 */
@@ -36,9 +37,10 @@ BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> s
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_bond", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "bond_table"));
+    m_autotuners.push_back(m_tuner);
     }
 
 BondTablePotentialGPU::~BondTablePotentialGPU()
@@ -54,10 +56,6 @@ Calls gpu_compute_bondtable_forces to do the leg work
 */
 void BondTablePotentialGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Bond Table");
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
@@ -82,22 +80,23 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
 
         // run the kernel on all GPUs in parallel
         m_tuner->begin();
-        gpu_compute_bondtable_forces(d_force.data,
-                                     d_virial.data,
-                                     m_virial.getPitch(),
-                                     m_pdata->getN(),
-                                     d_pos.data,
-                                     box,
-                                     d_gpu_bondlist.data,
-                                     m_bond_data->getGPUTableIndexer().getW(),
-                                     d_gpu_n_bonds.data,
-                                     m_bond_data->getNTypes(),
-                                     d_tables.data,
-                                     d_params.data,
-                                     m_table_width,
-                                     m_table_value,
-                                     d_flags.data,
-                                     m_tuner->getParam());
+        kernel::gpu_compute_bondtable_forces(d_force.data,
+                                             d_virial.data,
+                                             m_virial.getPitch(),
+                                             m_pdata->getN(),
+                                             d_pos.data,
+                                             box,
+                                             d_gpu_bondlist.data,
+                                             m_bond_data->getGPUTableIndexer().getW(),
+                                             d_gpu_n_bonds.data,
+                                             m_bond_data->getNTypes(),
+                                             d_tables.data,
+                                             d_params.data,
+                                             m_table_width,
+                                             m_table_value,
+                                             d_flags.data,
+                                             m_tuner->getParam()[0],
+                                             m_exec_conf->dev_prop);
         }
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -114,15 +113,18 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
             }
         }
     m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_BondTablePotentialGPU(py::module& m)
+namespace detail
     {
-    py::class_<BondTablePotentialGPU, BondTablePotential, std::shared_ptr<BondTablePotentialGPU>>(
-        m,
-        "BondTablePotentialGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, unsigned int>());
+void export_BondTablePotentialGPU(pybind11::module& m)
+    {
+    pybind11::class_<BondTablePotentialGPU,
+                     BondTablePotential,
+                     std::shared_ptr<BondTablePotentialGPU>>(m, "BondTablePotentialGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

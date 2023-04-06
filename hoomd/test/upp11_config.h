@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file upp11_config.h
     \brief Helps unit tests setup the upp11 unit testing framework
@@ -114,23 +114,23 @@
     UP_ASSERT((std::abs((a) - (b)) <= ((c)*std::abs(a))) \
               && (std::abs((a) - (b)) <= ((c)*std::abs(b))))
 //! Helper macro for checking if a number is small
-#define MY_CHECK_SMALL(a, c) CHECK_SMALL(a, Scalar(c))
+#define MY_CHECK_SMALL(a, c) CHECK_SMALL(a, hoomd::Scalar(c))
 //! Need a simple define for checking two values which are unsigned
 #define CHECK_EQUAL_UINT(a, b) UP_ASSERT_EQUAL(a, (unsigned int)(b))
 
 #define MY_ASSERT_EQUAL(a, b) UP_ASSERT(a == b)
 
 //! Tolerance setting for near-zero comparisons
-const Scalar tol_small = Scalar(1e-3);
+const hoomd::Scalar tol_small = hoomd::Scalar(1e-3);
 
 //! Tolerance setting for comparisons
-const Scalar tol = Scalar(1e-2);
+const hoomd::Scalar tol = hoomd::Scalar(1e-2);
 
 //! Loose tolerance to be used with randomly generated and unpredictable comparisons
-Scalar loose_tol = Scalar(10);
+hoomd::Scalar loose_tol = hoomd::Scalar(10);
 
-std::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
-std::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
+std::shared_ptr<hoomd::ExecutionConfiguration> exec_conf_cpu;
+std::shared_ptr<hoomd::ExecutionConfiguration> exec_conf_gpu;
 
 #ifdef ENABLE_MPI
 #define HOOMD_UP_MAIN()                                                       \

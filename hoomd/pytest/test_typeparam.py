@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
@@ -22,7 +25,7 @@ def typeparam(typedict):
 
 
 def test_attach(typeparam):
-    return typeparam._attach(DummyCppObj(), DummySimulation())
+    return typeparam._attach(DummyCppObj(), DummySimulation().state)
 
 
 @fixture(scope='function')

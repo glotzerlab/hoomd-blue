@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CosineSqAngleForceCompute.h"
 #include "CosineSqAngleForceGPU.cuh"
@@ -19,6 +19,10 @@
 #ifndef __COSINESQANGLEFORCECOMPUTEGPU_H__
 #define __COSINESQANGLEFORCECOMPUTEGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements the cosine squared angle force calculation on the GPU
 /*! CosineSqAngleForceComputeGPU implements the same calculations as CosineSqAngleForceCompute,
     but executing on the GPU.
@@ -39,29 +43,18 @@ class PYBIND11_EXPORT CosineSqAngleForceComputeGPU : public CosineSqAngleForceCo
     //! Destructor
     ~CosineSqAngleForceComputeGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        CosineSqAngleForceCompute::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
 
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
-    GPUArray<Scalar2> m_params;         //!< Parameters stored on the GPU
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
+    GPUArray<Scalar2> m_params;            //!< Parameters stored on the GPU
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
 
-//! Export the AngleForceComputeGPU class to python
-void export_CosineSqAngleForceComputeGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

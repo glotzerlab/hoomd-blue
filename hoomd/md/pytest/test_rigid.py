@@ -1,7 +1,11 @@
-from collections.abc import Sequence
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+from collections.abc import Sequence
+import itertools
 import numpy as np
 import pytest
+from hoomd.conftest import autotuned_kernel_parameter_check
 
 try:
     import rowan
@@ -205,6 +209,7 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
 def test_error_on_invalid_body(simulation_factory,
                                two_particle_snapshot_factory,
                                valid_body_definition):
+    """Tests that Simulation fails when bodies are not present in state."""
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
@@ -227,7 +232,7 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     rigid = md.constrain.Rigid()
     rigid.body["A"] = valid_body_definition
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
@@ -248,12 +253,15 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     if sim.device.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
 
+    autotuned_kernel_parameter_check(instance=rigid,
+                                     activate=lambda: sim.run(1))
+
 
 def test_running_without_body_definition(simulation_factory,
                                          two_particle_snapshot_factory):
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
@@ -275,9 +283,10 @@ def test_running_without_body_definition(simulation_factory,
 def test_setting_body_after_attaching(simulation_factory,
                                       two_particle_snapshot_factory,
                                       valid_body_definition):
+    """Test updating body definition without updating sim particles fails."""
     rigid = md.constrain.Rigid()
     langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
-    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(buffer=0.4), mode="shift")
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
@@ -298,3 +307,115 @@ def test_setting_body_after_attaching(simulation_factory,
     # setting should be fine.
     with pytest.raises(RuntimeError):
         sim.run(1)
+
+
+def test_rigid_body_restart(simulation_factory, valid_body_definition):
+    s = hoomd.Snapshot()
+    N = 1000
+
+    if s.communicator.rank == 0:
+        s.particles.N = N
+        s.particles.position[:] = [[-0.5, 0, 0]] * N
+        s.particles.body[:] = [x for x in range(N)]
+        s.particles.types = ['A', 'B']
+        s.particles.typeid[:] = [0] * N
+        s.configuration.box = [2, 2, 2, 0, 0, 0]
+
+    # create simulation object and add integrator
+    sim = simulation_factory(s)
+    integrator = hoomd.md.Integrator(dt=0.001)
+    sim.operations.integrator = integrator
+
+    # create bodies
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body["A"] = valid_body_definition
+    rigid.create_bodies(sim.state)
+    sim.run(0)
+
+    snapshot = sim.state.get_snapshot()
+    N_const = len(valid_body_definition['constituent_types'])
+    if snapshot.communicator.rank == 0:
+        assert np.all(snapshot.particles.typeid[:N] == 0)
+        assert np.all(snapshot.particles.typeid[N:] == 1)
+        assert np.all(snapshot.particles.body[:N] == np.arange(N))
+        should_be = np.arange(N * N_const) // N_const
+        assert np.all(snapshot.particles.body[N:] == should_be)
+
+
+@pytest.mark.parametrize("reload_snapshot, n_free",
+                         itertools.product([False, True], [0, 10]))
+def test_rigid_dof(lattice_snapshot_factory, simulation_factory,
+                   valid_body_definition, reload_snapshot, n_free):
+    n = 7
+    n_bodies = n**3 - n_free
+    initial_snapshot = lattice_snapshot_factory(particle_types=['A', 'B'],
+                                                n=n,
+                                                dimensions=3,
+                                                a=5)
+
+    if initial_snapshot.communicator.rank == 0:
+        initial_snapshot.particles.body[:n_bodies] = range(n_bodies)
+        initial_snapshot.particles.moment_inertia[:n_bodies] = (1, 1, 1)
+        initial_snapshot.particles.typeid[n_bodies:] = 1
+
+    sim = simulation_factory(initial_snapshot)
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body["A"] = valid_body_definition
+    rigid.create_bodies(sim.state)
+
+    if reload_snapshot:
+        # In C++, createRigidBodies follows a different code path than
+        # validateRigidBodies. When reload_snapshot is True, test the latter.
+        snapshot_with_constituents = sim.state.get_snapshot()
+        sim.state.set_snapshot(snapshot_with_constituents)
+
+    integrator = hoomd.md.Integrator(dt=0.0, integrate_rotational_dof=True)
+    integrator.rigid = rigid
+
+    thermo_all = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.All())
+    thermo_two = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Tags([0, 1]))
+    thermo_central = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Rigid(flags=("center",)))
+    thermo_central_free = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Rigid(flags=("center", "free")))
+    thermo_constituent = hoomd.md.compute.ThermodynamicQuantities(
+        filter=hoomd.filter.Rigid(flags=("constituent",)))
+
+    sim.operations.computes.extend([
+        thermo_all, thermo_two, thermo_central, thermo_central_free,
+        thermo_constituent
+    ])
+    sim.operations.integrator = integrator
+    integrator.methods.append(
+        hoomd.md.methods.NVE(filter=hoomd.filter.Rigid(flags=("center",
+                                                              "free"))))
+
+    sim.run(0)
+
+    assert thermo_all.translational_degrees_of_freedom == (n_bodies
+                                                           + n_free) * 3 - 3
+    assert thermo_two.translational_degrees_of_freedom == 2 * 3 - 3 * (
+        2 / (n_bodies + n_free))
+    assert thermo_central.translational_degrees_of_freedom == (
+        n_bodies * 3 - 3 * (n_bodies / (n_bodies + n_free)))
+    assert thermo_central_free.translational_degrees_of_freedom == (
+        n_bodies + n_free) * 3 - 3
+    assert thermo_constituent.translational_degrees_of_freedom == 0
+
+    # Test again with the rigid body constraints removed. Now the integration
+    # method is applied only to part of the system, so the 3 degrees of freedom
+    # are not removed.
+    integrator.rigid = None
+    sim.state.update_group_dof()
+
+    sim.run(0)
+
+    assert thermo_all.translational_degrees_of_freedom == (n_bodies
+                                                           + n_free) * 3
+    assert thermo_two.translational_degrees_of_freedom == 2 * 3
+    assert thermo_central.translational_degrees_of_freedom == n_bodies * 3
+    assert thermo_central_free.translational_degrees_of_freedom == (
+        n_bodies + n_free) * 3
+    assert thermo_constituent.translational_degrees_of_freedom == 0

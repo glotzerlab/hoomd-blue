@@ -1,19 +1,26 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Base classes for all HOOMD-blue operations."""
+"""Operation class types.
+
+Operations act on the state of the system at defined points during the
+simulation's run loop. Add operation objects to the `Simulation.operations`
+collection.
+
+See Also:
+    `hoomd.Operations`
+
+    `hoomd.Simulation`
+"""
 
 # Operation is a parent class of almost all other HOOMD objects.
-# Triggered objects should inherit from _TriggeredOperation.
 
 from copy import copy
 import itertools
 
-from hoomd.trigger import Trigger
+import hoomd
 from hoomd.logging import Loggable
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.error import MutabilityError
 
 
 class _HOOMDGetSetAttrBase:
@@ -44,18 +51,20 @@ class _HOOMDGetSetAttrBase:
     _skip_for_equality = set()
 
     def __getattr__(self, attr):
-        if attr in self._reserved_default_attrs.keys():
+        if attr in self._reserved_default_attrs:
             default = self._reserved_default_attrs[attr]
             value = default() if callable(default) else default
             object.__setattr__(self, attr, value)
             return value
-        elif attr in self._param_dict.keys():
+        elif attr in self._param_dict:
             return self._getattr_param(attr)
-        elif attr in self._typeparam_dict.keys():
+        elif attr in self._typeparam_dict:
             return self._getattr_typeparam(attr)
         else:
-            raise AttributeError("Object {} has no attribute {}".format(
-                type(self), attr))
+            return self._getattr_hook(attr)
+
+    def _getattr_hook(self, attr):
+        raise AttributeError(f"Object {type(self)} has no attribute {attr}")
 
     def _getattr_param(self, attr):
         """Hook for getting an attribute from `_param_dict`."""
@@ -81,15 +90,7 @@ class _HOOMDGetSetAttrBase:
 
     def _setattr_param(self, attr, value):
         """Hook for setting an attribute in `_param_dict`."""
-        old_value = self._param_dict[attr]
         self._param_dict[attr] = value
-        new_value = self._param_dict[attr]
-        if self._attached:
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                self._param_dict[attr] = old_value
-                raise MutabilityError(attr)
 
     def _setattr_typeparam(self, attr, value):
         """Hook for setting an attribute in `_typeparam_dict`."""
@@ -167,7 +168,10 @@ class _DependencyRelation:
 
     def _remove_dependent(self, obj):
         """Removes a dependent from the list of dependencies."""
-        self._dependents.remove(obj)
+        try:
+            self._dependents.remove(obj)
+        except ValueError:
+            pass
 
 
 class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
@@ -188,103 +192,144 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     infrastructure for HOOMD-blue objects.
 
     This class's main features are handling attaching and detaching from
-    simulations and adding and removing from containing object such as methods
-    for MD integrators and updaters for the operations list. Attaching is the
-    idea of creating a C++ object that is tied to a given simulation while
-    detaching is removing an object from its simulation.
+    simulations and _adding_ and _removing_ from containing object such as
+    methods for MD integrators and updaters for the operations list. _Attaching_
+    is the idea of creating a C++ object that is tied to a given simulation
+    while _detaching_ is removing an object from its simulation.
+
+    The class also has a counter ``_use_count`` which keeps track of consumers
+    of an operation outside of regular dependencies. This is necessary to avoid
+    double attaching or premature detaching if the object is removed from one of
+    its consumers. This does allow for simple dependency handling outside of the
+    features of `_DependencyRelation`.
     """
     _reserved_default_attrs = {
-        **_HOOMDGetSetAttrBase._reserved_default_attrs, '_cpp_obj': None,
+        **_HOOMDGetSetAttrBase._reserved_default_attrs,
+        '_cpp_obj': None,
         '_simulation': None,
         '_dependents': list,
-        '_dependencies': list
+        '_dependencies': list,
+        # Keeps track of the number of times _attach is called to avoid
+        # premature detaching.
+        "_use_count": int,
     }
 
     _skip_for_equality = {
-        '_cpp_obj', '_dependents', '_dependencies', '_simulation'
+        '_cpp_obj', '_dependents', '_dependencies', '_simulation', "_use_count"
     }
-    _remove_for_pickling = ('_simulation', '_cpp_obj')
-
-    def _getattr_param(self, attr):
-        if self._attached:
-            return getattr(self._cpp_obj, attr)
-        else:
-            return self._param_dict[attr]
-
-    def _setattr_param(self, attr, value):
-        """Hook for setting an attribute in `_param_dict`."""
-        old_value = self._param_dict[attr]
-        self._param_dict[attr] = value
-        new_value = self._param_dict[attr]
-        if self._attached:
-            try:
-                setattr(self._cpp_obj, attr, new_value)
-            except (AttributeError):
-                self._param_dict[attr] = old_value
-                raise MutabilityError(attr)
+    # _use_count must be included or attaching and detaching won't work as
+    # expected as _use_count may not equal 0.
+    _remove_for_pickling = ('_simulation', '_cpp_obj', "_use_count")
 
     def _detach(self):
-        if self._attached:
-            self._unapply_typeparam_dict()
-            self._update_param_dict()
-            if hasattr(self._cpp_obj, "notifyDetach"):
-                self._cpp_obj.notifyDetach()
-            # In case the C++ object is necessary for proper disconnect
-            # notification we call _notify_disconnect here as well.
-            self._notify_disconnect()
-            self._cpp_obj = None
-            return self
+        """Decrement attach count and destroy C++ object if count == 0.
 
-    def _attach(self):
+        This method is not designed to be overwritten, but handles the necessary
+        detaching procedures for all `_HOOMDBaseObject` subclasses.
+
+        Note:
+            Use `~._detach_hook` in subclasses to provide custom detaching
+            logic.
+        """
+        if self._use_count == 0:
+            return self
+        self._use_count -= 1
+        if self._use_count > 0:
+            return self
+        self._unapply_typeparam_dict()
+        self._param_dict._detach()
+        if hasattr(self._cpp_obj, "notifyDetach"):
+            self._cpp_obj.notifyDetach()
+        # In case the C++ object is necessary for proper disconnect
+        # notification we call _notify_disconnect here as well.
+        try:
+            self._notify_disconnect()
+        except hoomd.error.SimulationDefinitionError as err:
+            raise err
+        finally:
+            self._detach_hook()
+            self._simulation = None
+            self._cpp_obj = None
+        return self
+
+    def _detach_hook(self):
+        """Implement custom detaching behavior.
+
+        This is to provide custom detaching behavior not to:
+            - Change the instance's ``_use_count`` member.
+            - Remove the C++ instance.
+            - Handle the ``_param_dict`` and ``_typeparam_dict``.
+            - Notifying dependencies in C++ or Python of detaching.
+
+        Note:
+            This is only called when the attach counter goes to zero.
+
+        Note:
+            The C++ object is available for this method.
+        """
+        pass
+
+    def _attach_hook(self):
+        """Create the C++ object and store it in ``_cpp_obj``.
+
+        All subclasses should implement this to create the correct pybind11
+        wrapped C++ object. This should not worry about the consumer count or
+        deal with ``_param_dict`` or ``_typeparam_dict``.
+        """
+        pass
+
+    def _post_attach_hook(self):
+        """Hook called after applying parameter dicts."""
+        pass
+
+    def _attach(self, simulation):
+        """Attach the object to the added simulation.
+
+        This should not be overwritten by subclasses, see `~._attach_hook`
+        instead. This method handles consumer count book keeping and
+        ``_param_dict`` and ``_typeparam_dict``.
+        """
+        self._use_count += 1
+        if self._use_count > 1:
+            if simulation != self._simulation:
+                raise hoomd.error.SimulationDefinitionError(
+                    f"Cannot add {self} to multiple simulations simultaneously."
+                )
+            return
+        self._simulation = simulation
+        try:
+            self._attach_hook()
+        except hoomd.error.SimulationDefinitionError as err:
+            self._use_count -= 1
+            raise err
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        self._post_attach_hook()
 
     @property
     def _attached(self):
         return self._cpp_obj is not None
 
-    def _add(self, simulation):
-        self._simulation = simulation
-
-    def _remove(self):
-        # Since objects can be added without being attached, we need to call
-        # _notify_disconnect on both _remove and _detach. The method should be
-        # do nothing after being called onces so being called twice is not a
-        # concern. I should note that if
-        # `hoomd.operations.Operations._unschedule` is called this is
-        # invalidated, but as that is not public facing this should be fine.
-        self._notify_disconnect()
-        self._simulation = None
-
-    @property
-    def _added(self):
-        return self._simulation is not None
-
     def _apply_param_dict(self):
-        for attr, value in self._param_dict.items():
-            try:
-                setattr(self, attr, value)
-            except AttributeError:
-                pass
+        self._param_dict._attach(self._cpp_obj)
 
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
-                typeparam._attach(cpp_obj, simulation)
+                typeparam._attach(cpp_obj, simulation.state)
             except ValueError as err:
                 raise err.__class__(
                     f"For {type(self)} in TypeParameter {typeparam.name} "
                     f"{str(err)}")
-
-    def _update_param_dict(self):
-        for key in self._param_dict.keys():
-            self._param_dict[key] = getattr(self, key)
 
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
             typeparam._detach()
 
     def _add_typeparam(self, typeparam):
+        self._append_typeparam(typeparam)
+
+    def _append_typeparam(self, typeparam):
         self._typeparam_dict[typeparam.name] = typeparam
 
     def _extend_typeparam(self, typeparams):
@@ -307,85 +352,154 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         return state
 
 
-class Operation(_HOOMDBaseObject):
-    """Represents operations that are added to an `hoomd.Operations` object.
+class AutotunedObject(_HOOMDBaseObject):
+    """An object with autotuned kernel parameters.
+
+    `AutotunedObject` instances may complete portions of their computation with
+    one or more GPU kernels. Each GPU kernel is executed with a set of
+    parameters (`kernel_parameters`) that influence the run time of the
+    execution. After initialization, `AutotunedObject` varies these parameters
+    as the simulation runs and searches for the best performing combination. The
+    optimal parameters depend on your system's size, density, force field
+    parameters, the specific hardware you execute on, and more.
+
+    Check `is_tuning_complete` to check if the search is complete. After the
+    search is complete, `AutotunedObject` holds the parameters constant at the
+    optimal values. Typical operations require thousands of time steps to
+    complete tuning. Some may take tens of thousands or more depending on the
+    parameters you set.
+
+    Tip:
+        When you significantly change your system during the simulation (e.g.
+        compress to a higher density), then you can tune the parameters again
+        after with `tune_kernel_parameters`. This step is optional, but may
+        increase performance as the new system parameters may lead to different
+        optimal parameters.
+
+    Note:
+        In MPI parallel execution, all methods and attributes of
+        `AutotunedObject` reference the rank local tuner objects. Different
+        ranks may tune different optimal kernel parameters and may complete
+        tuning at different times. Use only
+        `hoomd.Operations.is_tuning_complete` in control flow operations, as
+        this method is reduced across all ranks.
+
+
+    See Also:
+        * `hoomd.Operations.is_tuning_complete`
+        * `hoomd.Operations.tune_kernel_parameters`
+    """
+
+    @property
+    def kernel_parameters(self):
+        """dict[str, tuple[float]]: Kernel parameters.
+
+        The dictionary maps GPU kernel names to tuples of integers that control
+        how the kernel executes on the GPU. These values will change during the
+        tuning process and remain static after tuning completes. Set the kernel
+        parameters for one or more kernels to force specific values and stop
+        tuning.
+
+        Warning:
+            The keys and valid values in this dictionary depend on the hardware
+            device, the HOOMD-blue version, and the value of class attributes.
+            Keys and/or valid values may change even with new patch releases of
+            HOOMD-blue.
+
+            Provided that you use the same HOOMD-blue binary on the same
+            hardware and execute a script with the same parameters, you may save
+            the tuned values from one run and load them in the next.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("kernel_parameters")
+        return self._cpp_obj.getAutotunerParameters()
+
+    @kernel_parameters.setter
+    def kernel_parameters(self, parameters):
+        if not self._attached:
+            raise hoomd.error.DataAccessError("kernel_parameters")
+        return self._cpp_obj.setAutotunerParameters(parameters)
+
+    @property
+    def is_tuning_complete(self):
+        """bool: Check if kernel parameter tuning is complete.
+
+        ``True`` when tuning is complete and `kernel_parameters` has locked
+        optimal parameters for all active kernels used by this object.
+        """
+        if not self._attached:
+            raise hoomd.error.DataAccessError("is_tuning_complete")
+        return self._cpp_obj.isAutotuningComplete()
+
+    def tune_kernel_parameters(self):
+        """Start tuning kernel parameters.
+
+        After calling `tune_kernel_parameters`, `AutotunedObject` will vary the
+        kernel parameters in subsequent time steps, check the run time of each,
+        and lock to the fastest performing parameters after the scan is
+        complete.
+        """
+        if not self._attached:
+            raise RuntimeError("Call Simulation.run() before "
+                               "tune_kernel_parameters.")
+        self._cpp_obj.startAutotuning()
+
+
+class Operation(AutotunedObject):
+    """Represents an operation.
 
     Operations in the HOOMD-blue data scheme are objects that *operate* on a
     `hoomd.Simulation` object. They broadly consist of 5 subclasses: `Updater`,
-    `Writer`, `Compute`, `Tuner`, and `hoomd.integrate.BaseIntegrator`. All
-    HOOMD-blue operations inherit from one of these five base classes. To find
-    the purpose of each class see its documentation.
+    `Writer`, `Compute`, `Tuner`, and `Integrator`. All HOOMD-blue operations
+    inherit from one of these five base classes. To find the purpose of each
+    class see its documentation.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
 
     Note:
         Developers or those contributing to HOOMD-blue, see our architecture
         `file`_ for information on HOOMD-blue's architecture decisions regarding
         operations.
 
-    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ \
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ \
         ARCHITECTURE.md
     """
-    pass
 
 
-class _TriggeredOperation(Operation):
-    _cpp_list_name = None
+class TriggeredOperation(Operation):
+    """Operations that include a trigger to determine when to run.
 
-    _override_setattr = {'trigger'}
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
 
     def __init__(self, trigger):
-        trigger_dict = ParameterDict(trigger=Trigger)
-        trigger_dict['trigger'] = trigger
-        self._param_dict.update(trigger_dict)
-
-    @property
-    def trigger(self):
-        return self._param_dict['trigger']
-
-    @trigger.setter
-    def trigger(self, new_trigger):
-        # Overwrite python trigger
-        old_trigger = self.trigger
-        self._param_dict['trigger'] = new_trigger
-        new_trigger = self.trigger
-        if self._attached:
-            sys = self._simulation._cpp_sys
-            triggered_ops = getattr(sys, self._cpp_list_name)
-            for index in range(len(triggered_ops)):
-                op, trigger = triggered_ops[index]
-                # If tuple is the operation and trigger according to memory
-                # location (python's is), replace with new trigger
-                if op is self._cpp_obj and trigger is old_trigger:
-                    triggered_ops[index] = (op, new_trigger)
-
-    def _attach(self):
-        super()._attach()
-
-    def _update_param_dict(self):
-        if self._attached:
-            for key in self._param_dict:
-                if key == 'trigger':
-                    continue
-                self._param_dict[key] = getattr(self, key)
+        trigger_param = ParameterDict(trigger=hoomd.trigger.Trigger)
+        self._param_dict.update(trigger_param)
+        self.trigger = trigger
 
 
-class Updater(_TriggeredOperation):
-    """Base class for all HOOMD updaters.
+class Updater(TriggeredOperation):
+    """Change the simulation's state.
 
     An updater is an operation which modifies a simulation's state.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
     _cpp_list_name = 'updaters'
 
 
-class Writer(_TriggeredOperation):
-    """Base class for all HOOMD analyzers.
+class Writer(TriggeredOperation):
+    """Write output that depends on the simulation's state.
 
-    An analyzer is an operation which writes out a simulation's state.
+    A writer is an operation which writes out a simulation's state.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
@@ -393,28 +507,48 @@ class Writer(_TriggeredOperation):
 
 
 class Compute(Operation):
-    """Base class for all HOOMD computes.
+    """Compute properties of the simulation's state.
 
     A compute is an operation which computes some property for another operation
     or use by a user.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
     pass
 
 
-class Tuner(Operation):
-    """Base class for all HOOMD tuners.
+class Tuner(TriggeredOperation):
+    """Adjust the parameters of other operations to improve performance.
 
     A tuner is an operation which tunes the parameters of another operation for
     performance or other reasons. A tuner does not modify the current microstate
     of the simulation. That is a tuner does not change quantities like
     temperature, particle position, or the number of bonds in a simulation.
 
-    Note:
+    Warning:
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
     pass
+
+
+class Integrator(Operation):
+    """Advance the simulation state forward one time step.
+
+    An integrator is the operation which evolves a simulation's state in time.
+    In `hoomd.hpmc`, integrators perform particle based Monte Carlo moves. In
+    `hoomd.md`, the `hoomd.md.Integrator` class organizes the forces, equations
+    of motion, and other factors of the given simulation.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
+
+    def _attach_hook(self):
+        self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
+
+        # The integrator has changed, update the number of DOF in all groups
+        self._simulation.state.update_group_dof()

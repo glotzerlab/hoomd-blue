@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd
 =====
 
@@ -31,18 +34,20 @@ hoomd
 .. toctree::
    :maxdepth: 3
 
+   module-hoomd-box
    module-hoomd-communicator
    module-hoomd-custom
    module-hoomd-data
    module-hoomd-device
    module-hoomd-error
    module-hoomd-filter
-   module-hoomd-integrate
    module-hoomd-logging
+   module-hoomd-mesh
    module-hoomd-operation
    module-hoomd-triggers
    module-hoomd-tune
    module-hoomd-update
    module-hoomd-variant
    module-hoomd-version
+   module-hoomd-wall
    module-hoomd-write

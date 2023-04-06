@@ -1,11 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <iostream>
 
 #include <functional>
 
-#include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #ifdef ENABLE_HIP
@@ -15,8 +14,9 @@
 
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
-#include "hoomd/md/AllAnisoPairPotentials.h"
 #include "hoomd/md/AllPairPotentials.h"
+#include "hoomd/md/AnisoPotentialPair.h"
+#include "hoomd/md/EvaluatorPairGB.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/NeighborListTree.h"
 
@@ -24,6 +24,8 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file nvt_updater_test.cc
     \brief Implements unit tests for NVTUpdater and descendants
@@ -192,8 +194,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
 
     nlist_1->setStorageMode(NeighborList::full);
-    std::shared_ptr<AnisoPotentialPairGB> fc_1
-        = std::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef_1, nlist_1));
+    auto fc_1 = std::make_shared<AnisoPotentialPair<EvaluatorPairGB>>(sysdef_1, nlist_1));
 
     fc_1->setRcut(0, 0, r_cut);
 

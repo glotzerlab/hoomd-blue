@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SFCPackTunerGPU.cc
     \brief Defines the SFCPackTunerGPU class
@@ -19,8 +17,9 @@
 #include <stdexcept>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 //! Constructor
 /*! \param sysdef System to perform sorts on
  */
@@ -134,15 +133,15 @@ void SFCPackTunerGPU::getSortedOrder3D()
                                                 access_mode::read);
 
     // put the particles in the bins and sort
-    gpu_generate_sorted_order(m_pdata->getN(),
-                              d_pos.data,
-                              d_gpu_particle_bins.data,
-                              d_traversal_order.data,
-                              m_grid,
-                              d_gpu_sort_order.data,
-                              box,
-                              m_sysdef->getNDimensions() == 2,
-                              m_exec_conf->getCachedAllocator());
+    kernel::gpu_generate_sorted_order(m_pdata->getN(),
+                                      d_pos.data,
+                                      d_gpu_particle_bins.data,
+                                      d_traversal_order.data,
+                                      m_grid,
+                                      d_gpu_sort_order.data,
+                                      box,
+                                      m_sysdef->getNDimensions() == 2,
+                                      m_exec_conf->getCachedAllocator());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -253,39 +252,39 @@ void SFCPackTunerGPU::applySortOrder()
                                                    access_mode::read);
 
         // apply sorted order and re-build rtags
-        gpu_apply_sorted_order(m_pdata->getN(),
-                               m_pdata->getNGhosts(),
-                               d_gpu_sort_order.data,
-                               d_pos.data,
-                               d_pos_alt.data,
-                               d_vel.data,
-                               d_vel_alt.data,
-                               d_accel.data,
-                               d_accel_alt.data,
-                               d_charge.data,
-                               d_charge_alt.data,
-                               d_diameter.data,
-                               d_diameter_alt.data,
-                               d_image.data,
-                               d_image_alt.data,
-                               d_body.data,
-                               d_body_alt.data,
-                               d_tag.data,
-                               d_tag_alt.data,
-                               d_orientation.data,
-                               d_orientation_alt.data,
-                               d_angmom.data,
-                               d_angmom_alt.data,
-                               d_inertia.data,
-                               d_inertia_alt.data,
-                               d_net_virial.data,
-                               d_net_virial_alt.data,
-                               m_pdata->getNetVirial().getPitch(),
-                               d_net_force.data,
-                               d_net_force_alt.data,
-                               d_net_torque.data,
-                               d_net_torque_alt.data,
-                               d_rtag.data);
+        kernel::gpu_apply_sorted_order(m_pdata->getN(),
+                                       m_pdata->getNGhosts(),
+                                       d_gpu_sort_order.data,
+                                       d_pos.data,
+                                       d_pos_alt.data,
+                                       d_vel.data,
+                                       d_vel_alt.data,
+                                       d_accel.data,
+                                       d_accel_alt.data,
+                                       d_charge.data,
+                                       d_charge_alt.data,
+                                       d_diameter.data,
+                                       d_diameter_alt.data,
+                                       d_image.data,
+                                       d_image_alt.data,
+                                       d_body.data,
+                                       d_body_alt.data,
+                                       d_tag.data,
+                                       d_tag_alt.data,
+                                       d_orientation.data,
+                                       d_orientation_alt.data,
+                                       d_angmom.data,
+                                       d_angmom_alt.data,
+                                       d_inertia.data,
+                                       d_inertia_alt.data,
+                                       d_net_virial.data,
+                                       d_net_virial_alt.data,
+                                       m_pdata->getNetVirial().getPitch(),
+                                       d_net_force.data,
+                                       d_net_force_alt.data,
+                                       d_net_torque.data,
+                                       d_net_torque_alt.data,
+                                       d_rtag.data);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -308,11 +307,18 @@ void SFCPackTunerGPU::applySortOrder()
     m_pdata->swapNetTorque();
     }
 
-void export_SFCPackTunerGPU(py::module& m)
+namespace detail
     {
-    py::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(m,
-                                                                                "SFCPackTunerGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
+void export_SFCPackTunerGPU(pybind11::module& m)
+    {
+    pybind11::class_<SFCPackTunerGPU, SFCPackTuner, std::shared_ptr<SFCPackTunerGPU>>(
+        m,
+        "SFCPackTunerGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

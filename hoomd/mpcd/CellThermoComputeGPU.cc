@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellThermoComputeGPU.cc
@@ -11,6 +9,8 @@
 #include "CellThermoComputeGPU.h"
 #include "ReductionOperators.h"
 
+namespace hoomd
+    {
 /*!
  * \param sysdef System definition
  * \param cl MPCD cell list
@@ -18,24 +18,23 @@
 mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata)
     : mpcd::CellThermoCompute(sysdata), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
     {
-    // construct a range of valid tuner parameters using the block size and number of threads per
-    // particle
-    std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
-        {
-        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
-            {
-            valid_params.push_back(block_size * 10000 + s);
-            }
-        }
+    m_begin_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                          AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_cell_thermo_begin"));
+    m_end_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                       m_exec_conf,
+                                       "mpcd_cell_thermo_end"));
+    m_inner_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(m_exec_conf),
+                                          AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_cell_thermo_inner"));
+    m_stage_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_cell_thermo_stage"));
 
-    m_begin_tuner.reset(
-        new Autotuner(valid_params, 5, 100000, "mpcd_cell_thermo_begin", m_exec_conf));
-    m_end_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_thermo_end", m_exec_conf));
-    m_inner_tuner.reset(
-        new Autotuner(valid_params, 5, 100000, "mpcd_cell_thermo_inner", m_exec_conf));
-    m_stage_tuner.reset(
-        new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_thermo_stage", m_exec_conf));
+    m_autotuners.insert(m_autotuners.end(),
+                        {m_begin_tuner, m_end_tuner, m_inner_tuner, m_stage_tuner});
     }
 
 mpcd::CellThermoComputeGPU::~CellThermoComputeGPU() { }
@@ -85,9 +84,9 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
                                          m_flags[mpcd::detail::thermo_options::energy]);
 
         m_begin_tuner->begin();
-        const unsigned int param = m_begin_tuner->getParam();
-        const unsigned int block_size = param / 10000;
-        const unsigned int tpp = param % 10000;
+        auto param = m_begin_tuner->getParam();
+        const unsigned int block_size = param[0];
+        const unsigned int tpp = param[1];
         gpu::begin_cell_thermo(args, d_cells.data, m_vel_comm->getNCells(), block_size, tpp);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -108,9 +107,9 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
                                          m_flags[mpcd::detail::thermo_options::energy]);
 
         m_begin_tuner->begin();
-        const unsigned int param = m_begin_tuner->getParam();
-        const unsigned int block_size = param / 10000;
-        const unsigned int tpp = param % 10000;
+        auto param = m_begin_tuner->getParam();
+        const unsigned int block_size = param[0];
+        const unsigned int tpp = param[1];
         gpu::begin_cell_thermo(args, d_cells.data, m_vel_comm->getNCells(), block_size, tpp);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -134,7 +133,7 @@ void mpcd::CellThermoComputeGPU::finishOuterCellProperties()
                          m_vel_comm->getNCells(),
                          m_sysdef->getNDimensions(),
                          m_flags[mpcd::detail::thermo_options::energy],
-                         m_end_tuner->getParam());
+                         m_end_tuner->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_end_tuner->end();
@@ -209,9 +208,9 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
                                          m_flags[mpcd::detail::thermo_options::energy]);
 
         m_inner_tuner->begin();
-        const unsigned int param = m_inner_tuner->getParam();
-        const unsigned int block_size = param / 10000;
-        const unsigned int tpp = param % 10000;
+        auto param = m_inner_tuner->getParam();
+        const unsigned int block_size = param[0];
+        const unsigned int tpp = param[1];
         gpu::inner_cell_thermo(args, ci, inner_ci, lo, m_sysdef->getNDimensions(), block_size, tpp);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -232,9 +231,9 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
                                          m_flags[mpcd::detail::thermo_options::energy]);
 
         m_inner_tuner->begin();
-        const unsigned int param = m_inner_tuner->getParam();
-        const unsigned int block_size = param / 10000;
-        const unsigned int tpp = param % 10000;
+        auto param = m_inner_tuner->getParam();
+        const unsigned int block_size = param[0];
+        const unsigned int tpp = param[1];
         gpu::inner_cell_thermo(args, ci, inner_ci, lo, m_sysdef->getNDimensions(), block_size, tpp);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -244,12 +243,7 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
 
 void mpcd::CellThermoComputeGPU::computeNetProperties()
     {
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "MPCD thermo");
-        }
-
-    // first reduce the properties on the rank
+        // first reduce the properties on the rank
         {
         const Index3D& ci = m_cl->getCellIndexer();
         uint3 upper = make_uint3(ci.getW(), ci.getH(), ci.getD());
@@ -283,7 +277,7 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
                                          tmp_ci,
                                          ci,
                                          m_flags[mpcd::detail::thermo_options::energy],
-                                         m_stage_tuner->getParam());
+                                         m_stage_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_stage_tuner->end();
@@ -361,16 +355,14 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         }
 
     m_needs_net_reduce = false;
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::CellThermoComputeGPU,
-               mpcd::CellThermoCompute,
-               std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>>());
+    pybind11::class_<mpcd::CellThermoComputeGPU,
+                     mpcd::CellThermoCompute,
+                     std::shared_ptr<mpcd::CellThermoComputeGPU>>(m, "CellThermoComputeGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>>());
     }
+
+    } // end namespace hoomd

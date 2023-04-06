@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ManagedArray.h"
 #include <memory>
@@ -13,12 +13,18 @@
 #define HOSTDEVICE
 #endif
 
+#ifndef __HIPCC__
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#endif
 
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes the result of a tabulated pair potential
 /*! The potential and force values are provided the tables V(r) and F(r) at N_table discreet \a r
     values between \a rmin and \a rcut. Evaluations are performed by simple linear interpolation.
@@ -72,7 +78,7 @@ class EvaluatorPairTable
 
         param_type(pybind11::dict v, bool managed = false)
             {
-            const auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+            const auto V_py = v["U"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
             const auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
 
             if (V_py.size() != F_py.size())
@@ -98,7 +104,7 @@ class EvaluatorPairTable
             const auto V = pybind11::array_t<Scalar>(V_table.size(), V_table.get());
             const auto F = pybind11::array_t<Scalar>(F_table.size(), F_table.get());
             auto params = pybind11::dict();
-            params["V"] = V;
+            params["U"] = V;
             params["F"] = F;
             params["r_min"] = rmin;
             return params;
@@ -106,9 +112,9 @@ class EvaluatorPairTable
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -199,6 +205,16 @@ class EvaluatorPairTable
         return true;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -215,12 +231,15 @@ class EvaluatorPairTable
 #endif
 
     protected:
-    Scalar rsq;                   //!< distance squared
-    Scalar rcutsq;                //!< the potential cuttoff distance squared
-    size_t width;                 //!< the distance between table indices
-    Scalar rmin;                  //!< the distance of the first index of the table potential
-    ManagedArray<Scalar> V_table; //!< the tabulated energy
-    ManagedArray<Scalar> F_table; //!< the tabulated force specifically - (dV / dr)
+    Scalar rsq;                          //!< distance squared
+    Scalar rcutsq;                       //!< the potential cuttoff distance squared
+    size_t width;                        //!< the distance between table indices
+    Scalar rmin;                         //!< the distance of the first index of the table potential
+    const ManagedArray<Scalar>& V_table; //!< the tabulated energy
+    const ManagedArray<Scalar>& F_table; //!< the tabulated force specifically - (dV / dr)
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

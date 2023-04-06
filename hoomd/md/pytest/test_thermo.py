@@ -1,6 +1,10 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
 from hoomd.error import DataAccessError
+from hoomd.logging import LoggerCategories
 import pytest
 import numpy as np
 """ Each entry is a quantity and its type """
@@ -150,8 +154,7 @@ def test_system_rotational_dof(simulation_factory, device):
     sim.always_compute_pressure = True
     sim.operations.add(thermo)
 
-    integrator = hoomd.md.Integrator(dt=0.0001)
-    integrator.aniso = True
+    integrator = hoomd.md.Integrator(dt=0.0001, integrate_rotational_dof=True)
     integrator.methods.append(hoomd.md.methods.NVT(filt, tau=1, kT=1))
     sim.operations.integrator = integrator
 
@@ -169,9 +172,67 @@ def test_system_rotational_dof(simulation_factory, device):
                               / 10.0**3, (0., 0., 0., 2. / 10**3, 0., 0.),
                               volume=1000)
 
+    integrator.integrate_rotational_dof = False
+    sim.run(0)
+    assert thermo.rotational_degrees_of_freedom == 0
+
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     filter_ = hoomd.filter.All()
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter_)
     sim = simulation_factory(two_particle_snapshot_factory())
     operation_pickling_check(thermo, sim)
+
+
+def test_logging():
+    logging_check(
+        hoomd.md.compute.ThermodynamicQuantities, ('md', 'compute'), {
+            'kinetic_temperature': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'pressure': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'pressure_tensor': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'kinetic_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'translational_kinetic_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotational_kinetic_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'potential_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'degrees_of_freedom': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'translational_degrees_of_freedom': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotational_degrees_of_freedom': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'num_particles': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'volume': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

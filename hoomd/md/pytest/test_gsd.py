@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 import numpy as np
 import pytest
@@ -68,7 +71,8 @@ def hoomd_snapshot(lattice_snapshot_factory):
 
 def lj_integrator():
     integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), default_r_cut=2.5)
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(buffer=0.4),
+                          default_r_cut=2.5)
     lj.params.default = {'sigma': 1, 'epsilon': 1}
     integrator.forces.append(lj)
     langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
@@ -127,12 +131,7 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
     sim.operations.writers.append(gsd_writer)
 
     # run 5 steps and create a gsd file for testing mode=ab
-    snapshot_list = []
-    for _ in range(5):
-        sim.run(1)
-        snap = sim.state.get_snapshot()
-        if snap.communicator.rank == 0:
-            snapshot_list.append(snap)
+    sim.run(5)
 
     # test mode=ab
     sim.operations.writers.clear()
@@ -177,7 +176,12 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
                                  dynamic=['momentum'])
     sim.operations.writers.append(gsd_writer)
 
-    sim.run(5)
+    snapshot_list = []
+    for _ in range(5):
+        sim.run(1)
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            snapshot_list.append(snap)
 
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename_xb, mode='rb') as traj:
@@ -375,7 +379,7 @@ def test_write_gsd_log(create_md_sim, tmp_path):
                                  trigger=hoomd.trigger.Periodic(1),
                                  filter=hoomd.filter.Null(),
                                  mode='wb',
-                                 log=logger)
+                                 logger=logger)
     sim.operations.writers.append(gsd_writer)
 
     kinetic_energy_list = []

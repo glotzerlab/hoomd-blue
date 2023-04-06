@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __POTENTIAL_TERSOFF_GPU_H__
 #define __POTENTIAL_TERSOFF_GPU_H__
@@ -10,6 +10,7 @@
 
 #include "PotentialTersoff.h"
 #include "PotentialTersoffGPU.cuh"
+#include "hoomd/Autotuner.h"
 
 /*! \file PotentialTersoffGPU.h
     \brief Defines the template class computing certain three-body forces on the GPU
@@ -20,6 +21,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Template class for computing three-body potentials and forces on the GPU
 /*! Derived from PotentialTersoff, this class provides exactly the same interface for computing
     the three-body potentials and forces.  In the same way as PotentialTersoff, this class serves
@@ -31,10 +36,7 @@
 
     \sa export_PotentialTersoffGPU()
 */
-template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-class PotentialTersoffGPU : public PotentialTersoff<evaluator>
+template<class evaluator> class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
     public:
     //! Construct the potential
@@ -43,30 +45,16 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     //! Destructor
     virtual ~PotentialTersoffGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        PotentialTersoff<evaluator>::setAutotunerParams(enable, period);
-        this->m_tuner->setPeriod(period);
-        this->m_tuner->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-PotentialTersoffGPU<evaluator, gpu_cgpf>::PotentialTersoffGPU(
-    std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<NeighborList> nlist)
+template<class evaluator>
+PotentialTersoffGPU<evaluator>::PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<NeighborList> nlist)
     : PotentialTersoff<evaluator>(sysdef, nlist)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << std::endl;
@@ -80,46 +68,23 @@ PotentialTersoffGPU<evaluator, gpu_cgpf>::PotentialTersoffGPU(
         throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
 
-    // initialize autotuner
-    // the full block size and threads_per_particle matrix is searched,
-    // encoded as block_size*10000 + threads_per_particle
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    unsigned int max_tpp = warp_size;
-
-    std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        {
-        unsigned int s = 1;
-
-        while (s <= max_tpp)
-            {
-            valid_params.push_back(block_size * 10000 + s);
-            s = s * 2;
-            }
-        }
-
-    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_tersoff", this->m_exec_conf));
+    // Initialize autotuner.
+    m_tuner.reset(new Autotuner<2>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf),
+                                    AutotunerBase::getTppListPow2(this->m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "pair_tersoff"));
+    this->m_autotuners.push_back(m_tuner);
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-PotentialTersoffGPU<evaluator, gpu_cgpf>::~PotentialTersoffGPU()
+template<class evaluator> PotentialTersoffGPU<evaluator>::~PotentialTersoffGPU()
     {
     this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
     }
 
-template<class evaluator,
-         hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
-                             const typename evaluator::param_type* d_params)>
-void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
+template<class evaluator> void PotentialTersoffGPU<evaluator>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
-
-    // start the profile
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, this->m_prof_name);
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
@@ -137,9 +102,9 @@ void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(),
                                       access_location::device,
                                       access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(),
-                                          access_location::device,
-                                          access_mode::read);
+    ArrayHandle<size_t> d_head_list(this->m_nlist->getHeadList(),
+                                    access_location::device,
+                                    access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
@@ -160,51 +125,54 @@ void PotentialTersoffGPU<evaluator, gpu_cgpf>::computeForces(uint64_t timestep)
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
-    this->m_tuner->begin();
-    unsigned int param = this->m_tuner->getParam();
-    unsigned int block_size = param / 10000;
-    unsigned int threads_per_particle = param % 10000;
+    m_tuner->begin();
+    auto param = m_tuner->getParam();
+    unsigned int block_size = param[0];
+    unsigned int threads_per_particle = param[1];
 
-    gpu_cgpf(tersoff_args_t(d_force.data,
-                            this->m_pdata->getN(),
-                            this->m_pdata->getNGhosts(),
-                            d_virial.data,
-                            this->m_virial_pitch,
-                            compute_virial,
-                            d_pos.data,
-                            box,
-                            d_n_neigh.data,
-                            d_nlist.data,
-                            d_head_list.data,
-                            d_rcutsq.data,
-                            this->m_nlist->getNListArray().getPitch(),
-                            this->m_pdata->getNTypes(),
-                            block_size,
-                            threads_per_particle,
-                            this->m_exec_conf->dev_prop),
-             d_params.data);
+    kernel::gpu_compute_triplet_forces<evaluator>(
+        kernel::tersoff_args_t(d_force.data,
+                               this->m_pdata->getN(),
+                               this->m_pdata->getNGhosts(),
+                               d_virial.data,
+                               this->m_virial_pitch,
+                               compute_virial,
+                               d_pos.data,
+                               box,
+                               d_n_neigh.data,
+                               d_nlist.data,
+                               d_head_list.data,
+                               d_rcutsq.data,
+                               this->m_nlist->getNListArray().getPitch(),
+                               this->m_pdata->getNTypes(),
+                               block_size,
+                               threads_per_particle,
+                               this->m_exec_conf->dev_prop),
+        d_params.data);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    this->m_tuner->end();
-
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
+    m_tuner->end();
     }
 
+namespace detail
+    {
 //! Export this three-body potential to python
 /*! \param name Name of the class in the exported python module
-    \tparam T Class type to export. \b Must be an instantiated PotentialTersoffGPU class template.
-    \tparam Base Base class of \a T. \b Must be PotentialTersoff<evaluator> with the same evaluator
-   as used in \a T.
+    \tparam T Evaluator type to export.
 */
-template<class T, class Base>
-void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
+template<class T> void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, Base, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialTersoffGPU<T>,
+                     PotentialTersoff<T>,
+                     std::shared_ptr<PotentialTersoffGPU<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif

@@ -1,8 +1,19 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Sphinx configuration."""
 
 import sys
 import os
 import sphinx
+import datetime
+
+from sphinx.domains.python import PythonDomain
+
+# allows typing objects like variant_like to be documented correctly.
+# See: https://github.com/sphinx-doc/sphinx/issues/9560
+PythonDomain.object_types['class'].roles = ('class', 'exc', 'data', 'obj')
+PythonDomain.object_types['data'].roles = ('data', 'class', 'obj')
 
 sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
@@ -12,11 +23,6 @@ sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 sys.path.insert(0, os.path.abspath('..'))
 
 os.environ['SPHINX'] = '1'
-
-# TEMPORARY
-# TODO: remove this when 3.0 is closer to completion
-# stop warning about invalid references
-suppress_warnings = ['ref.any']
 
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
@@ -32,6 +38,7 @@ intersphinx_mapping = {
     'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
 }
 autodoc_docstring_signature = True
+autodoc_typehints_format = 'short'
 
 autodoc_mock_imports = [
     'hoomd._hoomd',
@@ -39,9 +46,8 @@ autodoc_mock_imports = [
     'hoomd.md._md',
     'hoomd.metal._metal',
     'hoomd.mpcd._mpcd',
-    'hoomd.dem._dem',
     'hoomd.minimize._minimize',
-    'hoomd.jit._jit',
+    'hoomd.hpmc._jit',
     'hoomd.hpmc._hpmc',
 ]
 
@@ -53,20 +59,55 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 project = 'HOOMD-blue'
-copyright = '2009-2021 The Regents of the University of Michigan'
+year = datetime.date.today().year
+copyright = f'2009-{ year } The Regents of the University of Michigan'
 author = 'The Regents of the University of Michigan'
 
-version = '3.0.0-beta.9'
-release = '3.0.0-beta.9'
+version = '3.10.0'
+release = '3.10.0'
 
-language = None
+language = 'en'
 
 default_role = 'any'
 
-pygments_style = 'sphinx'
+pygments_style = "friendly"
+pygments_dark_style = "native"
 
 todo_include_todos = False
 
-html_theme = 'sphinx_rtd_theme'
-html_css_files = ['css/hoomd-theme.css']
+html_theme = 'furo'
 html_static_path = ['_static']
+html_logo = 'hoomdblue-logo-vertical.svg'
+html_theme_options = {
+    'sidebar_hide_name': True,
+    'top_of_page_button': None,
+    "dark_css_variables": {
+        "color-brand-primary": "#5187b2",
+        "color-brand-content": "#5187b2",
+    },
+    "light_css_variables": {
+        "color-brand-primary": "#406a8c",
+        "color-brand-content": "#406a8c",
+    },
+}
+html_favicon = 'hoomdblue-logo-favicon.svg'
+
+IGNORE_MODULES = ['hoomd._hoomd']
+IGNORE_CLASSES = []
+
+
+def autodoc_process_bases(app, name, obj, options, bases):
+    """Ignore base classes from the '_hoomd' module."""
+    # bases must be modified in place.
+    remove_indices = []
+    for i, base in enumerate(bases):
+        if (base.__module__ in IGNORE_MODULES or base.__name__.startswith("_")
+                or base.__name__ in IGNORE_CLASSES):
+            remove_indices.append(i)
+    for i in reversed(remove_indices):
+        del bases[i]
+
+
+def setup(app):
+    """Configure the Sphinx app."""
+    app.connect('autodoc-process-bases', autodoc_process_bases)

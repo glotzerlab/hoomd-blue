@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Installing binaries
 ===================
 
@@ -13,8 +16,7 @@ Singularity / Docker images
 ---------------------------
 
 See the glotzerlab-software_ documentation for instructions to install and use the containers on
-supported HPC clusters. Containers that include HOOMD-blue v3.0.0-beta releases have ``beta`` in
-their tag name.
+supported HPC clusters.
 
 Conda package
 -------------
@@ -24,19 +26,25 @@ Install the ``hoomd`` package from the conda-forge_ channel into a conda environ
 
     $ conda install -c conda-forge hoomd
 
-Install the v3.0.0-beta release with::
-
-    $ conda install -c conda-forge/label/hoomd_dev -c conda-forge hoomd
-
 Recent versions of ``conda`` auto-detect whether your system has a GPU and installs the appropriate
 package. Override this and force GPU package installation with::
 
-    $ conda install -c conda-forge hoomd=*=*gpu*
+    $ conda install -c conda-forge "hoomd=*=*gpu*"
+
+.. note::
+
+    To use :ref:`run time compilation` on **macOS**, install the ``compilers`` package::
+
+        $ conda install -c conda-forge compilers
+
+    Without this package you will get *file not found* errors when HOOMD-blue performs the run time
+    compilation.
 
 .. tip::
 
-    Use miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid package
-    conflicts with conda-forge_ packages.
+    Use mambaforge_, miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid
+    package conflicts with conda-forge_ packages.
 
+.. _mambaforge: https://github.com/conda-forge/miniforge
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _miniconda: http://conda.pydata.org/miniconda.html

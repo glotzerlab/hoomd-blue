@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepNVTMTK.h"
 
@@ -13,12 +13,15 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
 
 /*! \file TwoStepNVTMTK.h
     \brief Contains code for the TwoStepNVTMTK class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo compute for thermodynamic quantities
@@ -37,17 +40,6 @@ TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
 
     if (m_tau <= 0.0)
         m_exec_conf->msg->warning() << "integrate.nvt: tau set less than 0.0 in NVTUpdater" << endl;
-
-    // set initial state
-    if (!restartInfoTestValid(getIntegratorVariables(), "nvt_mtk", 4))
-        {
-        initializeIntegratorVariables();
-        setValidRestart(false);
-        }
-    else
-        {
-        setValidRestart(true);
-        }
     }
 
 TwoStepNVTMTK::~TwoStepNVTMTK()
@@ -63,19 +55,12 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "integrate.nvt(): Integration group empty." << std::endl;
-        throw std::runtime_error("Error during NVT integration.");
+        throw std::runtime_error("Empty integration group.");
         }
 
     unsigned int group_size = m_group->getNumMembers();
 
-    // profile this step
-    if (m_prof)
-        {
-        m_prof->push("NVT step 1");
-        }
-
-    // scope array handles for proper releasing before calling the thermo compute
+        // scope array handles for proper releasing before calling the thermo compute
         {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                    access_location::host,
@@ -135,9 +120,7 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     if (m_aniso)
         {
         // thermostat factor
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar xi_rot = v.variable[2];
-        Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
+        Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * m_thermostat.xi_rot);
 
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,
@@ -166,9 +149,9 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -261,10 +244,6 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
     // get temperature and advance thermostat
     advanceThermostat(timestep);
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -275,10 +254,6 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("NVT step 2");
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -323,9 +298,7 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
 
     if (m_aniso)
         {
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar xi_rot = v.variable[2];
-        Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
+        Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * m_thermostat.xi_rot);
 
         // angular degrees of freedom
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -355,9 +328,9 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON);
-            y_zero = (I.y < EPSILON);
-            z_zero = (I.z < EPSILON);
+            x_zero = (I.x == 0);
+            y_zero = (I.y == 0);
+            z_zero = (I.z == 0);
 
             // ignore torque component along an axis for which the moment of inertia zero
             if (x_zero)
@@ -376,87 +349,62 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
             h_angmom.data[j] = quat_to_scalar4(p);
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     {
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
-
     // compute the current thermodynamic properties
     m_thermo->compute(timestep + 1);
 
     Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
 
     // update the state variables Xi and eta
-    Scalar xi_prime = xi
+    Scalar xi_prime = m_thermostat.xi
                       + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
                             * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
-    xi = xi_prime
-         + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
-               * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
-    eta += xi_prime * m_deltaT;
+    m_thermostat.xi = xi_prime
+                      + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                            * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
+    m_thermostat.eta += xi_prime * m_deltaT;
 
     // update loop-invariant quantity
-    m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * xi * m_deltaT);
+    m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * m_thermostat.xi * m_deltaT);
+
+    if (m_aniso)
+        {
+        // update thermostat for rotational DOF
+        Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
+        Scalar ndof_rot = m_group->getRotationalDOF();
+
+        Scalar xi_prime_rot
+            = m_thermostat.xi_rot
+              + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                    * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
+        m_thermostat.xi_rot
+            = xi_prime_rot
+              + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                    * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
+
+        m_thermostat.eta_rot += xi_prime_rot * m_deltaT;
+        }
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed() && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_thermostat, 4, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    if (m_aniso)
-        {
-        // update thermostat for rotational DOF
-        Scalar& xi_rot = v.variable[2];
-        Scalar& eta_rot = v.variable[3];
-
-        Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
-        Scalar ndof_rot = m_group->getRotationalDOF();
-
-        Scalar xi_prime_rot
-            = xi_rot
-              + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
-                    * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
-        xi_rot = xi_prime_rot
-                 + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
-                       * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
-
-        eta_rot += xi_prime_rot * m_deltaT;
-
-#ifdef ENABLE_MPI
-        if (m_sysdef->isDomainDecomposed())
-            {
-            // broadcast integrator variables from rank 0 to other processors
-            MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-            MPI_Bcast(&eta_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-            }
-#endif
-        }
-
-    setIntegratorVariables(v);
     }
 
 void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& xi = v.variable[0];
-
     Scalar g = m_group->getTranslationalDOF();
     Scalar sigmasq_t = Scalar(1.0) / ((Scalar)g * m_tau * m_tau);
 
-    bool master = m_exec_conf->getRank() == 0;
+    bool root = m_exec_conf->getRank() == 0;
 
     unsigned int instance_id = 0;
     if (m_group->getNumMembersGlobal() > 0)
@@ -466,55 +414,47 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
         hoomd::Seed(hoomd::RNGIdentifier::TwoStepNVTMTK, timestep, m_sysdef->getSeed()),
         hoomd::Counter(instance_id));
 
-    if (master)
+    if (root)
         {
         // draw a random Gaussian thermostat variable on rank 0
-        xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
+        m_thermostat.xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
         }
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&m_thermostat.xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
     if (m_aniso)
         {
         // update thermostat for rotational DOF
-        Scalar& xi_rot = v.variable[2];
         Scalar sigmasq_r = Scalar(1.0) / ((Scalar)m_group->getRotationalDOF() * m_tau * m_tau);
 
-        if (master)
+        if (root)
             {
-            xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
+            m_thermostat.xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
             }
 
 #ifdef ENABLE_MPI
         if (m_sysdef->isDomainDecomposed())
             {
             // broadcast integrator variables from rank 0 to other processors
-            MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+            MPI_Bcast(&m_thermostat.xi_rot,
+                      1,
+                      MPI_HOOMD_SCALAR,
+                      0,
+                      m_exec_conf->getMPICommunicator());
             }
 #endif
         }
-
-    setIntegratorVariables(v);
     }
 
 pybind11::tuple TwoStepNVTMTK::getTranslationalThermostatDOF()
     {
-    pybind11::list result;
-    IntegratorVariables v = getIntegratorVariables();
-
-    Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
-
-    result.append(xi);
-    result.append(eta);
-
-    return pybind11::tuple(result);
+    return pybind11::make_tuple(m_thermostat.xi, m_thermostat.eta);
     }
 
 void TwoStepNVTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
@@ -523,30 +463,13 @@ void TwoStepNVTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
         {
         throw std::length_error("translational_thermostat_dof must have length 2");
         }
-
-    IntegratorVariables vars = getIntegratorVariables();
-
-    Scalar& xi = vars.variable[0];
-    Scalar& eta = vars.variable[1];
-
-    xi = pybind11::cast<Scalar>(v[0]);
-    eta = pybind11::cast<Scalar>(v[1]);
-
-    setIntegratorVariables(vars);
+    m_thermostat.xi = v[0].cast<Scalar>();
+    m_thermostat.eta = v[1].cast<Scalar>();
     }
 
 pybind11::tuple TwoStepNVTMTK::getRotationalThermostatDOF()
     {
-    pybind11::list result;
-    IntegratorVariables v = getIntegratorVariables();
-
-    Scalar& xi_rot = v.variable[2];
-    Scalar& eta_rot = v.variable[3];
-
-    result.append(xi_rot);
-    result.append(eta_rot);
-
-    return pybind11::tuple(result);
+    return pybind11::make_tuple(m_thermostat.xi_rot, m_thermostat.eta_rot);
     }
 
 void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
@@ -555,48 +478,40 @@ void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
         {
         throw std::length_error("rotational_thermostat_dof must have length 2");
         }
-
-    IntegratorVariables vars = getIntegratorVariables();
-
-    Scalar& xi_rot = vars.variable[2];
-    Scalar& eta_rot = vars.variable[3];
-
-    xi_rot = pybind11::cast<Scalar>(v[0]);
-    eta_rot = pybind11::cast<Scalar>(v[1]);
-
-    setIntegratorVariables(vars);
+    m_thermostat.xi_rot = v[0].cast<Scalar>();
+    m_thermostat.eta_rot = v[1].cast<Scalar>();
     }
 
 Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
     {
     Scalar translation_dof = m_group->getTranslationalDOF();
-    IntegratorVariables integrator_variables = getIntegratorVariables();
-    Scalar& xi = integrator_variables.variable[0];
-    Scalar& eta = integrator_variables.variable[1];
-    Scalar thermostat_energy = static_cast<Scalar>(translation_dof) * (*m_T)(timestep)
-                               * ((xi * xi * m_tau * m_tau / Scalar(2.0)) + eta);
+    Scalar thermostat_energy
+        = static_cast<Scalar>(translation_dof) * (*m_T)(timestep)
+          * ((m_thermostat.xi * m_thermostat.xi * m_tau * m_tau / Scalar(2.0)) + m_thermostat.eta);
 
     if (m_aniso)
         {
-        Scalar& xi_rot = integrator_variables.variable[2];
-        Scalar& eta_rot = integrator_variables.variable[3];
-        thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF()) * (*m_T)(timestep)
-                             * (eta_rot + (m_tau * m_tau * xi_rot * xi_rot / Scalar(2.0)));
+        thermostat_energy
+            += static_cast<Scalar>(m_group->getRotationalDOF()) * (*m_T)(timestep)
+               * (m_thermostat.eta_rot
+                  + (m_tau * m_tau * m_thermostat.xi_rot * m_thermostat.xi_rot / Scalar(2.0)));
         }
 
     return thermostat_energy;
     }
 
-void export_TwoStepNVTMTK(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
+void export_TwoStepNVTMTK(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
         m,
         "TwoStepNVTMTK")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<ComputeThermo>,
-                      Scalar,
-                      std::shared_ptr<Variant>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<ComputeThermo>,
+                            Scalar,
+                            std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTMTK::setT)
         .def("setTau", &TwoStepNVTMTK::setTau)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
@@ -610,3 +525,7 @@ void export_TwoStepNVTMTK(py::module& m)
                       &TwoStepNVTMTK::setRotationalThermostatDOF)
         .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

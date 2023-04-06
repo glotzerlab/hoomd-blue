@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
 #include "hoomd/BondedGroupData.cuh"
@@ -16,6 +14,12 @@
 #ifndef __HARMONICDIHEDRALFORCEGPU_CUH__
 #define __HARMONICDIHEDRALFORCEGPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes harmonic dihedral forces for HarmonicDihedralForceComputeGPU
 hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                 Scalar* d_virial,
@@ -31,5 +35,9 @@ hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                 unsigned int n_dihedral_types,
                                                 int block_size,
                                                 int warp_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

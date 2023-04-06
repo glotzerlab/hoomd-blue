@@ -1,9 +1,14 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PARTICLE_FILTER_SET_DIFFERENCE_H__
 #define __PARTICLE_FILTER_SET_DIFFERENCE_H__
 
 #include "ParticleFilter.h"
 #include <algorithm>
 
+namespace hoomd
+    {
 /// Takes the set difference of two other filters
 class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
     {
@@ -50,4 +55,6 @@ class PYBIND11_EXPORT ParticleFilterSetDifference : public ParticleFilter
     std::shared_ptr<ParticleFilter> m_f;
     std::shared_ptr<ParticleFilter> m_g;
     };
+
+    } // end namespace hoomd
 #endif

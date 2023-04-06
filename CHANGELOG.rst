@@ -1,32 +1,579 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Change Log
 ==========
 
 v3.x
 ----
 
-v3.0.0-beta.10 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.11.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* Improved readability of images in the documentation
+  (`#1521 <https://github.com/glotzerlab/hoomd-blue/issues/1521>`__).
+
+v3.10.0 (2023-03-14)
+^^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* The ``message_filename`` property and argument to ``Device``, ``CPU``, and ``GPU`` to replace
+  ``msg_file`` (`#1497 <https://github.com/glotzerlab/hoomd-blue/pull/1497>`_).
+* ``hoomd.md.pair.Gaussian`` to replace ``hoomd.md.pair.Gauss``
+  (`#1497 <https://github.com/glotzerlab/hoomd-blue/pull/1497>`_).
+* ``hoomd.md.pair.ExpandedGaussian`` - the expanded Gaussian pair force
+  (`#1493 <https://github.com/glotzerlab/hoomd-blue/pull/1493>`_).
+* Guide: How to apply arbitrary pair potentials in HPMC
+  (`#1505 <https://github.com/glotzerlab/hoomd-blue/issues/1505>`_).
+
+Changed:
+
+* Use ``furo`` style for HTML documentation
+  (`#1498 <https://github.com/glotzerlab/hoomd-blue/pull/1498>`_).
+
+Fixed:
+
+* The ``hoomd.md.pair`` potentials ``ExpandedLJ``, ``ExpandedMie``, ``LJGauss``, and ``TWF`` now
+  shift ``V(r_cut)`` to 0 properly when ``mode == 'shift'``
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issues/1504>`_).
+* Corrected errors in the pair potential documentation
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issues/1504>`_).
+* Note that the ``'body'`` exclusion should be used with ``hoomd.md.constrain.Rigid``
+  (`#1465 <https://github.com/glotzerlab/hoomd-blue/issues/1465>`_).
+* Correctly identify the ``'xyz'`` mode in ``hoomd.md.methods.NPH``
+  (`#1509 <https://github.com/glotzerlab/hoomd-blue/pull/1509>`_).
+
+Deprecated:
+
+* The ``msg_file`` property and argument to ``Device``, ``CPU``, and ``GPU``.
+* ``hoomd.md.pair.Gauss``.
+
+v3.9.0 (2023-02-15)
+^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* GPU code path for ``hoomd.update.BoxResize``
+  (`#1462 <https://github.com/glotzerlab/hoomd-blue/pull/1462>`_).
+* ``logger`` keyword argument and property to ``hoomd.write.GSD``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
+
+Changed:
+
+* Issue `FutureWarning` warnings when using deprecated APIs
+  (`#1485 <https://github.com/glotzerlab/hoomd-blue/pull/1485>`_).
+* Reformat the list of deprecated features.
+  (`#1490 <https://github.com/glotzerlab/hoomd-blue/pull/1490>`_).
+* In simulations with rigid bodies, remove D degrees of freedom when the system is momentum
+  conserving
+  (`#1467 <https://github.com/glotzerlab/hoomd-blue/issues/1467>`_).
+
+Fixed:
+
+* Compile without errors using ``hipcc`` and ROCM 5.1.0
+  (`#1478 <https://github.com/glotzerlab/hoomd-blue/pull/1478>`_).
+* Document that ``hoomd.md.force.Force`` can be added to ``Operations.computes``
+  (`#1489 <https://github.com/glotzerlab/hoomd-blue/pull/1489>`_).
+* ``hoomd.md.constrain.Rigid.create_bodies`` completes without segmentation faults when particle
+  body tags are not -1
+  (`#1476 <https://github.com/glotzerlab/hoomd-blue/issues/1476>`_).
+* ``hoomd.hpmc.compute.FreeVolume`` computes the free area correctly in 2D simulations
+  (`#1473 <https://github.com/glotzerlab/hoomd-blue/issues/1473>`_).
+
+Deprecated:
+
+* Deprecate ``write.GSD`` ``log`` keyword argument and property in favor of ``logger``
+  (`#1481 <https://github.com/glotzerlab/hoomd-blue/pull/1481>`_).
+
+v3.8.1 (2023-01-27)
+^^^^^^^^^^^^^^^^^^^
+
+Fixed:
+
+* `#1468 <https://github.com/glotzerlab/hoomd-blue/issues/1468>`_: Conserve linear momentum in
+  simulations using ``hoomd.md.constrain.Rigid`` on more than 1 MPI rank.
+
+v3.8.0 (2023-01-12)
+^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
-- ``hoomd.md.minimize.FIRE`` - MD integrator that minimized the system's potential energy.
-- AKMA and MD unit conversion factors to the documentation.
-
-*Changed*
-
-- Improved error messages when setting operation parameters.
-- Added note on dependencies for building the documentation.
+* Support Python 3.11.
+* Support CUDA 11.8.
+* Support CUDA 12.0.0 final.
 
 *Fixed*
 
-- Calling ``hoomd.Operations.__len__`` no longer raises a ``RecursionError``.
-- RATTLE integration methods execute on the GPU.
-- Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
-- Bug in setting zero sized ``ManagedArrays``.
+* Improve numerical stability of orientation quaternions when using
+  ``hoomd.md.update.ActiveRotationalDiffusion``
+* Reduced memory usage and fix spurious failures in ``test_nlist.py``.
+* Avoid triggering ``TypeError("expected x and y to have same length")`` in
+  ``hoomd.hpmc.compute.SDF.betaP``.
 
 *Deprecated*
 
+* The following integration methods are deprecated. Starting in v4.0.0, the same functionalities
+  will be available via ``hoomd.md.methods.ConstantVolume``/ ``hoomd.md.methods.ConstantPressure``
+  with an appropriately chosen ``thermostat`` argument.
+
+  * ``hoomd.md.methods.NVE``
+  * ``hoomd.md.methods.NVT``
+  * ``hoomd.md.methods.Berendsen``
+  * ``hoomd.md.methods.NPH``
+  * ``hoomd.md.methods.NPT``
+
 *Removed*
+
+* Support for CUDA 10.
+
+v3.7.0 (2022-11-29)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``Neighborlist.r_cut`` sets the base cutoff radius for neighbor search - for use when the neighbor
+  list is used for analysis or custom Python code.
+* ``Neighborlist.cpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.gpu_local_nlist_arrays`` provides zero-copy access to the computed neighbor list.
+* ``Neighborlist.local_pair_list`` provides the rank local pair list by index.
+* ``Neighborlist.pair_list`` provides the global pair list by tag on rank 0.
+* ``hoomd.md.dihedral.Periodic`` - a new name for the previous ``Harmonic`` potential.
+* ``default_gamma`` and ``default_gamma_r`` arguments to the ``hoomd.md.methods``: ``Brownian``,
+  ``Langevin``, and ``OverdampedViscous``.
+* ``reservoir_energy`` loggable in ``hoomd.md.methods.Langevin``.
+* ``hoomd.md.force.Constant`` applies constant forces and torques to particles.
+
+*Changed*
+
+* [plugin developers] Refactored the ``LocalDataAccess`` C++ classes to add flexibility.
+
+*Fixed*
+
+* ``hoomd.hpmc.nec`` integrators compute non-infinite virial pressures for 2D simulations.
+* Raise an exception when attempting to get the shape specification of shapes with 0 elements.
+* Box conversion error message now names ``hoomd.Box``.
+
+*Deprecated*
+
+* ``hoomd.md.dihedral.Harmonic`` - use the functionally equivalent ``hoomd.md.dihedral.Periodic``.
+* ``charges`` key in ``hoomd.md.constrain.Rigid.body``.
+* ``diameters`` key in ``hoomd.md.constrain.Rigid.body``.
+
+v3.6.0 (2022-10-25)
+^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* In ``hoomd.md.pair.aniso.ALJ``, ``shape.rounding_radii`` now defaults to (0.0, 0.0, 0.0).
+* Revise ``hoomd.md.pair.aniso.ALJ`` documentation.
+* ``hoomd.md.force.Force`` instances can now be added to the ``Operations`` list allowing users to
+  compute force, torque, energy, and virials of forces that are not included in the dynamics of
+  the system.
+* [developers]: Removed internal methods ``_remove`` and ``_add`` from the data model.
+
+*Fixed*
+
+* Increase the performance of ``md.pair.Table`` on the CPU.
+* Improve accuracy of ``hoomd.hpmc.update.BoxMC`` when used with patch potentials.
+* Provide an accurate warning message when creating the state with many bond/angle/... types.
+* Add missing documentation for ``hoomd.md.methods.Berendsen``.
+* CVE-2007-4559
+
+v3.5.0 (2022-09-14)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Example plugin that demonstrates how to add a MD pair potential.
+* Support a large number of particle and bond types (subject to available GPU memory and user
+  patience) for the ``Cell`` neighbor list, MD pair potentials, MD bond potentials, Brownian, and
+  Langevin integration methods.
+
+*Changed*
+
+* Raise an error when initializing with duplicate types.
+* ``hpmc.compute.SDF`` now computes pressures of systems with patch interactions.
+* Raise descriptive error messages when the shared memory request exceeds that available on the GPU.
+
+*Fixed*
+
+* Include all ``Neighborlist`` attributes in the documentation.
+* Memory allocation errors in C++ now result in ``MemoryError`` exceptions in Python.
+* Add missing ``Autotuned.h`` header file.
+* External components build correctly when ``ENABLE_MPI=on`` or ``ENABLE_GPU=on``.
+* Type parameter validation when items contain ``numpy.ndarray`` elements.
+* Compile with CUDA 12.0.
+
+*Deprecated*
+
+* ``Device.memory_traceback`` attribute. This attribute has no effect.
+
+
+v3.4.0 (2022-08-15)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* The new HOOMD-blue logo is now available in the documentation.
+* ``hoomd.md.methods.DisplacementCapped`` class for relaxing configurations with overlaps.
+* ``hoomd.md.methods.rattle.DisplacementCapped`` class for relaxing configurations with overlaps.
+* ``hoomd.device.Device.notice`` - print user-defined messages to the configured message output
+  stream.
+* Tutorial: Modelling Rigid Bodies.
+* ``AutotunedObject`` class that provides an interface to read and write tuned kernel parameters,
+  query whether tuning is complete, and start tuning again at the object level.
+* ``is_tuning_complete`` method to ``Operations``. Check whether kernel parameter tuning is complete
+  for all operations.
+* ``tune_kernel_parameters`` methods to ``Operations`` and many other classes. Start tuning kernel
+  parameters in all operations.
+* ``hoomd.md.HalfStepHook`` - extensible hook class called between step 1 and 2 of MD integration.
+* ``hoomd.md.Integrator.half_step_hook`` - property to get/set the half step hook.
+
+
+*Fixed*
+
+* Active forces on manifolds now attach to the ``Simulation`` correctly.
+* ``hoomd.update.FilterUpdater`` now accepts ``hoomd.filter.CustomFilter`` subclasses.
+* Correct error message is given when a sequence like parameter is not given to a type parameter.
+* Fix non-axis-aligned Cylinder walls in MD.
+* ``hoomd.md.constrain.Constraint`` now has ``hoomd.md.force.Force`` as a base class.
+* Provide a warning instead of an error when passing an out of range seed to the ``Simulation``
+  constructor.
+* Compile with current versions of HIP and ROCm.
+* Compilation errors with CUDA >=11.8.
+
+v3.3.0 (2022-07-08)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* A decorator that modifies the namespace of operation and custom action classes
+  ``hoomd.logging.modify_namespace``.
+* Tuner for the neighbor list buffer size ``hoomd.md.tune.NeighborListBuffer``.
+* Solver infrastructure for optimization problems.
+* ``Simulation.initial_timestep``: the timestep on which the last call to ``run`` started.
+* ``variant_like``, ``trigger_like``, and ``filter_like`` typing objects for documentation.
+
+*Changed*
+
+* Removed ``"__main__"`` from some user custom action logging namespaces.
+
+*Fixed*
+
+* Improve documentation.
+* Non-default loggables can now be explicitly specified with ``Logger.add``.
+* Iteration of ``Logger`` instances.
+* The logging category of ``hoomd.md.Integrate.linear_momentum``
+
+v3.2.0 (2022-05-18)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``hoomd.md.nlist.Neighborlist.num_builds`` property - The number of neighbor list builds since the
+  last call to ``Simulation.run``.
+* ``hoomd.md.nlist.Cell.dimensions`` property - The dimensions of the cell list.
+* ``hoomd.md.nlist.Cell.allocated_particles_per_cell`` property -  The number of particle slots
+  allocated per cell.
+* ``hoomd.mesh.Mesh`` - Triangular mesh data structure.
+* ``hoomd.md.mesh.bond`` - Bond potentials on mesh edges.
+* Support gcc 12.
+* Support clang 14.
+* Set ``ENABLE_LLVM=on`` in conda binary builds.
+
+*Fixed*
+
+* Clarify documentation.
+* ``Box.dimension`` reports the correct  value when reading in 2D boxes from GSD files generated in
+  HOOMD v2.
+* Improve performance of run time compiled HPMC potentials on the CPU.
+* Pressing Ctrl-C or interrupting the kernel in Jupyter stops the run at the end of the current
+  timestep.
+
+v3.1.0 (2022-04-27)
+^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support LLVM 13 when ``ENABLE_LLVM=on``.
+* ``hoomd.md.pair.LJGauss`` - Lennard-Jones-Gaussian pair potential.
+* ``hoomd.md.alchemy.methods.NVT`` - Alchemical molecular dynamics integration method.
+* ``hoomd.md.alchemy.pair.LJGauss`` - Lennard-Jones-Gaussian pair potential with alchemical degrees
+  of freedom.
+* ``hoomd.hpmc.update.Shape`` - Alchemical hard particle Monte Carlo through shape change moves.
+* ``hoomd.hpmc.shape_move.Elastic`` - Shape move with elastic potential energy penalty.
+* ``hoomd.hpmc.shape_move.ShapeSpace`` - Moves in a user defined shape space.
+* ``hoomd.hpmc.shape_move.Vertex`` - Translate shape vertices.
+
+*Changed*
+
+* HPMC fugacity is now a per-type quantity.
+* Improved documentation.
+* [developers] Reduced the time needed for incremental builds.
+* [developers] Reduced memory needed to compile HOOMD.
+
+*Fixed*
+
+* ALJ unit test passes in Debug builds.
+* Add quotes to conda-forge gpu package installation example.
+* ``hoomd.md.force.Custom`` zeroes forces, torques, energies, and virials before calling
+  ``set_forces``.
+* Point tarball download link to https://github.com/glotzerlab/hoomd-blue/releases.
+
+*Deprecated*
+
+* ``hoomd.md.pair.aniso.ALJ.mode`` - parameter has no effect.
+* ``hoomd.md.pair.aniso.Dipole.mode`` - parameter has no effect.
+
+v3.0.1 (2022-04-08)
+^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Display status of ``trunk-patch`` branch in the GitHub actions badge.
+* Add ``EvaluatorPairTable.h`` to installation directory.
+* Add ``hoomd.filter.Rigid`` to the documentation.
+* Prevent ``TypeError: 'bool' object is not iterable`` errors when comparing ``Tag`` filters with
+  different lengths arrays.
+* ``Simulation.tps`` and ``Simulation.walltime`` update every step of the run.
+
+v3.0.0 (2022-03-22)
+^^^^^^^^^^^^^^^^^^^
+
+*Overview*
+
+HOOMD-blue v3.0.0 is the first production release with the new API that has been developed and
+implemented over more than 2 years. Those still using v2.x will need to make changes to their
+scripts to use v3. See the `migrating` page for an overview and individual class and method
+documentation for more information. To summarize, the new API is object oriented, allows HOOMD-blue
+to work effectively as a Python package, and provides more hooks for Python code to directly
+interface with the simulation.
+
+*New features in v3 since v2.9.7:*
+
+* Zero-copy data access through numpy and cupy.
+* Triggers determine what timesteps operations execute on.
+* User-defined operations, triggers, particle filters, variants, and forces.
+* Logging subsystem supports array quantities.
+* Implicit depletants for 2D shapes in HPMC.
+* Harmonically mapped averaging for MD thermodynamic quantities of crystals.
+* TWF and OPP pair potentials.
+* Tether bond potential.
+* Manifold constraints for MD integration methods (using RATTLE) and active forces.
+* Document code architecture in ``ARCHITECTURE.md``.
+* Overdamped viscous MD integration method.
+* User-defined pair potentials work with HPMC on the GPU.
+* Long range tail correction for Lennard-Jones potential.
+* Anisotropic Lennard-Jones-like pair potential for polyhedra and ellipsoids.
+* Newtownian event chain Monte Carlo for spheres and convex polyhedra.
+
+See the full change log below for all v3 beta releases.
+
+Changes from v3.0.0-beta.14:
+
+*Added*
+
+* ``hoomd.hpmc.tune.BoxMCMoveSize`` - Tune ``BoxMC`` move sizes to meet target acceptance ratios.
+* ``hoomd.hpmc.nec.integrate.Sphere`` - Newtonian event chain Monte Carlo for hard spheres.
+* ``hoomd.hpmc.nec.integrate.ConvexPolyhedron`` - Newtonian event chain Monte Carlo for hard convex
+  polyhedra.
+* ``hoomd.hpmc.nec.tune.ChainTime`` - Tune chain times in newtonian event chain Monte Carlo method.
+
+*Changed*
+
+* Improve documentation.
+* [breaking] Renamed the ``hoomd.md.bond.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed the ``hoomd.md.pair.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed the ``hoomd.md.angle.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed the ``hoomd.md.dihedral.Table`` energy parameter from ``V`` to ``U``.
+* [breaking] Renamed ``hoomd.md.nlist.Nlist`` to ``hoomd.md.nlist.NeighborList``.
+* [developer] ``Updater`` and ``Analyzer`` in C++ have a ``m_trigger`` member now.
+* [developer] ``_TriggeredOperation`` has been moved to ``TriggeredOperation`` and custom trigger
+  setting and getting logic removed.
+
+*Fixed*
+
+* ``FIRE.converged`` may be queried before calling ``Simulation.run``.
+* Bug where using ``__iadd__`` to certain attributes would fail with an exception.
+* Bug where ``hoomd.md.pair.LJ.additional_energy`` is ``NaN`` when ``tail_correction`` is enabled
+  and some pairs have ``r_cut=0``.
+* Compile error with CUDA 11.7.
+* Compile errors on native ubuntu 20.04 systems.
+* Compile errors with ``ENABLE_GPU=on`` and ``clang`` as a host compiler.
+
+*Removed*
+
+* [developers] Removed ``IntegratorData`` class. It is replaced by structs that are defined in the
+  integrator classes.
+* ``get_ordered_vertices`` from ``hoomd.md.pair.aniso.ALJ``.
+* Removed optional coxeter dependency.
+* The ``limit`` parameter from ``hoomd.md.methods.NVE``.
+* The ``limit`` parameter from ``hoomd.md.methods.rattle.NVE``.
+* The ``diameter_shift`` parameter from ``hoomd.md.nlist.NeighborList``.
+* The ``max_diameter`` parameter from ``hoomd.md.nlist.NeighborList``.
+
+v3.0.0-beta.14 (2022-02-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``hoomd.hpmc.external.field.Harmonic`` - harmonic potential of particles to specific sites in
+  the simulation box and orientations.
+* Support ``cereal`` 1.3.1
+* Guide on how to model molecular systems.
+* ``version.floating_point_precision`` - Floating point width in bits for the particle
+  properties and local calculations.
+* ``hoomd.md.pair.LJ.tail_correction`` - Option to enable the isotropic integrated long range tail
+  correction.
+* ``hoomd.md.Integrator.linear_momentum`` - Compute the total system linear momentum. Loggable.
+* ``hoomd.md.bond.Table`` - Tabulated bond potential.
+* ``hoomd.md.angle.Table`` - Tabulated angle potential.
+* ``hoomd.md.dihedral.Table`` - Tabulated dihedral potential.
+* ``hoomd.md.improper.Harmonic`` - Compute the harmonic improper potential and forces.
+* Tutorial on Organizing and executing simulations.
+* C++ and build system overview in ``ARCHITECTURE.md``.
+* ``hoomd.hpmc.external.wall`` - Overlap checks between particles and wall surfaces.
+* ``hoomd.md.pair.ansio.ALJ`` - an anisotropic Lennard-Jones-like pair potential for polyhedra and
+  ellipsoids.
+* New optional dependency: ``coxeter``, needed for some ``ALJ`` methods.
+
+*Changed*
+
+* Support variant translational and rotational spring constants in
+  ``hoomd.hpmc.external.field.Harmonic``.
+* [breaking] Renamed ``hoomd.md.angle.Cosinesq`` to ``hoomd.md.angle.CosineSquared``.
+* [breaking] ``hoomd.Box`` no longer has a ``matrix`` property use ``to_matrix`` and
+  ``from_matrix``.
+
+*Fixed*
+
+* Compilation errors on FreeBSD.
+* ``TypeError`` when instantiating special pair forces.
+* Inconsistent state when using the ``walls`` setter of a ``hoomd.md.external.wall.WallPotential``.
+
+*Removed*
+
+* [breaking] Removed ``hoomd.md.pair.SLJ`` potential and wall. Use ``hoomd.md.pair.ExpandedLJ``.
+* [breaking] ``hoomd.Box.lattice_vectors`` property no longer exists.
+
+v3.0.0-beta.13 (2022-01-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* ``md.pair.ExpandedLJ`` - A Lennard-Jones potential where ``r`` is replaced with ``r-delta``.
+* Support nested modification of operation parameters.
+* ``wall`` - Define wall surfaces in the simulation box.
+* ``md.external.wall`` - Pair interactions between particles and wall surfaces.
+* ``Communicator.walltime`` - the wall clock time since creating the ``Communicator``.
+* ``md.force.Custom`` - user defined forces in Python.
+
+*Changed*
+
+* Call ``update_group_dof`` implicitly in ``set_snapshot``, when changing integrators or integration
+  methods, and on steps where ``FilterUpdater`` acts on the system.
+* [breaking] ``update_group_dof`` defers counting the degrees of freedom until the next timestep or
+  the next call to ``Simulation.run``.
+* [breaking] Renamed ``md.bond.FENE`` to ``md.bond.FENEWCA``.
+* ``md.bond.FENEWCA`` takes a user provided ``delta`` parameter and ignores the particle diameters.
+* [breaking] ``md.pair.DLVO`` takes user provided ``a1`` and ``a2`` parameters and ignores the
+  particle diameters.
+* Removed invalid linker options when using gcc on Apple systems.
+* Removed the ``r_on`` attribute and ``default_r_on`` constructor argument from pair potentials that
+  do not use it.
+* Building from source requires a C++17 compatible compiler.
+
+*Fixed*
+
+* Compile error with ``Apple clang clang-1300.0.29.30``.
+* Incorrect OPLS dihedral forces when compiled with ``Apple clang clang-1300.0.29.30``.
+
+*Deprecated*
+
+* ``md.pair.SLJ`` - Replaced with ``md.pair.ExpandedLJ``.
+
+*Removed*
+
+* Leftover ``state`` logging category.
+
+v3.0.0-beta.12 (2021-12-14)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support simulations with arbitrarily large or small scales (within the limits of the floating
+  point representation).
+
+*Changed*
+
+* Report full error details in the exception message.
+* Improved documentation.
+* [breaking]: ``buffer`` is now a required argument when constructing a neighbor list.
+* [breaking]: ``force_tol``, ``angmom_tol``, and ``energy_tol`` are now required arguments to
+  ``md.minimize.FIRE``
+
+*Fixed*
+
+* Allow neighbor lists to store more than ``2**32-1`` total neighbors.
+* Return expected parameter values instead of ``NaN`` when potential parameters are set to 0.
+
+v3.0.0-beta.11 (2021-11-18)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support Python 3.10.
+- Support clang 13.
+
+*Changed*
+
+- [developers] Place all all HOOMD C++ classes in the ``hoomd`` and nested namespaces.
+- [developers] Use official pre-commit clang-format repository.
+
+v3.0.0-beta.10 (2021-10-25)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``md.minimize.FIRE`` - MD integrator that minimizes the system's potential energy.
+- Include example AKMA and MD unit conversion factors in the documentation.
+- ``BUILD_LLVM`` CMake option  (defaults off) to enable features that require LLVM.
+- ``hpmc.pair.user.CPPPotential`` - user-defined pair potentials between particles in HPMC.
+- ``hpmc.pair.user.CPPPotentialUnion`` - user-defined site-site pair potentials between shapes
+  in HPMC.
+- ``hpmc.external.user.CPPExternalPotential`` - user-defined external potentials in HPMC.
+- Support user-defined pair potentials in HPMC on the GPU.
+
+*Changed*
+
+- Improved documentation.
+- Improved error messages when setting operation parameters.
+- Noted some dependencies of dependencies for building documentation.
+- [developers] Removed ``m_comm`` from most classes. Use ``m_sysdef->isDomainDecomposed()`` instead.
+- Add support for LLVM 12
+- ``ENABLE_LLVM=on`` requires the clang development libraries.
+- [breaking] Renamed the Integrator attribute ``aniso`` to ``integrate_rotational_dof`` and removed
+  the ``'auto'`` option. Users must now explicitly choose ``integrate_rotational_dof=True`` to
+  integrate the rotational degrees of freedom in the system.
+
+*Fixed*
+
+- Calling ``Operations.__len__`` no longer raises a ``RecursionError``.
+- RATTLE integration methods execute on the GPU.
+- Include ``EvaluatorPairDLVO.h`` in the installation for plugins.
+- Bug in setting zero sized ``ManagedArrays``.
+- Kernel launch errors when one process uses different GPU devices.
+- Race condition that lead to incorrect simulations with ``md.pair.Table``.
+- Bug where some particle filers would have 0 rotational degrees of freedom.
+
+*Removed*
+
+- The ``BUILD_JIT`` CMake option.
+- Support for LLVM <= 9.
 
 v3.0.0-beta.9 (2021-09-08)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -443,6 +990,7 @@ functionality.
 - ``COPY_HEADERS`` *CMake* option.
 - Many other python modules have been removed or re-implemented with new names.
   See the migration guide and new API documentation for a complete list.
+- Support for NVIDIA GPUS with compute capability < 6.0.
 
 v2.x
 ----
@@ -453,7 +1001,7 @@ v2.9.7 (2021-08-03)
 *Bug fixes*
 
 * Support CUDA 11.5. A bug in CUDA 11.4 may result in the error
-  `__global__ function call is not configure` when running HOOMD.
+  ``__global__ function call is not configured`` when running HOOMD.
 
 v2.9.6 (2021-03-16)
 ^^^^^^^^^^^^^^^^^^^

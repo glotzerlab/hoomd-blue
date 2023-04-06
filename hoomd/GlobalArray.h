@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainers: jglaser, pschwende
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file GlobalArray.h
     \brief Defines the GlobalArray class
@@ -35,7 +33,6 @@
 #include <memory>
 
 #include "GPUArray.h"
-#include "MemoryTraceback.h"
 
 #include <cxxabi.h>
 #include <utility>
@@ -59,7 +56,7 @@ namespace detail
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 /* Test for GCC < 5.0 */
 #if GCC_VERSION < 50000
-// work around GCC missing feature
+    // work around GCC missing feature
 
 #define NO_STD_ALIGN
 // https://stackoverflow.com/questions/27064791/stdalign-not-supported-by-g4-9
@@ -145,19 +142,12 @@ template<class T> class managed_deleter
             this->m_exec_conf->msg->notice(10) << oss.str();
 
             hipFree(m_allocation_ptr);
-            CHECK_CUDA_ERROR();
             }
         else
 #endif
             {
             free(m_allocation_ptr);
             }
-
-        // update memory allocation table
-        if (m_exec_conf->getMemoryTracer())
-            this->m_exec_conf->getMemoryTracer()->unregisterAllocation(
-                reinterpret_cast<const void*>(ptr),
-                sizeof(T) * m_N);
         }
 
     std::pair<const void*, const void*> getAllocationRange() const
@@ -207,8 +197,6 @@ class event_deleter
 #endif
 
     } // end namespace detail
-
-    } // end namespace hoomd
 
 //! Forward declarations
 template<class T> class GlobalArrayDispatch;
@@ -647,10 +635,6 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
         {
         // update the tag
         m_tag = tag;
-        if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer() && get())
-            this->m_exec_conf->getMemoryTracer()->updateTag(reinterpret_cast<const void*>(get()),
-                                                            sizeof(T) * m_num_elements,
-                                                            m_tag);
 
         // set tag on deleter so it can be displayed upon free
         if (!isNull() && m_data)
@@ -779,6 +763,9 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
 #ifdef ENABLE_HIP
         if (use_device)
             {
+            // Check for pending errors.
+            CHECK_CUDA_ERROR();
+
             allocation_bytes = m_num_elements * sizeof(T);
 
             // always reserve an extra page
@@ -788,8 +775,15 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
             this->m_exec_conf->msg->notice(10)
                 << "Allocating " << allocation_bytes << " bytes of managed memory." << std::endl;
 
-            hipMallocManaged(&ptr, allocation_bytes, hipMemAttachGlobal);
-            CHECK_CUDA_ERROR();
+            hipError_t error = hipMallocManaged(&ptr, allocation_bytes, hipMemAttachGlobal);
+            if (error == hipErrorMemoryAllocation)
+                {
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
 
             allocation_ptr = ptr;
 
@@ -806,7 +800,7 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
 #endif
 
                 if (!ptr)
-                    throw std::runtime_error("GlobalArray: Error aligning managed memory");
+                    throw std::bad_alloc();
                 }
             }
         else
@@ -815,7 +809,7 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
             int retval = posix_memalign((void**)&ptr, 32, m_num_elements * sizeof(T));
             if (retval != 0)
                 {
-                throw std::runtime_error("Error allocating aligned memory");
+                throw std::bad_alloc();
                 }
             allocation_bytes = m_num_elements * sizeof(T);
             allocation_ptr = ptr;
@@ -851,14 +845,6 @@ template<class T> class GlobalArray : public GPUArrayBase<T, GlobalArray<T>>
         // construct objects explicitly using placement new
         for (std::size_t i = 0; i < m_num_elements; ++i)
             ::new ((void**)&((T*)ptr)[i]) T;
-
-        // register new allocation
-        if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer())
-            this->m_exec_conf->getMemoryTracer()->registerAllocation(
-                reinterpret_cast<const void*>(m_data.get()),
-                sizeof(T) * m_num_elements,
-                typeid(T).name(),
-                m_tag);
 
         // display representation for debugging
         if (m_tag != "")
@@ -943,3 +929,4 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     return GlobalArrayDispatch<T>(m_data.get(), *this);
     }
+    } // end namespace hoomd

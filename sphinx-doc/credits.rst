@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Credits
 =======
 
@@ -47,12 +50,14 @@ The following people have contributed to the to HOOMD-blue:
 * Geert Kapteijns, University of Amsterdam
 * Greg van Anders, University of Michigan
 * Grey Garrett, University of Michigan
+* Ian Graham, University of Pennsylvania
 * Igor Morozov, Joint Institute for High Temperatures of RAS
 * Isaac Bruss, University of Michigan
 * Jakin B. Delony, University of South Florida
 * James Antonaglia, University of Michigan
 * James Proctor, University of Michigan
 * James W. Swan, Massachusetts Institute of Technology
+* Jen Bradley, University of Michigan
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
 * Joseph Berleant, University of Michigan
@@ -62,17 +67,21 @@ The following people have contributed to the to HOOMD-blue:
 * Kevin Kohlstedt, University of Michigan
 * Kevin Silmore, Princeton University
 * Khalid Ahmed, University of Michigan
+* Kody Takada, University of Michigan
 * Kristi Pepa, University of Michigan
 * Kwanghwi Je, University of Michigan
 * Lin Yang, Iowa State University
 * Ludwig Schneider, Georg-August Univeristy Goettingen
 * Luis Y. Rivera-Rivera, University of Michigan
 * Malcolm Ramsay
+* Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
 * Matthew Spellings, University of Michgan
+* Melody Zhang, University of Michigan
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
+* Pablo Zubieta, PME, The University of Chicago
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
 * Pavani Medapuram Lakshmi Narasimha, University of Minnesota
@@ -81,6 +90,7 @@ The following people have contributed to the to HOOMD-blue:
 * Peter Schwendeman, University of Michigan
 * Philipp Mertmann, Ruhr University Bochum
 * Philipp Schönhöfer, University of Michigan
+* Praharsh Suryadevara, New York University
 * Rastko Sknepnek, Northwestern
 * Raymond Asare, University of Michigan
 * Richmond Newman, University of Michigan

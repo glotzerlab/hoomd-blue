@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
 #include "NeighborListGPU.cuh"
@@ -21,6 +19,10 @@
 #ifndef __NEIGHBORLISTGPU_H__
 #define __NEIGHBORLISTGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Neighbor list build on the GPU
 /*! Implements common functions (like distance check)
     on the GPU for use by other GPU nlist classes derived from NeighborListGPU.
@@ -65,7 +67,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         m_checkn = 1;
 
         // flag to say how big to resize
-        GlobalArray<unsigned int> req_size_nlist(1, m_exec_conf);
+        GlobalArray<size_t> req_size_nlist(1, m_exec_conf);
         std::swap(m_req_size_nlist, req_size_nlist);
         TAG_ALLOCATION(m_req_size_nlist);
 
@@ -73,50 +75,24 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         if (m_exec_conf->allConcurrentManagedAccess())
             {
             cudaMemAdvise(m_req_size_nlist.get(),
-                          m_req_size_nlist.getNumElements() * sizeof(unsigned int),
+                          m_req_size_nlist.getNumElements() * sizeof(size_t),
                           cudaMemAdviseSetPreferredLocation,
                           cudaCpuDeviceId);
             CHECK_CUDA_ERROR();
             }
 #endif
 
-        // create cuda event
-        unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-        m_tuner_filter.reset(new Autotuner(warp_size,
-                                           1024,
-                                           warp_size,
-                                           5,
-                                           100000,
-                                           "nlist_filter",
-                                           this->m_exec_conf));
-        m_tuner_head_list.reset(new Autotuner(warp_size,
-                                              1024,
-                                              warp_size,
+        // Initialize autotuners.
+        m_tuner_filter.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                              m_exec_conf,
+                                              "nlist_filter",
                                               5,
-                                              100000,
-                                              "nlist_head_list",
-                                              this->m_exec_conf));
+                                              true));
+        m_autotuners.push_back(m_tuner_filter);
         }
 
     //! Destructor
     virtual ~NeighborListGPU() { }
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        NeighborList::setAutotunerParams(enable, period);
-        m_tuner_filter->setPeriod(period / 10);
-        m_tuner_filter->setEnabled(enable);
-
-        m_tuner_head_list->setPeriod(period / 10);
-        m_tuner_head_list->setEnabled(enable);
-        }
-
-    //! Benchmark the filter kernel
-    double benchmarkFilter(unsigned int num_iters);
 
     //! Update the exclusion list on the GPU
     virtual void updateExListIdx();
@@ -124,8 +100,7 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     protected:
     GlobalArray<unsigned int> m_flags; //!< Storage for device flags on the GPU
 
-    GlobalArray<unsigned int>
-        m_req_size_nlist; //!< Flag to hold the required size of the neighborlist
+    GlobalArray<size_t> m_req_size_nlist; //!< Flag to hold the required size of the neighborlist
 
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
@@ -154,14 +129,13 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         m_checkn; //!< Internal counter to assign when checking if the nlist needs an update
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_filter;    //!< Autotuner for filter block size
-    std::unique_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
+    std::shared_ptr<Autotuner<1>> m_tuner_filter; //!< Autotuner for filter block size
 
     GlobalArray<unsigned int>
         m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
     };
 
-//! Exports NeighborListGPU to python
-void export_NeighborListGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

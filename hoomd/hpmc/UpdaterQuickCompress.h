@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
 #pragma once
@@ -13,6 +13,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /** Quick compression algorithm
@@ -33,10 +35,11 @@ class UpdaterQuickCompress : public Updater
         @param target_box The target box
     */
     UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<Trigger> trigger,
                          std::shared_ptr<IntegratorHPMC> mc,
                          double max_overlaps_per_particle,
                          double min_scale,
-                         pybind11::object target_box);
+                         std::shared_ptr<BoxDim> target_box);
 
     /// Destructor
     virtual ~UpdaterQuickCompress();
@@ -86,13 +89,13 @@ class UpdaterQuickCompress : public Updater
         }
 
     /// Get the target box
-    pybind11::object getTargetBox()
+    std::shared_ptr<BoxDim> getTargetBox()
         {
         return m_target_box;
         }
 
     /// Set the target box
-    void setTargetBox(pybind11::object target_box)
+    void setTargetBox(std::shared_ptr<BoxDim> target_box)
         {
         m_target_box = target_box;
         }
@@ -126,7 +129,7 @@ class UpdaterQuickCompress : public Updater
     double m_min_scale;
 
     /// The target box dimensions
-    pybind11::object m_target_box;
+    std::shared_ptr<BoxDim> m_target_box;
 
     /// Unique ID for RNG seeding
     unsigned int m_instance = 0;
@@ -147,7 +150,10 @@ class UpdaterQuickCompress : public Updater
     bool m_is_complete = false;
     };
 
+namespace detail
+    {
 /// Export UpdaterQuickCompress to Python
 void export_UpdaterQuickCompress(pybind11::module& m);
-
-    } // namespace hpmc
+    } // end namespace detail
+    } // end namespace hpmc
+    } // end namespace hoomd

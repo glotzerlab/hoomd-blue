@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -12,7 +12,6 @@
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include "Updater.h"
-#include "md/ForceComposite.h"
 #include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
@@ -21,6 +20,8 @@
 #include <hip/hip_runtime.h>
 #endif
 
+namespace hoomd
+    {
 /// Base class that defines an integrator
 /** An Integrator steps the entire simulation forward one time step in time.
     Prior to calling update(timestep), the system is at time step \a timestep.
@@ -80,11 +81,17 @@ class PYBIND11_EXPORT Integrator : public Updater
         return m_constraint_forces;
         }
 
-    /// Set HalfStepHook
-    virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
+    /// Set the half step hook.
+    virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
+        {
+        m_half_step_hook = hook;
+        }
 
-    // Removes HalfStepHook
-    virtual void removeHalfStepHook();
+    // Get the half step hook.
+    virtual std::shared_ptr<HalfStepHook> getHalfStepHook()
+        {
+        return m_half_step_hook;
+        }
 
     /// Change the timestep
     virtual void setDeltaT(Scalar deltaT);
@@ -123,8 +130,8 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Count the total number of degrees of freedom removed by all constraint forces
     Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
-    /// helper function to compute total momentum
-    virtual Scalar computeTotalMomentum(uint64_t timestep);
+    /// Compute the linear momentum of the system
+    virtual vec3<double> computeLinearMomentum();
 
     /// Prepare for the run
     virtual void prepRun(uint64_t timestep);
@@ -133,6 +140,41 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Callback for pre-computing the forces
     void computeCallback(uint64_t timestep);
 #endif
+
+    /// Reset stats counters for children objects
+    virtual void resetStats()
+        {
+        for (auto& force : m_forces)
+            {
+            force->resetStats();
+            }
+
+        for (auto& constraint_force : m_constraint_forces)
+            {
+            constraint_force->resetStats();
+            }
+        }
+
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        Updater::startAutotuning();
+        for (auto& force : m_forces)
+            {
+            force->startAutotuning();
+            }
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = Updater::isAutotuningComplete();
+        for (auto& force : m_forces)
+            {
+            result = result && force->isAutotuningComplete();
+            }
+        return result;
+        }
 
     protected:
     /// The step size
@@ -167,8 +209,14 @@ class PYBIND11_EXPORT Integrator : public Updater
 #endif
 
     /// Check if any forces introduce anisotropic degrees of freedom
-    virtual bool getAnisotropic();
+    virtual bool areForcesAnisotropic();
     };
 
+namespace detail
+    {
 /// Exports the NVEUpdater class to python
 void export_Integrator(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

@@ -1,8 +1,12 @@
 ci:
   autoupdate_schedule: quarterly
-  skip: [clang-format]
+  autoupdate_branch: 'trunk-patch'
+  autofix_prs: false
 
-exclude: (?:^hoomd/extern/)
+exclude: (?x)(
+        ^hoomd/extern/|
+        ^sphinx-doc/tutorial/
+        )
 
 repos:
 - repo: local
@@ -14,8 +18,14 @@ repos:
     pass_filenames: false
     always_run: true
     additional_dependencies: [jinja2==3.0.1, pyyaml==5.4.1]
+  - id: check-maintainer
+    name: Check for maintainer comments
+    description: 'Enforce that `maintainer` comments are removed.'
+    entry: '(# Maintainer:|\/\/ Maintainer:)'
+    language: pygrep
+    types_or: [python, c, c++, cuda, inc]
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v4.0.1'
+  rev: 'v4.4.0'
   hooks:
   - id: end-of-file-fixer
     exclude_types: [svg]
@@ -25,45 +35,76 @@ repos:
   - id: check-yaml
     exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
   - id: check-case-conflict
+  - id: fix-encoding-pragma
+    args:
+    - --remove
+  - id: mixed-line-ending
+- repo: https://github.com/glotzerlab/fix-license-header
+  rev: 43eb3ff2d02cba5e572f86af5c15337823fb2c66
+  hooks:
+  - id: fix-license-header
+    name: Fix license headers (Python)
+    exclude: |
+      (?x)(
+          ^hoomd/extern/|
+          ^sphinx-doc/tutorial/|
+          ^sphinx-doc/howto/
+          )
+    types_or: [python]
+    args:
+    - --license-file=LICENSE
+    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
+    - --keep-before=#!
+  - id: fix-license-header
+    name: Fix license headers (C)
+    types_or: [c, c++, cuda, inc]
+    args:
+    - --license-file=LICENSE
+    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
+    - --comment-prefix=//
+  - id: fix-license-header
+    name: Fix license headers (reStructuredText)
+    types_or: [rst]
+    args:
+    - --license-file=LICENSE
+    - --add=Part of HOOMD-blue, released under the BSD 3-Clause License.
+    - --keep-after=.. include
+    - --comment-prefix=..
+- repo: https://github.com/kynan/nbstripout
+  rev: 0.6.1
+  hooks:
+    - id: nbstripout
 - repo: https://github.com/google/yapf
-  rev: 'v0.31.0'
+  rev: 'v0.32.0'
   hooks:
   - id: yapf
 - repo: https://github.com/PyCQA/flake8
-  rev: '3.9.2'
+  rev: '6.0.0'
   hooks:
   - id: flake8
     additional_dependencies:
-    - pep8-naming==0.12.1
-    - pydocstyle==6.1.1
+    - pep8-naming==0.13.3
+    - pydocstyle==6.2.3
     - flake8-docstrings==1.6.0
-    - flake8-rst-docstrings==0.2.3
+    - flake8-rst-docstrings==0.3.0
     # Exclude components not yet ported to hoomd v3
     # TODO: Remove these exclusions as components are ported
     # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
-        ^hoomd/md/wall.py|
-        ^hoomd/md/impropers.py|
-        ^hoomd/hpmc/analyze.py|
-        ^hoomd/hpmc/field.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|
-        ^hoomd/dem/|
-        ^hoomd/jit/|
-        ^hoomd/metal/|
-        ^doc/dev/
+        ^hoomd/metal/
       )
-- repo: https://github.com/glotzerlab/pre-commit-clang-format
-  rev: v1.1.0
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: v15.0.6
   hooks:
   - id: clang-format
-    stages: [manual]
+    types_or: [c, c++, cuda, inc]
     exclude: |
       (?x)(
         ^CMake/|
         ^hoomd/extern/|
         ^hoomd/hpmc/UpdaterClusters\.h|
-        ^hoomd/hpmc/IntegratorHPMCMono\.h|
-        ^doc/dev/
+        ^hoomd/hpmc/IntegratorHPMCMono\.h
       )

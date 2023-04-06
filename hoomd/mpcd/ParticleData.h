@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_PARTICLE_DATA_H_
 #define MPCD_PARTICLE_DATA_H_
@@ -25,19 +23,21 @@
 #endif // ENABLE_MPI
 #endif // ENABLE_HIP
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUFlags.h"
 #include "hoomd/GPUVector.h"
-#include "hoomd/Profiler.h"
 
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
 // pybind11
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Stores MPCD particle data
@@ -68,12 +68,12 @@ namespace mpcd
  *
  * \ingroup data_structs
  */
-class PYBIND11_EXPORT ParticleData
+class PYBIND11_EXPORT ParticleData : public Autotuned
     {
     public:
     //! Number constructor
     ParticleData(unsigned int N,
-                 const BoxDim& local_box,
+                 const std::shared_ptr<const BoxDim> local_box,
                  Scalar kT,
                  unsigned int seed,
                  unsigned int ndimensions,
@@ -83,7 +83,7 @@ class PYBIND11_EXPORT ParticleData
 
     //! Snapshot constructor
     ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                 const BoxDim& global_box,
+                 const std::shared_ptr<const BoxDim> global_box,
                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                  std::shared_ptr<DomainDecomposition> decomposition
                  = std::shared_ptr<DomainDecomposition>());
@@ -93,18 +93,18 @@ class PYBIND11_EXPORT ParticleData
 
     //! Initialize the MPCD particle data from a snapshot
     void initializeFromSnapshot(const std::shared_ptr<const ParticleDataSnapshot> snapshot,
-                                const BoxDim& global_box);
+                                const std::shared_ptr<const BoxDim> global_box);
 
     //! Default initialize the MPCD particle data per rank
     void initializeRandom(unsigned int N,
-                          const BoxDim& local_box,
+                          const std::shared_ptr<const BoxDim> local_box,
                           Scalar kT,
                           unsigned int seed,
                           unsigned int ndimensions);
 
     //! Take a snapshot of the MPCD particle data
     void takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                      const BoxDim& global_box) const;
+                      const std::shared_ptr<const BoxDim> global_box) const;
 
     //! \name accessor methods
     //@{
@@ -209,37 +209,6 @@ class PYBIND11_EXPORT ParticleData
     //! Get the tag of the particle on the local rank
     unsigned int getTag(unsigned int idx) const;
 
-    //! Set the profiler for the particle data to use
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
-        {
-#if defined(ENABLE_MPI) && defined(ENABLE_HIP)
-        if (m_mark_tuner)
-            {
-            m_mark_tuner->setEnabled(enable);
-            m_mark_tuner->setPeriod(period);
-            }
-        if (m_remove_tuner)
-            {
-            m_remove_tuner->setEnabled(enable);
-            m_remove_tuner->setPeriod(period);
-            }
-        if (m_add_tuner)
-            {
-            m_add_tuner->setEnabled(enable);
-            m_add_tuner->setPeriod(period);
-            }
-#endif // ENABLE_MPI && ENABLE_HIP
-        }
     //@}
 
     //! \name swap methods
@@ -442,7 +411,6 @@ class PYBIND11_EXPORT ParticleData
 
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< GPU execution configuration
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
-    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
     GPUArray<Scalar4> m_pos;                 //!< MPCD particle positions plus type
     GPUArray<Scalar4> m_vel;                 //!< MPCD particle velocities plus cell list id
@@ -463,11 +431,11 @@ class PYBIND11_EXPORT ParticleData
     GPUArray<unsigned char> m_remove_flags; //!< Temporary flag to mark keeping particle
     GPUFlags<unsigned int> m_num_remove;    //!< Number of particles to remove
 
-    std::unique_ptr<Autotuner> m_mark_tuner;   //!< Tuner for marking particles
-    std::unique_ptr<Autotuner> m_remove_tuner; //!< Tuner for removing particles
-    std::unique_ptr<Autotuner> m_add_tuner;    //!< Tuner for adding particles
-#endif                                         // ENABLE_HIP
-#endif                                         // ENABLE_MPI
+    std::shared_ptr<Autotuner<1>> m_mark_tuner;   //!< Tuner for marking particles
+    std::shared_ptr<Autotuner<1>> m_remove_tuner; //!< Tuner for removing particles
+    std::shared_ptr<Autotuner<1>> m_add_tuner;    //!< Tuner for adding particles
+#endif                                            // ENABLE_HIP
+#endif                                            // ENABLE_MPI
 
     bool m_valid_cell_cache;               //!< Flag for validity of cell cache
     SortSignal m_sort_signal;              //!< Signal triggered when particles are sorted
@@ -478,7 +446,7 @@ class PYBIND11_EXPORT ParticleData
 
     //! Check if all particles lie within the box
     bool checkInBox(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-                    const BoxDim& box);
+                    const std::shared_ptr<const BoxDim> box);
 
     //! Set the global number of particles (for parallel simulations)
     void setNGlobal(unsigned int nglobal);
@@ -505,6 +473,6 @@ namespace detail
 void export_ParticleData(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_PARTICLE_DATA_H_

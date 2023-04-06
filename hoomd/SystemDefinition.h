@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SystemDefinition.h
     \brief Defines the SystemDefinition class
@@ -12,7 +10,6 @@
 #endif
 
 #include "BondedGroupData.h"
-#include "IntegratorData.h"
 #include "ParticleData.h"
 
 #include <memory>
@@ -21,6 +18,8 @@
 #ifndef __SYSTEM_DEFINITION_H__
 #define __SYSTEM_DEFINITION_H__
 
+namespace hoomd
+    {
 #ifdef ENABLE_MPI
 //! Forward declaration of Communicator
 class Communicator;
@@ -72,7 +71,21 @@ class PYBIND11_EXPORT SystemDefinition
     {
     public:
     //! Constructs a NULL SystemDefinition
-    SystemDefinition();
+    SystemDefinition(){};
+    //! Constructs a SystemDefinition with a simply initialized ParticleData
+    SystemDefinition(unsigned int N,
+                     const std::shared_ptr<BoxDim> box,
+                     unsigned int n_types = 1,
+                     unsigned int n_bond_types = 0,
+                     unsigned int n_angle_types = 0,
+                     unsigned int n_dihedral_types = 0,
+                     unsigned int n_improper_types = 0,
+                     std::shared_ptr<ExecutionConfiguration> exec_conf
+                     = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
+                     std::shared_ptr<DomainDecomposition> decomposition
+                     = std::shared_ptr<DomainDecomposition>());
+
+    // Mostly exists as test pass a plain box rather than a std::shared_ptr.
     //! Constructs a SystemDefinition with a simply initialized ParticleData
     SystemDefinition(unsigned int N,
                      const BoxDim& box,
@@ -180,12 +193,6 @@ class PYBIND11_EXPORT SystemDefinition
         return m_constraint_data;
         }
 
-    //! Returns the integrator variables (if applicable)
-    std::shared_ptr<IntegratorData> getIntegratorData()
-        {
-        return m_integrator_data;
-        }
-
     //! Get the pair data
     std::shared_ptr<PairData> getPairData() const
         {
@@ -208,7 +215,6 @@ class PYBIND11_EXPORT SystemDefinition
     std::shared_ptr<DihedralData> m_dihedral_data;     //!< Dihedral data for the system
     std::shared_ptr<ImproperData> m_improper_data;     //!< Improper data for the system
     std::shared_ptr<ConstraintData> m_constraint_data; //!< Improper data for the system
-    std::shared_ptr<IntegratorData> m_integrator_data; //!< Integrator data for the system
     std::shared_ptr<PairData> m_pair_data;             //!< Special pairs data for the system
 
 #ifdef ENABLE_MPI
@@ -217,7 +223,13 @@ class PYBIND11_EXPORT SystemDefinition
 #endif
     };
 
+namespace detail
+    {
 //! Exports SystemDefinition to python
 void export_SystemDefinition(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

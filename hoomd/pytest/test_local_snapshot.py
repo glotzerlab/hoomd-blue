@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test that `LocalSnapshot` and `LocalSnapshotGPU` work."""
 
@@ -308,6 +307,8 @@ def get_property_name_from_affix(name, affix):
 
 def general_array_equality(arr1, arr2):
     """Allows checking of equality with both HOOMDArrays and HOOMDGPUArrays."""
+    if arr1.shape != arr2.shape:
+        return False
     if any(np.issubdtype(a.dtype, np.floating) for a in (arr1, arr2)):
         if any(isinstance(a, HOOMDGPUArray) for a in (arr1, arr2)):
             return cupy.allclose(arr1, arr2)
@@ -354,6 +355,8 @@ def check_setting(data, prop_dict, tags):
 
     Also tests error raising for read only arrays.
     """
+    if len(tags) == 0:
+        return
     # Test if test should be skipped or just return
     if isinstance(data, HOOMDGPUArray) and not CUPY_IMPORTED:
         pytest.skip("Not available for HOOMDGPUArray without CuPy.")

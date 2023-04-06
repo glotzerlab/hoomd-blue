@@ -4,10 +4,7 @@
         "twxs.cmake",
         "ms-vscode.cmake-tools",
         "streetsidesoftware.code-spell-checker",
-        "codecreator.indent-to-bracket",
         "ms-python.python",
-        "ms-azure-devops.azure-pipelines",
-        "stkb.rewrap",
-        "kriegalex.vscode-cudacpp"
+        "stkb.rewrap"
     ]
 }

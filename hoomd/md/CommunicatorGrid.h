@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMMUNICATOR_GRID_H__
 #define __COMMUNICATOR_GRID_H__
@@ -13,6 +11,10 @@
 
 #ifdef ENABLE_MPI
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Class to communicate the boundary layer of a regular grid
  */
 template<typename T> class CommunicatorGrid
@@ -34,7 +36,6 @@ template<typename T> class CommunicatorGrid
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
     std::shared_ptr<ParticleData> m_pdata;                     //!< Particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
-    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
     uint3 m_dim;      //!< Dimensions of grid
     uint3 m_embed;    //!< Embedding dimensions
@@ -52,6 +53,9 @@ template<typename T> class CommunicatorGrid
     //! Initialize grid communication
     virtual void initGridComm();
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GRID_H__

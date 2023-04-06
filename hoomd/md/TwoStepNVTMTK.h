@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
@@ -20,6 +18,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep
    interface
@@ -78,10 +80,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     //! Set the value of xi (for unit tests)
     void setXi(Scalar new_xi)
         {
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar& xi = v.variable[0];
-        xi = new_xi;
-        setIntegratorVariables(v);
+        m_thermostat.xi = new_xi;
         }
 
     //! Performs the first step of the integration
@@ -99,20 +98,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         if (m_aniso)
             flags[pdata_flag::rotational_kinetic_energy] = 1;
         return flags;
-        }
-
-    //! Initialize integrator variables
-    virtual void initializeIntegratorVariables()
-        {
-        IntegratorVariables v = getIntegratorVariables();
-        v.type = "nvt_mtk";
-        v.variable.clear();
-        v.variable.resize(4);
-        v.variable[0] = Scalar(0.0);
-        v.variable[1] = Scalar(0.0);
-        v.variable[2] = Scalar(0.0);
-        v.variable[3] = Scalar(0.0);
-        setIntegratorVariables(v);
         }
 
     /// Randomize the thermostat variables
@@ -133,12 +118,22 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     Scalar getThermostatEnergy(uint64_t timestep);
 
     protected:
+    /// Thermostat degrees of freedom
+    struct Thermostat
+        {
+        Scalar xi = 0;
+        Scalar eta = 0;
+        Scalar xi_rot = 0;
+        Scalar eta_rot = 0;
+        };
+
     std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities
 
     Scalar m_tau;                 //!< tau value for Nose-Hoover
     std::shared_ptr<Variant> m_T; //!< Temperature set point
 
     Scalar m_exp_thermo_fac; //!< Thermostat rescaling factor
+    Thermostat m_thermostat; //!< Thermostat degrees of freedom
 
     //! advance the thermostat
     /*!\param timestep The time step
@@ -147,7 +142,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     void advanceThermostat(uint64_t timestep, bool broadcast = true);
     };
 
-//! Exports the TwoStepNVTMTK class to python
-void export_TwoStepNVTMTK(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_H__

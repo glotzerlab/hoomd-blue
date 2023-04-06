@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPU.h"
 #include "NeighborListGPUTree.cuh"
@@ -21,6 +19,10 @@
 #ifndef __NEIGHBORLISTGPUTREE_H__
 #define __NEIGHBORLISTGPUTREE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the GPU using BVH trees
 /*!
  * GPU methods mostly make use of the neighbor library to do the traversal.
@@ -45,51 +47,16 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     //! Destructor
     virtual ~NeighborListGPUTree();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        NeighborListGPU::setAutotunerParams(enable, period);
-
-        m_mark_tuner->setPeriod(period / 10);
-        m_mark_tuner->setEnabled(enable);
-
-        m_count_tuner->setPeriod(period / 10);
-        m_count_tuner->setEnabled(enable);
-
-        m_copy_tuner->setPeriod(period / 10);
-        m_copy_tuner->setEnabled(enable);
-
-        /* These may be null pointers if the first compute has not occurred, since construction of
-           these tuners is deferred until the first neighbor list build (in order to get the tuner
-           parameters from the LBVHWrapper and LBVHTraverserWrapper). When initialized, the period
-           and enabled must be borrowed from one of the tuners above to keep everything synced.
-         */
-        if (m_build_tuner)
-            {
-            m_build_tuner->setPeriod(period / 10);
-            m_build_tuner->setEnabled(enable);
-            }
-
-        if (m_traverse_tuner)
-            {
-            m_traverse_tuner->setPeriod(period / 10);
-            m_traverse_tuner->setEnabled(enable);
-            }
-        }
-
     protected:
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
 
     private:
-    std::unique_ptr<Autotuner> m_mark_tuner;     //!< Tuner for the type mark kernel
-    std::unique_ptr<Autotuner> m_count_tuner;    //!< Tuner for the type-count kernel
-    std::unique_ptr<Autotuner> m_copy_tuner;     //!< Tuner for the primitive-copy kernel
-    std::unique_ptr<Autotuner> m_build_tuner;    //!< Tuner for LBVH builds
-    std::unique_ptr<Autotuner> m_traverse_tuner; //!< Tuner for LBVH traversers
+    std::shared_ptr<Autotuner<1>> m_mark_tuner;     //!< Tuner for the type mark kernel
+    std::shared_ptr<Autotuner<1>> m_count_tuner;    //!< Tuner for the type-count kernel
+    std::shared_ptr<Autotuner<1>> m_copy_tuner;     //!< Tuner for the primitive-copy kernel
+    std::shared_ptr<Autotuner<1>> m_build_tuner;    //!< Tuner for LBVH builds
+    std::shared_ptr<Autotuner<1>> m_traverse_tuner; //!< Tuner for LBVH traversers
 
     GPUArray<unsigned int> m_types;          //!< Particle types (for sorting)
     GPUArray<unsigned int> m_sorted_types;   //!< Sorted particle types
@@ -101,8 +68,8 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     GPUArray<unsigned int> m_type_last;  //!< Last index of each particle type in sorted list
 
     GPUFlags<unsigned int> m_lbvh_errors; //!< Error flags during particle marking (e.g., off rank)
-    std::vector<std::unique_ptr<LBVHWrapper>> m_lbvhs; //!< Array of LBVHs per-type
-    std::vector<std::unique_ptr<LBVHTraverserWrapper>>
+    std::vector<std::unique_ptr<kernel::LBVHWrapper>> m_lbvhs; //!< Array of LBVHs per-type
+    std::vector<std::unique_ptr<kernel::LBVHTraverserWrapper>>
         m_traversers;                   //!< Array of LBVH traverers per-type
     std::vector<hipStream_t> m_streams; //!< Array of CUDA streams per-type
 
@@ -122,7 +89,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     //! Compute the LBVH domain from the current box
     BoxDim getLBVHBox() const
         {
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
 
         // ghost layer padding
         Scalar ghost_layer_width(0.0);
@@ -166,6 +133,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     // @}
     };
 
-//! Exports NeighborListGPUTree to python
-void export_NeighborListGPUTree(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif //__NEIGHBORLISTGPUTREE_H__

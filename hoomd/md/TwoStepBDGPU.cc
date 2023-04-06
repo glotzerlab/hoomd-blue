@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBDGPU.h"
 #include "TwoStepBDGPU.cuh"
@@ -8,10 +8,12 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
@@ -27,11 +29,12 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepBDGPU while CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepBDGPU");
+        throw std::runtime_error("Cannot create TwoStepBDGPU on a CPU device.");
         }
 
-    m_block_size = 256;
+    m_tuner.reset(
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "bd"));
+    m_autotuners.push_back(m_tuner);
     }
 
 /*! \param timestep Current time step
@@ -40,10 +43,6 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "BD step 1");
-
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
@@ -85,19 +84,21 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                                   access_location::device,
                                   access_mode::readwrite);
 
-    langevin_step_two_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = (unsigned int)m_gamma.getNumElements();
-    args.use_alpha = m_use_alpha;
-    args.alpha = m_alpha;
-    args.T = (*m_T)(timestep);
-    args.timestep = timestep;
-    args.seed = m_sysdef->getSeed();
-    args.d_sum_bdenergy = NULL;
-    args.d_partial_sum_bdenergy = NULL;
-    args.block_size = m_block_size;
-    args.num_blocks = 0; // handled in driver function
-    args.tally = false;
+    kernel::langevin_step_two_args args(d_gamma.data,
+                                        static_cast<unsigned int>(m_gamma.getNumElements()),
+                                        m_use_alpha,
+                                        m_alpha,
+                                        (*m_T)(timestep),
+                                        timestep,
+                                        m_sysdef->getSeed(),
+                                        NULL,
+                                        NULL,
+                                        0,
+                                        0,
+                                        false,
+                                        false,
+                                        false,
+                                        m_exec_conf->dev_prop);
 
     bool aniso = m_aniso;
 
@@ -121,6 +122,8 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 #endif
 
     m_exec_conf->beginMultiGPU();
+    m_tuner->begin();
+    args.block_size = m_tuner->getParam()[0];
 
     // perform the update on the GPU
     gpu_brownian_step_one(d_pos.data,
@@ -148,11 +151,8 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    m_tuner->end();
     m_exec_conf->endMultiGPU();
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -163,12 +163,18 @@ void TwoStepBDGPU::integrateStepTwo(uint64_t timestep)
     // there is no step 2
     }
 
-void export_TwoStepBDGPU(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU>>(m, "TwoStepBDGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      bool,
-                      bool>());
+void export_TwoStepBDGPU(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU>>(m, "TwoStepBDGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,6 +1,7 @@
 <!-- Please confirm that your work is based on the correct branch. -->
-<!-- Bug fixes should based on *maint*. -->
-<!-- New features should based on *master*. -->
+<!-- Bug fixes should be based on *trunk-patch*. -->
+<!-- Backwards compatible new features should be based on *trunk-minor*. -->
+<!-- Incompatible API changes should be based on *trunk-major*. -->
 
 ## Description
 
@@ -29,6 +30,6 @@ Resolves #???
 
 ## Checklist:
 
-- [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/master/CONTRIBUTING.md).
-- [ ] I agree with the terms of the [**HOOMD-blue Contributor Agreement**](https://github.com/glotzerlab/hoomd-blue/blob/master/ContributorAgreement.md).
+- [ ] I have reviewed the [**Contributor Guidelines**](https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/CONTRIBUTING.rst).
+- [ ] I agree with the terms of the [**HOOMD-blue Contributor Agreement**](https://github.com/glotzerlab/hoomd-blue/blob/trunk-minor/ContributorAgreement.md).
 - [ ] My name is on the list of contributors (`sphinx-doc/credits.rst`) in the pull request source branch.

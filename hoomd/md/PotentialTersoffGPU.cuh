@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -18,6 +21,12 @@
 #ifndef __POTENTIAL_TERSOFF_GPU_CUH__
 #define __POTENTIAL_TERSOFF_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Maximum number of threads (width of a warp)
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
@@ -40,7 +49,7 @@ struct tersoff_args_t
                    const BoxDim& _box,
                    const unsigned int* _d_n_neigh,
                    const unsigned int* _d_nlist,
-                   const unsigned int* _d_head_list,
+                   const size_t* _d_head_list,
                    const Scalar* _d_rcutsq,
                    const size_t _size_nlist,
                    const unsigned int _ntypes,
@@ -60,17 +69,17 @@ struct tersoff_args_t
     const size_t virial_pitch;  //!< Pitch for N*6 virial array
     bool compute_virial;        //!< True if we are supposed to compute the virial
     const Scalar4* d_pos;       //!< particle positions
-    const BoxDim& box;          //!< Simulation box in GPU format
+    const BoxDim box;           //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const unsigned int* d_head_list; //!< Indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const size_t size_nlist;         //!< Number of elements in the neighborlist
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const unsigned int tpp;          //!< Threads per particle
-    const hipDeviceProp_t& devprop;  //!< CUDA device properties
+    const size_t* d_head_list;   //!< Indexes for accessing d_nlist
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const size_t size_nlist;     //!< Number of elements in the neighborlist
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;  //!< Block size to execute
+    const unsigned int tpp;         //!< Threads per particle
+    const hipDeviceProp_t& devprop; //!< CUDA device properties
     };
 
 #ifdef __HIPCC__
@@ -84,7 +93,7 @@ struct tersoff_args_t
     \param address Address to write the double to
     \param val Value to add to address
 */
-__device__ double myAtomicAdd(double* address, double val)
+__device__ inline double myAtomicAdd(double* address, double val)
     {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -100,7 +109,7 @@ __device__ double myAtomicAdd(double* address, double val)
     return __longlong_as_double(old);
     }
 #else // CUDA_ARCH > 600)
-__device__ double myAtomicAdd(double* address, double val)
+__device__ inline double myAtomicAdd(double* address, double val)
     {
     return atomicAdd(address, val);
     }
@@ -109,7 +118,7 @@ __device__ double myAtomicAdd(double* address, double val)
 
 // workaround for HIP bug
 #ifdef __HIP_PLATFORM_HCC__
-inline __device__ float myAtomicAdd(float* address, float val)
+__device__ inline float myAtomicAdd(float* address, float val)
     {
     unsigned int* address_as_uint = (unsigned int*)address;
     unsigned int old = *address_as_uint, assumed;
@@ -168,7 +177,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                                                   const BoxDim box,
                                                   const unsigned int* d_n_neigh,
                                                   const unsigned int* d_nlist,
-                                                  const unsigned int* d_head_list,
+                                                  const size_t* d_head_list,
                                                   const typename evaluator::param_type* d_params,
                                                   const Scalar* d_rcutsq,
                                                   const unsigned int ntypes)
@@ -230,10 +239,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
         {
         // this is the RevCross potential
         // prefetch neighbor index
-        const unsigned int head_idx = d_head_list[idx];
+        const size_t head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
-        unsigned int my_head = d_head_list[idx];
+        size_t my_head = d_head_list[idx];
 
         next_j = threadIdx.x % tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x % tpp) : 0;
 
@@ -268,7 +277,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             unsigned int typpair
                 = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
             Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
+            const typename evaluator::param_type& param = s_params[typpair];
 
             // compute the base repulsive and attractive terms of the potential
             Scalar invratio = 0.0;
@@ -449,10 +458,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
         if (evaluator::hasPerParticleEnergy())
             {
             // prefetch neighbor index
-            const unsigned int head_idx = d_head_list[idx];
+            const size_t head_idx = d_head_list[idx];
             unsigned int cur_j = 0;
             unsigned int next_j(0);
-            unsigned int my_head = d_head_list[idx];
+            size_t my_head = d_head_list[idx];
 
             next_j = threadIdx.x % tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x % tpp) : 0;
 
@@ -487,7 +496,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
+                const typename evaluator::param_type& param = s_params[typpair];
 
                 evaluator eval(rij_sq, rcutsq, param);
                 eval.evalPhi(s_phi_ab[threadIdx.x * ntypes + __scalar_as_int(postypej.w)]);
@@ -509,7 +518,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                     {
                     unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), typ_b);
                     Scalar rcutsq = s_rcutsq[typpair];
-                    typename evaluator::param_type param = s_params[typpair];
+                    const typename evaluator::param_type& param = s_params[typpair];
 
                     evaluator eval(Scalar(0.0), rcutsq, param);
                     Scalar energy(0.0);
@@ -521,10 +530,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             }
 
         // prefetch neighbor index
-        const unsigned int head_idx = d_head_list[idx];
+        const size_t head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
-        unsigned int my_head = d_head_list[idx];
+        size_t my_head = d_head_list[idx];
 
         next_j = threadIdx.x % tpp < n_neigh ? __ldg(d_nlist + my_head + threadIdx.x % tpp) : 0;
 
@@ -566,7 +575,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
             unsigned int typpair
                 = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
             Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
+            const typename evaluator::param_type& param = s_params[typpair];
 
             // compute the base repulsive and attractive terms of the potential
             Scalar fR = Scalar(0.0);
@@ -600,7 +609,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                         typpair
                             = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
                         Scalar temp_rcutsq = s_rcutsq[typpair];
-                        typename evaluator::param_type temp_param = s_params[typpair];
+                        typename evaluator::param_type& temp_param = s_params[typpair];
 
                         evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
                         bool temp_evaluated = temp_eval.areInteractive();
@@ -700,7 +709,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                         typpair
                             = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
                         Scalar temp_rcutsq = s_rcutsq[typpair];
-                        typename evaluator::param_type temp_param = s_params[typpair];
+                        typename evaluator::param_type& temp_param = s_params[typpair];
 
                         evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
                         bool temp_evaluated = temp_eval.areInteractive();
@@ -859,34 +868,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
         }
     }
 
-//! Kernel for zeroing forces and virial before computation with atomic additions.
-/*! \param d_force Device memory to write forces to
-    \param N Number of particles in the system
-
-*/
-__global__ void gpu_zero_forces_kernel(Scalar4* d_force,
-                                       Scalar* d_virial,
-                                       size_t virial_pitch,
-                                       const unsigned int N)
-    {
-    // identify the particle we are supposed to handle
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= N)
-        return;
-
-    // zero the force
-    d_force[idx] = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
-    // zero the virial
-    d_virial[0 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[1 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[2 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[3 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[4 * virial_pitch + idx] = Scalar(0.0);
-    d_virial[5 * virial_pitch + idx] = Scalar(0.0);
-    }
-
 template<typename T>
 void get_max_block_size(T func,
                         const tersoff_args_t& pair_args,
@@ -948,16 +929,15 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
                                + pair_args.ntypes * run_block_size * sizeof(Scalar);
                 }
 
+            if (shared_bytes > pair_args.devprop.sharedMemPerBlock)
+                {
+                throw std::runtime_error("Triplet potential parameters exceed the available shared "
+                                         "memory per block.");
+                }
+
             // zero the forces
-            hipLaunchKernelGGL((gpu_zero_forces_kernel),
-                               dim3((pair_args.N + pair_args.Nghosts) / run_block_size + 1),
-                               dim3(run_block_size),
-                               0,
-                               0,
-                               pair_args.d_force,
-                               pair_args.d_virial,
-                               pair_args.virial_pitch,
-                               pair_args.N + pair_args.Nghosts);
+            hipMemset(pair_args.d_force, 0, sizeof(Scalar4) * (pair_args.N + pair_args.Nghosts));
+            hipMemset(pair_args.d_virial, 0, sizeof(Scalar) * pair_args.virial_pitch * 6);
 
             // setup the grid to run the kernel
             dim3 grid(pair_args.N / (run_block_size / pair_args.tpp) + 1, 1, 1);
@@ -1006,8 +986,9 @@ struct TersoffComputeKernel<evaluator, compute_virial, 0>
     This is just a driver function for gpu_compute_triplet_forces_kernel(), see it for details.
 */
 template<class evaluator>
-hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
-                                      const typename evaluator::param_type* d_params)
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
+                           const typename evaluator::param_type* d_params)
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);
@@ -1024,6 +1005,15 @@ hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         }
     return hipSuccess;
     }
+#else
+template<class evaluator>
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
+                           const typename evaluator::param_type* d_params);
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_TERSOFF_GPU_CUH__

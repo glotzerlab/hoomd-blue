@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "OBB.h"
 
@@ -28,6 +28,8 @@
 
 #include "hoomd/ManagedArray.h"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -37,7 +39,7 @@ class GPUTree
     {
     public:
     //! Empty constructor
-    DEVICE GPUTree() : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0) { }
+    HOSTDEVICE GPUTree() : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0) { }
 
 #ifndef __HIPCC__
     //! Constructor
@@ -638,8 +640,10 @@ DEVICE inline bool traverseBinaryStackIntersection(const GPUTree& a,
     return leaf;
     }
 
-    }; // end namespace detail
+    } // end namespace detail
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // __GPU_TREE_H__

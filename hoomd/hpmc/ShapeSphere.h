@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -27,8 +27,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
-#define SMALL 1e-5
-
+namespace hoomd
+    {
 namespace hpmc
     {
 /** HPMC shape parameter base class
@@ -69,6 +69,13 @@ struct ShapeParams
         return ret;
         }
 
+// GCC 12 misidentifies this as a mismatched new/delete, it doesn't realize this is the
+// *implementation* of delete.
+#if defined(__GNUC__) && __GNUC__ >= 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmismatched-new-delete"
+#endif
+
     /// Custom delete operator
     static void operator delete(void* ptr)
         {
@@ -80,6 +87,10 @@ struct ShapeParams
         {
         free(ptr);
         }
+
+#if defined(__GNUC__) && __GNUC__ >= 12
+#pragma GCC diagnostic pop
+#endif
 
     /** Load dynamic data members into shared memory and increase pointer
 
@@ -207,9 +218,9 @@ struct ShapeSphere
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, params.radius);
+        return hoomd::detail::AABB(pos, params.radius);
         }
 
     /// Return a tight fitting OBB around the shape
@@ -299,6 +310,52 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
     else
         {
         return false;
+        }
+    }
+
+//! sphere sweep distance
+/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    \param a first shape
+    \param b second shape
+    \param err in/out variable incremented when error conditions occur in the overlap test
+    \returns true when *a* and *b* overlap, and false when they are disjoint
+
+    \ingroup shape
+*/
+DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
+                                         const ShapeSphere& a,
+                                         const ShapeSphere& b,
+                                         const vec3<Scalar>& direction,
+                                         unsigned int& err,
+                                         vec3<Scalar>& collisionPlaneVector)
+    {
+    OverlapReal sumR = a.params.radius + b.params.radius;
+    OverlapReal distSQ = OverlapReal(dot(r_ab, r_ab));
+
+    OverlapReal d_parallel = OverlapReal(dot(r_ab, direction));
+    if (d_parallel <= 0) // Moving apart
+        {
+        return -1.0;
+        };
+
+    OverlapReal discriminant = sumR * sumR - distSQ + d_parallel * d_parallel;
+    if (discriminant < 0) // orthogonal distance larger than sum of radii
+        {
+        return -2.0;
+        };
+
+    OverlapReal newDist = d_parallel - fast::sqrt(discriminant);
+
+    if (newDist > 0)
+        {
+        collisionPlaneVector = r_ab - direction * Scalar(newDist);
+        return newDist;
+        }
+    else
+        {
+        // Two particles overlapping [with negative sweepable distance]
+        collisionPlaneVector = r_ab;
+        return -10.0;
         }
     }
 
@@ -402,8 +459,8 @@ DEVICE inline bool excludedVolumeOverlap(const Shape& shape_a,
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
-        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+        hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
+        hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
@@ -509,8 +566,8 @@ sampleInExcludedVolumeIntersection(RNG& rng,
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
-        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+        hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
+        hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         if (!overlap(aabb_a, aabb_b))
             return false;
@@ -543,7 +600,7 @@ sampleInExcludedVolumeIntersection(RNG& rng,
         intersect_upper.y = detail::min(upper_a.y, upper_b.y);
         intersect_upper.z = detail::min(upper_a.z, upper_b.z);
 
-        detail::AABB aabb_intersect(intersect_lower, intersect_upper);
+        hoomd::detail::AABB aabb_intersect(intersect_lower, intersect_upper);
         p = vec3<OverlapReal>(generatePositionInAABB(rng, aabb_intersect, dim));
 
         // AABB sampling always succeeds
@@ -604,8 +661,8 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(const Shape& shape_a,
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
-        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+        hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
+        hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         if (!overlap(aabb_a, aabb_b))
             return OverlapReal(0.0);
@@ -685,8 +742,8 @@ DEVICE inline bool isPointInExcludedVolumeIntersection(const Shape& shape_a,
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
-        detail::AABB aabb_b = shape_b.getAABB(r_ab);
+        hoomd::detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
+        hoomd::detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
@@ -716,7 +773,7 @@ DEVICE inline bool isPointInExcludedVolumeIntersection(const Shape& shape_a,
         intersect_upper.y = detail::min(upper_a.y, upper_b.y);
         intersect_upper.z = detail::min(upper_a.z, upper_b.z);
 
-        detail::AABB aabb_intersect(intersect_lower, intersect_upper);
+        hoomd::detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
         return intersect_lower.x <= p.x && p.x <= intersect_upper.x && intersect_lower.y <= p.y
                && p.y <= intersect_upper.y
@@ -740,7 +797,8 @@ template<> inline std::string getShapeSpec(const ShapeSphere& sphere)
     }
 #endif
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

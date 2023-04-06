@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "BondedGroupData.cuh"
 #include "ParticleData.cuh"
@@ -11,6 +9,8 @@
 #include <hip/hip_runtime.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#include <thrust/iterator/constant_iterator.h>
+#include <thrust/scan.h>
 #include <thrust/sort.h>
 #pragma GCC diagnostic pop
 
@@ -18,6 +18,8 @@
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
 */
 
+namespace hoomd
+    {
 template<unsigned int group_size, typename group_t>
 __global__ void gpu_count_groups_kernel(const unsigned int n_groups,
                                         const group_t* d_group_table,
@@ -279,3 +281,24 @@ template void gpu_update_group_table<4>(const unsigned int n_groups,
                                         unsigned int* d_offsets,
                                         bool has_type_mapping,
                                         CachedAllocator& alloc);
+
+//! MeshTriangleData
+template void gpu_update_group_table<6>(const unsigned int n_groups,
+                                        const unsigned int N,
+                                        const union group_storage<6>* d_group_table,
+                                        const typeval_union* d_group_typeval,
+                                        const unsigned int* d_rtag,
+                                        unsigned int* d_n_groups,
+                                        unsigned int max_n_groups,
+                                        unsigned int* d_condition,
+                                        unsigned int next_flag,
+                                        unsigned int& flag,
+                                        group_storage<6>* d_pidx_group_table,
+                                        unsigned int* d_pidx_gpos_table,
+                                        const unsigned int pidx_group_table_pitch,
+                                        unsigned int* d_scratch_g,
+                                        unsigned int* d_scratch_idx,
+                                        unsigned int* d_offsets,
+                                        bool has_type_mapping,
+                                        CachedAllocator& alloc);
+    } // end namespace hoomd

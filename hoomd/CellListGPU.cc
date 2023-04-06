@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CellListGPU.cc
     \brief Defines CellListGPU
@@ -10,10 +8,10 @@
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
 /*! \param sysdef system to compute the cell list of
  */
 CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -26,29 +24,20 @@ CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
         throw std::runtime_error("Error initializing CellListGPU");
         }
 
-    unsigned int max_threads = m_exec_conf->dev_prop.maxThreadsPerBlock;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(new Autotuner(warp_size,
-                                max_threads,
-                                warp_size,
-                                5,
-                                100000,
-                                "cell_list",
-                                this->m_exec_conf));
-    m_tuner_combine.reset(new Autotuner(warp_size,
-                                        max_threads,
-                                        warp_size,
-                                        5,
-                                        100000,
-                                        "cell_list_combine",
-                                        this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   this->m_exec_conf,
+                                   "cell_list"));
+
+    m_tuner_combine.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           this->m_exec_conf,
+                                           "cell_list_combine",
+                                           5,
+                                           true));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner, m_tuner_combine});
     }
 
 void CellListGPU::computeCellList()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "compute");
-
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
@@ -148,7 +137,7 @@ void CellListGPU::computeCellList()
             m_cell_indexer,
             m_cell_list_indexer,
             getGhostWidth(),
-            m_tuner->getParam(),
+            m_tuner->getParam()[0],
             m_pdata->getGPUPartition());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -236,9 +225,6 @@ void CellListGPU::computeCellList()
 
     if (ngpu > 1 && !m_per_device)
         combineCellLists();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 void CellListGPU::combineCellLists()
@@ -292,7 +278,7 @@ void CellListGPU::combineCellLists()
                            d_cell_orientation.data,
                            m_cell_list_indexer,
                            m_exec_conf->getNumActiveGPUs(),
-                           m_tuner_combine->getParam(),
+                           m_tuner_combine->getParam()[0],
                            m_Nmax,
                            d_conditions.data,
                            m_pdata->getGPUPartition());
@@ -313,8 +299,6 @@ void CellListGPU::initializeMemory()
         return;
 
     m_exec_conf->msg->notice(10) << "CellListGPU initialize multiGPU memory" << endl;
-    if (m_prof)
-        m_prof->push("init");
 
 #if defined(__HIP_PLATFORM_NVCC__)
     if (m_compute_adj_list && m_exec_conf->allConcurrentManagedAccess())
@@ -464,13 +448,16 @@ void CellListGPU::initializeMemory()
         CHECK_CUDA_ERROR();
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop();
     }
 
-void export_CellListGPU(py::module& m)
+namespace detail
     {
-    py::class_<CellListGPU, CellList, std::shared_ptr<CellListGPU>>(m, "CellListGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_CellListGPU(pybind11::module& m)
+    {
+    pybind11::class_<CellListGPU, CellList, std::shared_ptr<CellListGPU>>(m, "CellListGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

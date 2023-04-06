@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ParticleData.cuh"
 #include "ParticleGroup.cuh"
@@ -18,6 +16,10 @@
     \brief Contains GPU kernel code used by ParticleGroup
 */
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! GPU kernel to translate between global and local membership lookup table
 __global__ void gpu_rebuild_index_list_kernel(unsigned int N,
                                               unsigned int* d_tag,
@@ -134,3 +136,7 @@ hipError_t gpu_compact_index_list(unsigned int N,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd

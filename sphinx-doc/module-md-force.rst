@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.force
 --------------
 
@@ -11,6 +14,8 @@ md.force
     Force
     Active
     ActiveOnManifold
+    Constant
+    Custom
 
 .. rubric:: Details
 
@@ -19,6 +24,7 @@ md.force
 
     .. autoclass:: Force
         :members:
+        :show-inheritance:
 
     .. autoclass:: Active
         :show-inheritance:
@@ -28,3 +34,9 @@ md.force
     .. autoclass:: ActiveOnManifold
         :show-inheritance:
         :members: create_diffusion_updater
+
+    .. autoclass:: Constant
+        :members:
+
+    .. autoclass:: Custom
+        :members:

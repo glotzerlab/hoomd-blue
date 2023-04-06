@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
 #ifndef __BOND_EVALUATOR_TETHER_H__
 #define __BOND_EVALUATOR_TETHER_H__
 
@@ -24,6 +23,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 struct tether_params
     {
     Scalar k_b;
@@ -189,5 +192,8 @@ class EvaluatorBondTether
     Scalar l_c0;  //!< l_c0 parameter
     Scalar l_max; //!< l_max parameter
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_TETHER_H__

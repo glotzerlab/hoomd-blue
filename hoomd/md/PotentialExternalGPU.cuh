@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
@@ -16,7 +17,13 @@
 #ifndef __POTENTIAL_EXTERNAL_GPU_CUH__
 #define __POTENTIAL_EXTERNAL_GPU_CUH__
 
-//! Wraps arguments to gpu_cpef
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
+//! Wraps arguments to gpu_compute_potential_external_forces
 struct external_potential_args_t
     {
     //! Construct a external_potential_args_t
@@ -28,19 +35,22 @@ struct external_potential_args_t
                               const Scalar* _d_diameter,
                               const Scalar* _d_charge,
                               const BoxDim& _box,
-                              const unsigned int _block_size)
+                              const unsigned int _block_size,
+                              const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), box(_box), N(_N),
-          d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), block_size(_block_size) {};
+          d_pos(_d_pos), d_diameter(_d_diameter), d_charge(_d_charge), block_size(_block_size),
+          devprop(_devprop) {};
 
-    Scalar4* d_force;              //!< Force to write out
-    Scalar* d_virial;              //!< Virial to write out
-    const size_t virial_pitch;     //!< The pitch of the 2D array of virial matrix elements
-    const BoxDim& box;             //!< Simulation box in GPU format
-    const unsigned int N;          //!< Number of particles
-    const Scalar4* d_pos;          //!< Device array of particle positions
-    const Scalar* d_diameter;      //!< particle diameters
-    const Scalar* d_charge;        //!< particle charges
-    const unsigned int block_size; //!< Block size to execute
+    Scalar4* d_force;               //!< Force to write out
+    Scalar* d_virial;               //!< Virial to write out
+    const size_t virial_pitch;      //!< The pitch of the 2D array of virial matrix elements
+    const BoxDim box;               //!< Simulation box in GPU format
+    const unsigned int N;           //!< Number of particles
+    const Scalar4* d_pos;           //!< Device array of particle positions
+    const Scalar* d_diameter;       //!< particle diameters
+    const Scalar* d_charge;         //!< particle charges
+    const unsigned int block_size;  //!< Block size to execute
+    const hipDeviceProp_t& devprop; //!< Device properties
     };
 
 //! Driver function for compute external field kernel
@@ -51,10 +61,10 @@ struct external_potential_args_t
  * \tparam Evaluator functor
  */
 template<class evaluator>
-hipError_t __attribute__((visibility("default")))
-gpu_cpef(const external_potential_args_t& external_potential_args,
-         const typename evaluator::param_type* d_params,
-         const typename evaluator::field_type* d_field);
+hipError_t __attribute__((visibility("default"))) gpu_compute_potential_external_forces(
+    const kernel::external_potential_args_t& external_potential_args,
+    const typename evaluator::param_type* d_params,
+    const typename evaluator::field_type* d_field);
 
 #ifdef __HIPCC__
 //! Kernel for calculating external forces
@@ -157,9 +167,10 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4* d_force,
  * instantiated per potential in a cu file.
  */
 template<class evaluator>
-hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                    const typename evaluator::param_type* d_params,
-                    const typename evaluator::field_type* d_field)
+hipError_t gpu_compute_potential_external_forces(
+    const kernel::external_potential_args_t& external_potential_args,
+    const typename evaluator::param_type* d_params,
+    const typename evaluator::field_type* d_field)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -174,6 +185,12 @@ hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
     dim3 grid(external_potential_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
     unsigned int bytes = (sizeof(typename evaluator::field_type) / sizeof(int) + 1) * sizeof(int);
+
+    if (bytes > external_potential_args.devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("External potential parameters exceed the available shared memory "
+                                 "per block.");
+        }
 
     // run the kernel
     hipLaunchKernelGGL((gpu_compute_external_forces_kernel<evaluator>),
@@ -195,4 +212,9 @@ hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
     return hipSuccess;
     };
 #endif // __HIPCC__
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // __POTENTIAL_PAIR_GPU_CUH__

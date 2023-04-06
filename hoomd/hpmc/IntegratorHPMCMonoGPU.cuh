@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -24,6 +24,8 @@
 
 #include <cassert>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -541,6 +543,7 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE
 
-    } // end namespace gpu
+    } // namespace gpu
+    } // namespace hpmc
 
-    } // end namespace hpmc
+    } // namespace hoomd

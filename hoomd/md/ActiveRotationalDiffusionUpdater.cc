@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ActiveRotationalDiffusionUpdater.cc
     \brief Defines the ActiveRotationalDiffusionUpdater class
@@ -10,8 +10,11 @@
 #include <iostream>
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System definition
  *  \param rotational_diffusion The diffusion across time
  *  \param group the particles to diffusion rotation on
@@ -19,9 +22,11 @@ namespace py = pybind11;
 
 ActiveRotationalDiffusionUpdater::ActiveRotationalDiffusionUpdater(
     std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<Trigger> trigger,
     std::shared_ptr<Variant> rotational_diffusion,
     std::shared_ptr<ActiveForceCompute> active_force)
-    : Updater(sysdef), m_rotational_diffusion(rotational_diffusion), m_active_force(active_force)
+    : Updater(sysdef, trigger), m_rotational_diffusion(rotational_diffusion),
+      m_active_force(active_force)
     {
     assert(m_pdata);
     assert(m_rotational_diffusion);
@@ -42,17 +47,24 @@ void ActiveRotationalDiffusionUpdater::update(uint64_t timestep)
     m_active_force->rotationalDiffusion(m_rotational_diffusion->operator()(timestep), timestep);
     }
 
-void export_ActiveRotationalDiffusionUpdater(py::module& m)
+namespace detail
     {
-    py::class_<ActiveRotationalDiffusionUpdater,
-               Updater,
-               std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
+void export_ActiveRotationalDiffusionUpdater(pybind11::module& m)
+    {
+    pybind11::class_<ActiveRotationalDiffusionUpdater,
+                     Updater,
+                     std::shared_ptr<ActiveRotationalDiffusionUpdater>>(
         m,
         "ActiveRotationalDiffusionUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<Variant>,
                             std::shared_ptr<ActiveForceCompute>>())
         .def_property("rotational_diffusion",
                       &ActiveRotationalDiffusionUpdater::getRotationalDiffusion,
                       &ActiveRotationalDiffusionUpdater::setRotationalDiffusion);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

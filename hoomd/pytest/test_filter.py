@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import pytest
 from hoomd.filter import (Type, Tags, SetDifference, Union, Intersection, All,
                           Null, Rigid)
@@ -115,6 +118,16 @@ _set_indices = [([0, 3, 8], [1, 6, 7, 9], [2, 4, 5]),
 @pytest.fixture(scope="function", params=_set_indices)
 def set_indices(request):
     return deepcopy(request.param)
+
+
+def test_tag_filter_equality():
+    filter_a = Tags(tags=[0, 1, 2, 3])
+    filter_b = Tags(tags=[2, 3, 4, 5, 6])
+    filter_c = Tags(tags=[0, 1, 2, 3, 4])
+    filter_d = Tags(tags=[0, 1, 2, 3])
+    assert filter_a != filter_b
+    assert filter_b != filter_c
+    assert filter_d == filter_a
 
 
 def type_not_in_combo(combo, particle_types):

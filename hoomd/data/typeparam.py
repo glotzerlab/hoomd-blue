@@ -1,13 +1,15 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement TypeParameter."""
 
 from collections.abc import MutableMapping
-from hoomd.data.parameterdicts import AttachedTypeParameterDict
 
 
+# This class serves as a shim class between TypeParameterDict and the user. This
+# class is documented for users and methods are documented for the API
+# documentation. For documentation on the mechanics and internal structure go to
+# the documentation for hoomd.data.parameterdicts.TypeParameterDict.
 class TypeParameter(MutableMapping):
     """Implement a type based mutable mapping.
 
@@ -90,32 +92,6 @@ class TypeParameter(MutableMapping):
         exist in the `hoomd.State` object. After calling ``run``, however, all
         such data for non-existent types is removed, and querying or attempting
         to set those keys will result in a ``KeyError``.
-
-    Warning:
-        Values after calling `hoomd.Simulation.run` are returned **by copy** not
-        reference. Beforehand, values are returned by reference.  For nested
-        data structures, this means that directly editing the internal stuctures
-        such as a list inside a dict will not be reflected after calling
-        `hoomd.Simulation.run`. Examples of nested structure are the union shape
-        intergrators in HPMC and the table pair potential in MD.  The
-        recommended way to handle mutation for nested structures in general is a
-        read-modify-write approach shown below in a code example. Future
-        versions of HOOMD-blue version 3 may lift this restriction and allow for
-        direct modification of nested structures.
-
-        .. code-block:: python
-
-            union_shape = hoomd.hpmc.integrate.SphereUnion()
-            union_shape.shape["union"] = {
-                "shapes": [{"diameter": 1.0}, {"diameter": 1.5}],
-                "positions": [(0.0, 0.0, 0.0), (-1.0, 0.0, 0.0)]
-                }
-            # read
-            shape_spec = union_shape.shape["union"]
-            # modify
-            shape_spec["shapes"][1] = {"diameter": 2.0}
-            # write
-            union_shape.shape["union"] = shape_spec
     """
     __slots__ = ("name", "type_kind", "param_dict")
 
@@ -127,7 +103,7 @@ class TypeParameter(MutableMapping):
     def __getattr__(self, attr):
         """Access parameter attributes."""
         if attr in self.__slots__:
-            return super().__getattr__(attr)
+            return object.__getattr__(self, attr)
         try:
             return getattr(self.param_dict, attr)
         except AttributeError:
@@ -191,19 +167,18 @@ class TypeParameter(MutableMapping):
     def default(self, value):
         self.param_dict.default = value
 
-    def _attach(self, cpp_obj, sim):
-        self.param_dict = AttachedTypeParameterDict(
-            cpp_obj, self.name, getattr(sim.state, self.type_kind),
-            self.param_dict)
+    def _attach(self, cpp_obj, state):
+        self.param_dict._attach(cpp_obj, self.name,
+                                getattr(state, self.type_kind))
         return self
 
     def _detach(self):
-        self.param_dict = self.param_dict.to_detached()
+        self.param_dict._detach()
         return self
 
-    def to_dict(self):
+    def to_base(self):
         """Convert to a Python `dict`."""
-        return self.param_dict.to_dict()
+        return self.param_dict.to_base()
 
     def __iter__(self):
         """Get the keys in the dictionaty."""
@@ -215,16 +190,9 @@ class TypeParameter(MutableMapping):
 
     def __getstate__(self):
         """Prepare data for pickling."""
-        state = {
-            'name': self.name,
-            'type_kind': self.type_kind,
-            'param_dict': self.param_dict
-        }
-        if isinstance(self.param_dict, AttachedTypeParameterDict):
-            state['param_dict'] = self.param_dict.to_detached()
-        return state
+        return {k: getattr(self, k) for k in self.__slots__}
 
     def __setstate__(self, state):
-        """Load pickled data."""
+        """Appropriately reset state."""
         for attr, value in state.items():
             setattr(self, attr, value)

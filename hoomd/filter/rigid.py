@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Define the Rigid filter."""
 
 from hoomd.filter.filter_ import ParticleFilter
@@ -8,7 +11,7 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
     """Select particles based on inclusion in rigid bodies.
 
     Args:
-        flags (tuple[str], optional):
+        flags (`tuple` [`str` ], optional):
             A tuple of strings of values "center", "constituent", or "free".
             These string flags specify what kinds of particles to filter:
             "center" will include central particles in a rigid body,

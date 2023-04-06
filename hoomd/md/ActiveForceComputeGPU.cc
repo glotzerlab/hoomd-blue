@@ -1,19 +1,21 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceComputeGPU.h"
 #include "ActiveForceComputeGPU.cuh"
 
 #include <vector>
-namespace py = pybind11;
+
 using namespace std;
 
 /*! \file ActiveForceComputeGPU.cc
     \brief Contains code for the ActiveForceComputeGPU class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param f_list An array of (x,y,z) tuples for the active force vector for each individual
    particle. \param orientation_link if True then forces and torques are applied in the particle's
    reference frame. If false, then the box reference fra    me is used. Only relevant for
@@ -35,14 +37,13 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
         }
 
     // initialize autotuner
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        valid_params.push_back(block_size);
-
-    m_tuner_force.reset(new Autotuner(valid_params, 5, 100000, "active_force", this->m_exec_conf));
-    m_tuner_diffusion.reset(
-        new Autotuner(valid_params, 5, 100000, "active_diffusion", this->m_exec_conf));
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "active_force"));
+    m_tuner_diffusion.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "active_diffusion"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_diffusion});
 
     // unsigned int N = m_pdata->getNGlobal();
     // unsigned int group_size = m_group->getNumMembersGlobal();
@@ -102,16 +103,16 @@ void ActiveForceComputeGPU::setForces()
     // compute the forces on the GPU
     m_tuner_force->begin();
 
-    gpu_compute_active_force_set_forces(group_size,
-                                        d_index_array.data,
-                                        d_force.data,
-                                        d_torque.data,
-                                        d_pos.data,
-                                        d_orientation.data,
-                                        d_f_actVec.data,
-                                        d_t_actVec.data,
-                                        N,
-                                        m_tuner_force->getParam());
+    kernel::gpu_compute_active_force_set_forces(group_size,
+                                                d_index_array.data,
+                                                d_force.data,
+                                                d_torque.data,
+                                                d_pos.data,
+                                                d_orientation.data,
+                                                d_f_actVec.data,
+                                                d_t_actVec.data,
+                                                N,
+                                                m_tuner_force->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -147,17 +148,17 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
     // perform the update on the GPU
     m_tuner_diffusion->begin();
 
-    gpu_compute_active_force_rotational_diffusion(group_size,
-                                                  d_tag.data,
-                                                  d_index_array.data,
-                                                  d_pos.data,
-                                                  d_orientation.data,
-                                                  d_f_actVec.data,
-                                                  is2D,
-                                                  rotation_constant,
-                                                  timestep,
-                                                  m_sysdef->getSeed(),
-                                                  m_tuner_diffusion->getParam());
+    kernel::gpu_compute_active_force_rotational_diffusion(group_size,
+                                                          d_tag.data,
+                                                          d_index_array.data,
+                                                          d_pos.data,
+                                                          d_orientation.data,
+                                                          d_f_actVec.data,
+                                                          is2D,
+                                                          rotation_constant,
+                                                          timestep,
+                                                          m_sysdef->getSeed(),
+                                                          m_tuner_diffusion->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -165,10 +166,16 @@ void ActiveForceComputeGPU::rotationalDiffusion(Scalar rotational_diffusion, uin
     m_tuner_diffusion->end();
     }
 
-void export_ActiveForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
-        m,
-        "ActiveForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
+void export_ActiveForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<ActiveForceComputeGPU,
+                     ActiveForceCompute,
+                     std::shared_ptr<ActiveForceComputeGPU>>(m, "ActiveForceComputeGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SorterGPU.cc
@@ -11,6 +9,8 @@
 #include "SorterGPU.h"
 #include "SorterGPU.cuh"
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  */
@@ -19,10 +19,16 @@ mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
                            unsigned int period)
     : mpcd::Sorter(sysdata, cur_timestep, period)
     {
-    m_sentinel_tuner.reset(
-        new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_sentinel", m_exec_conf));
-    m_reverse_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_reverse", m_exec_conf));
-    m_apply_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_apply", m_exec_conf));
+    m_sentinel_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "mpcd_sort_sentinel"));
+    m_reverse_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           m_exec_conf,
+                                           "mpcd_sort_reverse"));
+    m_apply_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_sort_apply"));
+    m_autotuners.insert(m_autotuners.end(), {m_sentinel_tuner, m_reverse_tuner, m_apply_tuner});
     }
 
 /*!
@@ -34,19 +40,10 @@ mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
  */
 void mpcd::SorterGPU::computeOrder(uint64_t timestep)
     {
-    if (m_prof)
-        {
-        m_prof->pop(m_exec_conf);
-        }
-
     // compute the cell list at current timestep, guarantees owned particles are on rank
     m_cl->compute(timestep);
-    if (m_prof)
-        {
-        m_prof->push(m_exec_conf, "MPCD sort");
-        }
 
-    // fill the empty cell list entries with a sentinel larger than number of MPCD particles
+        // fill the empty cell list entries with a sentinel larger than number of MPCD particles
         {
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
                                               access_location::device,
@@ -60,13 +57,13 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
                                      d_cell_np.data,
                                      m_cl->getCellListIndexer(),
                                      0xffffffff,
-                                     m_sentinel_tuner->getParam());
+                                     m_sentinel_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_sentinel_tuner->end();
         }
 
-    // use thrust to select out the indexes of MPCD particles
+        // use thrust to select out the indexes of MPCD particles
         {
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(),
                                               access_location::device,
@@ -86,7 +83,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
             }
         }
 
-    // fill out the reverse ordering map
+        // fill out the reverse ordering map
         {
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rorder(m_rorder,
@@ -97,7 +94,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
         mpcd::gpu::sort_gen_reverse(d_rorder.data,
                                     d_order.data,
                                     m_mpcd_pdata->getN(),
-                                    m_reverse_tuner->getParam());
+                                    m_reverse_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_reverse_tuner->end();
@@ -111,7 +108,7 @@ void mpcd::SorterGPU::computeOrder(uint64_t timestep)
  */
 void mpcd::SorterGPU::applyOrder() const
     {
-    // apply the sorted order
+        // apply the sorted order
         {
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::read);
 
@@ -144,7 +141,7 @@ void mpcd::SorterGPU::applyOrder() const
                               d_tag.data,
                               d_order.data,
                               m_mpcd_pdata->getN(),
-                              m_apply_tuner->getParam());
+                              m_apply_tuner->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_apply_tuner->end();
@@ -181,7 +178,9 @@ void mpcd::SorterGPU::applyOrder() const
  */
 void mpcd::detail::export_SorterGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SorterGPU, mpcd::Sorter, std::shared_ptr<mpcd::SorterGPU>>(m, "SorterGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>());
+    pybind11::class_<mpcd::SorterGPU, mpcd::Sorter, std::shared_ptr<mpcd::SorterGPU>>(m,
+                                                                                      "SorterGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>());
     }
+
+    } // end namespace hoomd

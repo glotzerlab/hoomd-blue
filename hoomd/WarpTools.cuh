@@ -1,40 +1,34 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file WarpTools.cuh
  * \brief Wrappers around CUB primitives for warp-level parallel primitives.
  */
 
-#ifndef HOOMD_WARP_TOOLS_CUH_
-#define HOOMD_WARP_TOOLS_CUH_
+#pragma once
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
-#ifndef __CUDACC_RTC__
 #include <type_traits>
-#endif
 
+#ifndef __CUDACC_RTC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hipcub/hipcub.hpp>
 #else
-#if __CUDACC_VER_MAJOR__ >= 11
-#include <cub/cub.cuh>
 #include <cub/warp/warp_reduce.cuh>
 #include <cub/warp/warp_scan.cuh>
-#else
-#include "hoomd/extern/cub/cub/cub.cuh"
-#include "hoomd/extern/cub/cub/warp/warp_reduce.cuh"
-#include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
 #endif
-#endif
+
+#ifndef __CUDACC_RTC__
 #pragma GCC diagnostic pop
+#endif
 
 #define DEVICE __device__ __forceinline__
 
@@ -42,23 +36,23 @@ namespace hoomd
     {
 namespace detail
     {
-//! Computes warp-level reduction using shuffle instructions
-/*!
- * Reduction operations are performed at the warp or sub-warp level using shuffle instructions. The
- * sub-warp is defined as a consecutive group of threads that is (1) smaller than the hardware warp
- * size (32 threads) and (2) a power of 2. For additional details about any operator, refer to the
- * CUB documentation.
- *
- * This class is a thin wrapper around cub::WarpReduce. The CUB scan classes nominally request
- * "temporary" memory, which is shared memory for non-shuffle scans. However, the shuffle-based scan
- * does not use any shared memory, and so this temporary variable is put unused into a register. The
- * compiler can then optimize this out. We explicitly ensure that the storage type is an empty date
- * type.
- *
- * \tparam T data type to scan
- * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
- * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
- */
+    //! Computes warp-level reduction using shuffle instructions
+    /*!
+     * Reduction operations are performed at the warp or sub-warp level using shuffle instructions.
+     * The sub-warp is defined as a consecutive group of threads that is (1) smaller than the
+     * hardware warp size (32 threads) and (2) a power of 2. For additional details about any
+     * operator, refer to the CUB documentation.
+     *
+     * This class is a thin wrapper around cub::WarpReduce. The CUB scan classes nominally request
+     * "temporary" memory, which is shared memory for non-shuffle scans. However, the shuffle-based
+     * scan does not use any shared memory, and so this temporary variable is put unused into a
+     * register. The compiler can then optimize this out. We explicitly ensure that the storage type
+     * is an empty date type.
+     *
+     * \tparam T data type to scan
+     * \tparam LOGICAL_WARP_THREADS number of threads in a "logical" warp, must be a multiple of 2.
+     * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
+     */
 
 #ifdef __HIP_PLATFORM_HCC__
 template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
@@ -448,5 +442,3 @@ class WarpScan
     } // end namespace hoomd
 
 #undef DEVICE
-
-#endif // HOOMD_WARP_TOOLS_CUH_

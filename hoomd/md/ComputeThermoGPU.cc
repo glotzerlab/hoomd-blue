@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ComputeThermoGPU.cc
     \brief Contains code for the ComputeThermoGPU class
@@ -11,8 +9,6 @@
 #include "ComputeThermoGPU.cuh"
 #include "hoomd/GPUPartition.cuh"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
@@ -21,10 +17,13 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
 */
-
 ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<ParticleGroup> group)
     : ComputeThermo(sysdef, group), m_scratch(m_exec_conf), m_scratch_pressure_tensor(m_exec_conf),
@@ -57,9 +56,6 @@ void ComputeThermoGPU::computeProperties()
         return;
 
     unsigned int group_size = m_group->getNumMembers();
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Thermo");
 
     assert(m_pdata);
 
@@ -163,7 +159,7 @@ void ComputeThermoGPU::computeProperties()
         m_exec_conf->beginMultiGPU();
 
         // build up args list
-        compute_thermo_args args;
+        kernel::compute_thermo_args args;
         args.n_blocks = num_blocks;
         args.d_net_force = d_net_force.data;
         args.d_net_virial = d_net_virial.data;
@@ -224,15 +220,18 @@ void ComputeThermoGPU::computeProperties()
     // in MPI, reduce extensive quantities only when they're needed
     m_properties_reduced = !m_pdata->getDomainDecomposition();
 #endif // ENABLE_MPI
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_ComputeThermoGPU(py::module& m)
+namespace detail
     {
-    py::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU>>(
+void export_ComputeThermoGPU(pybind11::module& m)
+    {
+    pybind11::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU>>(
         m,
         "ComputeThermoGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

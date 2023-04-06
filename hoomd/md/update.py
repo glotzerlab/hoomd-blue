@@ -1,15 +1,7 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
-
-"""Update particle properties.
-
-When an updater is specified, it acts on the particle system each time step it
-is triggered to change its state.
-"""
+"""MD updaters."""
 
 from hoomd.md import _md
 import hoomd
@@ -21,33 +13,50 @@ from hoomd.logging import log
 
 
 class ZeroMomentum(Updater):
-    """Zeroes system momentum.
+    r"""Zeroes system momentum.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to zero momentum.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to zero
+            momentum.
 
-    During the time steps specified by *trigger*, particle velocities are
-    modified such that the total linear momentum of the system is set to zero.
+    `ZeroMomentum` computes the center of mass linear momentum of the system:
+
+    .. math::
+
+        \vec{p} = \frac{1}{N_\mathrm{free,central}}
+                  \sum_{i \in \mathrm{free,central}}
+                  m_i \vec{v}_i
+
+    and removes it:
+
+    .. math::
+
+        \vec{v}_i' = \vec{v}_i - \frac{\vec{p}}{m_i}
+
+    where the index :math:`i` includes only free and central particles (and
+    excludes consitutent particles of rigid bodies).
+
+    Note:
+        `ZeroMomentum` executes on the CPU even when using a GPU device.
 
     Examples::
 
-        zeroer = hoomd.md.update.ZeroMomentum(hoomd.trigger.Periodic(100))
-
+        zero_momentum = hoomd.md.update.ZeroMomentum(
+            hoomd.trigger.Periodic(100))
     """
 
     def __init__(self, trigger):
         # initialize base class
         super().__init__(trigger)
 
-    def _attach(self):
+    def _attach_hook(self):
         # create the c++ mirror class
         self._cpp_obj = _md.ZeroMomentumUpdater(
-            self._simulation.state._cpp_sys_def)
-        super()._attach()
+            self._simulation.state._cpp_sys_def, self.trigger)
 
 
 class ReversePerturbationFlow(Updater):
-    """Reverse Perturbation (Müller-Plathe) method to establish shear flow.
+    """Reverse Perturbation method to establish shear flow.
 
      "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium
      molecular dynamics: An easy way to calculate the shear viscosity of fluids.
@@ -65,10 +74,10 @@ class ReversePerturbationFlow(Updater):
     "max" and "min" slab might be swapped.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this updater.
 
-        flow_target (`hoomd.variant.Variant`): Target value of the
+        flow_target (hoomd.variant.variant_like): Target value of the
             time-integrated momentum flux.
             :math:`[\\delta t \\cdot \\mathrm{mass} \\cdot \\mathrm{length}
             \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the
@@ -93,8 +102,8 @@ class ReversePerturbationFlow(Updater):
             for. If set < 0 the value is set to its default 0.
 
     Attention:
-        * This updater uses `hoomd.trigger.Periodic(1)` as a trigger, meaning it
-          is applied every timestep.
+        * This updater uses ``hoomd.trigger.Periodic(1)`` as a trigger, meaning
+          it is applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
 
@@ -114,7 +123,7 @@ class ReversePerturbationFlow(Updater):
                                                       n_slabs=20)
 
     Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+        filter (hoomd.filter.filter_like): Subset of particles on which to
             apply this updater.
 
         flow_target (hoomd.variant.Variant): Target value of the
@@ -195,20 +204,19 @@ class ReversePerturbationFlow(Updater):
                               min_slab = max_slab = {min_slab}")
         return min_slab
 
-    def _attach(self):
+    def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
         sys_def = self._simulation.state._cpp_sys_def
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.MuellerPlatheFlow(
-                sys_def, group, self.flow_target, self.slab_direction,
-                self.flow_direction, self.n_slabs, self.min_slab, self.max_slab,
-                self.flow_epsilon)
+                sys_def, self.trigger, group, self.flow_target,
+                self.slab_direction, self.flow_direction, self.n_slabs,
+                self.min_slab, self.max_slab, self.flow_epsilon)
         else:
             self._cpp_obj = _md.MuellerPlatheFlowGPU(
-                sys_def, group, self.flow_target, self.slab_direction,
-                self.flow_direction, self.n_slabs, self.min_slab, self.max_slab,
-                self.flow_epsilon)
-        super()._attach()
+                sys_def, self.trigger, group, self.flow_target,
+                self.slab_direction, self.flow_direction, self.n_slabs,
+                self.min_slab, self.max_slab, self.flow_epsilon)
 
     @log(category="scalar", requires_run=True)
     def summed_exchanged_momentum(self):
@@ -220,30 +228,30 @@ class ActiveRotationalDiffusion(Updater):
     r"""Updater to introduce rotational diffusion with an active force.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps to update
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to update
             rotational diffusion.
         active_force (hoomd.md.force.Active): The active force associated with
             the updater can be any subclass of the class
             `hoomd.md.force.Active`.
-        rotational_diffusion (hoomd.variant.Variant): The rotational diffusion
-            as a function of time.
+        rotational_diffusion (hoomd.variant.variant_like): The rotational
+            diffusion as a function of time.
 
-    This updater works directly with an `hoomd.md.force.Active` or
-    `hoomd.md.force.ActiveOnManifold` instance to update rotational diffusion
-    for simulations with active forces.
+    `ActiveRotationalDiffusion` works directly with `hoomd.md.force.Active` or
+    `hoomd.md.force.ActiveOnManifold` to apply rotational diffusion to the
+    particle quaternions :math:`\mathbf{q}_i` in simulations with active forces.
+    The persistence length of an active particle's path is :math:`v_0 / D_r`.
 
-    The diffusion of the updater  follows :math:`\delta \theta / \delta t =
-    \sqrt{2 D_r / \delta t} \Gamma`, where :math:`D_r` is the rotational
-    diffusion constant, and the gamma function is a unit-variance random
-    variable, whose components are uncorrelated in time, space, and between
-    particles. In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and
-    diffusion follows :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r /
-    \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`,
-    where :math:`\hat{p}_r` is an uncorrelated random unit vector. The
-    persistence length of an active particle's path is :math:`v_0 / D_r`.
-    The rotational diffusion is applied to the orientation quaternion
-    of each particle. When used with `hoomd.md.force.ActiveOnManifold`,
-    rotational diffusion is performed in the tangent plane of the manifold.
+    In 2D, the diffusion follows :math:`\delta \theta / \delta t = \Gamma
+    \sqrt{2 D_r / \delta t}`, where :math:`D_r` is the rotational diffusion
+    constant and the :math:`\Gamma` unit-variance random variable.
+
+    In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and the diffusion
+    follows :math:`\delta \hat{p}_i / \delta t = \Gamma \sqrt{2 D_r / \delta t}
+    (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
+    :math:`\hat{p}_r` is an uncorrelated random unit vector.
+
+    When used with `hoomd.md.force.ActiveOnManifold`, rotational diffusion is
+    performed in the tangent plane of the manifold.
 
     Tip:
         Use `hoomd.md.force.Active.create_diffusion_updater` to construct
@@ -267,7 +275,7 @@ class ActiveRotationalDiffusion(Updater):
         self._add_dependency(active_force)
         self._param_dict.update(param_dict)
 
-    def _attach(self):
+    def _attach_hook(self):
         # Since integrators are attached first, if the active force is not
         # attached then the active force is not a part of the simulation, and we
         # should error.
@@ -280,19 +288,13 @@ class ActiveRotationalDiffusion(Updater):
                 "Active force for ActiveRotationalDiffusion object belongs to "
                 "another simulation.")
         self._cpp_obj = _md.ActiveRotationalDiffusionUpdater(
-            self._simulation.state._cpp_sys_def, self.rotational_diffusion,
-            self.active_force._cpp_obj)
-        # No need to call super
+            self._simulation.state._cpp_sys_def, self.trigger,
+            self.rotational_diffusion, self.active_force._cpp_obj)
 
     def _handle_removed_dependency(self, active_force):
         raise SimulationDefinitionError(
             "The active force this updater is dependent on is being removed. "
             "Remove this updater first to avoid error.")
-
-    def _getattr_param(self, attr):
-        if attr == "active_force":
-            return self._param_dict[attr]
-        return super()._getattr_param(attr)
 
     def _setattr_param(self, attr, value):
         if attr == "active_force":

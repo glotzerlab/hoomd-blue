@@ -1,11 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander
-
-#include "Profiler.h"
-#include "SharedSignal.h"
-#include "SystemDefinition.h"
+#include "Action.h"
 
 #include <memory>
 #include <string>
@@ -37,6 +33,8 @@
 /*! @}
  */
 
+namespace hoomd
+    {
 //! Performs computations on ParticleData structures
 /*! The Compute is an abstract concept that performs some kind of computation on the
     particles in a ParticleData structure. This computation is to be done by reading
@@ -57,7 +55,7 @@
     See \ref page_dev_info for more information
     \ingroup computes
 */
-class PYBIND11_EXPORT Compute
+class PYBIND11_EXPORT Compute : public Action
     {
     public:
     //! Constructs the compute and associates it with the ParticleData
@@ -80,17 +78,6 @@ class PYBIND11_EXPORT Compute
     */
     virtual void resetStats() { }
 
-    //! Sets the profiler for the compute to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof);
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
-
     //! Force recalculation of compute
     /*! If this function is called, recalculation of the compute will be forced (even if had
      *  been calculated earlier in this timestep)
@@ -101,38 +88,7 @@ class PYBIND11_EXPORT Compute
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
-    void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
-        {
-        m_slots.push_back(slot);
-        }
-
-    void removeDisconnectedSlots()
-        {
-        for (unsigned int i = 0; i < m_slots.size();)
-            {
-            if (!m_slots[i]->connected())
-                {
-                m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get()
-                                            << std::dec << std::endl;
-                m_slots.erase(m_slots.begin() + i);
-                }
-            else
-                {
-                i++;
-                }
-            }
-        }
-
     protected:
-    const std::shared_ptr<SystemDefinition>
-        m_sysdef; //!< The system definition this compute is associated with
-    const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this compute is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this compute is to use
-    std::shared_ptr<const ExecutionConfiguration>
-        m_exec_conf; //!< Stored shared ptr to the execution configuration
-    std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots;              //!< Stored shared ptr to the system signals
     bool m_force_compute;     //!< true if calculation is enforced
     uint64_t m_last_computed; //!< Stores the last timestep compute was called
     bool m_first_compute;     //!< true if compute has not yet been called
@@ -148,9 +104,13 @@ class PYBIND11_EXPORT Compute
     friend void export_Compute();
     };
 
+namespace detail
+    {
 //! Exports the Compute class to python
 #ifndef __HIPCC__
 void export_Compute(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

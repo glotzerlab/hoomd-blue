@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
@@ -12,11 +12,10 @@
 #include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
-#include "ExternalFieldLattice.h"
+#include "ExternalFieldHarmonic.h"
 #include "ExternalFieldWall.h"
 
 #include "UpdaterClusters.h"
-#include "UpdaterExternalFieldWall.h"
 #include "UpdaterMuVT.h"
 
 #ifdef ENABLE_HIP
@@ -25,15 +24,14 @@
 #include "UpdaterClustersGPU.h"
 #endif
 
-namespace py = pybind11;
-using namespace hpmc;
-
-using namespace hpmc::detail;
-
+namespace hoomd
+    {
 namespace hpmc
     {
+namespace detail
+    {
 //! Export the base HPMCMono integrators
-void export_faceted_ellipsoid(py::module& m)
+void export_faceted_ellipsoid(pybind11::module& m)
     {
     export_IntegratorHPMCMono<ShapeFacetedEllipsoid>(m, "IntegratorHPMCMonoFacetedEllipsoid");
     export_ComputeFreeVolume<ShapeFacetedEllipsoid>(m, "ComputeFreeVolumeFacetedEllipsoid");
@@ -42,13 +40,10 @@ void export_faceted_ellipsoid(py::module& m)
     export_UpdaterClusters<ShapeFacetedEllipsoid>(m, "UpdaterClustersFacetedEllipsoid");
 
     export_ExternalFieldInterface<ShapeFacetedEllipsoid>(m, "ExternalFieldFacetedEllipsoid");
-    export_LatticeField<ShapeFacetedEllipsoid>(m, "ExternalFieldLatticeFacetedEllipsoid");
+    export_HarmonicField<ShapeFacetedEllipsoid>(m, "ExternalFieldHarmonicFacetedEllipsoid");
     export_ExternalFieldComposite<ShapeFacetedEllipsoid>(m,
                                                          "ExternalFieldCompositeFacetedEllipsoid");
     export_ExternalFieldWall<ShapeFacetedEllipsoid>(m, "WallFacetedEllipsoid");
-    export_UpdaterExternalFieldWall<ShapeFacetedEllipsoid>(
-        m,
-        "UpdaterExternalFieldWallFacetedEllipsoid");
     export_ExternalCallback<ShapeFacetedEllipsoid>(m, "ExternalCallbackFacetedEllipsoid");
 
 #ifdef ENABLE_HIP
@@ -58,4 +53,6 @@ void export_faceted_ellipsoid(py::module& m)
 #endif
     }
 
+    } // namespace detail
     } // namespace hpmc
+    } // namespace hoomd

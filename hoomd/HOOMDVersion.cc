@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDVersion.h"
 #include <iostream>
@@ -171,6 +171,17 @@ std::string BuildInfo::getSourceDir()
 std::string BuildInfo::getInstallDir()
     {
     return std::string(HOOMD_INSTALL_PREFIX) + "/" + std::string(PYTHON_SITE_INSTALL_DIR);
+    }
+
+std::pair<unsigned int, unsigned int> BuildInfo::getFloatingPointPrecision()
+    {
+#if defined(SINGLE_PRECISION)
+    return std::make_pair(32, 32);
+#elif !defined(SINGLE_PRECISION) && defined(ENABLE_HPMC_MIXED_PRECISION)
+    return std::make_pair(64, 32);
+#elif !defined(SINGLE_PRECISION) && !defined(ENABLE_HPMC_MIXED_PRECISION)
+    return std::make_pair(64, 64);
+#endif
     }
 
     } // namespace hoomd

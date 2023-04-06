@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement local access classes for the GPU."""
 
@@ -117,7 +116,7 @@ with ``ghost_`` to grab the ghost particles in a read only manner. Likewise,
 suffixing with ``_with_ghost`` will grab all data on the rank (regular and
 ghost particles) in a read only array.
 
-All array-like properties return a `hoomd.array.HOOMDGPUArray` object which
+All array-like properties return a `hoomd.data.array.HOOMDGPUArray` object which
 prevents invalid memory accesses.
 """
 

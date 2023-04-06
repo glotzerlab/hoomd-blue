@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_ExpandedMie_H__
 #define __PAIR_EVALUATOR_ExpandedMie_H__
@@ -26,10 +24,14 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Expanded Mie pair potential
 /*! <b>General Overview</b>
 
-    See EvaluatorPairSLJ and EvaluatorPairMie
+    See EvaluatorPairMie
 
     <b>ExpandedMie specifics</b>
 
@@ -71,6 +73,8 @@ class EvaluatorPairExpandedMie
         Scalar n_pow;      //!< Higher exponent for potential
         Scalar m_pow;      //!< Lower exponent for potential
         Scalar delta;      //!< shift in radial distance for use in Mie potential
+        Scalar sigma;
+        Scalar epsilon;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -82,15 +86,18 @@ class EvaluatorPairExpandedMie
 #endif
 
 #ifndef __HIPCC__
-        param_type() : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0) { }
+        param_type()
+            : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0), sigma(0), epsilon(0)
+            {
+            }
 
         param_type(const pybind11::dict v, bool managed = false)
             {
             n_pow = v["n"].cast<Scalar>();
             m_pow = v["m"].cast<Scalar>();
 
-            auto sigma(v["sigma"].cast<Scalar>());
-            auto epsilon(v["epsilon"].cast<Scalar>());
+            sigma = v["sigma"].cast<Scalar>();
+            epsilon = v["epsilon"].cast<Scalar>();
 
             Scalar prefactor
                 = (n_pow / (n_pow - m_pow)) * fast::pow(n_pow / m_pow, m_pow / (n_pow - m_pow));
@@ -105,10 +112,6 @@ class EvaluatorPairExpandedMie
             pybind11::dict v;
             v["n"] = n_pow;
             v["m"] = m_pow;
-
-            Scalar sigma = fast::pow(repulsive / attractive, 1 / (n_pow - m_pow));
-            Scalar epsilon = repulsive / fast::pow(sigma, n_pow) * (n_pow - m_pow) / n_pow
-                             * fast::pow(n_pow / m_pow, m_pow / (m_pow - n_pow));
 
             v["epsilon"] = epsilon;
             v["sigma"] = sigma;
@@ -168,8 +171,8 @@ class EvaluatorPairExpandedMie
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift) const
         {
         // precompute some quantities
-        const Scalar r = fast::sqrt(rsq);
-        const Scalar rinv = fast::rsqrt(rsq);
+        Scalar rinv = fast::rsqrt(rsq);
+        Scalar r = Scalar(1.0) / rinv;
 
         // compute the force divided by r in force_divr
         if (rsq < rcutsq && repulsive != 0)
@@ -186,14 +189,27 @@ class EvaluatorPairExpandedMie
 
             if (energy_shift)
                 {
-                Scalar rcutninv = fast::pow(rcutsq, -n_pow / Scalar(2.0));
-                Scalar rcutminv = fast::pow(rcutsq, -m_pow / Scalar(2.0));
-                pair_eng -= repulsive * rcutninv - attractive * rcutminv;
+                Scalar r_cut = fast::sqrt(rcutsq);
+                Scalar r_cut_shifted = r_cut - delta;
+
+                Scalar r_cut_n_inv = fast::pow(r_cut_shifted, -n_pow);
+                Scalar r_cut_m_inv = fast::pow(r_cut_shifted, -m_pow);
+                pair_eng -= repulsive * r_cut_n_inv - attractive * r_cut_m_inv;
                 }
             return true;
             }
         else
             return false;
+        }
+
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
         }
 
 #ifndef __HIPCC__
@@ -221,5 +237,8 @@ class EvaluatorPairExpandedMie
     Scalar m_pow;      //!< Lower exponent for potential
     Scalar delta;      //!< shift in radial distance for use in Mie potential
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDMIE_H__

@@ -1,12 +1,9 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Analyzer.h"
 #include "Compute.h"
 #include "Integrator.h"
-#include "Trigger.h"
 #include "Tuner.h"
 #include "Updater.h"
 
@@ -17,11 +14,6 @@
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
-#ifdef ENABLE_MPI
-//! Forward declarations
-class Communicator;
-#endif
-
 /*! \file System.h
     \brief Declares the System class and associated helper classes
 */
@@ -31,6 +23,13 @@ class Communicator;
 #endif
 
 #include <pybind11/pybind11.h>
+
+namespace hoomd
+    {
+#ifdef ENABLE_MPI
+//! Forward declarations
+class Communicator;
+#endif
 
 //! Ties Analyzers, Updaters, and Computes together to run a full MD simulation
 /*! The System class is responsible for making all the time steps in an MD simulation.
@@ -93,12 +92,16 @@ class PYBIND11_EXPORT System
     */
     void run(uint64_t nsteps, bool write_at_start = false);
 
-    //! Configures profiling of runs
-    void enableProfiler(bool enable);
-
     //! Get the average TPS from the last run
-    Scalar getLastTPS() const
+    Scalar getLastTPS()
         {
+#ifdef ENABLE_MPI
+        // make sure all ranks return the same TPS
+        if (m_sysdef->isDomainDecomposed())
+            {
+            bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
         return m_last_TPS;
         }
 
@@ -111,6 +114,13 @@ class PYBIND11_EXPORT System
     /// Get the current wall time
     double getCurrentWalltime()
         {
+#ifdef ENABLE_MPI
+        // make sure all ranks return the same walltime
+        if (m_sysdef->isDomainDecomposed())
+            {
+            bcast(m_last_walltime, 0, m_exec_conf->getMPICommunicator());
+            }
+#endif
         return m_last_walltime;
         }
 
@@ -118,6 +128,12 @@ class PYBIND11_EXPORT System
     uint64_t getEndStep()
         {
         return m_end_tstep;
+        }
+
+    /// Get the end time step
+    uint64_t getStartStep()
+        {
+        return m_start_tstep;
         }
 
     // -------------- Misc methods
@@ -128,15 +144,12 @@ class PYBIND11_EXPORT System
         return m_sysdef;
         }
 
-    //! Set autotuner parameters
-    void setAutotunerParams(bool enable, unsigned int period);
-
-    std::vector<std::pair<std::shared_ptr<Analyzer>, std::shared_ptr<Trigger>>>& getAnalyzers()
+    std::vector<std::shared_ptr<Analyzer>>& getAnalyzers()
         {
         return m_analyzers;
         }
 
-    std::vector<std::pair<std::shared_ptr<Updater>, std::shared_ptr<Trigger>>>& getUpdaters()
+    std::vector<std::shared_ptr<Updater>>& getUpdaters()
         {
         return m_updaters;
         }
@@ -163,14 +176,26 @@ class PYBIND11_EXPORT System
         return m_default_flags[pdata_flag::pressure_tensor];
         }
 
+    /// Get the particle group cache.
+    std::vector<std::shared_ptr<ParticleGroup>>& getGroupCache()
+        {
+        return m_group_cache;
+        }
+
+    /// Trigger an update of the group degrees of freedom.
+    void updateGroupDOFOnNextStep()
+        {
+        m_update_group_dof_next_step = true;
+        }
+
     private:
-    std::vector<std::pair<std::shared_ptr<Analyzer>,
-                          std::shared_ptr<Trigger>>>
+    /// Update the number of degrees of freedom in cached groups
+    void updateGroupDOF();
+
+    std::vector<std::shared_ptr<Analyzer>>
         m_analyzers; //!< List of analyzers belonging to this System
 
-    std::vector<std::pair<std::shared_ptr<Updater>,
-                          std::shared_ptr<Trigger>>>
-        m_updaters; //!< List of updaters belonging to this System
+    std::vector<std::shared_ptr<Updater>> m_updaters; //!< List of updaters belonging to this System
 
     std::vector<std::shared_ptr<Tuner>> m_tuners; //!< List of tuners belonging to the System
 
@@ -178,7 +203,6 @@ class PYBIND11_EXPORT System
 
     std::shared_ptr<Integrator> m_integrator;   //!< Integrator that advances time in this System
     std::shared_ptr<SystemDefinition> m_sysdef; //!< SystemDefinition for this System
-    std::shared_ptr<Profiler> m_profiler;       //!< Profiler to profile runs
 
 #ifdef ENABLE_MPI
     /// The system's communicator.
@@ -191,15 +215,10 @@ class PYBIND11_EXPORT System
 
     ClockSource m_clk; //!< A clock counting time from the beginning of the run
 
-    bool m_profile; //!< True if runs should be profiled
-
     /// Particle data flags to always set
     PDataFlags m_default_flags;
 
     // --------- Steps in the simulation run implemented in helper functions
-    //! Sets up m_profiler and attaches/detaches to/from all computes, updaters, and analyzers
-    void setupProfiling();
-
     //! Resets stats for all contained classes
     void resetStats();
 
@@ -220,9 +239,21 @@ class PYBIND11_EXPORT System
 
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf; //!< Stored shared ptr to the execution configuration
+
+    /// Cache of ParticleGroup objects
+    std::vector<std::shared_ptr<ParticleGroup>> m_group_cache;
+
+    /// Flag to trigger update of group degrees of freedom
+    bool m_update_group_dof_next_step = false;
     };
 
+namespace detail
+    {
 //! Exports the System class to python
 void export_System(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

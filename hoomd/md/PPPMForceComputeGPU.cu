@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.cuh"
 #include "hoomd/TextureTools.h"
@@ -13,6 +13,12 @@
 
 #define GPU_PPPM_MAX_ORDER 7
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // workaround for HIP bug
 #ifdef __HIP_PLATFORM_HCC__
 inline __device__ float myAtomicAdd(float* address, float val)
@@ -1471,3 +1477,7 @@ hipError_t gpu_fix_exclusions(Scalar4* d_force,
                        group_size);
     return hipSuccess;
     }
+
+    } // namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

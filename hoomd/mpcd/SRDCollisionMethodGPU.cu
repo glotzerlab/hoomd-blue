@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SRDCollisionMethodGPU.cu
@@ -12,6 +10,8 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -289,3 +289,4 @@ cudaError_t srd_rotate(Scalar4* d_vel,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd

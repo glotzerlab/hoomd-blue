@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.MuVT."""
 
@@ -54,7 +53,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator(23456)
     mc.shape["A"] = args
     mc.shape["B"] = args
@@ -102,7 +101,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator(23456)
     mc.shape["A"] = args
     mc.shape["B"] = args
@@ -154,7 +153,7 @@ def test_insertion_removal(device, simulation_factory,
     # set a positive fugacity
     muvt.fugacity['B'] = 1
 
-    sim.run(100)
+    sim.run(20)
     assert sum(muvt.insert_moves) > 0
     assert sum(muvt.remove_moves) > 0
 

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/RandomNumbers.h"
@@ -27,6 +27,8 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
 //! hpmc namespace
 namespace hpmc
     {
@@ -270,7 +272,7 @@ DEVICE inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng,
  */
 template<class RNG>
 DEVICE inline vec3<Scalar>
-generatePositionInAABB(RNG& rng, const detail::AABB& aabb, unsigned int ndim)
+generatePositionInAABB(RNG& rng, const hoomd::detail::AABB& aabb, unsigned int ndim)
     {
     vec3<Scalar> p;
     vec3<Scalar> lower = aabb.getLower();
@@ -346,6 +348,7 @@ DEVICE inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat
     }
 
     }; // end namespace hpmc
+    }  // namespace hoomd
 
 #undef DEVICE
 

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SRDCollisionMethod.h
@@ -11,6 +9,8 @@
 #include "SRDCollisionMethodGPU.h"
 #include "SRDCollisionMethodGPU.cuh"
 
+namespace hoomd
+    {
 mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
                                                    unsigned int cur_timestep,
                                                    unsigned int period,
@@ -19,8 +19,13 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemD
                                                    std::shared_ptr<mpcd::CellThermoCompute> thermo)
     : mpcd::SRDCollisionMethod(sysdata, cur_timestep, period, phase, seed, thermo)
     {
-    m_tuner_rotvec.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_srd_vec", m_exec_conf));
-    m_tuner_rotate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_srd_rotate", m_exec_conf));
+    m_tuner_rotvec.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                          m_exec_conf,
+                                          "mpcd_srd_vec"));
+    m_tuner_rotate.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                          m_exec_conf,
+                                          "mpcd_srd_rotate"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_rotvec, m_tuner_rotate});
     }
 
 void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
@@ -48,7 +53,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
                                     seed,
                                     (*m_T)(timestep),
                                     m_sysdef->getNDimensions(),
-                                    m_tuner_rotvec->getParam());
+                                    m_tuner_rotvec->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_rotvec->end();
@@ -67,7 +72,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
                                     seed,
                                     1.0,
                                     m_sysdef->getNDimensions(),
-                                    m_tuner_rotvec->getParam());
+                                    m_tuner_rotvec->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_rotvec->end();
@@ -122,7 +127,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
                               (m_T) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
-                              m_tuner_rotate->getParam());
+                              m_tuner_rotate->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_rotate->end();
@@ -140,7 +145,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
                               (m_T) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
-                              m_tuner_rotate->getParam());
+                              m_tuner_rotate->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_rotate->end();
@@ -152,14 +157,15 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
  */
 void mpcd::detail::export_SRDCollisionMethodGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SRDCollisionMethodGPU,
-               mpcd::SRDCollisionMethod,
-               std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
-                      int,
-                      unsigned int,
-                      std::shared_ptr<mpcd::CellThermoCompute>>());
+    pybind11::class_<mpcd::SRDCollisionMethodGPU,
+                     mpcd::SRDCollisionMethod,
+                     std::shared_ptr<mpcd::SRDCollisionMethodGPU>>(m, "SRDCollisionMethodGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            unsigned int,
+                            unsigned int,
+                            int,
+                            unsigned int,
+                            std::shared_ptr<mpcd::CellThermoCompute>>());
     }
+
+    } // end namespace hoomd

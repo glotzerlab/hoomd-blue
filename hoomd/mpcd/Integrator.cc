@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/Integrator.cc
@@ -14,6 +12,8 @@
 #include "hoomd/Communicator.h"
 #endif
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  * \param deltaT Fundamental integration timestep
@@ -32,26 +32,6 @@ mpcd::Integrator::~Integrator()
     if (m_mpcd_comm)
         m_mpcd_comm->getMigrateRequestSignal()
             .disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
-#endif // ENABLE_MPI
-    }
-
-/*!
- * \param prof The profiler to set
- * Sets the profiler both for this class and all of the contained integration methods
- */
-void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    IntegratorTwoStep::setProfiler(prof);
-    m_mpcd_sys->setProfiler(prof);
-    if (m_collide)
-        m_collide->setProfiler(prof);
-    if (m_stream)
-        m_stream->setProfiler(prof);
-    if (m_sorter)
-        m_sorter->setProfiler(prof);
-#ifdef ENABLE_MPI
-    if (m_mpcd_comm)
-        m_mpcd_comm->setProfiler(prof);
 #endif // ENABLE_MPI
     }
 
@@ -103,22 +83,27 @@ void mpcd::Integrator::update(uint64_t timestep)
         m_collide->collide(timestep);
 
     // perform the first MD integration step
-    if (m_prof)
-        m_prof->push("Integrate");
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
-    if (m_prof)
-        m_prof->pop();
 
 // MD communication / rigid body updates
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
+        // Update the rigid body consituent particles before communicating so that any such
+        // particles that move from one domain to another are migrated.
+        updateRigidBodies(timestep + 1);
+
         m_comm->communicate(timestep + 1);
+
+        // Communicator uses a compute callback to trigger updateRigidBodies again and ensure that
+        // all ghost constituent particle positions are set in accordance with any just communicated
+        // ghost and/or migrated rigid body centers.
         }
     else
 #endif // ENABLE_MPI
         {
+        // Update rigid body constituent particles in serial simulations.
         updateRigidBodies(timestep + 1);
         }
 
@@ -138,12 +123,8 @@ void mpcd::Integrator::update(uint64_t timestep)
         computeNetForce(timestep + 1);
 
     // perform the second step of the MD integration
-    if (m_prof)
-        m_prof->push("Integrate");
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*!
@@ -181,21 +162,6 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
 #endif // ENABLE_MPI
     }
 
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
-    {
-    IntegratorTwoStep::setAutotunerParams(enable, period);
-    m_mpcd_sys->setAutotunerParams(enable, period);
-    if (m_collide)
-        m_collide->setAutotunerParams(enable, period);
-    if (m_stream)
-        m_stream->setAutotunerParams(enable, period);
-    if (m_sorter)
-        m_sorter->setAutotunerParams(enable, period);
-    }
-
 /*!
  * \param filler Virtual particle filler to add to the integrator
  *
@@ -221,11 +187,10 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
  */
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::Integrator, ::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator>>(
-        m,
-        "Integrator")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
+    pybind11::class_<mpcd::Integrator,
+                     hoomd::md::IntegratorTwoStep,
+                     std::shared_ptr<mpcd::Integrator>>(m, "Integrator")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)
@@ -239,3 +204,4 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
 #endif // ENABLE_MPI
         ;
     }
+    } // end namespace hoomd

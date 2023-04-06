@@ -1,9 +1,14 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PARTICLE_FILTER_INTERSECTION_H__
 #define __PARTICLE_FILTER_INTERSECTION_H__
 
 #include "ParticleFilter.h"
 #include <algorithm>
 
+namespace hoomd
+    {
 /// Represents the intersection of two filters: f and g.
 class PYBIND11_EXPORT ParticleFilterIntersection : public ParticleFilter
     {
@@ -49,4 +54,6 @@ class PYBIND11_EXPORT ParticleFilterIntersection : public ParticleFilter
     std::shared_ptr<ParticleFilter> m_f;
     std::shared_ptr<ParticleFilter> m_g;
     };
+
+    } // end namespace hoomd
 #endif

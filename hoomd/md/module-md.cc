@@ -1,248 +1,301 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander All developers are free to add the calls needed to export their modules
-
-#include "ActiveForceCompute.h"
-#include "ActiveForceConstraintCompute.h"
-#include "ActiveRotationalDiffusionUpdater.h"
-#include "AllAnisoPairPotentials.h"
-#include "AllBondPotentials.h"
-#include "AllExternalPotentials.h"
-#include "AllPairPotentials.h"
-#include "AllSpecialPairPotentials.h"
-#include "AllTripletPotentials.h"
-#include "AnisoPotentialPair.h"
-#include "BondTablePotential.h"
-#include "ComputeThermo.h"
-#include "ComputeThermoHMA.h"
-#include "CosineSqAngleForceCompute.h"
-#include "EvaluatorRevCross.h"
-#include "EvaluatorSquareDensity.h"
-#include "EvaluatorTersoff.h"
-#include "FIREEnergyMinimizer.h"
-#include "ForceComposite.h"
-#include "ForceDistanceConstraint.h"
-#include "HarmonicAngleForceCompute.h"
-#include "HarmonicDihedralForceCompute.h"
-#include "HarmonicImproperForceCompute.h"
-#include "IntegrationMethodTwoStep.h"
-#include "IntegratorTwoStep.h"
-#include "ManifoldDiamond.h"
-#include "ManifoldEllipsoid.h"
-#include "ManifoldGyroid.h"
-#include "ManifoldPrimitive.h"
-#include "ManifoldSphere.h"
-#include "ManifoldXYPlane.h"
-#include "ManifoldZCylinder.h"
-#include "MolecularForceCompute.h"
-#include "MuellerPlatheFlow.h"
-#include "NeighborList.h"
-#include "NeighborListBinned.h"
-#include "NeighborListStencil.h"
-#include "NeighborListTree.h"
-#include "OPLSDihedralForceCompute.h"
-#include "PPPMForceCompute.h"
-#include "PotentialBond.h"
-#include "PotentialExternal.h"
-#include "PotentialPair.h"
-#include "PotentialPairDPDThermo.h"
-#include "PotentialTersoff.h"
-#include "QuaternionMath.h"
-#include "TableAngleForceCompute.h"
-#include "TableDihedralForceCompute.h"
-#include "TwoStepBD.h"
-#include "TwoStepBerendsen.h"
-#include "TwoStepLangevin.h"
-#include "TwoStepLangevinBase.h"
-#include "TwoStepNPTMTK.h"
-#include "TwoStepNVE.h"
-#include "TwoStepNVTMTK.h"
-#include "TwoStepRATTLEBD.h"
-#include "TwoStepRATTLELangevin.h"
-#include "TwoStepRATTLENVE.h"
-#include "WallData.h"
-#include "ZeroMomentumUpdater.h"
-
-// include GPU classes
-#ifdef ENABLE_HIP
-#include "ActiveForceComputeGPU.h"
-#include "ActiveForceConstraintComputeGPU.h"
-#include "AnisoPotentialPairGPU.h"
-#include "BondTablePotentialGPU.h"
-#include "ComputeThermoGPU.h"
-#include "ComputeThermoHMAGPU.h"
-#include "CosineSqAngleForceComputeGPU.h"
-#include "FIREEnergyMinimizerGPU.h"
-#include "ForceCompositeGPU.h"
-#include "ForceDistanceConstraintGPU.h"
-#include "HarmonicAngleForceComputeGPU.h"
-#include "HarmonicDihedralForceComputeGPU.h"
-#include "HarmonicImproperForceComputeGPU.h"
-#include "MuellerPlatheFlowGPU.h"
-#include "NeighborListGPU.h"
-#include "NeighborListGPUBinned.h"
-#include "NeighborListGPUStencil.h"
-#include "NeighborListGPUTree.h"
-#include "OPLSDihedralForceComputeGPU.h"
-#include "PPPMForceComputeGPU.h"
-#include "PotentialBondGPU.h"
-#include "PotentialExternalGPU.h"
-#include "PotentialPairDPDThermoGPU.h"
-#include "PotentialPairGPU.h"
-#include "PotentialTersoffGPU.h"
-#include "TableAngleForceComputeGPU.h"
-#include "TableDihedralForceComputeGPU.h"
-#include "TwoStepBDGPU.h"
-#include "TwoStepBerendsenGPU.h"
-#include "TwoStepLangevinGPU.h"
-#include "TwoStepNPTMTKGPU.h"
-#include "TwoStepNVEGPU.h"
-#include "TwoStepNVTMTKGPU.h"
-#include "TwoStepRATTLEBDGPU.h"
-#include "TwoStepRATTLELangevinGPU.h"
-#include "TwoStepRATTLENVEGPU.h"
-#endif
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
 
-/*! \file hoomd_module.cc
-    \brief Brings all of the export_* functions together to export the hoomd python module
-*/
-
-//! Helper function for converting python wall group structure to wall_type
-wall_type make_wall_field_params(py::object walls,
-                                 std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
+namespace hoomd
     {
-    wall_type w;
-    py::list walls_spheres = walls.attr("spheres").cast<py::list>();
-    py::list walls_cylinders = walls.attr("cylinders").cast<py::list>();
-    py::list walls_planes = walls.attr("planes").cast<py::list>();
-    w.numSpheres = (unsigned int)py::len(walls_spheres);
-    w.numCylinders = (unsigned int)py::len(walls_cylinders);
-    w.numPlanes = (unsigned int)py::len(walls_planes);
-
-    if (w.numSpheres > MAX_N_SWALLS || w.numCylinders > MAX_N_CWALLS || w.numPlanes > MAX_N_PWALLS)
-        {
-        m_exec_conf->msg->error() << "A number of walls greater than the maximum number allowed "
-                                     "was specified in a wall force."
-                                  << std::endl;
-        throw std::runtime_error("Error loading wall group.");
-        }
-    else
-        {
-        for (unsigned int i = 0; i < w.numSpheres; i++)
-            {
-            Scalar r = py::cast<Scalar>(py::object(walls_spheres[i]).attr("r"));
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_spheres[i]).attr("_origin"));
-            bool inside = py::cast<bool>(py::object(walls_spheres[i]).attr("inside"));
-            w.Spheres[i] = SphereWall(r, origin, inside);
-            }
-        for (unsigned int i = 0; i < w.numCylinders; i++)
-            {
-            Scalar r = py::cast<Scalar>(py::object(walls_cylinders[i]).attr("r"));
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_origin"));
-            Scalar3 axis = py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_axis"));
-            bool inside = py::cast<bool>(py::object(walls_cylinders[i]).attr("inside"));
-            w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
-            }
-        for (unsigned int i = 0; i < w.numPlanes; i++)
-            {
-            Scalar3 origin = py::cast<Scalar3>(py::object(walls_planes[i]).attr("_origin"));
-            Scalar3 normal = py::cast<Scalar3>(py::object(walls_planes[i]).attr("_normal"));
-            bool inside = py::cast<bool>(py::object(walls_planes[i]).attr("inside"));
-            w.Planes[i] = PlaneWall(origin, normal, inside);
-            }
-        return w;
-        }
-    }
-
-//! Exports helper function for parameters based on standard evaluators
-template<class evaluator> void export_wall_params_helpers(py::module& m)
+namespace md
     {
-    py::class_<typename EvaluatorWalls<evaluator>::param_type,
-               std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type>>(
-        m,
-        (EvaluatorWalls<evaluator>::getName() + "_params").c_str())
-        .def(py::init<>())
-        .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
-        .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
-        .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq);
-    m.def(std::string("make_" + EvaluatorWalls<evaluator>::getName() + "_params").c_str(),
-          &make_wall_params<evaluator>);
-    }
-
-//! Combines exports of evaluators and parameter helper functions
-template<class evaluator> void export_PotentialExternalWall(py::module& m, const std::string& name)
+namespace detail
     {
-    export_PotentialExternal<PotentialExternal<EvaluatorWalls<evaluator>>>(m, name);
-    export_wall_params_helpers<evaluator>(m);
-    }
 
-// Template specification for Dipole anisotropic pair potential. A specific
-// template instance is needed since we expose the shape as just mu in Python
-// when the default behavior exposes setting and getting the shape through
-// 'shape'.
-template<>
-void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
-                                                         const std::string& name)
-    {
-    pybind11::
-        class_<AnisoPotentialPairDipole, ForceCompute, std::shared_ptr<AnisoPotentialPairDipole>>
-            anisopotentialpair(m, name.c_str());
-    anisopotentialpair
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
-        .def("setParams", &AnisoPotentialPairDipole::setParamsPython)
-        .def("getParams", &AnisoPotentialPairDipole::getParamsPython)
-        .def("setMu", &AnisoPotentialPairDipole::setShapePython)
-        .def("getMu", &AnisoPotentialPairDipole::getShapePython)
-        .def("setRCut", &AnisoPotentialPairDipole::setRCutPython)
-        .def("getRCut", &AnisoPotentialPairDipole::getRCut)
-        .def_property("mode",
-                      &AnisoPotentialPairDipole::getShiftMode,
-                      &AnisoPotentialPairDipole::setShiftModePython)
-        .def("slotWriteGSDShapeSpec", &AnisoPotentialPairDipole::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &AnisoPotentialPairDipole::connectGSDShapeSpec)
-        .def("getTypeShapesPy", &AnisoPotentialPairDipole::getTypeShapesPy);
-    }
+void export_ActiveForceCompute(pybind11::module& m);
+void export_ActiveForceConstraintComputeCylinder(pybind11::module& m);
+void export_ActiveForceConstraintComputeDiamond(pybind11::module& m);
+void export_ActiveForceConstraintComputeEllipsoid(pybind11::module& m);
+void export_ActiveForceConstraintComputeGyroid(pybind11::module& m);
+void export_ActiveForceConstraintComputePlane(pybind11::module& m);
+void export_ActiveForceConstraintComputePrimitive(pybind11::module& m);
+void export_ActiveForceConstraintComputeSphere(pybind11::module& m);
+void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
+void export_ComputeThermo(pybind11::module& m);
+void export_ComputeThermoHMA(pybind11::module& m);
+void export_ConstantForceCompute(pybind11::module& m);
+void export_HarmonicAngleForceCompute(pybind11::module& m);
+void export_CosineSqAngleForceCompute(pybind11::module& m);
+void export_TableAngleForceCompute(pybind11::module& m);
+void export_HarmonicDihedralForceCompute(pybind11::module& m);
+void export_OPLSDihedralForceCompute(pybind11::module& m);
+void export_TableDihedralForceCompute(pybind11::module& m);
+void export_HarmonicImproperForceCompute(pybind11::module& m);
+void export_BondTablePotential(pybind11::module& m);
+void export_CustomForceCompute(pybind11::module& m);
+void export_NeighborList(pybind11::module& m);
+void export_NeighborListBinned(pybind11::module& m);
+void export_NeighborListStencil(pybind11::module& m);
+void export_NeighborListTree(pybind11::module& m);
+void export_MolecularForceCompute(pybind11::module& m);
+void export_ForceDistanceConstraint(pybind11::module& m);
+void export_ForceComposite(pybind11::module& m);
+void export_PPPMForceCompute(pybind11::module& m);
+void export_wall_data(pybind11::module& m);
+void export_wall_field(pybind11::module& m);
+void export_LocalNeighborListDataHost(pybind11::module& m);
 
-//! Export setParamsPython and getParams as a different name
-// Electric field only has one parameter, so we can get its parameter from
-// python with by a name other than getParams and setParams
-template<>
-void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m,
-                                                              const std::string& name)
-    {
-    pybind11::class_<PotentialExternalElectricField,
-                     ForceCompute,
-                     std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setE", &PotentialExternalElectricField::setParamsPython)
-        .def("getE", &PotentialExternalElectricField::getParams)
-        .def("setField", &PotentialExternalElectricField::setField);
-    }
+void export_PotentialPairBuckingham(pybind11::module& m);
+void export_PotentialPairLJ(pybind11::module& m);
+void export_PotentialPairLJ1208(pybind11::module& m);
+void export_PotentialPairLJ0804(pybind11::module& m);
+void export_PotentialPairGauss(pybind11::module& m);
+void export_PotentialPairExpandedLJ(pybind11::module& m);
+void export_PotentialPairExpandedGaussian(pybind11::module& m);
+void export_PotentialPairExpandedMie(pybind11::module& m);
+void export_PotentialPairYukawa(pybind11::module& m);
+void export_PotentialPairEwald(pybind11::module& m);
+void export_PotentialPairMorse(pybind11::module& m);
+void export_PotentialPairMoliere(pybind11::module& m);
+void export_PotentialPairZBL(pybind11::module& m);
+void export_PotentialPairMie(pybind11::module& m);
+void export_PotentialPairReactionField(pybind11::module& m);
+void export_PotentialPairDLVO(pybind11::module& m);
+void export_PotentialPairFourier(pybind11::module& m);
+void export_PotentialPairOPP(pybind11::module& m);
+void export_PotentialPairTWF(pybind11::module& m);
+void export_PotentialPairLJGauss(pybind11::module& m);
+void export_PotentialPairForceShiftedLJ(pybind11::module& m);
+void export_PotentialPairTable(pybind11::module& m);
+
+void export_AnisoPotentialPairALJ2D(pybind11::module& m);
+void export_AnisoPotentialPairALJ3D(pybind11::module& m);
+void export_AnisoPotentialPairDipole(pybind11::module& m);
+void export_AnisoPotentialPairGB(pybind11::module& m);
+
+void export_PotentialBondHarmonic(pybind11::module& m);
+void export_PotentialBondFENE(pybind11::module& m);
+void export_PotentialBondTether(pybind11::module& m);
+
+void export_PotentialMeshBondHarmonic(pybind11::module& m);
+void export_PotentialMeshBondFENE(pybind11::module& m);
+void export_PotentialMeshBondTether(pybind11::module& m);
+
+void export_PotentialSpecialPairLJ(pybind11::module& m);
+void export_PotentialSpecialPairCoulomb(pybind11::module& m);
+
+void export_PotentialTersoff(pybind11::module& m);
+void export_PotentialSquareDensity(pybind11::module& m);
+void export_PotentialRevCross(pybind11::module& m);
+
+void export_PotentialExternalPeriodic(pybind11::module& m);
+void export_PotentialExternalElectricField(pybind11::module& m);
+
+void export_PotentialExternalWallLJ(pybind11::module& m);
+void export_PotentialExternalWallYukawa(pybind11::module& m);
+void export_PotentialExternalWallForceShiftedLJ(pybind11::module& m);
+void export_PotentialExternalWallMie(pybind11::module& m);
+void export_PotentialExternalWallGauss(pybind11::module& m);
+void export_PotentialExternalWallMorse(pybind11::module& m);
+
+void export_PotentialPairDPDThermoDPD(pybind11::module& m);
+void export_PotentialPairDPDThermoLJ(pybind11::module& m);
+
+void export_IntegratorTwoStep(pybind11::module& m);
+void export_IntegrationMethodTwoStep(pybind11::module& m);
+void export_ZeroMomentumUpdater(pybind11::module& m);
+void export_TwoStepNVE(pybind11::module& m);
+void export_TwoStepNVTMTK(pybind11::module& m);
+void export_TwoStepLangevinBase(pybind11::module& m);
+void export_TwoStepLangevin(pybind11::module& m);
+void export_TwoStepBD(pybind11::module& m);
+void export_TwoStepNPTMTK(pybind11::module& m);
+void export_Berendsen(pybind11::module& m);
+void export_TwoStepNVTAlchemy(pybind11::module& m);
+void export_FIREEnergyMinimizer(pybind11::module& m);
+void export_MuellerPlatheFlow(pybind11::module& m);
+void export_AlchemostatTwoStep(pybind11::module& m);
+void export_HalfStepHook(pybind11::module& m);
+
+void export_TwoStepRATTLEBDCylinder(pybind11::module& m);
+void export_TwoStepRATTLEBDDiamond(pybind11::module& m);
+void export_TwoStepRATTLEBDEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLEBDGyroid(pybind11::module& m);
+void export_TwoStepRATTLEBDPlane(pybind11::module& m);
+void export_TwoStepRATTLEBDPrimitive(pybind11::module& m);
+void export_TwoStepRATTLEBDSphere(pybind11::module& m);
+
+void export_TwoStepRATTLELangevinCylinder(pybind11::module& m);
+void export_TwoStepRATTLELangevinDiamond(pybind11::module& m);
+void export_TwoStepRATTLELangevinEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLELangevinGyroid(pybind11::module& m);
+void export_TwoStepRATTLELangevinPlane(pybind11::module& m);
+void export_TwoStepRATTLELangevinPrimitive(pybind11::module& m);
+void export_TwoStepRATTLELangevinSphere(pybind11::module& m);
+
+void export_TwoStepRATTLENVECylinder(pybind11::module& m);
+void export_TwoStepRATTLENVEDiamond(pybind11::module& m);
+void export_TwoStepRATTLENVEEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLENVEGyroid(pybind11::module& m);
+void export_TwoStepRATTLENVEPlane(pybind11::module& m);
+void export_TwoStepRATTLENVEPrimitive(pybind11::module& m);
+void export_TwoStepRATTLENVESphere(pybind11::module& m);
+
+void export_ManifoldDiamond(pybind11::module& m);
+void export_ManifoldEllipsoid(pybind11::module& m);
+void export_ManifoldGyroid(pybind11::module& m);
+void export_ManifoldPrimitive(pybind11::module& m);
+void export_ManifoldSphere(pybind11::module& m);
+void export_ManifoldXYPlane(pybind11::module& m);
+void export_ManifoldZCylinder(pybind11::module& m);
+
+void export_AlchemicalMDParticles(pybind11::module& m);
+void export_PotentialPairAlchemicalLJGauss(pybind11::module& m);
+
+#ifdef ENABLE_HIP
+
+void export_ActiveForceConstraintComputeCylinderGPU(pybind11::module& m);
+void export_ActiveForceConstraintComputeDiamondGPU(pybind11::module& m);
+void export_ActiveForceConstraintComputeEllipsoidGPU(pybind11::module& m);
+void export_ActiveForceConstraintComputeGyroidGPU(pybind11::module& m);
+void export_ActiveForceConstraintComputePlaneGPU(pybind11::module& m);
+void export_ActiveForceConstraintComputePrimitiveGPU(pybind11::module& m);
+void export_ActiveForceConstraintComputeSphereGPU(pybind11::module& m);
+void export_ActiveForceComputeGPU(pybind11::module& m);
+void export_ComputeThermoGPU(pybind11::module& m);
+void export_ComputeThermoHMAGPU(pybind11::module& m);
+void export_ConstantForceComputeGPU(pybind11::module& m);
+void export_HarmonicAngleForceComputeGPU(pybind11::module& m);
+void export_CosineSqAngleForceComputeGPU(pybind11::module& m);
+void export_TableAngleForceComputeGPU(pybind11::module& m);
+void export_HarmonicDihedralForceComputeGPU(pybind11::module& m);
+void export_OPLSDihedralForceComputeGPU(pybind11::module& m);
+void export_TableDihedralForceComputeGPU(pybind11::module& m);
+void export_HarmonicImproperForceComputeGPU(pybind11::module& m);
+void export_BondTablePotentialGPU(pybind11::module& m);
+void export_NeighborListGPU(pybind11::module& m);
+void export_NeighborListGPUBinned(pybind11::module& m);
+void export_NeighborListGPUStencil(pybind11::module& m);
+void export_NeighborListGPUTree(pybind11::module& m);
+void export_ForceDistanceConstraintGPU(pybind11::module& m);
+void export_ForceCompositeGPU(pybind11::module& m);
+void export_PPPMForceComputeGPU(pybind11::module& m);
+void export_LocalNeighborListDataGPU(pybind11::module& m);
+
+void export_PotentialPairBuckinghamGPU(pybind11::module& m);
+void export_PotentialPairLJGPU(pybind11::module& m);
+void export_PotentialPairLJ1208GPU(pybind11::module& m);
+void export_PotentialPairLJ0804GPU(pybind11::module& m);
+void export_PotentialPairGaussGPU(pybind11::module& m);
+void export_PotentialPairExpandedLJGPU(pybind11::module& m);
+void export_PotentialPairExpandedGaussianGPU(pybind11::module& m);
+void export_PotentialPairExpandedMieGPU(pybind11::module& m);
+void export_PotentialPairYukawaGPU(pybind11::module& m);
+void export_PotentialPairEwaldGPU(pybind11::module& m);
+void export_PotentialPairMorseGPU(pybind11::module& m);
+void export_PotentialPairMoliereGPU(pybind11::module& m);
+void export_PotentialPairZBLGPU(pybind11::module& m);
+void export_PotentialPairMieGPU(pybind11::module& m);
+void export_PotentialPairReactionFieldGPU(pybind11::module& m);
+void export_PotentialPairDLVOGPU(pybind11::module& m);
+void export_PotentialPairFourierGPU(pybind11::module& m);
+void export_PotentialPairOPPGPU(pybind11::module& m);
+void export_PotentialPairTWFGPU(pybind11::module& m);
+void export_PotentialPairLJGaussGPU(pybind11::module& m);
+void export_PotentialPairForceShiftedLJGPU(pybind11::module& m);
+void export_PotentialPairTableGPU(pybind11::module& m);
+void export_PotentialPairConservativeDPDGPU(pybind11::module& m);
+
+void export_AnisoPotentialPairALJ2DGPU(pybind11::module& m);
+void export_AnisoPotentialPairALJ3DGPU(pybind11::module& m);
+void export_AnisoPotentialPairDipoleGPU(pybind11::module& m);
+void export_AnisoPotentialPairGBGPU(pybind11::module& m);
+
+void export_PotentialBondHarmonicGPU(pybind11::module& m);
+void export_PotentialBondFENEGPU(pybind11::module& m);
+void export_PotentialBondTetherGPU(pybind11::module& m);
+
+void export_PotentialMeshBondHarmonicGPU(pybind11::module& m);
+void export_PotentialMeshBondFENEGPU(pybind11::module& m);
+void export_PotentialMeshBondTetherGPU(pybind11::module& m);
+
+void export_PotentialSpecialPairLJGPU(pybind11::module& m);
+void export_PotentialSpecialPairCoulombGPU(pybind11::module& m);
+
+void export_PotentialTersoffGPU(pybind11::module& m);
+void export_PotentialSquareDensityGPU(pybind11::module& m);
+void export_PotentialRevCrossGPU(pybind11::module& m);
+
+void export_PotentialExternalPeriodicGPU(pybind11::module& m);
+void export_PotentialExternalElectricFieldGPU(pybind11::module& m);
+
+void export_PotentialExternalWallLJGPU(pybind11::module& m);
+void export_PotentialExternalWallYukawaGPU(pybind11::module& m);
+void export_PotentialExternalWallForceShiftedLJGPU(pybind11::module& m);
+void export_PotentialExternalWallMieGPU(pybind11::module& m);
+void export_PotentialExternalWallGaussGPU(pybind11::module& m);
+void export_PotentialExternalWallMorseGPU(pybind11::module& m);
+
+void export_PotentialPairDPDThermoDPDGPU(pybind11::module& m);
+void export_PotentialPairDPDThermoLJGPU(pybind11::module& m);
+
+void export_TwoStepNVEGPU(pybind11::module& m);
+void export_TwoStepNVTMTKGPU(pybind11::module& m);
+void export_TwoStepLangevinGPU(pybind11::module& m);
+void export_TwoStepBDGPU(pybind11::module& m);
+void export_TwoStepNPTMTKGPU(pybind11::module& m);
+void export_BerendsenGPU(pybind11::module& m);
+void export_FIREEnergyMinimizerGPU(pybind11::module& m);
+void export_MuellerPlatheFlowGPU(pybind11::module& m);
+
+void export_TwoStepRATTLEBDGPUCylinder(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUDiamond(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUGyroid(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUPlane(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUPrimitive(pybind11::module& m);
+void export_TwoStepRATTLEBDGPUSphere(pybind11::module& m);
+
+void export_TwoStepRATTLELangevinGPUCylinder(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUDiamond(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUGyroid(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUPlane(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUPrimitive(pybind11::module& m);
+void export_TwoStepRATTLELangevinGPUSphere(pybind11::module& m);
+
+void export_TwoStepRATTLENVEGPUCylinder(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUDiamond(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUEllipsoid(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUGyroid(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUPlane(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUPrimitive(pybind11::module& m);
+void export_TwoStepRATTLENVEGPUSphere(pybind11::module& m);
+#endif
+    } // namespace detail
+    } // namespace md
+    } // namespace hoomd
+
+using namespace hoomd;
+using namespace hoomd::md;
+using namespace hoomd::md::detail;
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
-    create the hoomd python module and define the exports here.
+    create the md python module and define the exports here.
 */
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
-    export_ActiveForceConstraintCompute<ManifoldZCylinder>(m,
-                                                           "ActiveForceConstraintComputeCylinder");
-    export_ActiveForceConstraintCompute<ManifoldDiamond>(m, "ActiveForceConstraintComputeDiamond");
-    export_ActiveForceConstraintCompute<ManifoldEllipsoid>(m,
-                                                           "ActiveForceConstraintComputeEllipsoid");
-    export_ActiveForceConstraintCompute<ManifoldGyroid>(m, "ActiveForceConstraintComputeGyroid");
-    export_ActiveForceConstraintCompute<ManifoldXYPlane>(m, "ActiveForceConstraintComputePlane");
-    export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,
-                                                           "ActiveForceConstraintComputePrimitive");
-    export_ActiveForceConstraintCompute<ManifoldSphere>(m, "ActiveForceConstraintComputeSphere");
+    export_ActiveForceConstraintComputeCylinder(m);
+    export_ActiveForceConstraintComputeDiamond(m);
+    export_ActiveForceConstraintComputeEllipsoid(m);
+    export_ActiveForceConstraintComputeGyroid(m);
+    export_ActiveForceConstraintComputePlane(m);
+    export_ActiveForceConstraintComputePrimitive(m);
+    export_ActiveForceConstraintComputeSphere(m);
     export_ActiveRotationalDiffusionUpdater(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
+    export_ConstantForceCompute(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
@@ -251,44 +304,57 @@ PYBIND11_MODULE(_md, m)
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
     export_BondTablePotential(m);
-    export_PotentialPair<PotentialPairBuckingham>(m, "PotentialPairBuckingham");
-    export_PotentialPair<PotentialPairLJ>(m, "PotentialPairLJ");
-    export_PotentialPair<PotentialPairLJ1208>(m, "PotentialPairLJ1208");
-    export_PotentialPair<PotentialPairLJ0804>(m, "PotentialPairLJ0804");
-    export_PotentialPair<PotentialPairGauss>(m, "PotentialPairGauss");
-    export_PotentialPair<PotentialPairSLJ>(m, "PotentialPairSLJ");
-    export_PotentialPair<PotentialPairExpandedMie>(m, "PotentialPairExpandedMie");
-    export_PotentialPair<PotentialPairYukawa>(m, "PotentialPairYukawa");
-    export_PotentialPair<PotentialPairEwald>(m, "PotentialPairEwald");
-    export_PotentialPair<PotentialPairMorse>(m, "PotentialPairMorse");
-    export_PotentialPair<PotentialPairDPD>(m, "PotentialPairDPD");
-    export_PotentialPair<PotentialPairMoliere>(m, "PotentialPairMoliere");
-    export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
-    export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
-    export_PotentialTersoff<PotentialTripletSquareDensity>(m, "PotentialSquareDensity");
-    export_PotentialTersoff<PotentialTripletRevCross>(m, "PotentialRevCross");
-    export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
-    export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
-    export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
-    export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
-    export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
-    export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
-    export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
-    export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
-    export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
-    export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(
-        m,
-        "PotentialPairDPDThermoDPD");
-    export_PotentialPair<PotentialPairDPDLJ>(m, "PotentialPairDPDLJ");
-    export_PotentialPair<PotentialPairTable>(m, "PotentialPairTable");
-    export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>(
-        m,
-        "PotentialPairDPDLJThermoDPD");
-    export_PotentialBond<PotentialBondHarmonic>(m, "PotentialBondHarmonic");
-    export_PotentialBond<PotentialBondFENE>(m, "PotentialBondFENE");
-    export_PotentialBond<PotentialBondTether>(m, "PotentialBondTether");
-    export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
-    export_PotentialSpecialPair<PotentialSpecialPairCoulomb>(m, "PotentialSpecialPairCoulomb");
+
+    export_PotentialPairBuckingham(m);
+    export_PotentialPairLJ(m);
+    export_PotentialPairLJ1208(m);
+    export_PotentialPairLJ0804(m);
+    export_PotentialPairGauss(m);
+    export_PotentialPairExpandedLJ(m);
+    export_PotentialPairExpandedGaussian(m);
+    export_PotentialPairExpandedMie(m);
+    export_PotentialPairYukawa(m);
+    export_PotentialPairEwald(m);
+    export_PotentialPairMorse(m);
+    export_PotentialPairMoliere(m);
+    export_PotentialPairZBL(m);
+    export_PotentialPairMie(m);
+    export_PotentialPairReactionField(m);
+    export_PotentialPairDLVO(m);
+    export_PotentialPairFourier(m);
+    export_PotentialPairOPP(m);
+    export_PotentialPairTWF(m);
+    export_PotentialPairLJGauss(m);
+    export_PotentialPairForceShiftedLJ(m);
+    export_PotentialPairTable(m);
+
+    export_AlchemicalMDParticles(m);
+    export_PotentialPairAlchemicalLJGauss(m);
+
+    export_PotentialTersoff(m);
+    export_PotentialSquareDensity(m);
+    export_PotentialRevCross(m);
+
+    export_AnisoPotentialPairALJ2D(m);
+    export_AnisoPotentialPairALJ3D(m);
+    export_AnisoPotentialPairDipole(m);
+    export_AnisoPotentialPairGB(m);
+
+    export_PotentialPairDPDThermoDPD(m);
+    export_PotentialPairDPDThermoLJ(m);
+
+    export_PotentialBondHarmonic(m);
+    export_PotentialBondFENE(m);
+    export_PotentialBondTether(m);
+
+    export_PotentialMeshBondHarmonic(m);
+    export_PotentialMeshBondFENE(m);
+    export_PotentialMeshBondTether(m);
+
+    export_PotentialSpecialPairLJ(m);
+    export_PotentialSpecialPairCoulomb(m);
+
+    export_CustomForceCompute(m);
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);
@@ -297,18 +363,20 @@ PYBIND11_MODULE(_md, m)
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
     export_PPPMForceCompute(m);
-    py::class_<wall_type, std::shared_ptr<wall_type>>(m, "wall_type").def(py::init<>());
-    m.def("make_wall_field_params", &make_wall_field_params);
-    export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
-    export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
-    // TODO: Port walls to HOOMD v3
-    // export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    // export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    // export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
-    // export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    // export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
-    // export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    // export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+    export_LocalNeighborListDataHost(m);
+
+    export_PotentialExternalPeriodic(m);
+    export_PotentialExternalElectricField(m);
+
+    export_wall_data(m);
+    export_wall_field(m);
+
+    export_PotentialExternalWallLJ(m);
+    export_PotentialExternalWallYukawa(m);
+    export_PotentialExternalWallForceShiftedLJ(m);
+    export_PotentialExternalWallMie(m);
+    export_PotentialExternalWallGauss(m);
+    export_PotentialExternalWallMorse(m);
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -316,76 +384,54 @@ PYBIND11_MODULE(_md, m)
     export_NeighborListGPUStencil(m);
     export_NeighborListGPUTree(m);
     export_ForceCompositeGPU(m);
-    export_PotentialPairGPU<PotentialPairBuckinghamGPU, PotentialPairBuckingham>(
-        m,
-        "PotentialPairBuckinghamGPU");
-    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>(m, "PotentialPairLJGPU");
-    export_PotentialPairGPU<PotentialPairLJ1208GPU, PotentialPairLJ1208>(m,
-                                                                         "PotentialPairLJ1208GPU");
-    export_PotentialPairGPU<PotentialPairLJ0804GPU, PotentialPairLJ0804>(m,
-                                                                         "PotentialPairLJ0804GPU");
-    export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
-    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
-    export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>(m,
-                                                                         "PotentialPairYukawaGPU");
-    export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>(
-        m,
-        "PotentialPairReactionFieldGPU");
-    export_PotentialPairGPU<PotentialPairDLVOGPU, PotentialPairDLVO>(m, "PotentialPairDLVOGPU");
-    export_PotentialPairGPU<PotentialPairFourierGPU, PotentialPairFourier>(
-        m,
-        "PotentialPairFourierGPU");
-    export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>(m, "PotentialPairEwaldGPU");
-    export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>(m, "PotentialPairMorseGPU");
-    export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");
-    export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere>(
-        m,
-        "PotentialPairMoliereGPU");
-    export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
-    export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(
-        m,
-        "PotentialTersoffGPU");
-    export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity>(
-        m,
-        "PotentialSquareDensityGPU");
-    export_PotentialTersoffGPU<PotentialTripletRevCrossGPU, PotentialTripletRevCross>(
-        m,
-        "PotentialRevCrossGPU");
-    export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(
-        m,
-        "PotentialPairForceShiftedLJGPU");
-    export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
-    export_PotentialPairGPU<PotentialPairExpandedMieGPU, PotentialPairExpandedMie>(
-        m,
-        "PotentialPairExpandedMieGPU");
-    export_PotentialPairGPU<PotentialPairOPPGPU, PotentialPairOPP>(m, "PotentialPairOPPGPU");
-    export_PotentialPairGPU<PotentialPairTWFGPU, PotentialPairTWF>(m, "PotentialPairTWFGPU");
-    export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD>(
-        m,
-        "PotentialPairDPDThermoDPDGPU");
-    export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
-    export_PotentialPairGPU<PotentialPairTableGPU, PotentialPairTable>(m, "PotentialPairTableGPU");
-    export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD>(
-        m,
-        "PotentialPairDPDLJThermoDPDGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(
-        m,
-        "AnisoPotentialPairGBGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(
-        m,
-        "AnisoPotentialPairDipoleGPU");
-    export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(
-        m,
-        "PotentialBondHarmonicGPU");
-    export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
-    export_PotentialBondGPU<PotentialBondTetherGPU, PotentialBondTether>(m,
-                                                                         "PotentialBondTetherGPU");
-    export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(
-        m,
-        "PotentialSpecialPairLJGPU");
-    export_PotentialSpecialPairGPU<PotentialSpecialPairCoulombGPU, PotentialSpecialPairCoulomb>(
-        m,
-        "PotentialSpecialPairCoulombGPU");
+    export_LocalNeighborListDataGPU(m);
+
+    export_PotentialPairBuckinghamGPU(m);
+    export_PotentialPairLJGPU(m);
+    export_PotentialPairLJ1208GPU(m);
+    export_PotentialPairLJ0804GPU(m);
+    export_PotentialPairGaussGPU(m);
+    export_PotentialPairExpandedLJGPU(m);
+    export_PotentialPairExpandedGaussianGPU(m);
+    export_PotentialPairExpandedMieGPU(m);
+    export_PotentialPairYukawaGPU(m);
+    export_PotentialPairEwaldGPU(m);
+    export_PotentialPairMorseGPU(m);
+    export_PotentialPairMoliereGPU(m);
+    export_PotentialPairZBLGPU(m);
+    export_PotentialPairMieGPU(m);
+    export_PotentialPairReactionFieldGPU(m);
+    export_PotentialPairDLVOGPU(m);
+    export_PotentialPairFourierGPU(m);
+    export_PotentialPairOPPGPU(m);
+    export_PotentialPairTWFGPU(m);
+    export_PotentialPairLJGaussGPU(m);
+    export_PotentialPairForceShiftedLJGPU(m);
+    export_PotentialPairTableGPU(m);
+    export_PotentialPairConservativeDPDGPU(m);
+
+    export_PotentialTersoffGPU(m);
+    export_PotentialSquareDensityGPU(m);
+    export_PotentialRevCrossGPU(m);
+
+    export_PotentialPairDPDThermoDPDGPU(m);
+    export_PotentialPairDPDThermoLJGPU(m);
+
+    export_AnisoPotentialPairALJ2DGPU(m);
+    export_AnisoPotentialPairALJ3DGPU(m);
+    export_AnisoPotentialPairDipoleGPU(m);
+    export_AnisoPotentialPairGBGPU(m);
+
+    export_PotentialBondHarmonicGPU(m);
+    export_PotentialBondFENEGPU(m);
+    export_PotentialBondTetherGPU(m);
+
+    export_PotentialMeshBondHarmonicGPU(m);
+    export_PotentialMeshBondFENEGPU(m);
+    export_PotentialMeshBondTetherGPU(m);
+
+    export_PotentialSpecialPairLJGPU(m);
+    export_PotentialSpecialPairCoulombGPU(m);
     export_BondTablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);
     export_CosineSqAngleForceComputeGPU(m);
@@ -399,47 +445,23 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
-    export_ActiveForceConstraintComputeGPU<ManifoldZCylinder>(
-        m,
-        "ActiveForceConstraintComputeCylinderGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldDiamond>(
-        m,
-        "ActiveForceConstraintComputeDiamondGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldEllipsoid>(
-        m,
-        "ActiveForceConstraintComputeEllipsoidGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldGyroid>(m,
-                                                           "ActiveForceConstraintComputeGyroidGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldXYPlane>(m,
-                                                            "ActiveForceConstraintComputePlaneGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldPrimitive>(
-        m,
-        "ActiveForceConstraintComputePrimitiveGPU");
-    export_ActiveForceConstraintComputeGPU<ManifoldSphere>(m,
-                                                           "ActiveForceConstraintComputeSphereGPU");
-    export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(
-        m,
-        "PotentialExternalPeriodicGPU");
-    export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
-        m,
-        "PotentialExternalElectricFieldGPU");
-    /*
-    export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
-    export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
-        m,
-        "WallsPotentialYukawaGPU");
-    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>(m, "WallsPotentialSLJGPU");
-    export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(
-        m,
-        "WallsPotentialForceShiftedLJGPU");
-    export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>(m, "WallsPotentialMieGPU");
-    export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>(
-        m,
-        "WallsPotentialGaussGPU");
-    export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
-        m,
-        "WallsPotentialMorseGPU");
-    */
+    export_ActiveForceConstraintComputeCylinderGPU(m);
+    export_ActiveForceConstraintComputeDiamondGPU(m);
+    export_ActiveForceConstraintComputeEllipsoidGPU(m);
+    export_ActiveForceConstraintComputeGyroidGPU(m);
+    export_ActiveForceConstraintComputePlaneGPU(m);
+    export_ActiveForceConstraintComputePrimitiveGPU(m);
+    export_ActiveForceConstraintComputeSphereGPU(m);
+    export_ConstantForceComputeGPU(m);
+    export_PotentialExternalPeriodicGPU(m);
+    export_PotentialExternalElectricFieldGPU(m);
+
+    export_PotentialExternalWallLJGPU(m);
+    export_PotentialExternalWallYukawaGPU(m);
+    export_PotentialExternalWallForceShiftedLJGPU(m);
+    export_PotentialExternalWallMieGPU(m);
+    export_PotentialExternalWallGaussGPU(m);
+    export_PotentialExternalWallMorseGPU(m);
 #endif
 
     // updaters
@@ -455,31 +477,34 @@ PYBIND11_MODULE(_md, m)
     export_Berendsen(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
+    export_AlchemostatTwoStep(m);
+    export_TwoStepNVTAlchemy(m);
+    export_HalfStepHook(m);
 
     // RATTLE
-    export_TwoStepRATTLEBD<ManifoldZCylinder>(m, "TwoStepRATTLEBDCylinder");
-    export_TwoStepRATTLEBD<ManifoldDiamond>(m, "TwoStepRATTLEBDDiamond");
-    export_TwoStepRATTLEBD<ManifoldEllipsoid>(m, "TwoStepRATTLEBDEllipsoid");
-    export_TwoStepRATTLEBD<ManifoldGyroid>(m, "TwoStepRATTLEBDGyroid");
-    export_TwoStepRATTLEBD<ManifoldXYPlane>(m, "TwoStepRATTLEBDPlane");
-    export_TwoStepRATTLEBD<ManifoldPrimitive>(m, "TwoStepRATTLEBDPrimitive");
-    export_TwoStepRATTLEBD<ManifoldSphere>(m, "TwoStepRATTLEBDSphere");
+    export_TwoStepRATTLEBDCylinder(m);
+    export_TwoStepRATTLEBDDiamond(m);
+    export_TwoStepRATTLEBDEllipsoid(m);
+    export_TwoStepRATTLEBDGyroid(m);
+    export_TwoStepRATTLEBDPlane(m);
+    export_TwoStepRATTLEBDPrimitive(m);
+    export_TwoStepRATTLEBDSphere(m);
 
-    export_TwoStepRATTLELangevin<ManifoldZCylinder>(m, "TwoStepRATTLELangevinCylinder");
-    export_TwoStepRATTLELangevin<ManifoldDiamond>(m, "TwoStepRATTLELangevinDiamond");
-    export_TwoStepRATTLELangevin<ManifoldEllipsoid>(m, "TwoStepRATTLELangevinEllipsoid");
-    export_TwoStepRATTLELangevin<ManifoldGyroid>(m, "TwoStepRATTLELangevinGyroid");
-    export_TwoStepRATTLELangevin<ManifoldXYPlane>(m, "TwoStepRATTLELangevinPlane");
-    export_TwoStepRATTLELangevin<ManifoldPrimitive>(m, "TwoStepRATTLELangevinPrimitive");
-    export_TwoStepRATTLELangevin<ManifoldSphere>(m, "TwoStepRATTLELangevinSphere");
+    export_TwoStepRATTLELangevinCylinder(m);
+    export_TwoStepRATTLELangevinDiamond(m);
+    export_TwoStepRATTLELangevinEllipsoid(m);
+    export_TwoStepRATTLELangevinGyroid(m);
+    export_TwoStepRATTLELangevinPlane(m);
+    export_TwoStepRATTLELangevinPrimitive(m);
+    export_TwoStepRATTLELangevinSphere(m);
 
-    export_TwoStepRATTLENVE<ManifoldZCylinder>(m, "TwoStepRATTLENVECylinder");
-    export_TwoStepRATTLENVE<ManifoldDiamond>(m, "TwoStepRATTLENVEDiamond");
-    export_TwoStepRATTLENVE<ManifoldEllipsoid>(m, "TwoStepRATTLENVEEllipsoid");
-    export_TwoStepRATTLENVE<ManifoldGyroid>(m, "TwoStepRATTLENVEGyroid");
-    export_TwoStepRATTLENVE<ManifoldXYPlane>(m, "TwoStepRATTLENVEPlane");
-    export_TwoStepRATTLENVE<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitive");
-    export_TwoStepRATTLENVE<ManifoldSphere>(m, "TwoStepRATTLENVESphere");
+    export_TwoStepRATTLENVECylinder(m);
+    export_TwoStepRATTLENVEDiamond(m);
+    export_TwoStepRATTLENVEEllipsoid(m);
+    export_TwoStepRATTLENVEGyroid(m);
+    export_TwoStepRATTLENVEPlane(m);
+    export_TwoStepRATTLENVEPrimitive(m);
+    export_TwoStepRATTLENVESphere(m);
 
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
@@ -491,29 +516,29 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizerGPU(m);
     export_MuellerPlatheFlowGPU(m);
 
-    export_TwoStepRATTLEBDGPU<ManifoldZCylinder>(m, "TwoStepRATTLEBDCylinderGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldDiamond>(m, "TwoStepRATTLEBDDiamondGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldEllipsoid>(m, "TwoStepRATTLEBDEllipsoidGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldGyroid>(m, "TwoStepRATTLEBDGyroidGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldXYPlane>(m, "TwoStepRATTLEBDPlaneGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldPrimitive>(m, "TwoStepRATTLEBDPrimitiveGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldSphere>(m, "TwoStepRATTLEBDSphereGPU");
+    export_TwoStepRATTLEBDGPUCylinder(m);
+    export_TwoStepRATTLEBDGPUDiamond(m);
+    export_TwoStepRATTLEBDGPUEllipsoid(m);
+    export_TwoStepRATTLEBDGPUGyroid(m);
+    export_TwoStepRATTLEBDGPUPlane(m);
+    export_TwoStepRATTLEBDGPUPrimitive(m);
+    export_TwoStepRATTLEBDGPUSphere(m);
 
-    export_TwoStepRATTLELangevinGPU<ManifoldZCylinder>(m, "TwoStepRATTLELangevinCylinderGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldDiamond>(m, "TwoStepRATTLELangevinDiamondGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldEllipsoid>(m, "TwoStepRATTLELangevinEllipsoidGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldGyroid>(m, "TwoStepRATTLELangevinGyroidGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldXYPlane>(m, "TwoStepRATTLELangevinPlaneGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldPrimitive>(m, "TwoStepRATTLELangevinPrimitiveGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldSphere>(m, "TwoStepRATTLELangevinSphereGPU");
+    export_TwoStepRATTLELangevinGPUCylinder(m);
+    export_TwoStepRATTLELangevinGPUDiamond(m);
+    export_TwoStepRATTLELangevinGPUEllipsoid(m);
+    export_TwoStepRATTLELangevinGPUGyroid(m);
+    export_TwoStepRATTLELangevinGPUPlane(m);
+    export_TwoStepRATTLELangevinGPUPrimitive(m);
+    export_TwoStepRATTLELangevinGPUSphere(m);
 
-    export_TwoStepRATTLENVEGPU<ManifoldZCylinder>(m, "TwoStepRATTLENVECylinderGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldDiamond>(m, "TwoStepRATTLENVEDiamondGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldEllipsoid>(m, "TwoStepRATTLENVEEllipsoidGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldGyroid>(m, "TwoStepRATTLENVEGyroidGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldXYPlane>(m, "TwoStepRATTLENVEPlaneGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldPrimitive>(m, "TwoStepRATTLENVEPrimitiveGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldSphere>(m, "TwoStepRATTLENVESphereGPU");
+    export_TwoStepRATTLENVEGPUCylinder(m);
+    export_TwoStepRATTLENVEGPUDiamond(m);
+    export_TwoStepRATTLENVEGPUEllipsoid(m);
+    export_TwoStepRATTLENVEGPUGyroid(m);
+    export_TwoStepRATTLENVEGPUPlane(m);
+    export_TwoStepRATTLENVEGPUPrimitive(m);
+    export_TwoStepRATTLENVEGPUSphere(m);
 #endif
 
     // manifolds

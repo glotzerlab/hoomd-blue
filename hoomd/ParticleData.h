@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleData.h
     \brief Defines the ParticleData class and associated utilities
@@ -68,12 +66,8 @@
 //! Feature-define for HOOMD API
 #define HOOMD_SUPPORTS_ADD_REMOVE_PARTICLES
 
-// Forward declaration of Profiler
-class Profiler;
-
-// Forward declaration of IntegratorData
-class IntegratorData;
-
+namespace hoomd
+    {
 //! List of optional fields that can be enabled in ParticleData
 struct pdata_flag
     {
@@ -113,12 +107,14 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 //! processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
+    } // end namespace hoomd
+
 #ifdef ENABLE_MPI
 namespace cereal
     {
 //! Serialization of vec3<Real>
 template<class Archive, class Real>
-void serialize(Archive& ar, vec3<Real>& v, const unsigned int version)
+void serialize(Archive& ar, hoomd::vec3<Real>& v, const unsigned int version)
     {
     ar& v.x;
     ar& v.y;
@@ -127,7 +123,7 @@ void serialize(Archive& ar, vec3<Real>& v, const unsigned int version)
 
 //! Serialization of quat<Real>
 template<class Archive, class Real>
-void serialize(Archive& ar, quat<Real>& q, const unsigned int version)
+void serialize(Archive& ar, hoomd::quat<Real>& q, const unsigned int version)
     {
     // serialize both members
     ar& q.s;
@@ -136,8 +132,14 @@ void serialize(Archive& ar, quat<Real>& q, const unsigned int version)
     } // namespace cereal
 #endif
 
+namespace hoomd
+    {
+namespace detail
+    {
 /// Get a default type name given a type id
 std::string getDefaultTypeName(unsigned int id);
+
+    } // end namespace detail
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
@@ -177,9 +179,9 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     void insert(unsigned int i, unsigned int n);
 
     //! Validate the snapshot
-    /*! \returns true if the number of elements is consistent
+    /*! Throws an exception when the snapshot contains invalid data.
      */
-    bool validate() const;
+    void validate() const;
 
 #ifdef ENABLE_MPI
     //! Broadcast the snapshot using MPI
@@ -188,6 +190,19 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
      */
     void bcast(unsigned int root, MPI_Comm mpi_comm);
 #endif
+
+    //! Replicate this snapshot
+    /*! \param nx Number of times to replicate the system along the x direction
+     *  \param ny Number of times to replicate the system along the y direction
+     *  \param nz Number of times to replicate the system along the z direction
+     *  \param old_box Old box dimensions
+     *  \param new_box Dimensions of replicated box
+     */
+    void replicate(unsigned int nx,
+                   unsigned int ny,
+                   unsigned int nz,
+                   std::shared_ptr<const BoxDim> old_box,
+                   std::shared_ptr<const BoxDim> new_box);
 
     //! Replicate this snapshot
     /*! \param nx Number of times to replicate the system along the x direction
@@ -255,6 +270,8 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     bool use_spherical_coord;             //!< Flag indicating if spherical coordinates are used
     };
 
+namespace detail
+    {
 //! Structure to store packed particle data
 /* pdata_element is used for compact storage of particle data, mainly for communication.
  */
@@ -276,6 +293,8 @@ struct pdata_element
     Scalar4 net_torque;   //!< net torque
     Scalar net_virial[6]; //!< net virial
     };
+
+    } // end namespace detail
 
 //! Manages all of the data arrays for the particles
 /*! <h1> General </h1>
@@ -438,7 +457,7 @@ class PYBIND11_EXPORT ParticleData
     public:
     //! Construct with N particles in the given box
     ParticleData(unsigned int N,
-                 const BoxDim& global_box,
+                 const std::shared_ptr<const BoxDim> global_box,
                  unsigned int n_types,
                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                  std::shared_ptr<DomainDecomposition> decomposition
@@ -447,7 +466,15 @@ class PYBIND11_EXPORT ParticleData
     //! Construct using a ParticleDataSnapshot and cartesian coordinates
     template<class Real>
     ParticleData(const SnapshotParticleData<Real>& snapshot,
-                 const BoxDim& global_box,
+                 const std::shared_ptr<const BoxDim> global_box,
+                 std::shared_ptr<ExecutionConfiguration> exec_conf,
+                 std::shared_ptr<DomainDecomposition> decomposition
+                 = std::shared_ptr<DomainDecomposition>());
+
+    //! Construct with N particles in the given box
+    ParticleData(unsigned int N,
+                 const std::shared_ptr<const Sphere> sphere,
+                 unsigned int n_types,
                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                  std::shared_ptr<DomainDecomposition> decomposition
                  = std::shared_ptr<DomainDecomposition>());
@@ -455,7 +482,7 @@ class PYBIND11_EXPORT ParticleData
     //! Construct using a ParticleDataSnapshot and hyperspherical coordinates
     template<class Real>
     ParticleData(const SnapshotParticleData<Real>& snapshot,
-		const Sphere& sphere,
+		const std::shared_ptr<const Sphere> sphere,
 		std::shared_ptr<ExecutionConfiguration> exec_conf,
                 std::shared_ptr<DomainDecomposition> decomposition
                 = std::shared_ptr<DomainDecomposition>());
@@ -477,37 +504,34 @@ class PYBIND11_EXPORT ParticleData
             }
 
     //! Get the simulation box
-    const BoxDim& getBox() const;
+    const BoxDim getBox() const;
 
     //! Get the simulation sphere
     /*! Only for spherical coordinates
     */
-    const Sphere& getSphere() const
-        {
-        return m_sphere;
-        }
+    const Sphere getSphere() const;
 
     //! Set the spherical coordinate system
-    void setSphere(const Sphere& sphere)
-        {
-        m_sphere = sphere;
+    void setSphere(const Sphere& sphere);
 
-        // using this signal for boxes and spheres
-        m_boxchange_signal.emit();
-        }
+    //! Set the spherical coordinate system
+    void setSphere(const std::shared_ptr<const Sphere> sphere);
 
     //! Set the global simulation box
     void setGlobalBox(const BoxDim& box);
 
+    //! Set the global simulation box
+    void setGlobalBox(const std::shared_ptr<const BoxDim> box);
+
     //! Set the global simulation box Lengths
     void setGlobalBoxL(const Scalar3& L)
         {
-        BoxDim box(L);
+        auto box = BoxDim(L);
         setGlobalBox(box);
         }
 
     //! Get the global simulation box
-    const BoxDim& getGlobalBox() const;
+    const BoxDim getGlobalBox() const;
 
     //! Access the execution configuration
     std::shared_ptr<const ExecutionConfiguration> getExecConf() const
@@ -642,20 +666,6 @@ class PYBIND11_EXPORT ParticleData
             }
 #endif
         return has_bodies;
-        }
-
-    //! Return the maximum diameter of all registered composite particles
-    Scalar getMaxCompositeParticleDiameter()
-        {
-        Scalar d_max = 0.0;
-        m_composite_particles_signal.emit_accumulate(
-            [&](Scalar d)
-            {
-                if (d > d_max)
-                    d_max = d;
-            });
-
-        return d_max;
         }
 
     //! Return positions and types
@@ -913,14 +923,6 @@ class PYBIND11_EXPORT ParticleData
         m_inertia.swap(m_inertia_alt);
         }
 
-    //! Set the profiler to profile CPU<-->GPU memory copies
-    /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Connects a function to be called every time the particles are rearranged in memory
     Nano::Signal<void()>& getParticleSortSignal()
         {
@@ -964,15 +966,6 @@ class PYBIND11_EXPORT ParticleData
 
     //! Notify listeners that ghost particles have been removed
     void notifyGhostParticlesRemoved();
-
-    //! Connects a function to be called every time the maximum diameter of composite particles is
-    //! needed
-    /*! The signal slot returns the maximum diameter
-     */
-    Nano::Signal<Scalar()>& getCompositeParticlesSignal()
-        {
-        return m_composite_particles_signal;
-        }
 
     //! Gets the particle type index given a name
     unsigned int getTypeByName(const std::string& name) const;
@@ -1254,7 +1247,7 @@ class PYBIND11_EXPORT ParticleData
         {
         assert(decomposition);
         m_decomposition = decomposition;
-        m_box = m_decomposition->calculateLocalBox(m_global_box);
+        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(getGlobalBox()));
         m_boxchange_signal.emit();
         }
 
@@ -1277,12 +1270,13 @@ class PYBIND11_EXPORT ParticleData
      *        are invalidated. (call removeAllGhostAtoms() before or after
      *        this method).
      */
-    void removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags);
+    void removeParticles(std::vector<detail::pdata_element>& out,
+                         std::vector<unsigned int>& comm_flags);
 
     //! Add new local particles
     /*! \param in List of particle data elements to fill the particle data with
      */
-    void addParticles(const std::vector<pdata_element>& in);
+    void addParticles(const std::vector<detail::pdata_element>& in);
 
 #ifdef ENABLE_HIP
     //! Pack particle data into a buffer (GPU version)
@@ -1298,13 +1292,13 @@ class PYBIND11_EXPORT ParticleData
      *        are invalidated. (call removeAllGhostAtoms() before or after
      *        this method).
      */
-    void removeParticlesGPU(GlobalVector<pdata_element>& out,
+    void removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                             GlobalVector<unsigned int>& comm_flags);
 
     //! Remove particles from local domain and add new particle data (GPU version)
     /*! \param in List of particle data elements to fill the particle data with
      */
-    void addParticlesGPU(const GlobalVector<pdata_element>& in);
+    void addParticlesGPU(const GlobalVector<detail::pdata_element>& in);
 #endif // ENABLE_HIP
 
 #endif // ENABLE_MPI
@@ -1325,7 +1319,7 @@ class PYBIND11_EXPORT ParticleData
         {
         m_origin += a;
         // wrap the origin back into the box to prevent it from getting too large
-        m_global_box.wrap(m_origin, m_o_image);
+        m_global_box->wrap(m_origin, m_o_image);
         }
 
     //! Set the origin and its image
@@ -1353,8 +1347,8 @@ class PYBIND11_EXPORT ParticleData
 #endif
 
     private:
-    BoxDim m_box;                                        //!< The simulation box
-    BoxDim m_global_box;                                 //!< Global simulation box
+    std::shared_ptr<const BoxDim> m_box;                 //!< The simulation box
+    std::shared_ptr<const BoxDim> m_global_box;          //!< Global simulation box
     std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
     std::shared_ptr<DomainDecomposition> m_decomposition; //!< Domain decomposition data
@@ -1371,9 +1365,6 @@ class PYBIND11_EXPORT ParticleData
                                                            //!< particles are removed
     Nano::Signal<void()> m_global_particle_num_signal; //!< Signal that is triggered when the global
                                                        //!< number of particles changes
-    Nano::Signal<Scalar()>
-        m_composite_particles_signal; //!< Signal that is triggered when the maximum diameter of a
-                                      //!< composite particle is needed
 
 #ifdef ENABLE_MPI
     Nano::Signal<void(unsigned int, unsigned int, unsigned int)>
@@ -1436,8 +1427,6 @@ class PYBIND11_EXPORT ParticleData
     GlobalArray<Scalar> m_net_virial_alt;  //!< Net virial (swap-in)
     GlobalArray<Scalar4> m_net_torque_alt; //!< Net torque (swap-in)
 
-    std::shared_ptr<Profiler> m_prof; //!< Pointer to the profiler. NULL if there is no profiler.
-
     GlobalArray<Scalar4> m_net_force;  //!< Net force calculated for each particle
     GlobalArray<Scalar> m_net_virial;  //!< Net virial calculated for each particle (2D GPU array of
                                        //!< dimensions 6*number of particles)
@@ -1460,7 +1449,7 @@ class PYBIND11_EXPORT ParticleData
 #endif
 
     coordinate_Enum m_coordinate;                     //!< Type of coordinate system
-    Sphere m_sphere;                          //!< Dimension of simulation sphere
+    std::shared_ptr<const Sphere> m_sphere;                          //!< Dimension of simulation sphere
 
     //! Helper function to allocate particle data
     void allocate(unsigned int N);
@@ -1496,15 +1485,19 @@ class PYBIND11_EXPORT ParticleData
  *  Output: The buffer output type (either HOOMDHostBuffer or HOOMDDeviceBuffer)
  */
 template<class Output>
-class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, ParticleData>
+class PYBIND11_EXPORT LocalParticleData : public GhostLocalDataAccess<Output, ParticleData>
     {
     public:
     LocalParticleData(ParticleData& data)
-        : LocalDataAccess<Output, ParticleData>(data), m_position_handle(), m_orientation_handle(), m_quat_pos_handle(),
-          m_velocities_handle(), m_angular_momentum_handle(), m_acceleration_handle(),
-          m_inertia_handle(), m_charge_handle(), m_diameter_handle(), m_image_handle(),
-          m_tag_handle(), m_rtag_handle(), m_rigid_body_ids_handle(), m_net_force_handle(),
-          m_net_virial_handle(), m_net_torque_handle()
+        : GhostLocalDataAccess<Output, ParticleData>(data,
+                                                     data.getN(),
+                                                     data.getNGhosts(),
+                                                     data.getNGlobal()),
+          m_position_handle(), m_orientation_handle(), m_quat_pos_handle(), m_velocities_handle(),
+          m_angular_momentum_handle(), m_acceleration_handle(), m_inertia_handle(),
+          m_charge_handle(), m_diameter_handle(), m_image_handle(), m_tag_handle(), m_rtag_handle(),
+          m_rigid_body_ids_handle(), m_net_force_handle(), m_net_virial_handle(),
+          m_net_torque_handle()
         {
         }
 
@@ -1512,52 +1505,58 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
 
     Output getPosition(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_position_handle,
-                                                         &ParticleData::getPositions,
-                                                         flag,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_position_handle,
+                                                              &ParticleData::getPositions,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getTypes(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, int>(m_position_handle,
-                                                      &ParticleData::getPositions,
-                                                      flag,
-                                                      0,
-                                                      3 * sizeof(Scalar));
+        return this->template getLocalBuffer<Scalar4, int>(m_position_handle,
+                                                           &ParticleData::getPositions,
+                                                           flag,
+                                                           true,
+                                                           0,
+                                                           3 * sizeof(Scalar));
         }
 
     Output getVelocities(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
-                                                         &ParticleData::getVelocities,
-                                                         flag,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_velocities_handle,
+                                                              &ParticleData::getVelocities,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getAcceleration(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar3, Scalar>(m_acceleration_handle,
-                                                         &ParticleData::getAccelerations,
-                                                         flag,
-                                                         3);
+        return this->template getLocalBuffer<Scalar3, Scalar>(m_acceleration_handle,
+                                                              &ParticleData::getAccelerations,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getMasses(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_velocities_handle,
-                                                         &ParticleData::getVelocities,
-                                                         flag,
-                                                         0,
-                                                         3 * sizeof(Scalar));
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_velocities_handle,
+                                                              &ParticleData::getVelocities,
+                                                              flag,
+                                                              true,
+                                                              0,
+                                                              3 * sizeof(Scalar));
         }
 
     Output getOrientation(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_orientation_handle,
-                                                         &ParticleData::getOrientationArray,
-                                                         flag,
-                                                         4);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_orientation_handle,
+                                                              &ParticleData::getOrientationArray,
+                                                              flag,
+                                                              true,
+                                                              4);
         }
 
     Output getPosQuaternion(GhostDataFlag flag)
@@ -1570,95 +1569,110 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
 
     Output getAngularMomentum(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_angular_momentum_handle,
-                                                         &ParticleData::getAngularMomentumArray,
-                                                         flag,
-                                                         4);
+        return this->template getLocalBuffer<Scalar4, Scalar>(
+            m_angular_momentum_handle,
+            &ParticleData::getAngularMomentumArray,
+            flag,
+            true,
+            4);
         }
 
     Output getMomentsOfInertia(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar3, Scalar>(m_inertia_handle,
-                                                         &ParticleData::getMomentsOfInertiaArray,
-                                                         flag,
-                                                         3);
+        return this->template getLocalBuffer<Scalar3, Scalar>(
+            m_inertia_handle,
+            &ParticleData::getMomentsOfInertiaArray,
+            flag,
+            true,
+            3);
         }
 
     Output getCharge(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar, Scalar>(m_charge_handle,
-                                                        &ParticleData::getCharges,
-                                                        flag);
+        return this->template getLocalBuffer<Scalar, Scalar>(m_charge_handle,
+                                                             &ParticleData::getCharges,
+                                                             flag,
+                                                             true);
         }
 
     Output getDiameter(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar, Scalar>(m_diameter_handle,
-                                                        &ParticleData::getDiameters,
-                                                        flag);
+        return this->template getLocalBuffer<Scalar, Scalar>(m_diameter_handle,
+                                                             &ParticleData::getDiameters,
+                                                             flag,
+                                                             true);
         }
 
     Output getImages(GhostDataFlag flag)
         {
-        return this->template getBuffer<int3, int>(m_image_handle,
-                                                   &ParticleData::getImages,
-                                                   flag,
-                                                   3);
+        return this->template getLocalBuffer<int3, int>(m_image_handle,
+                                                        &ParticleData::getImages,
+                                                        flag,
+                                                        true,
+                                                        3);
         }
 
     Output getTags(GhostDataFlag flag)
         {
-        return this->template getBuffer<unsigned int, unsigned int>(m_tag_handle,
-                                                                    &ParticleData::getTags,
-                                                                    flag);
+        return this->template getLocalBuffer<unsigned int, unsigned int>(m_tag_handle,
+                                                                         &ParticleData::getTags,
+                                                                         flag,
+                                                                         true);
         }
 
     Output getRTags()
         {
-        return this->template getGlobalBuffer<unsigned int>(m_rtag_handle, &ParticleData::getRTags);
+        return this->template getGlobalBuffer<unsigned int>(m_rtag_handle,
+                                                            &ParticleData::getRTags,
+                                                            false);
         }
 
     Output getBodies(GhostDataFlag flag)
         {
-        return this->template getBuffer<unsigned int, unsigned int>(m_rigid_body_ids_handle,
-                                                                    &ParticleData::getBodies,
-                                                                    flag);
+        return this->template getLocalBuffer<unsigned int, unsigned int>(m_rigid_body_ids_handle,
+                                                                         &ParticleData::getBodies,
+                                                                         flag,
+                                                                         true);
         }
 
     Output getNetForce(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
-                                                         &ParticleData::getNetForce,
-                                                         flag,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_net_force_handle,
+                                                              &ParticleData::getNetForce,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getNetTorque(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_net_torque_handle,
-                                                         &ParticleData::getNetTorqueArray,
-                                                         flag,
-                                                         3);
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_net_torque_handle,
+                                                              &ParticleData::getNetTorqueArray,
+                                                              flag,
+                                                              true,
+                                                              3);
         }
 
     Output getNetVirial(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar, Scalar>(
+        return this->template getLocalBuffer<Scalar, Scalar>(
             m_net_virial_handle,
             &ParticleData::getNetVirial,
             flag,
+            true,
             6,
             0,
-            std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
+            std::vector<size_t>({6 * sizeof(Scalar), sizeof(Scalar)}));
         }
 
     Output getNetEnergy(GhostDataFlag flag)
         {
-        return this->template getBuffer<Scalar4, Scalar>(m_net_force_handle,
-                                                         &ParticleData::getNetForce,
-                                                         flag,
-                                                         0,
-                                                         3 * sizeof(Scalar));
+        return this->template getLocalBuffer<Scalar4, Scalar>(m_net_force_handle,
+                                                              &ParticleData::getNetForce,
+                                                              flag,
+                                                              true,
+                                                              0,
+                                                              3 * sizeof(Scalar));
         }
 
     protected:
@@ -1705,6 +1719,8 @@ class PYBIND11_EXPORT LocalParticleData : public LocalDataAccess<Output, Particl
     std::unique_ptr<ArrayHandle<Scalar4>> m_net_torque_handle;
     };
 
+namespace detail
+    {
 #ifndef __HIPCC__
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
@@ -1743,5 +1759,9 @@ template<class Output> void export_LocalParticleData(pybind11::module& m, std::s
 //! Export SnapshotParticleData to python
 void export_SnapshotParticleData(pybind11::module& m);
 #endif
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif

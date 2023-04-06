@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file test_warp_tools.cuh
@@ -13,6 +11,10 @@
 
 #include "hoomd/Index1D.h"
 
+namespace hoomd
+    {
+namespace test
+    {
 //! Arguments for warp reduce tests
 struct reduce_params
     {
@@ -65,5 +67,8 @@ struct scan_params
 
 //! Calls the warp scan kernel
 void warp_scan(const scan_params& params);
+
+    } // end namespace test
+    } // end namespace hoomd
 
 #endif // HOOMD_TEST_TEST_WARP_TOOLS_CUH_

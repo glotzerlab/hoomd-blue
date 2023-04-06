@@ -1,16 +1,12 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Trigger.h"
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
-//* Method to enable unit testing of C++ trigger calls from pytest
-bool testTriggerCall(std::shared_ptr<Trigger> t, uint64_t step)
+namespace hoomd
     {
-    return (*t)(step);
-    }
-
 //* Trampoline for classes inherited in python
 class TriggerPy : public Trigger
     {
@@ -28,6 +24,14 @@ class TriggerPy : public Trigger
         );
         }
     };
+
+namespace detail
+    {
+//* Method to enable unit testing of C++ trigger calls from pytest
+bool testTriggerCall(std::shared_ptr<Trigger> t, uint64_t step)
+    {
+    return (*t)(step);
+    }
 
 void export_Trigger(pybind11::module& m)
     {
@@ -82,3 +86,7 @@ void export_Trigger(pybind11::module& m)
 
     m.def("_test_trigger_call", &testTriggerCall);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

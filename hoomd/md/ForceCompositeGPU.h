@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceComposite.h"
 #include "NeighborList.h"
@@ -20,6 +18,10 @@
 #ifndef __ForceCompositeGPU_H__
 #define __ForceCompositeGPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     {
     public:
@@ -35,26 +37,6 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
      *        with a local central particle
      */
     virtual void updateCompositeParticles(uint64_t timestep);
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ForceComposite::setAutotunerParams(enable, period);
-
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-
-        m_tuner_virial->setPeriod(period);
-        m_tuner_virial->setEnabled(enable);
-
-        m_tuner_update->setPeriod(period);
-        m_tuner_update->setEnabled(enable);
-        }
 
     protected:
     //! Compute the forces and torques on the central particle
@@ -75,10 +57,14 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         MolecularForceCompute::checkParticlesSorted();
         }
 
-    std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for block size and threads per particle
-    std::unique_ptr<Autotuner>
-        m_tuner_virial; //!< Autotuner for block size and threads per particle
-    std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
+    /// Autotuner for block size and threads per body.
+    std::shared_ptr<Autotuner<2>> m_tuner_force;
+
+    /// Autotuner for block size and threads per body.
+    std::shared_ptr<Autotuner<2>> m_tuner_virial;
+
+    /// Autotuner for block size of update kernel.
+    std::shared_ptr<Autotuner<1>> m_tuner_update;
 
     GlobalArray<uint2> m_flag; //!< Flag to read out error condition
 
@@ -88,7 +74,7 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     GlobalVector<unsigned int> m_lookup_center; //!< Lookup particle index -> central particle index
     };
 
-//! Exports the ForceCompositeGPU to python
-void export_ForceCompositeGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

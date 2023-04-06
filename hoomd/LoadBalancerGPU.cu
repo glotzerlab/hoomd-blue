@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file LoadBalancerGPU.cu
     \brief Implementation the GPU functions for load balancing
@@ -18,6 +16,10 @@
 #include <thrust/execution_policy.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Mark the particles that are off rank
 /*!
  * \param d_ranks The current rank of each particle
@@ -172,5 +174,9 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int* d_off_rank,
         = thrust::copy_if(thrust::device, d_ranks, d_ranks + N, d_off_rank, NotEqual(cur_rank));
     return (unsigned int)(last - d_off_rank);
     }
+
+    } // end namespace kernel
+
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI

@@ -1,32 +1,29 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: joaander All developers are free to add the calls needed to export their modules
+#include "Action.h"
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
-#include "CallbackAnalyzer.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ClockSource.h"
 #include "Compute.h"
-#include "ConstForceCompute.h"
 #include "DCDDumpWriter.h"
 #include "ExecutionConfiguration.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "GSDDumpWriter.h"
 #include "GSDReader.h"
-#include "GetarDumpWriter.h"
-#include "GetarInitializer.h"
 #include "HOOMDMath.h"
 #include "Initializers.h"
 #include "Integrator.h"
 #include "LoadBalancer.h"
+#include "MeshDefinition.h"
+#include "MeshGroupData.h"
 #include "Messenger.h"
 #include "ParticleData.h"
 #include "ParticleFilterUpdater.h"
-#include "Profiler.h"
 #include "PythonAnalyzer.h"
 #include "PythonLocalDataAccess.h"
 #include "PythonTuner.h"
@@ -46,6 +43,7 @@
 
 // include GPU classes
 #ifdef ENABLE_HIP
+#include "BoxResizeUpdaterGPU.h"
 #include "CellListGPU.h"
 #include "LoadBalancerGPU.h"
 #include "SFCPackTunerGPU.h"
@@ -70,8 +68,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-using namespace std;
-using namespace hoomd;
 
 #ifdef ENABLE_TBB
 #include <tbb/task_arena.h>
@@ -81,6 +77,10 @@ using namespace hoomd;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
+namespace hoomd
+    {
+namespace detail
+    {
 void mpi_barrier_world()
     {
 #ifdef ENABLE_MPI
@@ -113,12 +113,12 @@ int initialize_mpi()
     }
 
 //! Get the processor name associated to this rank
-string get_mpi_proc_name()
+std::string get_mpi_proc_name()
     {
     char proc_name[MPI_MAX_PROCESSOR_NAME];
     int name_len;
     MPI_Get_processor_name(proc_name, &name_len);
-    return string(proc_name);
+    return std::string(proc_name);
     }
 
 //! Finalize MPI environment
@@ -155,6 +155,25 @@ std::string mpi_bcast_str(pybind11::object string,
 #endif
     }
 
+bool mpi_allreduce_bcast_and(bool v, std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+#ifdef ENABLE_MPI
+    bool reduced_result = false;
+    MPI_Allreduce(&v, &reduced_result, 1, MPI_C_BOOL, MPI_LAND, exec_conf->getMPICommunicator());
+    return reduced_result;
+#else
+    return v;
+#endif
+    }
+
+    } // end namespace detail
+
+    } // end namespace hoomd
+
+using namespace std;
+using namespace hoomd;
+using namespace hoomd::detail;
+
 //! Create the python module
 /*! each class sets up its own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -176,6 +195,7 @@ PYBIND11_MODULE(_hoomd, m)
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
     m.def("mpi_bcast_str", mpi_bcast_str);
+    m.def("mpi_allreduce_bcast_and", mpi_allreduce_bcast_and);
 
     pybind11::class_<BuildInfo>(m, "BuildInfo")
         .def_static("getVersion", BuildInfo::getVersion)
@@ -187,7 +207,8 @@ PYBIND11_MODULE(_hoomd, m)
         .def_static("getEnableTBB", BuildInfo::getEnableTBB)
         .def_static("getEnableMPI", BuildInfo::getEnableMPI)
         .def_static("getSourceDir", BuildInfo::getSourceDir)
-        .def_static("getInstallDir", BuildInfo::getInstallDir);
+        .def_static("getInstallDir", BuildInfo::getInstallDir)
+        .def_static("getFloatingPointPrecision", BuildInfo::getFloatingPointPrecision);
 
     pybind11::bind_vector<std::vector<Scalar>>(m, "std_vector_scalar");
     pybind11::bind_vector<std::vector<string>>(m, "std_vector_string");
@@ -202,7 +223,6 @@ PYBIND11_MODULE(_hoomd, m)
     // utils
     export_hoomd_math_functions(m);
     export_ClockSource(m);
-    export_Profiler(m);
 
     // data structures
     export_HOOMDHostBuffer(m);
@@ -221,10 +241,16 @@ PYBIND11_MODULE(_hoomd, m)
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);
+    export_MeshDefinition(m);
     export_SnapshotSystemData(m);
     export_BondedGroupData<BondData, Bond>(m, "BondData", "BondDataSnapshot");
     export_BondedGroupData<AngleData, Angle>(m, "AngleData", "AngleDataSnapshot");
+    export_BondedGroupData<TriangleData, Angle>(m, "TriangleData", "TriangleDataSnapshot", false);
     export_BondedGroupData<DihedralData, Dihedral>(m, "DihedralData", "DihedralDataSnapshot");
+    export_MeshGroupData<MeshBondData, MeshBond>(m, "MeshBondData", "MeshBondDataSnapshot");
+    export_MeshGroupData<MeshTriangleData, MeshTriangle>(m,
+                                                         "MeshTriangleData",
+                                                         "MeshTriangleDataSnapshot");
     export_BondedGroupData<ImproperData, Dihedral>(m,
                                                    "ImproperData",
                                                    "ImproperDataSnapshot",
@@ -236,14 +262,20 @@ PYBIND11_MODULE(_hoomd, m)
 
     export_LocalGroupData<HOOMDHostBuffer, BondData>(m, "LocalBondDataHost");
     export_LocalGroupData<HOOMDHostBuffer, AngleData>(m, "LocalAngleDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, TriangleData>(m, "LocalTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, DihedralData>(m, "LocalDihedralDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, MeshBondData>(m, "LocalMeshBondDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ImproperData>(m, "LocalImproperDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(m, "LocalConstraintDataHost");
     export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
 #if ENABLE_HIP
     export_LocalGroupData<HOOMDDeviceBuffer, BondData>(m, "LocalBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, TriangleData>(m, "LocalTriangleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(m, "LocalAngleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(m, "LocalDihedralDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, MeshBondData>(m, "LocalMeshBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, MeshTriangleData>(m, "LocalMeshTriangleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(m, "LocalImproperDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(m, "LocalConstraintDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");
@@ -251,15 +283,19 @@ PYBIND11_MODULE(_hoomd, m)
 
     // initializers
     export_GSDReader(m);
-    getardump::export_GetarInitializer(m);
 
     // computes
+    export_Autotuned(m);
+    export_Action(m);
     export_Compute(m);
     export_CellList(m);
     export_CellListStencil(m);
     export_ForceCompute(m);
+    export_LocalForceComputeData<HOOMDHostBuffer>(m, "LocalForceComputeDataHost");
+#ifdef ENABLE_HIP
+    export_LocalForceComputeData<HOOMDDeviceBuffer>(m, "LocalForceComputeDataDevice");
+#endif
     export_ForceConstraint(m);
-    export_ConstForceCompute(m);
 
 #ifdef ENABLE_HIP
     export_CellListGPU(m);
@@ -269,9 +305,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_Analyzer(m);
     export_PythonAnalyzer(m);
     export_DCDDumpWriter(m);
-    getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
-    export_CallbackAnalyzer(m);
 
     // updaters
     export_Updater(m);
@@ -279,6 +313,9 @@ PYBIND11_MODULE(_hoomd, m)
     export_Integrator(m);
     export_BoxResizeUpdater(m);
     export_UpdaterRemoveDrift(m);
+#ifdef ENABLE_HIP
+    export_BoxResizeUpdaterGPU(m);
+#endif
 
     // tuners
     export_Tuner(m);

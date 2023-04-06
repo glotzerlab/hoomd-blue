@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/StreamingMethod.h
@@ -17,10 +15,13 @@
 
 #include "ExternalField.h"
 #include "SystemData.h"
+#include "hoomd/Autotuned.h"
 #include "hoomd/GPUPolymorph.h"
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! MPCD streaming method
@@ -28,7 +29,7 @@ namespace mpcd
  * This method implements the base version of ballistic propagation of MPCD
  * particles.
  */
-class PYBIND11_EXPORT StreamingMethod
+class PYBIND11_EXPORT StreamingMethod : public Autotuned
     {
     public:
     //! Constructor
@@ -44,21 +45,6 @@ class PYBIND11_EXPORT StreamingMethod
 
     //! Peek if the next step requires streaming
     virtual bool peekStream(uint64_t timestep) const;
-
-    //! Sets the profiler for the integration method to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //! Change the timestep
     /*!
@@ -97,10 +83,9 @@ class PYBIND11_EXPORT StreamingMethod
     protected:
     std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
-    std::shared_ptr<::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
-    std::shared_ptr<Profiler> m_prof;                          //!< System profiler
 
     Scalar m_mpcd_dt;         //!< Integration time step
     unsigned int m_period;    //!< Number of MD timesteps between streaming steps
@@ -116,6 +101,7 @@ namespace detail
     {
 //! Export mpcd::StreamingMethod to python
 void export_StreamingMethod(pybind11::module& m);
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_STREAMING_METHOD_H_

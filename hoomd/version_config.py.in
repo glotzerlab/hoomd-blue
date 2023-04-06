@@ -12,8 +12,6 @@ md_built = ${_md_built}
 
 hpmc_built = ${_hpmc_built}
 
-dem_built = ${_dem_built}
-
 mpcd_built = ${_mpcd_built}
 
 metal_built = ${_metal_built}
@@ -21,3 +19,7 @@ metal_built = ${_metal_built}
 cuda_include_path = "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
 
 cuda_devrt_library = "${CUDA_cudadevrt_LIBRARY}"
+
+llvm_enabled = ${_llvm_enabled}
+
+build_dir = "${HOOMD_BINARY_DIR}"

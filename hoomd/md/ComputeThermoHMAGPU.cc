@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: ajs42
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ComputeThermoHMAGPU.cc
     \brief Contains code for the ComputeThermoHMAGPU class
@@ -11,8 +9,6 @@
 #include "ComputeThermoHMAGPU.cuh"
 #include "hoomd/GPUPartition.cuh"
 
-namespace py = pybind11;
-
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
@@ -21,6 +17,10 @@ namespace py = pybind11;
 #include <iostream>
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
@@ -80,9 +80,6 @@ void ComputeThermoHMAGPU::computeProperties()
         return;
 
     unsigned int group_size = m_group->getNumMembers();
-
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Thermo");
 
     assert(m_pdata);
 
@@ -149,7 +146,7 @@ void ComputeThermoHMAGPU::computeProperties()
         m_exec_conf->beginMultiGPU();
 
         // build up args list
-        compute_thermo_hma_args args;
+        kernel::compute_thermo_hma_args args;
         args.n_blocks = num_blocks;
         args.d_net_force = d_net_force.data;
         args.d_net_virial = d_net_virial.data;
@@ -199,18 +196,21 @@ void ComputeThermoHMAGPU::computeProperties()
     // in MPI, reduce extensive quantities only when they're needed
     m_properties_reduced = !m_pdata->getDomainDecomposition();
 #endif // ENABLE_MPI
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_ComputeThermoHMAGPU(py::module& m)
+namespace detail
     {
-    py::class_<ComputeThermoHMAGPU, ComputeThermoHMA, std::shared_ptr<ComputeThermoHMAGPU>>(
+void export_ComputeThermoHMAGPU(pybind11::module& m)
+    {
+    pybind11::class_<ComputeThermoHMAGPU, ComputeThermoHMA, std::shared_ptr<ComputeThermoHMAGPU>>(
         m,
         "ComputeThermoHMAGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      const double,
-                      const double>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            const double,
+                            const double>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

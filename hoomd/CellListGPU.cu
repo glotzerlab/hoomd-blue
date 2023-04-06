@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CellListGPU.cuh"
 
@@ -15,6 +13,8 @@
     \brief Defines GPU kernel code for cell list generation on the GPU
 */
 
+namespace hoomd
+    {
 //! Kernel that computes the cell list on the GPU
 /*! \param d_cell_size Number of particles in each cell
     \param d_xyzf Cell XYZF data array
@@ -565,3 +565,5 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
 
     return hipSuccess;
     }
+
+    } // end namespace hoomd

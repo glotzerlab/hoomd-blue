@@ -1,15 +1,9 @@
-[submodule "hoomd/extern/libgetar"]
-	path = hoomd/extern/libgetar
-	url = https://github.com/glotzerlab/libgetar
 [submodule "hoomd/extern/upp11"]
 	path = hoomd/extern/upp11
 	url = https://github.com/glotzerlab/upp11.git
 [submodule "hoomd/extern/nano-signal-slot"]
 	path = hoomd/extern/nano-signal-slot
 	url = https://github.com/glotzerlab/nano-signal-slot.git
-[submodule "hoomd/extern/cub"]
-	path = hoomd/extern/cub
-	url = https://github.com/glotzerlab/cub.git
 [submodule "hoomd/extern/quickhull"]
 	path = hoomd/extern/quickhull
 	url = https://github.com/glotzerlab/quickhull

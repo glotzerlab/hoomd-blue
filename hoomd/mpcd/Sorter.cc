@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/Sorter.cc
@@ -10,6 +8,8 @@
 
 #include "Sorter.h"
 
+namespace hoomd
+    {
 /*!
  * \param sysdata MPCD system data
  */
@@ -42,9 +42,6 @@ void mpcd::Sorter::update(uint64_t timestep)
     if (!shouldSort(timestep))
         return;
 
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD sort");
-
     // resize the sorted order vector to the current number of particles
     m_order.resize(m_mpcd_pdata->getN());
     m_rorder.resize(m_mpcd_pdata->getN());
@@ -55,9 +52,6 @@ void mpcd::Sorter::update(uint64_t timestep)
 
     // trigger the sort signal for ParticleData callbacks using the current sortings
     m_mpcd_pdata->notifySort(timestep, m_order, m_rorder);
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 /*!
@@ -69,12 +63,8 @@ void mpcd::Sorter::update(uint64_t timestep)
  */
 void mpcd::Sorter::computeOrder(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     // compute the cell list at current timestep, guarantees owned particles are on rank
     m_cl->compute(timestep);
-    if (m_prof)
-        m_prof->push(m_exec_conf, "MPCD sort");
 
     ArrayHandle<unsigned int> h_cell_list(m_cl->getCellList(),
                                           access_location::host,
@@ -117,7 +107,7 @@ void mpcd::Sorter::computeOrder(uint64_t timestep)
  */
 void mpcd::Sorter::applyOrder() const
     {
-    // apply the sorted order
+        // apply the sorted order
         {
         ArrayHandle<unsigned int> h_order(m_order, access_location::host, access_mode::read);
 
@@ -190,8 +180,9 @@ bool mpcd::Sorter::shouldSort(uint64_t timestep)
  */
 void mpcd::detail::export_Sorter(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
+    pybind11::class_<mpcd::Sorter, std::shared_ptr<mpcd::Sorter>>(m, "Sorter")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
         .def("setPeriod", &mpcd::Sorter::setPeriod);
     }
+
+    } // end namespace hoomd

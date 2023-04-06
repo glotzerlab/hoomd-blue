@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file GPUVector.h
     \brief Defines the GPUVector and GlobalVector classes
@@ -18,6 +16,8 @@
 // The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f / 8.f
 
+namespace hoomd
+    {
 //! Forward declarations
 template<class T> class GPUVector;
 
@@ -444,3 +444,5 @@ template<class T> class GlobalVector : public GPUVectorBase<T, GlobalArray<T>>
         return static_cast<GlobalArray<T> const&>(*this).get();
         }
     };
+
+    } // end namespace hoomd

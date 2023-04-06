@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellThermoCompute.h
@@ -26,6 +24,8 @@
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Computes the cell (thermodynamic) properties
@@ -113,21 +113,6 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         return h_net_properties.data[mpcd::detail::thermo_index::temperature];
         }
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-#ifdef ENABLE_MPI
-        if (m_vel_comm)
-            m_vel_comm->setAutotunerParams(enable, period);
-        if (m_energy_comm)
-            m_energy_comm->setAutotunerParams(enable, period);
-#endif // ENABLE_MPI
-        }
-
     //! Get the signal for requested thermo flags
     /*!
      * \returns A signal that subscribers can attach a callback to in order
@@ -213,5 +198,6 @@ namespace detail
 void export_CellThermoCompute(pybind11::module& m);
     } // end namespace detail
 
-    }      // end namespace mpcd
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // #define MPCD_CELL_THERMO_COMPUTE_H_

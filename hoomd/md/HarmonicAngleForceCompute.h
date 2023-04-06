@@ -1,7 +1,6 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// Maintainer: dnlebard
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/ForceCompute.h"
 
@@ -22,6 +21,10 @@
 #ifndef __HARMONICANGLEFORCECOMPUTE_H__
 #define __HARMONICANGLEFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 struct angle_harmonic_params
     {
     Scalar k;
@@ -45,9 +48,9 @@ struct angle_harmonic_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Computes harmonic angle forces on each particle
@@ -96,7 +99,7 @@ class PYBIND11_EXPORT HarmonicAngleForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-//! Exports the AngleForceCompute class to python
-void export_HarmonicAngleForceCompute(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

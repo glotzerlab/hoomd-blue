@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file GPUFlags.h
     \brief Defines the GPUFlags class
@@ -24,6 +22,8 @@
 #include <iostream>
 #include <stdexcept>
 
+namespace hoomd
+    {
 //! Class for managing a small set of flags set on the GPU
 /*!
 \b Overview:
@@ -282,16 +282,13 @@ template<class T> void GPUFlags<T>::deallocate()
         assert(d_data);
 #ifdef ENABLE_MPI
         hipHostUnregister(h_data);
-        CHECK_CUDA_ERROR();
         free(h_data);
 #else
         hipHostFree(h_data);
-        CHECK_CUDA_ERROR();
 #endif
         if (!m_mapped)
             {
             hipFree(d_data);
-            CHECK_CUDA_ERROR();
             }
         }
     else
@@ -395,5 +392,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
 #endif
         }
     }
+
+    } // end namespace hoomd
 
 #endif

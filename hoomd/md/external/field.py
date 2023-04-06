@@ -1,11 +1,7 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
-
-"""External field potentials."""
+"""External field forces."""
 
 import hoomd
 from hoomd.md import _md
@@ -15,45 +11,43 @@ from hoomd.data.typeparam import TypeParameter
 
 
 class Field(force.Force):
-    """Constructs the external field potential.
+    """Base class external field force.
 
     External potentials represent forces which are applied to all particles in
     the simulation by an external agent.
 
-    Note:
-        `Field` is the base class for all external field potentials.
-        Users should not instantiate this class directly.
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def)
-        super()._attach()
 
 
 class Periodic(Field):
-    """One-dimension periodic potential.
+    """One-dimension periodic force.
 
-    `Periodic` specifies that an external force should be added to every
-    particle in the simulation to induce a periodic modulation in the particle
-    concentration. The modulation is one-dimensional and extends along the
-    lattice vector :math:`\\mathbf{a}_i` of the simulation cell. The force
-    parameters can be set on a per particle type basis. This potential can, for
-    example, be used to induce an ordered phase in a block-copolymer melt.
+    `Periodic` computes forces and energies that induce a periodic modulation in
+    the particle concentration. The modulation is one-dimensional and extends
+    along the lattice vector :math:`\\mathbf{a}_i` of the simulation cell. This
+    force can, for example, be used to induce an ordered phase in a
+    block-copolymer melt.
 
-    The external potential :math:`V(\\vec{r})` is implemented using the
-    following formula:
+    The force is computed commensurate with the potential energy:
 
     .. math::
 
-       V(\\vec{r}) = A \\tanh\\left[\\frac{1}{2 \\pi p w} \\cos\\left(
-       p \\vec{b}_i\\cdot\\vec{r}\\right)\\right]
+       U_i(\\vec{r_j}) = A \\tanh\\left[\\frac{1}{2 \\pi p w} \\cos\\left(
+       p \\vec{b}_i\\cdot\\vec{r_j}\\right)\\right]
 
-    The coefficients above must be set per unique particle type.
+    `Periodic` results in no virial stress due functional dependence on box
+    scaled coordinates.
 
     .. py:attribute:: params
 
@@ -90,22 +84,19 @@ class Periodic(Field):
 
 
 class Electric(Field):
-    """Electric field.
+    """Electric field force.
 
-    `Electric` specifies that an external force should be added to every
-    particle in the simulation that results from an electric field.
-
-    The external potential :math:`V(\\vec{r})` is implemented using the
-    following formula:
+    `Electric` computes forces, and virials, and energies on all particles in
+    the in the simulation state with consistent with:
 
     .. math::
 
-       V(\\vec{r}) = - q_i \\vec{E} \\cdot \\vec{r}
+       U_i = - q_i \\vec{E} \\cdot \\vec{r}_i
 
 
     where :math:`q_i` is the particle charge and :math:`\\vec{E}` is the field
     vector. The field vector :math:`\\vec{E}` must be set per unique particle
-    types.
+    type.
 
     .. py:attribute:: E
 

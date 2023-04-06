@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborListGPU.h"
 #include "hoomd/Autotuner.h"
@@ -20,6 +18,10 @@
 #ifndef __NEIGHBORLISTGPUBINNED_H__
 #define __NEIGHBORLISTGPUBINNED_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Neighbor list build on the GPU
 /*! Implements the O(N) neighbor list build on the GPU using a cell list.
 
@@ -44,23 +46,6 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         NeighborListGPU::notifyRCutMatrixChange();
         }
 
-    //! Set the autotuner period
-    void setTuningParam(unsigned int param)
-        {
-        m_param = param;
-        }
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        NeighborListGPU::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period / 10);
-        m_tuner->setEnabled(enable);
-        }
-
     /// Make the neighborlist deterministic
     void setDeterministic(bool deterministic)
         {
@@ -73,22 +58,49 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         return m_cl->getSortCellList();
         }
 
+    /// Get the dimensions of the cell list
+    const uint3& getDim() const
+        {
+        return m_cl->getDim();
+        }
+
+    /// Get number of memory slots allocated for each cell
+    const unsigned int getNmax() const
+        {
+        return m_cl->getNmax();
+        }
+
+    /// Start autotuning kernel launch parameters
+    virtual void startAutotuning()
+        {
+        NeighborListGPU::startAutotuning();
+
+        // Start autotuning the cell list.
+        m_cl->startAutotuning();
+        }
+
+    /// Check if autotuning is complete.
+    virtual bool isAutotuningComplete()
+        {
+        bool result = NeighborListGPU::isAutotuningComplete();
+        result = result && m_cl->isAutotuningComplete();
+        return result;
+        }
+
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
-    unsigned int m_block_size;      //!< Block size to execute on the GPU
-    unsigned int m_param;           //!< Kernel tuning parameter
     bool m_use_index;               //!< True for indirect lookup of particle data via index
 
     /// Track when the cell size needs to be updated
     bool m_update_cell_size = true;
 
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+    std::shared_ptr<Autotuner<2>> m_tuner; //!< Autotuner for block size and threads per particle
 
     //! Builds the neighbor list
     virtual void buildNlist(uint64_t timestep);
     };
 
-//! Exports NeighborListGPUBinned to python
-void export_NeighborListGPUBinned(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

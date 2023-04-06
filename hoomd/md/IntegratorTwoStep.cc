@@ -1,21 +1,23 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
-
-namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
 
 #include <pybind11/stl_bind.h>
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<IntegrationMethodTwoStep>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<hoomd::md::IntegrationMethodTwoStep>>);
 
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false), m_aniso_mode(Automatic)
+    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
 
@@ -41,17 +43,6 @@ IntegratorTwoStep::~IntegratorTwoStep()
 #endif
     }
 
-/*! \param prof The profiler to set
-    Sets the profiler both for this class and all of the contained integration methods
-*/
-void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
-    {
-    Integrator::setProfiler(prof);
-
-    for (auto& method : m_methods)
-        method->setProfiler(prof);
-    }
-
 /*! \param timestep Current time step of the simulation
     \post All integration methods in m_methods are applied in order to move the system state
     variables forward to \a timestep+1.
@@ -60,47 +51,48 @@ void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
 void IntegratorTwoStep::update(uint64_t timestep)
     {
     Integrator::update(timestep);
+
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
-        m_exec_conf->msg->warning()
-            << "integrate.mode_standard: No integration methods are set, continuing anyways."
-            << endl;
+        m_exec_conf->msg->warning() << "MD Integrator has no integration methods." << endl;
         m_gave_warning = true;
         }
 
     // ensure that prepRun() has been called
     assert(m_prepared);
 
-    if (m_prof)
-        m_prof->push("Integrate");
-
     // perform the first step of the integration on all groups
     for (auto& method : m_methods)
         {
         // deltaT should probably be passed as an argument, but that would require modifying many
         // files. Work around this by calling setDeltaT every timestep.
+        method->setAnisotropic(m_integrate_rotational_dof);
         method->setDeltaT(m_deltaT);
         method->integrateStepOne(timestep);
         }
 
-    if (m_prof)
-        m_prof->pop();
-
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
+        // Update the rigid body consituent particles before communicating so that any such
+        // particles that move from one domain to another are migrated.
+        updateRigidBodies(timestep + 1);
+
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time
         // step
-
-        // also updates rigid bodies after ghost updating
         m_comm->communicate(timestep + 1);
+
+        // Communicator uses a compute callback to trigger updateRigidBodies again and ensure that
+        // all ghost constituent particle positions are set in accordance with any just communicated
+        // ghost and/or migrated rigid body centers.
         }
     else
 #endif
         {
+        // Update rigid body constituent particles in serial simulations.
         updateRigidBodies(timestep + 1);
         }
 
@@ -118,12 +110,11 @@ void IntegratorTwoStep::update(uint64_t timestep)
         m_half_step_hook->update(timestep + 1);
         }
 
-    if (m_prof)
-        m_prof->push("Integrate");
-
     // perform the second step of the integration on all groups
-    for (auto& method : m_methods)
+    // reversed for integrators so that the half steps will be performed symmetrically
+    for (auto method_ptr = m_methods.rbegin(); method_ptr != m_methods.rend(); method_ptr++)
         {
+        auto method = *method_ptr;
         method->integrateStepTwo(timestep);
         method->includeRATTLEForce(timestep + 1);
         }
@@ -136,9 +127,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
 
        TODO: check this assumptions holds for all integrators
      */
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! \param deltaT new deltaT to set
@@ -159,33 +147,6 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
         }
     }
 
-/*! \returns true If all added integration methods have valid restart information
- */
-bool IntegratorTwoStep::isValidRestart()
-    {
-    bool res = true;
-
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // and them all together
-        res = res && method->isValidRestart();
-        }
-    return res;
-    }
-
-/*! \returns true If all added integration methods have valid restart information
- */
-void IntegratorTwoStep::initializeIntegrationMethods()
-    {
-    // loop through all methods
-    for (auto& method : m_methods)
-        {
-        // initialize each of them
-        method->initializeIntegratorVariables();
-        }
-    }
-
 /*! \param group Group over which to count degrees of freedom.
 
     IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the
@@ -199,15 +160,29 @@ void IntegratorTwoStep::initializeIntegrationMethods()
 */
 Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
     {
+    Scalar periodic_dof_removed = 0;
+
+    unsigned int N_filter = group->getNumMembersGlobal();
+    unsigned int N_particles = m_pdata->getNGlobal();
+
+    // When using rigid bodies, adjust the number of particles to the number of rigid centers and
+    // free particles. The constituent particles are in the system, but not part of the equations
+    // of motion.
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->validateRigidBodies();
+        N_particles
+            = m_rigid_bodies->getNMoleculesGlobal() + m_rigid_bodies->getNFreeParticlesGlobal();
+        N_filter = group->getNCentralAndFreeGlobal();
+        }
+
     // proportionately remove n_dimensions DOF when there is only one momentum conserving
     // integration method
-    Scalar periodic_dof_removed = 0;
-    if (group->getNumMembersGlobal() == m_pdata->getNGlobal() && m_methods.size() == 1
-        && m_methods[0]->isMomentumConserving())
+    if (m_methods.size() == 1 && m_methods[0]->isMomentumConserving()
+        && m_methods[0]->getGroup()->getNumMembersGlobal() == N_particles)
         {
         periodic_dof_removed
-            = Scalar(m_sysdef->getNDimensions())
-              * (Scalar(group->getNumMembersGlobal()) / Scalar(m_pdata->getNGlobal()));
+            = Scalar(m_sysdef->getNDimensions()) * (Scalar(N_filter) / Scalar(N_particles));
         }
 
     // loop through all methods and add up the number of DOF They apply to the group
@@ -228,31 +203,10 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
     double res = 0;
 
-    bool aniso = false;
-
-    // This is called before prepRun, so we need to determine the anisotropic modes independently
-    // here. It cannot be done earlier, as the integration methods were not in place. set
-    // (an-)isotropic integration mode
-    switch (m_aniso_mode)
+    if (m_integrate_rotational_dof)
         {
-    case Anisotropic:
-        aniso = true;
-        break;
-    case Automatic:
-    default:
-        aniso = getAnisotropic();
-        break;
-        }
-
-    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso
-                                << std::endl;
-
-    if (aniso)
-        {
-        // loop through all methods
         for (auto& method : m_methods)
             {
-            // dd them all together
             res += method->getRotationalDOF(group);
             }
         }
@@ -260,47 +214,16 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     return res;
     }
 
-/*!  \param mode Anisotropic integration mode to set
-     Set the anisotropic integration mode
-*/
-void IntegratorTwoStep::setAnisotropicMode(const std::string& mode)
+/*!  \param integrate_rotational_dofs true to integrate orientations, false to not
+ */
+void IntegratorTwoStep::setIntegrateRotationalDOF(bool integrate_rotational_dof)
     {
-    if (mode == "true")
-        {
-        m_aniso_mode = AnisotropicMode::Anisotropic;
-        }
-    else if (mode == "false")
-        {
-        m_aniso_mode = AnisotropicMode::Isotropic;
-        }
-    else if (mode == "auto")
-        {
-        m_aniso_mode = AnisotropicMode::Automatic;
-        }
-    else
-        {
-        throw std::invalid_argument("Invalid mode string");
-        }
+    m_integrate_rotational_dof = integrate_rotational_dof;
     }
 
-const std::string IntegratorTwoStep::getAnisotropicMode()
+const bool IntegratorTwoStep::getIntegrateRotationalDOF()
     {
-    if (m_aniso_mode == AnisotropicMode::Anisotropic)
-        {
-        return "true";
-        }
-    else if (m_aniso_mode == AnisotropicMode::Isotropic)
-        {
-        return "false";
-        }
-    else if (m_aniso_mode == AnisotropicMode::Automatic)
-        {
-        return "auto";
-        }
-    else
-        {
-        throw std::runtime_error("Invalid anisotropic mode");
-        }
+    return m_integrate_rotational_dof;
     }
 
 /*! Compute accelerations if needed for the first step.
@@ -309,32 +232,22 @@ const std::string IntegratorTwoStep::getAnisotropicMode()
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
-    bool aniso = false;
-
-    // set (an-)isotropic integration mode
-    switch (m_aniso_mode)
+    Integrator::prepRun(timestep);
+    if (m_integrate_rotational_dof && !areForcesAnisotropic())
         {
-    case Anisotropic:
-        aniso = true;
-        if (!getAnisotropic())
-            m_exec_conf->msg->warning() << "Forcing anisotropic integration mode"
-                                           " with no forces coupling to orientation"
-                                        << endl;
-        break;
-    case Isotropic:
-        if (getAnisotropic())
-            m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
-                                           " with anisotropic forces defined"
-                                        << endl;
-        break;
-    case Automatic:
-    default:
-        aniso = getAnisotropic();
-        break;
+        m_exec_conf->msg->warning() << "Requested integration of orientations, but no forces"
+                                       " provide torques."
+                                    << endl;
+        }
+    if (!m_integrate_rotational_dof && areForcesAnisotropic())
+        {
+        m_exec_conf->msg->warning() << "Forces provide torques, but integrate_rotational_dof is"
+                                       "false."
+                                    << endl;
         }
 
     for (auto& method : m_methods)
-        method->setAnisotropic(aniso);
+        method->setAnisotropic(m_integrate_rotational_dof);
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -400,15 +313,24 @@ void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
         }
     }
 
-/*! \param enable Enable/disable autotuning
-    \param period period (approximate) in time steps when returning occurs
-*/
-void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
+void IntegratorTwoStep::startAutotuning()
     {
-    Integrator::setAutotunerParams(enable, period);
-    // set params in all methods
+    Integrator::startAutotuning();
+
+    // Start autotuning in all methods.
     for (auto& method : m_methods)
-        method->setAutotunerParams(enable, period);
+        method->startAutotuning();
+    }
+
+/// Check if autotuning is complete.
+bool IntegratorTwoStep::isAutotuningComplete()
+    {
+    bool result = Integrator::isAutotuningComplete();
+    for (auto& method : m_methods)
+        {
+        result = result && method->isAutotuningComplete();
+        }
+    return result;
     }
 
 /// helper function to compute net force/virial
@@ -457,9 +379,9 @@ CommFlags IntegratorTwoStep::determineFlags(uint64_t timestep)
 #endif
 
 /// Check if any forces introduce anisotropic degrees of freedom
-bool IntegratorTwoStep::getAnisotropic()
+bool IntegratorTwoStep::areForcesAnisotropic()
     {
-    auto is_anisotropic = Integrator::getAnisotropic();
+    auto is_anisotropic = Integrator::areForcesAnisotropic();
     if (m_rigid_bodies)
         {
         is_anisotropic |= m_rigid_bodies->isAnisotropic();
@@ -467,19 +389,56 @@ bool IntegratorTwoStep::getAnisotropic()
     return is_anisotropic;
     }
 
-void export_IntegratorTwoStep(py::module& m)
+void IntegratorTwoStep::validateGroups()
     {
-    py::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
+    // Check that methods have valid groups.
+    size_t group_size = 0;
+    for (auto& method : m_methods)
+        {
+        method->validateGroup();
+        group_size += method->getGroup()->getNumMembersGlobal();
+        }
+
+    // Check that methods have non-overlapping groups.
+    if (m_methods.size() <= 1)
+        {
+        return;
+        }
+    auto group_union
+        = ParticleGroup::groupUnion(m_methods[0]->getGroup(), m_methods[1]->getGroup());
+    for (size_t i = 2; i < m_methods.size(); i++)
+        {
+        group_union = ParticleGroup::groupUnion(m_methods[i]->getGroup(), group_union);
+        }
+    if (group_size != group_union->getNumMembersGlobal())
+        {
+        throw std::runtime_error("Error: the provided groups overlap.");
+        }
+    }
+
+namespace detail
+    {
+void export_IntegratorTwoStep(pybind11::module& m)
+    {
+    pybind11::bind_vector<std::vector<std::shared_ptr<IntegrationMethodTwoStep>>>(
         m,
         "IntegrationMethodList");
 
-    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
+    pybind11::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
         m,
         "IntegratorTwoStep")
-        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
-        .def_property("aniso",
-                      &IntegratorTwoStep::getAnisotropicMode,
-                      &IntegratorTwoStep::setAnisotropicMode);
+        .def_property("integrate_rotational_dof",
+                      &IntegratorTwoStep::getIntegrateRotationalDOF,
+                      &IntegratorTwoStep::setIntegrateRotationalDOF)
+        .def_property("half_step_hook",
+                      &IntegratorTwoStep::getHalfStepHook,
+                      &IntegratorTwoStep::setHalfStepHook)
+        .def("validate_groups", &IntegratorTwoStep::validateGroups);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

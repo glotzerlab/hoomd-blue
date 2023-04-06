@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/VirtualParticleFiller.cc
@@ -10,10 +8,12 @@
 
 #include "VirtualParticleFiller.h"
 
+namespace hoomd
+    {
 mpcd::VirtualParticleFiller::VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                                    Scalar density,
                                                    unsigned int type,
-                                                   std::shared_ptr<::Variant> T)
+                                                   std::shared_ptr<Variant> T)
     : m_sysdef(sysdata->getSystemDefinition()), m_pdata(m_sysdef->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()), m_mpcd_pdata(sysdata->getParticleData()),
       m_cl(sysdata->getCellList()), m_density(density), m_type(type), m_T(T), m_N_fill(0),
@@ -79,15 +79,16 @@ void mpcd::VirtualParticleFiller::setType(unsigned int type)
  */
 void mpcd::detail::export_VirtualParticleFiller(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
+    pybind11::class_<mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::VirtualParticleFiller>>(
         m,
         "VirtualParticleFiller")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      Scalar,
-                      unsigned int,
-                      std::shared_ptr<::Variant>>())
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            Scalar,
+                            unsigned int,
+                            std::shared_ptr<Variant>>())
         .def("setDensity", &mpcd::VirtualParticleFiller::setDensity)
         .def("setType", &mpcd::VirtualParticleFiller::setType)
         .def("setTemperature", &mpcd::VirtualParticleFiller::setTemperature);
     }
+
+    } // end namespace hoomd

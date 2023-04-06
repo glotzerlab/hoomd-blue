@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_FREE_VOLUME_CUH_
 #define _COMPUTE_FREE_VOLUME_CUH_
@@ -19,6 +19,8 @@
 #include "hoomd/TextureTools.h"
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -89,7 +91,7 @@ struct hpmc_free_volume_args_t
     unsigned int select;                  //!< RNG select value
     const uint64_t timestep;              //!< Current time step
     const unsigned int dim;               //!< Number of dimensions
-    const BoxDim& box;                    //!< Current simulation box
+    const BoxDim box;                     //!< Current simulation box
     unsigned int block_size;              //!< Block size to execute
     unsigned int stride;                  //!< Number of threads per overlap check
     unsigned int group_size;              //!< Size of the group to execute
@@ -202,7 +204,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     unsigned int ntyppairs = overlap_idx.getNumElements();
     unsigned int* s_overlap = (unsigned int*)(&s_check_overlaps[ntyppairs]);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -271,6 +273,11 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng);
         Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng);
         Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng);
+
+        if (dim == 2)
+            {
+            zrand = 0;
+            }
 
         Scalar3 f = make_scalar3(xrand, yrand, zrand);
         pos_i = vec3<Scalar>(box.makeCoordinates(f));
@@ -392,6 +399,12 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
                           + n_groups * sizeof(unsigned int)
                           + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
+    if (shared_bytes > args.devprop.sharedMemPerBlock)
+        {
+        throw std::runtime_error("HPMC shape parameters exceed the available shared "
+                                 "memory per block.");
+        }
+
     unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock
                                                              - attr.sharedSizeBytes - shared_bytes);
 
@@ -445,5 +458,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     }; // end namespace detail
 
     } // end namespace hpmc
+
+    } // end namespace hoomd
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

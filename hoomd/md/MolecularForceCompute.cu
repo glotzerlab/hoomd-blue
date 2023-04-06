@@ -1,18 +1,24 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-// Maintainer: jglaser
 #include "MolecularForceCompute.cuh"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/binary_search.h>
+#include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/extrema.h>
+#include <thrust/fill.h>
+#include <thrust/functional.h>
 #include <thrust/gather.h>
+#include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/reduce.h>
@@ -44,6 +50,12 @@
     \brief Contains GPU kernel code used by MolecularForceCompute
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Sort local molecules and assign local molecule indices to particles
 hipError_t gpu_sort_by_molecule(unsigned int nptl,
                                 const unsigned int* d_tag,
@@ -425,3 +437,7 @@ hipError_t gpu_fill_molecule_table(unsigned int nptl,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

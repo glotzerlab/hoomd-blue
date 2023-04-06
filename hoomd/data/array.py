@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement zero-copy array."""
 
@@ -356,26 +355,29 @@ class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
     but there is some overhead. This is mitigated by returning a
     ``numpy.ndarray`` whenever possible. If every ounce of performance is
     necessary, ``HOOMDArray._coerce_to_ndarray`` can provide a ``numpy.ndarray``
-    object inside the context manager. **References to a ``HOOMDArray`` object's
+    object inside the context manager. **References to a HOOMDArray object's
     buffer after leaving the context manager is UNSAFE.** It can cause SEGFAULTs
     and cause your program to crash. Use this function only if absolutely
     necessary.
 
-    Performance Tips:
-        *Assume* ``a`` *represents a* `HOOMDArray` *for examples given.*
+    .. rubric:: Performance Tips
 
-        * Place the ``HOOMDArray`` to the left of the expression
-          (e.g. ``a + b + c`` is faster than ``b + a + c``). This has to do with
-          the mechanisms ``HOOMDArray`` has to do to hook into NumPy's
-          functionality.
-        * If a copy will need to be made, do it as early as possible. In other
-          words, if you will need access outside the context manager, use
-          ``numpy.array(a, copy=True)`` before doing any calculations.
-        * If you know that your access of the internal buffer is safe and we
-          cannot detect this (i.e. we return a ``HOOMDArray``), using
-          ``HOOMDArray._coerce_to_ndarray`` should help. Note that for large
-          arrays this only gives minimal performance improvements at greater
-          risk of breaking your program.
+    *Assume* ``a`` *represents a* `HOOMDArray` *for examples given.*
+
+    * Place the ``HOOMDArray`` to the left of the expression
+      (e.g. ``a + b + c`` is faster than ``b + a + c``). This has to do with
+      the mechanisms ``HOOMDArray`` has to do to hook into NumPy's
+      functionality.
+
+    * If a copy will need to be made, do it as early as possible. In other
+      words, if you will need access outside the context manager, use
+      ``numpy.array(a, copy=True)`` before doing any calculations.
+
+    * If you know that your access of the internal buffer is safe and we
+      cannot detect this (i.e. we return a ``HOOMDArray``), using
+      ``HOOMDArray._coerce_to_ndarray`` should help. Note that for large
+      arrays this only gives minimal performance improvements at greater
+      risk of breaking your program.
     """
 
     def __init__(self, buffer, callback, read_only=None):
@@ -728,11 +730,9 @@ Exposes an internal HOOMD-blue GPU buffer.
 The HOOMDGPUArray object exposes a GPU data buffer using the
 `__cuda_array_interface__
 <https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html>`_.
-This class tries to prevent invalid memory access through only allow the buffer
-to be exposed within a context manager (`hoomd.State.gpu_local_snapshot`).
-However, to prevent copying the data, we cannot guarentee the data will not
-leak. This means that it is possible to *escape* this class. An example of an
-error of this kind is shown below.
+This class provides buffer access through a context manager to prevent invalid
+memory accesses (`hoomd.State.gpu_local_snapshot`). To avoid errors, do not use
+references to the data outside the context manager. For example:
 
 .. code-block:: python
 
@@ -744,27 +744,30 @@ error of this kind is shown below.
     # invalid data access can cause SEGFAULTs and other issues
     pos[:, 2] -= 1
 
-In general, it is safer to not store any non `HOOMDGPUArray` references to a
-data buffer. This can be done when necessary, but care must be taken not to use
+In general, it is safer to not store any `HOOMDGPUArray` references to a data
+buffer. This can be done when necessary, but care must be taken not to use
 references to the data outside the context manager.
 
-The full functionality of this class depends on whether, HOOMD-blue can import
-CuPy.  If CuPy can be imported then, we wrap much of the ``cupy.ndarray``
-class's functionality. Otherwise, we just expose the buffer and provide a few
-basic properties.
+Note:
+    The full functionality of this class depends on whether, HOOMD-blue can
+    import CuPy.  If CuPy can be imported then, we wrap much of the
+    ``cupy.ndarray`` class's functionality. Otherwise, we just expose the buffer
+    and provide a few basic properties.
 
-In either case `HOOMDGPUArray` supports getting (but not setting) the ``shape``,
-``strides``, and ``ndim`` properties.
+`HOOMDGPUArray` always supports getting (but not setting) the ``shape``,
+``strides``, and ``ndim`` properties. `HOOMDGPUArray` never supports standard
+binary operators like (``+``, ``-``, ``*``). This is a current limitation on
+external classes hooking into CuPy.
 
-When CuPy is imported, compound assignment operators (e.g. ``+=``, ``-=``,
-``*=``) are available. In addition, most methods besides ``view``, ``resize``,
-``flat``, ``flatiter`` are available. The same is true for properties except the
-``data`` and ``base`` properties. See CuPy's documentation for a list of
-methods. An important note is that due their being no way to hook into standard
-operators like (``+``, ``-``, ``*``) direct addition, subtraction, and
-multiplication cannot be performed between `HOOMDGPUArray` and ``cupy.ndarray``
-objects.  However, ``cupy.add`` can be directly used and is recommended for
-memory safety.
+When CuPy is imported, slice/element assignment (e.g.
+``array[0] = 1; array[:2] = 4``) and compound assignment operators (e.g. ``+=``,
+``-=``, ``*=``) are available. In addition, most methods besides ``view``,
+``resize``, ``flat``, ``flatiter`` are available. The same is true for
+properties except the ``data`` and ``base`` properties. See CuPy's documentation
+for a list of methods.
+
+Tip:
+    Use, ``cupy.add``, ``cupy.multiply``, etc. for binary operations on the GPU.
 
 Note:
     Packages like Numba and PyTorch can use `HOOMDGPUArray` without CuPy

@@ -1,21 +1,28 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.nlist
 --------------
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.nlist
 
 .. autosummary::
     :nosignatures:
 
-    md.nlist.NList
-    md.nlist.Cell
-    md.nlist.Stencil
-    md.nlist.Tree
+    NeighborList
+    Cell
+    Stencil
+    Tree
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.nlist
     :synopsis: Neighbor list acceleration structures.
-    :members: NList, Cell, Stencil, Tree
+    :members: Cell, Stencil, Tree
     :no-inherited-members:
+    :show-inheritance:
+
+    .. autoclass:: NeighborList
+        :members:

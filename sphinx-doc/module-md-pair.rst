@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.pair
 --------------
 
@@ -8,26 +11,29 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    Pair
     Buckingham
     DLVO
     DPD
     DPDLJ
     DPDConservative
     Ewald
+    ExpandedGaussian
+    ExpandedLJ
     ExpandedMie
     ForceShiftedLJ
     Fourier
     Gauss
+    Gaussian
     LJ
     LJ1208
     LJ0804
+    LJGauss
     Mie
     Morse
     Moliere
     OPP
+    Pair
     ReactionField
-    SLJ
     Table
     TWF
     Yukawa
@@ -44,23 +50,27 @@ md.pair
         DPDLJ,
         DPDConservative,
         Ewald,
+        ExpandedGaussian,
         ExpandedMie,
         ForceShiftedLJ,
         Fourier,
         Gauss,
+        Gaussian,
         LJ,
         LJ1208,
         LJ0804,
+        LJGauss,
         Mie,
         Morse,
         Moliere,
         OPP,
         ReactionField,
-        SLJ,
+        ExpandedLJ,
         Table,
         TWF,
         Yukawa,
         ZBL
+    :show-inheritance:
 
 .. rubric:: Modules
 

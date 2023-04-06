@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SlitGeometryFiller.cc
@@ -12,10 +10,12 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+namespace hoomd
+    {
 mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                              Scalar density,
                                              unsigned int type,
-                                             std::shared_ptr<::Variant> T,
+                                             std::shared_ptr<Variant> T,
                                              std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdata, density, type, T), m_geom(geom)
     {
@@ -141,14 +141,15 @@ void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
  */
 void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::SlitGeometryFiller,
-               mpcd::VirtualParticleFiller,
-               std::shared_ptr<mpcd::SlitGeometryFiller>>(m, "SlitGeometryFiller")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      Scalar,
-                      unsigned int,
-                      std::shared_ptr<::Variant>,
-                      std::shared_ptr<const mpcd::detail::SlitGeometry>>())
+    pybind11::class_<mpcd::SlitGeometryFiller,
+                     mpcd::VirtualParticleFiller,
+                     std::shared_ptr<mpcd::SlitGeometryFiller>>(m, "SlitGeometryFiller")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            Scalar,
+                            unsigned int,
+                            std::shared_ptr<Variant>,
+                            std::shared_ptr<const mpcd::detail::SlitGeometry>>())
         .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry);
     }
+
+    } // end namespace hoomd

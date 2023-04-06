@@ -1,6 +1,11 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from io import StringIO
 from math import isclose
 import pytest
+import itertools
+import re
 
 from hoomd.conftest import operation_pickling_check
 import hoomd
@@ -29,7 +34,7 @@ class Identity:
 
 @pytest.fixture
 def logger():
-    logger = hoomd.logging.Logger(categories=['scalar'])
+    logger = hoomd.logging.Logger(categories=['scalar', "string"])
     logger[('dummy', 'loggable', 'int')] = (Identity(42000000), 'scalar')
     logger[('dummy', 'loggable', 'float')] = (Identity(3.1415), 'scalar')
     logger[('dummy', 'loggable', 'string')] = (Identity("foobarbaz"), 'string')
@@ -202,3 +207,33 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
     sim = simulation_factory(two_particle_snapshot_factory())
     table = hoomd.write.Table(1, logger)
     operation_pickling_check(table, sim)
+
+
+test_categories = re.split(r'[.|]', str(hoomd.logging.LoggerCategories.ALL))[1:]
+# Generate a set for each invalid permutation of the input logger categories
+# Sets that don't fail are covered by test_only_string_and_scalar_quantities
+combinations = [
+    set(combo)
+    for i in range(1,
+                   len(test_categories) + 1)
+    for combo in itertools.combinations(test_categories, i)
+    if set(combo) - {"string", "scalar"} != set()
+]
+
+
+@pytest.mark.parametrize(
+    argnames="combination",
+    argvalues=combinations,
+)
+def test_invalid_permutations(device, combination):
+    # Test every combination raises the correct ValueError
+    logger = hoomd.logging.Logger(categories=combination)
+    output = StringIO("")
+    with pytest.raises(ValueError) as ve:
+        hoomd.write.Table(1, logger, output)
+    # Ensure that correct error message is sent
+    assert "Table Logger may only have scalar or string categories set." in str(
+        ve.value)
+    # Now ensure category formatting operates correctly
+    for category in combination - {"string", "scalar"}:
+        assert category in str(ve.value)

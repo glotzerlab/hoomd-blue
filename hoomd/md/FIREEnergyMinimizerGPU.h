@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: askeys
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "FIREEnergyMinimizer.h"
 
@@ -20,6 +18,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
 
@@ -51,7 +53,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     void resizePartialSumArrays();
     };
 
-//! Exports the FIREEnergyMinimizerGPU class to python
-void export_FIREEnergyMinimizerGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__

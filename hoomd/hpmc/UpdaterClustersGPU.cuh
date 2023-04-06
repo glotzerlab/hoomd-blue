@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterClustersGPU.cuh
     \brief Implements the overlap kernels for the geometric cluster algorithm the GPU
@@ -30,6 +30,8 @@
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -92,7 +94,7 @@ struct cluster_args_t
     const unsigned int* d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;           //!< Indexer into interaction matrix
     const uint64_t timestep;              //!< Current time step
-    const BoxDim& box;                    //!< Current simulation box
+    const BoxDim box;                     //!< Current simulation box
     unsigned int block_size;              //!< Block size to execute
     unsigned int tpp;                     //!< Threads per particle
     unsigned int overlap_threads;         //!< Threads per overlap check
@@ -178,7 +180,7 @@ struct clusters_transform_args_t
     const quat<Scalar> q;
     const bool line;
     const GPUPartition& gpu_partition;
-    const BoxDim& box;
+    const BoxDim box;
     const unsigned int num_types;
     const unsigned int block_size;
     };
@@ -744,6 +746,6 @@ void transform_particles(const clusters_transform_args_t& args,
 
     } // end namespace gpu
     } // end namespace hpmc
-
+    } // end namespace hoomd
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE

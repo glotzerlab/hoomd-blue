@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceComputeGPU.cuh"
 #include "ActiveForceConstraintCompute.h"
@@ -22,9 +20,11 @@
 #define __ACTIVEFORCECONSTRAINTCOMPUTE_GPU_H__
 
 #include <vector>
-namespace py = pybind11;
-using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Adds an active force to a number of particles with confinement on the GPU
 /*! \ingroup computes
  */
@@ -38,25 +38,10 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
                                     std::shared_ptr<ParticleGroup> group,
                                     Manifold manifold);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ActiveForceConstraintCompute<Manifold>::setAutotunerParams(enable, period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_diffusion->setPeriod(period);
-        m_tuner_diffusion->setEnabled(enable);
-        m_tuner_constraint->setPeriod(period);
-        m_tuner_constraint->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner_force;      //!< Autotuner for block size (force kernel)
-    std::unique_ptr<Autotuner> m_tuner_diffusion;  //!< Autotuner for block size (diff kernel)
-    std::unique_ptr<Autotuner> m_tuner_constraint; //!< Autotuner for block size (constr kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_force;      //!< Autotuner for block size (force kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_diffusion;  //!< Autotuner for block size (diff kernel)
+    std::shared_ptr<Autotuner<1>> m_tuner_constraint; //!< Autotuner for block size (constr kernel)
 
     //! Set forces for particles
     virtual void setForces();
@@ -93,24 +78,22 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
-        this->m_exec_conf->msg->error() << "Creating a ActiveForceConstraintComputeGPU with no GPU "
-                                           "in the execution configuration"
-                                        << endl;
-        throw std::runtime_error("Error initializing ActiveForceConstraintComputeGPU");
+        throw std::runtime_error("ActiveForceConstraintComputeGPU requires a GPU device.");
         }
 
-    // initialize autotuner
-    std::vector<unsigned int> valid_params;
-    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
-        valid_params.push_back(block_size);
-
-    m_tuner_force.reset(
-        new Autotuner(valid_params, 5, 100000, "active_constraint_force", this->m_exec_conf));
-    m_tuner_diffusion.reset(
-        new Autotuner(valid_params, 5, 100000, "active_constraint_diffusion", this->m_exec_conf));
+    // Initialize autotuners.
+    m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                         this->m_exec_conf,
+                                         "active_constraint_force"));
+    m_tuner_diffusion.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                             this->m_exec_conf,
+                                             "active_constraint_diffusion"));
     m_tuner_constraint.reset(
-        new Autotuner(valid_params, 5, 100000, "active_constraint_constraint", this->m_exec_conf));
+        new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                         this->m_exec_conf,
+                         "active_constraint_constraint"));
+    this->m_autotuners.insert(this->m_autotuners.end(),
+                              {m_tuner_force, m_tuner_diffusion, m_tuner_constraint});
 
     unsigned int type = this->m_pdata->getNTypes();
     GlobalVector<Scalar4> tmp_f_activeVec(type, this->m_exec_conf);
@@ -173,16 +156,16 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForc
 
     // compute the forces on the GPU
     this->m_tuner_force->begin();
-    gpu_compute_active_force_set_forces(group_size,
-                                        d_index_array.data,
-                                        d_force.data,
-                                        d_torque.data,
-                                        d_pos.data,
-                                        d_orientation.data,
-                                        d_f_actVec.data,
-                                        d_t_actVec.data,
-                                        N,
-                                        this->m_tuner_force->getParam());
+    kernel::gpu_compute_active_force_set_forces(group_size,
+                                                d_index_array.data,
+                                                d_force.data,
+                                                d_torque.data,
+                                                d_pos.data,
+                                                d_orientation.data,
+                                                d_f_actVec.data,
+                                                d_t_actVec.data,
+                                                N,
+                                                this->m_tuner_force->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -222,7 +205,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotat
     // perform the update on the GPU
     this->m_tuner_diffusion->begin();
 
-    gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(
+    kernel::gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(
         group_size,
         d_tag.data,
         d_index_array.data,
@@ -233,7 +216,7 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(Scalar rotat
         rotation_constant,
         timestep,
         this->m_sysdef->getSeed(),
-        this->m_tuner_diffusion->getParam());
+        this->m_tuner_diffusion->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -266,13 +249,14 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
     // perform the update on the GPU
     this->m_tuner_constraint->begin();
 
-    gpu_compute_active_force_set_constraints<Manifold>(group_size,
-                                                       d_index_array.data,
-                                                       d_pos.data,
-                                                       d_orientation.data,
-                                                       d_f_actVec.data,
-                                                       this->m_manifold,
-                                                       this->m_tuner_constraint->getParam());
+    kernel::gpu_compute_active_force_set_constraints<Manifold>(
+        group_size,
+        d_index_array.data,
+        d_pos.data,
+        d_orientation.data,
+        d_f_actVec.data,
+        this->m_manifold,
+        this->m_tuner_constraint->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -280,14 +264,21 @@ template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setCons
     this->m_tuner_constraint->end();
     }
 
-template<class Manifold>
-void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& name)
+namespace detail
     {
-    py::class_<ActiveForceConstraintComputeGPU<Manifold>,
-               ActiveForceConstraintCompute<Manifold>,
-               std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold>());
+template<class Manifold>
+void export_ActiveForceConstraintComputeGPU(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<ActiveForceConstraintComputeGPU<Manifold>,
+                     ActiveForceConstraintCompute<Manifold>,
+                     std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
 #include "hoomd/HOOMDMath.h"
@@ -18,6 +16,12 @@
 #ifndef __ACTIVE_FORCE_CONSTRAINT_COMPUTE_GPU_CUH__
 #define __ACTIVE_FORCE_CONSTRAINT_COMPUTE_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 template<class Manifold>
 hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                     unsigned int* d_index_array,
@@ -97,7 +101,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
         quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(rot_vec, phi);
 
         quati = rot_quat * quati;
-
+        quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
         d_orientation[idx] = quat_to_scalar4(quati);
         }
     }
@@ -147,6 +151,7 @@ gpu_compute_active_force_constraint_rotational_diffusion_kernel(const unsigned i
     quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
 
     quati = rot_quat * quati;
+    quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
     d_orientation[idx] = quat_to_scalar4(quati);
     }
 
@@ -215,4 +220,9 @@ hipError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsign
     }
 
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif

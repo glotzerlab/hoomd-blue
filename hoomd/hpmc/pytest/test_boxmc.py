@@ -1,16 +1,17 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.hpmc.update.BoxMC."""
 
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.data.collections import _HOOMDSyncedCollection
+from hoomd.logging import LoggerCategories
 import pytest
 import numpy as np
 
 valid_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10), betaP=hoomd.variant.Constant(10)),
+    dict(trigger=hoomd.trigger.Periodic(10), betaP=10),
     dict(trigger=hoomd.trigger.After(100),
          betaP=hoomd.variant.Ramp(1, 5, 0, 100)),
     dict(trigger=hoomd.trigger.Before(100),
@@ -90,7 +91,22 @@ def counter_attrs():
 
 
 def _is_close(v1, v2):
+    if isinstance(v1, _HOOMDSyncedCollection):
+        v1 = v1.to_base()
+    if isinstance(v2, _HOOMDSyncedCollection):
+        v2 = v2.to_base()
+
     return v1 == v2 if isinstance(v1, str) else np.allclose(v1, v2)
+
+
+def obj_attr_check(boxmc, mapping):
+    for attr, value in mapping.items():
+        obj_value = getattr(boxmc, attr)
+        if (isinstance(obj_value, hoomd.variant.Constant)
+                and not isinstance(value, hoomd.variant.Constant)):
+            assert obj_value(0) == value
+            continue
+        assert getattr(boxmc, attr) == value
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -99,8 +115,7 @@ def test_valid_construction(constructor_args):
     boxmc = hoomd.hpmc.update.BoxMC(**constructor_args)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert getattr(boxmc, attr) == value
+    obj_attr_check(boxmc, constructor_args)
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
@@ -122,8 +137,7 @@ def test_valid_construction_and_attach(simulation_factory,
     sim.run(0)
 
     # validate the params were set properly
-    for attr, value in constructor_args.items():
-        assert getattr(boxmc, attr) == value
+    obj_attr_check(boxmc, constructor_args)
 
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
@@ -178,7 +192,41 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     n = 7
     snap = lattice_snapshot_factory(dimensions=3, n=n, a=1.3)
 
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=betaP, trigger=1)
+
+    sim = simulation_factory(snap)
+    initial_box = sim.state.box
+
+    sim.operations.updaters.append(boxmc)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
+    mc.shape['A'] = dict(diameter=1)
+    sim.operations.integrator = mc
+
+    # run w/o setting any of the box moves
+    sim.run(1)
+
+    # check that the box remains unchanged
+    assert mc.overlaps == 0
+    assert sim.state.box == initial_box
+
+    # add a box move
+    setattr(boxmc, box_move['move'], box_move['params'])
+    sim.run(5)
+
+    # check that box is changed
+    assert mc.overlaps == 0
+    assert sim.state.box != initial_box
+
+
+@pytest.mark.parametrize("betaP", [1, 3, 5, 7, 10])
+@pytest.mark.parametrize("box_move", box_moves_attrs)
+def test_disk_compression(betaP, box_move, simulation_factory,
+                          lattice_snapshot_factory):
+    """Test that BoxMC can compress (and expand) simulation boxes."""
+    n = 7
+    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
+
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=betaP, trigger=1)
 
     sim = simulation_factory(snap)
     initial_box = sim.state.box
@@ -204,45 +252,11 @@ def test_sphere_compression(betaP, box_move, simulation_factory,
     assert sim.state.box != initial_box
 
 
-@pytest.mark.parametrize("betaP", [1, 3, 5, 7, 10])
-@pytest.mark.parametrize("box_move", box_moves_attrs)
-def test_disk_compression(betaP, box_move, simulation_factory,
-                          lattice_snapshot_factory):
-    """Test that BoxMC can compress (and expand) simulation boxes."""
-    n = 7
-    snap = lattice_snapshot_factory(dimensions=2, n=n, a=1.3)
-
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(betaP))
-
-    sim = simulation_factory(snap)
-    initial_box = sim.state.box
-
-    sim.operations.updaters.append(boxmc)
-    mc = hoomd.hpmc.integrate.Sphere(default_d=0.05)
-    mc.shape['A'] = dict(diameter=1)
-    sim.operations.integrator = mc
-
-    # run w/o setting any of the box moves
-    sim.run(100)
-
-    # check that the box remains unchanged
-    assert mc.overlaps == 0
-    assert sim.state.box == initial_box
-
-    # add a box move
-    setattr(boxmc, box_move['move'], box_move['params'])
-    sim.run(500)
-
-    # check that box is changed
-    assert mc.overlaps == 0
-    assert sim.state.box != initial_box
-
-
 @pytest.mark.parametrize("box_move", box_moves_attrs)
 def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
                   counter_attrs):
     """Test that BoxMC counters count corectly."""
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=3, trigger=1)
     # check result when box object is unattached
     for v in counter_attrs.values():
         assert getattr(boxmc, v) == (0, 0)
@@ -257,7 +271,7 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator = mc
 
     # run w/o setting any of the box moves
-    sim.run(100)
+    sim.run(1)
 
     # check results after attaching but with zero weights and deltas
     for v in counter_attrs.values():
@@ -266,22 +280,40 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
     # add a box move
     setattr(boxmc, box_move['move'], box_move['params'])
     # run with box move
-    sim.run(100)
+    sim.run(10)
 
     # check some moves are accepted after properly setting a box move
     for (k, v) in counter_attrs.items():
         if k == box_move['move']:
             ctr = getattr(boxmc, v)
             assert ctr[0] > 0
-            assert ctr[0] + ctr[1] == 100
+            assert ctr[0] + ctr[1] == 10
 
 
 @pytest.mark.parametrize("box_move", box_moves_attrs)
 def test_pickling(box_move, simulation_factory, two_particle_snapshot_factory):
-    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=3, trigger=1)
     setattr(boxmc, box_move['move'], box_move['params'])
     sim = simulation_factory(two_particle_snapshot_factory())
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=1)
     sim.operations.integrator = mc
     operation_pickling_check(boxmc, sim)
+
+
+def test_logging():
+    logging_check(
+        hoomd.hpmc.update.BoxMC, ('hpmc', 'update'), {
+            'aspect_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'shear_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'volume_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })

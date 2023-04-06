@@ -1,14 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file ParticleData.cc
     \brief Contains all code for ParticleData, and SnapshotParticleData.
  */
 
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
@@ -31,8 +28,10 @@
 
 using namespace std;
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace detail
+    {
 std::string getDefaultTypeName(unsigned int id)
     {
     const char default_name[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -47,6 +46,8 @@ std::string getDefaultTypeName(unsigned int id)
 
     return result;
     }
+
+    } // end namespace detail
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -71,7 +72,7 @@ std::string getDefaultTypeName(unsigned int id)
     Type mappings assign particle types "A", "B", "C", ....
 */
 ParticleData::ParticleData(unsigned int N,
-                           const BoxDim& global_box,
+                           const std::shared_ptr<const BoxDim> global_box,
                            unsigned int n_types,
                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                            std::shared_ptr<DomainDecomposition> decomposition)
@@ -88,7 +89,7 @@ ParticleData::ParticleData(unsigned int N,
     // setup the type mappings
     for (unsigned int i = 0; i < n_types; i++)
         {
-        snap.type_mapping.push_back(getDefaultTypeName(i));
+        snap.type_mapping.push_back(detail::getDefaultTypeName(i));
         }
 
 #ifdef ENABLE_MPI
@@ -115,9 +116,6 @@ ParticleData::ParticleData(unsigned int N,
     // initialize all processors
     initializeFromSnapshot(snap);
 
-    // default constructed shared ptr is null as desired
-    m_prof = std::shared_ptr<Profiler>();
-
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
@@ -137,7 +135,7 @@ ParticleData::ParticleData(unsigned int N,
  */
 template<class Real>
 ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
-                           const BoxDim& global_box,
+                           const std::shared_ptr<const BoxDim> global_box,
                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                            std::shared_ptr<DomainDecomposition> decomposition)
     : m_exec_conf(exec_conf), m_nparticles(0), m_nghosts(0), m_max_nparticles(0), m_nglobal(0),
@@ -182,8 +180,64 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 
     m_external_energy = Scalar(0.0);
 
-    // default constructed shared ptr is null as desired
-    m_prof = std::shared_ptr<Profiler>();
+    // zero the origin
+    m_origin = make_scalar3(0, 0, 0);
+    m_o_image = make_int3(0, 0, 0);
+    }
+
+ParticleData::ParticleData(unsigned int N,
+                           const std::shared_ptr<const Sphere> sphere,
+                           unsigned int n_types,
+                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                           std::shared_ptr<DomainDecomposition> decomposition)
+    : m_exec_conf(exec_conf), m_nparticles(0), m_nghosts(0), m_max_nparticles(0), m_nglobal(0),
+      m_accel_set(false), m_resize_factor(9. / 8.), m_arrays_allocated(false), m_coordinate(spherical)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
+
+    // initialize snapshot with default values
+    SnapshotParticleData<Scalar> snap(N);
+
+    snap.type_mapping.clear();
+
+    // setup the type mappings
+    for (unsigned int i = 0; i < n_types; i++)
+        {
+        snap.type_mapping.push_back(detail::getDefaultTypeName(i));
+        }
+
+#ifdef ENABLE_MPI
+    // Set up domain decomposition information
+    if (decomposition)
+        setDomainDecomposition(decomposition);
+#endif
+
+    // initialize box dimensions on all processors
+    setSphere(sphere);
+
+    // initialize box dimensions on all processors
+    setGlobalBox(BoxDim(4*sphere->getR()));
+
+#ifdef ENABLE_HIP
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+        m_memory_advice_last_Nmax = UINT_MAX;
+        }
+#endif
+
+    // initialize rtag array
+    GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
+    TAG_ALLOCATION(m_rtag);
+
+    // initialize all processors
+    initializeFromSnapshot(snap);
+
+    // reset external virial
+    for (unsigned int i = 0; i < 6; i++)
+        m_external_virial[i] = Scalar(0.0);
+
+    m_external_energy = Scalar(0.0);
 
     // zero the origin
     m_origin = make_scalar3(0, 0, 0);
@@ -198,7 +252,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
  */
 template <class Real>
 ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
-                           const Sphere& sphere,
+                           const std::shared_ptr<const Sphere> sphere,
                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                            std::shared_ptr<DomainDecomposition> decomposition)
     : m_exec_conf(exec_conf),
@@ -224,7 +278,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 
 
     // initialize box dimensions on all processors
-    setGlobalBox(BoxDim(4*m_sphere.getR()));
+    setGlobalBox(BoxDim(4*m_sphere->getR()));
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
@@ -239,9 +293,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 
     m_external_energy = Scalar(0.0);
 
-    // default constructed shared ptr is null as desired
-    m_prof = std::shared_ptr<Profiler>();
-
     // zero the origin
     m_origin = make_scalar3(0, 0, 0);
     m_o_image = make_int3(0, 0, 0);
@@ -255,9 +306,89 @@ ParticleData::~ParticleData()
 
 /*! \return Simulation box dimensions
  */
-const BoxDim& ParticleData::getBox() const
+const BoxDim ParticleData::getBox() const
     {
-    return m_box;
+    return *m_box;
+    }
+
+/*! \return Simulation box dimensions
+ */
+const Sphere ParticleData::getSphere() const
+    {
+    return *m_sphere;
+    }
+
+
+void ParticleData::setSphere(const Sphere& sphere)
+    {
+#ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        auto sphere_space = sphere;
+        bcast(sphere_space, 0, m_exec_conf->getMPICommunicator());
+        }
+#endif
+    m_sphere = std::make_shared<const Sphere>(sphere);
+
+    m_boxchange_signal.emit();
+    }
+
+/*! \param box New sphere coordinate to set
+    \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
+        it is the responsibility of the caller to ensure that all particles lie within
+        the new box.
+*/
+void ParticleData::setSphere(const std::shared_ptr<const Sphere> sphere)
+    {
+    if (!sphere)
+        {
+        throw std::runtime_error("Expected non-null shared pointer to a sphere.");
+        }
+    Sphere sphere_space = *sphere;
+
+#ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        bcast(sphere_space, 0, m_exec_conf->getMPICommunicator());
+        }
+#endif
+    m_sphere = std::make_shared<const Sphere>(sphere_space);
+
+    m_boxchange_signal.emit();
+    }
+
+/*! \param box New box dimensions to set
+    \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
+        it is the responsibility of the caller to ensure that all particles lie within
+        the new box.
+*/
+void ParticleData::setGlobalBox(const std::shared_ptr<const BoxDim> box)
+    {
+    assert(box->getPeriodic().x);
+    assert(box->getPeriodic().y);
+    assert(box->getPeriodic().z);
+    if (!box)
+        {
+        throw std::runtime_error("Expected non-null shared pointer to a box.");
+        }
+    BoxDim global_box = *box;
+
+#ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        bcast(global_box, 0, m_exec_conf->getMPICommunicator());
+        m_global_box = std::make_shared<const BoxDim>(global_box);
+        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(global_box));
+        }
+    else
+#endif
+        {
+        // local box = global box
+        m_global_box = std::make_shared<const BoxDim>(global_box);
+        m_box = m_global_box;
+        }
+
+    m_boxchange_signal.emit();
     }
 
 /*! \param box New box dimensions to set
@@ -270,19 +401,20 @@ void ParticleData::setGlobalBox(const BoxDim& box)
     assert(box.getPeriodic().x);
     assert(box.getPeriodic().y);
     assert(box.getPeriodic().z);
-    m_global_box = box;
-
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
-        bcast(m_global_box, 0, m_exec_conf->getMPICommunicator());
-        m_box = m_decomposition->calculateLocalBox(m_global_box);
+        auto global_box = box;
+        bcast(global_box, 0, m_exec_conf->getMPICommunicator());
+        m_global_box = std::make_shared<const BoxDim>(box);
+        m_box = std::make_shared<const BoxDim>(m_decomposition->calculateLocalBox(box));
         }
     else
 #endif
         {
         // local box = global box
-        m_box = box;
+        m_global_box = std::make_shared<const BoxDim>(box);
+        m_box = m_global_box;
         }
 
     m_boxchange_signal.emit();
@@ -291,9 +423,13 @@ void ParticleData::setGlobalBox(const BoxDim& box)
 
 /*! \return Global simulation box dimensions
  */
-const BoxDim& ParticleData::getGlobalBox() const
+const BoxDim ParticleData::getGlobalBox() const
     {
-    return m_global_box;
+    if (m_global_box)
+        {
+        return *m_global_box;
+        }
+    return BoxDim();
     }
 
 /*! \b ANY time particles are rearranged in memory, this function must be called.
@@ -340,8 +476,9 @@ unsigned int ParticleData::getTypeByName(const std::string& name) const
             return i;
         }
 
-    m_exec_conf->msg->error() << "Type " << name << " not found!" << endl;
-    throw runtime_error("Error mapping type name");
+    std::ostringstream s;
+    s << "Type " << name << " not found!";
+    throw runtime_error(s.str());
     return 0;
     }
 
@@ -354,8 +491,9 @@ std::string ParticleData::getNameByType(unsigned int type) const
     // check for an invalid request
     if (type >= getNTypes())
         {
-        m_exec_conf->msg->error() << "Requesting type name for non-existent type " << type << endl;
-        throw runtime_error("Error mapping type name");
+        ostringstream s;
+        s << "Requesting type name for non-existent type " << type << ".";
+        throw runtime_error(s.str());
         }
 
     // return the name
@@ -373,8 +511,9 @@ void ParticleData::setTypeName(unsigned int type, const std::string& name)
     // check for an invalid request
     if (type >= getNTypes())
         {
-        m_exec_conf->msg->error() << "Setting name for non-existent type " << type << endl;
-        throw runtime_error("Error mapping type name");
+        ostringstream s;
+        s << "Setting name for non-existent type " << type << ".";
+        throw runtime_error(s.str());
         }
 
     m_type_mapping[type] = name;
@@ -986,14 +1125,14 @@ template<class Real> bool ParticleData::inBox(const SnapshotParticleData<Real>& 
     bool in_box = true;
     if (m_exec_conf->getRank() == 0)
         {
-        Scalar3 lo = m_global_box.getLo();
-        Scalar3 hi = m_global_box.getHi();
+        Scalar3 lo = m_global_box->getLo();
+        Scalar3 hi = m_global_box->getHi();
 
         const Scalar tol = Scalar(1e-5);
 
         for (unsigned int i = 0; i < snap.size; i++)
             {
-            Scalar3 f = m_global_box.makeFraction(vec_to_scalar3(snap.pos[i]));
+            Scalar3 f = m_global_box->makeFraction(vec_to_scalar3(snap.pos[i]));
             if (f.x < -tol || f.x > Scalar(1.0) + tol || f.y < -tol || f.y > Scalar(1.0) + tol
                 || f.z < -tol || f.z > Scalar(1.0) + tol)
                 {
@@ -1032,14 +1171,20 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                                           bool ignore_bodies)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
+    if (snapshot.type_mapping.size() >= 40)
+        {
+        m_exec_conf->msg->warning() << "Systems with many particle types perform poorly or result "
+                                       "in shared memory errors on the GPU."
+                                    << std::endl;
+        }
 
     // remove all ghost particles
     removeAllGhostParticles();
 
     // check that all fields in the snapshot have correct length
-    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+    if (m_exec_conf->getRank() == 0)
         {
-        throw std::runtime_error("Invalid particle data in snapshot.");
+        snapshot.validate();
         }
 
     // clear set of active tags
@@ -1107,7 +1252,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             const Index3D& di = m_decomposition->getDomainIndexer();
             unsigned int n_ranks = m_exec_conf->getNRanks();
 
-            BoxDim global_box = m_global_box;
+            BoxDim global_box = *m_global_box;
 
             // loop over particles in snapshot, place them into domains
             for (typename std::vector<vec3<Real>>::const_iterator it = snapshot.pos.begin();
@@ -1125,7 +1270,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
-                Scalar3 f = m_global_box.makeFraction(pos);
+                Scalar3 f = m_global_box->makeFraction(pos);
                 int i = int(f.x * ((Scalar)di.getW()));
                 int j = int(f.y * ((Scalar)di.getH()));
                 int k = int(f.z * ((Scalar)di.getD()));
@@ -1161,26 +1306,24 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
                 // place particle using actual domain fractions, not global box fraction
                 unsigned int rank
-                    = m_decomposition->placeParticle(m_global_box, pos, h_cart_ranks.data);
+                    = m_decomposition->placeParticle(global_box, pos, h_cart_ranks.data);
 
                 if (rank >= n_ranks)
                     {
-                    m_exec_conf->msg->error()
-                        << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;
-                    m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
-                    m_exec_conf->msg->error()
-                        << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
-                    m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
-                    m_exec_conf->msg->error()
-                        << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
-                    Scalar3 lo = m_global_box.getLo();
-                    Scalar3 hi = m_global_box.getHi();
-                    m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", "
-                                              << lo.z << ")" << std::endl;
-                    m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", "
-                                              << hi.z << ")" << std::endl;
+                    ostringstream s;
+                    s << "init.*: Particle " << snap_idx << " out of bounds." << std::endl;
+                    s << "Cartesian coordinates: " << std::endl;
+                    s << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+                    s << "Fractional coordinates: " << std::endl;
+                    s << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
+                    Scalar3 lo = m_global_box->getLo();
+                    Scalar3 hi = m_global_box->getHi();
+                    s << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")"
+                      << std::endl;
+                    s << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")"
+                      << std::endl;
 
-                    throw std::runtime_error("Error initializing from snapshot.");
+                    throw std::runtime_error(s.str());
                     }
 
                 // fill up per-processor data structures
@@ -1598,11 +1741,10 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
 
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
-                    m_exec_conf->msg->error()
-                        << endl
-                        << "Could not find particle " << tag << " on any processor. " << endl
-                        << endl;
-                    throw std::runtime_error("Error gathering ParticleData");
+                    ostringstream o;
+                    o << "Error gathering ParticleData: Could not find particle " << tag
+                      << " on any processor.";
+                    throw std::runtime_error(o.str());
                     }
 
                 // rank contains the processor rank on which the particle was found
@@ -1629,7 +1771,7 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
 
                 // make sure the position stored in the snapshot is within the boundaries
                 Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
-                m_global_box.wrap(tmp, snapshot.image[snap_id]);
+                m_global_box->wrap(tmp, snapshot.image[snap_id]);
                 snapshot.pos[snap_id] = vec3<Real>(tmp);
 
                 std::advance(tag_set_it, 1);
@@ -1681,10 +1823,9 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
 	        {
                 // make sure the position stored in the snapshot is within the boundaries
                 Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
-                m_global_box.wrap(tmp, snapshot.image[snap_id]);
+                m_global_box->wrap(tmp, snapshot.image[snap_id]);
                 snapshot.pos[snap_id] = vec3<Real>(tmp);
 		}
-
             std::advance(it, 1);
             }
         }
@@ -1742,16 +1883,15 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
 
     if (n_found == 0)
         {
-        m_exec_conf->msg->error() << "Could not find particle " << tag << " on any processor."
-                                  << endl
-                                  << endl;
-        throw std::runtime_error("Error accessing particle data.");
+        ostringstream s;
+        s << "Could not find particle " << tag << " on any processor.";
+        throw std::runtime_error(s.str());
         }
     else if (n_found > 1)
         {
-        m_exec_conf->msg->error() << "Found particle " << tag << " on multiple processors." << endl
-                                  << endl;
-        throw std::runtime_error("Error accessing particle data.");
+        ostringstream s;
+        s << "Found particle " << tag << " on multiple processors.";
+        throw std::runtime_error(s.str());
         }
 
     // Now find the processor that owns it
@@ -1803,7 +1943,7 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
 #endif
     assert(found);
 
-    m_global_box.wrap(result, img);
+    m_global_box->wrap(result, img);
     return result;
     }
 
@@ -1893,7 +2033,7 @@ int3 ParticleData::getImage(unsigned int tag) const
     result.z -= m_o_image.z;
 
     // wrap into correct image
-    m_global_box.wrap(pos, result);
+    m_global_box->wrap(pos, result);
 
     return result;
     }
@@ -2226,7 +2366,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
         }
 
     // wrap into box and update image
-    m_global_box.wrap(tmp_pos, img);
+    m_global_box->wrap(tmp_pos, img);
 
     // store position and image
     if (ptl_local)
@@ -2255,7 +2395,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                                                access_location::host,
                                                access_mode::read);
         unsigned int new_rank
-            = m_decomposition->placeParticle(m_global_box, tmp_pos, h_cart_ranks.data);
+            = m_decomposition->placeParticle(getGlobalBox(), tmp_pos, h_cart_ranks.data);
         bcast(new_rank, 0, m_exec_conf->getMPICommunicator());
 
         // should the particle migrate?
@@ -2277,7 +2417,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                     h_comm_flag.data[idx] = 1;
                     }
 
-                std::vector<pdata_element> buf;
+                std::vector<detail::pdata_element> buf;
 
                 // retrieve particle data
                 std::vector<unsigned int> comm_flags; // not used here
@@ -2288,10 +2428,9 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 // check for particle data consistency
                 if (buf.size() != 1)
                     {
-                    m_exec_conf->msg->error() << "More than one (" << buf.size()
-                                              << ") particle marked for sending." << endl
-                                              << endl;
-                    throw std::runtime_error("Error moving particle.");
+                    std::ostringstream s;
+                    s << "More than one (" << buf.size() << ") particle marked for sending.";
+                    throw std::runtime_error(s.str());
                     }
 
                 MPI_Request req;
@@ -2299,7 +2438,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
 
                 // send particle data to new domain
                 MPI_Isend(&buf.front(),
-                          sizeof(pdata_element),
+                          sizeof(detail::pdata_element),
                           MPI_BYTE,
                           new_rank,
                           0,
@@ -2309,14 +2448,14 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 }
             else if (new_rank == my_rank)
                 {
-                std::vector<pdata_element> buf(1);
+                std::vector<detail::pdata_element> buf(1);
 
                 MPI_Request req;
                 MPI_Status stat;
 
                 // receive particle data
                 MPI_Irecv(&buf.front(),
-                          sizeof(pdata_element),
+                          sizeof(detail::pdata_element),
                           MPI_BYTE,
                           owner_rank,
                           0,
@@ -2680,9 +2819,7 @@ void ParticleData::removeParticle(unsigned int tag)
     {
     if (getNGlobal() == 0)
         {
-        m_exec_conf->msg->error() << "Trying to remove particle when there are zero particles!"
-                                  << endl;
-        throw runtime_error("Error removing particle");
+        throw runtime_error("Trying to remove particle when there are zero particles!");
         }
 
     // we are changing the local number of particles, so remove ghosts
@@ -2691,9 +2828,9 @@ void ParticleData::removeParticle(unsigned int tag)
     // sanity check
     if (tag >= m_rtag.size())
         {
-        m_exec_conf->msg->error() << "Trying to remove particle " << tag << " which does not exist!"
-                                  << endl;
-        throw runtime_error("Error removing particle");
+        std::ostringstream s;
+        s << "Trying to remove particle " << tag << " which does not exist.";
+        throw runtime_error(s.str());
         }
 
     // Local particle index
@@ -2719,9 +2856,9 @@ void ParticleData::removeParticle(unsigned int tag)
 
     if (!is_available)
         {
-        m_exec_conf->msg->error() << "Trying to remove particle " << tag
-                                  << " which has been previously removed!" << endl;
-        throw runtime_error("Error removing particle");
+        std::ostringstream s;
+        s << "Trying to remove particle " << tag << " which has been previously removed!";
+        throw runtime_error(s.str());
         }
 
     // delete from map
@@ -2814,8 +2951,9 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     {
     if (n >= getNGlobal())
         {
-        m_exec_conf->msg->error() << "Particle id " << n << "does not exist!" << std::endl;
-        throw std::runtime_error("Error fetching particle");
+        std::ostringstream s;
+        s << "Particle id " << n << "does not exist!";
+        throw std::runtime_error(s.str());
         }
 
     assert(m_tag_set.size() == getNGlobal());
@@ -2825,25 +2963,27 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     return m_cached_tag_set[n];
     }
 
-void export_BoxDim(py::module& m)
+namespace detail
+    {
+void export_BoxDim(pybind11::module& m)
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
     Scalar3 (BoxDim::*minImage_overload)(const Scalar3&) const = &BoxDim::minImage;
     Scalar3 (BoxDim::*makeFraction_overload)(const Scalar3&, const Scalar3&) const
         = &BoxDim::makeFraction;
 
-    py::class_<BoxDim>(m, "BoxDim")
-        .def(py::init<Scalar>())
-        .def(py::init<Scalar, Scalar, Scalar>())
-        .def(py::init<Scalar3>())
-        .def(py::init<Scalar3, Scalar3, uchar3>())
-        .def(py::init<Scalar, Scalar, Scalar, Scalar>())
-        .def(py::self == py::self)
-        .def(py::self != py::self)
+    pybind11::class_<BoxDim, std::shared_ptr<BoxDim>>(m, "BoxDim")
+        .def(pybind11::init<Scalar>())
+        .def(pybind11::init<Scalar, Scalar, Scalar>())
+        .def(pybind11::init<Scalar3>())
+        .def(pybind11::init<Scalar3, Scalar3, uchar3>())
+        .def(pybind11::init<Scalar, Scalar, Scalar, Scalar>())
+        .def(pybind11::self == pybind11::self)
+        .def(pybind11::self != pybind11::self)
         .def("getPeriodic",
-             [](const BoxDim& box)
+             [](std::shared_ptr<const BoxDim> box)
              {
-                 auto periodic = box.getPeriodic();
+                 auto periodic = box->getPeriodic();
                  return make_uint3(periodic.x, periodic.y, periodic.z);
              })
         .def("getL", &BoxDim::getL)
@@ -2862,10 +3002,10 @@ void export_BoxDim(py::module& m)
         .def("getVolume", &BoxDim::getVolume);
     }
 
-void export_Sphere(py::module& m)
+void export_Sphere(pybind11::module& m)
     {
-    py::class_<Sphere>(m,"Sphere")
-    .def(py::init<Scalar>())
+    pybind11::class_<Sphere>(m,"Sphere")
+    .def(pybind11::init<Scalar>())
     .def("getR", &Sphere::getR)
     .def("setR", &Sphere::setR)
     ;
@@ -2883,14 +3023,16 @@ string print_ParticleData(ParticleData* pdata)
     return s.str();
     }
 
+    } // end namespace detail
+
 // instantiate both float and double methods for snapshots
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
-                                    const BoxDim& global_box,
+                                    const std::shared_ptr<const BoxDim> global_box,
                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                     std::shared_ptr<DomainDecomposition> decomposition);
 
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
-                                           const Sphere& sphere,
+                                           const std::shared_ptr<const Sphere> sphere,
                                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                                            std::shared_ptr<DomainDecomposition> decomposition);
 
@@ -2901,12 +3043,12 @@ template std::map<unsigned int, unsigned int>
 ParticleData::takeSnapshot<double>(SnapshotParticleData<double>& snapshot);
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
-                                    const BoxDim& global_box,
+                                    const std::shared_ptr<const BoxDim> global_box,
                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                     std::shared_ptr<DomainDecomposition> decomposition);
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
-                                           const Sphere& sphere,
+                                           const std::shared_ptr<const Sphere> sphere,
                                            std::shared_ptr<ExecutionConfiguration> exec_conf,
                                            std::shared_ptr<DomainDecomposition> decomposition);
 
@@ -2916,21 +3058,31 @@ ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float>& s
 template std::map<unsigned int, unsigned int>
 ParticleData::takeSnapshot<float>(SnapshotParticleData<float>& snapshot);
 
-void export_ParticleData(py::module& m)
+namespace detail
     {
-    py::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
-        .def(py::init<unsigned int,
-                      const BoxDim&,
-                      unsigned int,
-                      std::shared_ptr<ExecutionConfiguration>>())
+void export_ParticleData(pybind11::module& m)
+    {
+    void (ParticleData::*setGlobalBox_overload)(const std::shared_ptr<const BoxDim>)
+        = &ParticleData::setGlobalBox;
+    void (ParticleData::*setSphere_overload)(const std::shared_ptr<const Sphere>)
+        = &ParticleData::setSphere;
+    pybind11::class_<ParticleData, std::shared_ptr<ParticleData>>(m, "ParticleData")
+        .def(pybind11::init<unsigned int,
+                            const std::shared_ptr<const BoxDim>,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>>())
+        .def(pybind11::init<unsigned int,
+                            const std::shared_ptr<const Sphere>,
+                            unsigned int,
+                            std::shared_ptr<ExecutionConfiguration>>())
         .def("getGlobalBox",
              &ParticleData::getGlobalBox,
-             py::return_value_policy::reference_internal)
-        .def("getBox", &ParticleData::getBox, py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
+        .def("getBox", &ParticleData::getBox, pybind11::return_value_policy::reference_internal)
         .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
-        .def("setGlobalBox", &ParticleData::setGlobalBox)
-	.def("getSphere", &ParticleData::getSphere, py::return_value_policy::reference_internal)
-        .def("setSphere", &ParticleData::setSphere)
+        .def("setGlobalBox", setGlobalBox_overload)
+	.def("getSphere", &ParticleData::getSphere, pybind11::return_value_policy::reference_internal)
+        .def("setGlobalBox", setSphere_overload)
         .def("getN", &ParticleData::getN)
         .def("getNGhosts", &ParticleData::getNGhosts)
         .def("getNGlobal", &ParticleData::getNGlobal)
@@ -2939,7 +3091,6 @@ void export_ParticleData(py::module& m)
         .def("getNameByType", &ParticleData::getNameByType)
         .def("getTypeByName", &ParticleData::getTypeByName)
         .def("setTypeName", &ParticleData::setTypeName)
-        .def("setProfiler", &ParticleData::setProfiler)
         .def("getExecConf", &ParticleData::getExecConf)
         .def("__str__", &print_ParticleData)
         .def("getPosition", &ParticleData::getPosition)
@@ -2982,11 +3133,13 @@ void export_ParticleData(py::module& m)
         .def("getTypes", &ParticleData::getTypesPy)
 	.def("getCoordinateType", &ParticleData::getCoordinateType);
 
-    py::enum_<ParticleData::coordinate_Enum>(m,"coordinate")
+    pybind11::enum_<ParticleData::coordinate_Enum>(m,"coordinate")
     .value("cartesian", ParticleData::coordinate_Enum::cartesian)
     .value("spherical", ParticleData::coordinate_Enum::spherical)
     .export_values();
     }
+
+    } // end namespace detail
 
 //! Constructor for SnapshotParticleData
 template<class Real>
@@ -3034,16 +3187,25 @@ template<class Real> void SnapshotParticleData<Real>::insert(unsigned int i, uns
     is_accel_set = false;
     }
 
-template<class Real> bool SnapshotParticleData<Real>::validate() const
+template<class Real> void SnapshotParticleData<Real>::validate() const
     {
     // Check if all other fields are of equal length==size
     if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size
         || mass.size() != size || charge.size() != size || diameter.size() != size
         || image.size() != size || body.size() != size || orientation.size() != size
         || quat_pos.size() != size || angmom.size() != size || inertia.size() != size)
-        return false;
+        {
+        throw std::runtime_error("All array sizes must match.");
+        }
 
-    return true;
+    // Check that the user provided unique type names.
+    std::vector<std::string> types_copy = type_mapping;
+    std::sort(types_copy.begin(), types_copy.end());
+    auto last = std::unique(types_copy.begin(), types_copy.end());
+    if (static_cast<size_t>(last - types_copy.begin()) != type_mapping.size())
+        {
+        throw std::runtime_error("Type names must be unique.");
+        }
     }
 
 #ifdef ENABLE_MPI
@@ -3060,12 +3222,9 @@ struct comm_flag_select : std::unary_function<const unsigned int, bool>
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticles(std::vector<pdata_element>& out,
+void ParticleData::removeParticles(std::vector<detail::pdata_element>& out,
                                    std::vector<unsigned int>& comm_flags)
     {
-    if (m_prof)
-        m_prof->push("pack");
-
     unsigned int num_remove_ptls = 0;
 
         {
@@ -3214,7 +3373,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out,
             else
                 {
                 // write to packed array
-                pdata_element p;
+                detail::pdata_element p;
                 p.pos = h_pos.data[i];
                 p.vel = h_vel.data[i];
                 p.accel = h_accel.data[i];
@@ -3276,19 +3435,13 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out,
             }
         }
 
-    if (m_prof)
-        m_prof->pop();
-
     // notify subscribers that particle data order has been changed
     notifyParticleSort();
     }
 
 //! Remove particles from local domain and append new particle data
-void ParticleData::addParticles(const std::vector<pdata_element>& in)
+void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
     {
-    if (m_prof)
-        m_prof->push("unpack");
-
     unsigned int num_add_ptls = (unsigned int)in.size();
 
     unsigned int old_nparticles = getN();
@@ -3342,9 +3495,10 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         unsigned int net_virial_pitch = (unsigned int)m_net_virial.getPitch();
         // add new particles at the end
         unsigned int n = old_nparticles;
-        for (std::vector<pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
+        for (std::vector<detail::pdata_element>::const_iterator it = in.begin(); it != in.end();
+             ++it)
             {
-            pdata_element p = *it;
+            detail::pdata_element p = *it;
             h_pos.data[n] = p.pos;
             h_vel.data[n] = p.vel;
             h_accel.data[n] = p.accel;
@@ -3377,9 +3531,6 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
             }
         }
 
-    if (m_prof)
-        m_prof->pop();
-
     // notify subscribers that particle data order has been changed
     notifyParticleSort();
     }
@@ -3390,12 +3541,9 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
+void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                                       GlobalVector<unsigned int>& comm_flags)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "pack");
-
     // this is the maximum number of elements we can possibly write to out
     unsigned int max_n_out = (unsigned int)out.getNumElements();
     if (comm_flags.getNumElements() < max_n_out)
@@ -3502,7 +3650,9 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
 
             {
             // Access output array
-            ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+            ArrayHandle<detail::pdata_element> d_out(out,
+                                                     access_location::device,
+                                                     access_mode::overwrite);
             ArrayHandle<unsigned int> d_comm_flags_out(comm_flags,
                                                        access_location::device,
                                                        access_mode::overwrite);
@@ -3512,7 +3662,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
 
             m_exec_conf->beginMultiGPU();
 
-            n_out = gpu_pdata_remove(getN(),
+            n_out = kernel::gpu_pdata_remove(getN(),
                                      d_pos.data,
                                      d_vel.data,
                                      d_accel.data,
@@ -3594,17 +3744,11 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out,
 
     // notify subscribers
     notifyParticleSort();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 //! Add new particle data (GPU version)
-void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
+void ParticleData::addParticlesGPU(const GlobalVector<detail::pdata_element>& in)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "unpack");
-
     unsigned int old_nparticles = getN();
     unsigned int num_add_ptls = (unsigned int)in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
@@ -3659,10 +3803,10 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
                                                access_mode::readwrite);
 
         // Access input array
-        ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
+        ArrayHandle<detail::pdata_element> d_in(in, access_location::device, access_mode::read);
 
         // add new particles on GPU
-        gpu_pdata_add_particles(old_nparticles,
+        kernel::gpu_pdata_add_particles(old_nparticles,
                                 num_add_ptls,
                                 d_pos.data,
                                 d_vel.data,
@@ -3683,16 +3827,12 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
                                 d_rtag.data,
                                 d_in.data,
                                 d_comm_flags.data);
-
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
     // notify subscribers
     notifyParticleSort();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
 #endif // ENABLE_HIP
@@ -4034,11 +4174,21 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx,
         }
     }
 
+template<class Real>
+void SnapshotParticleData<Real>::replicate(unsigned int nx,
+                                           unsigned int ny,
+                                           unsigned int nz,
+                                           std::shared_ptr<const BoxDim> old_box,
+                                           std::shared_ptr<const BoxDim> new_box)
+    {
+    replicate(nx, ny, nz, *old_box, *new_box);
+    }
+
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4054,7 +4204,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getPosNP(pybind11::o
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4070,7 +4220,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getVelNP(pybind11::o
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4086,7 +4236,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getAccelNP(pybind11:
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4099,7 +4249,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getTypeNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4112,7 +4262,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getMassNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4125,7 +4275,8 @@ template<class Real> py::object SnapshotParticleData<Real>::getChargeNP(pybind11
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
+template<class Real>
+pybind11::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4138,7 +4289,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getDiameterNP(pybind
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4154,7 +4305,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getImageNP(pybind11:
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4167,7 +4318,8 @@ template<class Real> py::object SnapshotParticleData<Real>::getBodyNP(pybind11::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
+template<class Real>
+pybind11::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4183,7 +4335,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getOrientationNP(pyb
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getPosQuaternionNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getPosQuaternionNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4200,7 +4352,7 @@ template<class Real> py::object SnapshotParticleData<Real>::getPosQuaternionNP(p
    snapshot
 */
 template<class Real>
-py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
+pybind11::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4216,7 +4368,7 @@ py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the
    snapshot
 */
-template<class Real> py::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
+template<class Real> pybind11::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
     {
     auto self_cpp = self.cast<SnapshotParticleData<Real>*>();
     // mark as dirty when accessing internal data
@@ -4230,19 +4382,19 @@ template<class Real> py::object SnapshotParticleData<Real>::getAngmomNP(pybind11
 
 /*! \returns A python list of type names
  */
-template<class Real> py::list SnapshotParticleData<Real>::getTypes()
+template<class Real> pybind11::list SnapshotParticleData<Real>::getTypes()
     {
-    py::list types;
+    pybind11::list types;
 
     for (unsigned int i = 0; i < type_mapping.size(); i++)
-        types.append(py::str(type_mapping[i]));
+        types.append(pybind11::str(type_mapping[i]));
 
     return types;
     }
 
 /*! \param types Python list of type names to set
  */
-template<class Real> void SnapshotParticleData<Real>::setTypes(py::list types)
+template<class Real> void SnapshotParticleData<Real>::setTypes(pybind11::list types)
     {
     // set dirty
     is_accel_set = false;
@@ -4250,31 +4402,30 @@ template<class Real> void SnapshotParticleData<Real>::setTypes(py::list types)
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        type_mapping[i] = py::cast<string>(types[i]);
+        type_mapping[i] = pybind11::cast<string>(types[i]);
     }
 
 #ifdef ENABLE_MPI
 template<class Real> void SnapshotParticleData<Real>::bcast(unsigned int root, MPI_Comm mpi_comm)
     {
     // broadcast all member quantities
-    ::bcast(pos, root, mpi_comm);
-    ::bcast(vel, root, mpi_comm);
-    ::bcast(accel, root, mpi_comm);
-    ::bcast(type, root, mpi_comm);
-    ::bcast(mass, root, mpi_comm);
-    ::bcast(charge, root, mpi_comm);
-    ::bcast(diameter, root, mpi_comm);
-    ::bcast(image, root, mpi_comm);
-    ::bcast(body, root, mpi_comm);
-    ::bcast(orientation, root, mpi_comm);
-    ::bcast(quat_pos, root, mpi_comm);
-    ::bcast(angmom, root, mpi_comm);
-    ::bcast(inertia, root, mpi_comm);
+    hoomd::bcast(pos, root, mpi_comm);
+    hoomd::bcast(vel, root, mpi_comm);
+    hoomd::bcast(accel, root, mpi_comm);
+    hoomd::bcast(type, root, mpi_comm);
+    hoomd::bcast(mass, root, mpi_comm);
+    hoomd::bcast(charge, root, mpi_comm);
+    hoomd::bcast(diameter, root, mpi_comm);
+    hoomd::bcast(image, root, mpi_comm);
+    hoomd::bcast(body, root, mpi_comm);
+    hoomd::bcast(orientation, root, mpi_comm);
+    hoomd::bcast(quat_pos, root, mpi_comm);
+    hoomd::bcast(angmom, root, mpi_comm);
+    hoomd::bcast(inertia, root, mpi_comm);
 
-    ::bcast(size, root, mpi_comm);
-    ::bcast(type_mapping, root, mpi_comm);
-    ::bcast(is_accel_set, root, mpi_comm);
-    ::bcast(use_spherical_coord, root, mpi_comm);
+    hoomd::bcast(size, root, mpi_comm);
+    hoomd::bcast(type_mapping, root, mpi_comm);
+    hoomd::bcast(is_accel_set, root, mpi_comm);
     }
 #endif
 
@@ -4282,12 +4433,14 @@ template<class Real> void SnapshotParticleData<Real>::bcast(unsigned int root, M
 template struct SnapshotParticleData<float>;
 template struct SnapshotParticleData<double>;
 
-void export_SnapshotParticleData(py::module& m)
+namespace detail
     {
-    py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
+void export_SnapshotParticleData(pybind11::module& m)
+    {
+    pybind11::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float>>>(
         m,
         "SnapshotParticleData_float")
-        .def(py::init<unsigned int>())
+        .def(pybind11::init<unsigned int>())
         .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP)
         .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP)
         .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP)
@@ -4310,10 +4463,10 @@ void export_SnapshotParticleData(py::module& m)
         .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
 	.def_readwrite("use_spherical_coord", &SnapshotParticleData<float>::use_spherical_coord);
 
-    py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double>>>(
+    pybind11::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double>>>(
         m,
         "SnapshotParticleData_double")
-        .def(py::init<unsigned int>())
+        .def(pybind11::init<unsigned int>())
         .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP)
         .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP)
         .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP)
@@ -4336,3 +4489,7 @@ void export_SnapshotParticleData(py::module& m)
         .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
 	.def_readwrite("use_spherical_coord", &SnapshotParticleData<double>::use_spherical_coord);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

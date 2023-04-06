@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Messenger.cc
     \brief Defines the Messenger class
@@ -23,8 +21,10 @@
 #include <sstream>
 using namespace std;
 
-namespace py = pybind11;
-
+namespace hoomd
+    {
+namespace detail
+    {
 #ifdef ENABLE_MPI
 //! Class that supports writing to a shared log file using MPI-IO
 class mpi_io : public std::streambuf
@@ -56,6 +56,8 @@ class mpi_io : public std::streambuf
     };
 #endif
 
+    } // end namespace detail
+
 /*! \post Warning and error streams are set to cerr
     \post The notice stream is set to cout
     \post The notice level is set to 2
@@ -67,7 +69,7 @@ Messenger::Messenger(std::shared_ptr<MPIConfiguration> mpi_config) : m_mpi_confi
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
 
-    m_nullstream = std::shared_ptr<nullstream>(new nullstream());
+    m_nullstream = std::shared_ptr<detail::nullstream>(new detail::nullstream());
     m_notice_level = 2;
     m_err_prefix = "**ERROR**";
     m_warning_prefix = "*Warning*";
@@ -316,7 +318,7 @@ void Messenger::openFile(const std::string& fname)
         bcast(broadcast_fname, 0, m_mpi_config->getCommunicator());
 
         m_streambuf_out
-            = std::make_shared<mpi_io>(m_mpi_config->getCommunicator(), broadcast_fname);
+            = std::make_shared<detail::mpi_io>(m_mpi_config->getCommunicator(), broadcast_fname);
         m_file_out = std::make_shared<std::ostream>(m_streambuf_out.get());
         }
     else
@@ -401,7 +403,7 @@ void Messenger::openStd()
 /*! \param filename The output filename
     \param mpi_comm The MPI communicator to use for MPI file IO
  */
-mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
+detail::mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     : m_mpi_comm(mpi_comm), m_file_open(false)
     {
     assert(m_mpi_comm);
@@ -420,7 +422,7 @@ mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
         m_file_open = true;
     }
 
-int mpi_io::overflow(int ch)
+int detail::mpi_io::overflow(int ch)
     {
     assert(m_file_open);
 
@@ -432,7 +434,7 @@ int mpi_io::overflow(int ch)
     return 0;
     }
 
-void mpi_io::close()
+void detail::mpi_io::close()
     {
     if (m_file_open)
         MPI_File_close(&m_file);
@@ -442,10 +444,12 @@ void mpi_io::close()
 
 #endif
 
-void export_Messenger(py::module& m)
+namespace detail
     {
-    py::class_<Messenger, std::shared_ptr<Messenger>>(m, "Messenger")
-        .def(py::init<std::shared_ptr<MPIConfiguration>>())
+void export_Messenger(pybind11::module& m)
+    {
+    pybind11::class_<Messenger, std::shared_ptr<Messenger>>(m, "Messenger")
+        .def(pybind11::init<std::shared_ptr<MPIConfiguration>>())
         .def("error", &Messenger::errorStr)
         .def("warning", &Messenger::warningStr)
         .def("notice", &Messenger::noticeStr)
@@ -453,17 +457,21 @@ void export_Messenger(py::module& m)
         .def("setNoticeLevel", &Messenger::setNoticeLevel)
         .def("getErrorPrefix",
              &Messenger::getErrorPrefix,
-             py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
         .def("setErrorPrefix", &Messenger::setErrorPrefix)
         .def("getWarningPrefix",
              &Messenger::getWarningPrefix,
-             py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
         .def("setWarningPrefix", &Messenger::setWarningPrefix)
         .def("getNoticePrefix",
              &Messenger::getNoticePrefix,
-             py::return_value_policy::reference_internal)
+             pybind11::return_value_policy::reference_internal)
         .def("setWarningPrefix", &Messenger::setWarningPrefix)
         .def("openFile", &Messenger::openFile)
         .def("openPython", &Messenger::openPython)
         .def("openStd", &Messenger::openStd);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

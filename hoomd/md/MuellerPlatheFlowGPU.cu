@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -14,6 +17,12 @@
 #include <thrust/transform_reduce.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 struct vel_search_un_opt : public thrust::unary_function<const unsigned int, Scalar3>
     {
     vel_search_un_opt(const Scalar4* const d_vel,
@@ -249,3 +258,7 @@ hipError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
 
     return hipPeekAtLastError();
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

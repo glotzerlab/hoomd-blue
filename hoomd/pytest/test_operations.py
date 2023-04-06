@@ -1,7 +1,10 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
 
 
-class FakeIntegrator(hoomd.integrate.BaseIntegrator):
+class FakeIntegrator(hoomd.operation.Integrator):
     pass
 
 

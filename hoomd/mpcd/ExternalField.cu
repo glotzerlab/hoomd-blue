@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ExternalField.cu
@@ -17,7 +15,11 @@
 #include "ExternalField.h"
 #include "hoomd/GPUPolymorph.cuh"
 
+namespace hoomd
+    {
 template mpcd::BlockForce* hoomd::gpu::device_new(Scalar, Scalar, Scalar);
 template mpcd::ConstantForce* hoomd::gpu::device_new(Scalar3);
 template mpcd::SineForce* hoomd::gpu::device_new(Scalar, Scalar);
 template void hoomd::gpu::device_delete(mpcd::ExternalField*);
+
+    } // end namespace hoomd

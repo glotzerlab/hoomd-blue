@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd.error
 ------------------
 
@@ -20,3 +23,4 @@ hoomd.error
               TypeConversionError,
               MutabilityError
     :no-inherited-members:
+    :show-inheritance:

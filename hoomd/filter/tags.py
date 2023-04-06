@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Define the Tags filter."""
 
 from hoomd.filter.filter_ import ParticleFilter
@@ -31,7 +34,8 @@ class Tags(ParticleFilter, ParticleFilterTags):
 
     def __eq__(self, other):
         """Test for equality between two particle filters."""
-        return type(self) == type(other) and all(self.tags == other.tags)
+        return type(self) == type(other) and np.array_equal(
+            self.tags, other.tags)
 
     @property
     def tags(self):

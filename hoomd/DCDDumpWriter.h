@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __DCDDUMPWRITER_H__
 #define __DCDDUMPWRITER_H__
@@ -34,6 +32,8 @@
 //             University of Illinois at Urbana-Champaign
 //            http://www.ks.uiuc.edu/
 
+namespace hoomd
+    {
 //! Analyzer for writing out DCD dump files
 /*! DCDDumpWriter writes out the current position of all particles to a DCD file
     every time analyze() is called. Use it to create a DCD trajectory for loading
@@ -52,6 +52,7 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     public:
     //! Construct the writer
     DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<Trigger> trigger,
                   const std::string& fname,
                   unsigned int period,
                   std::shared_ptr<ParticleGroup> group,
@@ -134,7 +135,11 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     void initFileIO(uint64_t timestep);
     };
 
+namespace detail
+    {
 //! Exports the DCDDumpWriter class to python
 void export_DCDDumpWriter(pybind11::module& m);
+    } // end namespace detail
 
+    } // end namespace hoomd
 #endif

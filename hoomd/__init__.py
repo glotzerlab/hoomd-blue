@@ -1,11 +1,34 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""HOOMD-blue python API.
+"""HOOMD-blue python package.
 
-:py:mod:`hoomd` provides a high level user interface for defining and executing
-simulations using HOOMD.
+`hoomd` is the top level HOOMD-blue Python package. It consists of the common
+code shared among all types of HOOMD-blue simulations. The core data structures
+used to construct a simulation include:
+
+* `Simulation`
+
+  * `hoomd.device.Device`
+  * `hoomd.State`
+  * `hoomd.Operations`
+
+    * `hoomd.operation.Integrator`
+    * `hoomd.operation.Compute`
+    * `hoomd.operation.Tuner`
+    * `hoomd.operation.Updater`
+    * `hoomd.operation.Writer`
+
+See the table of contents or the modules section for a full list of classes,
+methods, and variables in the API.
+
+`hoomd` also contains subpackages that implement specific types of simulations:
+
+* `hoomd.hpmc` - Hard particle Monte Carlo.
+* `hoomd.md` - Molecular dynamics.
+
+See Also:
+    Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
 """
 import sys
 import pathlib
@@ -29,24 +52,26 @@ outside the hoomd source directory, execute `python3 -m pytest --pyargs hoomd`.
 from hoomd import version
 from hoomd import trigger
 from hoomd import variant
-from hoomd.box import Box
+from hoomd.box import Box, box_like
 from hoomd.sphere import Sphere
 from hoomd import data
 from hoomd import filter
 from hoomd import device
 from hoomd import error
+from hoomd import mesh
 from hoomd import update
-from hoomd import integrate
 from hoomd import communicator
 from hoomd import util
 from hoomd import write
+from hoomd import wall
 from hoomd import _hoomd
+from hoomd import tune
+from hoomd import logging
+from hoomd import custom
 if version.md_built:
     from hoomd import md
 if version.hpmc_built:
     from hoomd import hpmc
-if version.dem_built and version.md_built:
-    from hoomd import dem
 # if version.metal_built:
 #     from hoomd import metal
 # if version.mpcd_built:
@@ -56,9 +81,6 @@ from hoomd.simulation import Simulation
 from hoomd.state import State
 from hoomd.operations import Operations
 from hoomd.snapshot import Snapshot
-from hoomd import tune
-from hoomd import logging
-from hoomd import custom
 
 _default_excepthook = sys.excepthook
 

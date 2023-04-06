@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/ForceCompute.h"
@@ -20,6 +20,10 @@
 #ifndef __COSINESQANGLEFORCECOMPUTE_H__
 #define __COSINESQANGLEFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 struct cosinesq_params
     {
     Scalar k;
@@ -43,9 +47,9 @@ struct cosinesq_params
 #endif
     }
 #ifdef SINGLE_PRECISION
-__attribute__((aligned(8)));
+    __attribute__((aligned(8)));
 #else
-__attribute__((aligned(16)));
+    __attribute__((aligned(16)));
 #endif
 
 //! Computes cosine squared angle forces on each particle
@@ -94,7 +98,7 @@ class PYBIND11_EXPORT CosineSqAngleForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-//! Exports the AngleForceCompute class to python
-void export_CosineSqAngleForceCompute(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

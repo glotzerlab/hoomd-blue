@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.snapshot import Snapshot
 from hoomd import Box
 import numpy
@@ -129,7 +132,7 @@ def test_configuration(s):
 def generate_outside(box, interior_points, unwrap_images, initial_images):
     """Generate test cases from interior points by adding box vectors."""
     box = Box.from_box(box)
-    matrix = box.matrix
+    matrix = box.to_matrix()
     input_points = numpy.zeros(
         (len(interior_points), len(unwrap_images), len(initial_images), 3))
     check_points = numpy.zeros_like(input_points)
@@ -459,9 +462,36 @@ def test_no_particle_types(simulation_factory, lattice_snapshot_factory):
         simulation_factory(snap)
 
 
+@pytest.mark.serial
+def test_no_duplicate_particle_types(simulation_factory,
+                                     lattice_snapshot_factory):
+    """Test that initialization fails when there are duplicate types."""
+    snap = lattice_snapshot_factory(particle_types=['A', 'B', 'C', 'A'])
+
+    # Run test in serial as only rank 0 raises the runtime error.
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+
+@pytest.mark.serial
+@pytest.mark.parametrize('bond',
+                         ['bonds', 'angles', 'dihedrals', 'impropers', 'pairs'])
+def test_no_duplicate_bond_types(simulation_factory, lattice_snapshot_factory,
+                                 bond):
+    """Test that initialization fails when there are duplicate types."""
+    snap = lattice_snapshot_factory(particle_types=['A'])
+
+    getattr(snap, bond).types = ['A', 'B', 'B', 'C']
+
+    # Run test in serial as only rank 0 raises the runtime error.
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+
 def test_zero_particle_system(simulation_factory, lattice_snapshot_factory):
     """Test that zero particle systems can be initialized with no types."""
     snap = lattice_snapshot_factory(particle_types=[], n=0)
+    snap.configuration.box = [1, 1, 1, 0, 0, 0]
 
     simulation_factory(snap)
 

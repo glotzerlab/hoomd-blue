@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_
 #define MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_
@@ -17,6 +15,8 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -40,7 +40,7 @@ cudaError_t slit_draw_particles(Scalar4* d_pos,
                                 const uint16_t seed,
                                 const unsigned int block_size);
 
-    } // end namespace gpu
-    } // end namespace mpcd
-
+    }  // end namespace gpu
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_

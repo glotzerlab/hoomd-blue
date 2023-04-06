@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -13,6 +13,10 @@
 #include <cfloat>
 #include <memory>
 
+namespace hoomd
+    {
+namespace md
+    {
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
 
@@ -25,12 +29,14 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Constructs the compute
     //!
     //! \param direction Indicates the normal direction of the slabs.
+    //! \param trigger Trigger to determine when to run updater.
     //! \param N_slabs Number of total slabs in the simulation box.
     //! \param min_slabs Index of slabs, where the min velocity is searched.
     //! \param max_slabs Index of slabs, where the max velocity is searched.
     //! \note N_slabs should be a multiple of the DomainDecomposition boxes in that direction.
     //! If it is not, the number is rescaled and the user is informed.
     MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<Trigger> trigger,
                       std::shared_ptr<ParticleGroup> group,
                       std::shared_ptr<Variant> flow_target,
                       std::string slab_direction_str,
@@ -222,5 +228,5 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 #endif // ENABLE_MPI
     };
 
-//! Exports the MuellerPlatheFlow class to python
-void export_MuellerPlatheFlow(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd

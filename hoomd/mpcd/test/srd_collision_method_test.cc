@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/SRDCollisionMethod.h"
 #include "utils.h"
@@ -15,12 +13,14 @@
 
 HOOMD_UP_MAIN()
 
+using namespace hoomd;
+
 //! Test for basic setup and functionality of the SRD collision method
 template<class CM>
 void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
@@ -177,7 +177,7 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
     {
     // initialize a big empty system
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(50.0);
+    snap->global_box = std::make_shared<BoxDim>(50.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     // mpcd system, thermo, srd collision method
@@ -264,7 +264,7 @@ template<class CM>
 void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = BoxDim(2.0);
+    snap->global_box = std::make_shared<BoxDim>(2.0);
     snap->particle_data.type_mapping.push_back("A");
         {
         SnapshotParticleData<Scalar>& pdata_snap = snap->particle_data;
@@ -346,8 +346,8 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
 template<class CM>
 void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    const BoxDim box(10.0);
-    auto sysdef = std::make_shared<::SystemDefinition>(0, box, 1, 0, 0, 0, 0, exec_conf);
+    auto box = std::make_shared<BoxDim>(10.0);
+    auto sysdef = std::make_shared<hoomd::SystemDefinition>(0, box, 1, 0, 0, 0, 0, exec_conf);
     auto pdata = std::make_shared<mpcd::ParticleData>(10000, box, 1.0, 42, 3, exec_conf);
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, pdata);
 
@@ -359,9 +359,9 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     uint64_t timestep = 0;
     const unsigned int N = 1000;
 
-    // set the temperature to 2.0 and check
+        // set the temperature to 2.0 and check
         {
-        std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(2.0);
+        std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(2.0);
         collide->setTemperature(T);
         double mean(0.0);
         for (unsigned int i = 0; i < N; ++i)
@@ -373,9 +373,9 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
         CHECK_CLOSE(mean, 2.0, tol);
         }
 
-    // change the temperature and check again
+        // change the temperature and check again
         {
-        std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(4.0);
+        std::shared_ptr<Variant> T = std::make_shared<VariantConstant>(4.0);
         collide->setTemperature(T);
         double mean(0.0);
         for (unsigned int i = 0; i < N; ++i)

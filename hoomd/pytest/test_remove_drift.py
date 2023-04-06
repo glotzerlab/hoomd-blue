@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Test hoomd.update.RemoveDrift."""
 
@@ -85,9 +84,9 @@ def test_remove_drift(simulation_factory, lattice_snapshot_factory):
     """Test that RemoveDrift modifies positions correctly."""
     # reference positions in a simple cubic lattice with a=1
     reference_positions = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5],
-                           [-0.5, 0.5, -0.5], [-0.5, 0.5,
-                                               0.5], [0.5, -0.5, -0.5],
-                           [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
+                           [0.5, -0.5, -0.5], [0.5, -0.5,
+                                               0.5], [-0.5, 0.5, -0.5],
+                           [-0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]
 
     # initialize simulation with randomized positions (off lattice)
     snap = lattice_snapshot_factory(dimensions=3, n=2, a=1, r=0.1)

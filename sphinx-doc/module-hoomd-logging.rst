@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd.logging
 --------------
 
@@ -9,6 +12,7 @@ hoomd.logging
     :nosignatures:
 
     log
+    modify_namespace
     Logger
     LoggerCategories
 
@@ -16,5 +20,8 @@ hoomd.logging
 
 .. automodule:: hoomd.logging
     :synopsis: Classes for logging data.
-    :members: log, Logger, LoggerCategories
+    :members: log, modify_namespace, Logger
     :undoc-members:
+
+    .. autoclass:: LoggerCategories
+        :members: any

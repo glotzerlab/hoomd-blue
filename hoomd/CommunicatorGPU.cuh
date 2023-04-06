@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file CommunicatorGPU.cuh
     \brief Defines the GPU functions of the communication algorithms
@@ -10,12 +8,15 @@
 #ifdef ENABLE_MPI
 
 #include "BondedGroupData.cuh"
+#include "MeshGroupData.cuh"
 #include "ParticleData.cuh"
 
 #include "Index1D.h"
 
 #include "hoomd/CachedAllocator.h"
 
+namespace hoomd
+    {
 #ifdef __HIPCC__
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
@@ -56,7 +57,7 @@ void gpu_stage_particles(const unsigned int n,
     \param alloc Caching allocator
  */
 void gpu_sort_migrating_particles(const size_t nsend,
-                                  pdata_element* d_in,
+                                  detail::pdata_element* d_in,
                                   const unsigned int* d_comm_flags,
                                   const Index3D& di,
                                   const uint3 my_pos,
@@ -68,11 +69,11 @@ void gpu_sort_migrating_particles(const size_t nsend,
                                   const unsigned int nneigh,
                                   const unsigned int mask,
                                   unsigned int* d_tmp,
-                                  pdata_element* d_in_copy,
+                                  detail::pdata_element* d_in_copy,
                                   CachedAllocator& alloc);
 
 //! Apply boundary conditions
-void gpu_wrap_particles(const unsigned int n_recv, pdata_element* d_in, const BoxDim& box);
+void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls, unsigned int* d_delete_tags, unsigned int* d_rtag);
@@ -183,7 +184,7 @@ void gpu_compute_ghost_rtags(unsigned int first_idx,
 void gpu_reset_exchange_plan(unsigned int N, unsigned int* d_plan);
 
 //! Mark groups for sending
-template<unsigned int group_size, typename group_t, typename ranks_t>
+template<unsigned int group_size, bool inMesh, typename group_t, typename ranks_t>
 void gpu_mark_groups(unsigned int N,
                      const unsigned int* d_comm_flags,
                      unsigned int n_groups,
@@ -201,7 +202,11 @@ void gpu_mark_groups(unsigned int N,
                      CachedAllocator& alloc);
 
 //! Compact rank information for groups that have been marked for sending
-template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
+template<unsigned int group_size,
+         bool inMesh,
+         typename group_t,
+         typename ranks_t,
+         typename rank_element_t>
 void gpu_scatter_ranks_and_mark_send_groups(unsigned int n_groups,
                                             const unsigned int* d_group_tag,
                                             const ranks_t* d_group_ranks,
@@ -215,14 +220,18 @@ void gpu_scatter_ranks_and_mark_send_groups(unsigned int n_groups,
                                             rank_element_t* d_out_ranks,
                                             CachedAllocator& alloc);
 
-template<unsigned int group_size, typename ranks_t, typename rank_element_t>
+template<unsigned int group_size, bool inMesh, typename ranks_t, typename rank_element_t>
 void gpu_update_ranks_table(unsigned int n_groups,
                             ranks_t* d_group_ranks,
                             unsigned int* d_group_rtag,
                             unsigned int n_recv,
                             const rank_element_t* d_ranks_recvbuf);
 
-template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
+template<unsigned int group_size,
+         bool inMesh,
+         typename group_t,
+         typename ranks_t,
+         typename packed_t>
 void gpu_scatter_and_mark_groups_for_removal(unsigned int n_groups,
                                              const group_t* d_groups,
                                              const typeval_union* d_group_typeval,
@@ -271,7 +280,7 @@ void gpu_add_groups(unsigned int n_groups,
                     unsigned int myrank,
                     CachedAllocator& alloc);
 
-template<unsigned int group_size, typename members_t, typename ranks_t>
+template<unsigned int group_size, bool inMesh, typename members_t, typename ranks_t>
 void gpu_mark_bonded_ghosts(unsigned int n_groups,
                             members_t* d_groups,
                             ranks_t* d_ranks,
@@ -285,7 +294,7 @@ void gpu_mark_bonded_ghosts(unsigned int n_groups,
                             unsigned int my_rank,
                             unsigned int mask);
 
-template<unsigned int group_size, typename members_t>
+template<unsigned int group_size, bool inMesh, typename members_t>
 void gpu_make_ghost_group_exchange_plan(unsigned int* d_ghost_group_plan,
                                         const members_t* d_groups,
                                         unsigned int N,
@@ -302,7 +311,7 @@ void gpu_exchange_ghost_groups_pack(unsigned int n_out,
                                     const ranks_t* d_group_ranks,
                                     group_element_t* d_groups_sendbuf);
 
-template<unsigned int size, class members_t, class ranks_t, class group_element_t>
+template<unsigned int size, bool inMesh, class members_t, class ranks_t, class group_element_t>
 void gpu_exchange_ghost_groups_copy_buf(unsigned int nrecv,
                                         const group_element_t* d_groups_recvbuf,
                                         unsigned int* d_group_tag,
@@ -336,4 +345,5 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
                                             const Scalar* d_netvirial_recvbuf,
                                             Scalar* d_netvirial,
                                             unsigned int pitch_out);
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 Building from source
 ====================
 
@@ -27,11 +30,11 @@ To build the documentation from source (optional):
 
 1. `Install prerequisites`_::
 
-   $ <package-manager> install sphinx sphinx_rtd_theme nbsphinx ipython
+   $ <package-manager> install sphinx furo nbsphinx ipython
 
 .. note::
 
-   `nbsphinx` requires `pandoc>=1.12.1`, which you may need to install separately.
+   ``nbsphinx`` requires ``pandoc>=1.12.1``, which you may need to install separately.
 
 2. `Build the documentation`_::
 
@@ -45,7 +48,7 @@ Install prerequisites
 ---------------------
 
 **HOOMD-blue** requires a number of tools and libraries to build. The options ``ENABLE_MPI``,
-``ENABLE_GPU``, ``ENABLE_TBB``, and ``BUILD_JIT`` each require additional libraries when enabled.
+``ENABLE_GPU``, ``ENABLE_TBB``, and ``ENABLE_LLVM`` each require additional libraries when enabled.
 
 .. note::
 
@@ -74,7 +77,7 @@ Install prerequisites
 
 **General requirements:**
 
-- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10, 11 / ``clang`` 6, 7, 8, 9, 10, 11)
+- C++17 capable compiler (tested with ``gcc`` 7 - 12 and ``clang`` 6 - 14)
 - Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
@@ -102,25 +105,32 @@ Install prerequisites
     external dependency when building for AMD GPUs
   - roctracer-dev
   - Linux kernel >= 3.5.0
+  - CMake >= 3.21
 
   For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
    1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-   2. The `mpcd` component is disabled on AMD GPUs.
+   2. The ``mpcd`` component is disabled on AMD GPUs.
    3. Multi-GPU execution via unified memory is not available.
+
+.. note::
+
+    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HOOMD_GPU_PLATFORM=HIP`` to
+    choose HIP.
 
 **For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
 - Intel Threading Building Blocks >= 4.3
 
-**For runtime code generation** (required when ``BUILD_JIT=on``):
+**For runtime code generation** (required when ``ENABLE_LLVM=on``):
 
-- LLVM >= 6.0
+- LLVM >= 10.0
+- libclang-cpp >= 10.0
 
 **To build the documentation:**
 
 - sphinx
-- sphinx_rtd_theme
+- furo
 - nbsphinx
 - ipython
 
@@ -135,7 +145,7 @@ Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-Release tarballs are also available on the `downloads page`_.
+Release tarballs are also available as `GitHub release`_ assets: `Download hoomd-v3.10.0.tar.gz`_.
 
 .. seealso::
 
@@ -148,7 +158,8 @@ Release tarballs are also available on the `downloads page`_.
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. _downloads page: https://glotzerlab.engin.umich.edu/Downloads/hoomd
+.. _Download hoomd-v3.10.0.tar.gz: https://github.com/glotzerlab/hoomd-blue/releases/download/v3.10.0/hoomd-v3.10.0.tar.gz
+.. _GitHub release: https://github.com/glotzerlab/hoomd-blue/releases
 .. _git book: https://git-scm.com/book
 .. _Git: https://git-scm.com/
 
@@ -222,7 +233,9 @@ Other option changes take effect at any time:
 
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
+- ``ENABLE_LLVM`` - Enable run time code generation with LLVM.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
+- ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
 
   - When set to ``on``, all calculations are performed in single precision.
@@ -246,6 +259,7 @@ Other option changes take effect at any time:
 
   - When set to ``on``, **HOOMD-blue** will use TBB to speed up calculations in some classes on
     multiple CPU cores.
+
 - ``PYTHON_SITE_INSTALL_DIR`` - Directory to install ``hoomd`` to relative to
   ``CMAKE_INSTALL_PREFIX``. Defaults to the ``site-packages`` directory used by the found Python
   executable.

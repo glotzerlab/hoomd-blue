@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_HIP
 
@@ -20,10 +18,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-namespace py = pybind11;
-
-using namespace std;
-
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
 
@@ -74,7 +72,7 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
     if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error()
-            << "Creating a TwoStepRATTLEBDGPU while CUDA is disabled" << endl;
+            << "Creating a TwoStepRATTLEBDGPU while CUDA is disabled" << std::endl;
         throw std::runtime_error("Error initializing TwoStepRATTLEBDGPU");
         }
 
@@ -83,10 +81,6 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
 
 template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
-    // profile this step
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "BD step 1");
-
     if (this->m_box_changed)
         {
         if (!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
@@ -138,18 +132,18 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
                                   access_location::device,
                                   access_mode::readwrite);
 
-    rattle_bd_step_one_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = this->m_gamma.getNumElements();
-    args.use_alpha = this->m_use_alpha;
-    args.alpha = this->m_alpha;
-    args.T = (*this->m_T)(timestep);
-    args.tolerance = this->m_tolerance;
-    args.timestep = timestep;
-    args.seed = this->m_sysdef->getSeed();
-
+    kernel::rattle_bd_step_one_args args(d_gamma.data,
+                                         this->m_gamma.getNumElements(),
+                                         this->m_use_alpha,
+                                         this->m_alpha,
+                                         (*this->m_T)(timestep),
+                                         this->m_tolerance,
+                                         timestep,
+                                         this->m_sysdef->getSeed(),
+                                         this->m_exec_conf->dev_prop);
     bool aniso = this->m_aniso;
 
+#if defined(__HIP_PLATFORM_NVCC__)
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
@@ -166,41 +160,38 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uin
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+#endif
 
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
-    gpu_rattle_brownian_step_one(d_pos.data,
-                                 d_image.data,
-                                 d_vel.data,
-                                 this->m_pdata->getBox(),
-                                 d_diameter.data,
-                                 d_tag.data,
-                                 d_index_array.data,
-                                 group_size,
-                                 d_net_force.data,
-                                 d_gamma_r.data,
-                                 d_orientation.data,
-                                 d_torque.data,
-                                 d_inertia.data,
-                                 d_angmom.data,
-                                 args,
-                                 this->m_manifold,
-                                 aniso,
-                                 this->m_deltaT,
-                                 D,
-                                 this->m_noiseless_t,
-                                 this->m_noiseless_r,
-                                 this->m_group->getGPUPartition());
+    kernel::gpu_rattle_brownian_step_one(d_pos.data,
+                                         d_image.data,
+                                         d_vel.data,
+                                         this->m_pdata->getBox(),
+                                         d_diameter.data,
+                                         d_tag.data,
+                                         d_index_array.data,
+                                         group_size,
+                                         d_net_force.data,
+                                         d_gamma_r.data,
+                                         d_orientation.data,
+                                         d_torque.data,
+                                         d_inertia.data,
+                                         d_angmom.data,
+                                         args,
+                                         this->m_manifold,
+                                         aniso,
+                                         this->m_deltaT,
+                                         D,
+                                         this->m_noiseless_t,
+                                         this->m_noiseless_r,
+                                         this->m_group->getGPUPartition());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     this->m_exec_conf->endMultiGPU();
-
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -231,16 +222,17 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
 
     size_t net_virial_pitch = net_virial.getPitch();
 
-    rattle_bd_step_one_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = this->m_gamma.getNumElements();
-    args.use_alpha = this->m_use_alpha;
-    args.alpha = this->m_alpha;
-    args.T = (*this->m_T)(timestep);
-    args.tolerance = this->m_tolerance;
-    args.timestep = timestep;
-    args.seed = this->m_sysdef->getSeed();
+    kernel::rattle_bd_step_one_args args(d_gamma.data,
+                                         this->m_gamma.getNumElements(),
+                                         this->m_use_alpha,
+                                         this->m_alpha,
+                                         (*this->m_T)(timestep),
+                                         this->m_tolerance,
+                                         timestep,
+                                         this->m_sysdef->getSeed(),
+                                         this->m_exec_conf->dev_prop);
 
+#if defined(__HIP_PLATFORM_NVCC__)
     if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
@@ -254,46 +246,51 @@ template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(u
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+#endif
 
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
-    gpu_include_rattle_force_bd<Manifold>(d_pos.data,
-                                          d_net_force.data,
-                                          d_net_virial.data,
-                                          d_diameter.data,
-                                          d_tag.data,
-                                          d_index_array.data,
-                                          group_size,
-                                          args,
-                                          this->m_manifold,
-                                          net_virial_pitch,
-                                          this->m_deltaT,
-                                          this->m_noiseless_t,
-                                          this->m_group->getGPUPartition());
+    kernel::gpu_include_rattle_force_bd<Manifold>(d_pos.data,
+                                                  d_net_force.data,
+                                                  d_net_virial.data,
+                                                  d_diameter.data,
+                                                  d_tag.data,
+                                                  d_index_array.data,
+                                                  group_size,
+                                                  args,
+                                                  this->m_manifold,
+                                                  net_virial_pitch,
+                                                  this->m_deltaT,
+                                                  this->m_noiseless_t,
+                                                  this->m_group->getGPUPartition());
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     this->m_exec_conf->endMultiGPU();
-
-    // done profiling
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
-//! Exports the TwoStepRATTLEBDGPU class to python
-template<class Manifold> void export_TwoStepRATTLEBDGPU(py::module& m, const std::string& name)
+namespace detail
     {
-    py::class_<TwoStepRATTLEBDGPU<Manifold>,
-               TwoStepRATTLEBD<Manifold>,
-               std::shared_ptr<TwoStepRATTLEBDGPU<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      Manifold,
-                      std::shared_ptr<Variant>,
-                      bool,
-                      bool,
-                      Scalar>());
+//! Exports the TwoStepRATTLEBDGPU class to python
+template<class Manifold>
+void export_TwoStepRATTLEBDGPU(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<TwoStepRATTLEBDGPU<Manifold>,
+                     TwoStepRATTLEBD<Manifold>,
+                     std::shared_ptr<TwoStepRATTLEBDGPU<Manifold>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            Manifold,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool,
+                            Scalar>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif // ENABLE_HIP

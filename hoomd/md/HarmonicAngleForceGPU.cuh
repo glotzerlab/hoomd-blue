@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BondedGroupData.cuh"
 #include "hoomd/HOOMDMath.h"
@@ -15,6 +13,12 @@
 #ifndef __HARMONICANGLEFORCEGPU_CUH__
 #define __HARMONICANGLEFORCEGPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes harmonic angle forces for HarmonicAngleForceComputeGPU
 hipError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
                                              Scalar* d_virial,
@@ -29,5 +33,9 @@ hipError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
                                              Scalar2* d_params,
                                              unsigned int n_angle_types,
                                              int block_size);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

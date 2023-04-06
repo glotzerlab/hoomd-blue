@@ -1,8 +1,11 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""HOOMD Errors."""
+"""HOOMD-blue specific error classes.
+
+These classes are subclasses of Python exception types. HOOMD-blue raises
+these exceptions when documented.
+"""
 
 
 class MutabilityError(AttributeError):
@@ -30,7 +33,7 @@ class DataAccessError(RuntimeError):
 
 
 class TypeConversionError(ValueError):
-    """Error when validatimg TypeConverter subclasses fails."""
+    """Error when converting a parameter."""
     pass
 
 
@@ -42,3 +45,13 @@ class IncompleteSpecificationError(ValueError):
 class SimulationDefinitionError(RuntimeError):
     """Error in definition of simulation internal state."""
     pass
+
+
+class IsolationWarning(UserWarning):
+    """Warn about data structure removal from original data source."""
+
+    def __str__(self):
+        """Returns the error message."""
+        return ("The data structure is removed from its original data source, "
+                "and updates will no longer modify the previously composing "
+                "object. Call obj.to_base() to remove this warning.")

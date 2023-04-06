@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file DomainDecomposition.h
     \brief Defines the DomainDecomposition class
@@ -26,6 +24,8 @@
 /*! \ingroup communication
  */
 
+namespace hoomd
+    {
 //! Class that initializes every processor using spatial domain-decomposition
 /*! This class is used to divide the global simulation box into sub-domains and to assign a box to
  * every processor.
@@ -127,7 +127,6 @@ class PYBIND11_EXPORT DomainDecomposition
             }
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
             throw std::runtime_error("comm: requested direction does not exist");
             }
         }
@@ -147,7 +146,6 @@ class PYBIND11_EXPORT DomainDecomposition
             return m_cumulative_frac_z;
         else
             {
-            m_exec_conf->msg->error() << "comm: requested direction does not exist" << std::endl;
             throw std::runtime_error("comm: requested direction does not exist");
             }
         }
@@ -233,9 +231,13 @@ class PYBIND11_EXPORT DomainDecomposition
 #endif                                       // ENABLE_MPI
     };
 
+namespace detail
+    {
 #ifdef ENABLE_MPI
 //! Export the domain decomposition information
 void export_DomainDecomposition(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    }  // end namespace hoomd
 #endif // __DOMAIN_DECOMPOSITION_H

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file ParticleDataSnapshot.cc
@@ -11,6 +9,8 @@
 #include "ParticleDataSnapshot.h"
 #include <pybind11/numpy.h>
 
+namespace hoomd
+    {
 mpcd::ParticleDataSnapshot::ParticleDataSnapshot() : size(0), mass(1.0) { }
 
 /*!
@@ -198,3 +198,5 @@ void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
         .def("resize", &mpcd::ParticleDataSnapshot::resize)
         .def("replicate", &mpcd::ParticleDataSnapshot::replicate);
     }
+
+    } // end namespace hoomd

@@ -1,3 +1,5 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/ExecutionConfiguration.h"
@@ -15,8 +17,9 @@ HOOMD_UP_MAIN();
 #include <memory>
 #include <pybind11/pybind11.h>
 
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd;
+using namespace hoomd::hpmc;
+using namespace hoomd::hpmc::detail;
 
 unsigned int err_count;
 
@@ -55,13 +58,11 @@ UP_TEST(construction)
     MY_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
     MY_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
 
-    UP_ASSERT_EQUAL(a.spheres.diameter, data.diameter);
     for (unsigned int i = 0; i < data.N; i++)
         {
         MY_CHECK_CLOSE(a.spheres.diameter[i], data.diameter[i], tol);
         }
 
-    MY_ASSERT_EQUAL(a.spheres.center, data.center);
     for (unsigned int i = 0; i < data.N; i++)
         {
         MY_CHECK_CLOSE(a.spheres.center[i].x, data.center[i].x, tol);

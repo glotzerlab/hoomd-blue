@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file RNGIdentifiers.h
     \brief Define constants to use in seeding separate RNG streams across different classes in the
@@ -15,8 +15,9 @@
     The actual values of these identifiers does not matter, so long as they are unique.
 */
 
-#ifndef HOOMD_RNGIDENTIFIERS_H__
-#define HOOMD_RNGIDENTIFIERS_H__
+#pragma once
+
+#include <cstdint>
 
 namespace hoomd
     {
@@ -63,8 +64,10 @@ struct RNGIdentifier
     static const uint8_t HPMCDepletantNumClusters = 38;
     static const uint8_t HPMCMonoPatch = 39;
     static const uint8_t UpdaterClusters2 = 40;
+    static const uint8_t HPMCMonoChainMove = 41;
+    static const uint8_t UpdaterShapeUpdate = 42;
+    static const uint8_t UpdaterShapeConstruct = 43;
+    static const uint8_t HPMCShapeMoveUpdateOrder = 44;
     };
 
     } // namespace hoomd
-
-#endif

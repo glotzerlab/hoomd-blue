@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Communicator.h
     \brief Defines the Communicator class
@@ -17,6 +15,8 @@
 #include "GPUVector.h"
 #include "GlobalArray.h"
 #include "HOOMDMath.h"
+#include "MeshDefinition.h"
+#include "MeshGroupData.h"
 #include "ParticleData.h"
 
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
@@ -44,9 +44,10 @@
 //! a define to indicate API requirements
 #define HOOMD_COMM_GHOST_LAYER_WIDTH_REQUEST
 
+namespace hoomd
+    {
 //! Forward declarations for some classes
 class SystemDefinition;
-class Profiler;
 struct BoxDim;
 class ParticleData;
 
@@ -158,14 +159,6 @@ class PYBIND11_EXPORT Communicator
     //! \name accessor methods
     //@{
 
-    //! Set the profiler.
-    /*! \param prof Profiler to use with this class
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Subscribe to list of functions that determine when the particles are migrated
     /*! This method keeps track of all functions that may request particle migration.
      * \return A Nano::Signal object reference to be used for connect and disconnect calls.
@@ -185,15 +178,16 @@ class PYBIND11_EXPORT Communicator
         return m_ghost_layer_width_requests;
         }
 
-    //! Subscribe to list of functions that request a minimum extra ghost layer width (added to the
-    //! maximum ghost layer)
-    /*! This method keeps track of all functions that request a minimum ghost layer width
-     * The actual ghost layer width is chosen from the max over the inputs
+    //! Subscribe to list of functions that request a minimum ghost layer width for rigid bodies.
+    /*! This method keeps track of all functions that request a minimum ghost layer width.
+     * The actual ghost layer width is chosen from the max over the inputs, which is a function
+     * of the previously set cutoff ghost width of all the constituent types belonging to the body.
      * \return A connection to the present class
      */
-    Nano::Signal<Scalar(unsigned int type)>& getExtraGhostLayerWidthRequestSignal()
+    Nano::Signal<Scalar(unsigned int type, Scalar* h_r_ghost)>&
+    getBodyGhostLayerWidthRequestSignal()
         {
-        return m_extra_ghost_layer_width_requests;
+        return m_body_ghost_layer_width_requests;
         }
 
     //! Subscribe to list of functions that determine the communication flags
@@ -264,7 +258,20 @@ class PYBIND11_EXPORT Communicator
     //! Get the current maximum ghost layer width
     Scalar getGhostLayerMaxWidth() const
         {
-        return m_r_ghost_max + m_r_extra_ghost_max;
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body,
+                                           access_location::host,
+                                           access_mode::read);
+
+        Scalar ghost_max_width = 0.0;
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            ghost_max_width
+                = std::max(ghost_max_width,
+                           std::max(h_r_ghost.data[cur_type], h_r_ghost_body.data[cur_type]));
+            }
+
+        return ghost_max_width;
         }
 
     //! Set the ghost communication flags
@@ -378,24 +385,23 @@ class PYBIND11_EXPORT Communicator
 
     //@}
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
+    //! Helper function to initialize adjacency arrays
+    void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
 
     protected:
     //! Helper class to perform the communication tasks related to bonded groups
-    template<class group_data> class GroupCommunicator
+    template<class group_data, bool inMesh = false> class GroupCommunicator
         {
         public:
         typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
         typedef typename group_data::packed_t group_element_t;
 
         //! Constructor
+        GroupCommunicator(Communicator& comm);
+
         GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata);
+
+        void setGroupData(std::shared_ptr<group_data> gdata);
 
         //! Migrate groups
         /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -463,10 +469,10 @@ class PYBIND11_EXPORT Communicator
 
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
     std::shared_ptr<ParticleData> m_pdata;                     //!< Particle data
+    std::shared_ptr<MeshDefinition> m_meshdef;                 //!< Mesh definition
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
-    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
     bool m_is_communicating; //!< Whether we are currently communicating
     bool m_force_migrate;    //!< True if particle migration is forced
@@ -551,7 +557,6 @@ class PYBIND11_EXPORT Communicator
     GlobalArray<Scalar> m_r_ghost;      //!< Width of ghost layer
     GlobalArray<Scalar> m_r_ghost_body; //!< Extra ghost width for rigid bodies
     Scalar m_r_ghost_max;               //!< Maximum ghost layer width
-    Scalar m_r_extra_ghost_max;         //!< Maximum extra ghost layer width
 
     unsigned int m_ghosts_added; //!< Number of ghosts added
     bool m_has_ghost_particles;  //!< True if we have a current copy of ghost particles
@@ -571,9 +576,8 @@ class PYBIND11_EXPORT Communicator
         m_ghost_layer_width_requests; //!< List of functions that request a minimum ghost layer
                                       //!< width
 
-    Nano::Signal<Scalar(unsigned int type)>
-        m_extra_ghost_layer_width_requests; //!< List of functions that request an extra ghost layer
-                                            //!< width
+    /// List of functions that compute the body ghost layer width.
+    Nano::Signal<Scalar(unsigned int type, Scalar* h_r_ghost)> m_body_ghost_layer_width_requests;
 
     Nano::Signal<void(uint64_t timestep)>
         m_compute_callbacks; //!< List of functions that are called after ghost communication
@@ -630,6 +634,18 @@ class PYBIND11_EXPORT Communicator
         m_pairs_changed = true;
         }
 
+    bool m_meshbonds_changed; //!< True if mesh bond information needs to be refreshed
+    void setMeshbondsChanged()
+        {
+        m_meshbonds_changed = true;
+        }
+
+    bool m_meshtriangles_changed; //!< True if mesh triangle information needs to be refreshed
+    void setMeshtrianglesChanged()
+        {
+        m_meshtriangles_changed = true;
+        }
+
     //! Remove tags of ghost particles
     virtual void removeGhostParticleTags();
 
@@ -666,8 +682,8 @@ class PYBIND11_EXPORT Communicator
         }
 
     private:
-    std::vector<pdata_element> m_sendbuf; //!< Buffer for particles that are sent
-    std::vector<pdata_element> m_recvbuf; //!< Buffer for particles that are received
+    std::vector<detail::pdata_element> m_sendbuf; //!< Buffer for particles that are sent
+    std::vector<detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
 
     /* Communication of bonded groups */
     GroupCommunicator<BondData> m_bond_comm; //!< Communication helper for bonds
@@ -689,6 +705,15 @@ class PYBIND11_EXPORT Communicator
     GroupCommunicator<PairData> m_pair_comm; //!< Communication helper for special pairs
     friend class GroupCommunicator<PairData>;
 
+    /* Communication of mesh bonded groups */
+    GroupCommunicator<MeshBondData, true> m_meshbond_comm; //!< Communication helper for mesh bonds
+    friend class GroupCommunicator<MeshBondData, true>;
+
+    /* Communication of mesh triangle groups */
+    GroupCommunicator<MeshTriangleData, true>
+        m_meshtriangle_comm; //!< Communication helper for mesh triangles
+    friend class GroupCommunicator<MeshTriangleData, true>;
+
     //! Helper function to initialize adjacency arrays
     void initializeNeighborArrays();
 
@@ -700,8 +725,13 @@ class PYBIND11_EXPORT Communicator
         }
     };
 
+namespace detail
+    {
 //! Declaration of python export function
 void export_Communicator(pybind11::module& m);
 
+    } // end namespace detail
+
+    }  // end namespace hoomd
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

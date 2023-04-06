@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SorterGPU.h
@@ -19,6 +17,8 @@
 #include "hoomd/Autotuner.h"
 #include "hoomd/GPUFlags.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Sorts MPCD particles on the GPU
@@ -33,28 +33,15 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
               unsigned int cur_timestep,
               unsigned int period);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        mpcd::Sorter::setAutotunerParams(enable, period);
-
-        m_sentinel_tuner->setEnabled(enable);
-        m_sentinel_tuner->setPeriod(period);
-        m_reverse_tuner->setEnabled(enable);
-        m_reverse_tuner->setPeriod(period);
-        m_apply_tuner->setEnabled(enable);
-        m_apply_tuner->setPeriod(period);
-        }
-
     protected:
-    std::unique_ptr<Autotuner>
-        m_sentinel_tuner;                       //!< Kernel tuner for filling sentinels in cell list
-    std::unique_ptr<Autotuner> m_reverse_tuner; //!< Kernel tuner for setting reverse map
-    std::unique_ptr<Autotuner> m_apply_tuner;   //!< Kernel tuner for applying sorted order
+    /// Kernel tuner for filling sentinels in cell list.
+    std::shared_ptr<Autotuner<1>> m_sentinel_tuner;
+
+    /// Kernel tuner for setting reverse map.
+    std::shared_ptr<Autotuner<1>> m_reverse_tuner;
+
+    //!< Kernel tuner for applying sorted order.
+    std::shared_ptr<Autotuner<1>> m_apply_tuner;
 
     //! Compute the sorting order at the current timestep on the GPU
     virtual void computeOrder(uint64_t timestep);
@@ -67,7 +54,7 @@ namespace detail
     {
 //! Exports the mpcd::SorterGPU to python
 void export_SorterGPU(pybind11::module& m);
-    } // end namespace detail
-    } // end namespace mpcd
-
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_SORTER_GPU_H_

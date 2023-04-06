@@ -1,14 +1,15 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: pschoenhoefer
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __MANIFOLD_CLASS_GYROID_H__
 #define __MANIFOLD_CLASS_GYROID_H__
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#endif
 
 /*! \file ManifoldGyroid.h
     \brief Defines the manifold class for the Gyroid minimal surface
@@ -23,6 +24,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for constructing the Gyroid minimal surface
 /*! <b>General Overview</b>
 
@@ -107,10 +112,12 @@ class ManifoldGyroid
         return 2;
         }
 
+#ifndef __HIPCC__
     pybind11::tuple getN()
         {
         return pybind11::make_tuple(Nx, Ny, Nz);
         }
+#endif
 
     Scalar getEpsilon()
         {
@@ -127,7 +134,7 @@ class ManifoldGyroid
     Scalar epsilon;
     };
 
-//! Exports the Gyroid manifold class to python
-void export_ManifoldGyroid(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_GYROID_H__

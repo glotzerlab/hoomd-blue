@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ExternalField.h
@@ -20,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! External force field on MPCD particles.
@@ -175,11 +175,11 @@ class SineForce : public ExternalField
 namespace detail
     {
 void export_ExternalFieldPolymorph(pybind11::module& m);
-    }      // end namespace detail
+    }  // end namespace detail
 #endif // __HIPCC__
 
     } // end namespace mpcd
-
+    } // end namespace hoomd
 #undef HOSTDEVICE
 
 #endif // MPCD_EXTERNAL_FIELD_H_

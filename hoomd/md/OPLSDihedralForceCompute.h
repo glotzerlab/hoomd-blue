@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: ksil
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/ForceCompute.h"
@@ -22,6 +20,10 @@
 #ifndef __OPLSDIHEDRALFORCECOMPUTE_H__
 #define __OPLSDIHEDRALFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 struct dihedral_opls_params
     {
     Scalar k1;
@@ -95,7 +97,7 @@ class PYBIND11_EXPORT OPLSDihedralForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-//! Exports the DihedralForceCompute class to python
-void export_OPLSDihedralForceCompute(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

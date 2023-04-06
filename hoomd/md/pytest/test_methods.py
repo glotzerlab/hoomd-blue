@@ -1,5 +1,10 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import (pickling_check, logging_check,
+                            autotuned_kernel_parameter_check)
+from hoomd.logging import LoggerCategories
 import pytest
 from copy import deepcopy
 from collections import namedtuple
@@ -125,6 +130,23 @@ def _method_base_params():
     method_base_params_list.extend([
         paramtuple(nve_setup_params, nve_extra_params, nve_changed_params,
                    hoomd.md.methods.rattle.NVE, hoomd.md.methods.NVE)
+    ])
+
+    displacement_capped_setup_params = {
+        "maximum_displacement": hoomd.variant.Ramp(1e-3, 1e-1, 0, 1_00)
+    }
+
+    displacement_capped_extra_params = {}
+    displacement_capped_changed_params = {
+        "maximum_displacement": hoomd.variant.Constant(1e-2)
+    }
+
+    method_base_params_list.extend([
+        paramtuple(displacement_capped_setup_params,
+                   displacement_capped_extra_params,
+                   displacement_capped_changed_params,
+                   hoomd.md.methods.rattle.DisplacementCapped,
+                   hoomd.md.methods.DisplacementCapped)
     ])
 
     return method_base_params_list
@@ -394,8 +416,9 @@ def test_nph_attributes_attached_3d(simulation_factory,
     nph.tauS = 10.0
     assert nph.tauS == 10.0
 
-    nph.box_dof = [True, False, False, False, True, False]
-    assert nph.box_dof == [True, False, False, False, True, False]
+    box_dof = (True, False, False, False, True, False)
+    nph.box_dof = box_dof
+    assert nph.box_dof == box_dof
 
     nph.couple = 'none'
     assert nph.couple == 'none'
@@ -477,9 +500,8 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
 
     sim = simulation_factory(snap)
 
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[npt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[npt], integrate_rotational_dof=True)
     sim.run(0)
 
     npt.thermalize_thermostat_and_barostat_dof()
@@ -583,9 +605,8 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
         snap.particles.moment_inertia[:] = [[1, 1, 1], [2, 0, 0]]
 
     sim = simulation_factory(snap)
-    sim.operations.integrator = hoomd.md.Integrator(0.005,
-                                                    methods=[nvt],
-                                                    aniso=True)
+    sim.operations.integrator = hoomd.md.Integrator(
+        0.005, methods=[nvt], integrate_rotational_dof=True)
     sim.run(0)
 
     nvt.thermalize_thermostat_dof()
@@ -596,6 +617,24 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     xi_rot, eta_rot = nvt.rotational_thermostat_dof
     assert xi_rot != 0.0
     assert eta_rot == 0.0
+
+
+def test_kernel_parameters(method_base_params, simulation_factory,
+                           two_particle_snapshot_factory):
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=hoomd.filter.All())
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    if (method_base_params.method == hoomd.md.methods.Berendsen
+            and sim.device.communicator.num_ranks > 1):
+        pytest.skip("Berendsen method does not support multiple processor "
+                    "configurations.")
+    integrator = hoomd.md.Integrator(0.05, methods=[method])
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=method,
+                                     activate=lambda: sim.run(1))
 
 
 def test_pickling(method_base_params, simulation_factory,
@@ -613,3 +652,70 @@ def test_pickling(method_base_params, simulation_factory,
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(method)
+
+
+def test_logging():
+    logging_check(hoomd.md.methods.NPH, ('md', 'methods'), {
+        'barostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })
+    logging_check(
+        hoomd.md.methods.NPT, ('md', 'methods'), {
+            'barostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'thermostat_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })
+    logging_check(hoomd.md.methods.NVT, ('md', 'methods'), {
+        'thermostat_energy': {
+            'category': LoggerCategories.scalar,
+            'default': True
+        }
+    })
+
+
+@pytest.mark.parametrize("cls, init_args", [
+    (hoomd.md.methods.Brownian, {
+        'kT': 1.5
+    }),
+    (hoomd.md.methods.Langevin, {
+        'kT': 1.5
+    }),
+    (hoomd.md.methods.OverdampedViscous, {}),
+])
+def test_default_gamma(cls, init_args):
+    c = cls(filter=hoomd.filter.All(), **init_args)
+    assert c.gamma['A'] == 1.0
+    assert c.gamma_r['A'] == (1.0, 1.0, 1.0)
+
+    c = cls(filter=hoomd.filter.All(), **init_args, default_gamma=2.0)
+    assert c.gamma['A'] == 2.0
+    assert c.gamma_r['A'] == (1.0, 1.0, 1.0)
+
+    c = cls(filter=hoomd.filter.All(),
+            **init_args,
+            default_gamma_r=(3.0, 4.0, 5.0))
+    assert c.gamma['A'] == 1.0
+    assert c.gamma_r['A'] == (3.0, 4.0, 5.0)
+
+
+def test_langevin_reservoir(simulation_factory, two_particle_snapshot_factory):
+
+    langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                    methods=[langevin])
+    sim.run(10)
+    assert langevin.reservoir_energy == 0.0
+
+    langevin.tally_reservoir_energy = True
+
+    sim.run(10)
+    assert langevin.reservoir_energy != 0.0

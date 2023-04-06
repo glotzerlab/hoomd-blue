@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_TERSOFF__
 #define __EVALUATOR_TERSOFF__
@@ -22,6 +22,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Tersoff three-body potential
 class EvaluatorTersoff
     {
@@ -87,15 +91,15 @@ class EvaluatorTersoff
             pybind11::dict v;
 
             pybind11::list mags;
-            mags.append(coeffs.x);
-            mags.append(coeffs.y);
+            mags.append(static_cast<Scalar>(coeffs.x));
+            mags.append(static_cast<Scalar>(coeffs.y));
             v["magnitudes"] = pybind11::tuple(mags);
 
             v["cutoff_thickness"] = cutoff_thickness;
 
             pybind11::list exp_factors;
-            exp_factors.append(exp_consts.x);
-            exp_factors.append(exp_consts.y);
+            exp_factors.append(static_cast<Scalar>(exp_consts.x));
+            exp_factors.append(static_cast<Scalar>(exp_consts.y));
             v["exp_factors"] = pybind11::tuple(exp_factors);
 
             v["lambda3"] = pow(lambda_cube, 1. / 3.);
@@ -451,5 +455,8 @@ class EvaluatorTersoff
     Scalar tersoff_m;    //!< Cosine of the minimum-energy bonding angle
     Scalar cutoff_alpha; //!< \a alpha in the cutoff smoothing function
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ATCollisionMethodGPU.h
@@ -18,6 +16,8 @@
 #include "ATCollisionMethod.h"
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
@@ -30,22 +30,7 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
                          int phase,
                          std::shared_ptr<mpcd::CellThermoCompute> thermo,
                          std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-                         std::shared_ptr<::Variant> T);
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        mpcd::ATCollisionMethod::setAutotunerParams(enable, period);
-
-        m_tuner_draw->setPeriod(period);
-        m_tuner_draw->setEnabled(enable);
-        m_tuner_apply->setPeriod(period);
-        m_tuner_apply->setEnabled(enable);
-        }
+                         std::shared_ptr<Variant> T);
 
     protected:
     //! Draw velocities for particles in each cell on the GPU
@@ -55,8 +40,8 @@ class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     virtual void applyVelocities();
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_draw;  //!< Tuner for drawing random velocities
-    std::unique_ptr<Autotuner> m_tuner_apply; //!< Tuner for applying random velocities
+    std::shared_ptr<Autotuner<1>> m_tuner_draw;  //!< Tuner for drawing random velocities
+    std::shared_ptr<Autotuner<1>> m_tuner_apply; //!< Tuner for applying random velocities
     };
 
 namespace detail
@@ -65,6 +50,6 @@ namespace detail
 void export_ATCollisionMethodGPU(pybind11::module& m);
     } // end namespace detail
 
-    } // end namespace mpcd
-
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_AT_COLLISION_METHOD_GPU_H_

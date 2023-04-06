@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
 
 /*! \file TwoStepRATTLENVEGPU.cuh
     \brief Declares GPU kernel code for RATTLENVE integration on the GPU. Used by
@@ -26,6 +27,12 @@
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_CUH__
 #define __TWO_STEP_RATTLE_NVE_GPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
                                    Scalar4* d_vel,
                                    const Scalar3* d_accel,
@@ -379,9 +386,9 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4* d_pos,
 
             } while (resid > tolerance && iteration < maxiteration);
 
-        accel -= lambda * normal;
+        accel = accel - lambda * normal;
 
-        force -= inv_mass * lambda * normal;
+        force = force - inv_mass * lambda * normal;
 
         virial0 -= lambda * normal.x * pos.x;
         virial1 -= 0.5 * lambda * (normal.x * pos.y + normal.y * pos.x);
@@ -459,5 +466,9 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
     }
 
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif //__TWO_STEP_RATTLE_NVE_GPU_CUH__

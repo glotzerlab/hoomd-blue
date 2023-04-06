@@ -1,8 +1,13 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PARTICLE_FILTER_CUSTOM_H__
 #define __PARTICLE_FILTER_CUSTOM_H__
 
 #include "ParticleFilter.h"
 
+namespace hoomd
+    {
 class PYBIND11_EXPORT ParticleFilterCustom : public ParticleFilter
     {
     public:
@@ -29,4 +34,6 @@ class PYBIND11_EXPORT ParticleFilterCustom : public ParticleFilter
     pybind11::object m_py_filter; /// Python hoomd.filter.CustomFilter object
     pybind11::object m_state;     /// Python hoomd.State object
     };
+
+    }  // end namespace hoomd
 #endif // __PARTICLE_FILTER_CUSTOM_H__

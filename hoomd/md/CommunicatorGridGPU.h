@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMMUNICATOR_GRID_GPU_H__
 #define __COMMUNICATOR_GRID_GPU_H__
@@ -9,6 +7,10 @@
 #ifdef ENABLE_HIP
 #include "CommunicatorGrid.h"
 
+namespace hoomd
+    {
+namespace md
+    {
 #ifdef ENABLE_MPI
 /*! Class to communicate the boundary layer of a regular grid (GPU version)
  */
@@ -37,6 +39,9 @@ template<typename T> class CommunicatorGridGPU : public CommunicatorGrid<T>
     GlobalArray<unsigned int> m_cell_recv_begin; //!< Begin of recv indices per cell
     GlobalArray<unsigned int> m_cell_recv_end;   //!< End of recv indices per cell
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GRID_GPU_H__

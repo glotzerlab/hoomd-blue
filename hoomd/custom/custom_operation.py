@@ -1,24 +1,24 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomOperation."""
 
 from abc import abstractmethod
+import functools
 import itertools
 
-from hoomd.operation import _TriggeredOperation
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.custom.custom_action import Action, _AbstractLoggable
+from hoomd.operation import TriggeredOperation
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
 
 
-class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
+class CustomOperation(TriggeredOperation, metaclass=_AbstractLoggable):
     """User defined operation.
 
     This is the parent class for `hoomd.tune.CustomTuner`,
-    `hoomd.update.CustomUpdater`. and `hoomd.analyze.CustomWriter`.  These
+    `hoomd.update.CustomUpdater`. and `hoomd.write.CustomWriter`.  These
     classes wrap Python objects that inherit from `hoomd.custom.Action`
     so they can be added to the simulation operations.
 
@@ -35,11 +35,11 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         This object should not be instantiated or subclassed by an user.
 
     Attributes:
-        trigger (hoomd.trigger.Trigger): A trigger to determine when the wrapped
-            `hoomd.custom.Action` is run.
+        trigger (hoomd.trigger.Trigger): A trigger to determine when the
+            wrapped `hoomd.custom.Action` is run.
     """
 
-    _override_setattr = {'_action'}
+    _override_setattr = {'_action', "_export_dict", "_simulation"}
 
     @abstractmethod
     def _cpp_class_name(self):
@@ -59,9 +59,6 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
     def __getattr__(self, attr):
         """Pass through attributes/methods of the wrapped object."""
-        if attr == '_action':
-            raise AttributeError(
-                f"{type(self).__name__} object has no attribute _action")
         try:
             return super().__getattr__(attr)
         except AttributeError:
@@ -73,28 +70,20 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
     def _setattr_hook(self, attr, value):
         """This implements the __setattr__ pass through to the Action."""
-        if hasattr(self._action, attr):
+        if attr not in self.__dict__ and hasattr(self._action, attr):
             setattr(self._action, attr, value)
-        else:
-            object.__setattr__(self, attr, value)
+            return
+        object.__setattr__(self, attr, value)
 
-    def _attach(self):
-        """Attach to a `hoomd.Simulation`.
-
-        Args:
-            simulation (hoomd.Simulation): The simulation the operation operates
-                on.
-        """
+    def _attach_hook(self):
+        """Create the C++ custom operation."""
         self._cpp_obj = getattr(_hoomd, self._cpp_class_name)(
-            self._simulation.state._cpp_sys_def, self._action)
-
-        super()._attach()
+            self._simulation.state._cpp_sys_def, self.trigger, self._action)
         self._action.attach(self._simulation)
 
-    def _detach(self):
+    def _detach_hook(self):
         """Detaching from a `hoomd.Simulation`."""
         self._action.detach()
-        super()._detach()
 
     def act(self, timestep):
         """Perform the action of the custom action if attached.
@@ -112,10 +101,68 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         """`hoomd.custom.Action` The action the operation wraps."""
         return self._action
 
+    def __setstate__(self, state):
+        """Set object state from pickling or deepcopying."""
+        self._action = state.pop("_action")
+        for attr, value in state.items():
+            setattr(self, attr, value)
+
 
 class _AbstractLoggableWithPassthrough(_AbstractLoggable):
+    """Enhances wrapping of an internal action class for custom operations.
+
+    Attributes:
+        _internal_cls (type): The action class to wrap.
+        _wrap_methods (list[str]): A list of ``_internal_cls`` methods to
+            actively wrap. Note all loggables are automatically wrapped.
+
+    Extra Features:
+    * Wrap loggable properties/methods to allow for sphinx documentation.
+    * Pass through non-wrapped internal class attributes and methods to custom
+      wrapping class.
+
+    Note:
+        Sphinx can only document wrapped methods/properties.
+    """
+
+    def __init__(cls, name, base, dct):  # noqa: N805
+        """Wrap extant internal class loggables for documentation."""
+        action_cls = dct.get("_internal_class", None)
+        if action_cls is None or isinstance(action_cls, property):
+            return
+        extra_methods = dct.get("_wrap_methods", [])
+        for name in itertools.chain(action_cls._export_dict, extra_methods):
+            wrapped_method = _AbstractLoggableWithPassthrough._wrap_loggable(
+                name, getattr(action_cls, name))
+            setattr(cls, name, wrapped_method)
+        cls._export_dict = action_cls._export_dict
+        _AbstractLoggable.__init__(cls, name, base, dct)
+
+    @staticmethod
+    def _wrap_loggable(name, mthd):
+        if isinstance(mthd, property):
+
+            @property
+            @functools.wraps(mthd)
+            def getter(self):
+                return getattr(self._action, name)
+
+            if mthd.fset is not None:
+
+                @getter.setter
+                def setter(self, new_value):
+                    setattr(self._action, name, new_value)
+
+            return getter
+
+        @functools.wraps(mthd)
+        def func(self, *args, **kwargs):
+            return getattr(self._action, name)(*args, **kwargs)
+
+        return func
 
     def __getattr__(self, attr):
+        """Treat class attributes/methods of inner class as from this class."""
         try:
             # This will not work with classmethods that are constructors. We
             # need a trigger for operations, and the action does not contain a
@@ -142,14 +189,19 @@ class _InternalCustomOperation(CustomOperation,
     # These attributes are not accessible or able to be passed through to
     # prevent leaky abstractions and help promote the illusion of a single
     # object for cases of internal custom actions.
-    _disallowed_attrs = {'detach', 'attach', 'action'}
+    _disallowed_attrs = {'detach', 'attach', 'action', "act"}
+
+    def __getattribute__(self, attr):
+        if attr in object.__getattribute__(self, "_disallowed_attrs"):
+            raise AttributeError("{} object {} has no attribute {}.".format(
+                type(self), self, attr))
+        return object.__getattribute__(self, attr)
 
     def __getattr__(self, attr):
         if attr in self._disallowed_attrs:
             raise AttributeError("{} object {} has no attribute {}.".format(
                 type(self), self, attr))
-        else:
-            return super().__getattr__(attr)
+        return super().__getattr__(attr)
 
     @property
     @abstractmethod
@@ -168,10 +220,6 @@ class _InternalCustomOperation(CustomOperation,
         wrapping_method = getattr(self, self._operation_func).__func__
         setattr(wrapping_method, "__doc__", self._action.act.__doc__)
 
-    @property
-    def action(self):
-        raise AttributeError(f"Object {self} has no attribute 'action'.")
-
     def __dir__(self):
         """Expose all attributes for dynamic querying in notebooks and IDEs."""
         list_ = super().__dir__()
@@ -182,7 +230,3 @@ class _InternalCustomOperation(CustomOperation,
         list_.remove("action")
         list_.remove("act")
         return list_ + action_list
-
-    @property
-    def act(self):
-        raise AttributeError(f"Object {self} has no attribute 'act'.")

@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -12,17 +15,23 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
+#include <thrust/functional.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/transform.h>
+#include <thrust/tuple.h>
 #pragma GCC diagnostic pop
-
-// Maintainer: jglaser
 
 /*! \file ForceComposite.cu
     \brief Defines GPU kernel code for the composite particle integration on the GPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed
 //! sliding window size
 /*  Compute the force and torque sum on all bodies in the system from their constituent particles.
@@ -666,18 +675,16 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     idx += offset;
 
     unsigned int central_idx = d_lookup_center[idx];
-    if (central_idx == NO_BODY)
+    if (central_idx >= MIN_FLOPPY)
         return;
 
     if (central_idx >= N + n_ghost)
         {
-        // if a molecule with a local member has no central particle, error out
-        if (idx < N)
-            {
-            atomicMax(&(d_flag->x), idx + 1);
-            }
-
-        // otherwise, ignore
+        // If the central particle is not local, then we cannot update the position and orientation
+        // of this particle. Ideally, this would perform an error check. However, that is not
+        // feasible as ForceComposite does not have knowledge of which ghost particles are within
+        // the interaction ghost width (and need therefore need to be updated) vs those that are
+        // communicated to make bodies whole.
         return;
         }
 
@@ -694,9 +701,12 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int body_len = d_body_len[body_type];
     unsigned int mol_idx = d_molecule_idx[idx];
 
+    // Checks if the number of local particle in the molecule is equal to the number of particles in
+    // the rigid body definition `body_len`. As above, this error check *should* be performed for
+    // all local and ghost particles within the interaction ghost width. However, that check is not
+    // feasible here. At least catch this error for particles local to this rank.
     if (body_len != d_molecule_len[mol_idx] - 1)
         {
-        // if a molecule with a local member is incomplete, this is an error
         if (idx < N)
             {
             atomicMax(&(d_flag->y), idx + 1);
@@ -851,3 +861,7 @@ hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

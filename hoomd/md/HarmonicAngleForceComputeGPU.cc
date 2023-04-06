@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file HarmonicAngleForceComputeGPU.cc
     \brief Defines HarmonicAngleForceComputeGPU
@@ -9,10 +7,12 @@
 
 #include "HarmonicAngleForceComputeGPU.h"
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute angle forces on
  */
 HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -30,9 +30,10 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(std::shared_ptr<Syste
     GPUArray<Scalar2> params(m_angle_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_angle", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "harmonic_angle"));
+    m_autotuners.push_back(m_tuner);
     }
 
 HarmonicAngleForceComputeGPU::~HarmonicAngleForceComputeGPU() { }
@@ -62,10 +63,6 @@ void HarmonicAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar
 */
 void HarmonicAngleForceComputeGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "Harmonic Angle");
-
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -87,32 +84,36 @@ void HarmonicAngleForceComputeGPU::computeForces(uint64_t timestep)
 
     // run the kernel on the GPU
     m_tuner->begin();
-    gpu_compute_harmonic_angle_forces(d_force.data,
-                                      d_virial.data,
-                                      m_virial.getPitch(),
-                                      m_pdata->getN(),
-                                      d_pos.data,
-                                      box,
-                                      d_gpu_anglelist.data,
-                                      d_gpu_angle_pos_list.data,
-                                      m_angle_data->getGPUTableIndexer().getW(),
-                                      d_gpu_n_angles.data,
-                                      d_params.data,
-                                      m_angle_data->getNTypes(),
-                                      m_tuner->getParam());
+    kernel::gpu_compute_harmonic_angle_forces(d_force.data,
+                                              d_virial.data,
+                                              m_virial.getPitch(),
+                                              m_pdata->getN(),
+                                              d_pos.data,
+                                              box,
+                                              d_gpu_anglelist.data,
+                                              d_gpu_angle_pos_list.data,
+                                              m_angle_data->getGPUTableIndexer().getW(),
+                                              d_gpu_n_angles.data,
+                                              d_params.data,
+                                              m_angle_data->getNTypes(),
+                                              m_tuner->getParam()[0]);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_HarmonicAngleForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<HarmonicAngleForceComputeGPU,
-               HarmonicAngleForceCompute,
-               std::shared_ptr<HarmonicAngleForceComputeGPU>>(m, "HarmonicAngleForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_HarmonicAngleForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<HarmonicAngleForceComputeGPU,
+                     HarmonicAngleForceCompute,
+                     std::shared_ptr<HarmonicAngleForceComputeGPU>>(m,
+                                                                    "HarmonicAngleForceComputeGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

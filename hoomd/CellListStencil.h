@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "CellList.h"
 #include "Compute.h"
@@ -19,6 +17,8 @@
 #ifndef __CELLLISTSTENCIL_H__
 #define __CELLLISTSTENCIL_H__
 
+namespace hoomd
+    {
 //! Calculates a stencil for a given cell list
 /*!
  * Generates a list of translation vectors to check from a CellList for a given search radius.
@@ -104,9 +104,13 @@ class PYBIND11_EXPORT CellListStencil : public Compute
     bool m_compute_stencil;             //!< Flag if stencil should be recomputed
     };
 
+namespace detail
+    {
 //! Exports CellListStencil to python
 #ifndef __HIPCC__
 void export_CellListStencil(pybind11::module& m);
 #endif
+    } // end namespace detail
 
+    }  // end namespace hoomd
 #endif // __CELLLISTSTENCIL_H__

@@ -1,8 +1,15 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
+import time
+
 import hoomd
 import numpy as np
 import pytest
 from copy import deepcopy
 from hoomd.error import MutabilityError
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check, ListWriter
 try:
     import gsd.hoomd
     skip_gsd = False
@@ -11,6 +18,16 @@ except ImportError:
 
 skip_gsd = pytest.mark.skipif(skip_gsd,
                               reason="gsd Python package was not found.")
+
+
+class SleepUpdater(hoomd.custom.Action):
+
+    def act(self, timestep):
+        time.sleep(1e-6 * timestep)
+
+    @classmethod
+    def wrapped(cls):
+        return hoomd.update.CustomUpdater(1, cls())
 
 
 def make_gsd_snapshot(hoomd_snapshot):
@@ -110,14 +127,38 @@ def test_run(simulation_factory, lattice_snapshot_factory):
     assert sim.operations._scheduled
 
 
-def test_tps(simulation_factory, lattice_snapshot_factory):
+def test_tps(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory()
     assert sim.tps is None
 
-    sim = simulation_factory(lattice_snapshot_factory())
-    sim.run(100)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    assert sim.tps == 0
 
-    assert sim.tps > 0
+    list_writer = ListWriter(sim, "tps")
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=list_writer,
+                                 trigger=hoomd.trigger.Periodic(1)))
+    sim.operations += SleepUpdater.wrapped()
+    sim.run(10)
+    tps = list_writer.data
+    assert len(np.unique(tps)) > 1
+
+
+def test_walltime(simulation_factory, two_particle_snapshot_factory):
+    sim = simulation_factory()
+    assert sim.walltime == 0
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    assert sim.walltime == 0
+
+    list_writer = ListWriter(sim, "walltime")
+    sim.operations.writers.append(
+        hoomd.write.CustomWriter(action=list_writer,
+                                 trigger=hoomd.trigger.Periodic(1)))
+    sim.operations += SleepUpdater.wrapped()
+    sim.run(10)
+    walltime = list_writer.data
+    assert all(a >= b for a, b in zip(walltime[1:], walltime[:-1]))
 
 
 def test_timestep(simulation_factory, lattice_snapshot_factory):
@@ -196,6 +237,44 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
         assert box == sim.state.box
 
         assert_equivalent_snapshots(snap, sim.state.get_snapshot())
+
+
+@skip_gsd
+def test_state_from_gsd_box_dims(device, simulation_factory,
+                                 lattice_snapshot_factory, tmp_path):
+
+    def modify_gsd_snap(gsd_snap):
+        """Add nonzero z values to gsd box for testing."""
+        new_box = list(gsd_snap.configuration.box)
+        new_box[2] = 1e2 * (np.random.random() - 0.5)
+        new_box[4] = 1e2 * (np.random.random() - 0.5)
+        new_box[5] = 1e2 * (np.random.random() - 0.5)
+        gsd_snap.configuration.box = new_box
+        return gsd_snap
+
+    d = tmp_path / "sub"
+    d.mkdir()
+    filename = d / "temporary_test_file.gsd"
+    if device.communicator.rank == 0:
+        f = gsd.hoomd.open(name=filename, mode='wb+')
+
+    sim = simulation_factory(
+        lattice_snapshot_factory(n=10, particle_types=["A", "B"], dimensions=2))
+    snap = sim.state.get_snapshot()
+
+    checks = range(3)
+    if device.communicator.rank == 0:
+        for step in checks:
+            f.append(modify_gsd_snap(make_gsd_snapshot(snap)))
+        f.close()
+
+    for step in checks:
+        sim = simulation_factory()
+        sim.create_state_from_gsd(filename, frame=step)
+        assert sim.state.box.dimensions == 2
+        assert sim.state.box.Lz == 0.0
+        assert sim.state.box.xz == 0.0
+        assert sim.state.box.yz == 0.0
 
 
 @skip_gsd
@@ -331,8 +410,9 @@ def test_run_limit(simulation_factory, lattice_snapshot_factory):
         sim.run(-1)
 
 
-def test_seed(simulation_factory, lattice_snapshot_factory):
-    sim = simulation_factory()
+def test_seed(device, lattice_snapshot_factory):
+
+    sim = hoomd.Simulation(device)
     assert sim.seed is None
 
     sim.seed = 42
@@ -346,6 +426,13 @@ def test_seed(simulation_factory, lattice_snapshot_factory):
 
     sim.seed = 20
     assert sim.seed == 20
+
+
+def test_seed_constructor_out_of_range(device, lattice_snapshot_factory):
+    sim = hoomd.Simulation(device, seed=0x123456789abcdef)
+
+    sim.create_state_from_snapshot(lattice_snapshot_factory())
+    assert sim.seed == 0xcdef
 
 
 def test_operations_setting(simulation_factory, lattice_snapshot_factory):
@@ -405,3 +492,29 @@ def test_mutability_error(simulation_factory, two_particle_snapshot_factory,
 
     with pytest.raises(MutabilityError):
         GSD_dump.filter = filt
+
+
+def test_logging():
+    logging_check(
+        hoomd.Simulation, (), {
+            'final_timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'seed': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'timestep': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'tps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'walltime': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

@@ -1,19 +1,27 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Moves.h"
 #include "UpdaterClustersGPU.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
+#include <thrust/execution_policy.h>
+#include <thrust/functional.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/discard_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
+#include <thrust/reduce.h>
+#include <thrust/scan.h>
+#include <thrust/sort.h>
 #include <thrust/unique.h>
+#pragma GCC diagnostic pop
 
 #ifdef __HIP_PLATFORM_NVCC__
 #include <cusparse.h>
@@ -25,6 +33,8 @@
     \brief Implements a connected components algorithm on the GPU
 */
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -365,3 +375,4 @@ void connected_components(uint2* d_adj,
 
     } // end namespace gpu
     } // end namespace hpmc
+    } // end namespace hoomd

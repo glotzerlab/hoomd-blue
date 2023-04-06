@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
     \brief Defines implementation of BondedGroupData
@@ -19,19 +17,35 @@
 #endif
 
 using namespace std;
-namespace py = pybind11;
 
+namespace hoomd
+    {
 //! Names of bonded groups
 char name_bond_data[] = "bond";
 char name_angle_data[] = "angle";
+char name_triangle_data[] = "triangle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
+char name_meshbond_data[] = "meshbond";
+char name_meshtriangle_data[] = "meshtriangle";
 char name_constraint_data[] = "constraint";
 char name_pair_data[] = "pair";
 
 /*
  * Implementation of BondedGroupData methods
  */
+
+/*! \param exec_conf Execution configuration
+    \param pdata The particle data to associate with
+    \param n_group_types Number of bonded group types to initialize
+ */
+template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
+BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
+    std::shared_ptr<ParticleData> pdata)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0),
+      m_groups_dirty(true)
+    {
+    }
 
 /*! \param exec_conf Execution configuration
     \param pdata The particle data to associate with
@@ -68,7 +82,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         // offer a default type mapping
         for (unsigned int i = 0; i < n_group_types; i++)
             {
-            m_type_mapping.push_back(getDefaultTypeName(i));
+            m_type_mapping.push_back(detail::getDefaultTypeName(i));
             }
         }
 
@@ -216,11 +230,18 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initializeFromS
     const Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
-    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+    if (m_exec_conf->getRank() == 0)
         {
-        m_exec_conf->msg->error() << "init.*: invalid " << name << " data snapshot." << std::endl
-                                  << std::endl;
-        throw std::runtime_error(std::string("Error initializing ") + name + std::string(" data."));
+        snapshot.validate();
+        }
+
+    if (snapshot.type_mapping.size() >= 40)
+        {
+        std::ostringstream s;
+        s << "Systems with many " << name
+          << " types perform poorly or result "
+             "in shared memory errors on the GPU.";
+        m_exec_conf->msg->warning() << s.str() << std::endl;
         }
 
     // re-initialize data structures
@@ -432,10 +453,10 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getNthT
     {
     if (n >= getNGlobal())
         {
-        m_exec_conf->msg->error() << name << ".*: " << name << " index " << n << " out of bounds!"
-                                  << "The number of " << name << "s is " << getNGlobal()
-                                  << std::endl;
-        throw std::runtime_error(std::string("Error getting ") + name);
+        std::ostringstream s;
+        s << name << " index " << n << " out of bounds!"
+          << "The number of " << name << "s is " << getNGlobal();
+        throw std::runtime_error(s.str());
         }
 
     assert(m_tag_set.size() == getNGlobal());
@@ -489,9 +510,10 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getGroupByTag(unsign
         {
         if (group_idx == GROUP_NOT_LOCAL)
             {
-            m_exec_conf->msg->error() << "Trying to get type or constraint value of " << name << " "
-                                      << tag << " which does not exist!" << endl;
-            throw runtime_error(std::string("Error getting ") + name);
+            std::ostringstream s;
+            s << "Trying to get type or constraint value of " << name << " " << tag
+              << " which does not exist!";
+            throw runtime_error(s.str());
             }
 
         typeval = m_group_typeval[group_idx];
@@ -505,9 +527,10 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getGroupByTag(unsign
 
         if (!m_pdata->isTagActive(ptag))
             {
-            m_exec_conf->msg->error() << name << ".*: member tag " << ptag << " of " << name << " "
-                                      << tag << " does not exist!" << endl;
-            throw runtime_error(std::string("Error getting ") + name);
+            std::ostringstream s;
+            s << "Member tag " << ptag << " of " << name << " " << tag << " does not exist!"
+              << endl;
+            throw runtime_error(s.str());
             }
         }
 
@@ -550,6 +573,18 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getMembersByIndex(
     return m_groups[group_idx];
     }
 
+/*! \param idx Tag of bonded group
+ *  \param member new member value
+ */
+template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
+void BondedGroupData<group_size, Group, name, has_type_mapping>::setMemberByIndex(
+    unsigned int group_idx,
+    typename BondedGroupData<group_size, Group, name, has_type_mapping>::members_t member)
+    {
+    assert(group_idx < getN() + getNGhosts());
+    m_groups[group_idx] = member;
+    }
+
 /*! \param tag Tag of bonded group to remove
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
@@ -561,9 +596,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     // sanity check
     if (tag >= m_group_rtag.size())
         {
-        m_exec_conf->msg->error() << "Trying to remove " << name << " " << tag
-                                  << " which does not exist!" << endl;
-        throw runtime_error(std::string("Error removing ") + name);
+        std::ostringstream s;
+        s << "Trying to remove " << name << " " << tag << " which does not exist!";
+        throw runtime_error(s.str());
         }
 
     // Find position of bonded group in list
@@ -589,9 +624,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
 
     if (!is_available)
         {
-        m_exec_conf->msg->error() << "Trying to remove " << name << " " << tag
-                                  << " which has been previously removed!" << endl;
-        throw runtime_error(std::string("Error removing ") + name);
+        std::ostringstream s;
+        s << "Trying to remove " << name << " " << tag << " which has been previously removed!";
+        throw runtime_error(s.str());
         }
 
     // delete from map
@@ -652,8 +687,9 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::getType
             return i;
         }
 
-    m_exec_conf->msg->error() << name << " type " << type_name << " not found!" << endl;
-    throw runtime_error("Error mapping type name");
+    std::ostringstream s;
+    s << name << " type " << type_name << " not found!" << endl;
+    throw runtime_error(s.str());
 
     // silence compiler warning
     return 0;
@@ -666,8 +702,9 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::getNameByType(unsign
     // check for an invalid request
     if (type >= m_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Requesting type name for non-existent type " << type << endl;
-        throw runtime_error("Error mapping type name");
+        std::ostringstream s;
+        s << "Requesting type name for non-existent type " << type << endl;
+        throw runtime_error(s.str());
         }
 
     // return the name
@@ -682,8 +719,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::setTypeName(
     // check for an invalid request
     if (type >= this->m_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Setting type name for non-existent type " << type << endl;
-        throw runtime_error("Error mapping type name");
+        std::ostringstream s;
+        s << "Setting type name for non-existent type " << type;
+        throw runtime_error(s.str());
         }
 
     m_type_mapping[type] = new_name;
@@ -725,9 +763,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
     else
 #endif
         {
-        if (m_prof)
-            m_prof->push("update " + std::string(name) + " table");
-
         ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
                                          access_location::host,
                                          access_mode::read);
@@ -762,12 +797,11 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                         {
                         // incomplete group
                         std::ostringstream oss;
-                        oss << name << ".*: " << name << " ";
+                        oss << name << " ";
                         for (unsigned int k = 0; k < group_size; ++k)
                             oss << g.tag[k] << ((k != group_size - 1) ? ", " : " ");
-                        oss << "incomplete!" << std::endl;
-                        m_exec_conf->msg->error() << oss.str();
-                        throw std::runtime_error("Error building GPU group table.");
+                        oss << "incomplete!";
+                        throw std::runtime_error(oss.str());
                         }
 
                     h_n_groups.data[idx]++;
@@ -775,9 +809,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 }
 
             // find the maximum number of groups
-            for (unsigned int i = 0; i < N; i++)
-                if (h_n_groups.data[i] > num_groups_max)
-                    num_groups_max = h_n_groups.data[i];
+            num_groups_max = *std::max_element(h_n_groups.data, h_n_groups.data + N);
             }
 
         // resize lookup table
@@ -846,9 +878,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                     }
                 }
             }
-
-        if (m_prof)
-            m_prof->pop();
         }
     }
 
@@ -856,9 +885,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTableGPU()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "update " + std::string(name) + " table");
-
     // resize groups counter
     m_gpu_n_groups.resize(m_pdata->getN() + m_pdata->getNGhosts());
 
@@ -932,12 +958,11 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
             members_t g = m_groups[group_idx];
 
             std::ostringstream oss;
-            oss << name << ".*: " << name << " ";
+            oss << name << " ";
             for (unsigned int k = 0; k < group_size; ++k)
                 oss << g.tag[k] << ((k != group_size - 1) ? ", " : " ");
-            oss << "incomplete!" << std::endl;
-            m_exec_conf->msg->error() << oss.str();
-            throw std::runtime_error("Error building GPU group table.");
+            oss << "incomplete!";
+            throw std::runtime_error(oss.str());
             }
 
         if (flag == m_next_flag)
@@ -952,9 +977,6 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         else
             done = true;
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 #endif
 
@@ -1041,11 +1063,9 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapsho
                 rank_rtag_it = rank_rtag_map.find(group_tag);
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
-                    m_exec_conf->msg->error() << endl
-                                              << "Could not find " << name << " " << group_tag
-                                              << " on any processor. " << endl
-                                              << endl;
-                    throw std::runtime_error("Error gathering " + std::string(name) + "s");
+                    std::ostringstream s;
+                    s << "Could not find " << name << " " << group_tag << " on any processor.";
+                    throw std::runtime_error(s.str());
                     }
 
                 // store tag in index
@@ -1088,11 +1108,9 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapsho
             rtag_it = rtag_map.find(group_tag);
             if (rtag_it == rtag_map.end())
                 {
-                m_exec_conf->msg->error() << endl
-                                          << "Could not find " << name << " " << group_tag
-                                          << ". Possible internal error?" << endl
-                                          << endl;
-                throw std::runtime_error("Error gathering " + std::string(name) + "s");
+                std::ostringstream s;
+                s << "Could not find " << name << " " << group_tag;
+                throw std::runtime_error(s.str());
                 }
 
             // store tag in index
@@ -1289,8 +1307,10 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
     }
 #endif
 
+namespace detail
+    {
 template<class T, typename Group>
-void export_BondedGroupData(py::module& m,
+void export_BondedGroupData(pybind11::module& m,
                             std::string name,
                             std::string snapshot_name,
                             bool export_struct)
@@ -1299,9 +1319,10 @@ void export_BondedGroupData(py::module& m,
     if (export_struct)
         Group::export_to_python(m);
 
-    py::class_<T, std::shared_ptr<T>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<ParticleData>, unsigned int>())
-        .def(py::init<std::shared_ptr<ParticleData>, const typename T::Snapshot&>())
+    pybind11::class_<T, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<ParticleData>>())
+        .def(pybind11::init<std::shared_ptr<ParticleData>, unsigned int>())
+        .def(pybind11::init<std::shared_ptr<ParticleData>, const typename T::Snapshot&>())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
         .def("getN", &T::getN)
@@ -1315,15 +1336,14 @@ void export_BondedGroupData(py::module& m,
         .def("getNameByType", &T::getNameByType)
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)
-        .def("setProfiler", &T::setProfiler)
         .def("getTypes", &T::getTypesPy);
 
     if (T::typemap_val)
         {
         // has a type mapping
         typedef typename T::Snapshot Snapshot;
-        py::class_<Snapshot, std::shared_ptr<Snapshot>>(m, snapshot_name.c_str())
-            .def(py::init<unsigned int>())
+        pybind11::class_<Snapshot, std::shared_ptr<Snapshot>>(m, snapshot_name.c_str())
+            .def(pybind11::init<unsigned int>())
             .def_property_readonly("typeid", &Snapshot::getTypeNP)
             .def_property_readonly("group", &Snapshot::getBondedTagsNP)
             .def_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
@@ -1333,13 +1353,15 @@ void export_BondedGroupData(py::module& m,
         {
         // has Scalar values
         typedef typename T::Snapshot Snapshot;
-        py::class_<Snapshot, std::shared_ptr<Snapshot>>(m, snapshot_name.c_str())
-            .def(py::init<unsigned int>())
+        pybind11::class_<Snapshot, std::shared_ptr<Snapshot>>(m, snapshot_name.c_str())
+            .def(pybind11::init<unsigned int>())
             .def_property_readonly("value", &Snapshot::getValueNP)
             .def_property_readonly("group", &Snapshot::getBondedTagsNP)
             .def_property("N", &Snapshot::getSize, &Snapshot::resize);
         }
     }
+
+    } // end namespace detail
 
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::replicate(
@@ -1391,7 +1413,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
    snapshot
 */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
-py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP(
+pybind11::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP(
     pybind11::object self)
     {
     assert(has_type_mapping);
@@ -1405,7 +1427,7 @@ py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot:
    snapshot
 */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
-py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP(
+pybind11::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP(
     pybind11::object self)
     {
     assert(!has_type_mapping);
@@ -1419,7 +1441,8 @@ py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot:
    snapshot
 */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
-py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP(
+pybind11::object
+BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP(
     pybind11::object self)
     {
     auto self_cpp
@@ -1433,12 +1456,12 @@ py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot:
 /*! \returns A python list of type names
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
-py::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypes()
+pybind11::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypes()
     {
-    py::list types;
+    pybind11::list types;
 
     for (unsigned int i = 0; i < this->type_mapping.size(); i++)
-        types.append(py::str(this->type_mapping[i]));
+        types.append(pybind11::str(this->type_mapping[i]));
 
     return types;
     }
@@ -1446,47 +1469,62 @@ py::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::g
 /*! \param types Python list of type names to set
  */
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
-void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(py::list types)
+void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(
+    pybind11::list types)
     {
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        this->type_mapping[i] = py::cast<string>(types[i]);
+        this->type_mapping[i] = pybind11::cast<string>(types[i]);
     }
 
-//! Explicit template instantiations
 template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_bond_data>;
-template void export_BondedGroupData<BondData, Bond>(py::module& m,
+template class PYBIND11_EXPORT BondedGroupData<4, MeshBond, name_meshbond_data>;
+template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
+template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_triangle_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
+template class PYBIND11_EXPORT BondedGroupData<6, MeshTriangle, name_meshtriangle_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
+template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
+template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
+
+namespace detail
+    {
+template void export_BondedGroupData<BondData, Bond>(pybind11::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
                                                      bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
-template void export_BondedGroupData<AngleData, Angle>(py::module& m,
+template void export_BondedGroupData<AngleData, Angle>(pybind11::module& m,
                                                        std::string name,
                                                        std::string snapshot_name,
                                                        bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
-template void export_BondedGroupData<DihedralData, Dihedral>(py::module& m,
+template void export_BondedGroupData<TriangleData, Angle>(pybind11::module& m,
+                                                          std::string name,
+                                                          std::string snapshot_name,
+                                                          bool export_struct);
+
+template void export_BondedGroupData<DihedralData, Dihedral>(pybind11::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
-template void export_BondedGroupData<ImproperData, Dihedral>(py::module& m,
+template void export_BondedGroupData<ImproperData, Dihedral>(pybind11::module& m,
                                                              std::string name,
                                                              std::string snapshot_name,
                                                              bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
-template void export_BondedGroupData<ConstraintData, Constraint>(py::module& m,
+template void export_BondedGroupData<ConstraintData, Constraint>(pybind11::module& m,
                                                                  std::string name,
                                                                  std::string snapshot_name,
                                                                  bool export_struct);
 
-template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
-template void export_BondedGroupData<PairData, Bond>(py::module& m,
+template void export_BondedGroupData<PairData, Bond>(pybind11::module& m,
                                                      std::string name,
                                                      std::string snapshot_name,
                                                      bool export_struct);
+
+    } // end namespace detail
+
+    } // end namespace hoomd

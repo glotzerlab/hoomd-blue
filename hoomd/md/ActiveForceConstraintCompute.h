@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ActiveForceCompute.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -20,6 +18,10 @@
 #ifndef __ACTIVEFORCECONSTRAINTCOMPUTE_H__
 #define __ACTIVEFORCECONSTRAINTCOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Adds an active force to a number of particles
 /*! \ingroup computes
  */
@@ -120,6 +122,7 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(Scalar rotation
         quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(norm, delta_theta);
 
         quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
+        quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
         h_orientation.data[idx] = quat_to_scalar4(quati);
         }
     }
@@ -175,7 +178,7 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
             quat<Scalar> rot_quat = quat<Scalar>::fromAxisAngle(rot_vec, phi);
 
             quati = rot_quat * quati;
-
+            quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
             h_orientation.data[idx] = quat_to_scalar4(quati);
             }
         }
@@ -187,9 +190,6 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
 template<class Manifold>
 void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "ActiveForceConstraintCompute");
-
     if (m_box_changed)
         {
         if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
@@ -207,11 +207,10 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
+namespace detail
+    {
 template<class Manifold>
 void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string& name)
     {
@@ -222,5 +221,9 @@ void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string&
                             std::shared_ptr<ParticleGroup>,
                             Manifold>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

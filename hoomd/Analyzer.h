@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file Analyzer.h
     \brief Declares a base class for all analyzers
@@ -16,14 +14,15 @@
 #ifndef __ANALYZER_H__
 #define __ANALYZER_H__
 
+#include "Action.h"
 #include "Communicator.h"
-#include "Profiler.h"
-#include "SharedSignal.h"
-#include "SystemDefinition.h"
+#include "Trigger.h"
 
 #include <memory>
 #include <typeinfo>
 
+namespace hoomd
+    {
 /*! \ingroup hoomd_lib
     @{
 */
@@ -55,11 +54,11 @@
 
     \ingroup analyzers
 */
-class PYBIND11_EXPORT Analyzer
+class PYBIND11_EXPORT Analyzer : public Action
     {
     public:
     //! Constructs the analyzer and associates it with the ParticleData
-    Analyzer(std::shared_ptr<SystemDefinition> sysdef);
+    Analyzer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Trigger> trigger);
     virtual ~Analyzer() {};
 
     //! Abstract method that performs the analysis
@@ -67,17 +66,6 @@ class PYBIND11_EXPORT Analyzer
         \param timestep Current time step of the simulation
         */
     virtual void analyze(uint64_t timestep) { }
-
-    //! Sets the profiler for the analyzer to use
-    void setProfiler(std::shared_ptr<Profiler> prof);
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-
-        Derived classes should override this to set the parameters of their autotuners.
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
     //! Reset stat counters
     /*! If derived classes provide statistics for the last run, they should resetStats() to
@@ -100,45 +88,32 @@ class PYBIND11_EXPORT Analyzer
         return m_exec_conf;
         }
 
-    void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
-        {
-        m_slots.push_back(slot);
-        }
-
-    void removeDisconnectedSlots()
-        {
-        for (unsigned int i = 0; i < m_slots.size();)
-            {
-            if (!m_slots[i]->connected())
-                {
-                m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get()
-                                            << std::dec << std::endl;
-                m_slots.erase(m_slots.begin() + i);
-                }
-            else
-                {
-                i++;
-                }
-            }
-        }
-
     /// Python will notify C++ objects when they are detached from Simulation
     virtual void notifyDetach() {};
 
-    protected:
-    const std::shared_ptr<SystemDefinition>
-        m_sysdef; //!< The system definition this analyzer is associated with
-    const std::shared_ptr<ParticleData>
-        m_pdata;                      //!< The particle data this analyzer is associated with
-    std::shared_ptr<Profiler> m_prof; //!< The profiler this analyzer is to use
+    /// Get Trigger
+    std::shared_ptr<Trigger> getTrigger()
+        {
+        return m_trigger;
+        }
 
-    std::shared_ptr<const ExecutionConfiguration>
-        m_exec_conf; //!< Stored shared ptr to the execution configuration
-    std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
-        m_slots; //!< Stored shared ptr to the system signals
+    /// Set Trigger
+    void setTrigger(std::shared_ptr<Trigger> trigger)
+        {
+        m_trigger = trigger;
+        }
+
+    protected:
+    /// Trigger that determines if updater runs.
+    std::shared_ptr<Trigger> m_trigger;
     };
 
+namespace detail
+    {
 //! Export the Analyzer class to python
 void export_Analyzer(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace hoomd
 
 #endif

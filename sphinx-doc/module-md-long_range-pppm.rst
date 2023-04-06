@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.long_range.pppm
 ------------------
 
@@ -16,3 +19,4 @@ md.long_range.pppm
 .. automodule:: hoomd.md.long_range.pppm
     :synopsis: Long-range potentials evaluated using the PPPM method.
     :members: Coulomb, make_pppm_coulomb_forces
+    :show-inheritance:

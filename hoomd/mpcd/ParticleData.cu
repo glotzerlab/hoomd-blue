@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ParticleData.cu
@@ -14,15 +12,12 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#if __CUDACC_VER_MAJOR__ >= 11
 #include <cub/device/device_partition.cuh>
 #include <cub/iterator/counting_input_iterator.cuh>
-#else
-#include "hoomd/extern/cub/cub/device/device_partition.cuh"
-#include "hoomd/extern/cub/cub/iterator/counting_input_iterator.cuh"
-#endif
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -304,5 +299,5 @@ void mpcd::gpu::add_particles(unsigned int old_nparticles,
                                                                d_in,
                                                                mask);
     }
-
+    }  // end namespace hoomd
 #endif // ENABLE_MPI

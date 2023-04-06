@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: dnlebard
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/ForceCompute.h"
@@ -23,6 +21,10 @@
 #ifndef __HARMONICIMPROPERFORCECOMPUTE_H__
 #define __HARMONICIMPROPERFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Computes harmonic improper forces on each particle
 /*! Harmonic improper forces are computed on every particle in the simulation.
 
@@ -41,6 +43,12 @@ class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
     //! Set the parameters
     virtual void setParams(unsigned int type, Scalar K, Scalar chi);
 
+    /// Set the parameters from a Python dictionary.
+    void setParamsPython(std::string type, pybind11::dict params);
+
+    /// Get the parameters for a particular type as a Python dictionary.
+    pybind11::dict getParams(std::string type);
+
 #ifdef ENABLE_MPI
     //! Get ghost particle fields requested by this pair potential
     /*! \param timestep Current time step
@@ -55,7 +63,7 @@ class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
 #endif
 
     protected:
-    Scalar* m_K;   //!< K parameter for multiple improper tyes
+    Scalar* m_K;   //!< K parameter for multiple improper types
     Scalar* m_chi; //!< Chi parameter for multiple impropers
 
     std::shared_ptr<ImproperData> m_improper_data; //!< Improper data to use in computing impropers
@@ -64,7 +72,7 @@ class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
     virtual void computeForces(uint64_t timestep);
     };
 
-//! Exports the ImproperForceCompute class to python
-void export_HarmonicImproperForceCompute(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

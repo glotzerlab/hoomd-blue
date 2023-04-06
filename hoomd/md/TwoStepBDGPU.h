@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
 
@@ -11,6 +11,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Implements Brownian dynamics on the GPU
 /*! GPU accelerated version of TwoStepBD
 
@@ -35,8 +39,9 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
     virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
-    unsigned int m_block_size; //!< block size
+    /// Autotuner for block size.
+    std::shared_ptr<Autotuner<1>> m_tuner;
     };
 
-//! Exports the TwoStepBDGPU class to python
-void export_TwoStepBDGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd

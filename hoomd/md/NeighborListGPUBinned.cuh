@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __NEIGHBORLOSTGPUBINNED_CUH__
 #define __NEIGHBORLOSTGPUBINNED_CUH__
@@ -24,6 +22,12 @@
 #define WARP_SIZE 64
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 const unsigned int min_threads_per_particle = 1;
 const unsigned int max_threads_per_particle = WARP_SIZE;
 
@@ -33,7 +37,7 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     Scalar4* d_last_updated_pos,
                                     unsigned int* d_conditions,
                                     const unsigned int* d_Nmax,
-                                    const unsigned int* d_head_list,
+                                    const size_t* d_head_list,
                                     const Scalar4* d_pos,
                                     const unsigned int* d_body,
                                     const Scalar* d_diameter,
@@ -56,5 +60,11 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     bool diameter_shift,
                                     const Scalar3& ghost_width,
                                     const GPUPartition& gpu_partition,
-                                    bool use_index);
+                                    bool use_index,
+                                    const hipDeviceProp_t& devprop);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
+
 #endif

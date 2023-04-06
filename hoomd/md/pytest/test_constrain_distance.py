@@ -1,5 +1,8 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
 import numpy
 import pytest
 
@@ -116,7 +119,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
     integrator.methods.append(nve)
     integrator.constraints.append(d)
 
-    cell = hoomd.md.nlist.Cell()
+    cell = hoomd.md.nlist.Cell(buffer=0.4)
     lj = hoomd.md.pair.LJ(nlist=cell)
     lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
     lj.r_cut[('A', 'A')] = 2**(1 / 6)
@@ -125,7 +128,7 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
     sim.operations.integrator = integrator
 
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.0)
-    sim.run(100)
+    sim.run(10)
 
     snap = sim.state.get_snapshot()
 
@@ -141,3 +144,5 @@ def test_basic_simulation(simulation_factory, polymer_snapshot_factory):
         numpy.testing.assert_allclose(bond_lengths,
                                       snap.constraints.value,
                                       rtol=1e-5)
+
+    autotuned_kernel_parameter_check(instance=d, activate=lambda: sim.run(1))

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -15,6 +15,8 @@
 // base data types
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -25,8 +27,6 @@ struct hpmc_implicit_args_t
     {
     //! Construct a hpmc_implicit_args_t
     hpmc_implicit_args_t(const unsigned int _depletant_type_a,
-                         const unsigned int _depletant_type_b,
-                         const Index2D _depletant_idx,
                          hpmc_implicit_counters_t* _d_implicit_count,
                          const unsigned int _implicit_counters_pitch,
                          const bool _repulsive,
@@ -34,15 +34,12 @@ struct hpmc_implicit_args_t
                          const unsigned int* _max_n_depletants,
                          const unsigned int _depletants_per_thread,
                          const hipStream_t* _streams)
-        : depletant_type_a(_depletant_type_a), depletant_type_b(_depletant_type_b),
-          depletant_idx(_depletant_idx), d_implicit_count(_d_implicit_count),
+        : depletant_type_a(_depletant_type_a), d_implicit_count(_d_implicit_count),
           implicit_counters_pitch(_implicit_counters_pitch), repulsive(_repulsive),
           d_n_depletants(_d_n_depletants), max_n_depletants(_max_n_depletants),
           depletants_per_thread(_depletants_per_thread), streams(_streams) {};
 
     const unsigned int depletant_type_a;        //!< Particle type of first depletant
-    const unsigned int depletant_type_b;        //!< Particle type of second depletant
-    const Index2D depletant_idx;                //!< type pair indexer
     hpmc_implicit_counters_t* d_implicit_count; //!< Active cell acceptance/rejection counts
     const unsigned int implicit_counters_pitch; //!< Pitch of 2D array counters per device
     const bool repulsive;                       //!< True if the fugacity is negative
@@ -65,14 +62,13 @@ void generate_num_depletants(const uint16_t seed,
                              const unsigned int select,
                              const unsigned int rank,
                              const unsigned int depletant_type_a,
-                             const unsigned int depletant_type_b,
-                             const Index2D depletant_idx,
                              const Scalar* d_lambda,
                              const Scalar4* d_postype,
                              unsigned int* d_n_depletants,
                              const unsigned int block_size,
                              const hipStream_t* streams,
-                             const GPUPartition& gpu_partition);
+                             const GPUPartition& gpu_partition,
+                             const unsigned int ntypes);
 
 void get_max_num_depletants(unsigned int* d_n_depletants,
                             unsigned int* max_n_depletants,
@@ -85,10 +81,11 @@ void reduce_counters(const unsigned int ngpu,
                      const hpmc_counters_t* d_per_device_counters,
                      hpmc_counters_t* d_counters,
                      const unsigned int implicit_pitch,
-                     const Index2D depletant_idx,
                      const hpmc_implicit_counters_t* d_per_device_implicit_counters,
-                     hpmc_implicit_counters_t* d_implicit_counters);
+                     hpmc_implicit_counters_t* d_implicit_counters,
+                     const unsigned int ntypes);
 
     } // end namespace gpu
 
     } // end namespace hpmc
+    } // end namespace hoomd

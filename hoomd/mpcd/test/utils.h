@@ -1,13 +1,13 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef MPCD_TEST_UTILS_H_
 #define MPCD_TEST_UTILS_H_
 
 #include "hoomd/mpcd/CellThermoCompute.h"
 
+namespace hoomd
+    {
 //! Request object for all available thermo flags
 class AllThermoRequest
     {
@@ -49,5 +49,7 @@ class AllThermoRequest
     private:
     std::shared_ptr<mpcd::CellThermoCompute> m_thermo;
     };
+
+    } // end namespace hoomd
 
 #endif // MPCD_TEST_UTILS_H_

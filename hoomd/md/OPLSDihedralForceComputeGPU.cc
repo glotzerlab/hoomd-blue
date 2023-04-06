@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: ksil
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file OPLSDihedralForceComputeGPU.cc
     \brief Defines OPLSDihedralForceComputeGPU
@@ -9,10 +7,12 @@
 
 #include "OPLSDihedralForceComputeGPU.h"
 
-namespace py = pybind11;
-
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef System to compute bond forces on
  */
 OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
@@ -27,9 +27,10 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemD
         throw std::runtime_error("Error initializing OPLSDihedralForceComputeGPU");
         }
 
-    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
-    m_tuner.reset(
-        new Autotuner(warp_size, 1024, warp_size, 5, 100000, "opls_dihedral", this->m_exec_conf));
+    m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                   m_exec_conf,
+                                   "opls_dihedral"));
+    m_autotuners.push_back(m_tuner);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -41,10 +42,6 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemD
 */
 void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
     {
-    // start the profile
-    if (m_prof)
-        m_prof->push(m_exec_conf, "OPLS Dihedral");
-
     ArrayHandle<DihedralData::members_t> d_gpu_dihedral_list(m_dihedral_data->getGPUTable(),
                                                              access_location::device,
                                                              access_mode::read);
@@ -64,33 +61,36 @@ void OPLSDihedralForceComputeGPU::computeForces(uint64_t timestep)
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
 
     // run the kernel in parallel on all GPUs
-    this->m_tuner->begin();
-    gpu_compute_opls_dihedral_forces(d_force.data,
-                                     d_virial.data,
-                                     m_virial.getPitch(),
-                                     m_pdata->getN(),
-                                     d_pos.data,
-                                     box,
-                                     d_gpu_dihedral_list.data,
-                                     d_dihedrals_ABCD.data,
-                                     m_dihedral_data->getGPUTableIndexer().getW(),
-                                     d_n_dihedrals.data,
-                                     d_params.data,
-                                     m_dihedral_data->getNTypes(),
-                                     this->m_tuner->getParam(),
-                                     m_exec_conf->dev_prop.warpSize);
+    m_tuner->begin();
+    kernel::gpu_compute_opls_dihedral_forces(d_force.data,
+                                             d_virial.data,
+                                             m_virial.getPitch(),
+                                             m_pdata->getN(),
+                                             d_pos.data,
+                                             box,
+                                             d_gpu_dihedral_list.data,
+                                             d_dihedrals_ABCD.data,
+                                             m_dihedral_data->getGPUTableIndexer().getW(),
+                                             d_n_dihedrals.data,
+                                             d_params.data,
+                                             m_dihedral_data->getNTypes(),
+                                             m_tuner->getParam()[0],
+                                             m_exec_conf->dev_prop.warpSize);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    this->m_tuner->end();
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
+    m_tuner->end();
     }
 
-void export_OPLSDihedralForceComputeGPU(py::module& m)
+namespace detail
     {
-    py::class_<OPLSDihedralForceComputeGPU,
-               OPLSDihedralForceCompute,
-               std::shared_ptr<OPLSDihedralForceComputeGPU>>(m, "OPLSDihedralForceComputeGPU")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_OPLSDihedralForceComputeGPU(pybind11::module& m)
+    {
+    pybind11::class_<OPLSDihedralForceComputeGPU,
+                     OPLSDihedralForceCompute,
+                     std::shared_ptr<OPLSDihedralForceComputeGPU>>(m, "OPLSDihedralForceComputeGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

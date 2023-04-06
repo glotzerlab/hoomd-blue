@@ -1,8 +1,7 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
-#include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -14,9 +13,12 @@ using namespace hoomd;
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
 using namespace std;
 
+namespace hoomd
+    {
+namespace md
+    {
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
@@ -45,10 +47,6 @@ TwoStepBD::~TwoStepBD()
 void TwoStepBD::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-
-    // profile this step
-    if (m_prof)
-        m_prof->push("BD step 1");
 
     // grab some initial variables
     const Scalar currentTemp = (*m_T)(timestep);
@@ -173,9 +171,9 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 vec3<Scalar> I(h_inertia.data[j]);
 
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON);
-                y_zero = (I.y < EPSILON);
-                z_zero = (I.z < EPSILON);
+                x_zero = (I.x == 0);
+                y_zero = (I.y == 0);
+                z_zero = (I.z == 0);
 
                 Scalar3 sigma_r
                     = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * currentTemp / m_deltaT),
@@ -247,10 +245,6 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 }
             }
         }
-
-    // done profiling
-    if (m_prof)
-        m_prof->pop();
     }
 
 /*! @param timestep Current time step
@@ -260,12 +254,18 @@ void TwoStepBD::integrateStepTwo(uint64_t timestep)
     // there is no step 2 in Brownian dynamics.
     }
 
-void export_TwoStepBD(py::module& m)
+namespace detail
     {
-    py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
-        .def(py::init<std::shared_ptr<SystemDefinition>,
-                      std::shared_ptr<ParticleGroup>,
-                      std::shared_ptr<Variant>,
-                      bool,
-                      bool>());
+void export_TwoStepBD(pybind11::module& m)
+    {
+    pybind11::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
+                            bool,
+                            bool>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

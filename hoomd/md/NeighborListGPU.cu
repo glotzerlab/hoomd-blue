@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
 
 /*! \file NeighborListGPU.cu
     \brief Defines GPU kernel code for neighbor list processing on the GPU
@@ -16,6 +17,12 @@
 #include <thrust/scan.h>
 #pragma GCC diagnostic pop
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
     \param d_pos Current particle positions
@@ -45,26 +52,6 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int* d_result,
                                                         const unsigned int checkn,
                                                         const unsigned int offset)
     {
-    // cache delta max into shared memory
-    // shared data for per type pair parameters
-    HIP_DYNAMIC_SHARED(unsigned char, s_data)
-
-    // pointer for the r_listsq data
-    Scalar* s_maxshiftsq = (Scalar*)(&s_data[0]);
-
-    // load in the per type pair r_list
-    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < ntypes)
-            {
-            const Scalar rmin = d_rcut_max[cur_offset + threadIdx.x];
-            const Scalar rmax = rmin + r_buff;
-            const Scalar delta_max = (rmax * lambda_min - rmin) / Scalar(2.0);
-            s_maxshiftsq[cur_offset + threadIdx.x] = (delta_max > 0) ? delta_max * delta_max : 0.0f;
-            }
-        }
-    __syncthreads();
-
     // each thread will compare vs it's old position to see if the list needs updating
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -82,7 +69,12 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int* d_result,
         Scalar3 dx = cur_pos - lambda * last_pos;
         dx = box.minImage(dx);
 
-        if (dot(dx, dx) >= s_maxshiftsq[cur_type])
+        const Scalar rmin = __ldg(d_rcut_max + cur_type);
+        const Scalar rmax = rmin + r_buff;
+        const Scalar delta_max = (rmax * lambda_min - rmin) / Scalar(2.0);
+        Scalar maxshiftsq = (delta_max > 0) ? delta_max * delta_max : 0.0f;
+
+        if (dot(dx, dx) >= maxshiftsq)
 #if (__CUDA_ARCH__ >= 600)
             atomicMax_system(d_result, checkn);
 #else
@@ -104,8 +96,6 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
                                             const unsigned int checkn,
                                             const GPUPartition& gpu_partition)
     {
-    const size_t shared_bytes = sizeof(Scalar) * ntypes;
-
     unsigned int block_size = 128;
 
     // iterate over active GPUs in reverse order
@@ -118,7 +108,7 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
         hipLaunchKernelGGL((gpu_nlist_needs_update_check_new_kernel),
                            dim3(n_blocks),
                            dim3(block_size),
-                           shared_bytes,
+                           0,
                            0,
                            d_result,
                            d_last_pos,
@@ -167,7 +157,7 @@ const unsigned int FILTER_BATCH_SIZE = 4;
 */
 __global__ void gpu_nlist_filter_kernel(unsigned int* d_n_neigh,
                                         unsigned int* d_nlist,
-                                        const unsigned int* d_head_list,
+                                        const size_t* d_head_list,
                                         const unsigned int* d_n_ex,
                                         const unsigned int* d_ex_list,
                                         const Index2D exli,
@@ -205,7 +195,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int* d_n_neigh,
         }
 
     // loop over the list, regenerating it as we go
-    const unsigned int my_head = d_head_list[idx];
+    const size_t my_head = d_head_list[idx];
     for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
         {
         unsigned int cur_neigh = d_nlist[my_head + cur_neigh_idx];
@@ -234,7 +224,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int* d_n_neigh,
 
 hipError_t gpu_nlist_filter(unsigned int* d_n_neigh,
                             unsigned int* d_nlist,
-                            const unsigned int* d_head_list,
+                            const size_t* d_head_list,
                             const unsigned int* d_n_ex,
                             const unsigned int* d_ex_list,
                             const Index2D& exli,
@@ -362,25 +352,13 @@ hipError_t gpu_update_exclusion_list(const unsigned int* d_tag,
  * d_Nmax. A prefix sum is then performed in gpu_nlist_build_head_list() to accumulate starting
  * indices.
  */
-__global__ void gpu_nlist_init_head_list_kernel(unsigned int* d_head_list,
-                                                unsigned int* d_req_size_nlist,
+__global__ void gpu_nlist_init_head_list_kernel(size_t* d_head_list,
+                                                size_t* d_req_size_nlist,
                                                 const unsigned int* d_Nmax,
                                                 const Scalar4* d_pos,
                                                 const unsigned int N,
                                                 const unsigned int ntypes)
     {
-    // cache the d_Nmax into shared memory for faster reads
-    HIP_DYNAMIC_SHARED(unsigned char, sh)
-    unsigned int* s_Nmax = (unsigned int*)(&sh[0]);
-    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < ntypes)
-            {
-            s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
-            }
-        }
-    __syncthreads();
-
     // particle index
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -390,7 +368,7 @@ __global__ void gpu_nlist_init_head_list_kernel(unsigned int* d_head_list,
 
     const Scalar4 postype_i = d_pos[idx];
     const unsigned int type_i = __scalar_as_int(postype_i.w);
-    const unsigned int Nmax_i = s_Nmax[type_i];
+    const unsigned int Nmax_i = __ldg(d_Nmax + type_i);
 
     d_head_list[idx] = Nmax_i;
 
@@ -411,8 +389,8 @@ __global__ void gpu_nlist_init_head_list_kernel(unsigned int* d_head_list,
  * the last particle in d_req_size_nlist, the head index of the last particle is added to this
  * number to get the total size.
  */
-__global__ void gpu_nlist_get_nlist_size_kernel(unsigned int* d_req_size_nlist,
-                                                const unsigned int* d_head_list,
+__global__ void gpu_nlist_get_nlist_size_kernel(size_t* d_req_size_nlist,
+                                                const size_t* d_head_list,
                                                 const unsigned int N)
     {
     *d_req_size_nlist += d_head_list[N - 1];
@@ -434,8 +412,8 @@ __global__ void gpu_nlist_get_nlist_size_kernel(unsigned int* d_req_size_nlist,
  * performed in place on \a d_head_list using the thrust libraries and a single thread is used to
  * perform compute the total size of the neighbor list while still on device.
  */
-hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
-                                     unsigned int* d_req_size_nlist,
+hipError_t gpu_nlist_build_head_list(size_t* d_head_list,
+                                     size_t* d_req_size_nlist,
                                      const unsigned int* d_Nmax,
                                      const Scalar4* d_pos,
                                      const unsigned int N,
@@ -448,13 +426,12 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    const size_t shared_bytes = ntypes * sizeof(unsigned int);
 
     // initialize each particle with its number of neighbors
     hipLaunchKernelGGL((gpu_nlist_init_head_list_kernel),
                        dim3(N / run_block_size + 1),
                        dim3(run_block_size),
-                       shared_bytes,
+                       0,
                        0,
                        d_head_list,
                        d_req_size_nlist,
@@ -463,7 +440,7 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
                        N,
                        ntypes);
 
-    thrust::device_ptr<unsigned int> t_head_list = thrust::device_pointer_cast(d_head_list);
+    thrust::device_ptr<size_t> t_head_list = thrust::device_pointer_cast(d_head_list);
     thrust::exclusive_scan(t_head_list, t_head_list + N, t_head_list);
 
     hipLaunchKernelGGL((gpu_nlist_get_nlist_size_kernel),
@@ -477,3 +454,7 @@ hipError_t gpu_nlist_build_head_list(unsigned int* d_head_list,
 
     return hipSuccess;
     }
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

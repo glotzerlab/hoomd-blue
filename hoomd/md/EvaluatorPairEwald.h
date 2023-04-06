@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: sbarr
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __PAIR_EVALUATOR_EWALD_H__
 #define __PAIR_EVALUATOR_EWALD_H__
@@ -26,6 +24,11 @@
 #define DEVICE
 #define HOSTDEVICE
 #endif
+
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the Ewald pair potential
 /*! <b>General Overview</b>
 
@@ -81,9 +84,9 @@ class EvaluatorPairEwald
 #endif
         }
 #ifdef SINGLE_PRECISION
-    __attribute__((aligned(8)));
+        __attribute__((aligned(8)));
 #else
-    __attribute__((aligned(16)));
+        __attribute__((aligned(16)));
 #endif
 
     //! Constructs the pair potential evaluator
@@ -159,6 +162,16 @@ class EvaluatorPairEwald
             return false;
         }
 
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
+        }
+
 #ifndef __HIPCC__
     //! Get the name of this potential
     /*! \returns The potential name.
@@ -181,5 +194,8 @@ class EvaluatorPairEwald
     Scalar alpha;  //!< Debye screening parameter
     Scalar qiqj;   //!< product of qi and qj
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EWALD_H__

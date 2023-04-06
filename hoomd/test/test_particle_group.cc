@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -29,10 +29,10 @@ std::shared_ptr<SystemDefinition> create_sysdef()
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, box, 4));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    // set the types
-    // currently, the position is only set on the first 3 particles, intended for use in the total
-    // and center of mass tests. Later, other particles will be added to test the new particle data
-    // selectors
+        // set the types
+        // currently, the position is only set on the first 3 particles, intended for use in the
+        // total and center of mass tests. Later, other particles will be added to test the new
+        // particle data selectors
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
                                    access_location::host,
@@ -203,7 +203,7 @@ UP_TEST(ParticleGroup_sort_test)
             UP_ASSERT(!tags04.isMember(i));
         }
 
-    // resort the particles
+        // resort the particles
         {
         ArrayHandle<unsigned int> h_tag(pdata->getTags(),
                                         access_location::host,
@@ -380,40 +380,6 @@ UP_TEST(ParticleGroup_tag_test)
     CHECK_EQUAL_UINT(tags59.getMemberTag(2), 7);
     CHECK_EQUAL_UINT(tags59.getMemberTag(3), 8);
     CHECK_EQUAL_UINT(tags59.getMemberTag(4), 9);
-    }
-
-//! Checks that ParticleGroup can initialize by cuboid
-UP_TEST(ParticleGroup_cuboid_test)
-    {
-    std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
-    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-
-    // create a group containing only particle 0
-    std::shared_ptr<ParticleFilter> selector0(
-        new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5), make_scalar3(0.5, 0.5, 0.5)));
-    ParticleGroup tags0(sysdef, selector0);
-    CHECK_EQUAL_UINT(tags0.getNumMembers(), 1);
-    CHECK_EQUAL_UINT(tags0.getIndexArray().getNumElements(), 1);
-    CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
-
-    // create a group containing particles 0 and 1
-    std::shared_ptr<ParticleFilter> selector1(
-        new ParticleFilterCuboid(make_scalar3(-0.5, -0.5, -0.5), make_scalar3(1.5, 2.5, 3.5)));
-    ParticleGroup tags1(sysdef, selector1);
-    CHECK_EQUAL_UINT(tags1.getNumMembers(), 2);
-    CHECK_EQUAL_UINT(tags1.getIndexArray().getNumElements(), 2);
-    CHECK_EQUAL_UINT(tags1.getMemberTag(0), 0);
-    CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
-
-    // create a group containing particles 0, 1 and 2
-    std::shared_ptr<ParticleFilter> selector2(
-        new ParticleFilterCuboid(make_scalar3(-1.5, -2.5, -3.5), make_scalar3(1.5, 2.5, 3.5)));
-    ParticleGroup tags2(sysdef, selector2);
-    CHECK_EQUAL_UINT(tags2.getNumMembers(), 3);
-    CHECK_EQUAL_UINT(tags2.getIndexArray().getNumElements(), 3);
-    CHECK_EQUAL_UINT(tags2.getMemberTag(0), 0);
-    CHECK_EQUAL_UINT(tags2.getMemberTag(1), 1);
-    CHECK_EQUAL_UINT(tags2.getMemberTag(2), 2);
     }
 
 //! Checks that the ParticleGroup boolean operation work correctly

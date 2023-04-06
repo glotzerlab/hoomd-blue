@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ForceDistanceConstraint.h"
 
@@ -36,6 +34,10 @@
 
 #include "hoomd/GPUVector.h"
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements a pairwise distance constraint on the GPU
 
     See Integrator for detailed documentation on constraint force implementation.
@@ -48,24 +50,9 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     ForceDistanceConstraintGPU(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~ForceDistanceConstraintGPU();
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ForceDistanceConstraint::setAutotunerParams(enable, period);
-
-        m_tuner_fill->setPeriod(period);
-        m_tuner_force->setPeriod(period);
-
-        m_tuner_fill->setEnabled(enable);
-        m_tuner_force->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
-    std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+    std::shared_ptr<Autotuner<1>> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
+    std::shared_ptr<Autotuner<1>> m_tuner_force; //!< Autotuner for populating the force array
 
 #ifdef CUSOLVER_AVAILABLE
     cusparseHandle_t m_cusparse_handle;        //!< cuSPARSE handle
@@ -122,7 +109,7 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
     virtual void computeConstraintForces(uint64_t timestep);
     };
 
-//! Exports the ForceDistanceConstraint to python
-void export_ForceDistanceConstraintGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

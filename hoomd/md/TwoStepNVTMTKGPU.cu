@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
 
 #include "TwoStepNVTMTKGPU.cuh"
 
@@ -12,6 +13,12 @@
     \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Takes the first 1/2 step forward in the NVT integration step
 /*! \param d_pos array of particle positions
     \param d_vel array of particle velocities
@@ -29,16 +36,16 @@
     See gpu_nve_step_one_kernel() for some performance notes on how to handle the group data reads
    efficiently.
 */
-extern "C" __global__ void gpu_nvt_mtk_step_one_kernel(Scalar4* d_pos,
-                                                       Scalar4* d_vel,
-                                                       const Scalar3* d_accel,
-                                                       int3* d_image,
-                                                       unsigned int* d_group_members,
-                                                       unsigned int work_size,
-                                                       BoxDim box,
-                                                       Scalar exp_fac,
-                                                       Scalar deltaT,
-                                                       unsigned int offset)
+__global__ void gpu_nvt_mtk_step_one_kernel(Scalar4* d_pos,
+                                            Scalar4* d_vel,
+                                            const Scalar3* d_accel,
+                                            int3* d_image,
+                                            unsigned int* d_group_members,
+                                            unsigned int work_size,
+                                            BoxDim box,
+                                            Scalar exp_fac,
+                                            Scalar deltaT,
+                                            unsigned int offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -147,14 +154,14 @@ hipError_t gpu_nvt_mtk_step_one(Scalar4* d_pos,
     \param deltaT Amount of real time to step forward in one time step
     \param offset The offset of this GPU into the list of particles
 */
-extern "C" __global__ void gpu_nvt_mtk_step_two_kernel(Scalar4* d_vel,
-                                                       Scalar3* d_accel,
-                                                       unsigned int* d_group_members,
-                                                       unsigned int work_size,
-                                                       Scalar4* d_net_force,
-                                                       Scalar deltaT,
-                                                       Scalar exp_v_fac_thermo,
-                                                       unsigned int offset)
+__global__ void gpu_nvt_mtk_step_two_kernel(Scalar4* d_vel,
+                                            Scalar3* d_accel,
+                                            unsigned int* d_group_members,
+                                            unsigned int work_size,
+                                            Scalar4* d_net_force,
+                                            Scalar deltaT,
+                                            Scalar exp_v_fac_thermo,
+                                            unsigned int offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -243,4 +250,6 @@ hipError_t gpu_nvt_mtk_step_two(Scalar4* d_vel,
     return hipSuccess;
     }
 
-// vim:syntax=cpp
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd

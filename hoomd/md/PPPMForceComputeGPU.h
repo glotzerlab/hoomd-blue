@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
 
@@ -18,7 +18,7 @@ typedef cufftHandle hipfftHandle;
 
 #include <sstream>
 
-//#define USE_HOST_DFFT
+// #define USE_HOST_DFFT
 
 #include "hoomd/Autotuner.h"
 
@@ -37,6 +37,10 @@ typedef cufftHandle hipfftHandle;
         handleHIPFFTResult(status, __FILE__, __LINE__); \
         }
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Order parameter evaluated using the particle mesh method
  */
 class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
@@ -47,25 +51,6 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
                         std::shared_ptr<NeighborList> nlist,
                         std::shared_ptr<ParticleGroup> group);
     virtual ~PPPMForceComputeGPU();
-
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        m_tuner_assign->setPeriod(period);
-        m_tuner_reduce_mesh->setPeriod(period);
-        m_tuner_update->setPeriod(period);
-        m_tuner_force->setPeriod(period);
-        m_tuner_influence->setPeriod(period);
-
-        m_tuner_assign->setEnabled(enable);
-        m_tuner_reduce_mesh->setEnabled(enable);
-        m_tuner_update->setEnabled(enable);
-        m_tuner_force->setEnabled(enable);
-        m_tuner_influence->setEnabled(enable);
-        }
 
     protected:
     //! Helper function to setup FFT and allocate the mesh arrays
@@ -113,12 +98,14 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
         }
 
     private:
-    std::unique_ptr<Autotuner> m_tuner_assign; //!< Autotuner for assigning binned charges to mesh
-    std::unique_ptr<Autotuner> m_tuner_reduce_mesh; //!< Autotuner to reduce meshes for multi GPU
-    std::unique_ptr<Autotuner> m_tuner_update;      //!< Autotuner for updating mesh values
-    std::unique_ptr<Autotuner> m_tuner_force;       //!< Autotuner for populating the force array
-    std::unique_ptr<Autotuner>
-        m_tuner_influence; //!< Autotuner for computing the influence function
+    std::shared_ptr<Autotuner<1>>
+        m_tuner_assign; //!< Autotuner for assigning binned charges to mesh
+    std::shared_ptr<Autotuner<1>> m_tuner_reduce_mesh; //!< Autotuner to reduce meshes for multi GPU
+    std::shared_ptr<Autotuner<1>> m_tuner_update;      //!< Autotuner for updating mesh values
+    std::shared_ptr<Autotuner<1>> m_tuner_force;       //!< Autotuner for populating the force array
+
+    /// Autotuner for computing the influence function
+    std::shared_ptr<Autotuner<1>> m_tuner_influence;
 
     hipfftHandle m_hipfft_plan;   //!< The FFT plan
     bool m_local_fft;             //!< True if we are only doing local FFTs (not distributed)
@@ -148,7 +135,8 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     unsigned int m_block_size;                //!< Block size for fourier mesh reduction
     };
 
-void export_PPPMForceComputeGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __PPPM_FORCE_COMPUTE_GPU_H__

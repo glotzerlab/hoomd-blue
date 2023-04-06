@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd::Integrator.h
@@ -28,9 +26,11 @@
 #include "hoomd/md/IntegratorTwoStep.h"
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace mpcd
     {
-class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
+class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     {
     public:
     //! Constructor
@@ -38,9 +38,6 @@ class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
 
     //! Destructor
     virtual ~Integrator();
-
-    //! Sets the profiler for the integrator to use
-    virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep);
@@ -66,9 +63,6 @@ class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
             .connect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
         }
 #endif
-
-    //! Set autotuner parameters
-    virtual void setAutotunerParams(bool enable, unsigned int period);
 
     //! Get current collision method
     std::shared_ptr<mpcd::CollisionMethod> getCollisionMethod() const
@@ -176,7 +170,7 @@ namespace detail
     {
 //! Exports the mpcd::Integrator to python
 void export_Integrator(pybind11::module& m);
-    } // end namespace detail
-    } // end namespace mpcd
-
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_INTEGRATOR_H_

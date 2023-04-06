@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
@@ -17,7 +15,6 @@
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
-namespace py = pybind11;
 
 #include <algorithm>
 #include <iomanip>
@@ -36,6 +33,8 @@ using namespace std;
     \brief Defines ExecutionConfiguration and related classes
 */
 
+namespace hoomd
+    {
 // initialize static variables
 bool ExecutionConfiguration::s_gpu_scan_complete = false;
 std::vector<std::string> ExecutionConfiguration::s_gpu_scan_messages;
@@ -334,7 +333,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
         }
     else
         {
-        // initialize the default CUDA context from one of the capable GPUs
+            // initialize the default CUDA context from one of the capable GPUs
 #ifdef __HIP_PLATFORM_NVCC__
         cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
 #endif
@@ -413,13 +412,14 @@ void ExecutionConfiguration::scanGPUs()
             continue;
             }
 
+#ifdef __HIP_PLATFORM_NVCC__
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
-#ifdef __HIP_PLATFORM_NVCC__
+
         if (compoundComputeVer < CUDA_ARCH)
             {
             ostringstream s;
-            s << "The device " << prop.name << " with computed capability " << prop.major << "."
+            s << "The device " << prop.name << " with compute capability " << prop.major << "."
               << prop.minor << " does not support HOOMD-blue.";
             s_gpu_scan_messages.push_back(s.str());
             continue;
@@ -434,6 +434,26 @@ void ExecutionConfiguration::scanGPUs()
             s_gpu_scan_messages.push_back(s.str());
             continue;
             }
+
+        // exclude a GPU when it doesn't support mapped memory
+#ifdef __HIP_PLATFORM_NVCC__
+        int supports_managed_memory = 0;
+        cudaError_t cuda_error
+            = cudaDeviceGetAttribute(&supports_managed_memory, cudaDevAttrManagedMemory, dev);
+        if (cuda_error != cudaSuccess)
+            {
+            s_gpu_scan_messages.push_back("Failed to get device attribute: "
+                                          + string(cudaGetErrorString(cuda_error)));
+            continue;
+            }
+        if (!supports_managed_memory)
+            {
+            ostringstream s;
+            s << "The device " << prop.name << " does not support managed memory.";
+            s_gpu_scan_messages.push_back(s.str());
+            continue;
+            }
+#endif
 
         s_capable_gpu_descriptions.push_back(describeGPU((int)s_capable_gpu_ids.size(), prop));
         s_capable_gpu_ids.push_back(dev);
@@ -655,15 +675,17 @@ int ExecutionConfiguration::guessLocalRank(bool& found)
 #endif
     }
 
-void export_ExecutionConfiguration(py::module& m)
+namespace detail
     {
-    py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>>
+void export_ExecutionConfiguration(pybind11::module& m)
+    {
+    pybind11::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration>>
         executionconfiguration(m, "ExecutionConfiguration");
     executionconfiguration
-        .def(py::init<ExecutionConfiguration::executionMode,
-                      std::vector<int>,
-                      std::shared_ptr<MPIConfiguration>,
-                      std::shared_ptr<Messenger>>())
+        .def(pybind11::init<ExecutionConfiguration::executionMode,
+                            std::vector<int>,
+                            std::shared_ptr<MPIConfiguration>,
+                            std::shared_ptr<Messenger>>())
         .def("getMPIConfig", &ExecutionConfiguration::getMPIConfig)
         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
@@ -683,15 +705,17 @@ void export_ExecutionConfiguration(py::module& m)
 #endif
         .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
         .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
-        .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer)
         .def("memoryTracingEnabled", &ExecutionConfiguration::memoryTracingEnabled)
         .def_static("getCapableDevices", &ExecutionConfiguration::getCapableDevices)
         .def_static("getScanMessages", &ExecutionConfiguration::getScanMessages)
         .def("getActiveDevices", &ExecutionConfiguration::getActiveDevices);
 
-    py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration, "executionMode")
+    pybind11::enum_<ExecutionConfiguration::executionMode>(executionconfiguration, "executionMode")
         .value("GPU", ExecutionConfiguration::executionMode::GPU)
         .value("CPU", ExecutionConfiguration::executionMode::CPU)
         .value("AUTO", ExecutionConfiguration::executionMode::AUTO)
         .export_values();
     }
+    } // end namespace detail
+
+    } // end namespace hoomd

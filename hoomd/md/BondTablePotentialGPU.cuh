@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondTablePotentialGPU.cuh
     \brief Declares GPU kernel code for calculating the table bond forces. Used by
@@ -16,6 +14,12 @@
 #ifndef __BONDTABLEPOTENTIALGPU_CUH__
 #define __BONDTABLEPOTENTIALGPU_CUH__
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel driver that computes table forces on the GPU for TablePotentialGPU
 hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                         Scalar* d_virial,
@@ -32,6 +36,11 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                         const unsigned int table_width,
                                         const Index2D& table_value,
                                         unsigned int* d_flags,
-                                        const unsigned int block_size);
+                                        const unsigned int block_size,
+                                        const hipDeviceProp_t& devprop);
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

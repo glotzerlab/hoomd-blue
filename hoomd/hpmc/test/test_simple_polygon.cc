@@ -1,4 +1,5 @@
-
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/Moves.h"
@@ -19,9 +20,10 @@ HOOMD_UP_MAIN();
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
-using namespace hpmc;
+using namespace hoomd;
+using namespace hoomd::hpmc;
 using namespace std;
-using namespace hpmc::detail;
+using namespace hoomd::hpmc::detail;
 
 unsigned int err_count;
 

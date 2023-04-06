@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
@@ -23,12 +23,14 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
 //! A device-side, fixed-size array memory-managed through cudaMallocManaged
 template<class T> class ManagedArray
     {
     public:
     //! Default constructor
-    DEVICE ManagedArray()
+    HOSTDEVICE ManagedArray()
         : data(nullptr), ptr(nullptr), N(0), managed(0), align(0), allocation_ptr(nullptr),
           allocation_bytes(0)
         {
@@ -46,7 +48,7 @@ template<class T> class ManagedArray
         }
 #endif
 
-    DEVICE ~ManagedArray()
+    HOSTDEVICE ~ManagedArray()
         {
 #ifndef __HIPCC__
         deallocate();
@@ -58,7 +60,7 @@ template<class T> class ManagedArray
        the host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU
        synchronization needs to be ensured
      */
-    DEVICE ManagedArray(const ManagedArray<T>& other)
+    HOSTDEVICE ManagedArray(const ManagedArray<T>& other)
         : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
           allocation_ptr(nullptr), allocation_bytes(0)
         {
@@ -80,7 +82,7 @@ template<class T> class ManagedArray
        the host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU
        synchronization needs to be ensured
      */
-    DEVICE ManagedArray(const ManagedArray<T>&& other)
+    HOSTDEVICE ManagedArray(const ManagedArray<T>&& other)
         : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
           allocation_ptr(nullptr), allocation_bytes(0)
         {
@@ -102,7 +104,7 @@ template<class T> class ManagedArray
        available on the host. If the GPU isn't synced up, this can lead to errors, so proper
        multi-GPU synchronization needs to be ensured
      */
-    DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
+    HOSTDEVICE ManagedArray& operator=(const ManagedArray<T>& other)
         {
 #ifndef __HIPCC__
         deallocate();
@@ -132,7 +134,7 @@ template<class T> class ManagedArray
        available on the host. If the GPU isn't synced up, this can lead to errors, so proper
        multi-GPU synchronization needs to be ensured
      */
-    DEVICE ManagedArray& operator=(const ManagedArray<T>&& other)
+    HOSTDEVICE ManagedArray& operator=(const ManagedArray<T>&& other)
         {
 #ifndef __HIPCC__
         deallocate();
@@ -234,7 +236,7 @@ template<class T> class ManagedArray
 
         \returns true if array was loaded into shared memory
      */
-    DEVICE bool load_shared(char*& s_ptr, unsigned int& available_bytes)
+    HOSTDEVICE bool load_shared(char*& s_ptr, unsigned int& available_bytes)
         {
         // align ptr to size of data type
         void* ptr_align = allocate_shared(s_ptr, available_bytes);
@@ -286,11 +288,11 @@ template<class T> class ManagedArray
 #ifndef __HIPCC__
     void allocate()
         {
-        ptr = managed_allocator<T>::allocate_construct_aligned(N,
-                                                               managed,
-                                                               align,
-                                                               allocation_bytes,
-                                                               allocation_ptr);
+        ptr = detail::managed_allocator<T>::allocate_construct_aligned(N,
+                                                                       managed,
+                                                                       align,
+                                                                       allocation_bytes,
+                                                                       allocation_ptr);
         data = ptr;
         }
 
@@ -298,7 +300,10 @@ template<class T> class ManagedArray
         {
         if (N > 0)
             {
-            managed_allocator<T>::deallocate_destroy_aligned(ptr, N, managed, allocation_ptr);
+            detail::managed_allocator<T>::deallocate_destroy_aligned(ptr,
+                                                                     N,
+                                                                     managed,
+                                                                     allocation_ptr);
             }
         ptr = nullptr;
         }
@@ -313,6 +318,8 @@ template<class T> class ManagedArray
     void* allocation_ptr;    //!< Pointer to un-aligned start of allocation
     size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };
+
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

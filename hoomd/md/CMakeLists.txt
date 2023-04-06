@@ -1,16 +1,26 @@
-# Maintainer: joaander
+
 
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
+                   AlchemostatTwoStep.cc
+                   AnisoPotentialPairALJ2.cc
+                   AnisoPotentialPairALJ3.cc
+                   AnisoPotentialPairDipole.cc
+                   AnisoPotentialPairGB.cc
+                   AlchemyData.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
+                   ConstantForceCompute.cc
                    CosineSqAngleForceCompute.cc
+                   CustomForceCompute.cc
+                   EvaluatorWalls.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
+                   HalfStepHook.cc
                    HarmonicAngleForceCompute.cc
                    HarmonicDihedralForceCompute.cc
                    HarmonicImproperForceCompute.cc
@@ -24,6 +34,7 @@ set(_md_sources module-md.cc
                    ManifoldPrimitive.cc
                    ManifoldSphere.cc
                    MolecularForceCompute.cc
+                   MuellerPlatheFlow.cc
                    NeighborListBinned.cc
                    NeighborList.cc
                    NeighborListStencil.cc
@@ -39,22 +50,18 @@ set(_md_sources module-md.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
+                   TwoStepNVTAlchemy.cc
+                   WallData.cc
                    ZeroMomentumUpdater.cc
-                   MuellerPlatheFlow.cc
                    )
 
 set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceCompute.h
                 ActiveForceConstraintCompute.h
                 ActiveForceConstraintComputeGPU.h
-		ActiveForceConstraintComputeGPU.cuh
+                ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
-                AllAnisoPairPotentials.h
-                AllBondPotentials.h
-                AllExternalPotentials.h
-                AllPairPotentials.h
-                AllSpecialPairPotentials.h
-                AllTripletPotentials.h
+                AlchemyData.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
@@ -70,8 +77,11 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
+	        ConstantForceComputeGPU.h
+                ConstantForceCompute.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
+                CustomForceCompute.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorBondTether.h
@@ -79,26 +89,29 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
+                EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDLVO.h
-                EvaluatorPairDPDLJThermo.h
-                EvaluatorPairDPDThermo.h
+                EvaluatorPairDPDThermoLJ.h
+                EvaluatorPairDPDThermoDPD.h
                 EvaluatorPairEwald.h
                 EvaluatorPairForceShiftedLJ.h
                 EvaluatorPairGauss.h
+                EvaluatorPairExpandedGaussian.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
                 EvaluatorPairLJ1208.h
                 EvaluatorPairLJ0804.h
                 EvaluatorPairMie.h
-		EvaluatorPairExpandedMie.h
+                EvaluatorPairExpandedMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
-                EvaluatorPairSLJ.h
+                EvaluatorPairExpandedLJ.h
+                EvaluatorPairTable.h
                 EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
@@ -146,6 +159,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialExternalGPU.h
                 PotentialExternalGPU.cuh
                 PotentialExternal.h
+                PotentialPairAlchemical.h
+                PotentialPairAlchemicalNormalized.h
                 PotentialPairDPDThermoGPU.h
                 PotentialPairDPDThermoGPU.cuh
                 PotentialPairDPDThermo.h
@@ -158,7 +173,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
-                QuaternionMath.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
                 TableDihedralForceComputeGPU.h
@@ -185,16 +199,23 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
+                AlchemostatTwoStep.h
+                TwoStepNVTAlchemy.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
+                           AnisoPotentialPairALJ2GPU.cc
+                           AnisoPotentialPairALJ3GPU.cc
+                           AnisoPotentialPairDipoleGPU.cc
+                           AnisoPotentialPairGBGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
+                           ConstantForceComputeGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
                            ForceDistanceConstraintGPU.cc
@@ -222,36 +243,15 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
 endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
-                      AllDriverAnisoPotentialPairGPU.cu
-                      AllDriverPotentialBondGPU.cu
-                      AllDriverPotentialSpecialPairGPU.cu
-                      BuckinghamDriverPotentialPairGPU.cu
+                      AnisoPotentialPairALJ2GPUKernel.cu
+                      AnisoPotentialPairALJ3GPUKernel.cu
+                      AnisoPotentialPairDipoleGPUKernel.cu
+                      AnisoPotentialPairGBGPUKernel.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
-                      DLVODriverPotentialPairGPU.cu
-                      DPDLJThermoDriverPotentialPairGPU.cu
-                      DPDThermoDriverPotentialPairGPU.cu
-                      EwaldDriverPotentialPairGPU.cu
-                      ForceShiftedLJDriverPotentialPairGPU.cu
-                      GaussDriverPotentialPairGPU.cu
-                      LJDriverPotentialPairGPU.cu
-                      MieDriverPotentialPairGPU.cu
-		      ExpandedMieDriverPotentialPairGPU.cu
-                      MoliereDriverPotentialPairGPU.cu
-                      MorseDriverPotentialPairGPU.cu
-                      OPPDriverPotentialPairGPU.cu
-                      TableDriverPotentialPairGPU.cu
-                      TWFDriverPotentialPairGPU.cu
-                      FourierDriverPotentialPairGPU.cu
-                      PairLJ1208DriverPotentialPairGPU.cu
-                      PairLJ0804DriverPotentialPairGPU.cu
-                      ReactionFieldDriverPotentialPairGPU.cu
-                      SLJDriverPotentialPairGPU.cu
-                      YukawaDriverPotentialPairGPU.cu
-                      ZBLDriverPotentialPairGPU.cu
+                      ConstantForceComputeGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
-                      DriverTersoffGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu
                       ForceDistanceConstraintGPU.cu
@@ -264,7 +264,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUStencil.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
-                      PotentialExternalGPU.cu
                       PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
@@ -278,25 +277,292 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
-                      all_kernels_diamond_manifold.cu
-                      all_kernels_ellipsoid_manifold.cu
-                      all_kernels_gyroid_manifold.cu
-                      all_kernels_primitive_manifold.cu
-                      all_kernels_sphere_manifold.cu
-                      all_kernels_xyplane_manifold.cu
-                      all_kernels_zcylinder_manifold.cu
-                      all_kernels_active_diamond_manifold.cu
-                      all_kernels_active_ellipsoid_manifold.cu
-                      all_kernels_active_gyroid_manifold.cu
-                      all_kernels_active_primitive_manifold.cu
-                      all_kernels_active_sphere_manifold.cu
-                      all_kernels_active_xyplane_manifold.cu
-                      all_kernels_active_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
 set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
+set_source_files_properties(${_md_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
+
+# generate pybind11 export cc files
+set(_manifolds Cylinder
+               Diamond
+               Ellipsoid
+               Gyroid
+               Plane
+               Primitive
+               Sphere)
+
+set(_rattle_methods BD Langevin NVE)
+
+foreach(_manifold ${_manifolds})
+    set(_manifold_cpp ${_manifold})
+    if (_manifold STREQUAL "Cylinder")
+        set(_manifold_cpp "ZCylinder")
+    elseif (_manifold STREQUAL "Plane")
+        set(_manifold_cpp "XYPlane")
+    endif()
+
+    configure_file(export_ActiveForceConstraintCompute.cc.inc
+                   export_ActiveForceConstraintCompute${_manifold}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_ActiveForceConstraintCompute${_manifold}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_ActiveForceConstraintComputeGPU.cc.inc
+                       export_ActiveForceConstraintCompute${_manifold}GPU.cc
+                       @ONLY)
+        configure_file(ActiveForceConstraintComputeGPU.cu.inc
+                       ActiveForceConstraintCompute${_manifold}GPU.cu
+                       @ONLY)
+        configure_file(TwoStepRATTLEGPU.cu.inc
+                       TwoStepRATTLE${_manifold}GPU.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_ActiveForceConstraintCompute${_manifold}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            ActiveForceConstraintCompute${_manifold}GPU.cu
+            TwoStepRATTLE${_manifold}GPU.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+
+    foreach (_method ${_rattle_methods})
+        configure_file(export_TwoStepRATTLE.cc.inc
+                    export_TwoStepRATTLE${_method}${_manifold}.cc
+                    @ONLY)
+        set(_md_sources ${_md_sources} export_TwoStepRATTLE${_method}${_manifold}.cc)
+
+        if (ENABLE_HIP)
+            configure_file(export_TwoStepRATTLEGPU.cc.inc
+                        export_TwoStepRATTLE${_method}${_manifold}GPU.cc
+                        @ONLY)
+            set(_md_sources ${_md_sources} export_TwoStepRATTLE${_method}${_manifold}GPU.cc)
+            set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        endif()
+    endforeach()
+
+endforeach()
+
+# generate pybind11 export cc files
+set(_bonds Harmonic FENE Tether)
+
+foreach(_bond ${_bonds})
+    configure_file(export_PotentialBond.cc.inc
+                   export_PotentialBond${_bond}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialBond${_bond}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialBondGPU.cc.inc
+                       export_PotentialBond${_bond}GPU.cc
+                       @ONLY)
+        configure_file(PotentialBondGPUKernel.cu.inc
+                       PotentialBond${_bond}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialBond${_bond}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialBond${_bond}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+foreach(_bond ${_bonds})
+    configure_file(export_PotentialMeshBond.cc.inc
+                   export_PotentialMeshBond${_bond}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialMeshBond${_bond}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialMeshBondGPU.cc.inc
+                       export_PotentialMeshBond${_bond}GPU.cc
+                       @ONLY)
+        configure_file(PotentialMeshBondGPUKernel.cu.inc
+                       PotentialMeshBond${_bond}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialMeshBond${_bond}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialMeshBond${_bond}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+
+set(_pairs LJ Coulomb)
+
+foreach(_pair ${_pairs})
+    configure_file(export_PotentialSpecialPair.cc.inc
+                   export_PotentialSpecialPair${_pair}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialSpecialPair${_pair}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialSpecialPairGPU.cc.inc
+                       export_PotentialSpecialPair${_pair}GPU.cc
+                       @ONLY)
+        configure_file(PotentialSpecialPairGPUKernel.cu.inc
+                       PotentialSpecialPair${_pair}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialSpecialPair${_pair}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialSpecialPair${_pair}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+set(_triplets Tersoff SquareDensity RevCross)
+
+foreach(_evaluator ${_triplets})
+    configure_file(export_PotentialTersoff.cc.inc
+                   export_PotentialTersoff${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialTersoff${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialTersoffGPU.cc.inc
+                       export_PotentialTersoff${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialTersoffGPUKernel.cu.inc
+                       PotentialTersoff${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialTersoff${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialTersoff${_evaluator}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+set(_external_evaluators Periodic ElectricField)
+
+foreach(_evaluator ${_external_evaluators})
+    configure_file(export_PotentialExternal.cc.inc
+                   export_PotentialExternal${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialExternal${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialExternalGPU.cc.inc
+                       export_PotentialExternal${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialExternalGPUKernel.cu.inc
+                       PotentialExternal${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialExternal${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialExternal${_evaluator}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse)
+
+foreach(_evaluator ${_wall_evaluators})
+    configure_file(export_PotentialExternalWall.cc.inc
+                   export_PotentialExternalWall${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialExternalWall${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialExternalWallGPU.cc.inc
+                       export_PotentialExternalWall${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialExternalWallGPUKernel.cu.inc
+                       PotentialExternalWall${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialExternalWall${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialExternalWall${_evaluator}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+set(_dpdthermo_evaluators DPD LJ)
+
+foreach(_evaluator ${_dpdthermo_evaluators})
+    configure_file(export_PotentialPairDPDThermo.cc.inc
+                   export_PotentialPairDPDThermo${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialPairDPDThermo${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialPairDPDThermoGPU.cc.inc
+                       export_PotentialPairDPDThermo${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialPairDPDThermoGPUKernel.cu.inc
+                       PotentialPairDPDThermo${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialPairDPDThermo${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialPairDPDThermo${_evaluator}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+set(_pair_evaluators Buckingham
+                     LJ
+                     LJ1208
+                     LJ0804
+                     Gauss
+                     ExpandedLJ
+                     ExpandedMie
+                     Yukawa
+                     Ewald
+                     Morse
+                     ConservativeDPD
+                     Moliere
+                     ZBL
+                     Mie
+                     ReactionField
+                     DLVO
+                     Fourier
+                     OPP
+                     TWF
+                     LJGauss
+                     ForceShiftedLJ
+                     Table
+                     ExpandedGaussian)
+
+
+foreach(_evaluator ${_pair_evaluators})
+    set(_evaluator_cpp ${_evaluator})
+    if (_evaluator STREQUAL "ConservativeDPD")
+        set(_evaluator_cpp "DPDThermoDPD")
+    endif()
+
+    configure_file(export_PotentialPair.cc.inc
+                   export_PotentialPair${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}.cc)
+
+    if (ENABLE_HIP)
+        configure_file(export_PotentialPairGPU.cc.inc
+                       export_PotentialPair${_evaluator}GPU.cc
+                       @ONLY)
+        configure_file(PotentialPairGPUKernel.cu.inc
+                       PotentialPair${_evaluator}GPUKernel.cu
+                       @ONLY)
+        set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}GPU.cc)
+        set(_cuda_sources ${_cuda_sources}
+            PotentialPair${_evaluator}GPUKernel.cu
+            )
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+    endif()
+endforeach()
+
+set(_alchemical_pair_evaluators LJGauss)
+
+foreach(_evaluator ${_alchemical_pair_evaluators})
+    configure_file(export_PotentialPairAlchemical.cc.inc
+                   export_PotentialPairAlchemical${_evaluator}.cc
+                   @ONLY)
+    set(_md_sources ${_md_sources} export_PotentialPairAlchemical${_evaluator}.cc)
+endforeach()
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
@@ -335,13 +601,13 @@ set(files __init__.py
           constrain.py
           dihedral.py
           force.py
+          half_step_hook.py
           improper.py
           integrate.py
           manifold.py
           many_body.py
           nlist.py
           update.py
-          wall.py
           special_pair.py
     )
 
@@ -356,14 +622,20 @@ install(FILES ${_md_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/md
        )
 
+add_subdirectory(data)
+
 add_subdirectory(pair)
 
 add_subdirectory(methods)
+
+add_subdirectory(mesh)
 
 add_subdirectory(long_range)
 
 add_subdirectory(external)
 add_subdirectory(minimize)
+add_subdirectory(alchemy)
+add_subdirectory(tune)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

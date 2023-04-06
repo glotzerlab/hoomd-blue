@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd.filter
 ------------
 
@@ -13,10 +16,12 @@ hoomd.filter
     CustomFilter
     Intersection
     Null
+    Rigid
     SetDifference
     Tags
     Type
     Union
+    filter_like
 
 .. rubric:: Details
 
@@ -31,9 +36,11 @@ hoomd.filter
         :special-members: __call__
     .. autoclass:: Intersection(f, g)
     .. autoclass:: Null()
+    .. autoclass:: Rigid(flags=("center",))
     .. autoclass:: SetDifference(f, g)
     .. autoclass:: Tags(tags)
         :members: tags
     .. autoclass:: Type(types)
         :members: types
     .. autoclass:: Union(f, g)
+    .. autodata:: filter_like

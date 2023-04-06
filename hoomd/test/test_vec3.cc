@@ -1,12 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
 #include "upp11_config.h"
-
-HOOMD_UP_MAIN();
 
 #include <iostream>
 
@@ -16,6 +14,10 @@ HOOMD_UP_MAIN();
 #include <pybind11/pybind11.h>
 
 #include "hoomd/VectorMath.h"
+
+using namespace hoomd;
+
+HOOMD_UP_MAIN();
 
 UP_TEST(construction)
     {

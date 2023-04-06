@@ -1,10 +1,11 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 
 #include "ShapeSphere.h" //< For the base template of test_overlap
 #include "XenoCollide3D.h"
+#include "XenoSweep3D.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ManagedArray.h"
@@ -20,11 +21,13 @@
 #define DEVICE
 #define HOSTDEVICE
 #include <iostream>
-#if defined(__SSE__)
+#if !defined(__HIPCC__) && defined(__SSE__)
 #include <immintrin.h>
 #endif
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -744,7 +747,7 @@ struct ShapeConvexPolyhedron
         }
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
         // generate a tight AABB around the polyhedron
         // detail::SupportFuncConvexPolyhedron sfunc(verts);
@@ -765,10 +768,10 @@ struct ShapeConvexPolyhedron
         // vec3<Scalar> upper(pos.x + s_x.x, pos.y + s_y.y, pos.z + s_z.z);
         // vec3<Scalar> lower(pos.x + s_neg_x.x, pos.y + s_neg_y.y, pos.z + s_neg_z.z);
 
-        // return detail::AABB(lower, upper);
+        // return hoomd::detail::AABB(lower, upper);
 
         // ^^^^^^^ The above method is slow, just use a box that bounds the circumsphere
-        return detail::AABB(pos, getCircumsphereDiameter() / Scalar(2));
+        return hoomd::detail::AABB(pos, getCircumsphereDiameter() / Scalar(2));
         }
 
     /// Return a tight fitting OBB around the shape
@@ -839,6 +842,43 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
+//! Convex polyhedron sweep distance
+/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
+    \param a first shape
+    \param b second shape
+    \param err in/out variable incremented when error conditions occur in the overlap test
+    \returns true when *a* and *b* overlap, and false when they are disjoint
+
+    \ingroup shape
+*/
+DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
+                                         const ShapeConvexPolyhedron& a,
+                                         const ShapeConvexPolyhedron& b,
+                                         const vec3<Scalar>& direction,
+                                         unsigned int& err,
+                                         vec3<Scalar>& collisionPlaneVector)
+    {
+    vec3<OverlapReal> dr(r_ab);
+    vec3<OverlapReal> to(direction);
+
+    vec3<OverlapReal> csp(collisionPlaneVector);
+
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+
+    OverlapReal distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                                                detail::SupportFuncConvexPolyhedron(b.verts),
+                                                rotate(conj(quat<OverlapReal>(a.orientation)), dr),
+                                                conj(quat<OverlapReal>(a.orientation))
+                                                    * quat<OverlapReal>(b.orientation),
+                                                rotate(conj(quat<OverlapReal>(a.orientation)), to),
+                                                DaDb / OverlapReal(2.0),
+                                                err,
+                                                csp);
+    collisionPlaneVector = vec3<Scalar>(rotate(quat<OverlapReal>(a.orientation), csp));
+
+    return distance;
+    }
+
 #ifndef __HIPCC__
 template<> inline std::string getShapeSpec(const ShapeConvexPolyhedron& poly)
     {
@@ -863,7 +903,8 @@ template<> inline std::string getShapeSpec(const ShapeConvexPolyhedron& poly)
     }
 #endif
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVICE

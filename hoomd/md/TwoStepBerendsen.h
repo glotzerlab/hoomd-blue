@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
@@ -21,6 +19,10 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Implements the Berendsen thermostat \cite Berendsen1984
  */
 class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
@@ -73,7 +75,7 @@ class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
     bool m_warned_aniso; //!< true if we've already warned that we don't support aniso
     };
 
-//! Export the Berendsen class to python
-void export_Berendsen(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // _BERENDSEN_H_

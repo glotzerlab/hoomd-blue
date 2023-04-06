@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PAIR_EVALUATOR_TWF_H__
 #define __PAIR_EVALUATOR_TWF_H__
 
@@ -27,6 +30,10 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating the TWF pair potential
 /*! <b>General Overview</b>
 
@@ -213,7 +220,7 @@ class EvaluatorPairTWF
 
             if (energy_shift)
                 {
-                Scalar common_term_shift = 1.0 / (sigma2 / rcutsq - 1.0);
+                Scalar common_term_shift = 1.0 / (rcutsq / sigma2 - 1.0);
                 Scalar common_term3_shift
                     = common_term_shift * common_term_shift * common_term_shift;
                 Scalar common_term6_shift = common_term3_shift * common_term3_shift;
@@ -224,6 +231,16 @@ class EvaluatorPairTWF
             }
         else
             return false;
+        }
+
+    DEVICE Scalar evalPressureLRCIntegral()
+        {
+        return 0;
+        }
+
+    DEVICE Scalar evalEnergyLRCIntegral()
+        {
+        return 0;
         }
 
 #ifndef __HIPCC__
@@ -246,4 +263,7 @@ class EvaluatorPairTWF
     Scalar rcutsq;     //!< Stored rcutsq from the constructor
     param_type params; //!< parameters passed to the constructor
     };
+
+    }  // end namespace md
+    }  // end namespace hoomd
 #endif // __PAIR_EVALUATOR_TWF_H__

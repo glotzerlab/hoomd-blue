@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -17,14 +17,19 @@
 
 #include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/filter/ParticleFilterTags.h"
-#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/ComputeThermo.h"
+#include "hoomd/md/EvaluatorPairLJ.h"
 #include "hoomd/md/NeighborListTree.h"
+#include "hoomd/md/PotentialPair.h"
 #include "hoomd/md/TwoStepNVE.h"
 
 #include <math.h>
 
 using namespace std;
+using namespace hoomd;
+using namespace hoomd::md;
+
+typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();

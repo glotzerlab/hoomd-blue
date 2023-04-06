@@ -1,8 +1,9 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
+#include "hoomd/MeshDefinition.h"
 #include <memory>
 
 #include <vector>
@@ -20,11 +21,15 @@
 #ifndef __POTENTIALBOND_H__
 #define __POTENTIALBOND_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! Bond potential with evaluator support
 
     \ingroup computes
 */
-template<class evaluator> class PotentialBond : public ForceCompute
+template<class evaluator, class Bonds> class PotentialBond : public ForceCompute
     {
     public:
     //! Param type from evaluator
@@ -32,6 +37,10 @@ template<class evaluator> class PotentialBond : public ForceCompute
 
     //! Constructs the compute
     PotentialBond(std::shared_ptr<SystemDefinition> sysdef);
+
+    //! Constructs the compute with external Bond data
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<MeshDefinition> meshdef);
 
     //! Destructor
     virtual ~PotentialBond();
@@ -52,18 +61,15 @@ template<class evaluator> class PotentialBond : public ForceCompute
 #endif
 
     protected:
-    GPUArray<param_type> m_params;         //!< Bond parameters per type
-    std::shared_ptr<BondData> m_bond_data; //!< Bond data to use in computing bonds
-    std::string m_prof_name;               //!< Cached profiler name
+    GPUArray<param_type> m_params;      //!< Bond parameters per type
+    std::shared_ptr<Bonds> m_bond_data; //!< Bond data to use in computing bonds
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
 
-/*! \param sysdef System to compute forces on
- */
-template<class evaluator>
-PotentialBond<evaluator>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
+template<class evaluator, class Bonds>
+PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">"
@@ -72,14 +78,30 @@ PotentialBond<evaluator>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef
 
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
     }
 
-template<class evaluator> PotentialBond<evaluator>::~PotentialBond()
+template<class evaluator, class Bonds>
+PotentialBond<evaluator, Bonds>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
+                                               std::shared_ptr<MeshDefinition> meshdef)
+    : ForceCompute(sysdef)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing PotentialMeshBond<" << evaluator::getName() << ">"
+                                << std::endl;
+    assert(m_pdata);
+
+    // access the bond data for later use
+    m_bond_data = meshdef->getMeshBondData();
+
+    // allocate the parameters
+    GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
+    m_params.swap(params);
+    }
+
+template<class evaluator, class Bonds> PotentialBond<evaluator, Bonds>::~PotentialBond()
     {
     m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">"
                                 << std::endl;
@@ -90,8 +112,8 @@ template<class evaluator> PotentialBond<evaluator>::~PotentialBond()
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator>
-void PotentialBond<evaluator>::validateType(unsigned int type, std::string action)
+template<class evaluator, class Bonds>
+void PotentialBond<evaluator, Bonds>::validateType(unsigned int type, std::string action)
     {
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
@@ -102,8 +124,8 @@ void PotentialBond<evaluator>::validateType(unsigned int type, std::string actio
         }
     }
 
-template<class evaluator>
-void PotentialBond<evaluator>::setParams(unsigned int type, const param_type& param)
+template<class evaluator, class Bonds>
+void PotentialBond<evaluator, Bonds>::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
     validateType(type, "setting params");
@@ -116,8 +138,8 @@ void PotentialBond<evaluator>::setParams(unsigned int type, const param_type& pa
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator>
-void PotentialBond<evaluator>::setParamsPython(std::string type, pybind11::dict param)
+template<class evaluator, class Bonds>
+void PotentialBond<evaluator, Bonds>::setParamsPython(std::string type, pybind11::dict param)
     {
     auto itype = m_bond_data->getTypeByName(type);
     auto struct_param = param_type(param);
@@ -129,7 +151,8 @@ void PotentialBond<evaluator>::setParamsPython(std::string type, pybind11::dict 
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator> pybind11::dict PotentialBond<evaluator>::getParams(std::string type)
+template<class evaluator, class Bonds>
+pybind11::dict PotentialBond<evaluator, Bonds>::getParams(std::string type)
     {
     auto itype = m_bond_data->getTypeByName(type);
     validateType(itype, "getting params");
@@ -140,11 +163,9 @@ template<class evaluator> pybind11::dict PotentialBond<evaluator>::getParams(std
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t timestep)
+template<class evaluator, class Bonds>
+void PotentialBond<evaluator, Bonds>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     assert(m_pdata);
 
     // access the particle data arrays
@@ -175,7 +196,7 @@ template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t 
     // we are using the minimum image of the global box here
     // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
     // length)
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
@@ -184,9 +205,9 @@ template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t 
     for (unsigned int i = 0; i < 6; i++)
         bond_virial[i] = Scalar(0.0);
 
-    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(),
-                                                      access_location::host,
-                                                      access_mode::read);
+    ArrayHandle<typename Bonds::members_t> h_bonds(m_bond_data->getMembersArray(),
+                                                   access_location::host,
+                                                   access_mode::read);
     ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(),
                                      access_location::host,
                                      access_mode::read);
@@ -199,7 +220,7 @@ template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t 
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const typename BondData::members_t& bond = h_bonds.data[i];
+        const typename Bonds::members_t& bond = h_bonds.data[i];
         assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
         assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
 
@@ -211,11 +232,9 @@ template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t 
         // throw an error if this bond is incomplete
         if (idx_a >= max_local || idx_b >= max_local)
             {
-            this->m_exec_conf->msg->error()
-                << "bond." << evaluator::getName() << ": bond " << bond.tag[0] << " " << bond.tag[1]
-                << " incomplete." << std::endl
-                << std::endl;
-            throw std::runtime_error("Error in bond calculation");
+            std::ostringstream stream;
+            stream << "Error: bond " << bond.tag[0] << " " << bond.tag[1] << " is incomplete.";
+            throw std::runtime_error(stream.str());
             }
 
         // calculate d\vec{r}
@@ -308,16 +327,13 @@ template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t 
             throw std::runtime_error("Error in bond calculation");
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-template<class evaluator>
-CommFlags PotentialBond<evaluator>::getRequestedCommFlags(uint64_t timestep)
+template<class evaluator, class Bonds>
+CommFlags PotentialBond<evaluator, Bonds>::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -335,16 +351,38 @@ CommFlags PotentialBond<evaluator>::getRequestedCommFlags(uint64_t timestep)
     }
 #endif
 
+namespace detail
+    {
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module
-    \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
+    \tparam T Evaluator type to export.
 */
 template<class T> void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialBond<T, BondData>,
+                     ForceCompute,
+                     std::shared_ptr<PotentialBond<T, BondData>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams);
+        .def("setParams", &PotentialBond<T, BondData>::setParamsPython)
+        .def("getParams", &PotentialBond<T, BondData>::getParams);
     }
+
+//! Exports the PotentialMeshBond class to python
+/*! \param name Name of the class in the exported python module
+    \tparam T Evaluator type to export.
+*/
+template<class T> void export_PotentialMeshBond(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<PotentialBond<T, MeshBondData>,
+                     ForceCompute,
+                     std::shared_ptr<PotentialBond<T, MeshBondData>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>())
+        .def("setParams", &PotentialBond<T, MeshBondData>::setParamsPython)
+        .def("getParams", &PotentialBond<T, MeshBondData>::getParams);
+    }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

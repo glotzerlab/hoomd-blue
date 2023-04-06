@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
@@ -10,7 +10,11 @@
 #include <functional>
 #include <memory>
 
-#include "hoomd/md/AllExternalPotentials.h"
+#include "hoomd/md/PotentialExternal.h"
+#ifdef ENABLE_HIP
+#include "hoomd/md/PotentialExternalGPU.h"
+#endif
+#include "hoomd/md/EvaluatorExternalPeriodic.h"
 
 #include "hoomd/Initializers.h"
 
@@ -18,6 +22,13 @@
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
+
+typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
+#ifdef ENABLE_HIP
+typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
+#endif
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for PotentialPairLJ and PotentialPairLJGPU and descendants
@@ -68,8 +79,8 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator,
     fc_3->compute(0);
 
         {
-        GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
-        GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
+        const GlobalArray<Scalar4>& force_array_1 = fc_3->getForceArray();
+        const GlobalArray<Scalar>& virial_array_1 = fc_3->getVirialArray();
         size_t pitch = virial_array_1.getPitch();
         ArrayHandle<Scalar4> h_force_1(force_array_1, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_virial_1(virial_array_1, access_location::host, access_mode::read);

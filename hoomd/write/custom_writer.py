@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement CustomWriter."""
 
@@ -28,7 +27,7 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
 
     Args:
         action (hoomd.custom.Action): The action to call.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to call the
+        trigger (hoomd.trigger.trigger_like): Select the timesteps to call the
           action.
 
     `CustomWriter` is a `hoomd.operation.Writer` that wraps a user-defined

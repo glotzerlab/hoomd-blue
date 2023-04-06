@@ -1,30 +1,10 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Variant.h"
 
-// These testVariant{Method} functions allow us to test that Python custom
-// variants work properly in C++. This ensures we can test that the function
-// itself can be called in C++ when defined in Python.
-
-/// Method to enable unit testing of C++ variant calls from pytest
-Scalar testVariantCall(std::shared_ptr<Variant> t, uint64_t step)
+namespace hoomd
     {
-    return (*t)(step);
-    }
-
-/// Method to enable unit testing of C++ variant min class from pytest
-Scalar testVariantMin(std::shared_ptr<Variant> t)
-    {
-    return t->min();
-    }
-
-/// Method to enable unit testing of C++ variant max class from pytest
-Scalar testVariantMax(std::shared_ptr<Variant> t)
-    {
-    return t->max();
-    }
-
 //* Trampoline for classes inherited in python
 class VariantPy : public Variant
     {
@@ -61,6 +41,30 @@ class VariantPy : public Variant
         );
         }
     };
+
+namespace detail
+    {
+// These testVariant{Method} functions allow us to test that Python custom
+// variants work properly in C++. This ensures we can test that the function
+// itself can be called in C++ when defined in Python.
+
+/// Method to enable unit testing of C++ variant calls from pytest
+Scalar testVariantCall(std::shared_ptr<Variant> t, uint64_t step)
+    {
+    return (*t)(step);
+    }
+
+/// Method to enable unit testing of C++ variant min class from pytest
+Scalar testVariantMin(std::shared_ptr<Variant> t)
+    {
+    return t->min();
+    }
+
+/// Method to enable unit testing of C++ variant max class from pytest
+Scalar testVariantMax(std::shared_ptr<Variant> t)
+    {
+    return t->max();
+    }
 
 void export_Variant(pybind11::module& m)
     {
@@ -178,3 +182,7 @@ void export_Variant(pybind11::module& m)
     m.def("_test_variant_min", &testVariantMin);
     m.def("_test_variant_max", &testVariantMax);
     }
+
+    } // end namespace detail
+
+    } // end namespace hoomd

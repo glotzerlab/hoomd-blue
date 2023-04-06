@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file GPUArray.h
     \brief Defines the GPUArray class
@@ -11,8 +9,7 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __GPUARRAY_H__
-#define __GPUARRAY_H__
+#pragma once
 
 // 4 GB is considered a large allocation for a single GPU buffer, and user should be warned
 #define LARGEALLOCBYTES 0xffffffff
@@ -33,6 +30,8 @@
 #include <cxxabi.h>
 #include <sstream>
 
+namespace hoomd
+    {
 //! Specifies where to acquire the data
 struct access_location
     {
@@ -74,8 +73,6 @@ struct access_mode
 
 template<class T> class GPUArray;
 
-namespace hoomd
-    {
 namespace detail
     {
 template<class T> class device_deleter
@@ -113,7 +110,6 @@ template<class T> class device_deleter
 #ifdef ENABLE_HIP
             hipFree(ptr);
 #endif
-            CHECK_CUDA_ERROR();
             }
         }
 
@@ -161,7 +157,6 @@ template<class T> class host_deleter
 #if (ENABLE_HIP)
             hipHostUnregister(ptr);
 #endif
-            CHECK_CUDA_ERROR();
             }
 
         // free the allocation
@@ -174,8 +169,6 @@ template<class T> class host_deleter
     size_t m_N;                                                //!< Number of elements in array
     };
     } // end namespace detail
-
-    } // end namespace hoomd
 
 //! Forward declarations
 template<class T> class ArrayHandleDispatch;
@@ -984,7 +977,7 @@ template<class T> void GPUArray<T>::allocate()
         {
         if (m_exec_conf)
             m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        throw std::bad_alloc();
         }
 
     bool use_device = m_exec_conf && m_exec_conf->isCUDAEnabled();
@@ -1011,20 +1004,37 @@ template<class T> void GPUArray<T>::allocate()
 #if defined(ENABLE_HIP)
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
+        // Check for pending errors.
+        CHECK_CUDA_ERROR();
+
         // allocate and/or map host memory
         if (m_mapped)
             {
 #ifdef ENABLE_HIP
-            hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
+            hipError_t error = hipHostGetDevicePointer(&device_ptr, h_data.get(), 0);
+            if (error == hipErrorMemoryAllocation)
+                {
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
 #endif
-            CHECK_CUDA_ERROR();
             }
         else
             {
 #ifdef ENABLE_HIP
-            hipMalloc(&device_ptr, m_num_elements * sizeof(T));
+            hipError_t error = hipMalloc(&device_ptr, m_num_elements * sizeof(T));
+            if (error == hipErrorMemoryAllocation)
+                {
+                throw std::bad_alloc();
+                }
+            else if (error != hipSuccess)
+                {
+                throw std::runtime_error(hipGetErrorString(error));
+                }
 #endif
-            CHECK_CUDA_ERROR();
             }
 
         // store in smart pointer with custom deleter
@@ -1193,9 +1203,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 m_data_location = data_location::host;
             else
                 {
-                if (m_exec_conf)
-                    m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
 
             return GPUArrayDispatch<T>(h_data.get(), *this);
@@ -1225,9 +1233,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 }
             else
                 {
-                if (m_exec_conf)
-                    m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
 
             return GPUArrayDispatch<T>(h_data.get(), *this);
@@ -1235,9 +1241,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
 #endif
         else
             {
-            if (m_exec_conf)
-                m_exec_conf->msg->error() << "Invalid data location state" << std::endl;
-            throw std::runtime_error("Error acquiring data");
+            throw std::runtime_error("Invalid data location state.");
             return ArrayHandleDispatch<T>(nullptr);
             }
         }
@@ -1284,8 +1288,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 }
             else
                 {
-                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
 
             return GPUArrayDispatch<T>(d_data.get(), *this);
@@ -1301,8 +1304,7 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
                 m_data_location = data_location::device;
             else
                 {
-                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
-                throw std::runtime_error("Error acquiring data");
+                throw std::runtime_error("Invalid access mode requested.");
                 }
             return GPUArrayDispatch<T>(d_data.get(), *this);
             }
@@ -1313,17 +1315,14 @@ ArrayHandleDispatch<T> GPUArray<T>::acquire(const access_location::Enum location
             }
         else
             {
-            m_exec_conf->msg->error() << "Invalid data_location state" << std::endl;
-            throw std::runtime_error("Error acquiring data");
+            throw std::runtime_error("Invalid data_location state.");
             return ArrayHandleDispatch<T>(nullptr);
             }
         }
 #endif
     else
         {
-        if (m_exec_conf)
-            m_exec_conf->msg->error() << "Invalid location requested" << std::endl;
-        throw std::runtime_error("Error acquiring data");
+        throw std::runtime_error("Invalid location requested.");
         return ArrayHandleDispatch<T>(nullptr);
         }
     }
@@ -1348,7 +1347,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(size_t num_elements)
         {
         if (m_exec_conf)
             m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        throw std::bad_alloc();
         }
 
 #ifdef ENABLE_HIP
@@ -1414,7 +1413,7 @@ T* GPUArray<T>::resize2DHostArray(size_t pitch, size_t new_pitch, size_t height,
         {
         if (m_exec_conf)
             m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
-        throw std::runtime_error("Error allocating GPUArray.");
+        throw std::bad_alloc();
         }
 
 #ifdef ENABLE_HIP
@@ -1473,6 +1472,9 @@ T* GPUArray<T>::resize2DHostArray(size_t pitch, size_t new_pitch, size_t height,
  */
 template<class T> T* GPUArray<T>::resizeDeviceArray(size_t num_elements)
     {
+    // Check for pending errors.
+    CHECK_CUDA_ERROR();
+
 #ifdef ENABLE_HIP
     if (m_mapped)
         return NULL;
@@ -1480,10 +1482,16 @@ template<class T> T* GPUArray<T>::resizeDeviceArray(size_t num_elements)
     // allocate resized array
     T* d_tmp;
 #ifdef ENABLE_HIP
-    hipMalloc(&d_tmp, num_elements * sizeof(T));
+    hipError_t error = hipMalloc(&d_tmp, num_elements * sizeof(T));
+    if (error == hipErrorMemoryAllocation)
+        {
+        throw std::bad_alloc();
+        }
+    else if (error != hipSuccess)
+        {
+        throw std::runtime_error(hipGetErrorString(error));
+        }
 #endif
-
-    CHECK_CUDA_ERROR();
 
     assert(d_tmp);
 
@@ -1524,15 +1532,25 @@ T* GPUArray<T>::resize2DDeviceArray(size_t pitch,
                                     size_t new_height)
     {
 #ifdef ENABLE_HIP
+    // Check for pending errors.
+    CHECK_CUDA_ERROR();
+
     if (m_mapped)
         return NULL;
 
     // allocate resized array
     T* d_tmp;
 #ifdef ENABLE_HIP
-    hipMalloc(&d_tmp, new_pitch * new_height * sizeof(T));
+    hipError_t error = hipMalloc(&d_tmp, new_pitch * new_height * sizeof(T));
+    if (error == hipErrorMemoryAllocation)
+        {
+        throw std::bad_alloc();
+        }
+    else if (error != hipSuccess)
+        {
+        throw std::runtime_error(hipGetErrorString(error));
+        }
 #endif
-    CHECK_CUDA_ERROR();
     assert(d_tmp);
 
 // clear memory
@@ -1655,4 +1673,5 @@ template<class T> void GPUArray<T>::resize(size_t width, size_t height)
     m_pitch = new_pitch;
     m_num_elements = m_pitch * m_height;
     }
-#endif
+
+    } // end namespace hoomd

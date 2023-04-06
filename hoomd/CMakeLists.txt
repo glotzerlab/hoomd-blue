@@ -1,7 +1,7 @@
 add_subdirectory(extern)
 
 # configure the version information file
-configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
+configure_file (HOOMDVersion.h.inc ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
 
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
@@ -26,12 +26,6 @@ else()
     set(_hpmc_built "False")
 endif()
 
-if (BUILD_DEM)
-    set(_dem_built "True")
-else()
-    set(_dem_built "False")
-endif()
-
 if (BUILD_METAL)
     set(_metal_built "True")
 else()
@@ -44,6 +38,12 @@ else()
     set(_mpcd_built "False")
 endif()
 
+if (ENABLE_LLVM)
+    set(_llvm_enabled "True")
+else()
+    set(_llvm_enabled "False")
+endif()
+
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
@@ -52,40 +52,36 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
 ##############################
 ## Source setup
 
-set(_hoomd_sources Analyzer.cc
-                   Autotuner.cc
+set(_hoomd_sources Action.cc
+                   Autotuned.cc
+                   Analyzer.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
-                   CallbackAnalyzer.cc
                    CellList.cc
                    CellListStencil.cc
                    ClockSource.cc
                    Communicator.cc
                    CommunicatorGPU.cc
                    Compute.cc
-                   ConstForceCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
                    ExecutionConfiguration.cc
                    ForceCompute.cc
                    ForceConstraint.cc
-                   GetarDumpWriter.cc
-                   GetarInitializer.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
                    Initializers.cc
                    Integrator.cc
-                   IntegratorData.cc
                    LoadBalancer.cc
+                   MeshGroupData.cc
+                   MeshDefinition.cc
                    Messenger.cc
-                   MemoryTraceback.cc
                    MPIConfiguration.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    ParticleFilterUpdater.cc
-                   Profiler.cc
                    PythonLocalDataAccess.cc
                    PythonAnalyzer.cc
                    PythonTuner.cc
@@ -117,15 +113,19 @@ endif()
 set(_hoomd_headers
     AABB.h
     AABBTree.h
+    Action.h
     Analyzer.h
+    ArrayView.h
+    Autotuned.h
     Autotuner.h
     BondedGroupData.cuh
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
+    BoxResizeUpdaterGPU.cuh
+    BoxResizeUpdaterGPU.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
-    CallbackAnalyzer.h
     CellListGPU.cuh
     CellListGPU.h
     CellList.h
@@ -135,16 +135,12 @@ set(_hoomd_headers
     CommunicatorGPU.h
     Communicator.h
     Compute.h
-    ConstForceCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
     ExecutionConfiguration.h
     Filesystem.h
     ForceCompute.h
     ForceConstraint.h
-    GetarDumpIterators.h
-    GetarDumpWriter.h
-    GetarInitializer.h
     GlobalArray.h
     GPUArray.h
     GPUFlags.h
@@ -162,14 +158,15 @@ set(_hoomd_headers
     Index1D.h
     Initializers.h
     Integrator.cuh
-    IntegratorData.h
     Integrator.h
     LoadBalancerGPU.cuh
     LoadBalancerGPU.h
     LoadBalancer.h
     managed_allocator.h
     ManagedArray.h
-    MemoryTraceback.h
+    MeshGroupData.cuh
+    MeshGroupData.h
+    MeshDefinition.h
     Messenger.h
     MPIConfiguration.h
     ParticleData.cuh
@@ -177,7 +174,6 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     ParticleFilterUpdater.h
-    Profiler.h
     PythonLocalDataAccess.h
     PythonUpdater.h
     PythonAnalyzer.h
@@ -201,7 +197,8 @@ set(_hoomd_headers
     )
 
 if (ENABLE_HIP)
-list(APPEND _hoomd_sources CellListGPU.cc
+list(APPEND _hoomd_sources BoxResizeUpdaterGPU.cc
+                           CellListGPU.cc
                            CommunicatorGPU.cc
                            LoadBalancerGPU.cc
                            SFCPackTunerGPU.cc
@@ -209,38 +206,19 @@ list(APPEND _hoomd_sources CellListGPU.cc
 endif()
 
 set(_hoomd_cu_sources BondedGroupData.cu
+                      BoxResizeUpdaterGPU.cu
                       CellListGPU.cu
                       CommunicatorGPU.cu
                       Integrator.cu
                       LoadBalancerGPU.cu
+                      MeshGroupData.cu
                       ParticleData.cu
                       ParticleGroup.cu
                       SFCPackTunerGPU.cu)
 
-# include libgetar sources directly into _hoomd.so
-get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
-foreach(getar_src ${GETAR_SRCS_REL})
-  list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
-endforeach(getar_src)
-
-# quiet some warnings locally on files we can't modify
-if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
-    set_source_files_properties(extern/libgetar/src/DirArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/SqliteArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/TarArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/ZipArchive.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/src/lz4.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    set_source_files_properties(extern/libgetar/miniz/miniz.cpp PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    if (CMAKE_COMPILER_IS_GNUCXX)
-        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion -Wno-return-local-addr")
-    else()
-        set_source_files_properties(extern/libgetar/sqlite3/sqlite3.c PROPERTIES COMPILE_FLAGS "-Wno-conversion")
-    endif()
-endif()
-
 if (ENABLE_HIP)
 set(_cuda_sources ${_hoomd_cu_sources})
+set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
 endif (ENABLE_HIP)
 
 #########################
@@ -250,16 +228,35 @@ pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} $
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
 
+# Work around support for the delete operator with pybind11 and older versions of clang
+# https://github.com/pybind/pybind11/issues/1604
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.11)
+        target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
+    else()
+        target_compile_options(_hoomd PUBLIC -fsized-deallocation)
+    endif()
+endif()
+
 # add quick hull as its own library so that it's symbols can be public
 add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # ignore conversion warnings in quickull
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0.0)
+        target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
+    else()
+        target_compile_options(quickhull PRIVATE "-Wno-conversion")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(quickhull PRIVATE "-Wno-conversion;-Wno-pessimizing-move")
 endif()
 
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC pybind11::pybind11 quickhull Eigen3::Eigen)
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    target_link_libraries(_hoomd PUBLIC execinfo) # on FreeBSD backtrace() is in libexecinfo
+endif()
 
 # specify required include directories
 target_include_directories(_hoomd PUBLIC
@@ -278,8 +275,8 @@ endif(SINGLE_PRECISION)
 
 # Libraries and compile definitions for CUDA enabled builds
 if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "hcc" OR HIP_PLATFORM STREQUAL "hip-clang")
-        target_link_libraries(_hoomd PUBLIC HIP::hipfft HIP::hiprt)
+    if (HIP_PLATFORM STREQUAL "hip-clang")
+        target_link_libraries(_hoomd PUBLIC hip::hipfft)
     elseif(HIP_PLATFORM STREQUAL "nvcc")
         target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     endif()
@@ -298,7 +295,7 @@ if (ENABLE_HIP)
         target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
     endif()
 
-    target_link_libraries(_hoomd PUBLIC HIP::hip)
+    target_link_libraries(_hoomd PUBLIC hip::host)
 
     if (ENABLE_ROCTRACER)
         target_link_libraries(_hoomd PUBLIC HIP::roctracer)
@@ -324,7 +321,7 @@ endif()
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)
     target_compile_definitions(_hoomd PUBLIC ENABLE_MPI)
-    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal)
+    target_link_libraries(_hoomd PUBLIC MPI::MPI_CXX cereal::cereal)
 
     if (ENABLE_MPI_CUDA)
           target_compile_definitions(_hoomd PUBLIC ENABLE_MPI_CUDA)
@@ -352,11 +349,11 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 # copy python modules to the build directory to make it a working python package
 set(files box.py
           communicator.py
+          _compile.py
           conftest.py
           device.py
           __init__.py
           error.py
-          integrate.py
           operation.py
           operations.py
           pytest_plugin_validate.py
@@ -368,7 +365,10 @@ set(files box.py
           trigger.py
           snapshot.py
           logging.py
+          mesh.py
           version.py
+          wall.py
+          pytest.ini
     )
 
 install(FILES ${files}
@@ -416,22 +416,15 @@ if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
 
-if (BUILD_DEM AND BUILD_MD)
-    add_subdirectory(dem)
-endif()
-
 if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     if (BUILD_MPCD)
         add_subdirectory(mpcd)
     endif()
 endif()
 
-if (BUILD_JIT)
-    add_subdirectory(jit)
-endif()
-
 foreach(entry ${PLUGINS})
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+        message(STATUS "Found plugin: ${entry}")
         add_subdirectory(${entry})
     endif()
 endforeach()

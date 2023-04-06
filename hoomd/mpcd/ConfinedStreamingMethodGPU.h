@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ConfinedStreamingMethodGPU.h
@@ -19,6 +17,8 @@
 #include "ConfinedStreamingMethodGPU.cuh"
 #include "hoomd/Autotuner.h"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! MPCD confined geometry streaming method
@@ -45,28 +45,17 @@ class PYBIND11_EXPORT ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamin
                                std::shared_ptr<const Geometry> geom)
         : mpcd::ConfinedStreamingMethod<Geometry>(sysdata, cur_timestep, period, phase, geom)
         {
-        m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_stream", this->m_exec_conf));
+        m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                       this->m_exec_conf,
+                                       "mpcd_stream"));
+        this->m_autotuners.push_back(m_tuner);
         }
 
     //! Implementation of the streaming rule
     virtual void stream(uint64_t timestep);
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     *
-     * Derived classes should override this to set the parameters of their autotuners.
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        ConfinedStreamingMethod<Geometry>::setAutotunerParams(enable, period);
-        m_tuner->setEnabled(enable);
-        m_tuner->setPeriod(period);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner;
+    std::shared_ptr<Autotuner<1>> m_tuner;
     };
 
 /*!
@@ -85,8 +74,6 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
         this->m_validate_geom = false;
         }
 
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "MPCD stream");
     ArrayHandle<Scalar4> d_pos(this->m_mpcd_pdata->getPositions(),
                                access_location::device,
                                access_mode::readwrite);
@@ -101,7 +88,7 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
                                   this->m_mpcd_sys->getCellList()->getCoverageBox(),
                                   this->m_mpcd_dt,
                                   this->m_mpcd_pdata->getN(),
-                                  m_tuner->getParam());
+                                  m_tuner->getParam()[0]);
 
     m_tuner->begin();
     mpcd::gpu::confined_stream<Geometry>(args, *(this->m_geom));
@@ -111,8 +98,6 @@ template<class Geometry> void ConfinedStreamingMethodGPU<Geometry>::stream(uint6
 
     // particles have moved, so the cell cache is no longer valid
     this->m_mpcd_pdata->invalidateCellCache();
-    if (this->m_prof)
-        this->m_prof->pop(this->m_exec_conf);
     }
 
 namespace detail
@@ -123,17 +108,17 @@ namespace detail
  */
 template<class Geometry> void export_ConfinedStreamingMethodGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
     const std::string name = "ConfinedStreamingMethodGPU" + Geometry::getName();
-    py::class_<mpcd::ConfinedStreamingMethodGPU<Geometry>,
-               mpcd::ConfinedStreamingMethod<Geometry>,
-               std::shared_ptr<mpcd::ConfinedStreamingMethodGPU<Geometry>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
-                      int,
-                      std::shared_ptr<const Geometry>>());
+    pybind11::class_<mpcd::ConfinedStreamingMethodGPU<Geometry>,
+                     mpcd::ConfinedStreamingMethod<Geometry>,
+                     std::shared_ptr<mpcd::ConfinedStreamingMethodGPU<Geometry>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            unsigned int,
+                            unsigned int,
+                            int,
+                            std::shared_ptr<const Geometry>>());
     }
-    }      // end namespace detail
-    }      // end namespace mpcd
+    }  // end namespace detail
+    }  // end namespace mpcd
+    }  // end namespace hoomd
 #endif // MPCD_CONFINED_STREAMING_METHOD_GPU_H_

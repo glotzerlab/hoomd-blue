@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include <iostream>
 
@@ -17,8 +17,9 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
-#include "hoomd/md/AllAnisoPairPotentials.h"
 #include "hoomd/md/AllPairPotentials.h"
+#include "hoomd/md/AnisoPotentialPair.h"
+#include "hoomd/md/EvaluatorPairGB.h"
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
 
@@ -30,16 +31,15 @@
 #include "hoomd/RandomNumbers.h"
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
-namespace py = pybind11;
 
 #include "hoomd/Variant.h"
-
-using namespace hoomd;
 
 #include <math.h>
 
 using namespace std;
 using namespace std::placeholders;
+using namespace hoomd;
+using namespace hoomd::md;
 
 /*! \file test_npt_mtk_integrator.cc
     \brief Implements unit tests for NPTMTKpdater and descendants
@@ -574,7 +574,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator,
     std::shared_ptr<NeighborList> nlist;
 
     // set up Gay-Berne
-    std::shared_ptr<AnisoPotentialPairGB> fc;
+    std::shared_ptr<AnisoPotentialPair<EvaluatorPairGB>> fc;
     std::shared_ptr<CellList> cl;
 
     Scalar r_cut = 2.5;
@@ -807,9 +807,9 @@ std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
@@ -837,16 +837,16 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
     S.append(zero_variant);
     S.append(zero_variant);
     S.append(zero_variant);
-    std::cout << py::len(S) << std::endl;
+    std::cout << pybind11::len(S) << std::endl;
 
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
@@ -870,9 +870,9 @@ std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);
@@ -899,9 +899,9 @@ std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard {};
-    py::module::import("variant");
-    py::list S;
+    pybind11::scoped_interpreter guard {};
+    pybind11::module::import("variant");
+    pybind11::list S;
     S.append(P_variant);
     S.append(P_variant);
     S.append(P_variant);

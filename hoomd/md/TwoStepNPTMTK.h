@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ComputeThermo.h"
 #include "IntegrationMethodTwoStep.h"
@@ -21,6 +19,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT
    ensemble. The update equations are derived from a strictly measure-preserving and time-reversal
@@ -193,16 +195,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         return flags;
         }
 
-    //! Initialize integrator variables
-    virtual void initializeIntegratorVariables()
-        {
-        IntegratorVariables v = getIntegratorVariables();
-        v.type = "npt_mtk";
-        v.variable.clear();
-        v.variable.resize(10, Scalar(0.0));
-        setIntegratorVariables(v);
-        }
-
     /// Randomize the thermostat and barostat variables
     void thermalizeThermostatAndBarostatDOF(uint64_t timestep);
 
@@ -229,6 +221,26 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     Scalar getBarostatEnergy(uint64_t timestep);
 
     protected:
+    /// Thermostat variables
+    struct Thermostat
+        {
+        Scalar xi = 0;
+        Scalar eta = 0;
+        Scalar xi_rot = 0;
+        Scalar eta_rot = 0;
+        };
+
+    /// Barostat variables
+    struct Barostat
+        {
+        Scalar nu_xx;
+        Scalar nu_xy;
+        Scalar nu_xz;
+        Scalar nu_yy;
+        Scalar nu_yz;
+        Scalar nu_zz;
+        };
+
     std::shared_ptr<ComputeThermo>
         m_thermo_half_step; //!< ComputeThermo operating on the integrated group at t+dt/2
     std::shared_ptr<ComputeThermo>
@@ -253,6 +265,9 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
     Scalar m_gamma; //!< Optional damping factor for box degrees of freedom
 
+    Thermostat m_thermostat; //!< thermostat degrees of freedom
+    Barostat m_barostat;     //!< barostat degrees of freedom
+
     //! Helper function to advance the barostat parameters
     void advanceBarostat(uint64_t timestep);
 
@@ -263,14 +278,13 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     void advanceThermostat(uint64_t timestep);
 
     //! Helper function to update the propagator elements
-    void
-    updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
+    void updatePropagator();
 
     //! Get the relevant couplings for the active box degrees of freedom
     couplingMode getRelevantCouplings();
     };
 
-//! Exports the TwoStepNPTMTK class to python
-void export_TwoStepNPTMTK(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_H__

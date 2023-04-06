@@ -1,3 +1,6 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 import numpy as np
 import pytest
 
@@ -83,7 +86,8 @@ def local_simulation_factory(simulation_factory, two_particle_snapshot_factory):
         else:
             method = hoomd.md.methods.rattle.NVE(hoomd.filter.All(),
                                                  hoomd.md.manifold.Plane(0.1))
-        sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+        sim.operations.integrator = hoomd.md.Integrator(dt=0.005,
+                                                        methods=[method])
         if active_force is not None:
             sim.operations.integrator.forces.append(active_force)
         if rd_updater is not None:
@@ -104,16 +108,11 @@ def test_attaching(active_force, local_simulation_factory):
     with pytest.raises(hoomd.error.SimulationDefinitionError):
         sim.operations.integrator.forces.remove(active_force)
 
-    # Exception happens before removing "_simulation" attribute. We need to
-    # manual do this to perform the other checks. We don't worry about this,
-    # because a SimulationDefinitionError is not really meant to be caught and
-    # dealt with dynamically.
-    del active_force._simulation
+    sim.operations.remove(rd_updater)
+    sim.operations.integrator.forces.clear()
 
     # Reset simulation to test for variouos error conditions
     sim.operations._unschedule()
-    sim.operations.remove(rd_updater)
-    sim.operations.integrator.forces.clear()
 
     # ActiveRotationalDiffusion should error when active force is not attached
     sim.operations += rd_updater
@@ -141,6 +140,7 @@ def test_update(active_force, local_simulation_factory):
     snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:
         old_orientations = snapshot.particles.orientation
+
     sim.run(10)
     snapshot = sim.state.get_snapshot()
     if sim.device.communicator.rank == 0:

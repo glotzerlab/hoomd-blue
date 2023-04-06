@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "ShapeConvexPolygon.h"
 #include "ShapeSphere.h" //< For the base template of test_overlap
@@ -24,6 +24,8 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Simple Polygon shape template
@@ -94,9 +96,9 @@ struct ShapeSimplePolygon
 #endif
 
     //! Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, verts.diameter / Scalar(2));
+        return hoomd::detail::AABB(pos, verts.diameter / Scalar(2));
         }
 
     //! Return a tight fitting OBB
@@ -346,6 +348,12 @@ template<> inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
     {
     std::ostringstream shapedef;
     auto& verts = poly.verts;
+
+    if (verts.N == 0)
+        {
+        throw std::runtime_error("Shape definition not supported for 0-vertex polygon.");
+        }
+
     shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius
              << ", \"vertices\": [";
     for (unsigned int i = 0; i < verts.N - 1; i++)
@@ -357,7 +365,8 @@ template<> inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
     }
 #endif
 
-    }; // end namespace hpmc
+    } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef DEVICE
 #undef HOSTDEVCE

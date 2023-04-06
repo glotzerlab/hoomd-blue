@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Implement Action."""
 
@@ -71,8 +70,8 @@ class Action(metaclass=_AbstractLoggable):
                 pass
 
     Attributes:
-        flags (list[hoomd.custom.Action.Flags]): List of flags from the
-            `hoomd.custom.Action.Flags`. Used to tell the integrator if
+        flags (list[Action.Flags]): List of flags from the
+            `Action.Flags`. Used to tell the integrator if
             specific quantities are needed for the action.
     """
 
@@ -111,8 +110,7 @@ class Action(metaclass=_AbstractLoggable):
 
     def detach(self):
         """Detaches the Action from the `hoomd.Simulation`."""
-        if hasattr(self, '_state'):
-            del self._state
+        self._state = None
 
     @abstractmethod
     def act(self, timestep):

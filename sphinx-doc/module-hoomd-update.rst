@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 hoomd.update
 ------------
 
@@ -19,3 +22,4 @@ hoomd.update
     :synopsis: Modify the system state periodically.
     :members: BoxResize, CustomUpdater, FilterUpdater, RemoveDrift
     :imported-members:
+    :show-inheritance:

@@ -1,13 +1,35 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define quantities that vary over the simulation.
 
 A `Variant` object represents a scalar function of the time step. Some
-**Operations** accept `Variant` values for certain parameters, such as the
+operations accept `Variant` values for certain parameters, such as the
 ``kT`` parameter to `hoomd.md.methods.NVT`.
+
+Use one of the built in variant types, or define your own custom function
+in Python:
+
+.. code:: python
+
+    class CustomVariant(hoomd.variant.Variant):
+        def __init__(self):
+            hoomd.variant.Variant.__init__(self)
+
+        def __call__(self, timestep):
+            return (float(timestep)**(1 / 2))
+
+        def _min(self):
+            return 0.0
+
+        def _max(self):
+            return float('inf')
+
+Note:
+    Provide the minimum and maximum values in the ``_min`` and ``_max``
+    methods respectively.
 """
+import typing
 
 from hoomd import _hoomd
 
@@ -15,17 +37,7 @@ from hoomd import _hoomd
 class Variant(_hoomd.Variant):
     """Variant base class.
 
-    Variants define values as a function of the simulation time step. Use one of
-    the built in types or define your own custom function:
-
-    .. code:: python
-
-        class CustomVariant(hoomd.variant.Variant):
-            def __init__(self):
-                hoomd.variant.Variant.__init__(self)
-
-            def __call__(self, timestep):
-                return (float(timestep)**(1 / 2))
+    Variants are scalar valued functions of the simulation time step.
 
     .. py:method:: __call__(timestep)
 
@@ -39,16 +51,16 @@ class Variant(_hoomd.Variant):
 
     @property
     def min(self):
-        """The minimum value of this variant."""
+        """The minimum value of this variant for :math:`t \\in [0,\\infty)`."""
         return self._min()
 
     @property
     def max(self):
-        """The maximum value of this variant."""
+        """The maximum value of this variant for :math:`t \\in [0,\\infty)`."""
         return self._max()
 
     def __getstate__(self):
-        """Get the variant's ``__dict__`` attributue."""
+        """Get the variant's ``__dict__`` attribute."""
         return self.__dict__
 
     def __setstate__(self, state):
@@ -73,7 +85,7 @@ class Constant(_hoomd.VariantConstant, Variant):
     Args:
         value (float): The value.
 
-    `Constant` returns *value* at all time steps.
+    `Constant` returns `value` at all time steps.
 
     Attributes:
         value (float): The value.
@@ -100,6 +112,7 @@ class Ramp(_hoomd.VariantRamp, Variant):
     *A* to *B* over *t_ramp* steps and holds the value *B*.
 
     .. image:: variant-ramp.svg
+       :alt: Example plot of a ramp variant.
 
     Attributes:
         A (float): The start value.
@@ -128,13 +141,14 @@ class Cycle(_hoomd.VariantCycle, Variant):
         t_B (int): The hold time at the second value.
         t_BA (int): The time spent ramping from B to A.
 
-    :py:class:`Cycle` holds the value *A* until time *t_start*. It continues
-    holding that value until *t_start + t_A*. Then it ramps linearly from *A* to
-    *B* over *t_AB* steps and holds the value *B* for *t_B* steps. After this,
-    it ramps back from *B* to *A* over *t_BA* steps and repeats the cycle
-    starting with *t_A*. :py:class:`Cycle` repeats this cycle indefinitely.
+    `Cycle` holds the value *A* until time *t_start*. It continues holding that
+    value until *t_start + t_A*. Then it ramps linearly from *A* to *B* over
+    *t_AB* steps and holds the value *B* for *t_B* steps. After this, it ramps
+    back from *B* to *A* over *t_BA* steps and repeats the cycle starting with
+    *t_A*. `Cycle` repeats this cycle indefinitely.
 
     .. image:: variant-cycle.svg
+       :alt: Example plot of a cycle variant.
 
     Attributes:
         A (float): The first value.
@@ -155,7 +169,7 @@ class Cycle(_hoomd.VariantCycle, Variant):
 
 
 class Power(_hoomd.VariantPower, Variant):
-    """A approach from initial to final value of x ^ (power).
+    """An approach from initial to final value following ``t**power``.
 
     Args:
         A (float): The start value.
@@ -164,15 +178,16 @@ class Power(_hoomd.VariantPower, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
 
-    :py:class:`Power` holds the value *A* until time *t_start*. Then it
-    progresses at :math:`x^{power}` from *A* to *B* over *t_ramp* steps and
-    holds the value *B* after that.
+    `Power` holds the value *A* until time *t_start*. Then it progresses at
+    :math:`t^{\\mathrm{power}}` from *A* to *B* over *t_ramp* steps and holds
+    the value *B* after that.
 
     .. code-block:: python
 
-        p = Power(2, 8, 1 / 10, 10, 20)
+        p = Power(A=2, B-8, power=1 / 10, t_start=10, t_ramp=20)
 
     .. image:: variant-power.svg
+       :alt: Example plot of a power variant.
 
     Attributes:
         A (float): The start value.
@@ -188,3 +203,18 @@ class Power(_hoomd.VariantPower, Variant):
         _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)
 
     __eq__ = Variant._private_eq
+
+
+variant_like = typing.Union[Variant, float]
+"""
+Objects that are like a variant.
+
+Any subclass of `Variant` is accepted along with float instances and objects
+convertible to float. They are internally converted to variants of type
+`Constant` via ``Constant(float(a))`` where ``a`` is the float or float
+convertible object.
+
+Note:
+    Attributes that are `Variant` objects can be set via a `variant_like`
+    object.
+"""

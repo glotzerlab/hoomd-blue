@@ -1,3 +1,5 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/Moves.h"
@@ -16,8 +18,9 @@ HOOMD_UP_MAIN();
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/RandomNumbers.h"
 
-using namespace hpmc;
-using namespace hpmc::detail;
+using namespace hoomd;
+using namespace hoomd::hpmc;
+using namespace hoomd::hpmc::detail;
 using namespace std;
 
 unsigned int err_count = 0;

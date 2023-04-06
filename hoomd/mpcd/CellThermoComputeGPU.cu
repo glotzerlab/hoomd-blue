@@ -1,13 +1,13 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellThermoComputeGPU.cu
  * \brief Explicitly instantiates reduction operators and declares kernel drivers
  *        for mpcd::CellThermoComputeGPU.
  */
+
+#include <hipcub/hipcub.hpp>
 
 #include "CellThermoComputeGPU.cuh"
 #include "CellThermoTypes.h"
@@ -17,6 +17,8 @@
 
 #include "hoomd/WarpTools.cuh"
 
+namespace hoomd
+    {
 namespace mpcd
     {
 namespace gpu
@@ -803,3 +805,4 @@ unpack_cell_buffer(double3* d_props,
 
     } // end namespace gpu
     } // end namespace mpcd
+    } // end namespace hoomd

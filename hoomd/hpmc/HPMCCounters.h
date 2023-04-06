@@ -1,11 +1,13 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef _HPMC_COUNTERS_H_
 #define _HPMC_COUNTERS_H_
 
 #include "hoomd/HOOMDMath.h"
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /*! \file IntegratorHPMCMonoGPU.cuh
@@ -413,6 +415,65 @@ DEVICE inline hpmc_clusters_counters_t operator-(const hpmc_clusters_counters_t&
     return result;
     }
 
+//! Storage for event chain statistics (in addition to normal HPMC counters)
+/*! \ingroup hpmc_data_structs */
+struct hpmc_nec_counters_t
+    {
+    unsigned long long int chain_start_count;        //!< Count of chains started
+    unsigned long long int chain_at_collision_count; //!< Count of collisions in a chain
+    unsigned long long int
+        chain_no_collision_count; //!< Count of updates, that did not end up in a collision (end of
+                                  //!< chain or beyond search distance)
+    unsigned long long int distance_queries; //!< Count of the number of distance queries
+    unsigned int
+        overlap_err_count; //!< Count of the number of times overlap checks encounter errors
+
+    //! Construct a zero set of counters
+    DEVICE hpmc_nec_counters_t()
+        {
+        chain_start_count = 0;
+        chain_at_collision_count = 0;
+        chain_no_collision_count = 0;
+        distance_queries = 0;
+        overlap_err_count = 0;
+        }
+
+    //! Get the number of moves
+    /*! \return The total number of moves
+     */
+    DEVICE unsigned long long int getNMoves()
+        {
+        return chain_at_collision_count + chain_no_collision_count;
+        }
+    };
+
+//! Take the difference of two sets of counters
+DEVICE inline hpmc_nec_counters_t operator-(const hpmc_nec_counters_t& a,
+                                            const hpmc_nec_counters_t& b)
+    {
+    hpmc_nec_counters_t result;
+    result.chain_start_count = a.chain_start_count - b.chain_start_count;
+    result.chain_at_collision_count = a.chain_at_collision_count - b.chain_at_collision_count;
+    result.chain_no_collision_count = a.chain_no_collision_count - b.chain_no_collision_count;
+    result.distance_queries = a.distance_queries - b.distance_queries;
+    result.overlap_err_count = a.overlap_err_count - b.overlap_err_count;
+    return result;
+    }
+
+//! Sum of two sets of counters
+DEVICE inline hpmc_nec_counters_t operator+(const hpmc_nec_counters_t& a,
+                                            const hpmc_nec_counters_t& b)
+    {
+    hpmc_nec_counters_t result;
+    result.chain_start_count = a.chain_start_count + b.chain_start_count;
+    result.chain_at_collision_count = a.chain_at_collision_count + b.chain_at_collision_count;
+    result.chain_no_collision_count = a.chain_no_collision_count + b.chain_no_collision_count;
+    result.distance_queries = a.distance_queries + b.distance_queries;
+    result.overlap_err_count = a.overlap_err_count + b.overlap_err_count;
+    return result;
+    }
+
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // _HPMC_COUNTERS_H_

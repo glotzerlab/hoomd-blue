@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
 
@@ -15,12 +13,14 @@
 #include <map>
 #include <string.h>
 
-namespace py = pybind11;
-
 /*! \file MolecularForceCompute.cc
     \brief Contains code for the MolecularForceCompute class
 */
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
  */
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
@@ -47,8 +47,10 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
         for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
             valid_params.push_back(block_size);
 
-        m_tuner_fill.reset(
-            new Autotuner(valid_params, 5, 100000, "fill_molecule_table", this->m_exec_conf));
+        m_tuner_fill.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
+                                            this->m_exec_conf,
+                                            "fill_molecule_table"));
+        this->m_autotuners.push_back(m_tuner_fill);
         }
 #endif
     }
@@ -63,9 +65,6 @@ MolecularForceCompute::~MolecularForceCompute()
 #ifdef ENABLE_HIP
 void MolecularForceCompute::initMoleculesGPU()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf, "init molecules");
-
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
 
     unsigned int n_local_molecules = 0;
@@ -121,26 +120,26 @@ void MolecularForceCompute::initMoleculesGPU()
             m_exec_conf->getCachedAllocator(),
             m_molecule_tag.getNumElements());
 
-        gpu_sort_by_molecule(nptl_local,
-                             d_tag.data,
-                             d_molecule_tag.data,
-                             d_local_molecule_tags.data,
-                             d_local_molecules_lowest_idx.data,
-                             d_local_unique_molecule_tags.data,
-                             d_molecule_idx.data,
-                             d_sorted_by_tag.data,
-                             d_idx_sorted_by_tag.data,
-                             d_idx_sorted_by_molecule_and_tag.data,
-                             d_lowest_idx.data,
-                             d_lowest_idx_sort.data,
-                             d_lowest_idx_in_molecules.data,
-                             d_lowest_idx_by_molecule_tag.data,
-                             d_molecule_length.data,
-                             n_local_molecules,
-                             nmax,
-                             n_local_ptls_in_molecules,
-                             m_exec_conf->getCachedAllocator(),
-                             m_exec_conf->isCUDAErrorCheckingEnabled());
+        kernel::gpu_sort_by_molecule(nptl_local,
+                                     d_tag.data,
+                                     d_molecule_tag.data,
+                                     d_local_molecule_tags.data,
+                                     d_local_molecules_lowest_idx.data,
+                                     d_local_unique_molecule_tags.data,
+                                     d_molecule_idx.data,
+                                     d_sorted_by_tag.data,
+                                     d_idx_sorted_by_tag.data,
+                                     d_idx_sorted_by_molecule_and_tag.data,
+                                     d_lowest_idx.data,
+                                     d_lowest_idx_sort.data,
+                                     d_lowest_idx_in_molecules.data,
+                                     d_lowest_idx_by_molecule_tag.data,
+                                     d_molecule_length.data,
+                                     n_local_molecules,
+                                     nmax,
+                                     n_local_ptls_in_molecules,
+                                     m_exec_conf->getCachedAllocator(),
+                                     m_exec_conf->isCUDAErrorCheckingEnabled());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -172,18 +171,18 @@ void MolecularForceCompute::initMoleculesGPU()
                                                  access_mode::read);
 
         m_tuner_fill->begin();
-        unsigned int block_size = m_tuner_fill->getParam();
+        unsigned int block_size = m_tuner_fill->getParam()[0];
 
-        gpu_fill_molecule_table(nptl_local,
-                                n_local_ptls_in_molecules,
-                                m_molecule_indexer,
-                                d_molecule_idx.data,
-                                d_local_molecules_lowest_idx.data,
-                                d_idx_sorted_by_tag.data,
-                                d_molecule_list.data,
-                                d_molecule_order.data,
-                                block_size,
-                                m_exec_conf->getCachedAllocator());
+        kernel::gpu_fill_molecule_table(nptl_local,
+                                        n_local_ptls_in_molecules,
+                                        m_molecule_indexer,
+                                        d_molecule_idx.data,
+                                        d_local_molecules_lowest_idx.data,
+                                        d_idx_sorted_by_tag.data,
+                                        d_molecule_list.data,
+                                        d_molecule_order.data,
+                                        block_size,
+                                        m_exec_conf->getCachedAllocator());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -251,9 +250,6 @@ void MolecularForceCompute::initMoleculesGPU()
         CHECK_CUDA_ERROR();
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 #endif
 
@@ -274,9 +270,6 @@ void MolecularForceCompute::initMolecules()
         return;
         }
 #endif
-
-    if (m_prof)
-        m_prof->push("init molecules");
 
     // construct local molecule table
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
@@ -431,15 +424,18 @@ void MolecularForceCompute::initMolecules()
             }
         i_mol++;
         }
-
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
     }
 
-void export_MolecularForceCompute(py::module& m)
+namespace detail
     {
-    py::class_<MolecularForceCompute, ForceConstraint, std::shared_ptr<MolecularForceCompute>>(
-        m,
-        "MolecularForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>>());
+void export_MolecularForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<MolecularForceCompute,
+                     ForceConstraint,
+                     std::shared_ptr<MolecularForceCompute>>(m, "MolecularForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd

@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/CellCommunicator.h
@@ -24,6 +22,7 @@
 #include "CellList.h"
 #include "CommunicatorUtilities.h"
 
+#include "hoomd/Autotuned.h"
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
@@ -34,10 +33,12 @@
 #include <map>
 #include <set>
 
+namespace hoomd
+    {
 namespace mpcd
     {
 //! Communicates properties across the MPCD cell list
-class PYBIND11_EXPORT CellCommunicator
+class PYBIND11_EXPORT CellCommunicator : public Autotuned
     {
     public:
     //! Constructor
@@ -87,33 +88,12 @@ class PYBIND11_EXPORT CellCommunicator
         return m_cells;
         }
 
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable / disable autotuning
-     * \param period period (approximate) in time steps when retuning occurs
-     */
-    void setAutotunerParams(bool enable, unsigned int period)
-        {
-#ifdef ENABLE_HIP
-        if (m_tuner_pack)
-            {
-            m_tuner_pack->setEnabled(enable);
-            m_tuner_pack->setPeriod(period);
-            }
-        if (m_tuner_unpack)
-            {
-            m_tuner_unpack->setEnabled(enable);
-            m_tuner_unpack->setPeriod(period);
-            }
-#endif // ENABLE_HIP
-        }
-
     private:
     static unsigned int num_instances; //!< Number of communicator instances
     const unsigned int m_id;           //!< Id for this communicator to use in tags
 
     std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
-    std::shared_ptr<::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     const MPI_Comm m_mpi_comm;                                 //!< MPI Communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
@@ -155,8 +135,8 @@ class PYBIND11_EXPORT CellCommunicator
     void unpackBuffer(const GPUArray<T>& props, const PackOpT op);
 
 #ifdef ENABLE_HIP
-    std::unique_ptr<Autotuner> m_tuner_pack;   //!< Tuner for pack kernel
-    std::unique_ptr<Autotuner> m_tuner_unpack; //!< Tuner for unpack kernel
+    std::shared_ptr<Autotuner<1>> m_tuner_pack;   //!< Tuner for pack kernel
+    std::shared_ptr<Autotuner<1>> m_tuner_unpack; //!< Tuner for unpack kernel
 
     //! Packs the property buffer on the GPU
     template<typename T, class PackOpT>
@@ -220,7 +200,7 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
         packBuffer(props, op);
         }
 
-    // make the MPI calls
+        // make the MPI calls
         {
         // determine whether to use CPU or GPU CUDA buffers
         access_location::Enum mpi_loc;
@@ -416,7 +396,7 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, const PackO
                                 d_send_idx.data,
                                 op,
                                 (unsigned int)m_send_idx.getNumElements(),
-                                m_tuner_pack->getParam());
+                                m_tuner_pack->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_pack->end();
@@ -459,12 +439,14 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
                                   recv_buf,
                                   op,
                                   m_num_cells,
-                                  m_tuner_unpack->getParam());
+                                  m_tuner_unpack->getParam()[0]);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_unpack->end();
     }
 #endif // ENABLE_HIP
+
+    } // end namespace hoomd
 
 #endif // MPCD_CELL_COMMUNICATOR_H_
 

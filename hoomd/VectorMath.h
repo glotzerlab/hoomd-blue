@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HOOMDMath.h"
 
@@ -24,6 +24,8 @@
     @{
 */
 
+namespace hoomd
+    {
 /////////////////////////////// vec3 ///////////////////////////////////
 
 //! 3 element vector
@@ -63,6 +65,58 @@ template<class Real> struct vec3
 
     //! Implicit cast from vec3<float> to the current Real
     DEVICE vec3(const vec3<float>& a) : x(a.x), y(a.y), z(a.z) { }
+
+    DEVICE Real& operator[](unsigned int i)
+        {
+        switch (i)
+            {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
+#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
+            // This branch should not be reached, but must include something to avoid
+            // compiler warnings on the GPU and it must be something that can be returned by
+            // reference, so x is as good a choice as any.
+            return x;
+#else
+            // On the CPU we throw an error to help with debugging any errors in use of the
+            // code.
+            throw std::invalid_argument(
+                "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+#endif
+            }
+        }
+
+    DEVICE const Real operator[](unsigned int i) const
+        {
+        switch (i)
+            {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
+#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
+            // This branch should not be reached, but must include something to avoid
+            // compiler warnings on the GPU and returning x matches the non-const version of the
+            // operator.
+            return x;
+#else
+            // On the CPU we throw an error to help with debugging any errors in use of the
+            // code.
+            throw std::invalid_argument(
+                "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+#endif
+            }
+        }
 
     //! Default construct a 0 vector
     DEVICE vec3() : x(0), y(0), z(0) { }
@@ -1191,5 +1245,7 @@ template<class Vec> DEVICE inline Vec project(const Vec& a, const Vec& b)
 /*! @}*/
 
 #undef DEVICE
+
+    } // end namespace hoomd
 
 #endif //__VECTOR_MATH_H__

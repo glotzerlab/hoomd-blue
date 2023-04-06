@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "MolecularForceCompute.h"
 #include "NeighborList.h"
@@ -27,6 +25,31 @@
         even if it isn't "optimal". Since creation and validation are only called infrequently and
         updating is efficient, this preserves the most readability without sacrificing meaningfully
         performance.
+
+    Communication:
+
+    The communication scheme for ForceComposite is split between ForceComposite, Communicator, and
+    IntegratorTwoStep. ForceComposite works with Communicator to adjust the ghost communication
+    width for the rigid body types. For every ghost consitutent particle, the corresponding central
+    particle must be present to compute the most up to date constituent position / orientation (as
+    well as all other particles in the body due to indexing limitations). To implement this,
+    Communicator requests a special body ghost width that ForceComposite computes. See
+    requestBodyGhostLayerWidth for details on the body ghost width. Communicator then takes the
+    maximum of the existing interaction ghost width and the body ghost width to determine the final
+    ghost width for central particles.
+
+    To ensure that constituent particles are synchronized between their home and neighboring ranks,
+    IntegratorTwoStep updates the central particles, then updates the constituents
+    (updateCompositeParticles), then communicates, and Communicator updates the constituents again.
+    The first update is needed so that the constituent particles are migrated and added to ghost
+    layers when needed. The update after communication is needed to ensure that the ghost
+    constituents are placed correctly according to the ghost central particles after communicating.
+
+    Working within the above framework, the home rank for the central particle must also be able
+    to access all ghost constituents when summing the net force and torque. The worst case here
+    is a central particle right on the domain boundary and the constituent particle at a distance
+    equal to the ghost width into the ghost layer. Therefore, the minimum ghost width for a
+    constituent is the maximum distance for any particle of that type to its central particle.
 */
 
 #ifdef __HIPCC__
@@ -42,6 +65,10 @@
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     {
     public:
@@ -170,13 +197,14 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         for (unsigned int i = 0; i < N; i++)
             {
             auto index = m_body_idx(body_type_id, i);
-            positions.append(pybind11::make_tuple(h_body_pos.data[index].x,
-                                                  h_body_pos.data[index].y,
-                                                  h_body_pos.data[index].z));
-            orientations.append(pybind11::make_tuple(h_body_orientation.data[index].x,
-                                                     h_body_orientation.data[index].y,
-                                                     h_body_orientation.data[index].z,
-                                                     h_body_orientation.data[index].w));
+            positions.append(pybind11::make_tuple(static_cast<Scalar>(h_body_pos.data[index].x),
+                                                  static_cast<Scalar>(h_body_pos.data[index].y),
+                                                  static_cast<Scalar>(h_body_pos.data[index].z)));
+            orientations.append(
+                pybind11::make_tuple(static_cast<Scalar>(h_body_orientation.data[index].x),
+                                     static_cast<Scalar>(h_body_orientation.data[index].y),
+                                     static_cast<Scalar>(h_body_orientation.data[index].z),
+                                     static_cast<Scalar>(h_body_orientation.data[index].w)));
             types.append(m_pdata->getNameByType(h_body_types.data[index]));
             charges.append(m_body_charge[body_type_id][i]);
             diameters.append(m_body_diameter[body_type_id][i]);
@@ -190,9 +218,18 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         return std::move(v);
         }
 
+    /// Get the number of free particles (global)
+    unsigned int getNFreeParticlesGlobal()
+        {
+        return m_n_free_particles_global;
+        }
+
     protected:
     bool m_bodies_changed;          //!< True if constituent particles have changed
     bool m_particles_added_removed; //!< True if particles have been added or removed
+
+    /// The number of free particles in the simulation box.
+    unsigned int m_n_free_particles_global;
 
     GlobalArray<unsigned int> m_body_types;  //!< Constituent particle types per type id (2D)
     GlobalArray<Scalar3> m_body_pos;         //!< Constituent particle offsets per type id (2D)
@@ -205,8 +242,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
     std::vector<Scalar> m_d_max;       //!< Maximum body diameter per constituent particle type
     std::vector<bool> m_d_max_changed; //!< True if maximum body diameter changed (per type)
-    std::vector<Scalar> m_body_max_diameter; //!< List of diameters for all body types
-    Scalar m_global_max_d;                   //!< Maximum over all body diameters
 
 #ifdef ENABLE_MPI
     /// The system's communicator.
@@ -219,47 +254,14 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         m_particles_added_removed = true;
         }
 
-    //! Returns the maximum diameter over all rigid bodies
-    Scalar getMaxBodyDiameter()
-        {
-        if (m_global_max_d_changed)
-            {
-            // find maximum diameter over all bodies
-            Scalar d_max(0.0);
-            ArrayHandle<unsigned int> h_body_len(m_body_len,
-                                                 access_location::host,
-                                                 access_mode::read);
-            for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
-                {
-                if (h_body_len.data[i] != 0 && m_body_max_diameter[i] > d_max)
-                    d_max = m_body_max_diameter[i];
-                }
-
-            // cache value
-            m_global_max_d = d_max;
-            m_global_max_d_changed = false;
-
-            m_exec_conf->msg->notice(7)
-                << "ForceComposite: Maximum body diameter is " << m_global_max_d << std::endl;
-            }
-
-        return m_global_max_d;
-        }
-
-    //! Return the requested minimum ghost layer width
-    virtual Scalar requestExtraGhostLayerWidth(unsigned int type);
+    /// Return the requested minimum ghost layer width for a body's central particle.
+    virtual Scalar requestBodyGhostLayerWidth(unsigned int type, Scalar* h_r_ghost);
 
     //! Compute the forces and torques on the central particle
     virtual void computeForces(uint64_t timestep);
-
-    //! Helper method to calculate the body diameter
-    Scalar getBodyDiameter(unsigned int body_type);
-
-    private:
-    bool m_global_max_d_changed; //!< True if we updated any rigid body
     };
 
-//! Exports the ForceComposite to python
-void export_ForceComposite(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

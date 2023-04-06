@@ -1,278 +1,107 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+r"""Improper forces.
 
-R""" Improper potentials.
+Improper force classes apply a force and virial on every particle in the
+simulation state commensurate with the potential energy:
 
-Impropers add forces between specified quadruplets of particles and are typically used to
-model rotation about chemical bonds without having bonds to connect the atoms. Their most
-common use is to keep structural elements flat, i.e. model the effect of conjugated
-double bonds, like in benzene rings and its derivatives.
+.. math::
 
-By themselves, impropers that have been specified in an input file do nothing. Only when you
-specify an improper force (i.e. improper.harmonic), are forces actually calculated between the
-listed particles.
+    U_\mathrm{improper} = \sum_{(i,j,k,l) \in \mathrm{impropers}}
+    U_{ijkl}(\chi)
+
+Each improper is defined by an ordered quadruplet of particle tags in the
+`hoomd.State` member ``improper_group``. HOOMD-blue does not construct improper
+groups, users must explicitly define impropers in the initial condition.
+
+.. image:: md-improper.svg
+    :alt: Definition of the improper bond between particles i, j, k, and l.
+
+In an improper group (i,j,k,l), :math:`\chi` is the signed improper angle
+between the planes passing through (:math:`\vec{r}_i, \vec{r}_j, \vec{r}_k`) and
+(:math:`\vec{r}_j, \vec{r}_k, \vec{r}_l`). This is the same definition used in
+dihedrals. Typically, researchers use impropers to force molecules to be planar.
+
+.. rubric Per-particle energies and virials
+
+Improper force classes assign 1/4 of the potential energy to each of the
+particles in the improper group:
+
+.. math::
+
+    U_m = \frac{1}{4} \sum_{(i,j,k,l) \in \mathrm{impropers}}
+    U_{ijkl}(\chi) [m=i \lor m=j \lor m=k \lor m=l]
+
+and similarly for virials.
 """
 
-from hoomd.md import _md
-from hoomd.md import force
 import hoomd
-
-import math
-import sys
+from hoomd import md  # required because hoomd.md is not yet available
 
 
-class coeff:
-    R""" Define improper coefficients.
+class Improper(md.force.Force):
+    """Base class improper force.
 
-    The coefficients for all improper force are specified using this class. Coefficients are
-    specified per improper type.
+    `Improper` is the base class for all improper forces.
 
-    Examples::
-
-        my_coeffs = improper.coeff();
-        my_improper_force.improper_coeff.set('polymer', k=330.0, r=0.84)
-        my_improper_force.improper_coeff.set('backbone', k=330.0, r=0.84)
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
 
     def __init__(self):
-        self.values = {}
-        self.default_coeff = {}
+        super().__init__()
 
-    ## \var values
-    # \internal
-    # \brief Contains the vector of set values in a dictionary
+    def _attach_hook(self):
+        # check that some impropers are defined
+        if self._simulation.state._cpp_sys_def.getImproperData().getNGlobal(
+        ) == 0:
+            self._simulation.device._cpp_msg.warning(
+                "No impropers are defined.\n")
 
-    ## \var default_coeff
-    # \internal
-    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
+        # Instantiate the c++ implementation.
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_class = getattr(hoomd.md._md, self._cpp_class_name)
+        else:
+            cpp_class = getattr(hoomd.md._md, self._cpp_class_name + "GPU")
 
-    ## \internal
-    # \brief Sets a default value for a given coefficient
-    # \details
-    # \param name Name of the coefficient to for which to set the default
-    # \param value Default value to set
-    #
-    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
-    # all the time. set_default_coeff() sets
-    def set_default_coeff(self, name, value):
-        self.default_coeff[name] = value
-
-    def set(self, type, **coeffs):
-        R""" Sets parameters for one improper type.
-
-        Args:
-            type (str): Type of improper (or list of types).
-            coeffs: Named coefficients (see below for examples)
-
-        Calling :py:meth:`set()` results in one or more parameters being set for a improper type. Types are identified
-        by name, and parameters are also added by name. Which parameters you need to specify depends on the improper
-        force you are setting these coefficients for, see the corresponding documentation.
-
-        All possible improper types as defined in the simulation box must be specified before executing ```hoomd.run```.
-        You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
-        improper types that do not exist in the simulation. This can be useful in defining a force field for many
-        different types of impropers even when some simulations only include a subset.
-
-        To set the same coefficients between many particle types, provide a list of type names instead of a single
-        one. All types in the list will be set to the same parameters.
-
-        Examples::
-
-            my_improper_force.improper_coeff.set('polymer', k=330.0, r0=0.84)
-            my_improper_force.improper_coeff.set('backbone', k=1000.0, r0=1.0)
-            my_improper_force.improper_coeff.set(['improperA','improperB'], k=100, r0=0.0)
-
-        Note:
-            Single parameters can be updated. If both ``k`` and ``r0`` have already been set for a particle type,
-            then executing ``coeff.set('polymer', r0=1.0)`` will update the value of ``r0`` and leave the other
-            parameters as they were previously set.
-
-        """
-
-        # listify the input
-        type = hoomd.util.listify(type)
-
-        for typei in type:
-            self.set_single(typei, coeffs)
-
-    ## \internal
-    # \brief Sets a single parameter
-    def set_single(self, type, coeffs):
-        type = str(type)
-
-        # create the type identifier if it hasn't been created yet
-        if (not type in self.values):
-            self.values[type] = {}
-
-        # update each of the values provided
-        if len(coeffs) == 0:
-            hoomd.context.current.device.cpp_msg.error(
-                "No coefficients specified\n")
-        for name, val in coeffs.items():
-            self.values[type][name] = val
-
-        # set the default values
-        for name, val in self.default_coeff.items():
-            # don't override a coeff if it is already set
-            if not name in self.values[type]:
-                self.values[type][name] = val
-
-    ## \internal
-    # \brief Verifies that all values are set
-    # \details
-    # \param self Python required self variable
-    # \param required_coeffs list of required variables
-    #
-    # This can only be run after the system has been initialized
-    def verify(self, required_coeffs):
-        # first, check that the system has been initialized
-        if not hoomd.init.is_initialized():
-            raise RuntimeError(
-                'Cannot verify improper coefficients before initialization\n')
-
-        # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getImproperData(
-        ).getNTypes()
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(hoomd.context.current.system_definition
-                             .getImproperData().getNameByType(i))
-
-        valid = True
-        # loop over all possible types and verify that all required variables are set
-        for i in range(0, ntypes):
-            type = type_list[i]
-
-            if type not in self.values.keys():
-                hoomd.context.current.device.cpp_msg.error(
-                    "Improper type " + str(type)
-                    + " not found in improper coeff\n")
-                valid = False
-                continue
-
-            # verify that all required values are set by counting the matches
-            count = 0
-            for coeff_name in self.values[type].keys():
-                if not coeff_name in required_coeffs:
-                    hoomd.context.current.device.cpp_msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
-                          ", but is not used by the improper force\n")
-                else:
-                    count += 1
-
-            if count != len(required_coeffs):
-                hoomd.context.current.device.cpp_msg.error(
-                    "Improper type " + str(type)
-                    + " is missing required coefficients\n")
-                valid = False
-
-        return valid
-
-    ## \internal
-    # \brief Gets the value of a single %improper %force coefficient
-    # \detail
-    # \param type Name of improper type
-    # \param coeff_name Coefficient to get
-    def get(self, type, coeff_name):
-        if type not in self.values.keys():
-            hoomd.context.current.device.cpp_msg.error(
-                "Bug detected in force.coeff. Please report\n")
-            raise RuntimeError("Error setting improper coeff")
-
-        return self.values[type][coeff_name]
-
-    ## \internal
-    # \brief Return metadata
-    def get_metadata(self):
-        return self.values
+        self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
 
 
-class harmonic(force._force):
-    R""" Harmonic improper potential.
+class Harmonic(Improper):
+    """Harmonic improper force.
 
-    The command improper.harmonic specifies a harmonic improper potential energy between every quadruplet of particles
-    in the simulation.
+    `Harmonic` computes forces, virials, and energies on all impropers in the
+    simulation state with:
 
     .. math::
 
-        V(r) = \frac{1}{2}k \left( \chi - \chi_{0}  \right )^2
+        U(r) = \\frac{1}{2}k \\left( \\chi - \\chi_{0}  \\right )^2
 
-    where :math:`\chi` is angle between two sides of the improper.
+    Attributes:
+        params(`TypeParameter` [``improper type``, `dict`]):
+            The parameter of the harmonic impropers for each improper type. The
+            dictionary has the following keys:
 
-    Coefficients:
+            * ``k`` (`float`, **required**), potential constant :math:`k`
+              :math:`[\\mathrm{energy}]`.
+            * ``chi0`` (`float`, **required**), equilibrium angle
+              :math:`\\chi_0` :math:`[\\mathrm{radian}]`.
 
-    - :math:`k` - strength of force, ``k`` :math:`[\mathrm{energy}]`
-    - :math:`\chi_{0}` - equilibrium angle, ``chi`` :math:`[\mathrm{radian}]`
+    Example::
 
-    Coefficients :math:`k` and :math:`\chi_0` must be set for each type of improper in the simulation using
-    :py:meth:`improper_coeff.set() <coeff.set()>`.
-
-    Examples::
-
-        harmonic.improper_coeff.set('heme-ang', k=30.0, chi=1.57)
-        harmonic.improper_coeff.set('hydro-bond', k=20.0, chi=1.57)
-
+        harmonic = hoomd.md.improper.Harmonic()
+        harmonic.params['A-B-C-D'] = dict(k=1.0, chi0=0)
     """
+    _cpp_class_name = "HarmonicImproperForceCompute"
 
     def __init__(self):
-        # check that some impropers are defined
-        if hoomd.context.current.system_definition.getImproperData().getNGlobal(
-        ) == 0:
-            hoomd.context.current.device.cpp_msg.error(
-                "No impropers are defined.\n")
-            raise RuntimeError("Error creating improper forces")
-
-        # initialize the base class
-        force._force.__init__(self)
-
-        self.improper_coeff = coeff()
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.HarmonicImproperForceCompute(
-                hoomd.context.current.system_definition)
-        else:
-            self.cpp_force = _md.HarmonicImproperForceComputeGPU(
-                hoomd.context.current.system_definition)
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        self.required_coeffs = ['k', 'chi']
-
-    ## \internal
-    # \brief Update coefficients in C++
-    def update_coeffs(self):
-        coeff_list = self.required_coeffs
-        # check that the force coefficients are valid
-        if not self.improper_coeff.verify(coeff_list):
-            hoomd.context.current.device.cpp_msg.error(
-                "Not all force coefficients are set\n")
-            raise RuntimeError("Error updating force coefficients")
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getImproperData(
-        ).getNTypes()
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(hoomd.context.current.system_definition
-                             .getImproperData().getNameByType(i))
-
-        for i in range(0, ntypes):
-            # build a dict of the coeffs to pass to proces_coeff
-            coeff_dict = {}
-            for name in coeff_list:
-                coeff_dict[name] = self.improper_coeff.get(type_list[i], name)
-
-            self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['chi'])
-
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = force._force.get_metadata(self)
-
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
-
-        data['improper_coeff'] = self.improper_coeff
-        return data
+        super().__init__()
+        params = hoomd.data.typeparam.TypeParameter(
+            'params', 'improper_types',
+            hoomd.data.parameterdicts.TypeParameterDict(
+                k=float,
+                chi0=hoomd.data.typeconverter.nonnegative_real,
+                len_keys=1))
+        self._add_typeparam(params)

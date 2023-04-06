@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file SnapshotSystemData.h
     \brief Defines the SnapshotSystemData class
@@ -17,7 +15,6 @@
 #include "BondedGroupData.h"
 #include "BoxDim.h"
 #include "Sphere.h"
-#include "IntegratorData.h"
 #include "ParticleData.h"
 
 #ifndef __HIPCC__
@@ -27,6 +24,8 @@
 /*! \ingroup data_structs
  */
 
+namespace hoomd
+    {
 //! Structure for initializing system data
 /*! A snapshot is used for multiple purposes:
  * 1. for initializing the system
@@ -44,8 +43,8 @@
 template<class Real> struct SnapshotSystemData
     {
     unsigned int dimensions;                  //!< The dimensionality of the system
-    BoxDim global_box;                        //!< The dimensions of the simulation box
-    Sphere sphere;
+    std::shared_ptr<BoxDim> global_box;       //!< The dimensions of the simulation box
+    std::shared_ptr<Sphere> sphere;
     SnapshotParticleData<Real> particle_data; //!< The particle data
     std::map<unsigned int, unsigned int> map; //!< Lookup particle index by tag
     BondData::Snapshot bond_data;             //!< The bond data
@@ -56,10 +55,7 @@ template<class Real> struct SnapshotSystemData
     PairData::Snapshot pair_data;             //!< The pair data
 
     //! Constructor
-    SnapshotSystemData()
-        {
-        dimensions = 3;
-        }
+    SnapshotSystemData() : dimensions(3), global_box(std::make_shared<BoxDim>()) { }
 
     // Replicate the system along three spatial dimensions
     /*! \param nx Number of times to replicate the system along the x direction
@@ -89,8 +85,12 @@ template<class Real> struct SnapshotSystemData
     void broadcast_all(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 
+namespace detail
+    {
 //! Export SnapshotParticleData to python
-
 void export_SnapshotSystemData(pybind11::module& m);
 
+    } // end namespace detail
+
+    } // end namespace hoomd
 #endif

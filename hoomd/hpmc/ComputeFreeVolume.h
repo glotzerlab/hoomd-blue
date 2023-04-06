@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME__H__
 #define __COMPUTE_FREE_VOLUME__H__
@@ -23,6 +23,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 namespace hpmc
     {
 //! Template class for a free volume integration analyzer
@@ -127,15 +129,12 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 
     // update AABB tree
-    const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
 
     // update the image list
     std::vector<vec3<Scalar>> image_list = this->m_mc->updateImageList();
 
     uint16_t seed = m_sysdef->getSeed();
-
-    if (m_prof)
-        m_prof->push("Free volume");
 
     // only check if AABB tree is populated
     if (m_pdata->getN() + m_pdata->getNGhosts())
@@ -147,11 +146,11 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                            access_location::host,
                                            access_mode::read);
-        const BoxDim& box = m_pdata->getBox();
+        const BoxDim box = m_pdata->getBox();
 
         // access parameters and interaction matrix
         const std::vector<typename Shape::param_type,
-                          managed_allocator<typename Shape::param_type>>& params
+                          hoomd::detail::managed_allocator<typename Shape::param_type>>& params
             = m_mc->getParams();
 
         ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(),
@@ -176,7 +175,10 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
             Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar zrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
-
+            if (this->m_sysdef->getNDimensions() == 2)
+                {
+                zrand = 0;
+                }
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));
 
@@ -186,16 +188,16 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
                 shape_i.orientation = generateRandomOrientation(rng_i, ndim);
                 }
 
-            // check for overlaps with neighboring particle's positions
+            // check for overlaps with particles in the system state
             bool overlap = false;
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
+            hoomd::detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0, 0, 0));
 
             // All image boxes (including the primary)
             const unsigned int n_images = (unsigned int)image_list.size();
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
-                detail::AABB aabb = aabb_i_local;
+                hoomd::detail::AABB aabb = aabb_i_local;
                 aabb.translate(pos_i_image);
 
                 // stackless search
@@ -270,9 +272,6 @@ template<class Shape> void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t 
         }
 #endif
 
-    if (m_prof)
-        m_prof->pop();
-
     ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all,
                                               access_location::host,
                                               access_mode::overwrite);
@@ -297,13 +296,15 @@ template<class Shape> Scalar ComputeFreeVolume<Shape>::getFreeVolume()
 #endif
 
     // total free volume
-    const BoxDim& global_box = this->m_pdata->getGlobalBox();
-    Scalar V_free
-        = (Scalar)(n_sample - *h_n_overlap_all.data) / (Scalar)n_sample * global_box.getVolume();
+    const BoxDim global_box = this->m_pdata->getGlobalBox();
+    Scalar V_free = (Scalar)(n_sample - *h_n_overlap_all.data) / (Scalar)n_sample
+                    * global_box.getVolume(this->m_sysdef->getNDimensions() == 2);
 
     return V_free;
     }
 
+namespace detail
+    {
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of ComputeFreeVolume<Shape> will be exported
@@ -325,6 +326,8 @@ template<class Shape> void export_ComputeFreeVolume(pybind11::module& m, const s
         .def_property_readonly("free_volume", &ComputeFreeVolume<Shape>::getFreeVolume);
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #endif // __COMPUTE_FREE_VOLUME__H__

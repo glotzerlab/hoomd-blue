@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __SFC_PACK_UPDATER_GPU_CUH__
 #define __SFC_PACK_UPDATER_GPU_CUH__
@@ -15,6 +13,10 @@
    Used by SFCPackTunerGPU.
 */
 
+namespace hoomd
+    {
+namespace kernel
+    {
 //! Generate sorted order on GPU
 void gpu_generate_sorted_order(unsigned int N,
                                const Scalar4* d_pos,
@@ -60,5 +62,9 @@ void gpu_apply_sorted_order(unsigned int N,
                             const Scalar4* d_net_torque,
                             Scalar4* d_net_torque_alt,
                             unsigned int* d_rtag);
+
+    } // namespace kernel
+
+    } // end namespace hoomd
 
 #endif // __SFC_PACK_UPDATER_GPU_CUH__

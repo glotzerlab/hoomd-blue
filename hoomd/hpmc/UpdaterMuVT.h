@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __UPDATER_MUVT_H__
 #define __UPDATER_MUVT_H__
 
@@ -15,6 +18,8 @@
 #include <pybind11/stl.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 /*!
@@ -27,6 +32,7 @@ template<class Shape> class UpdaterMuVT : public Updater
     public:
     //! Constructor
     UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+                std::shared_ptr<Trigger> trigger,
                 std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                 unsigned int npartition);
     virtual ~UpdaterMuVT();
@@ -324,10 +330,11 @@ template<class Shape> class UpdaterMuVT : public Updater
  */
 template<class Shape>
 UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+                                std::shared_ptr<Trigger> trigger,
                                 std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                                 unsigned int npartition)
-    : Updater(sysdef), m_mc(mc), m_npartition(npartition), m_gibbs(false), m_max_vol_rescale(0.1),
-      m_volume_move_probability(0.5), m_gibbs_other(0), m_n_trial(1)
+    : Updater(sysdef, trigger), m_mc(mc), m_npartition(npartition), m_gibbs(false),
+      m_max_vol_rescale(0.1), m_volume_move_probability(0.5), m_gibbs_other(0), m_n_trial(1)
     {
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
@@ -345,9 +352,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
         {
         if (m_exec_conf->getNPartitions() % npartition)
             {
-            m_exec_conf->msg->error() << "Total number of partitions not a multiple of number "
-                                      << "of Gibbs ensemble partitions." << std::endl;
-            throw std::runtime_error("Error setting up Gibbs ensemble integration.");
+            throw std::runtime_error("Total number of partitions not a multiple of the number "
+                                     "of Gibbs ensemble partitions.");
             }
 
         GPUVector<Scalar4> postype_backup(m_exec_conf);
@@ -490,7 +496,7 @@ unsigned int
 UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep, Scalar V, bool local, unsigned int type_d)
     {
     // parameter for Poisson distribution
-    Scalar lambda = this->m_mc->getDepletantFugacity(type_d, type_d) * V;
+    Scalar lambda = this->m_mc->getDepletantFugacity(type_d) * V;
 
     unsigned int n = 0;
     if (lambda > Scalar(0.0))
@@ -525,7 +531,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
 
     extra_ndof = 0;
 
-    auto patch = m_mc->getPatchInteraction();
+    auto patch = m_mc->getPatchEnergy();
 
     if (patch)
         {
@@ -574,13 +580,10 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
         // check depletants
 
         // update the aabb tree
-        const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
+        const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
 
         // update the image list
         const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
-
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "HPMC implicit volume move ");
 
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
@@ -614,17 +617,10 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
         // loop over depletant types
         for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
             {
-            if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+            if (m_mc->getDepletantFugacity(type_d) == 0.0)
                 continue;
 
-            for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-                {
-                if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                    throw std::runtime_error(
-                        "Non-additive depletants not supported in update.muvt()\n");
-                }
-
-            if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+            if (m_mc->getDepletantFugacity(type_d) < 0.0)
                 throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
             // draw number from Poisson distribution (using old box)
@@ -672,7 +668,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                 // check against overlap in old box
                 overlap = false;
                 bool overlap_old = false;
-                detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
+                hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
 
                 // All image boxes (including the primary)
                 const unsigned int n_images = (unsigned int)image_list.size();
@@ -683,7 +679,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                     vec3<Scalar> pos_test_image_old = vec3<Scalar>(old_box.makeCoordinates(f));
 
                     // set up AABB in old coordinates
-                    detail::AABB aabb = aabb_test_local;
+                    hoomd::detail::AABB aabb = aabb_test_local;
                     aabb.translate(pos_test_image_old);
 
                     // scale AABB to new coordinates (the AABB tree contains new coordinates)
@@ -694,7 +690,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                     upper = aabb.getUpper();
                     f = old_box.makeFraction(vec_to_scalar3(upper));
                     upper = vec3<Scalar>(new_box.makeCoordinates(f));
-                    aabb = detail::AABB(lower, upper);
+                    aabb = hoomd::detail::AABB(lower, upper);
 
                     // stackless search
                     for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes();
@@ -770,7 +766,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                         {
                         vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                        detail::AABB aabb = aabb_test_local;
+                        hoomd::detail::AABB aabb = aabb_test_local;
                         aabb.translate(pos_test_image);
 
                         // stackless search
@@ -860,9 +856,6 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep,
                 break;
             } // end loop over depletant types
 
-        if (this->m_prof)
-            this->m_prof->pop(this->m_exec_conf);
-
         overlap = overlap_count;
         }
 
@@ -874,9 +867,6 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
     Updater::update(timestep);
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
-
-    if (m_prof)
-        m_prof->push("update muVT");
 
     m_exec_conf->msg->notice(10) << "UpdaterMuVT update: " << timestep << std::endl;
 
@@ -1055,7 +1045,8 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
                 {
                 const std::vector<typename Shape::param_type,
-                                  managed_allocator<typename Shape::param_type>>& params
+                                  hoomd::detail::managed_allocator<typename Shape::param_type>>&
+                    params
                     = m_mc->getParams();
                 const typename Shape::param_type& param = params[type];
 
@@ -1597,9 +1588,9 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
 
         if (!accept)
             {
-            // volume move rejected
+                // volume move rejected
 
-            // restore particle positions and orientations
+                // restore particle positions and orientations
                 {
                 ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                                access_location::host,
@@ -1640,9 +1631,6 @@ template<class Shape> void UpdaterMuVT<Shape>::update(uint64_t timestep)
         m_mc->communicate(false);
         }
 #endif
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 template<class Shape>
@@ -1660,7 +1648,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
         bool is_local = this->m_pdata->isParticleLocal(tag);
 
         // do we have to compute energetic contribution?
-        auto patch = m_mc->getPatchInteraction();
+        auto patch = m_mc->getPatchEnergy();
 
         // if not, no overlaps generated
         if (patch)
@@ -1684,7 +1672,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
             if (is_local)
                 {
                 // update the aabb tree
-                const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+                const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
 
                 // update the image list
                 const std::vector<vec3<Scalar>>& image_list = m_mc->updateImageList();
@@ -1710,7 +1698,8 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                 Scalar r_cut_patch = patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type);
 
                 Scalar R_query = std::max(0.0, r_cut_patch - m_mc->getMinCoreDiameter() / 2.0);
-                detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
+                hoomd::detail::AABB aabb_local
+                    = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
                 Scalar r_cut_self = r_cut_patch + 0.5 * patch->getAdditiveCutoff(type);
 
@@ -1737,7 +1726,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
                             }
                         }
 
-                    detail::AABB aabb = aabb_local;
+                    hoomd::detail::AABB aabb = aabb_local;
                     aabb.translate(pos_image);
 
                     // stackless search
@@ -1815,17 +1804,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
 
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-            {
-            if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                throw std::runtime_error(
-                    "Non-additive depletants not supported in update.muvt()\n");
-            }
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+        if (m_mc->getDepletantFugacity(type_d) == 0.0)
             continue;
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d) < 0.0)
             throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
 #ifdef ENABLE_MPI
@@ -1928,7 +1909,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                            Scalar& lnboltzmann)
     {
     // do we have to compute energetic contribution?
-    auto patch = m_mc->getPatchInteraction();
+    auto patch = m_mc->getPatchEnergy();
 
     lnboltzmann = Scalar(0.0);
 
@@ -1938,7 +1919,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
@@ -2032,7 +2013,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
         if (!overlap && nptl_local > 0)
             {
             // Check particle against AABB tree for neighbors
-            const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+            const hoomd::detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
 
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                            access_location::host,
@@ -2054,13 +2035,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
             OverlapReal R_query
                 = std::max(shape.getCircumsphereDiameter() / OverlapReal(2.0),
                            r_cut_patch - m_mc->getMinCoreDiameter() / (OverlapReal)2.0);
-            detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
+            hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_image = pos + image_list[cur_image];
 
-                detail::AABB aabb = aabb_local;
+                hoomd::detail::AABB aabb = aabb_local;
                 aabb.translate(pos_image);
 
                 // stackless search
@@ -2161,17 +2142,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
     // loop over depletant types
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
-            {
-            if (type_j != type_d && m_mc->getDepletantFugacity(type_d, type_j) != 0.0)
-                throw std::runtime_error(
-                    "Non-additive depletants not supported in update.muvt()\n");
-            }
-
-        if (m_mc->getDepletantFugacity(type_d, type_d) == 0.0)
+        if (m_mc->getDepletantFugacity(type_d) == 0.0)
             continue;
 
-        if (m_mc->getDepletantFugacity(type_d, type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d) < 0.0)
             throw std::runtime_error("Negative fugacities not supported in update.muvt()\n");
 
         // Depletant and colloid diameter
@@ -2334,7 +2308,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
@@ -2353,7 +2327,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
                                hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
-    const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
 
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
@@ -2412,7 +2386,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
                 // check against overlap with old configuration
                 bool overlap_old = false;
 
-                detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
+                hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
@@ -2420,7 +2394,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep,
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                    detail::AABB aabb = aabb_test_local;
+                    hoomd::detail::AABB aabb = aabb_test_local;
                     aabb.translate(pos_test_image);
 
                     // stackless search
@@ -2550,7 +2524,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
                                hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
-    const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
 
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
@@ -2611,7 +2585,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
                 bool overlap_old = false;
                 bool overlap = false;
 
-                detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
+                hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
@@ -2619,7 +2593,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep,
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                    detail::AABB aabb = aabb_test_local;
+                    hoomd::detail::AABB aabb = aabb_test_local;
                     aabb.translate(pos_test_image);
 
                     // stackless search
@@ -2759,7 +2733,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
@@ -2778,7 +2752,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
                                hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
-    const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
 
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
@@ -2828,7 +2802,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
             // check against overlap with old configuration
             bool overlap_old = false;
 
-            detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
+            hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
 
             unsigned int err_count = 0;
             // All image boxes (including the primary)
@@ -2836,7 +2810,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                detail::AABB aabb = aabb_test_local;
+                hoomd::detail::AABB aabb = aabb_test_local;
                 aabb.translate(pos_test_image);
 
                 // stackless search
@@ -2947,7 +2921,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
 #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         {
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
+        const BoxDim global_box = this->m_pdata->getGlobalBox();
         ArrayHandle<unsigned int> h_cart_ranks(
             this->m_pdata->getDomainDecomposition()->getCartRanks(),
             access_location::host,
@@ -2966,7 +2940,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
                                hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
-    const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
+    const hoomd::detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
 
     // update the image list
     const std::vector<vec3<Scalar>>& image_list = this->m_mc->updateImageList();
@@ -3014,7 +2988,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
             // check against overlap with present configuration
             bool overlap = false;
 
-            detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
+            hoomd::detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0, 0, 0));
 
             unsigned int err_count = 0;
             // All image boxes (including the primary)
@@ -3022,7 +2996,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
-                detail::AABB aabb = aabb_test_local;
+                hoomd::detail::AABB aabb = aabb_test_local;
                 aabb.translate(pos_test_image);
 
                 // stackless search
@@ -3097,6 +3071,8 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep,
     return n_overlap;
     }
 
+namespace detail
+    {
 //! Export the UpdaterMuVT class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of UpdaterMuVT<Shape> will be exported
@@ -3106,6 +3082,7 @@ template<class Shape> void export_UpdaterMuVT(pybind11::module& m, const std::st
     pybind11::class_<UpdaterMuVT<Shape>, Updater, std::shared_ptr<UpdaterMuVT<Shape>>>(m,
                                                                                        name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<Trigger>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
                             unsigned int>())
         .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
@@ -3133,5 +3110,8 @@ inline void export_hpmc_muvt_counters(pybind11::module& m)
         .def_property_readonly("volume", &hpmc_muvt_counters_t::getVolumeCounts);
     }
 
+    } // end namespace detail
     } // end namespace hpmc
+    } // end namespace hoomd
+
 #endif

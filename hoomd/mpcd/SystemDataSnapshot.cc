@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/SystemDataSnapshot.cc
@@ -10,6 +8,8 @@
 
 #include "SystemDataSnapshot.h"
 
+namespace hoomd
+    {
 void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
     {
     assert(nx > 0);
@@ -32,12 +32,12 @@ void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsig
  */
 void mpcd::detail::export_SystemDataSnapshot(pybind11::module& m)
     {
-    namespace py = pybind11;
-
-    py::class_<mpcd::SystemDataSnapshot, std::shared_ptr<mpcd::SystemDataSnapshot>>(
+    pybind11::class_<mpcd::SystemDataSnapshot, std::shared_ptr<mpcd::SystemDataSnapshot>>(
         m,
         "SystemDataSnapshot")
-        .def(py::init<std::shared_ptr<::SystemDefinition>>())
+        .def(pybind11::init<std::shared_ptr<hoomd::SystemDefinition>>())
         .def("replicate", &mpcd::SystemDataSnapshot::replicate)
         .def_readonly("particles", &mpcd::SystemDataSnapshot::particles);
     }
+
+    } // end namespace hoomd

@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
@@ -20,6 +20,10 @@
 #ifndef __POTENTIALSPECIAL_PAIR_H__
 #define __POTENTIALSPECIAL_PAIR_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 /*! SpecialPair potential with evaluator support
 
     Specific particle pairs can be connected by pair potentials.
@@ -64,7 +68,6 @@ template<class evaluator> class PotentialSpecialPair : public ForceCompute
     protected:
     GPUArray<param_type> m_params;         //!< SpecialPair parameters per type
     std::shared_ptr<PairData> m_pair_data; //!< Data to use in computing particle pairs
-    std::string m_prof_name;               //!< Cached profiler name
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -82,7 +85,6 @@ PotentialSpecialPair<evaluator>::PotentialSpecialPair(std::shared_ptr<SystemDefi
 
     // access the pair data for later use
     m_pair_data = m_sysdef->getPairData();
-    m_prof_name = std::string("Special pair ") + evaluator::getName();
 
     // allocate the parameters
     GPUArray<param_type> params(m_pair_data->getNTypes(), m_exec_conf);
@@ -178,9 +180,6 @@ template<class evaluator> Scalar PotentialSpecialPair<evaluator>::getRCut(std::s
  */
 template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(uint64_t timestep)
     {
-    if (m_prof)
-        m_prof->push(m_prof_name);
-
     assert(m_pdata);
 
     // access the particle data arrays
@@ -211,7 +210,7 @@ template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(ui
     // we are using the minimum image of the global box here
     // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
     // length)
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
@@ -285,7 +284,7 @@ template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(ui
         Scalar rsq = dot(dx, dx);
 
         // get parameters for this bond type
-        param_type param = h_params.data[h_typeval.data[i].type];
+        const param_type& param = h_params.data[h_typeval.data[i].type];
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
@@ -346,9 +345,6 @@ template<class evaluator> void PotentialSpecialPair<evaluator>::computeForces(ui
             throw std::runtime_error("Error in special pair calculation");
             }
         }
-
-    if (m_prof)
-        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
@@ -373,18 +369,26 @@ CommFlags PotentialSpecialPair<evaluator>::getRequestedCommFlags(uint64_t timest
     }
 #endif
 
+namespace detail
+    {
 //! Exports the PotentialSpecialPair class to python
 /*! \param name Name of the class in the exported python module
-    \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
+    \tparam T evaluator type to export.
 */
 template<class T> void export_PotentialSpecialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+    pybind11::class_<PotentialSpecialPair<T>,
+                     ForceCompute,
+                     std::shared_ptr<PotentialSpecialPair<T>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams)
-        .def("setRCut", &T::setRCut)
-        .def("getRCut", &T::getRCut);
+        .def("setParams", &PotentialSpecialPair<T>::setParamsPython)
+        .def("getParams", &PotentialSpecialPair<T>::getParams)
+        .def("setRCut", &PotentialSpecialPair<T>::setRCut)
+        .def("getRCut", &PotentialSpecialPair<T>::getRCut);
     }
+
+    } // end namespace detail
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

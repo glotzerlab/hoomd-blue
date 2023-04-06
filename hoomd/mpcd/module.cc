@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // particle data
 #include "ParticleData.h"
@@ -66,6 +64,8 @@
 
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! MPCD component
 /*!
  * The mpcd namespace contains all classes, data members, and functions related
@@ -99,11 +99,14 @@ namespace gpu
  */
 namespace kernel
     {
-    }; // end namespace kernel
+    } // end namespace kernel
 
-    }; // end namespace gpu
+    } // end namespace gpu
 
-    }; // end namespace mpcd
+    } // end namespace mpcd
+    } // end namespace hoomd
+
+using namespace hoomd;
 
 PYBIND11_MODULE(_mpcd, m)
     {

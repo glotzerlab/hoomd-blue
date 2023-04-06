@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file UpdaterClustersGPUDepletants.cuh
     \brief Implements the depletant kernels for the geometric cluster algorithm the GPU
@@ -29,6 +29,8 @@
 #define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace gpu
@@ -69,7 +71,6 @@ __launch_bounds__(max_threads)
                                                unsigned int max_queue_size,
                                                unsigned int max_extra_bytes,
                                                unsigned int depletant_type,
-                                               const Index2D depletant_idx,
                                                unsigned int* d_nneigh,
                                                unsigned int* d_adjacency,
                                                const unsigned int maxn,
@@ -110,7 +111,7 @@ __launch_bounds__(max_threads)
     unsigned int* s_queue_gid = (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int* s_queue_didx = (unsigned int*)(s_queue_gid + max_queue_size);
 
-    // copy over parameters one int per thread for fast loads
+        // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -223,7 +224,7 @@ __launch_bounds__(max_threads)
             // one RNG per depletant
             hoomd::RandomGenerator rng(
                 hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsClusters, timestep, seed),
-                hoomd::Counter(i, i_dep, depletant_idx(depletant_type, depletant_type)));
+                hoomd::Counter(i, i_dep, depletant_type));
 
             n_inserted++;
             overlap_checks += 2;
@@ -263,7 +264,8 @@ __launch_bounds__(max_threads)
 
             // advance depletant idx
             i_dep += group_size * n_groups * blocks_per_particle;
-            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
+            } // end while (s_depletant_queue_size < max_depletant_queue_size && i_dep <
+              // n_depletants)
 
         __syncthreads();
 
@@ -290,7 +292,7 @@ __launch_bounds__(max_threads)
             unsigned int i_dep_queue = s_queue_didx[group];
             hoomd::RandomGenerator rng(
                 hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsClusters, timestep, seed),
-                hoomd::Counter(i, i_dep_queue, depletant_idx(depletant_type, depletant_type)));
+                hoomd::Counter(i, i_dep_queue, depletant_type));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -923,7 +925,6 @@ void clusters_depletants_launcher(const cluster_args_t& args,
                 max_queue_size,
                 max_extra_bytes,
                 implicit_args.depletant_type_a,
-                implicit_args.depletant_idx,
                 args.d_nneigh,
                 args.d_adjacency,
                 args.maxn,
@@ -967,6 +968,7 @@ void hpmc_clusters_depletants(const cluster_args_t& args,
 
     } // end namespace gpu
     } // end namespace hpmc
+    } // end namespace hoomd
 
 #undef MAX_BLOCK_SIZE
 #undef MIN_BLOCK_SIZE

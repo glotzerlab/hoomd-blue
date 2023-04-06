@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BoxDim.h
     \brief Defines the BoxDim class
@@ -27,6 +25,8 @@
 #define HOSTDEVICE inline __attribute__((always_inline))
 #endif
 
+namespace hoomd
+    {
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
     that box. For cubic boxes, inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y
@@ -640,6 +640,8 @@ struct
     Scalar m_yz;       //!< yz tilt factor
     uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
     };
+
+    } // end namespace hoomd
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

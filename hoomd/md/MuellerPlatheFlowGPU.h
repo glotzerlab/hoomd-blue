@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file MuellerPlatheFlowGPU.h
 
@@ -24,6 +24,10 @@
 #ifndef __MUELLER_PLATHE_FLOW_GPU_H__
 #define __MUELLER_PLATHE_FLOW_GPU_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! By exchanging velocities based on their spatial position a flow is created. GPU accelerated
 /*! \ingroup computes
  */
@@ -32,6 +36,7 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     public:
     //! Constructs the compute
     //!
+    //! \param trigger The trigger of the updater
     //! \param direction Indicates the normal direction of the slabs.
     //! \param N_slabs Number of total slabs in the simulation box.
     //! \param min_slabs Index of slabs, where the min velocity is searched.
@@ -39,6 +44,7 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     //! \note N_slabs should be a multiple of the DomainDecomposition boxes in that direction.
     //! If it is not, the number is rescaled and the user is informed.
     MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<Trigger> trigger,
                          std::shared_ptr<ParticleGroup> group,
                          std::shared_ptr<Variant> flow_target,
                          std::string slab_direction_str,
@@ -51,26 +57,15 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
     //! Destructor
     virtual ~MuellerPlatheFlowGPU(void);
 
-    //! Set autotuner parameters
-    /*! \param enable Enable/disable autotuning
-        \param period period (approximate) in time steps when returning occurs
-    */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        MuellerPlatheFlow::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
-
     protected:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::shared_ptr<Autotuner<1>> m_tuner; //!< Autotuner for block size
 
     virtual void searchMinMaxVelocity(void);
     virtual void updateMinMaxVelocity(void);
     };
 
-//! Exports the MuellerPlatheFlow class to python
-void export_MuellerPlatheFlowGPU(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __HIPCC__
 #endif //__MUELLER_PLATHE_FLOW_GPU_H__

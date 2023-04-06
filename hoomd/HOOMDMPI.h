@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __HOOMD_MPI_H__
 #define __HOOMD_MPI_H__
@@ -31,16 +29,6 @@
 #include <cereal/types/utility.hpp> // std::pair
 #include <cereal/types/vector.hpp>
 
-#ifdef SINGLE_PRECISION
-//! Define MPI_FLOAT as Scalar MPI data type
-const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
-const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;
-#else
-//! Define MPI_DOUBLE as Scalar MPI data type
-const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
-const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
-#endif
-
 #ifdef ENABLE_TBB
 // https://www.threadingbuildingblocks.org/docs/help/reference/appendices/known_issues/linux_os.html
 #include <tbb/concurrent_unordered_map.h>
@@ -48,26 +36,20 @@ const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
 #include <tbb/concurrent_vector.h>
 #endif
 
-typedef struct
-    {
-    Scalar s;
-    int i;
-    } Scalar_Int;
-
 namespace cereal
     {
 //! Serialization functions for some of our data types
 //! Serialization of Scalar4
-template<class Archive> void serialize(Archive& ar, Scalar4& s, const unsigned int version)
+template<class Archive> void serialize(Archive& ar, hoomd::Scalar4& s, const unsigned int version)
     {
-    ar&(Scalar&)s.x;
-    ar&(Scalar&)s.y;
-    ar&(Scalar&)s.z;
-    ar&(Scalar&)s.w;
+    ar&(hoomd::Scalar&)s.x;
+    ar&(hoomd::Scalar&)s.y;
+    ar&(hoomd::Scalar&)s.z;
+    ar&(hoomd::Scalar&)s.w;
     }
 
 //! Serialization of Scalar3
-template<class Archive> void serialize(Archive& ar, Scalar3& s, const unsigned int version)
+template<class Archive> void serialize(Archive& ar, hoomd::Scalar3& s, const unsigned int version)
     {
     ar& s.x;
     ar& s.y;
@@ -171,6 +153,24 @@ inline void load(Archive& ar, tbb::concurrent_unordered_set<K, H, KE, A>& unorde
     }
 #endif
     } // namespace cereal
+
+namespace hoomd
+    {
+#ifdef SINGLE_PRECISION
+//! Define MPI_FLOAT as Scalar MPI data type
+const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;
+#else
+//! Define MPI_DOUBLE as Scalar MPI data type
+const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
+#endif
+
+typedef struct
+    {
+    Scalar s;
+    int i;
+    } Scalar_Int;
 
 //! Wrapper around MPI_Bcast that handles any serializable object
 template<typename T> void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
@@ -484,6 +484,8 @@ template<typename T> void recv(T& val, const unsigned int src, const MPI_Comm mp
 
     delete[] buf;
     }
+
+    } // namespace hoomd
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MPI_H__

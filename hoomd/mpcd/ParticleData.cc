@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ParticleData.h
@@ -22,6 +20,8 @@
 #include <random>
 using namespace std;
 
+namespace hoomd
+    {
 // 9/8 factor for amortized growth
 const float mpcd::ParticleData::resize_factor = 9. / 8.;
 
@@ -38,7 +38,7 @@ const float mpcd::ParticleData::resize_factor = 9. / 8.;
  * equipartitioned at kT.
  */
 mpcd::ParticleData::ParticleData(unsigned int N,
-                                 const BoxDim& local_box,
+                                 const std::shared_ptr<const BoxDim> local_box,
                                  Scalar kT,
                                  unsigned int seed,
                                  unsigned int ndimensions,
@@ -71,7 +71,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
  * \param decomposition Domain decomposition
  */
 mpcd::ParticleData::ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                                 const BoxDim& global_box,
+                                 const std::shared_ptr<const BoxDim> global_box,
                                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
     : m_N(0), m_N_virtual(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0),
@@ -110,7 +110,7 @@ mpcd::ParticleData::~ParticleData()
  */
 void mpcd::ParticleData::initializeFromSnapshot(
     const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-    const BoxDim& global_box)
+    const std::shared_ptr<const BoxDim> global_box)
     {
     m_exec_conf->msg->notice(4) << "MPCD ParticleData: initializing from snapshot" << std::endl;
 
@@ -166,7 +166,7 @@ void mpcd::ParticleData::initializeFromSnapshot(
 
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
-                Scalar3 f = global_box.makeFraction(pos);
+                Scalar3 f = global_box->makeFraction(pos);
                 int i = int(f.x * ((Scalar)di.getW()));
                 int j = int(f.y * ((Scalar)di.getH()));
                 int k = int(f.z * ((Scalar)di.getD()));
@@ -191,14 +191,14 @@ void mpcd::ParticleData::initializeFromSnapshot(
                     flags.z = 1;
                     }
                 uchar3 periodic = make_uchar3(flags.x, flags.y, flags.z);
-                BoxDim wrapping_box = global_box;
+                auto wrapping_box = *global_box;
                 wrapping_box.setPeriodic(periodic);
                 int3 img = make_int3(0, 0, 0);
                 wrapping_box.wrap(pos, img, flags);
 
                 // place particle into the computational domain
                 unsigned int rank
-                    = m_decomposition->placeParticle(global_box, pos, h_cart_ranks.data);
+                    = m_decomposition->placeParticle(*global_box, pos, h_cart_ranks.data);
                 if (rank >= n_ranks)
                     {
                     m_exec_conf->msg->error()
@@ -209,8 +209,8 @@ void mpcd::ParticleData::initializeFromSnapshot(
                     m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
                     m_exec_conf->msg->error()
                         << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
-                    Scalar3 lo = global_box.getLo();
-                    Scalar3 hi = global_box.getHi();
+                    Scalar3 lo = global_box->getLo();
+                    Scalar3 hi = global_box->getHi();
                     m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", "
                                               << lo.z << ")" << std::endl;
                     m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", "
@@ -333,7 +333,7 @@ void mpcd::ParticleData::initializeFromSnapshot(
  * \param ndimensions Dimensionality
  */
 void mpcd::ParticleData::initializeRandom(unsigned int N,
-                                          const BoxDim& local_box,
+                                          const std::shared_ptr<const BoxDim> local_box,
                                           Scalar kT,
                                           unsigned int seed,
                                           unsigned int ndimensions)
@@ -378,8 +378,8 @@ void mpcd::ParticleData::initializeRandom(unsigned int N,
         }
 
     // center of box
-    const Scalar3 lo = local_box.getLo();
-    const Scalar3 hi = local_box.getHi();
+    const Scalar3 lo = local_box->getLo();
+    const Scalar3 hi = local_box->getHi();
 
     // random number generator
     std::mt19937 mt(seed);
@@ -446,7 +446,7 @@ void mpcd::ParticleData::initializeRandom(unsigned int N,
  * \post \a snapshot holds the current MPCD particle data on the root (0) rank
  */
 void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                                      const BoxDim& global_box) const
+                                      const shared_ptr<const BoxDim> global_box) const
     {
     m_exec_conf->msg->notice(4) << "MPCD ParticleData: taking snapshot" << std::endl;
 
@@ -508,7 +508,7 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
                     // make sure the position stored in the snapshot is within the boundaries
                     Scalar3 pos_i = pos_proc[rank_idx][idx];
                     int3 img = make_int3(0, 0, 0);
-                    global_box.wrap(pos_i, img);
+                    global_box->wrap(pos_i, img);
 
                     // push particle into the snapshot
                     snapshot->position[snap_idx] = vec3<Scalar>(pos_i);
@@ -534,7 +534,7 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
             Scalar3 pos_i = make_scalar3(postype.x, postype.y, postype.z);
             const unsigned int type_i = __scalar_as_int(postype.w);
             int3 img = make_int3(0, 0, 0);
-            global_box.wrap(pos_i, img);
+            global_box->wrap(pos_i, img);
 
             // push particle into the snapshot
             snapshot->position[snap_idx] = vec3<Scalar>(pos_i);
@@ -585,19 +585,19 @@ bool mpcd::ParticleData::checkSnapshot(
  */
 bool mpcd::ParticleData::checkInBox(
     const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
-    const BoxDim& box)
+    const std::shared_ptr<const BoxDim> box)
     {
     bool in_box = true;
     if (m_exec_conf->getRank() == 0)
         {
-        Scalar3 lo = box.getLo();
-        Scalar3 hi = box.getHi();
+        Scalar3 lo = box->getLo();
+        Scalar3 hi = box->getHi();
 
         const Scalar tol = Scalar(1e-5);
 
         for (unsigned int i = 0; i < snapshot->size; ++i)
             {
-            Scalar3 f = box.makeFraction(vec_to_scalar3(snapshot->position[i]));
+            Scalar3 f = box->makeFraction(vec_to_scalar3(snapshot->position[i]));
             if (f.x < -tol || f.x > Scalar(1.0) + tol || f.y < -tol || f.y > Scalar(1.0) + tol
                 || f.z < -tol || f.z > Scalar(1.0) + tol)
                 {
@@ -1093,7 +1093,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         return;
         }
 
-    // flag particles that have left
+        // flag particles that have left
         {
         ArrayHandle<unsigned char> d_remove_flags(m_remove_flags,
                                                   access_location::device,
@@ -1107,13 +1107,13 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                           d_comm_flags.data,
                                           mask,
                                           m_N,
-                                          m_mark_tuner->getParam());
+                                          m_mark_tuner->getParam()[0]);
         m_mark_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
-    // use cub to partition the particle indexes and count the number to remove
+        // use cub to partition the particle indexes and count the number to remove
         {
         ArrayHandle<unsigned char> d_remove_flags(m_remove_flags,
                                                   access_location::device,
@@ -1153,7 +1153,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
     const unsigned int n_keep = m_N - n_remove;
     out.resize(n_remove);
 
-    // remove the particles and compact down the current array
+        // remove the particles and compact down the current array
         {
         // access output array
         ArrayHandle<mpcd::detail::pdata_element> d_out(out,
@@ -1181,7 +1181,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                     d_remove_ids.data,
                                     n_remove,
                                     m_N,
-                                    m_remove_tuner->getParam());
+                                    m_remove_tuner->getParam()[0]);
         m_remove_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1238,7 +1238,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
                                  d_comm_flags.data,
                                  d_in.data,
                                  mask,
-                                 m_add_tuner->getParam());
+                                 m_add_tuner->getParam()[0]);
         m_add_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1260,10 +1260,16 @@ void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposi
 #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
-        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
-        m_remove_tuner.reset(
-            new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
-        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        m_mark_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                            m_exec_conf,
+                                            "mpcd_pdata_mark"));
+        m_remove_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                              m_exec_conf,
+                                              "mpcd_pdata_remove"));
+        m_add_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                           m_exec_conf,
+                                           "mpcd_pdata_add"));
+        m_autotuners.insert(m_autotuners.end(), {m_mark_tuner, m_remove_tuner, m_add_tuner});
         }
 #endif // ENABLE_HIP
     }
@@ -1276,13 +1282,13 @@ void mpcd::detail::export_ParticleData(pybind11::module& m)
     {
     pybind11::class_<mpcd::ParticleData, std::shared_ptr<mpcd::ParticleData>>(m, "MPCDParticleData")
         .def(pybind11::init<unsigned int,
-                            const BoxDim&,
+                            const std::shared_ptr<const BoxDim>,
                             Scalar,
                             unsigned int,
                             unsigned int,
                             std::shared_ptr<ExecutionConfiguration>>())
         .def(pybind11::init<unsigned int,
-                            const BoxDim&,
+                            const std::shared_ptr<const BoxDim>,
                             Scalar,
                             unsigned int,
                             unsigned int,
@@ -1300,3 +1306,5 @@ void mpcd::detail::export_ParticleData(pybind11::module& m)
         .def("getTypeByName", &mpcd::ParticleData::getTypeByName)
         .def_property("mass", &mpcd::ParticleData::getMass, &mpcd::ParticleData::setMass);
     }
+
+    } // end namespace hoomd

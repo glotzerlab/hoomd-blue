@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 ==========
 HOOMD-blue
 ==========
@@ -18,7 +21,7 @@ HOOMD-blue
         :target: https://anaconda.org/conda-forge/hoomd
     .. |conda-forge-Downloads| image:: https://img.shields.io/conda/dn/conda-forge/hoomd.svg?style=flat
         :target: https://anaconda.org/conda-forge/hoomd
-    .. |GitHub Actions| image:: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml/badge.svg
+    .. |GitHub Actions| image:: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml/badge.svg?branch=trunk-patch
         :target: https://github.com/glotzerlab/hoomd-blue/actions/workflows/test.yml
     .. |Contributors| image:: https://img.shields.io/github/contributors-anon/glotzerlab/hoomd-blue.svg?style=flat
         :target: https://hoomd-blue.readthedocs.io/en/latest/credits.html
@@ -48,6 +51,24 @@ Resources
   Additional information and publications.
 - `HOOMD-blue benchmark scripts <https://github.com/glotzerlab/hoomd-benchmarks>`_:
   Scripts to evaluate the performance of HOOMD-blue simulations.
+- `HOOMD-blue validation tests <https://github.com/glotzerlab/hoomd-validation>`_:
+  Scripts to validate that HOOMD-blue performs accurate simulations.
+
+Related tools
+=============
+
+- `freud <https://freud.readthedocs.io/>`_:
+  Analyze HOOMD-blue simulation results with the **freud** Python library.
+- `signac <https://signac.io/>`_:
+  Manage your workflow with **signac**.
+- `Molecular Simulation Design Framework (MoSDeF)`_ tools:
+
+  - `mbuild`_: Assemble reusable components into complex molecular systems.
+  - `foyer`_: perform atom-typing and define classical molecular modeling force fields.
+
+.. _Molecular Simulation Design Framework (MoSDeF): https://mosdef.org/
+.. _mbuild: https://mbuild.mosdef.org/
+.. _foyer: https://foyer.mosdef.org/
 
 Example scripts
 ===============
@@ -73,7 +94,7 @@ Hard particle Monte Carlo:
     cpu = hoomd.device.CPU()
     sim = hoomd.Simulation(device=cpu, seed=20)
     sim.operations.integrator = mc
-    # See HOOMD tutorial for how to construct an initial configuration 'init.gsd'
+    # The tutorial describes how to construct an initial configuration 'init.gsd'.
     sim.create_state_from_gsd(filename='init.gsd')
 
     sim.run(1e5)
@@ -97,7 +118,7 @@ Molecular dynamics:
     gpu = hoomd.device.GPU()
     sim = hoomd.Simulation(device=gpu)
     sim.operations.integrator = integrator
-    # See HOOMD tutorial for how to construct an initial configuration 'init.gsd'
+    # The tutorial describes how to construct an initial configuration 'init.gsd'.
     sim.create_state_from_gsd(filename='init.gsd')
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
@@ -107,6 +128,7 @@ Molecular dynamics:
     :maxdepth: 1
     :caption: Getting started
 
+    features
     installation
     building
     migrating
@@ -122,9 +144,18 @@ Molecular dynamics:
     tutorial/02-Logging/00-index
     tutorial/03-Parallel-Simulations-With-MPI/00-index
     tutorial/04-Custom-Actions-In-Python/00-index
+    tutorial/05-Organizing-and-Executing-Simulations/00-index
+    tutorial/06-Modelling-Rigid-Bodies/00-index
 
 .. toctree::
-   :maxdepth: 3
+    :maxdepth: 1
+    :caption: How to guides
+
+    howto/molecular
+    howto/cpppotential
+
+.. toctree::
+   :maxdepth: 1
    :caption: Python API
 
    package-hoomd
@@ -144,8 +175,10 @@ Molecular dynamics:
    :maxdepth: 1
    :caption: Reference
 
+   notation
    units
    deprecated
+   logo
    license
    credits
    indices

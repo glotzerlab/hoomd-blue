@@ -1,8 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: Lin Yang, Alex Travesset
-// Previous Maintainer: Morozov
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/md/NeighborList.h"
@@ -22,6 +19,10 @@
 #ifndef __EAMFORCECOMPUTE_H__
 #define __EAMFORCECOMPUTE_H__
 
+namespace hoomd
+    {
+namespace metal
+    {
 //! Computes the potential and force on each particle based on values given in a EAM potential
 /*! \b Overview
  The total potential and force is computed for each particle when compute() is called. Potentials
@@ -54,7 +55,7 @@ class EAMForceCompute : public ForceCompute
     virtual ~EAMForceCompute();
 
     //! Sets the neighbor list to be used for the EAM force
-    virtual void set_neighbor_list(std::shared_ptr<NeighborList> nlist);
+    virtual void set_neighbor_list(std::shared_ptr<md::NeighborList> nlist);
 
     //! Get the r cut value read from the EAM potential file
     virtual Scalar get_r_cut();
@@ -63,12 +64,12 @@ class EAMForceCompute : public ForceCompute
     virtual void loadFile(char* filename, int type_of_file);
 
     protected:
-    std::shared_ptr<NeighborList> m_nlist; //!< the neighborlist to use for the computation
-    Scalar m_r_cut;                        //!< cut-off radius
-    unsigned int m_ntypes;                 //!< number of potential element types
-    unsigned int nrho;                     //!< number of tabulated values of interpolated F(rho)
-    Scalar drho;                           //!< interval of rho in interpolated table
-    Scalar rdrho;                          //!< 1.0 / drho
+    std::shared_ptr<md::NeighborList> m_nlist; //!< the neighborlist to use for the computation
+    Scalar m_r_cut;                            //!< cut-off radius
+    unsigned int m_ntypes;                     //!< number of potential element types
+    unsigned int nrho;          //!< number of tabulated values of interpolated F(rho)
+    Scalar drho;                //!< interval of rho in interpolated table
+    Scalar rdrho;               //!< 1.0 / drho
     unsigned int nr;            //!< number of tabulated values of interpolated rho(r), r*phi(r)
     Scalar dr;                  //!< interval of r in interpolated table
     Scalar rdr;                 //!< 1.0 / dr
@@ -98,7 +99,13 @@ class EAMForceCompute : public ForceCompute
                                ArrayHandle<Scalar4>* df);
     };
 
+namespace detail
+    {
 //! Exports the EAMForceCompute class to python
 void export_EAMForceCompute(pybind11::module& m);
+
+    } // end namespace detail
+    } // end namespace metal
+    } // end namespace hoomd
 
 #endif

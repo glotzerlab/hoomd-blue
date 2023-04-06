@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file LoadBalancerGPU.h
     \brief Declares an updater that changes the MPI domain decomposition to balance the load using
@@ -23,6 +21,8 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <pybind11/pybind11.h>
 
+namespace hoomd
+    {
 //! GPU implementation of dynamic load balancing
 class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     {
@@ -32,18 +32,6 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
 
     //! Destructor
     virtual ~LoadBalancerGPU();
-
-    //! Set autotuner parameters
-    /*!
-     * \param enable Enable/disable autotuning
-     * \param period period (approximate) in time steps when returning occurs
-     */
-    virtual void setAutotunerParams(bool enable, unsigned int period)
-        {
-        LoadBalancer::setAutotunerParams(enable, period);
-        m_tuner->setPeriod(period);
-        m_tuner->setEnabled(enable);
-        }
 
     //! Resize the per particle data when there is a max number of particle change
     void slotMaxNumChanged()
@@ -60,11 +48,20 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
 #endif
 
     private:
-    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size counting particles
-    GPUArray<unsigned int> m_off_ranks; //!< Array to hold the ranks of particles that have moved
+    /// Autotuner for block size counting particles
+    std::shared_ptr<Autotuner<1>> m_tuner;
+
+    /// Array to hold the ranks of particles that have moved
+    GPUArray<unsigned int> m_off_ranks;
     };
 
+namespace detail
+    {
 //! Export the LoadBalancerGPU to python
 void export_LoadBalancerGPU(pybind11::module& m);
+
+    } // end namespace detail
+
+    } // end namespace hoomd
 
 #endif // ENABLE_HIP

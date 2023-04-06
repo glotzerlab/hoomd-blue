@@ -1,9 +1,14 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #ifndef __PARTICLE_FILTER_TAGS_H__
 #define __PARTICLE_FILTER_TAGS_H__
 
 #include "ParticleFilter.h"
 #include <pybind11/numpy.h>
 
+namespace hoomd
+    {
 /// Select particles based on their tag
 class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
     {
@@ -41,4 +46,6 @@ class PYBIND11_EXPORT ParticleFilterTags : public ParticleFilter
     protected:
     std::vector<unsigned int> m_tags; //< Tags to use for filter
     };
+
+    } // end namespace hoomd
 #endif

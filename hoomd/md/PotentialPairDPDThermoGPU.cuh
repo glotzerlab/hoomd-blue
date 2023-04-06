@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: phillicl
 
 /*! \file PotentialPairDPDThermoGPU.cuh
     \brief Declares driver functions for computing all types of pair forces on the GPU
@@ -11,7 +12,6 @@
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_CUH__
 #define __POTENTIAL_PAIR_DPDTHERMO_CUH__
 
-#include "EvaluatorPairDPDThermo.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/TextureTools.h"
@@ -20,6 +20,12 @@
 #endif // __HIPCC__
 #include <cassert>
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 // currently this is hardcoded, we should set it to the max of platforms
 #if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_dpd_pair_force_max_tpp = 32;
@@ -42,7 +48,7 @@ struct dpd_pair_args_t
                     const BoxDim& _box,
                     const unsigned int* _d_n_neigh,
                     const unsigned int* _d_nlist,
-                    const unsigned int* _d_head_list,
+                    const size_t* _d_head_list,
                     const Scalar* _d_rcutsq,
                     const size_t _size_nlist,
                     const unsigned int _ntypes,
@@ -53,13 +59,15 @@ struct dpd_pair_args_t
                     const Scalar _T,
                     const unsigned int _shift_mode,
                     const unsigned int _compute_virial,
-                    const unsigned int _threads_per_particle)
+                    const unsigned int _threads_per_particle,
+                    const hipDeviceProp_t& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_vel(_d_vel), d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh),
           d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
           size_nlist(_size_nlist), ntypes(_ntypes), block_size(_block_size), seed(_seed),
           timestep(_timestep), deltaT(_deltaT), T(_T), shift_mode(_shift_mode),
-          compute_virial(_compute_virial), threads_per_particle(_threads_per_particle) {};
+          compute_virial(_compute_virial), threads_per_particle(_threads_per_particle),
+          devprop(_devprop) {};
 
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
@@ -69,23 +77,25 @@ struct dpd_pair_args_t
     const Scalar4* d_pos;      //!< particle positions
     const Scalar4* d_vel;      //!< particle velocities
     const unsigned int* d_tag; //!< particle tags
-    const BoxDim& box;         //!< Simulation box in GPU format
+    const BoxDim box;          //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const unsigned int* d_head_list; //!< Indexes for accessing d_nlist
-    const Scalar* d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const size_t size_nlist;         //!< Total length of the neighbor list
-    const unsigned int ntypes;       //!< Number of particle types in the simulation
-    const unsigned int block_size;   //!< Block size to execute
-    const uint16_t seed;             //!< user provided seed for PRNG
-    const uint64_t timestep;         //!< timestep of simulation
-    const Scalar deltaT;             //!< timestep size
-    const Scalar T;                  //!< temperature
-    const unsigned int shift_mode;   //!< The potential energy shift mode
+    const size_t* d_head_list;   //!< Indexes for accessing d_nlist
+    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
+    const size_t size_nlist;     //!< Total length of the neighbor list
+    const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const unsigned int block_size;     //!< Block size to execute
+    const uint16_t seed;               //!< user provided seed for PRNG
+    const uint64_t timestep;           //!< timestep of simulation
+    const Scalar deltaT;               //!< timestep size
+    const Scalar T;                    //!< temperature
+    const unsigned int shift_mode;     //!< The potential energy shift mode
     const unsigned int compute_virial; //!< Flag to indicate if virials should be computed
     const unsigned int
         threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
+
+    const hipDeviceProp_t& devprop; //!< Device properties
     };
 
 #ifdef __HIPCC__
@@ -145,7 +155,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                                               BoxDim box,
                                               const unsigned int* d_n_neigh,
                                               const unsigned int* d_nlist,
-                                              const unsigned int* d_head_list,
+                                              const size_t* d_head_list,
                                               const typename evaluator::param_type* d_params,
                                               const Scalar* d_rcutsq,
                                               const uint16_t d_seed,
@@ -206,7 +216,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
         Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
         // prefetch neighbor index
-        const unsigned int head_idx = d_head_list[idx];
+        const size_t head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
         unsigned int next_j(0);
         next_j = (threadIdx.x % tpp < n_neigh) ? __ldg(d_nlist + head_idx + threadIdx.x % tpp) : 0;
@@ -252,7 +262,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
-                typename evaluator::param_type param = s_params[typpair];
+                typename evaluator::param_type& param = s_params[typpair];
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
@@ -372,6 +382,12 @@ struct DPDForceComputeKernel
             const size_t shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                         * typpair_idx.getNumElements();
 
+            if (shared_bytes > args.devprop.sharedMemPerBlock)
+                {
+                throw std::runtime_error("Pair potential parameters exceed the available shared "
+                                         "memory per block.");
+                }
+
             unsigned int max_block_size;
             max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator,
                                                                                   shift_mode,
@@ -438,8 +454,8 @@ struct DPDForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nli
     This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */
 template<class evaluator>
-hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
-                                  const typename evaluator::param_type* d_params)
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_dpd_forces(const dpd_pair_args_t& args, const typename evaluator::param_type* d_params)
     {
     assert(d_params);
     assert(args.d_rcutsq);
@@ -489,6 +505,14 @@ hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
 
     return hipSuccess;
     }
+#else
+template<class evaluator>
+__attribute__((visibility("default"))) hipError_t
+gpu_compute_dpd_forces(const dpd_pair_args_t& args, const typename evaluator::param_type* d_params);
 #endif
+
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__

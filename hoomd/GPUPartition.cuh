@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #pragma once
 
 #ifdef ENABLE_HIP
@@ -10,6 +13,8 @@
 
 #include <hip/hip_runtime.h>
 
+namespace hoomd
+    {
 //! A thin data structure to hold the split of particles across GPUs
 /* We intentionally do not use STL containers such as std::vector<> here, as these are known to
    cause problems when passed across shared library boundaries, such as to a GPU driver function.
@@ -152,5 +157,7 @@ class __attribute__((visibility("default"))) GPUPartition
 
     std::pair<unsigned int, unsigned int>* m_gpu_range;
     };
+
+    } // end namespace hoomd
 
 #endif

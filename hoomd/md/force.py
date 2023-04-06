@@ -1,13 +1,13 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Apply forces to particles."""
 
+from abc import abstractmethod
+
 import hoomd
-from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import Compute
 from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
@@ -17,25 +17,66 @@ from hoomd.md.manifold import Manifold
 import numpy
 
 
-class _force:  # noqa - This will be removed eventually. Needed to build docs.
-    pass
+class Force(Compute):
+    r"""Defines a force for molecular dynamics simulations.
 
+    `Force` is the base class for all molecular dynamics forces and provides
+    common methods.
 
-class Force(_HOOMDBaseObject):
-    """Defines a force in HOOMD-blue.
+    A `Force` class computes the force and torque on each particle in the
+    simulation state :math:`\vec{F}_i` and :math:`\vec{\tau}_i`. With a few
+    exceptions (noted in the documentation of the specific force classes),
+    `Force` subclasses also compute the contribution to the system's potential
+    energy :math:`U` and the the virial tensor :math:`W`. `Force` breaks the
+    computation of the total system :math:`U` and :math:`W` into per-particle
+    and additional terms as detailed in the documentation for each specific
+    `Force` subclass.
 
-    Pair, angle, bond, and other forces are subclasses of this class.
+    .. math::
 
-    Note:
-        :py:class:`Force` is the base class for all loggable forces.
-        Users should not instantiate this class directly.
+        U & = U_\mathrm{additional} + \sum_{i=0}^{N_\mathrm{particles}-1} U_i \\
+        W & = W_\mathrm{additional} + \sum_{i=0}^{N_\mathrm{particles}-1} W_i
 
-    Initializes some loggable quantities.
+    `Force` represents virial tensors as six element arrays listing the
+    components of the tensor in this order:
+
+    .. math::
+
+        (W^{xx}, W^{xy}, W^{xz}, W^{yy}, W^{yz}, W^{zz}).
+
+    The components of the virial tensor for a force on a single particle are:
+
+    .. math::
+
+        W^{kl}_i = F^k \cdot r_i^l
+
+    where the superscripts select the x,y, and z components of the vectors.
+    To properly account for periodic boundary conditions, pairwise interactions
+    evaluate the virial:
+
+    .. math::
+
+        W^{kl}_i = \frac{1}{2} \sum_j F^k_{ij} \cdot
+        \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
+
+    Tip:
+        Add a `Force` to your integrator's `forces <hoomd.md.Integrator.forces>`
+        list to include it in the equations of motion of your system. Add a
+        `Force` to your simulation's `operations.computes
+        <hoomd.Operations.computes>` list to compute the forces and energy
+        without influencing the system dynamics.
+
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
     """
+
+    def __init__(self):
+        self._in_context_manager = False
 
     @log(requires_run=True)
     def energy(self):
-        """float: Total contribution to the potential energy of the system \
+        """float: The potential energy :math:`U` of the system from this force \
         :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.calcEnergySum()
@@ -43,7 +84,7 @@ class Force(_HOOMDBaseObject):
     @log(category="particle", requires_run=True)
     def energies(self):
         """(*N_particles*, ) `numpy.ndarray` of ``float``: Energy \
-        contribution from each particle :math:`[\\mathrm{energy}]`.
+        contribution :math:`U_i` from each particle :math:`[\\mathrm{energy}]`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -54,7 +95,7 @@ class Force(_HOOMDBaseObject):
 
     @log(requires_run=True)
     def additional_energy(self):
-        """float: Additional energy term not included in `energies` \
+        """float: Additional energy term :math:`U_\\mathrm{additional}` \
         :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getExternalEnergy()
@@ -62,7 +103,8 @@ class Force(_HOOMDBaseObject):
     @log(category="particle", requires_run=True)
     def forces(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``float``: The \
-        force applied to each particle :math:`[\\mathrm{force}]`.
+        force :math:`\\vec{F}_i` applied to each particle \
+        :math:`[\\mathrm{force}]`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -73,8 +115,9 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle", requires_run=True)
     def torques(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``float``: The torque applied \
-        to each particle :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`.
+        """(*N_particles*, 3) `numpy.ndarray` of ``float``: The torque \
+        :math:`\\vec{\\tau}_i` applied to each particle \
+        :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`.
 
         Attention:
             In MPI parallel execution, the array is available on rank 0 only.
@@ -86,10 +129,7 @@ class Force(_HOOMDBaseObject):
     @log(category="particle", requires_run=True)
     def virials(self):
         """(*N_particles*, 6) `numpy.ndarray` of ``float``: Virial tensor \
-        contribution from each particle :math:`[\\mathrm{energy}]`.
-
-        The 6 elements form the upper-triangular virial tensor in the order:
-        xx, xy, xz, yy, yz, zz.
+        contribution :math:`W_i` from each particle :math:`[\\mathrm{energy}]`.
 
         Attention:
             To improve performance `Force` objects only compute virials when
@@ -109,220 +149,171 @@ class Force(_HOOMDBaseObject):
     @log(category="sequence", requires_run=True)
     def additional_virial(self):
         """(1, 6) `numpy.ndarray` of ``float``: Additional virial tensor \
-        term not included in `virials` :math:`[\\mathrm{energy}]`."""
+        term :math:`W_\\mathrm{additional}` :math:`[\\mathrm{energy}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         virial = []
         for i in range(6):
             virial.append(self._cpp_obj.getExternalVirial(i))
         return numpy.array(virial, dtype=numpy.float64)
 
+    @property
+    def cpu_local_force_arrays(self):
+        """hoomd.md.data.ForceLocalAccess: Expose force arrays on the CPU.
 
-class constant(Force):  # noqa - this will be renamed when it is ported to v3
-    R"""Constant force.
+        Provides direct access to the force, potential energy, torque, and
+        virial data of the particles in the system on the cpu through a context
+        manager. All data is MPI rank-local.
 
-    Args:
-        fvec (tuple): force vector :math:`[force]`
-        tvec (tuple): torque vector :math:`[force \cdot length]`
-        fx (float): x component of force, retained for backwards compatibility
-          :math:`[\mathrm{force}]`
-        fy (float): y component of force, retained for backwards compatibility
-          :math:`[\mathrm{force}]`
-        fz (float): z component of force, retained for backwards compatibility
-          :math:`[\mathrm{force}]`
-        group (``hoomd.group``): Group for which the force will be set.
-        callback (`callable`): A python callback invoked every time the forces
-            are computed
+        The `hoomd.md.data.ForceLocalAccess` object returned by this property
+        has four arrays through which one can modify the force data:
 
-    :py:class:`constant` specifies that a constant force should be added to
-    every particle in the simulation or optionally to all particles in a group.
+        Note:
+            The local arrays are read only for built-in forces. Use `Custom` to
+            implement custom forces.
 
-    Note:
-        Forces are kept constant during the simulation. If a callback should
-        re-compute particle forces every time step, it needs to overwrite the
-        old forces of **all** particles with new values.
+        Examples::
 
-    Note:
-        Per-particle forces take precedence over a particle group, which takes
-        precedence over constant forces for all particles.
+            with self.cpu_local_force_arrays as arrays:
+                arrays.force[:] = ...
+                arrays.potential_energy[:] = ...
+                arrays.torque[:] = ...
+                arrays.virial[:] = ...
+        """
+        if self._in_context_manager:
+            raise RuntimeError("Cannot enter cpu_local_force_arrays context "
+                               "manager inside another local_force_arrays "
+                               "context manager")
+        if not self._attached:
+            raise hoomd.error.DataAccessError("cpu_local_force_arrays")
+        return hoomd.md.data.ForceLocalAccess(self, self._simulation.state)
+
+    @property
+    def gpu_local_force_arrays(self):
+        """hoomd.md.data.ForceLocalAccessGPU: Expose force arrays on the GPU.
+
+        Provides direct access to the force, potential energy, torque, and
+        virial data of the particles in the system on the gpu through a context
+        manager. All data is MPI rank-local.
+
+        The `hoomd.md.data.ForceLocalAccessGPU` object returned by this property
+        has four arrays through which one can modify the force data:
+
+        Note:
+            The local arrays are read only for built-in forces. Use `Custom` to
+            implement custom forces.
+
+        Examples::
+
+            with self.gpu_local_force_arrays as arrays:
+                arrays.force[:] = ...
+                arrays.potential_energy[:] = ...
+                arrays.torque[:] = ...
+                arrays.virial[:] = ...
+
+        Note:
+            GPU local force data is not available if the chosen device for the
+            simulation is `hoomd.device.CPU`.
+        """
+        if not isinstance(self._simulation.device, hoomd.device.GPU):
+            raise RuntimeError(
+                "Cannot access gpu_local_force_arrays without a GPU device")
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot enter gpu_local_force_arrays context manager inside "
+                "another local_force_arrays context manager")
+        if not self._attached:
+            raise hoomd.error.DataAccessError("gpu_local_force_arrays")
+        return hoomd.md.data.ForceLocalAccessGPU(self, self._simulation.state)
+
+
+class Custom(Force):
+    """Custom forces implemented in python.
+
+    Derive a custom force class from `Custom`, and override the `set_forces`
+    method to compute forces on particles. Users have direct, zero-copy access
+    to the C++ managed buffers via either the `cpu_local_force_arrays` or
+    `gpu_local_force_arrays` property. Choose the property that corresponds to
+    the device you wish to alter the data on. In addition to zero-copy access to
+    force buffers, custom forces have access to the local snapshot API via the
+    ``_state.cpu_local_snapshot`` or the ``_state.gpu_local_snapshot`` property.
+
+    See Also:
+      See the documentation in `hoomd.State` for more information on the local
+      snapshot API.
 
     Examples::
 
-        force.constant(fx=1.0, fy=0.5, fz=0.25)
-        const = force.constant(fvec=(0.4,1.0,0.5))
-        const = force.constant(fvec=(0.4,1.0,0.5),group=fluid)
-        const = force.constant(fvec=(0.4,1.0,0.5), tvec=(0,0,1) ,group=fluid)
+        class MyCustomForce(hoomd.force.Custom):
+            def __init__(self):
+                super().__init__(aniso=True)
 
-        def updateForces(timestep):
-            global const
-            const.setForce(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
-        const = force.constant(callback=updateForces)
+            def set_forces(self, timestep):
+                with self.cpu_local_force_arrays as arrays:
+                    arrays.force[:] = -5
+                    arrays.torque[:] = 3
+                    arrays.potential_energy[:] = 27
+                    arrays.virial[:] = np.arange(6)[None, :]
+
+    In addition, since data is MPI rank-local, there may be ghost particle data
+    associated with each rank. To access this read-only ghost data, access the
+    property name with either the prefix ``ghost_`` of the suffix
+    ``_with_ghost``.
+
+    Note:
+        Pass ``aniso=True`` to the `md.force.Custom` constructor if your custom
+        force produces non-zero torques on particles.
+
+    Examples::
+
+        class MyCustomForce(hoomd.force.Custom):
+            def __init__(self):
+                super().__init__()
+
+            def set_forces(self, timestep):
+                with self.cpu_local_force_arrays as arrays:
+                    # access only the ghost particle forces
+                    ghost_force_data = arrays.ghost_force
+
+                    # access torque data on this rank and ghost torque data
+                    torque_data = arrays.torque_with_ghost
+
+    Note:
+        When accessing the local force arrays, always use a context manager.
+
+    Note:
+        The shape of the exposed arrays cannot change while in the context
+        manager.
+
+    Note:
+        All force data buffers are MPI rank local, so in simulations with MPI,
+        only the data for a single rank is available.
+
+    Note:
+        Access to the force buffers is constant (O(1)) time.
+
+    .. versionchanged:: 3.1.0
+        `Custom` zeros the force, torque, energy, and virial arrays before
+        calling the user-provided `set_forces`.
     """
 
-    def __init__(
-        self,
-        fx=None,
-        fy=None,
-        fz=None,
-        fvec=None,
-        tvec=None,
-        group=None,
-        callback=None,
-    ):
+    def __init__(self, aniso=False):
+        super().__init__()
+        self._aniso = aniso
 
-        if (fx is not None) and (fy is not None) and (fz is not None):
-            self.fvec = (fx, fy, fz)
-        elif fvec is not None:
-            self.fvec = fvec
-        else:
-            self.fvec = (0, 0, 0)
+        self._state = None  # to be set on attaching
 
-        if tvec is not None:
-            self.tvec = tvec
-        else:
-            self.tvec = (0, 0, 0)
+    def _attach_hook(self):
+        self._state = self._simulation.state
+        self._cpp_obj = _md.CustomForceCompute(self._state._cpp_sys_def,
+                                               self.set_forces, self._aniso)
 
-        if (self.fvec == (0, 0, 0)) and (self.tvec == (0, 0, 0)
-                                         and callback is None):
-            hoomd.context.current.device.cpp_msg.warning(
-                "The constant force specified has no non-zero components\n")
+    @abstractmethod
+    def set_forces(self, timestep):
+        """Set the forces in the simulation loop.
 
-        # initialize the base class
-        Force.__init__(self)
-
-        # create the c++ mirror class
-        if group is not None:
-            self.cppForce = _hoomd.ConstForceCompute(
-                hoomd.context.current.system_definition,
-                group.cpp_group,
-                self.fvec[0],
-                self.fvec[1],
-                self.fvec[2],
-                self.tvec[0],
-                self.tvec[1],
-                self.tvec[2],
-            )
-        else:
-            self.cppForce = _hoomd.ConstForceCompute(
-                hoomd.context.current.system_definition,
-                self.fvec[0],
-                self.fvec[1],
-                self.fvec[2],
-                self.tvec[0],
-                self.tvec[1],
-                self.tvec[2],
-            )
-
-        if callback is not None:
-            self.cppForce.setCallback(callback)
-
-        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
-
-    R""" Change the value of the constant force.
-
-    Args:
-        fx (float) New x-component of the force :math:`[\mathrm{force}]`
-        fy (float) New y-component of the force :math:`[\mathrm{force}]`
-        fz (float) New z-component of the force :math:`[\mathrm{force}]`
-        fvec (tuple) New force vector
-        tvec (tuple) New torque vector
-        group Group for which the force will be set
-        tag (int) Particle tag for which the force will be set
-            .. versionadded:: 2.3
-
-     Using setForce() requires that you saved the created constant force in a
-     variable. i.e.
-
-     Examples:
-        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
-
-        const.setForce(fx=0.2, fy=0.1, fz=-0.5)
-        const.setForce(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
-        const.setForce(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
-    """
-
-    def setForce(  # noqa - this will be documented when it is ported to v3
-        self,
-        fx=None,
-        fy=None,
-        fz=None,
-        fvec=None,
-        tvec=None,
-        group=None,
-        tag=None,
-    ):
-
-        if (fx is not None) and (fy is not None) and (fx is not None):
-            self.fvec = (fx, fy, fz)
-        elif fvec is not None:
-            self.fvec = fvec
-        else:
-            self.fvec = (0, 0, 0)
-
-        if tvec is not None:
-            self.tvec = tvec
-        else:
-            self.tvec = (0, 0, 0)
-
-        if (fvec == (0, 0, 0)) and (tvec == (0, 0, 0)):
-            hoomd.context.current.device.cpp_msg.warning(
-                "You are setting the constant force to have no non-zero "
-                "components\n")
-
-        self.check_initialization()
-        if group is not None:
-            self.cppForce.setGroupForce(
-                group.cpp_group,
-                self.fvec[0],
-                self.fvec[1],
-                self.fvec[2],
-                self.tvec[0],
-                self.tvec[1],
-                self.tvec[2],
-            )
-        elif tag is not None:
-            self.cppForce.setParticleForce(
-                tag,
-                self.fvec[0],
-                self.fvec[1],
-                self.fvec[2],
-                self.tvec[0],
-                self.tvec[1],
-                self.tvec[2],
-            )
-        else:
-            self.cppForce.setForce(
-                self.fvec[0],
-                self.fvec[1],
-                self.fvec[2],
-                self.tvec[0],
-                self.tvec[1],
-                self.tvec[2],
-            )
-
-    R""" Set a python callback to be called before the force is evaluated
-
-    Args:
-        callback (`callable`) The callback function
-
-     Examples:
-        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
-
-        def updateForces(timestep):
-            global const
-            const.setForce(tag=1, fvec=(1.0*timestep,2.0*timestep,3.0*timestep))
-
-        const.set_callback(updateForces)
-        run(100)
-
-        # Reset the callback
-        const.set_callback(None)
-    """
-
-    def set_callback(self, callback=None):  # noqa - will be ported to v3
-        self.cppForce.setCallback(callback)
-
-    # there are no coeffs to update in the constant force compute
-    def update_coeffs(self):  # noqa - will be ported to v3
+        Args:
+            timestep (int): The current timestep in the simulation.
+        """
         pass
 
 
@@ -330,17 +321,21 @@ class Active(Force):
     r"""Active force.
 
     Args:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
-            active forces.
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply active forces.
 
-    :py:class:`Active` specifies that an active force should be added to
-    particles selected by the filter.  particles.  Obeys :math:`\delta {\bf r}_i
-    = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
-    :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force
-    vector for particle :math:`i`.  The active force and the active torque
-    vectors in the particle frame stay constant during the simulation. Hence,
-    the active forces in the system frame are composed of the forces in particle
-    frame and the current orientation of the particle.
+    `Active` computes an active force and torque on all particles selected by
+    the filter:
+
+    .. math::
+
+        \vec{F}_i = \mathbf{q}_i \vec{f}_i \mathbf{q}_i^* \\
+        \vec{\tau}_i = \mathbf{q}_i \vec{u}_i \mathbf{q}_i^*,
+
+    where :math:`\vec{f}_i` is the active force in the local particle
+    coordinate system (set by type `active_force`) and :math:`\vec{u}_i`
+    is the active torque in the local particle coordinate system (set by type
+    in `active_torque`.
 
     Note:
         To introduce rotational diffusion to the particle orientations, use
@@ -362,9 +357,13 @@ class Active(Force):
             trigger=10)
         sim.operations += rotational_diffusion_updater
 
+    Note:
+
+        The energy and virial associated with the active force are 0.
+
     Attributes:
-        filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
-            active forces.
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply active forces.
 
     .. py:attribute:: active_force
 
@@ -386,6 +385,7 @@ class Active(Force):
     """
 
     def __init__(self, filter):
+        super().__init__()
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter)
         param_dict["filter"] = filter
@@ -405,17 +405,13 @@ class Active(Force):
 
         self._extend_typeparam([active_force, active_torque])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
+    def _attach_hook(self):
+        # Active forces use RNGs. Warn the user if they did not set the seed.
+        self._simulation._warn_if_seed_unset()
+        # Set C++ class
+        self._set_cpp_obj()
 
-        Active forces use RNGs. Warn the user if they did not set the seed.
-        """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
+    def _set_cpp_obj(self):
 
         # initialize the reflected c++ class
         sim = self._simulation
@@ -428,16 +424,13 @@ class Active(Force):
         self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter))
 
-        # Attach param_dict and typeparam_dict
-        super()._attach()
-
     def create_diffusion_updater(self, trigger, rotational_diffusion):
         """Create a rotational diffusion updater for this active force.
 
         Args:
-            trigger (hoomd.trigger.Trigger): Select the timesteps to update
+            trigger (hoomd.trigger.trigger_like): Select the timesteps to update
                 rotational diffusion.
-            rotational_diffusion (hoomd.variant.Variant or float): The
+            rotational_diffusion (hoomd.variant.variant_like): The
                 rotational diffusion as a function of time or a constant.
 
         Returns:
@@ -452,19 +445,27 @@ class ActiveOnManifold(Active):
     r"""Active force on a manifold.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter`): Subset of particles on which to
             apply active forces.
-        manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
 
-    :py:class:`ActiveOnManifold` specifies that a constrained active force
-    should be added to particles selected by the filter similar to
-    :py:class:`Active`. The active force vector :math:`\hat{p}_i` is restricted
-    to the local tangent plane of the manifold constraint at point :math:`{\bf
-    r}_i`. For more information see :py:class:`Active`.
+    `ActiveOnManifold` computes a constrained active force and torque on all
+    particles selected by the filter similar to `Active`. `ActiveOnManifold`
+    restricts the forces to the local tangent plane of the manifold constraint.
+    For more information see `Active`.
 
     Hint:
         Use `ActiveOnManifold` with a `md.methods.rattle` integration method
         with the same manifold constraint.
+
+    Note:
+        To introduce rotational diffusion to the particle orientations, use
+        `create_diffusion_updater`. The rotational diffusion occurs in the local
+        tangent plane of the manifold.
+
+        .. seealso::
+
+            `hoomd.md.update.ActiveRotationalDiffusion`
 
     Examples::
 
@@ -478,9 +479,9 @@ class ActiveOnManifold(Active):
         active.active_torque['A','B'] = (0,0,0)
 
     Attributes:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (`hoomd.filter`): Subset of particles on which to
             apply active forces.
-        manifold_constraint (`hoomd.md.manifold.Manifold`): Manifold constraint.
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint.
 
     .. py:attribute:: active_force
 
@@ -509,28 +510,19 @@ class ActiveOnManifold(Active):
         param_dict["manifold_constraint"] = manifold_constraint
         self._param_dict.update(param_dict)
 
-    def _getattr_param(self, attr):
-        if self._attached:
-            if attr == "manifold_constraint":
-                return self._param_dict["manifold_constraint"]
-            parameter = getattr(self._cpp_obj, attr)
-            return parameter
-        else:
-            return self._param_dict[attr]
-
     def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":
             raise AttributeError(
                 "Cannot set manifold_constraint after construction.")
         super()._setattr_param(attr, value)
 
-    def _attach(self):
+    def _set_cpp_obj(self):
 
         # initialize the reflected c++ class
         sim = self._simulation
 
         if not self.manifold_constraint._attached:
-            self.manifold_constraint._attach()
+            self.manifold_constraint._attach(sim)
 
         base_class_str = 'ActiveForceConstraintCompute'
         base_class_str += self.manifold_constraint.__class__.__name__
@@ -541,5 +533,82 @@ class ActiveOnManifold(Active):
                                  sim.state._get_group(self.filter),
                                  self.manifold_constraint._cpp_obj)
 
-        # Attach param_dict and typeparam_dict
-        super()._attach()
+
+class Constant(Force):
+    r"""Constant force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `Constant` applies a type dependent constant force and torque on all
+    particles selected by the filter. `Constant` sets the force and torque
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        constant = hoomd.md.force.Constant(
+            filter=hoomd.filter.All()
+            )
+        constant.constant_force['A'] = (1,0,0)
+        constant.constant_torque['A'] = (0,0,0)
+
+    Note:
+
+        The energy and virial associated with the constant force are 0.
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    .. py:attribute:: constant_force
+
+        Constant force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It is defined per particle type and
+        defaults to (0.0, 0.0, 0.0) for all types.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+
+    .. py:attribute:: constant_torque
+
+        Constant torque vector in the global reference frame of the system
+        :math:`[\mathrm{force} \cdot \mathrm{length}]`. It is defined per
+        particle type and defaults to (0.0, 0.0, 0.0) for all types.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+    """
+
+    def __init__(self, filter):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        constant_force = TypeParameter(
+            "constant_force",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
+        )
+        constant_torque = TypeParameter(
+            "constant_torque",
+            type_kind="particle_types",
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
+        )
+
+        self._extend_typeparam([constant_force, constant_torque])
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.ConstantForceCompute
+        else:
+            my_class = _md.ConstantForceComputeGPU
+
+        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter))

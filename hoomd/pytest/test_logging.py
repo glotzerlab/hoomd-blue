@@ -1,7 +1,11 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 from hoomd.conftest import pickling_check
-from pytest import raises, fixture
-from hoomd.logging import (_LoggerQuantity, _SafeNamespaceDict, Logger,
-                           dict_map, Loggable, LoggerCategories, log)
+from pytest import raises, fixture, mark
+from hoomd.logging import (_LoggerQuantity, _NamespaceFilter,
+                           _SafeNamespaceDict, Logger, dict_map, Loggable,
+                           LoggerCategories, log)
 
 
 class DummyNamespace:
@@ -53,6 +57,10 @@ class DummyLoggable(metaclass=Loggable):
     def proplist(self):
         return [1, 2, 3]
 
+    @log(category="string", default=False)
+    def prop_nondefault(self):
+        return "foo"
+
     def __eq__(self, other):
         return isinstance(other, type(self))
 
@@ -78,7 +86,7 @@ class TestLoggableMetaclass():
     not_dummy_loggable_inher = NotInherentedDummy
 
     def test_logger_functor_application(self):
-        loggable_list = ['prop', 'proplist']
+        loggable_list = ['prop', 'proplist', "prop_nondefault"]
         assert set(
             self.dummy_loggable._export_dict.keys()) == set(loggable_list)
         expected_namespace = _LoggerQuantity._generate_namespace(
@@ -106,7 +114,43 @@ class TestLoggableMetaclass():
 
     def test_loggables(self):
         dummy_obj = self.dummy_loggable()
-        assert dummy_obj.loggables == {'prop': 'scalar', 'proplist': 'sequence'}
+        assert dummy_obj.loggables == {
+            'prop': 'scalar',
+            'proplist': 'sequence',
+            'prop_nondefault': 'string'
+        }
+
+
+class TestNamespaceFilter:
+
+    def test_remove_name(self):
+        filter_ = _NamespaceFilter(remove_names={"foo", "bar"})
+        assert ("baz",) == tuple(filter_(("foo", "bar", "baz")))
+        assert () == tuple(filter_(("foo", "bar")))
+        assert ("a", "c") == tuple(filter_(("a", "bar", "c")))
+
+    def test_base_names(self):
+        filter_ = _NamespaceFilter(base_names={"foo", "bar"})
+        assert ("foo", "bar") == tuple(filter_(("foo", "baz", "bar")))
+        assert ("foo",) == tuple(filter_(("foo", "bar")))
+        assert ("a", "bar") == tuple(filter_(("a", "bar", "c")))
+
+    def test_skip_duplicates(self):
+        filter_ = _NamespaceFilter()
+        assert ("a",) == tuple(filter_(("a", "a", "a", "a")))
+        assert ("a", "b", "a") == tuple(filter_(("a", "a", "b", "a")))
+        assert ("a", "b", "a") == tuple(filter_(("a", "b", "a", "a")))
+
+    def test_non_native_remove(self):
+        filter_ = _NamespaceFilter(non_native_remove={"foo", "bar"})
+        assert (
+            "foo",
+            "bar",
+            "baz",
+        ) == tuple(filter_(("foo", "bar", "baz")))
+        assert ("baz",) == tuple(filter_(("foo", "bar", "baz"), False))
+        assert () == tuple(filter_(("foo", "bar"), False))
+        assert ("a", "c") == tuple(filter_(("a", "bar", "c"), False))
 
 
 # ------- Test dict_map function
@@ -184,9 +228,21 @@ class TestSafeNamespaceDict:
 
 
 # ------ Test Logger
-@fixture
-def blank_logger():
-    return Logger()
+@fixture(params=(
+    {},
+    {
+        "only_default": False
+    },
+    {
+        "categories": ("scalar", "string")
+    },
+    {
+        "only_default": False,
+        "categories": ("scalar",)
+    },
+))
+def blank_logger(request):
+    return Logger(**request.param)
 
 
 @fixture
@@ -204,20 +260,54 @@ def base_namespace():
     return ('pytest', 'test_logging', 'DummyLoggable')
 
 
+def nested_getitem(obj, namespace):
+    for k in namespace:
+        obj = obj[k]
+    return obj
+
+
 class TestLogger:
 
+    def get_filter(self, logger, overwrite_default=False):
+
+        def filter(loggable):
+            with_default = not logger.only_default or loggable.default
+            return (loggable.category in logger.categories
+                    and (with_default or overwrite_default))
+
+        return filter
+
     def test_setitem(self, blank_logger):
-        logger = blank_logger
-        logger['a'] = (5, '__eq__', 'scalar')
-        logger[('b', 'c')] = (5, '__eq__', 'scalar')
-        logger['c'] = (lambda: [1, 2, 3], 'sequence')
+
+        def check(logger, namespace, loggable):
+            if LoggerCategories[loggable[-1]] not in logger.categories:
+                with raises(ValueError):
+                    logger[namespace] = loggable
+                return
+            logger[namespace] = loggable
+            assert namespace in logger
+            log_quantity = nested_getitem(logger, namespace)
+            assert log_quantity.obj == loggable[0]
+            if len(loggable) == 3:
+                assert log_quantity.attr == loggable[1]
+            assert log_quantity.category == LoggerCategories[loggable[-1]]
+
+        # Valid values with potentially incompatible categories
+        check(blank_logger, 'a', (5, '__eq__', 'scalar'))
+        check(blank_logger, ('b', 'c'), (5, '__eq__', 'scalar'))
+        check(blank_logger, 'c', (lambda: [1, 2, 3], 'sequence'))
+        # Invalid values
         for value in [dict(), list(), None, 5, (5, 2), (5, 2, 1)]:
             with raises(ValueError):
-                logger[('c', 'd')] = value
+                blank_logger[('c', 'd')] = value
+        # Existent key
+        extant_key = next(iter(blank_logger.keys()))
+        # Requires that scalar category accepted or raises a ValueError
         with raises(KeyError):
-            logger['a'] = (lambda: [1, 2, 3], 'sequence')
+            blank_logger[extant_key] = (lambda: 1, 'scalar')
 
     def test_add_single_quantity(self, blank_logger, log_quantity):
+        # Assumes "scalar" is always accepted
         blank_logger._add_single_quantity(None, log_quantity, None)
         namespace = log_quantity.namespace + (log_quantity.name,)
         assert namespace in blank_logger
@@ -232,19 +322,33 @@ class TestLogger:
 
     def test_get_loggables_by_names(self, blank_logger, logged_obj):
         # Check when quantities is None
-        log_quanities = blank_logger._get_loggables_by_name(logged_obj, None)
-        logged_names = ['prop', 'proplist']
+        log_quantities = list(
+            blank_logger._get_loggables_by_name(logged_obj, None))
+        log_filter = self.get_filter(blank_logger)
+        logged_names = [
+            loggable.name
+            for loggable in logged_obj._export_dict.values()
+            if log_filter(loggable)
+        ]
+        assert len(log_quantities) == len(logged_names)
         assert all([
-            log_quantity.name in logged_names for log_quantity in log_quanities
+            log_quantity.name in logged_names for log_quantity in log_quantities
         ])
 
         # Check when quantities is given
-        accepted_quantities = ['prop', 'proplist']
-        log_quanities = blank_logger._get_loggables_by_name(
-            logged_obj, accepted_quantities)
+        accepted_quantities = ['proplist', "prop_nondefault"]
+        log_filter = self.get_filter(blank_logger, overwrite_default=True)
+        log_quantities = list(
+            blank_logger._get_loggables_by_name(logged_obj,
+                                                accepted_quantities))
+        logged_names = [
+            loggable.name
+            for loggable in logged_obj._export_dict.values()
+            if loggable.name in accepted_quantities and log_filter(loggable)
+        ]
+        assert len(log_quantities) == len(logged_names)
         assert all([
-            log_quantity.name in accepted_quantities
-            for log_quantity in log_quanities
+            log_quantity.name in logged_names for log_quantity in log_quantities
         ])
 
         # Check when quantities has a bad value
@@ -253,60 +357,38 @@ class TestLogger:
             a = blank_logger._get_loggables_by_name(logged_obj, bad_quantities)
             list(a)
 
-    def test_add(self, blank_logger, logged_obj, base_namespace):
+    @mark.parametrize("quantities", ([], [
+        "prop",
+    ], ['prop', 'proplist', "prop_nondefault"]))
+    def test_add(self, blank_logger, logged_obj, base_namespace, quantities):
 
-        # Test adding everything
-        blank_logger.add(logged_obj)
+        if len(quantities) != 0:
+            blank_logger.add(logged_obj, quantities)
+            log_filter = self.get_filter(blank_logger, overwrite_default=True)
+        else:
+            blank_logger.add(logged_obj)
+            log_filter = self.get_filter(blank_logger)
+
         expected_namespaces = [
-            base_namespace + ('prop',), base_namespace + ('proplist',)
+            base_namespace + (loggable.name,)
+            for loggable in logged_obj._export_dict.values()
+            if log_filter(loggable)
         ]
+        if len(quantities) != 0:
+            expected_namespaces = [
+                name for name in expected_namespaces
+                if any(name[-1] in q for q in quantities)
+            ]
         assert all(ns in blank_logger for ns in expected_namespaces)
-        assert len(blank_logger) == 2
+        assert len(blank_logger) == len(expected_namespaces)
 
-        # Test adding specific quantity
-        blank_logger._dict = dict()
-        blank_logger.add(logged_obj, 'prop')
-        expected_namespace = base_namespace + ('prop',)
-        assert expected_namespace in blank_logger
-        assert len(blank_logger) == 1
-
-        # Test multiple quantities
-        blank_logger._dict = dict()
-        blank_logger.add(logged_obj, ['prop', 'proplist'])
-        expected_namespaces = [
-            base_namespace + ('prop',), base_namespace + ('proplist',)
-        ]
-        assert all([ns in blank_logger for ns in expected_namespaces])
-        assert len(blank_logger) == 2
-
-        # Test with category
-        blank_logger._dict = dict()
-        blank_logger._categories = LoggerCategories['scalar']
-        blank_logger.add(logged_obj)
-        expected_namespace = base_namespace + ('prop',)
-        assert expected_namespace in blank_logger
-        assert len(blank_logger) == 1
-
-    def test_add_with_user_names(self, blank_logger, logged_obj,
-                                 base_namespace):
+    def test_add_with_user_names(self, logged_obj, base_namespace):
+        logger = Logger()
         # Test adding a user specified identifier into the namespace
         user_name = 'UserName'
-        blank_logger.add(logged_obj, user_name=user_name)
-        assert base_namespace[:-1] + (user_name, 'prop') in blank_logger
-        assert base_namespace[:-1] + (user_name, 'proplist') in blank_logger
-
-    def test_add_with_categories(self, blank_logger, logged_obj,
-                                 base_namespace):
-        blank_logger._categories = LoggerCategories['scalar']
-        # Test adding everything should filter non-scalar
-        blank_logger.add(logged_obj)
-        expected_namespace = base_namespace + ('prop',)
-        assert expected_namespace in blank_logger
-        blank_logger._categories = LoggerCategories['sequence']
-        expected_namespace = base_namespace + ('proplist',)
-        blank_logger.add(logged_obj)
-        assert expected_namespace in blank_logger
-        assert len(blank_logger) == 2
+        logger.add(logged_obj, user_name=user_name)
+        assert base_namespace[:-1] + (user_name, 'prop') in logger
+        assert base_namespace[:-1] + (user_name, 'proplist') in logger
 
     def test_remove(self, logged_obj, base_namespace):
 
@@ -356,13 +438,13 @@ class TestLogger:
         assert prop_namespace[:-2] + (prop_namespace[-2] + '_1',
                                       prop_namespace[-1]) not in log
 
-    def test_remove_with_user_name(self, blank_logger, logged_obj,
-                                   base_namespace):
+    def test_remove_with_user_name(self, logged_obj, base_namespace):
         # Test remove using a user specified namespace identifier
+        logger = Logger()
         user_name = 'UserName'
-        blank_logger.add(logged_obj, user_name=user_name)
-        assert base_namespace[:-1] + (user_name, 'prop') in blank_logger
-        assert base_namespace[:-1] + (user_name, 'proplist') in blank_logger
+        logger.add(logged_obj, user_name=user_name)
+        assert base_namespace[:-1] + (user_name, 'prop') in logger
+        assert base_namespace[:-1] + (user_name, 'proplist') in logger
 
     def test_iadd(self, blank_logger, logged_obj):
         blank_logger.add(logged_obj)
@@ -370,7 +452,13 @@ class TestLogger:
         blank_logger._dict = dict()
         blank_logger += logged_obj
         assert add_log == blank_logger._dict
-        assert len(blank_logger) == 2
+        log_filter = self.get_filter(blank_logger)
+        expected_loggables = [
+            loggable.name
+            for loggable in logged_obj._export_dict.values()
+            if log_filter(loggable)
+        ]
+        assert len(blank_logger) == len(expected_loggables)
 
     def test_isub(self, logged_obj, base_namespace):
 
@@ -412,3 +500,17 @@ class TestLogger:
     def test_pickling(self, blank_logger, logged_obj):
         blank_logger.add(logged_obj)
         pickling_check(blank_logger)
+
+    def test_iter(self):
+        logger = Logger()
+        logger[("a", "b", "c")] = (lambda: 4, "scalar")
+        logger[("b", "c")] = (lambda: "hello", "string")
+        logger[("a", "a")] = (lambda: 17, "scalar")
+        keys = list(logger)
+        assert len(keys) == 3
+        assert ("a",) not in keys
+        assert ("a", "b") not in keys
+        assert ("b",) not in keys
+        assert ("a", "b", "c") in keys
+        assert ("a", "a") in keys
+        assert ("b", "c") in keys

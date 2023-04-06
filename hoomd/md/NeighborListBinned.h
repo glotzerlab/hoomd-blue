@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "NeighborList.h"
 #include "hoomd/CellList.h"
@@ -19,6 +17,10 @@
 #ifndef __NEIGHBORLISTBINNED_H__
 #define __NEIGHBORLISTBINNED_H__
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Efficient neighbor list build on the CPU
 /*! Implements the O(N) neighbor list build on the CPU using a cell list.
 
@@ -52,6 +54,18 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
         return m_cl->getSortCellList();
         }
 
+    /// Get the dimensions of the cell list
+    const uint3& getDim() const
+        {
+        return m_cl->getDim();
+        }
+
+    /// Get number of memory slots allocated for each cell
+    const unsigned int getNmax() const
+        {
+        return m_cl->getNmax();
+        }
+
     protected:
     std::shared_ptr<CellList> m_cl; //!< The cell list
 
@@ -62,7 +76,7 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
     virtual void buildNlist(uint64_t timestep);
     };
 
-//! Exports NeighborListBinned to python
-void export_NeighborListBinned(pybind11::module& m);
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif

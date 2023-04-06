@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
    \file RandomNumbers.h
@@ -15,15 +15,20 @@
 
 #include "HOOMDMath.h"
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
-#endif
-
+#ifndef __CUDACC_RTC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wdangling-else"
+#endif
+
 #include <hoomd/extern/random123/include/Random123/philox.h>
-#include <type_traits>
+
+#ifndef __CUDACC_RTC__
 #pragma GCC diagnostic pop
+#endif
+
+#include <limits>
+#include <type_traits>
 
 namespace r123
     {

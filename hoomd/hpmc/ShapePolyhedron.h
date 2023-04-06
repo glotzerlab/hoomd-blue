@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #pragma once
 #include "GPUTree.h"
@@ -36,8 +36,10 @@
   left in here for future experimentation, and can be enabled by uncommenting the below line.
 */
 // uncomment for parallel overlap checks
-//#define LEAVES_AGAINST_TREE_TRAVERSAL
+// #define LEAVES_AGAINST_TREE_TRAVERSAL
 
+namespace hoomd
+    {
 namespace hpmc
     {
 namespace detail
@@ -366,6 +368,11 @@ struct ShapePolyhedron
         unsigned int n_verts = data.n_verts;
         unsigned int n_faces = data.n_faces;
 
+        if (n_verts == 0)
+            {
+            throw std::runtime_error("Shape definition not supported for 0-vertex polyhedra.");
+            }
+
         std::ostringstream shapedef;
         if (n_verts == 1 && data.verts[0].x == 0.0f && data.verts[0].y == data.verts[0].x
             && data.verts[0].y == data.verts[0].z)
@@ -406,9 +413,9 @@ struct ShapePolyhedron
 #endif
 
     /// Return the bounding box of the shape in world coordinates
-    DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
+    DEVICE hoomd::detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, data.diameter / Scalar(2));
+        return hoomd::detail::AABB(pos, data.diameter / Scalar(2));
         }
 
     /// Return a tight fitting OBB
@@ -1197,7 +1204,7 @@ template<> inline std::string getShapeSpec(const ShapePolyhedron& s)
     }
 #endif
 
-    }; // end namespace hpmc
-
+    } // end namespace hpmc
+    } // end namespace hoomd
 #undef DEVICE
 #undef HOSTDEVICE

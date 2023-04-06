@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: mphoward
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*!
  * \file mpcd/ATCollisionMethodGPU.h
@@ -11,6 +9,8 @@
 #include "ATCollisionMethodGPU.h"
 #include "ATCollisionMethodGPU.cuh"
 
+namespace hoomd
+    {
 mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(
     std::shared_ptr<mpcd::SystemData> sysdata,
     uint64_t cur_timestep,
@@ -18,11 +18,16 @@ mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(
     int phase,
     std::shared_ptr<mpcd::CellThermoCompute> thermo,
     std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-    std::shared_ptr<::Variant> T)
+    std::shared_ptr<Variant> T)
     : mpcd::ATCollisionMethod(sysdata, cur_timestep, period, phase, thermo, rand_thermo, T)
     {
-    m_tuner_draw.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_at_draw", m_exec_conf));
-    m_tuner_apply.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_at_apply", m_exec_conf));
+    m_tuner_draw.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                        m_exec_conf,
+                                        "mpcd_at_draw"));
+    m_tuner_apply.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
+                                         m_exec_conf,
+                                         "mpcd_at_apply"));
+    m_autotuners.insert(m_autotuners.end(), {m_tuner_draw, m_tuner_apply});
     }
 
 void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
@@ -71,7 +76,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
                                     T,
                                     N_mpcd,
                                     N_tot,
-                                    m_tuner_draw->getParam());
+                                    m_tuner_draw->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_draw->end();
@@ -91,7 +96,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
                                     T,
                                     N_mpcd,
                                     N_tot,
-                                    m_tuner_draw->getParam());
+                                    m_tuner_draw->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_draw->end();
@@ -145,7 +150,7 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
                                      d_rand_vel.data,
                                      N_mpcd,
                                      N_tot,
-                                     m_tuner_apply->getParam());
+                                     m_tuner_apply->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_apply->end();
@@ -163,7 +168,7 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
                                      d_rand_vel.data,
                                      N_mpcd,
                                      N_tot,
-                                     m_tuner_apply->getParam());
+                                     m_tuner_apply->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner_apply->end();
@@ -175,15 +180,16 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
  */
 void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
     {
-    namespace py = pybind11;
-    py::class_<mpcd::ATCollisionMethodGPU,
-               mpcd::ATCollisionMethod,
-               std::shared_ptr<mpcd::ATCollisionMethodGPU>>(m, "ATCollisionMethodGPU")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      uint64_t,
-                      uint64_t,
-                      int,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<mpcd::CellThermoCompute>,
-                      std::shared_ptr<::Variant>>());
+    pybind11::class_<mpcd::ATCollisionMethodGPU,
+                     mpcd::ATCollisionMethod,
+                     std::shared_ptr<mpcd::ATCollisionMethodGPU>>(m, "ATCollisionMethodGPU")
+        .def(pybind11::init<std::shared_ptr<mpcd::SystemData>,
+                            uint64_t,
+                            uint64_t,
+                            int,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<mpcd::CellThermoCompute>,
+                            std::shared_ptr<Variant>>());
     }
+
+    } // end namespace hoomd

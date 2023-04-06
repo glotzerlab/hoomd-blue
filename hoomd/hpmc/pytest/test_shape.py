@@ -1,10 +1,17 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
+from collections.abc import Sequence
+
 import hoomd
-from hoomd.conftest import operation_pickling_check
+from hoomd.conftest import (operation_pickling_check, logging_check,
+                            autotuned_kernel_parameter_check)
 from hoomd.error import DataAccessError
 import hoomd.hpmc
 import numpy as np
 import pytest
 import hoomd.hpmc.pytest.conftest
+from hoomd.logging import LoggerCategories
 from copy import deepcopy
 
 
@@ -29,8 +36,7 @@ def check_dict(shape_dict, args):
                 shape_args = shape_dict[key][i]
                 val_args = val[i]
                 for shape_key in shape_args:
-                    if isinstance(shape_args[shape_key], list) \
-                       and len(shape_args[shape_key]) > 0:
+                    if isinstance(shape_args[shape_key], Sequence):
                         np.testing.assert_allclose(val_args[shape_key],
                                                    shape_args[shape_key])
                     else:
@@ -58,7 +64,7 @@ def test_valid_shape_params(valid_args):
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     check_dict(mc.shape["A"], args)
@@ -86,7 +92,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     sim = simulation_factory(
@@ -97,8 +103,7 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
     check_dict(mc.shape["A"], args)
 
 
-def test_moves(device, simulation_factory, lattice_snapshot_factory,
-               test_moves_args):
+def test_moves(simulation_factory, lattice_snapshot_factory, test_moves_args):
     integrator = test_moves_args[0]
     args = test_moves_args[1]
     n_dimensions = test_moves_args[2]
@@ -123,6 +128,25 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
     if 'sphere' not in str(integrator).lower():
         accepted_rejected_rot = sum(sim.operations.integrator.rotate_moves)
         assert accepted_rejected_rot > 0
+
+
+def test_kernel_parameters(simulation_factory, lattice_snapshot_factory,
+                           test_moves_args):
+    integrator = test_moves_args[0]
+
+    if integrator == hoomd.hpmc.integrate.Sphinx:
+        pytest.skip("Sphinx does not build on the GPU by default.")
+
+    args = test_moves_args[1]
+    n_dimensions = test_moves_args[2]
+    mc = integrator()
+    mc.shape['A'] = args
+
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=n_dimensions))
+    sim.operations.add(mc)
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=mc, activate=lambda: sim.run(1))
 
 
 # An ellipsoid with a = b = c should be a sphere
@@ -648,7 +672,7 @@ def test_pickling(valid_args, simulation_factory,
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
-            args["shapes"][i] = inner_mc.shape["A"]
+            args["shapes"][i] = inner_mc.shape["A"].to_base()
     mc = integrator()
     mc.shape["A"] = args
     # L needs to be ridiculously large as to not be too small for the domain
@@ -657,3 +681,59 @@ def test_pickling(valid_args, simulation_factory,
     sim = simulation_factory(
         two_particle_snapshot_factory(L=1000, dimensions=n_dimensions))
     operation_pickling_check(mc, sim)
+
+
+def test_logging():
+    logging_check(
+        hoomd.hpmc.integrate.HPMCIntegrator, ('hpmc', 'integrate'), {
+            'map_overlaps': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'mps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'overlaps': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'rotate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            },
+            'translate_moves': {
+                'category': LoggerCategories.sequence,
+                'default': True
+            }
+        })
+
+    integrators = (hoomd.hpmc.integrate.Sphere,
+                   hoomd.hpmc.integrate.ConvexPolygon,
+                   hoomd.hpmc.integrate.ConvexSpheropolygon,
+                   hoomd.hpmc.integrate.Polyhedron,
+                   hoomd.hpmc.integrate.ConvexPolyhedron,
+                   hoomd.hpmc.integrate.ConvexSpheropolyhedron,
+                   hoomd.hpmc.integrate.Ellipsoid,
+                   hoomd.hpmc.integrate.SphereUnion)
+
+    type_shapes_check = {
+        'type_shapes': {
+            'category': LoggerCategories.object,
+            'default': True
+        }
+    }
+
+    for integrator in integrators:
+        logging_check(integrator, ('hpmc', 'integrate'), type_shapes_check)
+
+
+def test_fugacity(simulation_factory, two_particle_snapshot_factory,
+                  test_moves_args):
+    integrator = test_moves_args[0]
+    args = test_moves_args[1]
+    mc = integrator()
+    mc.shape['A'] = args
+    mc.depletant_fugacity["A"] = 0.1
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.run(2)

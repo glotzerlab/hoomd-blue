@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __INDEX1D_H__
 #define __INDEX1D_H__
@@ -25,6 +23,8 @@
 #define HOSTDEVICE
 #endif
 
+namespace hoomd
+    {
 //! Index a 2D array
 /*! Row major mapping of 2D onto 1D
     \ingroup utils
@@ -216,6 +216,8 @@ struct Index2DUpperTriangular
     unsigned int m_w;    //!< Width of the 2D upper triangular array
     unsigned int m_term; //!< Precomputed term of the equation for efficiency
     };
+
+    } // end namespace hoomd
 
 #undef HOSTDEVICE
 #endif

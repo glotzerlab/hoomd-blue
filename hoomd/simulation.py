@@ -1,6 +1,5 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 """Define the Simulation class."""
 import inspect
@@ -20,16 +19,19 @@ class Simulation(metaclass=Loggable):
     """Define a simulation.
 
     Args:
-        device (`hoomd.device.Device`): Device to execute the simulation.
+        device (hoomd.device.Device): Device to execute the simulation.
         seed (int): Random number seed.
 
-    `Simulation` is the central class in HOOMD-blue that defines a simulation,
-    including the `state` of the system, the `operations` that apply to the
-    state during a simulation `run`, and the `device` to use when executing
-    the simulation.
+    `Simulation` is the central class that defines a simulation, including the
+    `state` of the system, the `operations` that apply to the state during a
+    simulation `run`, and the `device` to use when executing the simulation.
 
     `seed` sets the seed for the random number generator used by all operations
     added to this `Simulation`.
+
+    Newly initialized `Simulation` objects have no state. Call
+    `create_state_from_gsd` or `create_state_from_snapshot` to initialize the
+    simulation's `state`.
     """
 
     def __init__(self, device, seed=None):
@@ -38,7 +40,9 @@ class Simulation(metaclass=Loggable):
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
-        self._seed = seed
+        self._seed = None
+        if seed is not None:
+            self.seed = seed
 
     @property
     def device(self):
@@ -52,10 +56,10 @@ class Simulation(metaclass=Loggable):
 
     @log
     def timestep(self):
-        """int: Current time step of the simulation.
+        """int: The current simulation time step.
 
         Note:
-            Functions like `create_state_from_gsd` will set the initial timestep
+            Methods like `create_state_from_gsd` will set the initial timestep
             from the input. Set `timestep` before creating the simulation state
             to override values from ``create_`` methods::
 
@@ -172,6 +176,9 @@ class Simulation(metaclass=Loggable):
                 to include in each domain. The sum of each list of floats must
                 be 1.0 (e.g. ``([0.25, 0.75], [0.2, 0.8], [1.0])``).
 
+        When `timestep` is `None` before calling, `create_state_from_gsd`
+        sets `timestep` to the value in the selected GSD frame in the file.
+
         Note:
             Set any or all of the ``domain_decomposition`` tuple elements to
             `None` and `create_state_from_gsd` will select a value that
@@ -220,7 +227,7 @@ class Simulation(metaclass=Loggable):
 
         Note:
             Set any or all of the ``domain_decomposition`` tuple elements to
-            `None` and `create_state_from_gsd` will select a value that
+            `None` and `create_state_from_snapshot` will select a value that
             minimizes the surface area between the domains (e.g.
             ``(2,None,None)``). The domains are spaced evenly along each
             automatically selected direction. The default value of ``(None,
@@ -260,7 +267,14 @@ class Simulation(metaclass=Loggable):
 
     @property
     def operations(self):
-        """hoomd.Operations: The operations that apply to the state."""
+        """hoomd.Operations: The operations that apply to the state.
+
+        The operations apply to the state during the simulation run when
+        scheduled.
+
+        See Also:
+            `run`
+        """
         return self._operations
 
     @operations.setter
@@ -297,8 +311,8 @@ class Simulation(metaclass=Loggable):
         fixed after `run` completes.
 
         Note:
-            The start time and step are reset at the beginning of each call to
-            `run`.
+            The start walltime and timestep are reset at the beginning of each
+            call to `run`.
         """
         if self._state is None:
             return None
@@ -317,7 +331,7 @@ class Simulation(metaclass=Loggable):
             `walltime` resets to 0 at the beginning of each call to `run`.
         """
         if self._state is None:
-            return 0
+            return 0.0
         else:
             return self._cpp_sys.walltime
 
@@ -333,16 +347,28 @@ class Simulation(metaclass=Loggable):
         else:
             return self._cpp_sys.final_timestep
 
+    @log
+    def initial_timestep(self):
+        """float: `run` started at this timestep.
+
+        `initial_timestep` is the timestep on which the currently executing
+        `run` started.
+        """
+        if self._state is None:
+            return self.timestep
+        else:
+            return self._cpp_sys.initial_timestep
+
     @property
     def always_compute_pressure(self):
         """bool: Always compute the virial and pressure (defaults to ``False``).
 
         By default, HOOMD only computes the virial and pressure on timesteps
-        where it is needed (when :py:class:`hoomd.write.GSD` writes
+        where it is needed (when `hoomd.write.GSD` writes
         log data to a file or when using an NPT integrator). Set
         `always_compute_pressure` to True to make the per particle virial,
         net virial, and system pressure available to query any time by property
-        or through the :py:class:`hoomd.logging.Logger` interface.
+        or through the `hoomd.logging.Logger` interface.
 
         Note:
             Enabling this flag will result in a moderate performance penalty
@@ -379,9 +405,9 @@ class Simulation(metaclass=Loggable):
         Note:
             Initialize the simulation's state before calling `run`.
 
-        During each step `run`, `Simulation` applies its `operations` to the
-        state in the order: Tuners, Updaters, Integrator, then Writers following
-        the logic in this pseudocode::
+        `Simulation` applies its `operations` to the
+        state during each time step in the order: tuners, updaters, integrator,
+        then writers following the logic in this pseudocode::
 
             if write_at_start:
                 for writer in operations.writers:

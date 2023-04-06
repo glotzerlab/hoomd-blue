@@ -1,5 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 // inclusion guard
 #ifndef _EXTERNAL_FIELD_COMPOSITE_H_
@@ -18,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #endif
 
+namespace hoomd
+    {
 namespace hpmc
     {
 template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
@@ -35,15 +37,17 @@ template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMon
         return 0.0;
         }
 
-    double calculateDeltaE(const Scalar4* const position_old,
+    double calculateDeltaE(uint64_t timestep,
+                           const Scalar4* const position_old,
                            const Scalar4* const orientation_old,
-                           const BoxDim* const box_old)
+                           const BoxDim& box_old)
         {
         throw(std::runtime_error("ExternalFieldMonoComposite::calculateDeltaE is not implemented"));
         return double(0.0);
         }
 
-    double energydiff(const unsigned int& index,
+    double energydiff(uint64_t timestep,
+                      const unsigned int& index,
                       const vec3<Scalar>& position_old,
                       const Shape& shape_old,
                       const vec3<Scalar>& position_new,
@@ -52,7 +56,8 @@ template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMon
         double Energy = 0.0;
         for (size_t i = 0; i < m_externals.size(); i++)
             {
-            Energy += m_externals[i]->energydiff(index,
+            Energy += m_externals[i]->energydiff(timestep,
+                                                 index,
                                                  position_old,
                                                  shape_old,
                                                  position_new,
@@ -78,6 +83,8 @@ template<class Shape> class ExternalFieldMonoComposite : public ExternalFieldMon
     std::vector<std::shared_ptr<ExternalFieldMono<Shape>>> m_externals;
     };
 
+namespace detail
+    {
 template<class Shape> void export_ExternalFieldComposite(pybind11::module& m, std::string name)
     {
     pybind11::class_<ExternalFieldMonoComposite<Shape>,
@@ -87,5 +94,7 @@ template<class Shape> void export_ExternalFieldComposite(pybind11::module& m, st
         .def("addExternal", &ExternalFieldMonoComposite<Shape>::addExternal);
     }
 
-    }      // namespace hpmc
+    }  // end namespace detail
+    }  // namespace hpmc
+    }  // end namespace hoomd
 #endif // inclusion guard

@@ -1,9 +1,11 @@
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 """Define the ParticleSorter class."""
 
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.operation import Tuner
-from hoomd.trigger import Trigger
 from hoomd import _hoomd
 import hoomd
 from math import log2, ceil
@@ -13,8 +15,8 @@ class ParticleSorter(Tuner):
     """Order particles in memory to improve performance.
 
     Args:
-        trigger (hoomd.trigger.Trigger): Select the timesteps on which to sort.
-            Defaults to a `hoomd.trigger.Periodic(200)` trigger.
+        trigger (hoomd.trigger.trigger_like): Select the timesteps on which to
+            sort. Defaults to a ``hoomd.trigger.Periodic(200)`` trigger.
 
         grid (int): Resolution of the grid to use when sorting. The default
             value of `None` sets ``grid=4096`` in 2D simulations and
@@ -40,13 +42,13 @@ class ParticleSorter(Tuner):
     """
 
     def __init__(self, trigger=200, grid=None):
-        self._param_dict = ParameterDict(
-            trigger=Trigger,
+        super().__init__(trigger)
+        sorter_params = ParameterDict(
             grid=OnlyTypes(int,
                            postprocess=ParticleSorter._to_power_of_two,
                            preprocess=ParticleSorter._natural_number,
                            allow_none=True))
-        self.trigger = trigger
+        self._param_dict.update(sorter_params)
         self.grid = grid
 
     @staticmethod
@@ -63,11 +65,10 @@ class ParticleSorter(Tuner):
         except TypeError:
             raise ValueError("Expected positive integer.")
 
-    def _attach(self):
+    def _attach_hook(self):
         if isinstance(self._simulation.device, hoomd.device.GPU):
             cpp_cls = getattr(_hoomd, 'SFCPackTunerGPU')
         else:
             cpp_cls = getattr(_hoomd, 'SFCPackTuner')
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.trigger)
-        super()._attach()

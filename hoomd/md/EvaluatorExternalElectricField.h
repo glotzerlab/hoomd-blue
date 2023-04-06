@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #ifndef __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
 #define __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
@@ -27,6 +25,10 @@
 #define DEVICE
 #endif
 
+namespace hoomd
+    {
+namespace md
+    {
 //! Class for evaluating an electric field
 /*! <b>General Overview</b>
     The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
@@ -65,7 +67,7 @@ class EvaluatorExternalElectricField
 #endif // ifndef __HIPCC__
         } __attribute__((aligned(16)));
 
-    typedef Scalar3 field_type;
+    typedef void* field_type;
 
     //! Constructs the constraint evaluator
     /*! \param X position of particle
@@ -147,5 +149,8 @@ class EvaluatorExternalElectricField
     Scalar m_qi;   //!< particle charge
     Scalar3 m_E;   //!< the field vector
     };
+
+    } // end namespace md
+    } // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

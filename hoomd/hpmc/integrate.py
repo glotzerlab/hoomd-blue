@@ -1,8 +1,258 @@
-# Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
-# License.
+# Copyright (c) 2009-2023 The Regents of the University of Michigan.
+# Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-"""Hard particle Monte Carlo integrators."""
+r"""Hard particle Monte Carlo integrators.
+
+.. rubric:: Metropolis Monte Carlo
+
+The hard particle Monte Carlo (HPMC) integrator `HPMCIntegrator` samples
+equilibrium system states using the Metropolis Monte Carlo method. In this
+method, `HPMCIntegrator` takes the existing system state in the configuration
+:math:`C = (\vec{r}_0, \vec{r}_1, \ldots \vec{r}_{N_\mathrm{particles}-1},
+\mathbf{q}_0, \mathbf{q}_2, \ldots \mathbf{q}_{N_\mathrm{particles}-1})` with
+potential energy :math:`U` and perturbs it to a trial configuration :math:`C^t`
+with potential energy :math:`U^t` leading to an energy difference :math:`\Delta
+U = U^t - U`. The trial move is accepted with the probability:
+
+.. math::
+
+    p_\mathrm{accept} =
+    \begin{cases}
+      \exp(-\beta \Delta U) & \Delta U > 0 \\
+      1 & \Delta U \le 0 \\
+    \end{cases}
+
+When the trial move is accepted, the system state is set to the the trial
+configuration. When it is not accepted, the move is rejected and the state is
+not modified.
+
+.. rubric:: Temperature
+
+HPMC assumes that :math:`\beta = \frac{1}{kT} = 1`. This is not relevant to
+systems of purely hard particles where :math:`\Delta U` is either 0 or
+:math:`\infty`. To adjust the effective temperature in systems with finite
+interactions (see *Energy evaluation* below), scale the magnitude of the
+energetic interactions accordingly.
+
+.. rubric:: Local trial moves
+
+`HPMCIntegrator` generates local trial moves for a single particle :math:`i` at
+a time. The move is either a translation move or a rotation move, selected
+randomly with the probability of a translation move set by
+`HPMCIntegrator.translation_move_probability` (:math:`p_\mathrm{translation}`).
+
+The form of the trial move depends on the dimensionality of the system.
+Let :math:`u` be a random value in the interval :math:`[0,1]`, :math:`\vec{v}`
+be a random vector uniformly distributed within the ball of radius 1, and
+:math:`\mathbf{w}` be a random unit quaternion from the set of uniformly
+distributed rotations. Then the 3D trial move for particle :math:`i` is:
+
+.. math::
+
+    \begin{cases}
+      \left( \begin{array}{l}
+      \vec{r}^t_i = \vec{r}_i + d_i \vec{v}, \\
+      \mathbf{q}^t_i = \mathbf{q}_i
+      \end{array} \right) & u \le p_\mathrm{translation} \\
+      \left( \begin{array}{l}
+      \vec{r}^t_i = \vec{r}_i, \\
+      \mathbf{q}^t_i = \frac{\mathbf{q}_i + a_i \mathbf{w}}
+        {\vert \mathbf{q}_i + a_i \mathbf{w} \vert}
+      \end{array} \right) & u > p_\mathrm{translation} \\
+    \end{cases}
+
+where :math:`d_i` is the translation move size for particle :math:`i` (set by
+particle type with `HPMCIntegrator.d`) and :math:`a_i` is the rotation move size
+(set by particle type with `HPMCIntegrator.a`).
+
+In 2D boxes, let :math:`\vec{v}` be a random vector uniformly distributed within
+the disk of radius 1 in the x,y plane and :math:`\alpha` be a random angle in
+radians in the interval :math:`[-a_i,a_i]`. Form a quaternion that rotates about
+the z axis by :math:`\alpha`: :math:`\mathbf{w} = (\cos(\alpha/2), 0, 0,
+\sin(\alpha/2))`. The 2D trial move for particle :math:`i` is:
+
+.. math::
+
+    \begin{cases}
+      \left( \begin{array}{l}
+      \vec{r}^t_i = \vec{r}_i + d_i \vec{v}, \\
+      \mathbf{q}^t_i = \mathbf{q}_i
+      \end{array} \right) & u \le p_\mathrm{translation} \\
+      \left( \begin{array}{l}
+      \vec{r}^t_i = \vec{r}_i, \\
+      \mathbf{q}^t_i = \frac{\mathbf{q}_i \cdot \mathbf{w}}
+        {\vert \mathbf{q}_i \cdot \mathbf{w} \vert}
+      \end{array} \right) & u > p_\mathrm{translation} \\
+    \end{cases}
+
+Note:
+    For non-orientable spheres, :math:`p_\mathrm{translation} = 1`.
+
+.. rubric:: Timesteps
+
+In the serial CPU implementation, `HPMCIntegrator` performs `nselect
+<HPMCIntegrator.nselect>` trial moves per particle in each timestep (which
+defaults to 4). To achieve detailed balance at the level of a timestep,
+`HPMCIntegrator` randomly chooses with equal probability to loop through
+particles in forward index or reverse index order (random selection severely
+degrades performance due to cache incoherency). In the GPU and MPI
+implementations, trial moves are performed in parallel for particles in active
+domains while leaving particles on the border fixed (see `Anderson 2016
+<https://dx.doi.org/10.1016/j.cpc.2016.02.024>`_ for a full description). As a
+consequence, a single timestep may perform more or less than ``nselect`` trial
+moves per particle when using the parallel code paths. Monitor the number of
+trial moves performed with `HPMCIntegrator.translate_moves` and
+`HPMCIntegrator.rotate_moves`.
+
+.. rubric:: Random numbers
+
+`HPMCIntegrator` uses a pseudorandom number stream to generate the trial moves.
+Set the seed using `hoomd.Simulation.seed`. Given the same seed, the same
+initial configuration, and the same execution configuration (device and MPI
+configuration), `HPMCIntegrator`, will produce exactly the same trajectory.
+
+Note:
+    Due to limited floating point precision, full trajectory reproducibility
+    is only possible with the same binary installation running on the same
+    hardware device. Compiler optimizations, changes to the HOOMD source code,
+    and machine specific code paths may lead to different trajectories.
+
+.. rubric:: Energy evaluation
+
+`HPMCIntegrator` evaluates the energy of a configuration from a number of terms:
+
+.. math::
+
+    U = U_{\mathrm{pair}} + U_{\mathrm{shape}} + U_{\mathrm{external}}
+
+To enable simulations of small systems, the pair and shape energies evaluate
+interactions between pairs of particles in multiple box images:
+
+.. math::
+
+    U_{\mathrm{pair}} = &
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i+1}^{N_\mathrm{particles}-1}
+            U_{\mathrm{pair},ij}(\vec{r}_j - \vec{r}_i,
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j) \\
+            + & \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i}^{N_\mathrm{particles}-1}
+            \sum_{\vec{A} \in B_\mathrm{images}, \vec{A} \ne \vec{0}}
+            U_{\mathrm{pair},ij}(\vec{r}_j - (\vec{r}_i + \vec{A}),
+                                 \mathbf{q}_i,
+                                 \mathbf{q}_j)
+
+where :math:`\vec{A} = h\vec{a}_1 + k\vec{a}_2 + l\vec{a}_3` is a vector that
+translates by periodic box images and the set of box images includes all image
+vectors necessary to find interactions between particles in the primary image
+with particles in periodic images The first sum evaluates interactions between
+particle :math:`i` with other particles (not itself) in the primary box image.
+The second sum evaluates interactions between particle :math:`i` and all
+potentially interacting periodic images of all particles (including itself).
+`HPMCIntegrator` computes :math:`U_{\mathrm{shape}}` similarly (see below).
+
+External potentials apply to each particle individually:
+
+.. math::
+
+    U_\mathrm{external} =
+        \sum_{i=0}^\mathrm{N_particles-1} U_{\mathrm{external},i}(\vec{r}_i,
+                                                                 \mathbf{q}_i)
+
+Potential classes in :doc:`module-hpmc-pair` evaluate
+:math:`U_{\mathrm{pair},ij}`. Assign a class instance to
+`HPMCIntegrator.pair_potential` to apply it during integration. Similarly,
+potential classes in :doc:`module-hpmc-external` evaluate
+:math:`U_{\mathrm{external},i}`. Assign a class instance to
+`HPMCIntegrator.external_potential` to apply it during integration.
+
+.. rubric:: Shape overlap tests
+
+`HPMCIntegrator` performs shape overlap tests to evaluate
+:math:`U_{\mathrm{shape}}`. Let :math:`S` be the set of all points inside the
+shape in the local coordinate system of the shape:
+
+.. math::
+
+    S = \{ \vec{a} \in \mathbb{R}^3 :
+           \vec{a} \enspace \mathrm{inside\ the\ shape} \}
+
+See the subclasses of `HPMCIntegrator` for formal definitions of the shapes,
+whose parameters are set by particle type. Let :math:`S_i` refer specifically
+to the shape for particle :math:`i`.
+
+The quaternion :math:`\mathbf{q}` represents a rotation of the shape from its
+local coordinate system to the given orientation:
+
+.. math::
+
+    S(\mathbf{q}) = \{ \mathbf{q}\vec{a}\mathbf{q}^* : \vec{a} \in S \}
+
+The full transformation from the local shape coordinate system to the simulation
+box coordinate system includes a rotation and translation:
+
+.. math::
+
+    S(\mathbf{q}, \vec{r}) = \{ \mathbf{q}\vec{a}\mathbf{q}^* + \vec{r} :
+                                \vec{a} \in S \}
+
+`HPMCIntegrator` defines the shape overlap test for two shapes:
+
+.. math::
+
+    \mathrm{overlap}(S_1, S_2) = S_1 \bigcap S_2
+
+To check for overlaps between two particles in the box, rotating both shapes
+from their local frame to the box frame, and translate :math:`S_2` relative to
+particle 1:
+
+.. math::
+
+    \mathrm{overlap}(S_1(\mathbf{q}_1), S_2(\mathbf{q}_2,
+                                            \vec{r}_2 - \vec{r}_1))
+
+The complete hard shape interaction energy for a given configuration is:
+
+.. math::
+
+    U_\mathrm{shape} = \quad & \infty
+            \cdot
+            \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i+1}^{N_\mathrm{particles}-1}
+            \left[
+            \mathrm{overlap}\left(
+            S_i(\mathbf{q}_i),
+            S_j(\mathbf{q}_j, \vec{r}_j - \vec{r}_i)
+            \right) \ne \emptyset
+            \right]
+            \\
+            + & \infty \cdot \sum_{i=0}^{N_\mathrm{particles}-1}
+            \sum_{j=i}^{N_\mathrm{particles}-1}
+            \sum_{\vec{A} \in B_\mathrm{images}, \vec{A} \ne \vec{0}}
+            \left[
+            \mathrm{overlap}\left(
+            S_i(\mathbf{q}_i),
+            S_j(\mathbf{q}_j, \vec{r}_j - (\vec{r}_i + \vec{A}))
+            \right) \ne \emptyset
+            \right]
+
+where the square brackets denote the Iverson bracket.
+
+Note:
+    While this notation is written in as sums over all particles
+    `HPMCIntegrator` uses spatial data structures to evaluate these calculations
+    efficiently. Similarly, while the overlap test is notated as a set
+    intersection, `HPMCIntegrator` employs efficient computational geometry
+    algorithms to determine whether there is or is not an overlap.
+
+.. rubric:: Implicit depletants
+
+Set `HPMCIntegrator.depletant_fugacity` to activate the implicit depletant code
+path. This inerts depletant particles during every trial move and modifies the
+acceptance criterion accordingly. See `Glaser 2015
+<https://dx.doi.org/10.1063/1.4935175>`_ for details.
+"""
 
 from hoomd import _hoomd
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
@@ -10,58 +260,30 @@ from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
 from hoomd.error import DataAccessError
 from hoomd.hpmc import _hpmc
-from hoomd.integrate import BaseIntegrator
+from hoomd.operation import Integrator
 from hoomd.logging import log
 import hoomd
 import json
 
 
-class HPMCIntegrator(BaseIntegrator):
+class HPMCIntegrator(Integrator):
     """Base class hard particle Monte Carlo integrator.
 
-    Note:
-        :py:class:`HPMCIntegrator` is the base class for all HPMC integrators.
-        Users should not instantiate this class directly. The attributes
-        documented here are available to all HPMC integrators.
+    `HPMCIntegrator` is the base class for all HPMC integrators. The attributes
+    documented here are available to all HPMC integrators.
 
-    .. rubric:: Hard particle Monte Carlo
+    See Also:
+        The module level documentation `hoomd.hpmc.integrate` describes the
+        hard particle Monte Carlo algorithm.
 
-    In hard particle Monte Carlo systems, the particles in the
-    `hoomd.Simulation` `hoomd.State` are extended objects with positions and
-    orientations. During each time step of a `hoomd.Simulation.run`, `nselect`
-    trial moves are attempted for each particle in the system.
+    Warning:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
 
-    A trial move may be a rotation or a translation move, selected randomly
-    according to the `translation_move_probability`. Translation trial moves are
-    selected randomly from a sphere of radius `d`, where `d` is set
-    independently for each particle type. Rotational trial moves are selected
-    with a maximum move size of `a`, where `a` is set independently for each
-    particle type. In 2D simulations, `a` is the maximum angle (in radians) by
-    which a particle will be rotated. In 3D, `a` is the magnitude of the random
-    rotation quaternion as defined in Frenkel and Smit.
-    `translation_move_probability` can be set to 0 or 1 to enable only rotation
-    or translation moves, respectively.
+    .. rubric:: Ignoring overlap checks
 
-    Note:
-        Full trajectory reproducibility is only possible with the same HOOMD
-        binary installation, hardware, and execution configuration.
-        Recompiling with different options, using a different version of HOOMD,
-        running on a different hardware platform, or changing the parallel
-        execution configuration may produce different trajectories due to
-        limited floating point precision or parallel algorithmic differences.
-
-    After proposing the trial move, the HPMC integrator checks to see if the
-    new particle configuration overlaps with any other particles in the system.
-    If there are overlaps, it rejects the move. It accepts the move when there
-    are no overlaps.
-
-    Setting elements of `interaction_matrix` to False disables overlap checks
-    between specific particle types. `interaction_matrix` is a particle types
-    by particle types matrix allowing for non-additive systems.
-
-    The `fugacity` parameter enables implicit depletants when non-zero.
-    TODO: Describe implicit depletants algorithm. No need to write this now,
-    as Jens is rewriting the implementation.
+    Set elements of `interaction_matrix` to `False` to disable overlap checks
+    between specific pairs of particle types.
 
     .. rubric:: Writing type_shapes to GSD files.
 
@@ -74,26 +296,33 @@ class HPMCIntegrator(BaseIntegrator):
         gsd = hoomd.write.GSD(
             'trajectory.gsd', hoomd.trigger.Periodic(1000), log=log)
 
+    .. rubric:: Threading
+
+    HPMC integrators use threaded execution on multiple CPU cores only when
+    placing implicit depletants (``depletant_fugacity != 0``).
+
+    .. rubric:: Mixed precision
+
+    All HPMC integrators use reduced precision floating point arithmetic when
+    checking for particle overlaps in the local particle reference frame.
+
     .. rubric:: Parameters
 
     Attributes:
-        default_a (`TypeParameter` [``particle type``, `float`]):
+        a (`TypeParameter` [``particle type``, `float`]):
             Maximum size of rotation trial moves
             :math:`[\\mathrm{dimensionless}]`.
 
-        default_d (`TypeParameter` [``particle type``, `float`]):
+        d (`TypeParameter` [``particle type``, `float`]):
             Maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        depletant_fugacity (`TypeParameter` [\
-                            `tuple` [``particle type``, ``particle type``],\
-                            `float`]):
+        depletant_fugacity (`TypeParameter` [ ``particle type``, `float`]):
             Depletant fugacity
-            :math:`[\\mathrm{volume}^{-1}]` (**default:** ``0``)
+            :math:`[\\mathrm{volume}^{-1}]` (**default:** 0)
 
-            Allows setting the fugacity per particle type, e.g. `('A','A')`
-            refers to a depletant of type **A**. The option to set a type pair
-            is temporary and will be removed in the release version.
+            Allows setting the fugacity per particle type, e.g. ``'A'``
+            refers to a depletant of type **A**.
 
         depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
             Multiplicative factor for the number of times a depletant is
@@ -117,8 +346,8 @@ class HPMCIntegrator(BaseIntegrator):
 
     .. rubric:: Attributes
     """
-    _remove_for_pickling = BaseIntegrator._remove_for_pickling + ('_cpp_cell',)
-    _skip_for_equality = BaseIntegrator._skip_for_equality | {'_cpp_cell'}
+    _remove_for_pickling = Integrator._remove_for_pickling + ('_cpp_cell',)
+    _skip_for_equality = Integrator._skip_for_equality | {'_cpp_cell'}
     _cpp_cls = None
 
     def __init__(self, default_d, default_a, translation_move_probability,
@@ -130,6 +359,8 @@ class HPMCIntegrator(BaseIntegrator):
             translation_move_probability=float(translation_move_probability),
             nselect=int(nselect))
         self._param_dict.update(param_dict)
+        self._pair_potential = None
+        self._external_potential = None
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d',
@@ -144,12 +375,12 @@ class HPMCIntegrator(BaseIntegrator):
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               0., len_keys=2))
+                                               0., len_keys=1))
 
         typeparam_ntrial = TypeParameter('depletant_ntrial',
                                          type_kind='particle_types',
                                          param_dict=TypeParameterDict(
-                                             1, len_keys=2))
+                                             1, len_keys=1))
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
                                                type_kind='particle_types',
@@ -161,18 +392,12 @@ class HPMCIntegrator(BaseIntegrator):
             typeparam_inter_matrix
         ])
 
-    def _add(self, simulation):
-        """Add the operation to a simulation.
+    def _attach_hook(self):
+        """Initialize the reflected c++ class.
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        if isinstance(simulation, hoomd.Simulation):
-            simulation._warn_if_seed_unset()
-
-        super()._add(simulation)
-
-    def _attach(self):
-        """Initialize the reflected c++ class."""
+        self._simulation._warn_if_seed_unset()
         sys_def = self._simulation.state._cpp_sys_def
         if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
@@ -187,25 +412,22 @@ class HPMCIntegrator(BaseIntegrator):
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def)
             self._cpp_cell = None
 
-        super()._attach()
+        if self._external_potential is not None:
+            self._external_potential._attach(self._simulation)
+            self._cpp_obj.setExternalField(self._external_potential._cpp_obj)
 
-    # Set the external field
-    def set_external(self, ext):  # noqa - to be rewritten
-        self._cpp_obj.setExternalField(ext.cpp_compute)
+        if self._pair_potential is not None:
+            self._pair_potential._attach(self._simulation)
+            self._cpp_obj.setPatchEnergy(self._pair_potential._cpp_obj)
+        super()._attach_hook()
 
-    # Set the patch
-    def set_PatchEnergyEvaluator(self, patch):  # noqa - to be rewritten
-        self._cpp_obj.setPatchEnergy(patch.cpp_evaluator)
+    def _detach_hook(self):
+        if self._external_potential is not None:
+            self._external_potential._detach()
+        if self._pair_potential is not None:
+            self._pair_potential._detach()
 
     # TODO need to validate somewhere that quaternions are normalized
-
-    @property
-    def type_shapes(self):
-        """list[dict]: Description of shapes in ``type_shapes`` format."""
-        raise NotImplementedError(
-            "You are using a shape type that is not implemented! "
-            "If you want it, please modify the "
-            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
         type_shapes = self._cpp_obj.getTypeShapesPy()
@@ -229,85 +451,11 @@ class HPMCIntegrator(BaseIntegrator):
 
         return self._cpp_obj.mapOverlaps()
 
-    def map_energies(self):
-        """Build an energy map of the system.
-
-        Returns:
-            List of tuples. The i,j entry contains the pairwise interaction
-            energy of the ith and jth particles (by tag)
-
-        Note:
-            :py:meth:`map_energies` does not support MPI parallel simulations.
-
-        Attention:
-            `map_energies` is not yet implemented in HOOMD v3.x.
-
-        Example:
-            mc = hpmc.integrate.shape(...)
-            mc.shape_param.set(...)
-            energy_map = np.asarray(mc.map_energies())
-        """
-        raise NotImplementedError("map_energies will be implemented in a future"
-                                  "release.")
-        # TODO: update map_energies to new API
-
-        self.update_forces()
-        N = hoomd.context.current.system_definition.getParticleData(
-        ).getMaximumTag() + 1
-        energy_map = self.cpp_integrator.mapEnergies()
-        return list(zip(*[iter(energy_map)] * N))
-
     @log(requires_run=True)
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
-
-    def test_overlap(self,
-                     type_i,
-                     type_j,
-                     rij,
-                     qi,
-                     qj,
-                     use_images=True,
-                     exclude_self=False):
-        """Test overlap between two particles.
-
-        Args:
-            type_i (str): Type of first particle
-            type_j (str): Type of second particle
-            rij (tuple): Separation vector **rj**-**ri** between the particle
-              centers
-            qi (tuple): Orientation quaternion of first particle
-            qj (tuple): Orientation quaternion of second particle
-            use_images (bool): If True, check for overlap between the periodic
-              images of the particles by adding
-              the image vector to the separation vector
-            exclude_self (bool): If both **use_images** and **exclude_self** are
-              true, exclude the primary image
-
-        For two-dimensional shapes, pass the third dimension of **rij** as zero.
-
-        Attention:
-            `test_overlap` is not yet implemented in HOOMD v3.x.
-
-        Returns:
-            True if the particles overlap.
-        """
-        raise NotImplementedError("map_energies will be implemented in a future"
-                                  "release.")
-        self.update_forces()
-
-        ti = hoomd.context.current.system_definition.getParticleData(
-        ).getTypeByName(type_i)
-        tj = hoomd.context.current.system_definition.getParticleData(
-        ).getTypeByName(type_j)
-
-        rij = hoomd.util.listify(rij)
-        qi = hoomd.util.listify(qi)
-        qj = hoomd.util.listify(qj)
-        return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
-                                             exclude_self)
 
     @log(category='sequence', requires_run=True)
     def translate_moves(self):
@@ -340,7 +488,7 @@ class HPMCIntegrator(BaseIntegrator):
 
     @property
     def counters(self):
-        """Trial move counters.
+        """dict: Trial move counters.
 
         The counter object has the following attributes:
 
@@ -361,9 +509,54 @@ class HPMCIntegrator(BaseIntegrator):
         else:
             raise DataAccessError("counters")
 
+    @property
+    def pair_potential(self):
+        r"""The user-defined pair potential.
+
+        Defines the pairwise particle interaction energy
+        :math:`U_{\mathrm{pair},ij}`. Defaults to `None`. May be set to an
+        object from :doc:`module-hpmc-pair`.
+        """
+        return self._pair_potential
+
+    @pair_potential.setter
+    def pair_potential(self, new_potential):
+        if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
+            raise TypeError(
+                "Pair potentials should be an instance of CPPPotentialBase")
+        if self._attached:
+            new_potential._attach(self._simulation)
+            self._cpp_obj.setPatchEnergy(new_potential._cpp_obj)
+            if self._pair_potential is not None:
+                self._pair_potential._detach()
+        self._pair_potential = new_potential
+
+    @property
+    def external_potential(self):
+        r"""The user-defined potential energy field integrator.
+
+        Defines the external energy :math:`U_{\mathrm{external},i}`. Defaults to
+        `None`. May be set to an object from :doc:`module-hpmc-external`.
+        """
+        return self._external_potential
+
+    @external_potential.setter
+    def external_potential(self, new_external_potential):
+        if not isinstance(new_external_potential,
+                          hoomd.hpmc.external.field.ExternalField):
+            msg = 'External potentials should be an instance of '
+            msg += 'hoomd.hpmc.field.external.ExternalField.'
+            raise TypeError(msg)
+        if self._attached:
+            new_external_potential._attach(self._simulation)
+            self._cpp_obj.setExternalField(new_external_potential._cpp_obj)
+            if self._external_potential is not None:
+                self._external_potential._detach()
+        self._external_potential = new_external_potential
+
 
 class Sphere(HPMCIntegrator):
-    """Hard sphere Monte Carlo.
+    """Sphere hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -375,22 +568,29 @@ class Sphere(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of spheres defined by their diameter
-    (see `shape`). When the shape parameter ``orientable`` is `False` (the
-    default), `Sphere` only applies translation trial moves and ignores
-    ``translation_move_probability``.
+    Perform hard particle Monte Carlo of spheres.
+    The shape :math:`S` includes all points inside and on the surface of a
+    sphere:
+
+    .. math::
+
+        S = \\left \\{ \\vec{r} : \\frac{\\vec{r}\\cdot\\vec{r}}{(d/2)^2}
+                                  \\le 1 \\right\\}
+
+    where :math:`d`, is the diameter set in `shape`. When the shape parameter
+    ``orientable`` is `False` (the default), `Sphere` only applies translation
+    trial moves and ignores ``translation_move_probability``.
 
     Tip:
-        Use spheres with ``diameter=0`` in conjunction with `jit` potentials
-        for Monte Carlo simulations of particles interacting by pair potential
-        with no hard core.
+        Use spheres with ``diameter=0`` in conjunction with pair potentials
+        for Monte Carlo simulations of particles with no hard core.
 
     Tip:
         Use `Sphere` in a 2D simulation to perform Monte Carlo on hard disks.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `Sphere` supports all `hoomd.wall` geometries.
 
     Examples::
 
@@ -399,14 +599,6 @@ class Sphere(HPMCIntegrator):
         mc.shape["B"] = dict(diameter=2.0)
         mc.shape["C"] = dict(diameter=1.0, orientable=True)
         print('diameter = ', mc.shape["A"]["diameter"])
-
-    Depletants Example::
-
-        mc = hoomd.hpmc.integrate.Sphere(default_d=0.3, default_a=0.4,
-                                        nselect=8)
-        mc.shape["A"] = dict(diameter=1.0)
-        mc.shape["B"] = dict(diameter=1.0)
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
@@ -456,7 +648,7 @@ class Sphere(HPMCIntegrator):
 
 
 class ConvexPolygon(HPMCIntegrator):
-    """Hard convex polygon Monte Carlo.
+    """Convex polygon hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -468,8 +660,12 @@ class ConvexPolygon(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of convex polygons defined by their
-    vertices (see `shape`).
+    Perform hard particle Monte Carlo of convex polygons. The shape :math:`S`
+    of a convex polygon includes the points inside and on the surface of the
+    convex hull of the vertices (see `shape`). For example:
+
+    .. image:: convex-polygon.svg
+       :alt: Example of a convex polygon with vertex labels.
 
     Important:
         `ConvexPolygon` simulations must be performed in 2D systems.
@@ -477,9 +673,9 @@ class ConvexPolygon(HPMCIntegrator):
     See Also:
         Use `SimplePolygon` for concave polygons.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `ConvexPolygon` supports no `hoomd.wall` geometries.
 
     Examples::
 
@@ -551,7 +747,7 @@ class ConvexPolygon(HPMCIntegrator):
 
 
 class ConvexSpheropolygon(HPMCIntegrator):
-    """Hard convex spheropolygon Monte Carlo.
+    """Convex spheropolygon hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -563,20 +759,29 @@ class ConvexSpheropolygon(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of convex spheropolygons defined by their
-    vertices and a sweep radius (see `shape`). A spheropolygon is is a polygon
-    rounded by a disk swept along the perimeter. The sweep radius may be 0.
+    Perform hard particle Monte Carlo of convex spheropolygons. The shape
+    :math:`S` of a convex spheropolygon includes the points inside and on the
+    surface of the convex hull of the vertices plus a disk (with radius
+    ``sweep_radius``)swept along the perimeter (see `shape`). For example:
+
+    .. image:: convex-spheropolygon.svg
+       :alt: Example of a convex spheropolygon with vertex and sweep labels.
 
     Important:
         `ConvexSpheropolygon` simulations must be performed in 2D systems.
 
     Tip:
-        A 1-vertex spheropolygon is a disk and a 2-vertex spheropolygon is a
-        rounded rectangle.
+        To model mixtures of convex polygons and convex spheropolygons, use
+        `ConvexSpheropolygon` and set the sweep radius to 0 for some shape
+        types.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    Tip:
+        A 1-vertex spheropolygon is a disk and a 2-vertex spheropolygon is a
+        rectangle with half disk caps.
+
+    .. rubric:: Wall support.
+
+    `ConvexSpheropolygon` supports no `hoomd.wall` geometries.
 
     Examples::
 
@@ -653,7 +858,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
 
 class SimplePolygon(HPMCIntegrator):
-    """Hard simple polygon Monte Carlo.
+    """Simple polygon hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -665,8 +870,12 @@ class SimplePolygon(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of simple polygons defined by their
-    vertices (see `shape`).
+    Perform hard particle Monte Carlo of simple polygons. The shape :math:`S` of
+    a simple polygon includes the points inside and on the surface of the simple
+    polygon defined by the vertices (see `shape`). For example:
+
+    .. image:: simple-polygon.svg
+       :alt: Example of a simple polygon with vertex labels.
 
     Important:
         `SimplePolygon` simulations must be performed in 2D systems.
@@ -674,9 +883,9 @@ class SimplePolygon(HPMCIntegrator):
     See Also:
         Use `ConvexPolygon` for faster performance with convex polygons.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `SimplePolygon` supports no `hoomd.wall` geometries.
 
     Examples::
 
@@ -711,7 +920,6 @@ class SimplePolygon(HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
-
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSimplePolygon'
@@ -749,7 +957,7 @@ class SimplePolygon(HPMCIntegrator):
 
 
 class Polyhedron(HPMCIntegrator):
-    """Hard polyhedra Monte Carlo.
+    """Polyhedron hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -761,9 +969,10 @@ class Polyhedron(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of general polyhedra defined by their
-    vertices and faces (see `shape`). `Polyhedron` supports triangle meshes and
-    spheres only. The mesh must be free of self-intersections.
+    Perform hard particle Monte Carlo of general polyhedra. The shape :math:`S`
+    contains the points inside the polyhedron defined by vertices and faces (see
+    `shape`). `Polyhedron` supports triangle meshes and spheres only. The mesh
+    must be free of self-intersections.
 
     See Also:
         Use `ConvexPolyhedron` for faster performance with convex polyhedra.
@@ -774,9 +983,9 @@ class Polyhedron(HPMCIntegrator):
         values of the number of faces per leaf node may yield different
         optimal performance. The capacity of leaf nodes is configurable.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `Polyhedron` supports no `hoomd.wall` geometries.
 
     Example::
 
@@ -803,41 +1012,6 @@ class Polyhedron(HPMCIntegrator):
                                    [3, 5, 7]])
         print('vertices = ', mc.shape["A"]["vertices"])
         print('faces = ', mc.shape["A"]["faces"])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.Polyhedron(default_d=0.3, default_a=0.4, nselect=1)
-        cube_verts = [(-0.5, -0.5, -0.5),
-                      (-0.5, -0.5, 0.5),
-                      (-0.5, 0.5, -0.5),
-                      (-0.5, 0.5, 0.5),
-                      (0.5, -0.5, -0.5),
-                      (0.5, -0.5, 0.5),
-                      (0.5, 0.5, -0.5),
-                      (0.5, 0.5, 0.5)];
-        cube_faces = [[0, 2, 6],
-                      [6, 4, 0],
-                      [5, 0, 4],
-                      [5,1,0],
-                      [5,4,6],
-                      [5,6,7],
-                      [3,2,0],
-                      [3,0,1],
-                      [3,6,2],
-                      [3,7,6],
-                      [3,1,5],
-                      [3,5,7]]
-        tetra_verts = [(0.5, 0.5, 0.5),
-                       (0.5, -0.5, -0.5),
-                       (-0.5, 0.5, -0.5),
-                       (-0.5, -0.5, 0.5)];
-        tetra_faces = [[0, 1, 2], [3, 0, 2], [3, 2, 1], [3,1,0]];
-
-        mc.shape["A"] = dict(vertices=cube_verts, faces=cube_faces);
-        mc.shape["B"] = dict(vertices=tetra_verts,
-                             faces=tetra_faces,
-                             origin = (0,0,0));
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
@@ -927,7 +1101,7 @@ class Polyhedron(HPMCIntegrator):
 
 
 class ConvexPolyhedron(HPMCIntegrator):
-    """Hard convex polyhedron Monte Carlo.
+    """Convex polyhedron hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -939,15 +1113,19 @@ class ConvexPolyhedron(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of convex polyhedra defined by their
-    vertices (see `shape`).
+    Perform hard particle Monte Carlo of convex polyhedra. The shape :math:`S`
+    of a convex polyhedron includes the points inside and on the surface of the
+    convex hull of the vertices (see `shape`). For example:
+
+    .. image:: convex-polyhedron.svg
+       :alt: Example of a convex polyhedron with vertex labels.
 
     See Also:
         Use `Polyhedron` for concave polyhedra.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `ConvexPolyhedron` supports all `hoomd.wall` geometries.
 
     Example::
 
@@ -957,21 +1135,6 @@ class ConvexPolyhedron(HPMCIntegrator):
                                        (-0.5, 0.5, -0.5),
                                        (-0.5, -0.5, 0.5)]);
         print('vertices = ', mc.shape["A"]["vertices"])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.ConvexPolyhedron(default_d=0.3,
-                                             default_a=0.4,
-                                             nselect=1)
-        mc.shape["A"] = dict(vertices=[(0.5, 0.5, 0.5),
-                                       (0.5, -0.5, -0.5),
-                                       (-0.5, 0.5, -0.5),
-                                       (-0.5, -0.5, 0.5)]);
-        mc.shape["B"] = dict(vertices=[(0.05, 0.05, 0.05),
-                                       (0.05, -0.05, -0.05),
-                                       (-0.05, 0.05, -0.05),
-                                       (-0.05, -0.05, 0.05)]);
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
@@ -983,7 +1146,7 @@ class ConvexPolyhedron(HPMCIntegrator):
               :math:`[\\mathrm{length}]`.
 
               * The origin **MUST** be contained within the polyhedron.
-              * The origin centered circle that encloses all vertices should
+              * The origin centered sphere that encloses all vertices should
                 be of minimal size for optimal performance.
 
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
@@ -1032,7 +1195,7 @@ class ConvexPolyhedron(HPMCIntegrator):
 
 
 class FacetedEllipsoid(HPMCIntegrator):
-    r"""Hard faceted ellipsoid Monte Carlo.
+    r"""Faceted ellipsoid hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -1044,18 +1207,19 @@ class FacetedEllipsoid(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of faceted ellipsoids. A faceted ellipsoid
-    is the intersection of an ellipsoid with a convex polyhedron defined through
-    halfspaces (see `shape`). The equation defining each halfspace is given by:
+    Perform hard particle Monte Carlo of faceted ellipsoids. The shape :math:`S`
+    of a faceted ellipsoid is the intersection of an ellipsoid with a convex
+    polyhedron defined through halfspaces (see `shape`). The equation defining
+    each halfspace is given by:
 
     .. math::
         \vec{n}_i\cdot \vec{r} + b_i \le 0
 
     where :math:`\vec{n}_i` is the face normal, and :math:`b_i` is  the offset.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `FacetedEllipsoid` supports no `hoomd.wall` geometries.
 
     Example::
 
@@ -1083,22 +1247,6 @@ class FacetedEllipsoid(HPMCIntegrator):
                              c=0.5);
         print('a = {}, b = {}, c = {}',
               mc.shape["A"]["a"], mc.shape["A"]["b"], mc.shape["A"]["c"])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.FacetedEllipsoid(default_d=0.3, default_a=0.4)
-        mc.shape["A"] = dict(normals=[(-1,0,0),
-                                      (1,0,0),
-                                      (0,-1,0),
-                                      (0,1,0),
-                                      (0,0,-1),
-                                      (0,0,1)],
-                             a=1.0,
-                             b=0.5,
-                             c=0.25);
-        # depletant sphere
-        mc.shape["B"] = dict(normals=[], a=0.1, b=0.1, c=0.1);
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (TypeParameter[``particle type``, dict]):
@@ -1171,7 +1319,7 @@ class FacetedEllipsoid(HPMCIntegrator):
 
 
 class Sphinx(HPMCIntegrator):
-    """Hard sphinx particle Monte Carlo.
+    """Sphinx hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -1183,25 +1331,28 @@ class Sphinx(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of sphere unions and differences defined
-    by their positive and negative diameters (see `shape`).
+    Perform hard particle Monte Carlo of sphere unions and differences,
+    depending on the sign of the diameter. The shape :math:`S` is:
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. math::
+
+        S = \\left(\\bigcup_{k,d_k\\ge 0} S_k((1, 0, 0, 0), \\vec{r}_k) \\right)
+            \\setminus \\left(\\bigcup_{k,d_k < 0} S_k((1, 0, 0, 0), \\vec{r}_k)
+            \\right)
+
+    Where :math:`d_k` is the diameter given in `shape`, :math:`\\vec{r}_k` is
+    the center given in `shape` and :math:`S_k` is the set of points in a sphere
+    or diameter :math:`|d_k|`.
+
+    .. rubric:: Wall support.
+
+    `Sphinx` supports no `hoomd.wall` geometries.
 
     Example::
 
         mc = hpmc.integrate.Sphinx(default_d=0.3, default_a=0.4)
         mc.shape["A"] = dict(centers=[(0,0,0),(1,0,0)], diameters=[1,.25])
         print('diameters = ', mc.shape["A"]["diameters"])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.Sphinx(default_d=0.3, default_a=0.4, nselect=1)
-        mc.shape["A"] = dict(centers=[(0,0,0), (1,0,0)], diameters=[1, -.25])
-        mc.shape["B"] = dict(centers=[(0,0,0)], diameters=[.15])
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
@@ -1241,7 +1392,7 @@ class Sphinx(HPMCIntegrator):
 
 
 class ConvexSpheropolyhedron(HPMCIntegrator):
-    """Hard convex spheropolyhedron Monte Carlo.
+    """Convex spheropolyhedron hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -1253,16 +1404,20 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of convex spheropolyhedra defined by their
-    vertices and a sweep radius (see `shape`).
+    Perform hard particle Monte Carlo of convex spheropolyhedra. The shape
+    :math:`S` of a convex spheropolyhedron includes the points inside and on the
+    surface of the convex hull of the vertices plus a sphere (with radius
+    ``sweep_radius``) swept along the perimeter (see `shape`).
+    See `ConvexSpheropolygon` for a visual example in 2D.
 
     Tip:
         A 1-vertex spheropolygon is a sphere and a 2-vertex spheropolygon is a
         spherocylinder.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `ConvexSpheropolyhedron` supports the `hoomd.wall.Sphere` and
+    `hoomd.wall.Plane` geometries.
 
     Example::
 
@@ -1297,7 +1452,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
               :math:`[\\mathrm{length}]`.
 
               * The origin **MUST** be contained within the polyhedron.
-              * The origin centered circle that encloses all vertices should
+              * The origin centered sphere that encloses all vertices should
                 be of minimal size for optimal performance.
 
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
@@ -1347,7 +1502,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
 
 
 class Ellipsoid(HPMCIntegrator):
-    """Hard ellipsoid Monte Carlo.
+    """Ellipsoid hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -1359,12 +1514,22 @@ class Ellipsoid(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of ellipsoids defined by 3 half axes
-    (see `shape`).
+    Perform hard particle Monte Carlo of ellipsoids. The shape :math:`S`
+    includes all points inside and on the surface of an ellipsoid:
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. math::
+
+        S = \\left \\{ \\vec{r} : \\frac{r_x^2}{a^2}
+                           + \\frac{r_y^2}{b^2}
+                           + \\frac{r_z^2}{c^2} \\le 1 \\right\\}
+
+    where :math:`r_x`, :math:`r_y`, :math:`r_z` are the components of
+    :math:`\\vec{r}`, and the parameters :math:`a`, :math:`b`, and
+    :math:`c` are the half axes of the ellipsoid set in `shape`.
+
+    .. rubric:: Wall support.
+
+    `Ellipsoid` supports no `hoomd.wall`  geometries.
 
     Example::
 
@@ -1374,13 +1539,6 @@ class Ellipsoid(HPMCIntegrator):
               mc.shape["A"]["a"],
               mc.shape["A"]["b"],
               mc.shape["A"]["c"])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.Ellipsoid(default_d=0.3, default_a=0.4, nselect=1)
-        mc.shape["A"] = dict(a=0.5, b=0.25, c=0.125);
-        mc.shape["B"] = dict(a=0.05, b=0.05, c=0.05);
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
@@ -1432,7 +1590,7 @@ class Ellipsoid(HPMCIntegrator):
 
 
 class SphereUnion(HPMCIntegrator):
-    """Hard sphere union Monte Carlo.
+    """Sphere union hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -1444,7 +1602,16 @@ class SphereUnion(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of unions of spheres (see `shape`).
+    Perform hard particle Monte Carlo of unions of spheres. The union shape
+    :math:`S` is the set union of the given spheres:
+
+    .. math::
+
+        S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
+
+    Each constituent shape in the union has its own shape parameters
+    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
+    :math:`\\mathbf{q}_k`` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1452,9 +1619,9 @@ class SphereUnion(HPMCIntegrator):
         values of the number of spheres per leaf node may yield different
         performance. The capacity of leaf nodes is configurable.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `SphereUnion` supports no `hoomd.wall`  geometries.
 
     Example::
 
@@ -1468,15 +1635,6 @@ class SphereUnion(HPMCIntegrator):
         print('diameter of the first sphere = ',
               mc.shape["A"]["shapes"][0]["diameter"])
         print('center of the first sphere = ', mc.shape["A"]["positions"][0])
-
-    Depletants Example::
-
-        mc = hpmc.integrate.SphereUnion(default_d=0.3, default_a=0.4, nselect=1)
-        mc.shape["A"] = dict(diameters=[1.0, 1.0],
-                             centers=[(-0.25, 0.0, 0.0),
-                                      (0.25, 0.0, 0.0)]);
-        mc.shape["B"] = dict(diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
-        mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
         shape (`TypeParameter` [``particle type``, `dict`]):
@@ -1561,7 +1719,7 @@ class SphereUnion(HPMCIntegrator):
 
 
 class ConvexSpheropolyhedronUnion(HPMCIntegrator):
-    """Hard convex spheropolyhedron union Monte Carlo.
+    """Convex spheropolyhedron union hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -1573,8 +1731,16 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of unions of convex sphereopolyhedra
-    (see `shape`).
+    Perform hard particle Monte Carlo of unions of convex sphereopolyhedra. The
+    union shape :math:`S` is the set union of the given convex spheropolyhedra:
+
+    .. math::
+
+        S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
+
+    Each constituent shape in the union has its own shape parameters
+    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
+    :math:`\\mathbf{q}_k`` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1582,9 +1748,10 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         different values of the number of spheropolyhedra per leaf node may
         yield different performance. The capacity of leaf nodes is configurable.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `ConvexSpheropolyhedronUnion` supports no `hoomd.wall`
+    geometries.
 
     Example::
 
@@ -1619,7 +1786,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
               **required**) - Position of each spheropolyhedron in the union.
               :math:`[\\mathrm{length}]`
-            * ``orientations`` (`list[ `tuple[`float`, `float`, `float`,\
+            * ``orientations`` (`list` [ `tuple` [`float`, `float`, `float`,\
               `float`]], **default:** None) - Orientation of each
               spheropolyhedron in the union. When not `None`,
               ``orientations`` must have a length equal to that of
@@ -1679,7 +1846,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
 
 
 class FacetedEllipsoidUnion(HPMCIntegrator):
-    """Hard convex spheropolyhedron union Monte Carlo.
+    """Faceted ellispod union hard particle Monte Carlo integrator.
 
     Args:
         default_d (float): Default maximum size of displacement trial moves
@@ -1691,8 +1858,16 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Perform hard particle Monte Carlo of unions of faceted ellipsoids
-    (see `shape`).
+    Perform hard particle Monte Carlo of unions of faceted ellipsoids. The union
+    shape :math:`S` is the set union of the given faceted ellipsoids:
+
+    .. math::
+
+        S = \\bigcup_k S_k(\\mathbf{q}_k, \\vec{r}_k)
+
+    Each constituent shape in the union has its own shape parameters
+    :math:`S_k`, position :math:`\\vec{r}_k``, and orientation
+    :math:`\\mathbf{q}_k`` (see `shape`).
 
     Note:
         This shape uses an internal OBB tree for fast collision queries.
@@ -1700,9 +1875,9 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         different values of the number of faceted ellipsoids per leaf node may
         yield different performance. The capacity of leaf nodes is configurable.
 
-    Important:
-        Assign a `shape` specification for each particle type in the
-        `hoomd.State`.
+    .. rubric:: Wall support.
+
+    `FacetedEllipsoidUnion` supports no `hoomd.wall` geometries.
 
     Example::
 
@@ -1755,7 +1930,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``shapes`` (`list`[ `dict`], **required**) -
+            * ``shapes`` (`list` [ `dict`], **required**) -
               Shape parameters for each faceted ellipsoid in the union. See
               `FacetedEllipsoid.shape` for the accepted parameters.
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
@@ -1801,7 +1976,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                      normals=[(float, float, float)],
                      offsets=[float],
                      vertices=[(float, float, float)],
-                     origin=tuple,
+                     origin=(float, float, float),
                      ignore_statistics=False)
             ],
                                          positions=[(float, float, float)],

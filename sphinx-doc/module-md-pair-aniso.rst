@@ -1,3 +1,6 @@
+.. Copyright (c) 2009-2023 The Regents of the University of Michigan.
+.. Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 md.pair.aniso
 --------------
 
@@ -8,6 +11,7 @@ md.pair.aniso
 .. autosummary::
     :nosignatures:
 
+    ALJ
     AnisotropicPair
     Dipole
     GayBerne
@@ -16,6 +20,9 @@ md.pair.aniso
 
 .. automodule:: hoomd.md.pair.aniso
     :synopsis: Anisotropic pair potentials.
-    :members: AnisotropicPair,
+    :members:
+        ALJ,
+        AnisotropicPair,
         Dipole,
         GayBerne,
+    :show-inheritance:

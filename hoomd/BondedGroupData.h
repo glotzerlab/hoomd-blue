@@ -1,7 +1,5 @@
-// Copyright (c) 2009-2021 The Regents of the University of Michigan
-// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 /*! \file BondedGroupData.h
     \brief Declares BondedGroupData
@@ -23,7 +21,6 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "ParticleData.h"
-#include "Profiler.h"
 
 #ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
@@ -44,16 +41,18 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include <string>
 #include <vector>
 
-//! Storage data type for group members
-/*! We use a union to emphasize it that can contain either particle
- * tags or particle indices or other information */
-template<unsigned int group_size> union group_storage {
+namespace hoomd
+    {
+    //! Storage data type for group members
+    /*! We use a union to emphasize it that can contain either particle
+     * tags or particle indices or other information */
+    template<unsigned int group_size> union group_storage {
     unsigned int tag[group_size];
     unsigned int idx[group_size];
     };
 
-//! A union to allow storing a scalar constraint value or a type integer
-union typeval_union {
+    //! A union to allow storing a scalar constraint value or a type integer
+    union typeval_union {
     unsigned int type;
     Scalar val;
     };
@@ -71,12 +70,14 @@ template<unsigned int group_size> struct packed_storage
     };
 #endif
 
+    } // end namespace hoomd
+
 #ifdef ENABLE_MPI
 namespace cereal
     {
 //! Serialization functions for group data types
 //! Serialization of typeval_union
-template<class Archive> void serialize(Archive& ar, typeval_t& t, const unsigned int version)
+template<class Archive> void serialize(Archive& ar, hoomd::typeval_t& t, const unsigned int version)
     {
     // serialize both members
     ar& t.val;
@@ -84,29 +85,34 @@ template<class Archive> void serialize(Archive& ar, typeval_t& t, const unsigned
     }
 
 //! Serialization of group_storage<2> (bonds)
-template<class Archive> void serialize(Archive& ar, group_storage<2>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<2>& s, const unsigned int version)
     {
-    ar& s.tag[0];
-    ar& s.tag[1];
+    ar(s.tag[0], s.tag[1]);
     }
 //! Serialization of group_storage<3> (angles)
-template<class Archive> void serialize(Archive& ar, group_storage<3>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<3>& s, const unsigned int version)
     {
-    ar& s.tag[0];
-    ar& s.tag[1];
-    ar& s.tag[2];
+    ar(s.tag[0], s.tag[1], s.tag[2]);
     }
 //! Serialization of group_storage<4> (dihedrals and impropers)
-template<class Archive> void serialize(Archive& ar, group_storage<4>& s, const unsigned int version)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<4>& s, const unsigned int version)
     {
-    ar& s.tag[0];
-    ar& s.tag[1];
-    ar& s.tag[2];
-    ar& s.tag[3];
+    ar(s.tag[0], s.tag[1], s.tag[2], s.tag[3]);
+    }
+//! Serialization of group_storage<6> (meshtriangles)
+template<class Archive>
+void serialize(Archive& ar, hoomd::group_storage<6>& s, const unsigned int version)
+    {
+    ar(s.tag[0], s.tag[1], s.tag[2], s.tag[3], s.tag[4], s.tag[5]);
     }
     } // namespace cereal
 #endif
 
+namespace hoomd
+    {
 /*! BondedGroupData is a generic storage class for small particle groups of fixed
  *  size N=2,3,4..., such as bonds, angles or dihedrals, which form part of a molecule.
  *
@@ -118,10 +124,7 @@ class BondedGroupData
     {
     public:
     //! Group size
-    enum
-        {
-        size = group_size
-        } Enum;
+    static const unsigned int size = group_size;
 
     //! Group data element type
     typedef union group_storage<group_size> members_t;
@@ -186,13 +189,29 @@ class BondedGroupData
         //! Validate the snapshot
         /* \returns true if number of elements in snapshot is consistent
          */
-        bool validate() const
+        void validate() const
             {
             if (has_type_mapping && groups.size() != type_id.size())
-                return false;
+                {
+                throw std::runtime_error("All array sizes must match.");
+                }
+
             if (!has_type_mapping && groups.size() != val.size())
-                return false;
-            return true;
+                {
+                throw std::runtime_error("All array sizes must match.");
+                }
+
+            // Check that the user provided unique type names.
+            if (has_type_mapping)
+                {
+                std::vector<std::string> types_copy = type_mapping;
+                std::sort(types_copy.begin(), types_copy.end());
+                auto last = std::unique(types_copy.begin(), types_copy.end());
+                if (static_cast<size_t>(last - types_copy.begin()) != type_mapping.size())
+                    {
+                    throw std::runtime_error("Type names must be unique.");
+                    }
+                }
             }
 
         //! Replicate this snapshot
@@ -208,11 +227,11 @@ class BondedGroupData
          */
         void bcast(unsigned int root, MPI_Comm mpi_comm)
             {
-            ::bcast(type_id, root, mpi_comm);
-            ::bcast(val, root, mpi_comm);
-            ::bcast(groups, root, mpi_comm);
-            ::bcast(type_mapping, root, mpi_comm);
-            ::bcast(size, root, mpi_comm);
+            hoomd::bcast(type_id, root, mpi_comm);
+            hoomd::bcast(val, root, mpi_comm);
+            hoomd::bcast(groups, root, mpi_comm);
+            hoomd::bcast(type_mapping, root, mpi_comm);
+            hoomd::bcast(size, root, mpi_comm);
             }
 #endif
 
@@ -235,6 +254,9 @@ class BondedGroupData
         unsigned int size;                     //!< Number of bonds in the snapshot
         };
 
+    //! Constructor for MeshGroupData
+    BondedGroupData(std::shared_ptr<ParticleData> pdata);
+
     //! Constructor for empty BondedGroupData
     BondedGroupData(std::shared_ptr<ParticleData> pdata, unsigned int n_group_types);
 
@@ -243,11 +265,14 @@ class BondedGroupData
 
     virtual ~BondedGroupData();
 
+    //! Initialize internal memory
+    void initialize();
+
     //! Initialize from a snapshot
     virtual void initializeFromSnapshot(const Snapshot& snapshot);
 
     //! Take a snapshot
-    virtual std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
+    std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
 
     //! Get local number of bonded groups
     unsigned int getN() const
@@ -337,6 +362,9 @@ class BondedGroupData
 
     //! Get the members of a bonded group by index
     const members_t getMembersByIndex(unsigned int group_idx) const;
+
+    //! Get the members of a bonded group by index
+    void setMemberByIndex(unsigned int group_idx, members_t member);
 
     //! Get the type of a bonded group by index
     unsigned int getTypeByIndex(unsigned int group_idx) const;
@@ -571,14 +599,6 @@ class BondedGroupData
      */
     void removeBondedGroup(unsigned int group_tag);
 
-    //! Set the profiler
-    /*! \param prof The profiler
-     */
-    void setProfiler(std::shared_ptr<Profiler> prof)
-        {
-        m_prof = prof;
-        }
-
     //! Connects a function to be called every time the global number of bonded groups changes
     Nano::Signal<void()>& getGroupNumChangeSignal()
         {
@@ -607,16 +627,16 @@ class BondedGroupData
         m_groups_dirty = true;
         }
 
-    protected:
 #ifdef ENABLE_MPI
     //! Helper function to transfer bonded groups connected to a single particle
     /*! \param tag Tag of particle that moves between domains
         \param old_rank Old MPI rank for particle
         \param new_rank New MPI rank
      */
-    void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+    virtual void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
 #endif
 
+    protected:
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf;                       //!< Execution configuration for CUDA context
     std::shared_ptr<ParticleData> m_pdata; //!< Particle Data these bonds belong to
@@ -653,24 +673,25 @@ class BondedGroupData
     GPUVector<unsigned int>
         m_cached_tag_set;       //!< Cached constant-time lookup table for tags by active index
     bool m_invalid_cached_tags; //!< true if m_cached_tag_set needs to be rebuilt
-    std::shared_ptr<Profiler> m_prof; //!< Profiler
-
-    private:
-    bool m_groups_dirty; //!< Is it necessary to rebuild the lookup-by-index table?
 
     Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
                                                     //!< added or deleted (globally)
+                                                    //
+#ifdef ENABLE_HIP
+    GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
+    unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
+#endif
+    private:
+    bool m_groups_dirty; //!< Check if it is necessary to rebuild the lookup-by-index table
+
     Nano::Signal<void()> m_group_reorder_signal; //!< Signal that is triggered when groups are added
                                                  //!< or deleted locally
-
-    //! Initialize internal memory
-    void initialize();
 
     //! Helper function to rebuild the active tag cache if necessary
     void maybe_rebuild_tag_cache();
 
     //! Helper function to rebuild lookup by index table
-    void rebuildGPUTable();
+    virtual void rebuildGPUTable();
 
     //! Resize internal tables
     /*! \param new_size New size of local group tables, new_size = n_local + n_ghost
@@ -690,19 +711,20 @@ class BondedGroupData
 
 #ifdef ENABLE_HIP
     //! Helper function to rebuild lookup by index table on the GPU
-    void rebuildGPUTableGPU();
-
-    GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
-    unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
+    virtual void rebuildGPUTableGPU();
 #endif
     };
 
+namespace detail
+    {
 //! Exports BondData to python
 template<class T, class Group>
 void export_BondedGroupData(pybind11::module& m,
                             std::string name,
                             std::string snapshot_name,
                             bool export_struct = true);
+
+    } // end namespace detail
 
 /*!
  * Typedefs for template instantiations
@@ -734,7 +756,6 @@ struct Bond
         {
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -743,7 +764,6 @@ struct Bond
         return m;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -751,7 +771,6 @@ struct Bond
         return t;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Bond>(m, "Bond")
@@ -768,6 +787,78 @@ struct Bond
 
 //! Definition of BondData
 typedef BondedGroupData<2, Bond, name_bond_data> BondData;
+
+/*
+ * MeshBondData
+ */
+extern char name_meshbond_data[];
+
+// Definition of a meshbond
+struct MeshBond
+    {
+    typedef group_storage<4> members_t;
+
+    //! Constructor
+    /*! \param type Type of bond
+     * \param _a First bond member
+     * \param _b Second bond member
+     * \param _ta First triangle
+     * \param _tb Second triangle
+     */
+    MeshBond(unsigned int _type,
+             unsigned int _a,
+             unsigned int _b,
+             unsigned int _ta,
+             unsigned int _tb)
+        : type(_type), a(_a), b(_b), ta(_ta), tb(_tb)
+        {
+        }
+
+    //! Constructor that takes a members_t (used internally by MeshBondData)
+    /*! \param type
+     *  \param members group members
+     */
+    MeshBond(typeval_t _typeval, members_t _members)
+        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), ta(_members.tag[2]),
+          tb(_members.tag[3])
+        {
+        }
+
+    members_t get_members() const
+        {
+        members_t m;
+        m.tag[0] = a;
+        m.tag[1] = b;
+        m.tag[2] = ta;
+        m.tag[3] = tb;
+        return m;
+        }
+
+    typeval_t get_typeval() const
+        {
+        typeval_t t;
+        t.type = type;
+        return t;
+        }
+
+    static void export_to_python(pybind11::module& m)
+        {
+        pybind11::class_<MeshBond>(m, "MeshBond")
+            .def(pybind11::
+                     init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+            .def_readonly("type", &MeshBond::type)
+            .def_readonly("a", &MeshBond::a)
+            .def_readonly("b", &MeshBond::b)
+            .def_readonly("ta", &MeshBond::ta)
+            .def_readonly("tb", &MeshBond::tb);
+        }
+
+    unsigned int type; //!< Group type
+    unsigned int a;    //!< First bond member
+    unsigned int b;    //!< Second bond member
+    unsigned int ta;   //!< First triangle
+    unsigned int tb;   //!< Second triangle
+    };
 
 /*
  * AngleData
@@ -798,7 +889,6 @@ struct Angle
         {
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -808,7 +898,6 @@ struct Angle
         return m;
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -816,7 +905,6 @@ struct Angle
         return t;
         }
 
-    //! This helper function needs to be provided for the templated AngleData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Angle>(m, "Angle")
@@ -835,6 +923,101 @@ struct Angle
 
 //! Definition of AngleData
 typedef BondedGroupData<3, Angle, name_angle_data> AngleData;
+
+/*
+ * TriangleData
+ */
+extern char name_triangle_data[];
+
+//! Definition of TriangleData
+typedef BondedGroupData<3, Angle, name_triangle_data> TriangleData;
+
+/*
+ * MeshTriangleData
+ */
+extern char name_meshtriangle_data[];
+
+// Definition of a meshtriangle
+struct MeshTriangle
+    {
+    typedef group_storage<6> members_t;
+
+    //! Constructor
+    /*! \param type Type of meshtriangle
+     * \param _a First triangle member
+     * \param _b Second triangle member
+     * \param _c Third triangle member
+     * \param _ea First edge
+     * \param _eb Second edge
+     * \param _ec Third edge
+     */
+    MeshTriangle(unsigned int _type,
+                 unsigned int _a,
+                 unsigned int _b,
+                 unsigned int _c,
+                 unsigned int _ea,
+                 unsigned int _eb,
+                 unsigned int _ec)
+        : type(_type), a(_a), b(_b), c(_c), ea(_ea), eb(_eb), ec(_ec)
+        {
+        }
+
+    //! Constructor that takes a members_t (used internally by MeshTriangleData)
+    /*! \param type
+     *  \param members group members
+     */
+    MeshTriangle(typeval_t _typeval, members_t _members)
+        : type(_typeval.type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]),
+          ea(_members.tag[3]), eb(_members.tag[4]), ec(_members.tag[5])
+        {
+        }
+
+    members_t get_members() const
+        {
+        members_t m;
+        m.tag[0] = a;
+        m.tag[1] = b;
+        m.tag[2] = c;
+        m.tag[3] = ea;
+        m.tag[4] = eb;
+        m.tag[5] = ec;
+        return m;
+        }
+
+    typeval_t get_typeval() const
+        {
+        typeval_t t;
+        t.type = type;
+        return t;
+        }
+
+    static void export_to_python(pybind11::module& m)
+        {
+        pybind11::class_<MeshTriangle>(m, "MeshTriangle")
+            .def(pybind11::init<unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int,
+                                unsigned int>())
+            .def_readonly("type", &MeshTriangle::type)
+            .def_readonly("a", &MeshTriangle::a)
+            .def_readonly("b", &MeshTriangle::b)
+            .def_readonly("c", &MeshTriangle::c)
+            .def_readonly("ea", &MeshTriangle::ea)
+            .def_readonly("eb", &MeshTriangle::eb)
+            .def_readonly("ec", &MeshTriangle::ec);
+        }
+
+    unsigned int type; //!< Group type
+    unsigned int a;    //!< First dihedral member
+    unsigned int b;    //!< Second dihedral member
+    unsigned int c;    //!< Third dihedral member
+    unsigned int ea;   //!< First endge
+    unsigned int eb;   //!< Second edge
+    unsigned int ec;   //!< Third edge
+    };
 
 /*
  * DihedralData
@@ -866,7 +1049,6 @@ struct Dihedral
         {
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -877,7 +1059,6 @@ struct Dihedral
         return m;
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -885,7 +1066,6 @@ struct Dihedral
         return t;
         }
 
-    //! This helper function needs to be provided for the templated DihedralData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Dihedral>(m, "Dihedral")
@@ -947,7 +1127,6 @@ struct Constraint
         {
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     members_t get_members() const
         {
         members_t m;
@@ -956,7 +1135,6 @@ struct Constraint
         return m;
         }
 
-    //! This helper function needs to be provided for the templated BondData to work correctly
     typeval_t get_typeval() const
         {
         typeval_t t;
@@ -964,7 +1142,6 @@ struct Constraint
         return t;
         }
 
-    //! This helper function needs to be provided for the templated ConstraintData to work correctly
     static void export_to_python(pybind11::module& m)
         {
         pybind11::class_<Constraint>(m, "Constraint")
@@ -1003,12 +1180,16 @@ typedef BondedGroupData<2, Bond, name_pair_data> PairData;
  *  GroupData: The realized class from the BondGroupData template.
  */
 template<class Output, class GroupData>
-class LocalGroupData : public LocalDataAccess<Output, GroupData>
+class LocalGroupData : public GhostLocalDataAccess<Output, GroupData>
     {
     public:
     LocalGroupData(GroupData& data)
-        : LocalDataAccess<Output, GroupData>(data), m_tags_handle(nullptr), m_rtags_handle(nullptr),
-          m_members_handle(nullptr), m_typeval_handle(nullptr)
+        : GhostLocalDataAccess<Output, GroupData>(data,
+                                                  data.getN(),
+                                                  data.getNGhosts(),
+                                                  data.getNGlobal()),
+          m_tags_handle(nullptr), m_rtags_handle(nullptr), m_members_handle(nullptr),
+          m_typeval_handle(nullptr)
         {
         }
 
@@ -1016,33 +1197,38 @@ class LocalGroupData : public LocalDataAccess<Output, GroupData>
 
     Output getTags(GhostDataFlag flag)
         {
-        return this->template getBuffer<unsigned int, unsigned int, GPUVector>(m_tags_handle,
-                                                                               &GroupData::getTags,
-                                                                               flag);
+        return this->template getLocalBuffer<unsigned int, unsigned int, GPUVector>(
+            m_tags_handle,
+            &GroupData::getTags,
+            flag,
+            true);
         }
 
     Output getRTags()
         {
         return this->template getGlobalBuffer<unsigned int, GPUVector>(m_rtags_handle,
-                                                                       &GroupData::getRTags);
+                                                                       &GroupData::getRTags,
+                                                                       false);
         }
 
     Output getTypeVal(GhostDataFlag flag)
         {
         // This forces resolution at compile time for the returned types
-        return this->template getBuffer<
+        return this->template getLocalBuffer<
             typeval_t,
             typename std::conditional<GroupData::typemap_val, unsigned int, Scalar>::type,
-            GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag);
+            GPUVector>(m_typeval_handle, &GroupData::getTypeValArray, flag, true);
         }
 
     Output getMembers(GhostDataFlag flag)
         {
-        return this->template getBuffer<typename GroupData::members_t, unsigned int, GPUVector>(
-            m_members_handle,
-            &GroupData::getMembersArray,
-            flag,
-            GroupData::size);
+        return this
+            ->template getLocalBuffer<typename GroupData::members_t, unsigned int, GPUVector>(
+                m_members_handle,
+                &GroupData::getMembersArray,
+                flag,
+                true,
+                GroupData::size);
         }
 
     protected:
@@ -1073,4 +1259,6 @@ template<class Output, class Data> void export_LocalGroupData(pybind11::module& 
         .def("enter", &LocalGroupData<Output, Data>::enter)
         .def("exit", &LocalGroupData<Output, Data>::exit);
     }
+
+    } // end namespace hoomd
 #endif

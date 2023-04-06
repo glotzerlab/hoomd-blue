@@ -1,8 +1,9 @@
+// Copyright (c) 2009-2023 The Regents of the University of Michigan.
+// Part of HOOMD-blue, released under the BSD 3-Clause License.
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: jglaser
 
 #include "TwoStepNPTMTKGPU.cuh"
 #include "hoomd/VectorMath.h"
@@ -14,6 +15,12 @@
    update equations. Used by TwoStepNPTMTKGPU.
 */
 
+namespace hoomd
+    {
+namespace md
+    {
+namespace kernel
+    {
 //! Kernel to propagate the positions and velocities, first half of NPT update
 __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
                                             Scalar4* d_vel,
@@ -183,11 +190,11 @@ hipError_t gpu_npt_mtk_step_one(Scalar4* d_pos,
 
     Wrap particle positions for all particles in the box
 */
-extern "C" __global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
-                                                   const unsigned int offset,
-                                                   Scalar4* d_pos,
-                                                   int3* d_image,
-                                                   BoxDim box)
+__global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
+                                        const unsigned int offset,
+                                        Scalar4* d_pos,
+                                        int3* d_image,
+                                        BoxDim box)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -449,3 +456,6 @@ void gpu_npt_mtk_rescale(const GPUPartition& gpu_partition,
                            mat_exp_r_zz);
         }
     }
+    } // end namespace kernel
+    } // end namespace md
+    } // end namespace hoomd
