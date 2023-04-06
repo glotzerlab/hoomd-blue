@@ -374,7 +374,7 @@ class Brownian(MethodRATTLE):
             :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, kT, manifold_constraint, tolerance=0.000001):
+    def __init__(self, filter, kT, manifold_constraint, tolerance=1e-6):
 
         # store metadata
         param_dict = ParameterDict(
@@ -472,7 +472,7 @@ class OverdampedViscous(MethodRATTLE):
             :math:`[\mathrm{time}^{-1}]`.
     """
 
-    def __init__(self, filter, manifold_constraint, tolerance=0.000001):
+    def __init__(self, filter, manifold_constraint, tolerance=1e-6):
         # store metadata
         param_dict = ParameterDict(filter=ParticleFilter,)
         param_dict.update(dict(filter=filter))
