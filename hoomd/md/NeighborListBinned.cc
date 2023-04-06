@@ -39,8 +39,6 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
     if (m_update_cell_size)
         {
         Scalar rmax = getMaxRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmax += m_d_max - Scalar(1.0);
 
         m_cl->setNominalWidth(rmax);
         m_update_cell_size = false;
@@ -56,9 +54,6 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
                                      access_location::host,
                                      access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -104,7 +99,6 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
         const Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         const unsigned int type_i = __scalar_as_int(h_pos.data[i].w);
         const unsigned int body_i = h_body.data[i];
-        const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
         const size_t head_idx_i = h_head_list.data[i];
@@ -156,23 +150,12 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
                 Scalar3 dx = my_pos - neigh_pos;
                 dx = box.minImage(dx);
 
-                Scalar r_list = r_cut + m_r_buff;
-                Scalar sqshift = Scalar(0.0);
-                if (m_diameter_shift)
-                    {
-                    const Scalar delta
-                        = (diam_i + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
-                    // r^2 < (r_list + delta)^2
-                    // r^2 < r_listsq + delta^2 + 2*r_list*delta
-                    sqshift = (delta + Scalar(2.0) * r_list) * delta;
-                    }
-
                 Scalar dr_sq = dot(dx, dx);
 
-                // move the squared rlist by the diameter shift if necessary
                 Scalar r_listsq = h_r_listsq.data[m_typpair_idx(type_i, cur_neigh_type)];
-                if (dr_sq <= (r_listsq + sqshift) && !excluded)
+                if (dr_sq <= r_listsq && !excluded)
                     {
+                    // Add the neighbor index to the list.
                     if (m_storage_mode == full || i < (int)cur_neigh)
                         {
                         // local neighbor

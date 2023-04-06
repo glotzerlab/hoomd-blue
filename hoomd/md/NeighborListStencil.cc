@@ -53,8 +53,6 @@ void NeighborListStencil::updateRStencil()
         if (rcut > Scalar(0.0))
             {
             Scalar rlist = rcut + m_r_buff;
-            if (m_diameter_shift)
-                rlist += m_d_max - Scalar(1.0);
             rstencil[cur_type] = rlist;
             }
         }
@@ -69,8 +67,6 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         if (!m_override_cell_width)
             {
             Scalar rmin = getMinRCut() + m_r_buff;
-            if (m_diameter_shift)
-                rmin += m_d_max - Scalar(1.0);
 
             m_cl->setNominalWidth(rmin);
             }
@@ -96,17 +92,12 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
                                      access_location::host,
                                      access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // validate that the cutoff fits inside the box
     Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
 
     // get periodic flags
     uchar3 periodic = box.getPeriodic();
@@ -169,7 +160,6 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         const Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         const unsigned int type_i = __scalar_as_int(h_pos.data[i].w);
         const unsigned int body_i = h_body.data[i];
-        const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
         const size_t head_idx_i = h_head_list.data[i];
@@ -253,7 +243,6 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
                 // in)
                 const Scalar4& neigh_tdb = h_cell_tdb.data[cli(cur_offset, neigh_cell)];
                 const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
-                const Scalar diam_j = neigh_tdb.y;
                 const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
 
                 // skip any particles belonging to the same body if requested
@@ -267,15 +256,7 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 
                 // compute the rlist based on the particle type we're interacting with
                 Scalar r_list = r_cut + m_r_buff;
-                Scalar sqshift = Scalar(0.0);
-                if (m_diameter_shift)
-                    {
-                    const Scalar delta = (diam_i + diam_j) * Scalar(0.5) - Scalar(1.0);
-                    // r^2 < (r_list + delta)^2
-                    // r^2 < r_listsq + delta^2 + 2*r_list*delta
-                    sqshift = (delta + Scalar(2.0) * r_list) * delta;
-                    }
-                Scalar r_listsq = r_list * r_list + sqshift;
+                Scalar r_listsq = r_list * r_list;
 
                 // compare the check distance to the minimum cell distance, and pass without
                 // distance check if unnecessary

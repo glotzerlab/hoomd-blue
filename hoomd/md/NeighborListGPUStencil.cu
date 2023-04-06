@@ -23,7 +23,7 @@ namespace kernel
     {
 //! Kernel call for generating neighbor list on the GPU using multiple stencils (Kepler optimized
 //! version)
-/*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
+/*! \tparam filter_body Set to true to enable body filtering.
     \tparam threads_per_particle Number of threads cooperatively computing the neighbor list
     \param d_nlist Neighbor list data structure to write
     \param d_n_neigh Number of neighbors to write
@@ -33,7 +33,6 @@ namespace kernel
     \param d_head_list List of indexes to access \a d_nlist
     \param d_pos Particle positions
     \param d_body Particle body indices
-    \param d_diameter Particle diameters
     \param N Number of particles
     \param d_cell_size Number of particles in each cell
     \param d_cell_xyzf Cell contents (xyzf array from CellList with flag=type)
@@ -51,7 +50,7 @@ namespace kernel
 
     \note optimized for Kepler
 */
-template<unsigned char flags, int threads_per_particle>
+template<unsigned char filter_body, int threads_per_particle>
 __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                                                  unsigned int* d_n_neigh,
                                                  Scalar4* d_last_updated_pos,
@@ -61,7 +60,6 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                                                  const unsigned int* d_pid_map,
                                                  const Scalar4* d_pos,
                                                  const unsigned int* d_body,
-                                                 const Scalar* d_diameter,
                                                  const unsigned int N,
                                                  const unsigned int* d_cell_size,
                                                  const Scalar4* d_cell_xyzf,
@@ -77,9 +75,6 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                                                  const unsigned int ntypes,
                                                  const Scalar3 ghost_width)
     {
-    bool filter_body = flags & 1;
-    bool diameter_shift = flags & 2;
-
     // cache the r_listsq parameters into shared memory
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -125,7 +120,6 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
 
     unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
-    Scalar my_diam = d_diameter[my_pidx];
     size_t my_head = d_head_list[my_pidx];
 
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
@@ -225,7 +219,6 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                 // in)
                 const Scalar4 neigh_tdb = __ldg(d_cell_tdb + cli(cur_offset, neigh_cell));
                 const unsigned int type_j = __scalar_as_int(neigh_tdb.x);
-                const Scalar diam_j = neigh_tdb.y;
                 const unsigned int body_j = __scalar_as_int(neigh_tdb.z);
 
                 // skip any particles belonging to the same rigid body if requested
@@ -236,15 +229,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
                 Scalar r_list = s_r_list[typpair_idx(my_type, type_j)];
                 if (r_list <= Scalar(0.0))
                     break;
-                Scalar sqshift = Scalar(0.0);
-                if (diameter_shift)
-                    {
-                    const Scalar delta = (my_diam + diam_j) * Scalar(0.5) - Scalar(1.0);
-                    // r^2 < (r_list + delta)^2
-                    // r^2 < r_listsq + delta^2 + 2*r_list*delta
-                    sqshift = (delta + Scalar(2.0) * r_list) * delta;
-                    }
-                Scalar r_listsq = r_list * r_list + sqshift;
+                Scalar r_listsq = r_list * r_list;
 
                 // compare the check distance to the minimum cell distance, and pass without
                 // distance check if unnecessary
@@ -331,7 +316,6 @@ inline void stencil_launcher(unsigned int* d_nlist,
                              const unsigned int* d_pid_map,
                              const Scalar4* d_pos,
                              const unsigned int* d_body,
-                             const Scalar* d_diameter,
                              const unsigned int N,
                              const unsigned int* d_cell_size,
                              const Scalar4* d_cell_xyzf,
@@ -347,7 +331,6 @@ inline void stencil_launcher(unsigned int* d_nlist,
                              const unsigned int ntypes,
                              const Scalar3& ghost_width,
                              bool filter_body,
-                             bool diameter_shift,
                              const unsigned int threads_per_particle,
                              const unsigned int block_size,
                              const hipDeviceProp_t& devprop)
@@ -365,7 +348,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
 
     if (threads_per_particle == cur_tpp && cur_tpp != 0)
         {
-        if (!diameter_shift && !filter_body)
+        if (!filter_body)
             {
             unsigned int max_block_size;
             max_block_size
@@ -388,7 +371,6 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                d_pid_map,
                                d_pos,
                                d_body,
-                               d_diameter,
                                N,
                                d_cell_size,
                                d_cell_xyzf,
@@ -404,7 +386,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                ntypes,
                                ghost_width);
             }
-        else if (!diameter_shift && filter_body)
+        else if (filter_body)
             {
             unsigned int max_block_size;
             max_block_size
@@ -427,85 +409,6 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                d_pid_map,
                                d_pos,
                                d_body,
-                               d_diameter,
-                               N,
-                               d_cell_size,
-                               d_cell_xyzf,
-                               d_cell_tdb,
-                               ci,
-                               cli,
-                               d_stencil,
-                               d_n_stencil,
-                               stencil_idx,
-                               box,
-                               d_r_cut,
-                               r_buff,
-                               ntypes,
-                               ghost_width);
-            }
-        else if (diameter_shift && !filter_body)
-            {
-            unsigned int max_block_size;
-            max_block_size
-                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<2, cur_tpp>);
-
-            unsigned int run_block_size
-                = (block_size < max_block_size) ? block_size : max_block_size;
-            dim3 grid(N / (block_size / threads_per_particle) + 1);
-            hipLaunchKernelGGL((gpu_compute_nlist_stencil_kernel<2, cur_tpp>),
-                               dim3(grid),
-                               dim3(run_block_size),
-                               shared_size,
-                               0,
-                               d_nlist,
-                               d_n_neigh,
-                               d_last_updated_pos,
-                               d_conditions,
-                               d_Nmax,
-                               d_head_list,
-                               d_pid_map,
-                               d_pos,
-                               d_body,
-                               d_diameter,
-                               N,
-                               d_cell_size,
-                               d_cell_xyzf,
-                               d_cell_tdb,
-                               ci,
-                               cli,
-                               d_stencil,
-                               d_n_stencil,
-                               stencil_idx,
-                               box,
-                               d_r_cut,
-                               r_buff,
-                               ntypes,
-                               ghost_width);
-            }
-        else if (diameter_shift && filter_body)
-            {
-            unsigned int max_block_size;
-            max_block_size
-                = get_max_block_size_stencil(gpu_compute_nlist_stencil_kernel<3, cur_tpp>);
-
-            unsigned int run_block_size
-                = (block_size < max_block_size) ? block_size : max_block_size;
-            dim3 grid(N / (block_size / threads_per_particle) + 1);
-            hipLaunchKernelGGL((gpu_compute_nlist_stencil_kernel<3, cur_tpp>),
-                               dim3(grid),
-                               dim3(run_block_size),
-                               shared_size,
-                               0,
-                               d_nlist,
-                               d_n_neigh,
-                               d_last_updated_pos,
-                               d_conditions,
-                               d_Nmax,
-                               d_head_list,
-                               d_pid_map,
-                               d_pos,
-                               d_body,
-                               d_diameter,
                                N,
                                d_cell_size,
                                d_cell_xyzf,
@@ -533,7 +436,6 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                       d_pid_map,
                                       d_pos,
                                       d_body,
-                                      d_diameter,
                                       N,
                                       d_cell_size,
                                       d_cell_xyzf,
@@ -549,7 +451,6 @@ inline void stencil_launcher(unsigned int* d_nlist,
                                       ntypes,
                                       ghost_width,
                                       filter_body,
-                                      diameter_shift,
                                       threads_per_particle,
                                       block_size,
                                       devprop);
@@ -567,7 +468,6 @@ inline void stencil_launcher<min_threads_per_particle / 2>(unsigned int* d_nlist
                                                            const unsigned int* d_pid_map,
                                                            const Scalar4* d_pos,
                                                            const unsigned int* d_body,
-                                                           const Scalar* d_diameter,
                                                            const unsigned int N,
                                                            const unsigned int* d_cell_size,
                                                            const Scalar4* d_cell_xyzf,
@@ -583,7 +483,6 @@ inline void stencil_launcher<min_threads_per_particle / 2>(unsigned int* d_nlist
                                                            const unsigned int ntypes,
                                                            const Scalar3& ghost_width,
                                                            bool filter_body,
-                                                           bool diameter_shift,
                                                            const unsigned int threads_per_particle,
                                                            const unsigned int block_size,
                                                            const hipDeviceProp_t& devprop)
@@ -599,7 +498,6 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      const unsigned int* d_pid_map,
                                      const Scalar4* d_pos,
                                      const unsigned int* d_body,
-                                     const Scalar* d_diameter,
                                      const unsigned int N,
                                      const unsigned int* d_cell_size,
                                      const Scalar4* d_cell_xyzf,
@@ -615,7 +513,6 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                      const unsigned int ntypes,
                                      const Scalar3& ghost_width,
                                      bool filter_body,
-                                     bool diameter_shift,
                                      const unsigned int threads_per_particle,
                                      const unsigned int block_size,
                                      const hipDeviceProp_t& devprop)
@@ -629,7 +526,6 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                                d_pid_map,
                                                d_pos,
                                                d_body,
-                                               d_diameter,
                                                N,
                                                d_cell_size,
                                                d_cell_xyzf,
@@ -645,7 +541,6 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                                ntypes,
                                                ghost_width,
                                                filter_body,
-                                               diameter_shift,
                                                threads_per_particle,
                                                block_size,
                                                devprop);

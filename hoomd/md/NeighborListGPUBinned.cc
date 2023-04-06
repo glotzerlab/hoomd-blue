@@ -57,8 +57,6 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
     if (m_update_cell_size)
         {
         Scalar rmax = getMaxRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmax += m_d_max - Scalar(1.0);
 
         m_cl->setNominalWidth(rmax);
         m_update_cell_size = false;
@@ -68,9 +66,6 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(),
                                      access_location::device,
                                      access_mode::read);
@@ -156,7 +151,6 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         d_head_list.data,
         d_pos.data,
         d_body.data,
-        d_diameter.data,
         m_pdata->getN(),
         m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
         d_cell_xyzf.data,
@@ -173,7 +167,6 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
         threads_per_particle,
         block_size,
         m_filter_body,
-        m_diameter_shift,
         m_cl->getGhostWidth(),
         m_pdata->getGPUPartition(),
         m_use_index,
