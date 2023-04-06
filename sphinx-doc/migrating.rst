@@ -70,6 +70,16 @@ For some functionalities, you will need to update your scripts to use a new API:
 
   * Use `sdf_compression <hoomd.hpmc.compute.SDF.sdf_compression>`.
 
+* `hoomd.write.GSD` no longer writes ``particles/diameter`` by default.
+
+  * Set `write_diameter <hoomd.write.GSD.write_diameter>` as needed.
+
+* ``alpha`` property of `hoomd.md.methods.Langevin`, `hoomd.md.methods.Brownian`,
+  `hoomd.md.methods.OverdampedViscous`, `hoomd.md.methods.rattle.Langevin`,
+  `hoomd.md.methods.rattle.Brownian`, and `hoomd.md.methods.rattle.OverdampedViscous`.
+
+  * Use the ``gamma`` property.
+
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -94,6 +104,7 @@ Components
 * Use ``LongReal`` and ``ShortReal`` types in new code. ``Scalar`` will be removed in a future
   release (v5 or later).
 * Replace any use of ``hpmc::OverlapReal`` with ``ShortReal``.
+* Remove ``needsDiameter`` and ``setDiameter`` methods in potential evaluator classes.
 
 Migrating to HOOMD v3
 ---------------------
