@@ -125,34 +125,16 @@ Molecular dynamics:
 
     sim.run(1e5)
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Getting started
-
-    features
-    installation
-    building
-    migrating
-    changelog
-    citing
+.. rubric::
+    Contents
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Tutorials
+    :maxdepth: 2
+    :caption: Guides
 
-    tutorial/00-Introducing-HOOMD-blue/00-index
-    tutorial/01-Introducing-Molecular-Dynamics/00-index
-    tutorial/02-Logging/00-index
-    tutorial/03-Parallel-Simulations-With-MPI/00-index
-    tutorial/04-Custom-Actions-In-Python/00-index
-    tutorial/05-Organizing-and-Executing-Simulations/00-index
-    tutorial/06-Modelling-Rigid-Bodies/00-index
-
-.. toctree::
-    :maxdepth: 1
-    :caption: How to guides
-
-    howto/molecular
+    getting-started
+    tutorials
+    how-to
 
 .. toctree::
    :maxdepth: 1
@@ -163,22 +145,13 @@ Molecular dynamics:
    package-md
 
 .. toctree::
-    :maxdepth: 1
-    :caption: Developer guide
-
-    contributing
-    style
-    testing
-    components
-
-.. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Reference
 
-   notation
-   units
-   deprecated
-   logo
-   license
-   credits
+   documentation
+   changes
+   developers
+
+   open-source
+
    indices

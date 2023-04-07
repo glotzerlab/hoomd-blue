@@ -48,11 +48,6 @@ env:
     <% endfor %>
 <% endmacro %>
 <% set build_steps %>
-    - name: Checkout
-      uses: actions/checkout@v3.3.0
-      with:
-        path: code
-        submodules: true
     - name: Configure
       run: |
         mkdir -p build
@@ -169,18 +164,27 @@ env:
         --test-output-size-passed 1048576
       working-directory: build
 <% endset %>
-<% set pytest_validate_steps %>
+<% set validate_steps %>
     - name: Run pytest (serial)
       if: ${{ !contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_serial >> << pytest_options >> << pytest_validate_options >>
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
+    - name: Run howto guides (serial)
+      if: ${{ contains(matrix.config, 'llvm') }}  # some examples require LLVM
+      run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
+      working-directory: code/sphinx-doc/howto
 <% endset %>
 <% set prepare_steps %>
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v3.3.0
+      with:
+        path: code
+        submodules: true
 <% endset %>
 <% set post_cleanup_steps %>
     - name: Clean workspace
@@ -244,7 +248,7 @@ jobs:
     steps:
 << prepare_steps >>
 << download_install_steps >>
-<< pytest_validate_steps >>
+<< validate_steps >>
 << post_cleanup_steps >>
 
   build_release:

@@ -59,7 +59,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.03-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -83,12 +83,12 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
-
     - name: Checkout
       uses: actions/checkout@v3.3.0
       with:
         path: code
         submodules: true
+
     - name: Configure
       run: |
         mkdir -p build
@@ -170,7 +170,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.03-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -191,6 +191,11 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v3.3.0
+      with:
+        path: code
+        submodules: true
 
     - name: Download install
       uses: actions/download-artifact@v3.0.2
@@ -228,7 +233,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.03-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -249,6 +254,11 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v3.3.0
+      with:
+        path: code
+        submodules: true
 
     - name: Download build
       uses: actions/download-artifact@v3.0.2
@@ -279,7 +289,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.03-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -294,6 +304,11 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v3.3.0
+      with:
+        path: code
+        submodules: true
 
     - name: Download install
       uses: actions/download-artifact@v3.0.2
@@ -308,6 +323,10 @@ jobs:
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
       run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
+    - name: Run howto guides (serial)
+      if: ${{ contains(matrix.config, 'llvm') }}  # some examples require LLVM
+      run: 'for i in *.py; do echo "Running howto: $i" && python3 $i || exit 1; done'
+      working-directory: code/sphinx-doc/howto
 
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
@@ -321,7 +340,7 @@ jobs:
     name: Build [${{ join(matrix.config, '_') }}]
     runs-on: ${{ matrix.build_runner }}
     container:
-      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.03-${{ matrix.config[0] }}
     strategy:
       matrix:
         include:
@@ -350,12 +369,12 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
-
     - name: Checkout
       uses: actions/checkout@v3.3.0
       with:
         path: code
         submodules: true
+
     - name: Configure
       run: |
         mkdir -p build
@@ -437,7 +456,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.03-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -467,6 +486,11 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v3.3.0
+      with:
+        path: code
+        submodules: true
 
     - name: Download install
       uses: actions/download-artifact@v3.0.2
@@ -504,7 +528,7 @@ jobs:
     needs: build_release
     runs-on: ${{ matrix.test_runner }}
     container:
-      image: glotzerlab/ci:2023.02-${{ matrix.config[0] }}
+      image: glotzerlab/ci:2023.03-${{ matrix.config[0] }}
       options: ${{ matrix.test_docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
@@ -534,6 +558,11 @@ jobs:
     - name: Clean workspace
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
+    - name: Checkout
+      uses: actions/checkout@v3.3.0
+      with:
+        path: code
+        submodules: true
 
     - name: Download build
       uses: actions/download-artifact@v3.0.2
