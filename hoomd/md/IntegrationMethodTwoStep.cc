@@ -117,6 +117,7 @@ void IntegrationMethodTwoStep::validateGroup()
                                             access_location::host,
                                             access_mode::read);
 
+    bool error = false;
     for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
         {
         unsigned int i = h_group_index.data[gidx];
@@ -125,13 +126,25 @@ void IntegrationMethodTwoStep::validateGroup()
 
         if (body < MIN_FLOPPY && body != tag)
             {
-            m_exec_conf->msg->error()
-                << "Particle " << tag
-                << " belongs to a rigid body, but is not its center particle. " << std::endl
-                << "This integration method does not operate on constituent particles." << std::endl
-                << std::endl;
-            throw std::runtime_error("Error initializing integration method");
+            error = true;
             }
+        }
+
+#ifdef ENABLE_MPI
+    if (this->m_sysdef->isDomainDecomposed())
+        {
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &error,
+                      1,
+                      MPI_CXX_BOOL,
+                      MPI_LOR,
+                      this->m_exec_conf->getMPICommunicator());
+        }
+#endif
+
+    if (error)
+        {
+        throw std::runtime_error("Integration methods may not be applied to constituents.");
         }
     }
 

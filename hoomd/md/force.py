@@ -56,7 +56,7 @@ class Force(Compute):
 
     .. math::
 
-        W^{kl}_i = \sum_j F^k_{ij} \cdot
+        W^{kl}_i = \frac{1}{2} \sum_j F^k_{ij} \cdot
         \mathrm{minimum\_image}(\vec{r}_j - \vec{r}_i)^l
 
     Tip:
