@@ -5,7 +5,7 @@ ci:
 
 exclude: (?x)(
         ^hoomd/extern/|
-        ^hoomd/sphinx-doc/tutorial/
+        ^sphinx-doc/tutorial/
         )
 
 repos:
@@ -44,6 +44,12 @@ repos:
   hooks:
   - id: fix-license-header
     name: Fix license headers (Python)
+    exclude: |
+      (?x)(
+          ^hoomd/extern/|
+          ^sphinx-doc/tutorial/|
+          ^sphinx-doc/howto/
+          )
     types_or: [python]
     args:
     - --license-file=LICENSE

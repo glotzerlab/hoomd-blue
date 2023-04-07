@@ -14,7 +14,6 @@
 #include <sstream>
 
 #include "hoomd/Integrator.h"
-#include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMC.h"
 #include "Moves.h"
 #include "hoomd/AABBTree.h"
@@ -230,7 +229,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual Scalar getMaxCoreDiameter();
 
         //! Get the minimum particle diameter
-        virtual OverlapReal getMinCoreDiameter();
+        virtual ShortReal getMinCoreDiameter();
 
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
@@ -740,17 +739,17 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
 
             bool overlap=false;
-            OverlapReal r_cut_patch = 0;
+            ShortReal r_cut_patch = 0;
 
             if (m_patch)
                 {
-                r_cut_patch = static_cast<OverlapReal>(m_patch->getRCut()) + static_cast<OverlapReal>(0.5) *
-                    static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
+                r_cut_patch = static_cast<ShortReal>(m_patch->getRCut()) + static_cast<ShortReal>(0.5) *
+                    static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_i));
                 }
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
-                r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
+            ShortReal R_query = std::max(shape_i.getCircumsphereDiameter()/ShortReal(2.0),
+                r_cut_patch-getMinCoreDiameter()/(ShortReal)2.0);
             hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // patch + field interaction deltaU
@@ -811,7 +810,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                 Scalar rcut = 0.0;
                                 if (m_patch)
                                     rcut = r_cut_patch + 0.5 *
-                                        static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_j));
+                                        static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_j));
 
                                 counters.overlap_checks++;
                                 if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
@@ -1208,11 +1207,11 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
         Scalar charge_i = h_charge.data[i];
 
         // the cut-off
-        OverlapReal r_cut = OverlapReal(m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
+        ShortReal r_cut = ShortReal(m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
 
         // subtract minimum AABB extent from search radius
-        OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0),
-            r_cut-getMinCoreDiameter()/(OverlapReal)2.0);
+        ShortReal R_query = std::max(shape_i.getCircumsphereDiameter()/ShortReal(2.0),
+            r_cut-getMinCoreDiameter()/(ShortReal)2.0);
         hoomd::detail::AABB aabb_i_local = hoomd::detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
         const unsigned int n_images = (unsigned int)m_image_list.size();
@@ -1317,10 +1316,10 @@ Scalar IntegratorHPMCMono<Shape>::getMaxCoreDiameter()
     }
 
 template <class Shape>
-OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
+ShortReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
     {
     // for each type, create a temporary shape and return the minimum diameter
-    OverlapReal minD = OverlapReal(0.0);
+    ShortReal minD = ShortReal(0.0);
     for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
         {
         Shape temp(quat<Scalar>(), m_params[typ]);
@@ -1329,10 +1328,10 @@ OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
 
     if (m_patch)
         {
-        OverlapReal max_extent = 0.0;
+        ShortReal max_extent = 0.0;
         for (unsigned int typ =0; typ < this->m_pdata->getNTypes(); typ++)
-            max_extent = std::max(max_extent, (OverlapReal) m_patch->getAdditiveCutoff(typ));
-        minD = std::max((OverlapReal) 0.0, minD-max_extent);
+            max_extent = std::max(max_extent, (ShortReal) m_patch->getAdditiveCutoff(typ));
+        minD = std::max((ShortReal) 0.0, minD-max_extent);
         }
 
     return minD;
@@ -1450,15 +1449,15 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
             Scalar r_cut_patch_i(0.0);
             if (m_patch)
-                r_cut_patch_i = static_cast<OverlapReal>(m_patch->getRCut()) +
-                    0.5*static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_i));
+                r_cut_patch_i = static_cast<ShortReal>(m_patch->getRCut()) +
+                    0.5*static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_i));
 
             Scalar range_i(0.0);
             for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
                 {
                 Scalar r_cut_patch_ij(0.0);
                 if (m_patch)
-                    r_cut_patch_ij = r_cut_patch_i + 0.5*static_cast<OverlapReal>(m_patch->getAdditiveCutoff(typ_j));
+                    r_cut_patch_ij = r_cut_patch_i + 0.5*static_cast<ShortReal>(m_patch->getAdditiveCutoff(typ_j));
 
                 Shape temp_j(quat<Scalar>(), m_params[typ_j]);
                 Scalar r_cut_shape(0.0);
@@ -1515,7 +1514,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         // the candidate image - add it to the image list.
 
         // construct the box shapes
-        std::vector<vec3<OverlapReal>> box_verts;
+        std::vector<vec3<ShortReal>> box_verts;
         if (ndim == 3)
             {
             box_verts.push_back((-e1 + -e2 + -e3) * 0.5);
@@ -1535,7 +1534,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
             box_verts.push_back((e1 + -e2) * 0.5);
             }
 
-        detail::PolyhedronVertices central_box_params(box_verts, OverlapReal(range), 0);
+        detail::PolyhedronVertices central_box_params(box_verts, ShortReal(range), 0);
         ShapeSpheropolyhedron central_box(quat<Scalar>(), central_box_params);
         detail::PolyhedronVertices image_box_params(box_verts, 0, 0);
         ShapeSpheropolyhedron image_box(quat<Scalar>(),  image_box_params);
@@ -2011,11 +2010,11 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
         // the relevant search radius is the one for the larger depletant
         Shape tmp_a(quat<Scalar>(), this->m_params[type_a]);
-        OverlapReal d_dep_search = tmp_a.getCircumsphereDiameter();
+        ShortReal d_dep_search = tmp_a.getCircumsphereDiameter();
 
         // we're sampling in the larger volume, so that it strictly covers the insertion volume of
         // the smaller depletant
-        OverlapReal r_dep_sample = 0.5f*d_dep_search;
+        ShortReal r_dep_sample = 0.5f*d_dep_search;
 
         // get old AABB and extend
         vec3<Scalar> lower = aabb_i_local_old.getLower();
@@ -2288,9 +2287,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         {
                         const Shape& shape = !new_config ? shape_old : shape_i;
 
-                        OverlapReal rsq = (OverlapReal) dot(r_i_test,r_i_test);
-                        OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                        ShortReal rsq = (ShortReal) dot(r_i_test,r_i_test);
+                        ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                        bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                         if (h_overlaps[this->m_overlap_idx(type_a, typ_i)])
                             {
@@ -2338,9 +2337,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         unsigned int err = 0;
 
                         // check circumsphere overlap
-                        OverlapReal rsq = (OverlapReal) dot(r_mk,r_mk);
-                        OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                        ShortReal rsq = (ShortReal) dot(r_mk,r_mk);
+                        ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
+                        bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                         bool overlap_j_a = h_overlaps[this->m_overlap_idx(type_a,type_m)]
                             && circumsphere_overlap
@@ -2416,7 +2415,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         // extend by depletant radius
                         Shape shape_test_a(quat<Scalar>(), m_params[type_a]);
 
-                        OverlapReal r = 0.5f * shape_test_a.getCircumsphereDiameter();
+                        ShortReal r = 0.5f * shape_test_a.getCircumsphereDiameter();
                         obb_k.lengths.x += r;
                         obb_k.lengths.y += r;
                         obb_k.lengths.z += r;
@@ -2486,9 +2485,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         vec3<Scalar> r_k_test = pos_test - (new_config ? pos_j_new[k] : pos_j_old[k]);
 
                             {
-                            OverlapReal rsq = (OverlapReal) dot(r_k_test,r_k_test);
-                            OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_k.getCircumsphereDiameter();
-                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                            ShortReal rsq = (ShortReal) dot(r_k_test,r_k_test);
+                            ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_k.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                             if (h_overlaps[this->m_overlap_idx(type_a, new_config ? type_j_new[k] : type_j_old[k])])
                                 {
@@ -2525,9 +2524,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             {
                             const Shape& shape = new_config ? shape_i : shape_old;
 
-                            OverlapReal rsq = (OverlapReal) dot(r_i_test,r_i_test);
-                            OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
-                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                            ShortReal rsq = (ShortReal) dot(r_i_test,r_i_test);
+                            ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                             if (h_overlaps[this->m_overlap_idx(type_a, typ_i)])
                                 {
@@ -2559,9 +2558,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             {
                             const Shape& shape = !new_config ? shape_i : shape_old;
 
-                            OverlapReal rsq = (OverlapReal) dot(r_i_test_other,r_i_test_other);
-                            OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
-                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                            ShortReal rsq = (ShortReal) dot(r_i_test_other,r_i_test_other);
+                            ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                             if (h_overlaps[this->m_overlap_idx(type_a, typ_i)])
                                 {
@@ -2606,9 +2605,9 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             unsigned int err = 0;
 
                             // check circumsphere overlap
-                            OverlapReal rsq = (OverlapReal) dot(r_m_test,r_m_test);
-                            OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
-                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+                            ShortReal rsq = (ShortReal) dot(r_m_test,r_m_test);
+                            ShortReal DaDb = shape_test_a.getCircumsphereDiameter() + shape_m.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*ShortReal(4.0) <= DaDb * DaDb);
 
                             bool overlap_m_a = h_overlaps[this->m_overlap_idx(type_a,type_m)]
                                 && circumsphere_overlap

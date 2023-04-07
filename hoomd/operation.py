@@ -278,6 +278,10 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         """
         pass
 
+    def _post_attach_hook(self):
+        """Hook called after applying parameter dicts."""
+        pass
+
     def _attach(self, simulation):
         """Attach the object to the added simulation.
 
@@ -300,6 +304,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             raise err
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        self._post_attach_hook()
 
     @property
     def _attached(self):
