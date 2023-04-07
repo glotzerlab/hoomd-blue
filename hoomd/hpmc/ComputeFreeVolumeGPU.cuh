@@ -5,7 +5,6 @@
 #define _COMPUTE_FREE_VOLUME_CUH_
 
 #include "HPMCCounters.h"
-#include "HPMCPrecisionSetup.h"
 #include "hip/hip_runtime.h"
 
 #include "hoomd/HOOMDMath.h"
@@ -317,11 +316,11 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                 r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
 
                 // check for overlaps
-                OverlapReal rsq = dot(r_ij, r_ij);
-                OverlapReal DaDb
+                ShortReal rsq = dot(r_ij, r_ij);
+                ShortReal DaDb
                     = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
 
-                if (rsq * OverlapReal(4.0) <= DaDb * DaDb)
+                if (rsq * ShortReal(4.0) <= DaDb * DaDb)
                     {
                     // circumsphere overlap
                     unsigned int err_count;
