@@ -297,7 +297,6 @@ class ExpandedLJ(Pair):
                \left( \frac{\sigma}{r - \Delta}
                \right)^{6} \right]
 
-    Note:
 
     Example::
 
