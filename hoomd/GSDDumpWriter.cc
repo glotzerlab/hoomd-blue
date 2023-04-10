@@ -153,9 +153,16 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     bool root = true;
 
     // take particle data snapshot
-    m_exec_conf->msg->notice(10) << "GSD: taking particle data snapshot" << endl;
     SnapshotParticleData<float> snapshot;
-    const std::map<unsigned int, unsigned int>& map = m_pdata->takeSnapshot<float>(snapshot);
+    std::map<unsigned int, unsigned int> map;
+
+    bool particle_group_empty = (m_group->getNumMembersGlobal() == 0);
+
+    if (!particle_group_empty)
+        {
+        m_exec_conf->msg->notice(10) << "GSD: taking particle data snapshot" << endl;
+        map = m_pdata->takeSnapshot<float>(snapshot);
+        }
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
@@ -191,13 +198,16 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         // write out the frame header on all frames
         writeFrameHeader(timestep);
 
-        // only write out data chunk categories if requested, or if on frame 0
-        if (m_write_attribute || nframes == 0)
-            writeAttributes(snapshot, map);
-        if (m_write_property || nframes == 0)
-            writeProperties(snapshot, map);
-        if (m_write_momentum || nframes == 0)
-            writeMomenta(snapshot, map);
+        if (!particle_group_empty)
+            {
+            // only write out data chunk categories if requested, or if on frame 0
+            if (m_write_attribute || nframes == 0)
+                writeAttributes(snapshot, map);
+            if (m_write_property || nframes == 0)
+                writeProperties(snapshot, map);
+            if (m_write_momentum || nframes == 0)
+                writeMomenta(snapshot, map);
+            }
         }
 
     // topology is only meaningful if this is the all group
