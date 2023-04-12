@@ -171,10 +171,12 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     pybind11::object m_log_writer;
 
     std::shared_ptr<ParticleGroup> m_group; //!< Group to write out to the file
-    std::map<std::string, bool>
+    std::unordered_map<std::string, bool>
         m_nondefault; //!< Map of quantities (true when non-default in frame 0)
 
     hoomd::detail::SharedSignal<int(gsd_handle&)> m_write_signal;
+
+    SnapshotParticleData<float> m_snapshot;
 
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
@@ -186,16 +188,13 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     void writeFrameHeader(uint64_t timestep);
 
     //! Write particle attributes
-    void writeAttributes(const SnapshotParticleData<float>& snapshot,
-                         const std::map<unsigned int, unsigned int>& map);
+    void writeAttributes(const SnapshotParticleData<float>& snapshot);
 
     //! Write particle properties
-    void writeProperties(const SnapshotParticleData<float>& snapshot,
-                         const std::map<unsigned int, unsigned int>& map);
+    void writeProperties(const SnapshotParticleData<float>& snapshot);
 
     //! Write particle momenta
-    void writeMomenta(const SnapshotParticleData<float>& snapshot,
-                      const std::map<unsigned int, unsigned int>& map);
+    void writeMomenta(const SnapshotParticleData<float>& snapshot);
 
     //! Write bond topology
     void writeTopology(BondData::Snapshot& bond,

@@ -42,7 +42,6 @@
 #include "DomainDecomposition.h"
 
 #include <bitset>
-#include <map>
 #include <stack>
 #include <stdlib.h>
 #include <string>
@@ -1150,7 +1149,7 @@ class PYBIND11_EXPORT ParticleData
 
     //! Take a snapshot
     template<class Real>
-    std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real>& snapshot);
+    void takeSnapshot(SnapshotParticleData<Real>& snapshot);
 
     //! Add ghost particles at the end of the local particle data
     void addGhostParticles(const unsigned int nghosts);

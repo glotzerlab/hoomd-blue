@@ -153,15 +153,12 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     bool root = true;
 
     // take particle data snapshot
-    SnapshotParticleData<float> snapshot;
-    std::map<unsigned int, unsigned int> map;
-
     bool particle_group_empty = (m_group->getNumMembersGlobal() == 0);
 
     if (!particle_group_empty)
         {
         m_exec_conf->msg->notice(10) << "GSD: taking particle data snapshot" << endl;
-        map = m_pdata->takeSnapshot<float>(snapshot);
+        m_pdata->takeSnapshot<float>(m_snapshot);
         }
 
 #ifdef ENABLE_MPI
@@ -202,11 +199,11 @@ void GSDDumpWriter::analyze(uint64_t timestep)
             {
             // only write out data chunk categories if requested, or if on frame 0
             if (m_write_attribute || nframes == 0)
-                writeAttributes(snapshot, map);
+                writeAttributes(m_snapshot);
             if (m_write_property || nframes == 0)
-                writeProperties(snapshot, map);
+                writeProperties(m_snapshot);
             if (m_write_momentum || nframes == 0)
-                writeMomenta(snapshot, map);
+                writeMomenta(m_snapshot);
             }
         }
 
@@ -336,8 +333,7 @@ void GSDDumpWriter::writeFrameHeader(uint64_t timestep)
     Writes the data chunks types, typeid, mass, charge, diameter, body, moment_inertia in
    particles/.
 */
-void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
-                                    const std::map<unsigned int, unsigned int>& map)
+void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
     {
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
@@ -354,14 +350,10 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.type[it->second] != 0)
+            if (snapshot.type[t] != 0)
                 all_default = false;
 
-            type[group_idx] = uint32_t(snapshot.type[it->second]);
+            type[group_idx] = uint32_t(snapshot.type[t]);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/typeid"]))
@@ -389,14 +381,10 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.mass[it->second] != float(1.0))
+            if (snapshot.mass[t] != float(1.0))
                 all_default = false;
 
-            data[group_idx] = float(snapshot.mass[it->second]);
+            data[group_idx] = float(snapshot.mass[t]);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/mass"]))
@@ -420,13 +408,9 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.charge[it->second] != float(0.0))
+            if (snapshot.charge[t] != float(0.0))
                 all_default = false;
-            data[group_idx] = float(snapshot.charge[it->second]);
+            data[group_idx] = float(snapshot.charge[t]);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/charge"]))
@@ -452,14 +436,10 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
                 {
                 unsigned int t = m_group->getMemberTag(group_idx);
 
-                // look up tag in snapshot
-                auto it = map.find(t);
-                assert(it != map.end());
-
-                if (snapshot.diameter[it->second] != float(1.0))
+                if (snapshot.diameter[t] != float(1.0))
                     all_default = false;
 
-                data[group_idx] = float(snapshot.diameter[it->second]);
+                data[group_idx] = float(snapshot.diameter[t]);
                 }
 
             if (!all_default || (nframes > 0 && m_nondefault["particles/diameter"]))
@@ -488,14 +468,10 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.body[it->second] != NO_BODY)
+            if (snapshot.body[t] != NO_BODY)
                 all_default = false;
 
-            body[group_idx] = int32_t(snapshot.body[it->second]);
+            body[group_idx] = int32_t(snapshot.body[t]);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/body"]))
@@ -523,20 +499,16 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.inertia[it->second].x != float(0.0)
-                || snapshot.inertia[it->second].y != float(0.0)
-                || snapshot.inertia[it->second].z != float(0.0))
+            if (snapshot.inertia[t].x != float(0.0)
+                || snapshot.inertia[t].y != float(0.0)
+                || snapshot.inertia[t].z != float(0.0))
                 {
                 all_default = false;
                 }
 
-            data[group_idx * 3 + 0] = float(snapshot.inertia[it->second].x);
-            data[group_idx * 3 + 1] = float(snapshot.inertia[it->second].y);
-            data[group_idx * 3 + 2] = float(snapshot.inertia[it->second].z);
+            data[group_idx * 3 + 0] = float(snapshot.inertia[t].x);
+            data[group_idx * 3 + 1] = float(snapshot.inertia[t].y);
+            data[group_idx * 3 + 2] = float(snapshot.inertia[t].z);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/moment_inertia"]))
@@ -560,8 +532,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
 
     Writes the data chunks position and orientation in particles/.
 */
-void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
-                                    const std::map<unsigned int, unsigned int>& map)
+void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot)
     {
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
@@ -575,13 +546,9 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            data[group_idx * 3 + 0] = float(snapshot.pos[it->second].x);
-            data[group_idx * 3 + 1] = float(snapshot.pos[it->second].y);
-            data[group_idx * 3 + 2] = float(snapshot.pos[it->second].z);
+            data[group_idx * 3 + 0] = float(snapshot.pos[t].x);
+            data[group_idx * 3 + 1] = float(snapshot.pos[t].y);
+            data[group_idx * 3 + 2] = float(snapshot.pos[t].z);
             }
 
         m_exec_conf->msg->notice(10) << "GSD: writing particles/position" << endl;
@@ -604,22 +571,18 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.orientation[it->second].s != float(1.0)
-                || snapshot.orientation[it->second].v.x != float(0.0)
-                || snapshot.orientation[it->second].v.y != float(0.0)
-                || snapshot.orientation[it->second].v.z != float(0.0))
+            if (snapshot.orientation[t].s != float(1.0)
+                || snapshot.orientation[t].v.x != float(0.0)
+                || snapshot.orientation[t].v.y != float(0.0)
+                || snapshot.orientation[t].v.z != float(0.0))
                 {
                 all_default = false;
                 }
 
-            data[group_idx * 4 + 0] = float(snapshot.orientation[it->second].s);
-            data[group_idx * 4 + 1] = float(snapshot.orientation[it->second].v.x);
-            data[group_idx * 4 + 2] = float(snapshot.orientation[it->second].v.y);
-            data[group_idx * 4 + 3] = float(snapshot.orientation[it->second].v.z);
+            data[group_idx * 4 + 0] = float(snapshot.orientation[t].s);
+            data[group_idx * 4 + 1] = float(snapshot.orientation[t].v.x);
+            data[group_idx * 4 + 2] = float(snapshot.orientation[t].v.y);
+            data[group_idx * 4 + 3] = float(snapshot.orientation[t].v.z);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/orientation"]))
@@ -643,8 +606,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
 
     Writes the data chunks velocity, angmom, and image in particles/.
 */
-void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot,
-                                 const std::map<unsigned int, unsigned int>& map)
+void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
     {
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
@@ -659,19 +621,15 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.vel[it->second].x != float(0.0) || snapshot.vel[it->second].y != float(0.0)
-                || snapshot.vel[it->second].z != float(0.0))
+            if (snapshot.vel[t].x != float(0.0) || snapshot.vel[t].y != float(0.0)
+                || snapshot.vel[t].z != float(0.0))
                 {
                 all_default = false;
                 }
 
-            data[group_idx * 3 + 0] = float(snapshot.vel[it->second].x);
-            data[group_idx * 3 + 1] = float(snapshot.vel[it->second].y);
-            data[group_idx * 3 + 2] = float(snapshot.vel[it->second].z);
+            data[group_idx * 3 + 0] = float(snapshot.vel[t].x);
+            data[group_idx * 3 + 1] = float(snapshot.vel[t].y);
+            data[group_idx * 3 + 2] = float(snapshot.vel[t].z);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/velocity"]))
@@ -699,22 +657,18 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.angmom[it->second].s != float(0.0)
-                || snapshot.angmom[it->second].v.x != float(0.0)
-                || snapshot.angmom[it->second].v.y != float(0.0)
-                || snapshot.angmom[it->second].v.z != float(0.0))
+            if (snapshot.angmom[t].s != float(0.0)
+                || snapshot.angmom[t].v.x != float(0.0)
+                || snapshot.angmom[t].v.y != float(0.0)
+                || snapshot.angmom[t].v.z != float(0.0))
                 {
                 all_default = false;
                 }
 
-            data[group_idx * 4 + 0] = float(snapshot.angmom[it->second].s);
-            data[group_idx * 4 + 1] = float(snapshot.angmom[it->second].v.x);
-            data[group_idx * 4 + 2] = float(snapshot.angmom[it->second].v.y);
-            data[group_idx * 4 + 3] = float(snapshot.angmom[it->second].v.z);
+            data[group_idx * 4 + 0] = float(snapshot.angmom[t].s);
+            data[group_idx * 4 + 1] = float(snapshot.angmom[t].v.x);
+            data[group_idx * 4 + 2] = float(snapshot.angmom[t].v.y);
+            data[group_idx * 4 + 3] = float(snapshot.angmom[t].v.z);
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/angmom"]))
@@ -742,19 +696,15 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot,
             {
             unsigned int t = m_group->getMemberTag(group_idx);
 
-            // look up tag in snapshot
-            auto it = map.find(t);
-            assert(it != map.end());
-
-            if (snapshot.image[it->second].x != 0 || snapshot.image[it->second].y != 0
-                || snapshot.image[it->second].z != 0)
+            if (snapshot.image[t].x != 0 || snapshot.image[t].y != 0
+                || snapshot.image[t].z != 0)
                 {
                 all_default = false;
                 }
 
-            data[group_idx * 3 + 0] = snapshot.image[it->second].x;
-            data[group_idx * 3 + 1] = snapshot.image[it->second].y;
-            data[group_idx * 3 + 2] = snapshot.image[it->second].z;
+            data[group_idx * 3 + 0] = snapshot.image[t].x;
+            data[group_idx * 3 + 1] = snapshot.image[t].y;
+            data[group_idx * 3 + 2] = snapshot.image[t].z;
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/image"]))
