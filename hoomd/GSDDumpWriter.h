@@ -165,6 +165,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     bool m_write_diameter = false;  //!< True if the diameter attribute should be written
     gsd_handle m_handle;            //!< Handle to the file
 
+    /// Number of frames written to the file.
+    uint64_t m_nframes = 0;
+
     static std::list<std::string> particle_chunks;
 
     /// Callback to write log quantities to file

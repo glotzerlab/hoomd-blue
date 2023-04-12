@@ -68,58 +68,71 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
 //! Initializes the output file for writing
 void GSDDumpWriter::initFileIO()
     {
-    // create a new file or overwrite an existing one
-    if (m_mode == "wb" || m_mode == "xb" || (m_mode == "ab" && !filesystem::exists(m_fname)))
+    if (m_exec_conf->isRoot())
         {
-        ostringstream o;
-        o << "HOOMD-blue " << HOOMD_VERSION;
-
-        m_exec_conf->msg->notice(3) << "GSD: create or overwrite gsd file " << m_fname << endl;
-        int retval = gsd_create_and_open(&m_handle,
-                                         m_fname.c_str(),
-                                         o.str().c_str(),
-                                         "hoomd",
-                                         gsd_make_version(1, 4),
-                                         GSD_OPEN_APPEND,
-                                         m_mode == "xb");
-        GSDUtils::checkError(retval, m_fname);
-
-        // in a created or overwritten file, all quantities are default
-        for (auto const& chunk : particle_chunks)
+        // create a new file or overwrite an existing one
+        if (m_mode == "wb" || m_mode == "xb" || (m_mode == "ab" && !filesystem::exists(m_fname)))
             {
-            m_nondefault[chunk] = false;
+            ostringstream o;
+            o << "HOOMD-blue " << HOOMD_VERSION;
+
+            m_exec_conf->msg->notice(3) << "GSD: create or overwrite gsd file " << m_fname << endl;
+            int retval = gsd_create_and_open(&m_handle,
+                                            m_fname.c_str(),
+                                            o.str().c_str(),
+                                            "hoomd",
+                                            gsd_make_version(1, 4),
+                                            GSD_OPEN_APPEND,
+                                            m_mode == "xb");
+            GSDUtils::checkError(retval, m_fname);
+
+            // in a created or overwritten file, all quantities are default
+            for (auto const& chunk : particle_chunks)
+                {
+                m_nondefault[chunk] = false;
+                }
             }
+        else if (m_mode == "ab")
+            {
+            // populate the non-default map
+            populateNonDefault();
+
+            // open the file in append mode
+            m_exec_conf->msg->notice(3) << "GSD: open gsd file " << m_fname << endl;
+            int retval = gsd_open(&m_handle, m_fname.c_str(), GSD_OPEN_APPEND);
+            GSDUtils::checkError(retval, m_fname);
+
+            // validate schema
+            if (string(m_handle.header.schema) != string("hoomd"))
+                {
+                std::ostringstream s;
+                s << "GSD: "
+                << "Invalid schema in " << m_fname;
+                throw runtime_error("Error opening GSD file");
+                }
+            if (m_handle.header.schema_version >= gsd_make_version(2, 0))
+                {
+                std::ostringstream s;
+                s << "GSD: "
+                << "Invalid schema version in " << m_fname;
+                throw runtime_error("Error opening GSD file");
+                }
+            }
+        else
+            {
+            throw std::invalid_argument("Invalid GSD file mode: " + m_mode);
+            }
+
+        m_nframes = gsd_get_nframes(&m_handle);
         }
-    else if (m_mode == "ab")
+
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
         {
-        // populate the non-default map
-        populateNonDefault();
-
-        // open the file in append mode
-        m_exec_conf->msg->notice(3) << "GSD: open gsd file " << m_fname << endl;
-        int retval = gsd_open(&m_handle, m_fname.c_str(), GSD_OPEN_APPEND);
-        GSDUtils::checkError(retval, m_fname);
-
-        // validate schema
-        if (string(m_handle.header.schema) != string("hoomd"))
-            {
-            std::ostringstream s;
-            s << "GSD: "
-              << "Invalid schema in " << m_fname;
-            throw runtime_error("Error opening GSD file");
-            }
-        if (m_handle.header.schema_version >= gsd_make_version(2, 0))
-            {
-            std::ostringstream s;
-            s << "GSD: "
-              << "Invalid schema version in " << m_fname;
-            throw runtime_error("Error opening GSD file");
-            }
+        bcast(m_nframes, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_nondefault, 0, m_exec_conf->getMPICommunicator());
         }
-    else
-        {
-        throw std::invalid_argument("Invalid GSD file mode: " + m_mode);
-        }
+    #endif
 
     m_is_initialized = true;
     }
@@ -150,7 +163,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     {
     Analyzer::analyze(timestep);
     int retval;
-    bool root = true;
 
     // take particle data snapshot
     bool particle_group_empty = (m_group->getNumMembersGlobal() == 0);
@@ -161,36 +173,24 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         m_pdata->takeSnapshot<float>(m_snapshot);
         }
 
-#ifdef ENABLE_MPI
-    // if we are not the root processor, do not perform file I/O
-    root = m_exec_conf->isRoot();
-#endif
-
     // open the file if it is not yet opened
-    if (!m_is_initialized && root)
+    if (!m_is_initialized)
         initFileIO();
 
     // truncate the file if requested
-    if (m_truncate && root)
+    if (m_truncate)
         {
-        m_exec_conf->msg->notice(10) << "GSD: truncating file" << endl;
-        retval = gsd_truncate(&m_handle);
-        GSDUtils::checkError(retval, m_fname);
+        if (m_exec_conf->isRoot())
+            {
+            m_exec_conf->msg->notice(10) << "GSD: truncating file" << endl;
+            retval = gsd_truncate(&m_handle);
+            GSDUtils::checkError(retval, m_fname);
+            }
+
+        m_nframes = 0;
         }
 
-    uint64_t nframes = 0;
-    if (root)
-        {
-        nframes = gsd_get_nframes(&m_handle);
-        m_exec_conf->msg->notice(10)
-            << "GSD: " << m_fname << " has " << nframes << " frames" << endl;
-        }
-
-#ifdef ENABLE_MPI
-    bcast(nframes, 0, m_exec_conf->getMPICommunicator());
-#endif
-
-    if (root)
+    if (m_exec_conf->isRoot())
         {
         // write out the frame header on all frames
         writeFrameHeader(timestep);
@@ -198,18 +198,18 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         if (!particle_group_empty)
             {
             // only write out data chunk categories if requested, or if on frame 0
-            if (m_write_attribute || nframes == 0)
+            if (m_write_attribute || m_nframes == 0)
                 writeAttributes(m_snapshot);
-            if (m_write_property || nframes == 0)
+            if (m_write_property || m_nframes == 0)
                 writeProperties(m_snapshot);
-            if (m_write_momentum || nframes == 0)
+            if (m_write_momentum || m_nframes == 0)
                 writeMomenta(m_snapshot);
             }
         }
 
     // topology is only meaningful if this is the all group
     if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal()
-        && (m_write_topology || nframes == 0))
+        && (m_write_topology || m_nframes == 0))
         {
         BondData::Snapshot bdata_snapshot;
         m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
@@ -229,7 +229,7 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         PairData::Snapshot pdata_snapshot;
         m_sysdef->getPairData()->takeSnapshot(pdata_snapshot);
 
-        if (root)
+        if (m_exec_conf->isRoot())
             writeTopology(bdata_snapshot,
                           adata_snapshot,
                           ddata_snapshot,
@@ -246,12 +246,14 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         m_log_writer.attr("_write_frame")(this);
         }
 
-    if (root)
+    if (m_exec_conf->isRoot())
         {
         m_exec_conf->msg->notice(10) << "GSD: ending frame" << endl;
         retval = gsd_end_frame(&m_handle);
         GSDUtils::checkError(retval, m_fname);
         }
+
+    m_nframes++;
     }
 
 void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping)
