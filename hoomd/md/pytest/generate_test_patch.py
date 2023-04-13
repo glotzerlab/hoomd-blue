@@ -8,7 +8,7 @@ import numpy as np
 HOOMD_REST_ORIENTATION = np.array([1,0,0])
 
 def normalize(a):
-    return a / sqrt(np.sum(square(a),axis=0))
+    return a / sqrt(np.sum(square(a), axis=0))
 
 class Particle:
     def __init__(self, position, global_to_particle_quat = None, pointing_direction = None):
@@ -19,7 +19,7 @@ class Particle:
         else:
             self.orientation = global_to_particle_quat
         # as hoomd defines it, from particle to global frame
-        self.q = conjugate(self.orientation)
+        self.q = self.orientation #conjugate(self.orientation)
 
     @property
     def pointing(self):
@@ -79,11 +79,11 @@ class Patch:
     def dfi_dni(self, dr, ni_world):
         """Derivative of fi with respect to ni. Note the negative sign."""
         rhat = normalize(dr)
-        return rhat * (-self.omega * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
+        return rhat * -self.omega * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2
 
     def dfj_dnj(self, dr, nj_world):
         rhat = normalize(dr)
-        return rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
+        return rhat * self.omega *  exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2
 
 
 class PatchPair:
@@ -139,7 +139,7 @@ class PatchPair:
         return const * terms
 
     def force(self):
-
+        """On second particle"""
         dr = self.dr
         magdr = self.magdr
 
@@ -187,7 +187,7 @@ class PatchPair:
                 params,
                 [list(self.i.position), list(self.j.position)],
                 [list(self.i.q), list(self.j.q)],
-                list(self.force()),
+                list(-self.force()),
                 self.energy(),
                 [list(self.torque_i()), list(self.torque_j())]
                 )

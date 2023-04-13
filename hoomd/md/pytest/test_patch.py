@@ -17,49 +17,111 @@ sqrt2inv = 1/numpy.sqrt(2)
 
 TOLERANCES = {"rtol": 1e-2, "atol": 1e-5}
 
-patch_test_parameters = [
-    (
-        hoomd.md.pair.aniso.JanusLJ,
-        {},
-        {"pair_params": {"epsilon": 1, "sigma": 1},
-         "envelope_params": {"alpha": numpy.pi/2,
-                             "omega": 10,
-                             "ni": (1,0,0),
-                             "nj": (1,0,0)
-                             }
-         },
-        [[0,0,0], [2,0,0]], # positions
-        [[1,0,0,0], [1, 0, 0, 0]], # orientations
-        [-8.245722889538097e-6, 0, 0],
-        -2.79291e-6, # energy
-        [[0,0,0], [0,0,0]] # todo put in right torque values
-    ),
-    (
-        hoomd.md.pair.aniso.JanusLJ,
-        {},
-        {"pair_params": {"epsilon": 1, "sigma": 1},
-         "envelope_params": {"alpha": 1.5707963267948966,
-                             "omega": 10,
-                             "ni": (1, 0, 0),
-                             "nj": (1, 0, 0)
-                             }
-         },
-        [[0, 0, 0], [0, 2, 1]],
-        [[1., 0., 0., 0.], [1., 0., 0., 0.]],
-        [0.03549087093887666, 0.0188928, 0.0094464],
-        -0.007936,
-        [[0., -0.01774543546943833, 0.03549087093887666],
-         [0., 0.01774543546943833, -0.03549087093887666]])
-]
+# patch_test_parameters = [
+#     (
+#         hoomd.md.pair.aniso.JanusLJ,
+#         {},
+#         {"pair_params": {"epsilon": 1, "sigma": 1},
+#          "envelope_params": {"alpha": numpy.pi/2,
+#                              "omega": 10,
+#                              "ni": (1,0,0),
+#                              "nj": (1,0,0)
+#                              }
+#          },
+#         [[0,0,0], [2,0,0]], # positions
+#         [[1,0,0,0], [1, 0, 0, 0]], # orientations
+#         [-8.245722889538097e-6, 0, 0],
+#         -2.79291e-6, # energy
+#         [[0,0,0], [0,0,0]] # todo put in right torque values
+#     ),
+#     (
+#         hoomd.md.pair.aniso.JanusLJ,
+#         {},
+#         {"pair_params": {"epsilon": 1, "sigma": 1},
+#          "envelope_params": {"alpha": 1.5707963267948966,
+#                              "omega": 10,
+#                              "ni": (1, 0, 0),
+#                              "nj": (1, 0, 0)
+#                              }
+#          },
+#         [[0, 0, 0], [0, 2, 1]],
+#         [[1., 0., 0., 0.], [1., 0., 0., 0.]],
+#         [0.03549087093887666, 0.0188928, 0.0094464],
+#         -0.007936,
+#         [[0., -0.01774543546943833, 0.03549087093887666],
+#          [0., 0.01774543546943833, -0.03549087093887666]])
+# ]
 
-patch_test_parameters = [(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (1, 0, 0), "nj": (1, 0, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [8.245722889538097e-6, 0., 0.], -2.7929061400048393e-6, [[0., 0., 0.], [0., 0., 0.]]),
-(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (1, 0, 0), "nj": (1, 0, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [6.648547987674169e-9, 0., 0.], -2.2519275442122186e-9, [[0., 0., 0.], [0., 0., 0.]]),
-(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (0, 1, 0), "nj": (0, 1, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [0.04541015625, 0.076904296875, 0.], -0.015380859375, [[0., 0., -0.076904296875], [0., 0., 0.076904296875]]),
-(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (0, 1, 0), "nj": (0, 1, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [1.3080493280202943e-7, 4.4267299239113507e-7, 0.], -4.430489659423578e-8, [[0., 0., -4.4267299239113507e-7], [0., 0., 4.4267299239113507e-7]]),
-(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (0, 0, 1), "nj": (0, 0, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [0.04541015625, 0., 0.076904296875], -0.015380859375, [[0., 0.076904296875, 0.], [0., -0.076904296875, 0.]]),
-(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (0, 0, 1), "nj": (0, 0, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [1.3080493280202943e-7, 0., 4.4267299239113507e-7], -4.430489659423578e-8, [[0., 4.4267299239113507e-7, 0.], [0., -4.4267299239113507e-7, 0.]]),
-(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (1, 1, 1), "nj": (1, 1, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [0.0005611985031416491, 0.03745848178659591, 0.03745848178659591], -0.00019008336396733277, [[0., 4.966959298476265e-8, -4.966959298476265e-8], [0., -0.07491691390359882, 0.07491691390359882]]),
-(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (1, 1, 1), "nj": (1, 1, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [1.0291177027113669e-7, 6.891568570314151e-6, 6.891568570314151e-6], -3.485721251119146e-8, [[0., 2.3082999379491985e-9, -2.3082999379491985e-9], [0., -0.000013780828840690351, 0.000013780828840690351]])]
+patch_test_parameters = [(hoomd.md.pair.aniso.PatchyLJ,
+  {},
+  {'pair_params': {'epsilon': 1, 'sigma': 1},
+   'envelope_params': {'alpha': 0.7853981633974483,
+    'omega': 20,
+    'ni': [1.0, 0.0, 0.0],
+    'nj': [1.0, 0.0, 0.0]}},
+  [[0, 0, 0], [1.2, 0.0, 0.0]],
+  [[1.0, 0.0, 0.0, 0.0], [6.123233995736766e-17, 0.0, 0.0, 1.0]],
+  [2.1991081910102146, -0.0, -0.0],
+  -0.8858954469068935,
+  [[0.0, 0.0, 0.0], [0.0, 0.0, 5.151868145755901e-18]]),
+ (hoomd.md.pair.aniso.PatchyLJ,
+  {},
+  {'pair_params': {'epsilon': 1, 'sigma': 1},
+   'envelope_params': {'alpha': 0.7853981633974483,
+    'omega': 20,
+    'ni': [1.0, 0.0, 0.0],
+    'nj': [1.0, 0.0, 0.0]}},
+  [[0, 0, 0], [1.2, 0.0, 0.0]],
+  [[1.0, 0.0, 0.0, 0.0], [0.3420201433256688, 0.0, 0.0, 0.9396926207859083]],
+  [1.686515057562164, -0.0, -0.0],
+  -0.6794008665612299,
+  [[0.0, 0.0, 0.0], [0.0, 0.0, 1.7124613779366482]]),
+ (hoomd.md.pair.aniso.PatchyLJ,
+  {},
+  {'pair_params': {'epsilon': 1, 'sigma': 1},
+   'envelope_params': {'alpha': 0.7853981633974483,
+    'omega': 20,
+    'ni': [1.0, 0.0, 0.0],
+    'nj': [1.0, 0.0, 0.0]}},
+  [[0, 0, 0], [1.2, 0.0, 0.0]],
+  [[1.0, 0.0, 0.0, 0.0], [0.38268343236508984, 0.0, 0.0, 0.9238795325112867]],
+  [1.1026958947150294, -0.0, -0.0],
+  -0.44421337542388806,
+  [[0.0, 0.0, 0.0], [0.0, 0.0, 2.6175524171333104]]),
+ (hoomd.md.pair.aniso.PatchyLJ,
+  {},
+  {'pair_params': {'epsilon': 1, 'sigma': 1},
+   'envelope_params': {'alpha': 0.7853981633974483,
+    'omega': 20,
+    'ni': [1.0, 0.0, 0.0],
+    'nj': [1.0, 0.0, 0.0]}},
+  [[0, 0, 0], [1.2, 0.0, 0.0]],
+  [[1.0, 0.0, 0.0, 0.0], [0.42261826174069944, 0.0, 0.0, 0.9063077870366499]],
+  [0.47739141691831594, -0.0, -0.0],
+  -0.19231381355825353,
+  [[0.0, 0.0, 0.0], [0.0, 0.0, 1.9238502961094006]]),
+ (hoomd.md.pair.aniso.PatchyLJ,
+  {},
+  {'pair_params': {'epsilon': 1, 'sigma': 1},
+   'envelope_params': {'alpha': 0.7853981633974483,
+    'omega': 20,
+    'ni': [1.0, 0.0, 0.0],
+    'nj': [1.0, 0.0, 0.0]}},
+  [[0, 0, 0], [1.2, 0.0, 0.0]],
+  [[1.0, 0.0, 0.0, 0.0], [0.7071067811865476, 0.0, 0.0, 0.7071067811865475]],
+  [1.5908673780498135e-06, -0.0, -0.0],
+  -6.408698637967517e-07,
+  [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0681156691715794e-05]])]
+
+
+# [(hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (1, 0, 0), "nj": (1, 0, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [8.245722889538097e-6, 0., 0.], -2.7929061400048393e-6, [[0., 0., 0.], [0., 0., 0.]]),
+# (hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (1, 0, 0), "nj": (1, 0, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [6.648547987674169e-9, 0., 0.], -2.2519275442122186e-9, [[0., 0., 0.], [0., 0., 0.]]),
+# (hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (0, 1, 0), "nj": (0, 1, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [0.04541015625, 0.076904296875, 0.], -0.015380859375, [[0., 0., -0.076904296875], [0., 0., 0.076904296875]]),
+# (hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (0, 1, 0), "nj": (0, 1, 0)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [1.3080493280202943e-7, 4.4267299239113507e-7, 0.], -4.430489659423578e-8, [[0., 0., -4.4267299239113507e-7], [0., 0., 4.4267299239113507e-7]]),
+# (hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (0, 0, 1), "nj": (0, 0, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [0.04541015625, 0., 0.076904296875], -0.015380859375, [[0., 0.076904296875, 0.], [0., -0.076904296875, 0.]]),
+# (hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (0, 0, 1), "nj": (0, 0, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [1.3080493280202943e-7, 0., 4.4267299239113507e-7], -4.430489659423578e-8, [[0., 4.4267299239113507e-7, 0.], [0., -4.4267299239113507e-7, 0.]]),
+# (hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 1.5707963267948966, "omega": 10, "ni": (1, 1, 1), "nj": (1, 1, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [0.0005611985031416491, 0.03745848178659591, 0.03745848178659591], -0.00019008336396733277, [[0., 4.966959298476265e-8, -4.966959298476265e-8], [0., -0.07491691390359882, 0.07491691390359882]]),
+# (hoomd.md.pair.aniso.JanusLJ, {}, {"pair_params": {"epsilon": 1, "sigma": 1}, "envelope_params": {"alpha": 0.7853981633974483, "omega": 10, "ni": (1, 1, 1), "nj": (1, 1, 1)}}, [[0, 0, 0], [2, 0, 0]], [[1., 0., 0., 0.], [1., 0., 0., 0.]], [1.0291177027113669e-7, 6.891568570314151e-6, 6.891568570314151e-6], -3.485721251119146e-8, [[0., 2.3082999379491985e-9, -2.3082999379491985e-9], [0., -0.000013780828840690351, 0.000013780828840690351]])]
 
 
 
@@ -68,8 +130,8 @@ def patchy_snapshot_factory(device):
 
     def make_snapshot(position_i = numpy.array([0,0,0]),
                       position_j = numpy.array([2,0,0]),
-                      orientation_i = (1,0,0),
-                      orientation_j = (1,0,0),
+                      orientation_i = (1,0,0,0),
+                      orientation_j = (1,0,0,0),
                       dimensions = 3,
                       L=20                      
                       ):
@@ -82,6 +144,7 @@ def patchy_snapshot_factory(device):
             snapshot.configuration.box = box
             snapshot.particles.N = N
             snapshot.particles.position[:] = [position_i, position_j]
+            snapshot.particles.orientation[:] = [orientation_i, orientation_j]
             snapshot.particles.types = ['A']
             snapshot.particles.typeid[:] = 0
             snapshot.particles.moment_inertia[:] = [(1,1,1)]*N
@@ -136,6 +199,8 @@ def test_after_attaching(patchy_snapshot_factory, simulation_factory,
 def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
                                  patch_cls, patch_args, params, positions, orientations, force, energy, torques):
 
+    print("orientation j is", orientations[1])
+
     snapshot = patchy_snapshot_factory(position_i = positions[0],
                                        position_j = positions[1],
                                        orientation_i = orientations[0],
@@ -154,6 +219,11 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
     sim_energy = potential.energy
     sim_torques = potential.torques
     if sim.device.communicator.rank == 0:
+
+        sim_orientations = snapshot.particles.orientation
+
+        numpy.testing.assert_allclose(sim_orientations, orientations, **TOLERANCES)
+        
         numpy.testing.assert_allclose(sim_energy, energy, **TOLERANCES)
 
         print(sim_forces)
