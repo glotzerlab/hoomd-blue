@@ -110,7 +110,9 @@ public:
             drsq = dot(dr, dr);
             magdr = fast::sqrt(drsq);
 
-            // cos(angle between dr and pointing vector)
+            rhat = dr/magdr;
+
+            // cos(angle between dr and pointing vector)            
             costhetai = -dot(vec3<Scalar>(dr), ni_world) / magdr; // negative because dr = dx = pi - pj
             costhetaj = dot(vec3<Scalar>(dr), nj_world) / magdr;
         }
@@ -145,16 +147,39 @@ public:
     HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
 
 
-    DEVICE inline Scalar Modulatori() // called f(dr, ni) in the derivation
+    DEVICE Scalar fi() // called f(dr, ni) in the derivation
+    //fi in python
         {
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetai-params.cosalpha)) );
         }
 
-    DEVICE inline Scalar Modulatorj() // called f(dr, nj) in the derivation
+    DEVICE inline Scalar Modulatori() { return fi(); }
+
+    DEVICE inline Scalar fj() // called f(dr, nj) in the derivation
+    // fj in python
         {
+            std::cout << "costhetaj: " << costhetaj << '\n';
+            std::cout << "cosalpha: " << params.cosalpha << '\n';
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetaj-params.cosalpha)) );
         }
 
+    DEVICE inline Scalar Modulatorj() { return fj(); }
+
+
+    DEVICE Scalar3 dfi_dni()
+        {
+            //      rhat *    (-self.omega        * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
+            Scalar fact = fi();
+            return vec_to_scalar3(rhat) * -params.omega * fast::exp(params.omega * (params.cosalpha - costhetai))  * fact * fact;
+        }
+
+    DEVICE Scalar3 dfj_dnj()
+        {
+            Scalar fact = fj();
+            //     rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
+            return vec_to_scalar3(rhat) * params.omega * fast::exp(params.omega * (params.cosalpha - costhetaj))  * fact * fact;
+        }
+    
     DEVICE Scalar ModulatorPrimei()
         {
             Scalar fact = Modulatori(); // TODO only calculate Modulatori once per instantiation
@@ -202,28 +227,55 @@ public:
             // NEW way with Philipp Feb 9
 
             torque_div_energy_i =
-                vec_to_scalar3( params.ni.x * cross( vec3<Scalar>(a1), dr)) +
-                vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), dr)) +
-                vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), dr));
+                vec_to_scalar3( params.ni.x * cross( vec3<Scalar>(a1), vec3<Scalar>(dfi_dni()))) +
+                vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), vec3<Scalar>(dfi_dni()))) +
+                vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), vec3<Scalar>(dfi_dni())));
 
-            torque_div_energy_i *= Scalar(-1) * Modulatorj() * ModulatorPrimei() / magdr; // this last bit is iPj
+            torque_div_energy_i *= Scalar(-1) * Modulatorj();
 
             torque_div_energy_j =
-                vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), dr)) +
-                vec_to_scalar3( params.nj.y * cross( vec3<Scalar>(b2), dr)) +
-                vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr));
+                vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), vec3<Scalar>(dfj_dnj()))) +
+                vec_to_scalar3( params.nj.y * cross( vec3<Scalar>(b2), vec3<Scalar>(dfj_dnj()))) +
+                vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), vec3<Scalar>(dfj_dnj())));
+            
+            // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr)));
+            
+            torque_div_energy_j *= Scalar(-1) * Modulatori();
 
-            torque_div_energy_j *= Modulatori() * ModulatorPrimej() / magdr;
+            // term2 = self.iso.energy(magdr) * (
+
+            // THIS PART in here:
+            //     dfj_duj * duj_dr * self.patch.fi(dr, self.ni_world) + dfi_dui * dui_dr * self.patch.fj(dr, self.nj_world)
 
 
+            //quotient rule for derivative
+            Scalar lo = magdr;
+            Scalar3 dlo = vec_to_scalar3(rhat);
+            
+            Scalar3 dfi_dui = dfi_dni();
+
+            Scalar hi = dot(dr, vec3<Scalar>(ni_world));
+            Scalar3 dhi = vec_to_scalar3(ni_world);
+            Scalar3 dui_dr = (lo*dhi - hi*dlo) / (lo*lo);
+
+
+            Scalar3 dfj_duj = dfj_dnj();
+            hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
+            dhi = vec_to_scalar3(nj_world);
+            // lo and dlo are the same
+            Scalar3 duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
+            
+            force = dfj_duj * duj_dr * fi() + dfi_dui*dui_dr * fj();
+            
+            //     )
 
             // negative here bc forcedivr has the implicit negative in PairModulator
-            force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
-                        + jPi*(nj_world.x - costhetaj*dr.x/magdr));
-            force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
-                        + jPi*(nj_world.y - costhetaj*dr.y/magdr));
-            force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
-                        + jPi*(nj_world.z - costhetaj*dr.z/magdr));
+            // force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
+            //             + jPi*(nj_world.x - costhetaj*dr.x/magdr));
+            // force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
+            //             + jPi*(nj_world.y - costhetaj*dr.y/magdr));
+            // force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
+            //             + jPi*(nj_world.z - costhetaj*dr.z/magdr));
 
             return true;
         }
@@ -248,6 +300,7 @@ private:
     vec3<Scalar> b1, b2, b3;
     Scalar drsq;
     Scalar magdr;
+    vec3<Scalar> rhat;
 
     vec3<Scalar> ei, ej;
     Scalar costhetai;

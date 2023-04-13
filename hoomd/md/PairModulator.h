@@ -219,7 +219,14 @@ public:
 
             // modulate forces
             // TODO check this math. yes.
+            
             // second term has the negative sign for force calculation in force_divr
+
+            // term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
+
+            
+            
+            //        [term2         ]   [term1                 ]
             force.x = pair_eng*force.x + dr.x*force_divr*envelope;
             force.y = pair_eng*force.y + dr.y*force_divr*envelope;
             force.z = pair_eng*force.z + dr.z*force_divr*envelope;
