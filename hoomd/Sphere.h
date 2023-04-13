@@ -7,7 +7,8 @@
     \brief Defines the Sphere class
 */
 
-#pragma once
+#ifndef __SPHEREDIM_H__
+#define __SPHEREDIM_H__
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
@@ -46,32 +47,32 @@ struct
     {
     public:
         //! Default constructor
-        HOSTDEVICE Sphere()
-            : R(1.0)
+        HOSTDEVICE explicit Sphere()
+            : m_R(1.0)
             { }
 
         /*! Define spherical boundary conditions
             \param R Radius of the (hyper-) sphere
          */
-        HOSTDEVICE Sphere(Scalar _R)
-            : R(_R) {}
+        HOSTDEVICE explicit Sphere(Scalar R)
+            : m_R(R) {}
 
         //! Get the hypersphere radius
         HOSTDEVICE Scalar getR() const
             {
-            return R;
+            return m_R;
             }
 
         //! Set the hypersphere radius
-        void setR(Scalar _R)
+        HOSTDEVICE void setR(Scalar R)
             {
-            R = _R;
+            m_R = R;
             }
 
         //! Return the simulation volume
-        Scalar getVolume() const
+        HOSTDEVICE Scalar getVolume() const
             {
-               return Scalar(4.0*M_PI*R*R);
+               return Scalar(4.0*M_PI*m_R*m_R);
             }
 
         /*! Convert a spherical coordinate into a cartesian one
@@ -82,13 +83,14 @@ struct
         template<class Real>
         HOSTDEVICE vec3<Real> sphericalToCartesian(const quat<Real>& q_pos) const
             {
-            return rotate(q_pos,vec3<Real>(R,0,0));
+            return rotate(q_pos,vec3<Real>(m_R,0,0));
 
             }
 
     private:
-        Scalar R;        //!< Sphere radius
+        Scalar m_R;        //!< Sphere radius
     };
 
     } // end namespace hoomd
 #undef HOSTDEVICE
+#endif // __SPHEREDIM_H__

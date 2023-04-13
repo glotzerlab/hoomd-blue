@@ -25,6 +25,7 @@ class _ConfigurationData:
 
     @box.setter
     def box(self, box):
+        print("set box")
         try:
             new_box = hoomd.Box.from_box(box)
         except Exception:
@@ -48,7 +49,8 @@ class _ConfigurationData:
             raise ValueError(
                 f"{sphere} is not convertible to a hoomd.Sphere object using "
                 "hoomd.Sphere.from_sphere.")
-        self._cpp_obj._global_sphere = new_sphere._cpp_obj
+        print("set sphere", new_sphere._cpp_obj)
+        self._cpp_obj._sphere_space = new_sphere._cpp_obj
 
 
 class Snapshot:
@@ -400,6 +402,10 @@ class Snapshot:
                 if gsd_snap.configuration.dimensions == 2:
                     box[2] = 0
                 snap.configuration.box = box
+
+            if gsd_snap.configuration.sphere is not None:
+                sphere = gsd_snap.configuration.sphere
+                snap.configuration.sphere = sphere
 
         snap._broadcast_box()
         return snap
