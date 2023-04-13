@@ -778,9 +778,9 @@ template<class Shape> void export_ComputeSDF(pybind11::module& m, const std::str
         .def_property_readonly("num_bins", &ComputeSDF<Shape>::getNumBins);
     }
 
-    } // end namespace detail
-    } // end namespace hpmc
+    }  // end namespace detail
+    }  // end namespace hpmc
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // __COMPUTE_SDF__H__

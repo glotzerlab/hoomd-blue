@@ -123,8 +123,8 @@ void export_LoadBalancerGPU(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP

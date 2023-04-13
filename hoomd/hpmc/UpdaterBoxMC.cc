@@ -20,9 +20,9 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<Variant> P)
     : Updater(sysdef, trigger), m_mc(mc), m_beta_P(P), m_volume_delta(0.0), m_volume_weight(0.0),
       m_ln_volume_delta(0.0), m_ln_volume_weight(0.0), m_volume_mode("standard"), m_volume_A1(0.0),
-      m_volume_A2(0.0), m_length_delta {0.0, 0.0, 0.0},
-      m_length_weight(0.0), m_shear_delta {0.0, 0.0, 0.0}, m_shear_weight(0.0), m_shear_reduce(0.0),
-      m_aspect_delta(0.0), m_aspect_weight(0.0)
+      m_volume_A2(0.0), m_length_delta {0.0, 0.0, 0.0}, m_length_weight(0.0),
+      m_shear_delta {0.0, 0.0, 0.0}, m_shear_weight(0.0), m_shear_reduce(0.0), m_aspect_delta(0.0),
+      m_aspect_weight(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
 

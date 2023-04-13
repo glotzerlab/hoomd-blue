@@ -833,8 +833,8 @@ void export_PPPMForceComputeGPU(pybind11::module& m)
                             std::shared_ptr<ParticleGroup>>());
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP

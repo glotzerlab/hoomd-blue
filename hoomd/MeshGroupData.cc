@@ -631,7 +631,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
         // gather local data
         std::vector<typeval_t> typevals; // Group types or constraint values
         std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t>
-            members; // Group members
+            members;                     // Group members
 
         for (unsigned int group_idx = 0; group_idx < this->getN(); ++group_idx)
             {
@@ -641,7 +641,7 @@ MeshGroupData<group_size, Group, name, snap, bond>::takeSnapshot(snap& snapshot)
 
         std::vector<std::vector<typeval_t>> typevals_proc; // Group types of every processor
         std::vector<std::vector<typename BondedGroupData<group_size, Group, name, true>::members_t>>
-            members_proc; // Group members of every processor
+            members_proc;                                  // Group members of every processor
 
         std::vector<std::map<unsigned int, unsigned int>>
             rtag_map_proc; // List of reverse-lookup maps

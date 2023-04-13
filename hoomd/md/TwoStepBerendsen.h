@@ -75,7 +75,7 @@ class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
     bool m_warned_aniso; //!< true if we've already warned that we don't support aniso
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // _BERENDSEN_H_

@@ -235,7 +235,7 @@ class EvaluatorPairDLVO
     Scalar delta;    //!< Diameter sum minus one
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DLVO_H__

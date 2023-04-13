@@ -197,7 +197,7 @@ class PYBIND11_EXPORT System
 
     std::vector<std::shared_ptr<Updater>> m_updaters; //!< List of updaters belonging to this System
 
-    std::vector<std::shared_ptr<Tuner>> m_tuners; //!< List of tuners belonging to the System
+    std::vector<std::shared_ptr<Tuner>> m_tuners;     //!< List of tuners belonging to the System
 
     std::vector<std::shared_ptr<Compute>> m_computes; //!< list of Computes belonging to this System
 
@@ -213,7 +213,7 @@ class PYBIND11_EXPORT System
     uint64_t m_end_tstep;   //!< Final time step of the current run
     uint64_t m_cur_tstep;   //!< Current time step
 
-    ClockSource m_clk; //!< A clock counting time from the beginning of the run
+    ClockSource m_clk;      //!< A clock counting time from the beginning of the run
 
     /// Particle data flags to always set
     PDataFlags m_default_flags;

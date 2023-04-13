@@ -284,36 +284,36 @@ class UpdaterBoxMC : public Updater
     std::shared_ptr<IntegratorHPMC> m_mc; //!< HPMC integrator object
     std::shared_ptr<Variant> m_beta_P;    //!< Reduced pressure in isobaric ensembles
 
-    unsigned int m_instance = 0; //!< Unique ID for RNG seeding
+    unsigned int m_instance = 0;          //!< Unique ID for RNG seeding
 
-    Scalar m_volume_delta;     //!< Amount by which to change volume during box-change
-    Scalar m_volume_weight;    //!< relative weight of volume moves
+    Scalar m_volume_delta;                //!< Amount by which to change volume during box-change
+    Scalar m_volume_weight;               //!< relative weight of volume moves
     Scalar m_ln_volume_delta;  //!< Amount by which to log volume parameter during box-change
     Scalar m_ln_volume_weight; //!< relative weight of log volume moves
     std::string m_volume_mode; //!< volume moves mode: standard or logarithmic
     Scalar m_volume_A1;        //!< Ratio of Lx to Ly to use in isotropic volume changes
     Scalar m_volume_A2;        //!< Ratio of Lx to Lz to use in isotropic volume changes
 
-    Scalar m_length_delta[3]; //!< Max length change in each dimension
-    Scalar m_length_weight;   //!< relative weight of length change moves
+    Scalar m_length_delta[3];  //!< Max length change in each dimension
+    Scalar m_length_weight;    //!< relative weight of length change moves
 
-    Scalar m_shear_delta[3]; //!< Max tilt factor change in each dimension
-    Scalar m_shear_weight;   //!< relative weight of shear moves
-    Scalar m_shear_reduce;   //!< Tolerance for automatic box lattice reduction
+    Scalar m_shear_delta[3];   //!< Max tilt factor change in each dimension
+    Scalar m_shear_weight;     //!< relative weight of shear moves
+    Scalar m_shear_reduce;     //!< Tolerance for automatic box lattice reduction
 
     Scalar m_aspect_delta;  //!< Maximum relative aspect ratio change in randomly selected dimension
     Scalar m_aspect_weight; //!< relative weight of aspect ratio moves
 
-    GPUArray<Scalar4> m_pos_backup; //!< hold backup copy of particle positions
+    GPUArray<Scalar4> m_pos_backup;            //!< hold backup copy of particle positions
 
-    hpmc_boxmc_counters_t m_count_total;      //!< Accept/reject total count
-    hpmc_boxmc_counters_t m_count_run_start;  //!< Count saved at run() start
-    hpmc_boxmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
+    hpmc_boxmc_counters_t m_count_total;       //!< Accept/reject total count
+    hpmc_boxmc_counters_t m_count_run_start;   //!< Count saved at run() start
+    hpmc_boxmc_counters_t m_count_step_start;  //!< Count saved at the start of the last step
 
     std::vector<Scalar> m_weight_partial_sums; //!< Partial sums of all weights used to select moves
 
-    inline bool is_oversheared();   //!< detect oversheared box
-    inline bool remove_overshear(); //!< detect and remove overshear
+    inline bool is_oversheared();              //!< detect oversheared box
+    inline bool remove_overshear();            //!< detect and remove overshear
     inline bool box_resize(Scalar Lx, Scalar Ly, Scalar Lz, Scalar xy, Scalar xz, Scalar yz);
     //!< perform specified box change, if possible
     inline bool box_resize_trial(Scalar Lx,
@@ -337,8 +337,8 @@ namespace detail
     {
 //! Export UpdaterBoxMC to Python
 void export_UpdaterBoxMC(pybind11::module& m);
-    } // end namespace detail
-    } // end namespace hpmc
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 
 #endif // _UPDATER_HPMC_BOX_MC_

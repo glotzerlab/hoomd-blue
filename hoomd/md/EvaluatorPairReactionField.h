@@ -200,7 +200,7 @@ class EvaluatorPairReactionField
     Scalar qiqj;     //!< Product of charges
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_REACTION_FIELD_H__

@@ -49,10 +49,10 @@ template<class Shape> class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shap
     virtual void computeFreeVolume(uint64_t timestep);
 
     protected:
-    uint3 m_last_dim;         //!< Dimensions of the cell list on the last call to update
-    unsigned int m_last_nmax; //!< Last cell list NMax value allocated in excell
+    uint3 m_last_dim;                    //!< Dimensions of the cell list on the last call to update
+    unsigned int m_last_nmax;            //!< Last cell list NMax value allocated in excell
 
-    GPUArray<unsigned int> m_excell_idx;  //!< Particle indices in expanded cells
+    GPUArray<unsigned int> m_excell_idx; //!< Particle indices in expanded cells
     GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
     Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
@@ -335,10 +335,10 @@ template<class Shape> void export_ComputeFreeVolumeGPU(pybind11::module& m, cons
                             std::shared_ptr<CellList>>());
     }
 
-    } // end namespace detail
-    } // end namespace hpmc
+    }  // end namespace detail
+    }  // end namespace hpmc
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 

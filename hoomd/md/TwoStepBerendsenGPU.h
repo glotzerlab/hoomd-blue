@@ -43,7 +43,7 @@ class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
     unsigned int m_block_size; //!< Block size to launch on the GPU
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __BERENDSEN_GPU_H__

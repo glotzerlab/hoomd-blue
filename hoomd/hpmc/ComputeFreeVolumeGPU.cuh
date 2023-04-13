@@ -457,8 +457,8 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
 
     }; // end namespace detail
 
-    } // end namespace hpmc
+    }  // end namespace hpmc
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

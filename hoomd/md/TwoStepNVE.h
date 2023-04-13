@@ -60,7 +60,7 @@ class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     bool m_zero_force; //!< True if the integration step should ignore computed forces
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NVE_H__
