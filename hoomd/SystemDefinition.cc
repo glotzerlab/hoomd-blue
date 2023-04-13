@@ -112,16 +112,13 @@ SystemDefinition::SystemDefinition(std::shared_ptr<SnapshotSystemData<Real>> sna
     {
     setNDimensions(snapshot->dimensions);
 
-    cout << "snapshot->particle_data.use_spherical_coord is " << snapshot->particle_data.use_spherical_coord << endl;
     if(snapshot->particle_data.use_spherical_coord)
     	{
-            cout << "snapshot->particle_data.use_spherical_coord == True!" << endl;
     	m_particle_data = std::shared_ptr<ParticleData>(
         	new ParticleData(snapshot->particle_data, snapshot->sphere, exec_conf, decomposition));
     	}
     else
     	{
-            cout << "snapshot->particle_data.use_spherical_coord == False!" << endl;
     	m_particle_data = std::shared_ptr<ParticleData>(
         	new ParticleData(snapshot->particle_data, snapshot->global_box, exec_conf, decomposition));
 	}
@@ -179,7 +176,9 @@ template<class Real> std::shared_ptr<SnapshotSystemData<Real>> SystemDefinition:
 
     snap->dimensions = m_n_dimensions;
     snap->global_box = std::make_shared<BoxDim>(m_particle_data->getGlobalBox());
-    snap->sphere = std::make_shared<Sphere>(m_particle_data->getSphere());
+    if(snap->particle_data.use_spherical_coord){
+        snap->sphere = std::make_shared<Sphere>(m_particle_data->getSphere());
+    }
 
     snap->map = m_particle_data->takeSnapshot(snap->particle_data);
     m_bond_data->takeSnapshot(snap->bond_data);
