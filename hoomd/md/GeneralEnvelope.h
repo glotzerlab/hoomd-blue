@@ -88,23 +88,27 @@ public:
         : dr(_dr), qi(_quat_i), qj(_quat_j), params(_params)
         {
             // compute current janus direction vectors
+            
+            // rotate from particle to world frame
             vec3<Scalar> ex(1,0,0);
             vec3<Scalar> ey(0,1,0);
             vec3<Scalar> ez(0,0,1);
 
-            // orientation vectors of particle a
-            a1 = rotate(conj(qi), ex);
-            a2 = rotate(conj(qi), ey);
-            a3 = rotate(conj(qi), ez);
-            // patch direction of particle a
-            ni_world = rotate(conj(qi), params.ni);
+            // orientation vectors of particle a in world frame
+            a1 = rotate(qi, ex);
+            a2 = rotate(qi, ey);
+            a3 = rotate(qi, ez);
+            // patch direction of particle a in world frame
+            ni_world = rotate(qi, params.ni);
+            // std::cout << "ni world: " << vecString(ni_world);
 
-            // orientation vectors of particle b
-            b1 = rotate(conj(qj), ex);
-            b2 = rotate(conj(qj), ey);
-            b3 = rotate(conj(qj), ez);
+            // orientation vectors of particle b in world frame
+            b1 = rotate(qj, ex);
+            b2 = rotate(qj, ey);
+            b3 = rotate(qj, ez);
 
-            nj_world = rotate(conj(qj), params.nj);
+            nj_world = rotate(qj, params.nj);
+
 
             // compute distance
             drsq = dot(dr, dr);
