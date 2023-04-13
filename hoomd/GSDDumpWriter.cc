@@ -164,15 +164,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     Analyzer::analyze(timestep);
     int retval;
 
-    // take particle data snapshot
-    bool particle_group_empty = (m_group->getNumMembersGlobal() == 0);
-
-    if (!particle_group_empty)
-        {
-        m_exec_conf->msg->notice(10) << "GSD: taking particle data snapshot" << endl;
-        m_pdata->takeSnapshot<float>(m_snapshot);
-        }
-
     // open the file if it is not yet opened
     if (!m_is_initialized)
         initFileIO();
@@ -190,52 +181,46 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         m_nframes = 0;
         }
 
-    if (m_exec_conf->isRoot())
-        {
-        // write out the frame header on all frames
-        writeFrameHeader(timestep);
+    populateLocalFrame(m_local_frame, timestep);
 
-        if (!particle_group_empty)
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        // TODO, reduce global frame in MPI
+
+        if (m_exec_conf->isRoot())
             {
-            // only write out data chunk categories if requested, or if on frame 0
-            if (m_write_attribute || m_nframes == 0)
-                writeAttributes(m_snapshot);
-            if (m_write_property || m_nframes == 0)
-                writeProperties(m_snapshot);
-            if (m_write_momentum || m_nframes == 0)
-                writeMomenta(m_snapshot);
+            writeFrameHeader(m_global_frame);
+            // if (m_write_attribute || m_nframes == 0)
+            writeAttributes(m_global_frame);
+            // if (m_write_property || m_nframes == 0)
+            writeProperties(m_global_frame);
+            // if (m_write_momentum || m_nframes == 0)
+            writeMomenta(m_global_frame);
             }
+        }
+    else
+    #endif
+        {
+        writeFrameHeader(m_local_frame);
+        writeAttributes(m_local_frame);
+        writeProperties(m_local_frame);
+        writeMomenta(m_local_frame);
         }
 
     // topology is only meaningful if this is the all group
     if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal()
         && (m_write_topology || m_nframes == 0))
         {
-        BondData::Snapshot bdata_snapshot;
-        m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
-
-        AngleData::Snapshot adata_snapshot;
-        m_sysdef->getAngleData()->takeSnapshot(adata_snapshot);
-
-        DihedralData::Snapshot ddata_snapshot;
-        m_sysdef->getDihedralData()->takeSnapshot(ddata_snapshot);
-
-        ImproperData::Snapshot idata_snapshot;
-        m_sysdef->getImproperData()->takeSnapshot(idata_snapshot);
-
-        ConstraintData::Snapshot cdata_snapshot;
-        m_sysdef->getConstraintData()->takeSnapshot(cdata_snapshot);
-
-        PairData::Snapshot pdata_snapshot;
-        m_sysdef->getPairData()->takeSnapshot(pdata_snapshot);
-
         if (m_exec_conf->isRoot())
-            writeTopology(bdata_snapshot,
-                          adata_snapshot,
-                          ddata_snapshot,
-                          idata_snapshot,
-                          cdata_snapshot,
-                          pdata_snapshot);
+            {
+            writeTopology(m_local_frame.bond_data,
+                          m_local_frame.angle_data,
+                          m_local_frame.dihedral_data,
+                          m_local_frame.improper_data,
+                          m_local_frame.constraint_data,
+                          m_local_frame.pair_data);
+            }
         }
 
     // emit on all ranks, the slot needs to handle the mpi logic.
@@ -281,24 +266,21 @@ void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector<std::string>
         }
     }
 
-/*! \param timestep
-
-    Write the data chunks configuration/step, configuration/box, and particles/N. If this is frame
+/*! Write the data chunks configuration/step, configuration/box, and particles/N. If this is frame
    0, also write configuration/dimensions.
 
     N is not strictly necessary for constant N data, but is always written in case the user fails to
    select dynamic attributes with a variable N file.
 */
-void GSDDumpWriter::writeFrameHeader(uint64_t timestep)
+void GSDDumpWriter::writeFrameHeader(const GSDDumpWriter::GSDFrame& frame)
     {
     int retval;
     m_exec_conf->msg->notice(10) << "GSD: writing configuration/step" << endl;
-    uint64_t step = timestep;
     retval
-        = gsd_write_chunk(&m_handle, "configuration/step", GSD_TYPE_UINT64, 1, 1, 0, (void*)&step);
+        = gsd_write_chunk(&m_handle, "configuration/step", GSD_TYPE_UINT64, 1, 1, 0, (void*)&frame.timestep);
     GSDUtils::checkError(retval, m_fname);
 
-    if (gsd_get_nframes(&m_handle) == 0)
+    if (m_nframes == 0)
         {
         m_exec_conf->msg->notice(10) << "GSD: writing configuration/dimensions" << endl;
         uint8_t dimensions = (uint8_t)m_sysdef->getNDimensions();
@@ -313,14 +295,13 @@ void GSDDumpWriter::writeFrameHeader(uint64_t timestep)
         }
 
     m_exec_conf->msg->notice(10) << "GSD: writing configuration/box" << endl;
-    BoxDim box = m_pdata->getGlobalBox();
     float box_a[6];
-    box_a[0] = (float)box.getL().x;
-    box_a[1] = (float)box.getL().y;
-    box_a[2] = (float)box.getL().z;
-    box_a[3] = (float)box.getTiltFactorXY();
-    box_a[4] = (float)box.getTiltFactorXZ();
-    box_a[5] = (float)box.getTiltFactorYZ();
+    box_a[0] = (float)frame.global_box.getL().x;
+    box_a[1] = (float)frame.global_box.getL().y;
+    box_a[2] = (float)frame.global_box.getL().z;
+    box_a[3] = (float)frame.global_box.getTiltFactorXY();
+    box_a[4] = (float)frame.global_box.getTiltFactorXZ();
+    box_a[5] = (float)frame.global_box.getTiltFactorYZ();
     retval = gsd_write_chunk(&m_handle, "configuration/box", GSD_TYPE_FLOAT, 6, 1, 0, (void*)box_a);
     GSDUtils::checkError(retval, m_fname);
 
@@ -330,399 +311,221 @@ void GSDDumpWriter::writeFrameHeader(uint64_t timestep)
     GSDUtils::checkError(retval, m_fname);
     }
 
-/*! \param snapshot particle data snapshot to write out to the file
-
-    Writes the data chunks types, typeid, mass, charge, diameter, body, moment_inertia in
+/*! Writes the data chunks types, typeid, mass, charge, diameter, body, moment_inertia in
    particles/.
 */
-void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot)
+void GSDDumpWriter::writeAttributes(const GSDDumpWriter::GSDFrame& frame)
     {
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
-    uint64_t nframes = gsd_get_nframes(&m_handle);
 
-    writeTypeMapping("particles/types", snapshot.type_mapping);
-
+    if (m_write_attribute || m_nframes == 0)
         {
-        std::vector<uint32_t> type(N);
-        type.reserve(1); //! make sure we allocate
-        bool all_default = true;
+        writeTypeMapping("particles/types", frame.particle_data.type_mapping);
+        }
 
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
+    if (frame.particle_data.type.size() != 0)
+        {
+        assert(frame.particle_data.type.size() == N);
+
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/typeid" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/typeid",
+                                    GSD_TYPE_UINT32,
+                                    N,
+                                    1,
+                                    0,
+                                    (void*)frame.particle_data.type.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/typeid"] = true;
+        }
+
+    if (frame.particle_data.mass.size() != 0)
+        {
+        assert(frame.particle_data.mass.size() == N);
+
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/mass" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/mass",
+                                    GSD_TYPE_FLOAT,
+                                    N,
+                                    1,
+                                    0,
+                                    (void*)frame.particle_data.mass.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/mass"] = true;
+        }
+
+    if (frame.particle_data.charge.size() != 0)
+        {
+        assert(frame.particle_data.charge.size() == N);
+
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/charge" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/charge",
+                                    GSD_TYPE_FLOAT,
+                                    N,
+                                    1,
+                                    0,
+                                    (void*)frame.particle_data.charge.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/charge"] = true;
+        }
+
+    if (m_write_diameter)
+        {
+        if (frame.particle_data.diameter.size() != 0)
             {
-            unsigned int t = m_group->getMemberTag(group_idx);
+            assert(frame.particle_data.diameter.size() == N);
 
-            if (snapshot.type[t] != 0)
-                all_default = false;
-
-            type[group_idx] = uint32_t(snapshot.type[t]);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/typeid"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/typeid" << endl;
+            m_exec_conf->msg->notice(10) << "GSD: writing particles/diameter" << endl;
             retval = gsd_write_chunk(&m_handle,
-                                     "particles/typeid",
-                                     GSD_TYPE_UINT32,
-                                     N,
-                                     1,
-                                     0,
-                                     (void*)&type[0]);
+                                        "particles/diameter",
+                                        GSD_TYPE_FLOAT,
+                                        N,
+                                        1,
+                                        0,
+                                        (void*)frame.particle_data.diameter.data());
             GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/typeid"] = true;
+            if (m_nframes == 0)
+                m_nondefault["particles/diameter"] = true;
             }
         }
 
+    if (frame.particle_data.body.size() != 0)
         {
-        std::vector<float> data(N);
-        data.reserve(1); //! make sure we allocate
-        bool all_default = true;
+        assert(frame.particle_data.body.size() == N);
 
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.mass[t] != float(1.0))
-                all_default = false;
-
-            data[group_idx] = float(snapshot.mass[t]);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/mass"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/mass" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/mass",
-                                     GSD_TYPE_FLOAT,
-                                     N,
-                                     1,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/mass"] = true;
-            }
-
-        all_default = true;
-
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.charge[t] != float(0.0))
-                all_default = false;
-            data[group_idx] = float(snapshot.charge[t]);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/charge"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/charge" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/charge",
-                                     GSD_TYPE_FLOAT,
-                                     N,
-                                     1,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/charge"] = true;
-            }
-
-        if (m_write_diameter)
-            {
-            all_default = true;
-
-            for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-                {
-                unsigned int t = m_group->getMemberTag(group_idx);
-
-                if (snapshot.diameter[t] != float(1.0))
-                    all_default = false;
-
-                data[group_idx] = float(snapshot.diameter[t]);
-                }
-
-            if (!all_default || (nframes > 0 && m_nondefault["particles/diameter"]))
-                {
-                m_exec_conf->msg->notice(10) << "GSD: writing particles/diameter" << endl;
-                retval = gsd_write_chunk(&m_handle,
-                                         "particles/diameter",
-                                         GSD_TYPE_FLOAT,
-                                         N,
-                                         1,
-                                         0,
-                                         (void*)&data[0]);
-                GSDUtils::checkError(retval, m_fname);
-                if (nframes == 0)
-                    m_nondefault["particles/diameter"] = true;
-                }
-            }
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/body" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/body",
+                                    GSD_TYPE_INT32,
+                                    N,
+                                    1,
+                                    0,
+                                    (void*)frame.particle_data.body.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/body"] = true;
         }
 
+    if (frame.particle_data.inertia.size() != 0)
         {
-        std::vector<int32_t> body(N);
-        body.reserve(1); //! make sure we allocate
-        bool all_default = true;
+        assert(frame.particle_data.inertia.size() == N);
 
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.body[t] != NO_BODY)
-                all_default = false;
-
-            body[group_idx] = int32_t(snapshot.body[t]);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/body"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/body" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/body",
-                                     GSD_TYPE_INT32,
-                                     N,
-                                     1,
-                                     0,
-                                     (void*)&body[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/body"] = true;
-            }
-        }
-
-        {
-        std::vector<float> data(uint64_t(N) * 3);
-        data.reserve(1); //! make sure we allocate
-        bool all_default = true;
-
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.inertia[t].x != float(0.0)
-                || snapshot.inertia[t].y != float(0.0)
-                || snapshot.inertia[t].z != float(0.0))
-                {
-                all_default = false;
-                }
-
-            data[group_idx * 3 + 0] = float(snapshot.inertia[t].x);
-            data[group_idx * 3 + 1] = float(snapshot.inertia[t].y);
-            data[group_idx * 3 + 2] = float(snapshot.inertia[t].z);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/moment_inertia"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/moment_inertia" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/moment_inertia",
-                                     GSD_TYPE_FLOAT,
-                                     N,
-                                     3,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/moment_inertia"] = true;
-            }
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/moment_inertia" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/moment_inertia",
+                                    GSD_TYPE_FLOAT,
+                                    N,
+                                    3,
+                                    0,
+                                    (void*)frame.particle_data.inertia.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/moment_inertia"] = true;
         }
     }
 
-/*! \param snapshot particle data snapshot to write out to the file
-
-    Writes the data chunks position and orientation in particles/.
+/*! Writes the data chunks position and orientation in particles/.
 */
-void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot)
+void GSDDumpWriter::writeProperties(const GSDDumpWriter::GSDFrame& frame)
     {
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
-    uint64_t nframes = gsd_get_nframes(&m_handle);
 
+    if (frame.particle_data.pos.size() != 0)
         {
-        std::vector<float> data(uint64_t(N) * 3);
-        data.reserve(1); //! make sure we allocate
-
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            data[group_idx * 3 + 0] = float(snapshot.pos[t].x);
-            data[group_idx * 3 + 1] = float(snapshot.pos[t].y);
-            data[group_idx * 3 + 2] = float(snapshot.pos[t].z);
-            }
+        assert(frame.particle_data.pos.size() == N);
 
         m_exec_conf->msg->notice(10) << "GSD: writing particles/position" << endl;
         retval = gsd_write_chunk(&m_handle,
-                                 "particles/position",
-                                 GSD_TYPE_FLOAT,
-                                 N,
-                                 3,
-                                 0,
-                                 (void*)&data[0]);
+                                    "particles/position",
+                                    GSD_TYPE_FLOAT,
+                                    N,
+                                    3,
+                                    0,
+                                    (void*)frame.particle_data.pos.data());
         GSDUtils::checkError(retval, m_fname);
         }
 
+    if (frame.particle_data.orientation.size() != 0)
         {
-        std::vector<float> data(uint64_t(N) * 4);
-        data.reserve(1); //! make sure we allocate
-        bool all_default = true;
+        assert(frame.particle_data.orientation.size() == N);
 
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.orientation[t].s != float(1.0)
-                || snapshot.orientation[t].v.x != float(0.0)
-                || snapshot.orientation[t].v.y != float(0.0)
-                || snapshot.orientation[t].v.z != float(0.0))
-                {
-                all_default = false;
-                }
-
-            data[group_idx * 4 + 0] = float(snapshot.orientation[t].s);
-            data[group_idx * 4 + 1] = float(snapshot.orientation[t].v.x);
-            data[group_idx * 4 + 2] = float(snapshot.orientation[t].v.y);
-            data[group_idx * 4 + 3] = float(snapshot.orientation[t].v.z);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/orientation"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/orientation" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/orientation",
-                                     GSD_TYPE_FLOAT,
-                                     N,
-                                     4,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/orientation"] = true;
-            }
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/orientation" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/orientation",
+                                    GSD_TYPE_FLOAT,
+                                    N,
+                                    4,
+                                    0,
+                                    (void*)frame.particle_data.orientation.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/orientation"] = true;
         }
     }
 
-/*! \param snapshot particle data snapshot to write out to the file
-
-    Writes the data chunks velocity, angmom, and image in particles/.
+/*! Writes the data chunks velocity, angmom, and image in particles/.
 */
-void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot)
+void GSDDumpWriter::writeMomenta(const GSDDumpWriter::GSDFrame& frame)
     {
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
-    uint64_t nframes = gsd_get_nframes(&m_handle);
 
+    if (frame.particle_data.vel.size() != 0)
         {
-        std::vector<float> data(uint64_t(N) * 3);
-        data.reserve(1); //! make sure we allocate
-        bool all_default = true;
+        assert(frame.particle_data.vel.size() == N);
 
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.vel[t].x != float(0.0) || snapshot.vel[t].y != float(0.0)
-                || snapshot.vel[t].z != float(0.0))
-                {
-                all_default = false;
-                }
-
-            data[group_idx * 3 + 0] = float(snapshot.vel[t].x);
-            data[group_idx * 3 + 1] = float(snapshot.vel[t].y);
-            data[group_idx * 3 + 2] = float(snapshot.vel[t].z);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/velocity"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/velocity" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/velocity",
-                                     GSD_TYPE_FLOAT,
-                                     N,
-                                     3,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/velocity"] = true;
-            }
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/velocity" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/velocity",
+                                    GSD_TYPE_FLOAT,
+                                    N,
+                                    3,
+                                    0,
+                                    (void*)frame.particle_data.vel.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/velocity"] = true;
         }
 
+    if (frame.particle_data.angmom.size() != 0)
         {
-        std::vector<float> data(uint64_t(N) * 4);
-        data.reserve(1); //! make sure we allocate
-        bool all_default = true;
+        assert(frame.particle_data.angmom.size() == N);
 
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.angmom[t].s != float(0.0)
-                || snapshot.angmom[t].v.x != float(0.0)
-                || snapshot.angmom[t].v.y != float(0.0)
-                || snapshot.angmom[t].v.z != float(0.0))
-                {
-                all_default = false;
-                }
-
-            data[group_idx * 4 + 0] = float(snapshot.angmom[t].s);
-            data[group_idx * 4 + 1] = float(snapshot.angmom[t].v.x);
-            data[group_idx * 4 + 2] = float(snapshot.angmom[t].v.y);
-            data[group_idx * 4 + 3] = float(snapshot.angmom[t].v.z);
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/angmom"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/angmom" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/angmom",
-                                     GSD_TYPE_FLOAT,
-                                     N,
-                                     4,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/angmom"] = true;
-            }
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/angmom" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/angmom",
+                                    GSD_TYPE_FLOAT,
+                                    N,
+                                    4,
+                                    0,
+                                    (void*)frame.particle_data.angmom.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/angmom"] = true;
         }
 
+    if (frame.particle_data.image.size() != 0)
         {
-        std::vector<int32_t> data(uint64_t(N) * 3);
-        data.reserve(1); //! make sure we allocate
-        bool all_default = true;
+        assert(frame.particle_data.image.size() == N);
 
-        for (unsigned int group_idx = 0; group_idx < N; group_idx++)
-            {
-            unsigned int t = m_group->getMemberTag(group_idx);
-
-            if (snapshot.image[t].x != 0 || snapshot.image[t].y != 0
-                || snapshot.image[t].z != 0)
-                {
-                all_default = false;
-                }
-
-            data[group_idx * 3 + 0] = snapshot.image[t].x;
-            data[group_idx * 3 + 1] = snapshot.image[t].y;
-            data[group_idx * 3 + 2] = snapshot.image[t].z;
-            }
-
-        if (!all_default || (nframes > 0 && m_nondefault["particles/image"]))
-            {
-            m_exec_conf->msg->notice(10) << "GSD: writing particles/image" << endl;
-            retval = gsd_write_chunk(&m_handle,
-                                     "particles/image",
-                                     GSD_TYPE_INT32,
-                                     N,
-                                     3,
-                                     0,
-                                     (void*)&data[0]);
-            GSDUtils::checkError(retval, m_fname);
-            if (nframes == 0)
-                m_nondefault["particles/image"] = true;
-            }
+        m_exec_conf->msg->notice(10) << "GSD: writing particles/image" << endl;
+        retval = gsd_write_chunk(&m_handle,
+                                    "particles/image",
+                                    GSD_TYPE_INT32,
+                                    N,
+                                    3,
+                                    0,
+                                    (void*)frame.particle_data.image.data());
+        GSDUtils::checkError(retval, m_fname);
+        if (m_nframes == 0)
+            m_nondefault["particles/image"] = true;
         }
     }
 
@@ -1070,6 +873,345 @@ void GSDDumpWriter::populateNonDefault()
 
     // close the file
     gsd_close(&m_handle);
+    }
+
+
+void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t timestep)
+    {
+    frame.timestep = timestep;
+    frame.global_box = m_pdata->getGlobalBox();
+
+    frame.particle_data.type_mapping = m_pdata->getTypeMapping();
+
+    uint32_t N = m_group->getNumMembersGlobal();
+
+    // properties
+    frame.particle_data.pos.resize(0);
+    frame.particle_data.orientation.resize(0);
+    bool orientation_all_default = true;
+
+    // attributes
+    frame.particle_data.type.resize(0);
+    bool type_all_default = true;
+    frame.particle_data.mass.resize(0);
+    bool mass_all_default = true;
+    frame.particle_data.charge.resize(0);
+    bool charge_all_default = true;
+    frame.particle_data.diameter.resize(0);
+    bool diameter_all_default = true;
+    frame.particle_data.body.resize(0);
+    bool body_all_default = true;
+    frame.particle_data.inertia.resize(0);
+    bool inertia_all_default = true;
+
+    // momenta
+    frame.particle_data.vel.resize(0);
+    bool velocity_all_default = true;
+    frame.particle_data.angmom.resize(0);
+    bool angmom_all_default = true;
+    frame.particle_data.image.resize(0);
+    bool image_all_default = true;
+
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    if (N > 0 && (m_write_property || m_nframes == 0))
+        {
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+
+        for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
+            {
+            unsigned int tag = m_group->getMemberTag(group_tag_index);
+            unsigned int index = h_rtag.data[tag];
+            if (index == NOT_LOCAL)
+                {
+                continue;
+                }
+
+            vec3<Scalar> position = vec3<Scalar>(h_postype.data[index]) - vec3<Scalar>(m_pdata->getOrigin());
+            unsigned int type = __scalar_as_int(h_postype.data[index].w);
+            quat<Scalar> orientation(h_orientation.data[index]);
+            int3 image = make_int3(0,0,0);
+
+            if (m_write_momentum || m_nframes == 0)
+                {
+                image = h_image.data[index];
+                }
+
+            frame.global_box.wrap(position, image);
+            frame.particle_data.pos.push_back(vec3<float>(position));
+
+            if (orientation.s != Scalar(1.0)
+                || orientation.v.x != Scalar(0.0)
+                || orientation.v.y != Scalar(0.0)
+                || orientation.v.z != Scalar(0.0))
+                {
+                orientation_all_default = false;
+                }
+
+            frame.particle_data.orientation.push_back(quat<float>(orientation));
+
+            if (m_write_momentum || m_nframes == 0)
+                {
+                if (image.x != 0 || image.y != 0 || image.z != 0)
+                    {
+                    image_all_default = false;
+                    }
+
+                frame.particle_data.image.push_back(image);
+                }
+
+            if (m_write_attribute || m_nframes == 0)
+                {
+                if (type != 0)
+                    {
+                    type_all_default = false;
+                    }
+
+                frame.particle_data.type.push_back(type);
+                }
+            }
+        }
+
+    if (N > 0 && (m_write_attribute || m_nframes == 0))
+        {
+        ArrayHandle<Scalar4> h_velocity_mass(m_pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
+            {
+            unsigned int tag = m_group->getMemberTag(group_tag_index);
+            unsigned int index = h_rtag.data[tag];
+            if (index == NOT_LOCAL)
+                {
+                continue;
+                }
+
+            float mass = static_cast<float>(h_velocity_mass.data[index].w);
+            float charge = static_cast<float>(h_charge.data[index]);
+            float diameter = static_cast<float>(h_diameter.data[index]);
+            unsigned int body = h_body.data[index];
+            vec3<float> inertia = vec3<float>(h_inertia.data[index]);
+
+            if (mass != 1.0f)
+                {
+                mass_all_default = false;
+                }
+
+            frame.particle_data.mass.push_back(mass);
+
+            if (charge != 0.0f)
+                {
+                charge_all_default = false;
+                }
+
+            frame.particle_data.charge.push_back(charge);
+
+            if (diameter != 1.0f)
+                {
+                diameter_all_default = false;
+                }
+
+            frame.particle_data.diameter.push_back(diameter);
+
+            if (body != NO_BODY)
+                {
+                body_all_default = false;
+                }
+
+            frame.particle_data.body.push_back(body);
+
+            if (inertia.x != 0.0f || inertia.y != 0.0f || inertia.z != 0.0f)
+                {
+                inertia_all_default = false;
+                }
+
+            frame.particle_data.inertia.push_back(inertia);
+            }
+        }
+
+    if (N > 0 && (m_write_momentum || m_nframes == 0))
+        {
+        ArrayHandle<Scalar4> h_velocity_mass(m_pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
+            {
+            unsigned int tag = m_group->getMemberTag(group_tag_index);
+            unsigned int index = h_rtag.data[tag];
+            if (index == NOT_LOCAL)
+                {
+                continue;
+                }
+
+            vec3<float> velocity = vec3<float>(static_cast<float>(h_velocity_mass.data[index].x),
+                                               static_cast<float>(h_velocity_mass.data[index].y),
+                                               static_cast<float>(h_velocity_mass.data[index].z));
+            quat<float> angmom = quat<float>(h_angmom.data[index]);
+
+            if (velocity.x != 0.0f || velocity.y != 0.0f || velocity.z != 0.0f)
+                {
+                velocity_all_default = false;
+                }
+
+            frame.particle_data.vel.push_back(velocity);
+
+            if (angmom.s != 0.0f || angmom.v.x != 0.0f || angmom.v.y != 0.0f || angmom.v.z != 0.0f)
+                {
+                angmom_all_default = false;
+                }
+
+            frame.particle_data.angmom.push_back(angmom);
+            }
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        // TODO: combine into one bitwise or to reduce code and communication
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &orientation_all_default,
+                      1,
+                      MPI_CXX_BOOL,
+                      MPI_LAND,
+                      m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &type_all_default,
+                      1,
+                      MPI_CXX_BOOL,
+                      MPI_LAND,
+                      m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &mass_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &charge_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &diameter_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &body_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &inertia_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &velocity_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &angmom_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+
+        MPI_Allreduce(MPI_IN_PLACE,
+                &image_all_default,
+                1,
+                MPI_CXX_BOOL,
+                MPI_LAND,
+                m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    // Keep data in arrays only when they are not all default or this is a non-zero frame
+    // and the zeroth frame is non-default. To not keep, resize the arrays back to 0.
+    // !(!all_default || (nframes > 0 && m_nondefault["value"])) <=>
+    // (all_default && !(nframes > 0 && m_nondefault["value"])
+
+    if (orientation_all_default && !(m_nframes > 0 && m_nondefault["particles/orientation"]))
+        {
+        frame.particle_data.orientation.resize(0);
+        }
+
+    if (type_all_default && !(m_nframes > 0 && m_nondefault["particles/typeid"]))
+        {
+        frame.particle_data.type.resize(0);
+        }
+
+    if (mass_all_default && !(m_nframes > 0 && m_nondefault["particles/mass"]))
+        {
+        frame.particle_data.mass.resize(0);
+        }
+
+    if (charge_all_default && !(m_nframes > 0 && m_nondefault["particles/charge"]))
+        {
+        frame.particle_data.charge.resize(0);
+        }
+
+    if (diameter_all_default && !(m_nframes > 0 && m_nondefault["particles/diameter"]))
+        {
+        frame.particle_data.diameter.resize(0);
+        }
+
+    if (body_all_default && !(m_nframes > 0 && m_nondefault["particles/body"]))
+        {
+        frame.particle_data.body.resize(0);
+        }
+
+    if (inertia_all_default && !(m_nframes > 0 && m_nondefault["particles/moment_inertia"]))
+        {
+        frame.particle_data.inertia.resize(0);
+        }
+
+    // momenta
+    if (velocity_all_default && !(m_nframes > 0 && m_nondefault["particles/velocity"]))
+        {
+        frame.particle_data.vel.resize(0);
+        }
+
+    if (angmom_all_default && !(m_nframes > 0 && m_nondefault["particles/angmom"]))
+        {
+        frame.particle_data.angmom.resize(0);
+        }
+
+    if (image_all_default && !(m_nframes > 0 && m_nondefault["particles/image"]))
+        {
+        frame.particle_data.image.resize(0);
+        }
+
+    // capture topology data
+    if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal()
+        && (m_write_topology || m_nframes == 0))
+        {
+        m_sysdef->getBondData()->takeSnapshot(frame.bond_data);
+        m_sysdef->getAngleData()->takeSnapshot(frame.angle_data);
+        m_sysdef->getDihedralData()->takeSnapshot(frame.dihedral_data);
+        m_sysdef->getImproperData()->takeSnapshot(frame.improper_data);
+        m_sysdef->getConstraintData()->takeSnapshot(frame.constraint_data);
+        m_sysdef->getPairData()->takeSnapshot(frame.pair_data);
+        }
     }
 
 namespace detail

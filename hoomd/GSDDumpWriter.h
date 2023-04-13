@@ -153,6 +153,30 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         m_write_diameter = write_diameter;
         }
 
+    protected:
+
+    /// Store a GSD frame for writing.
+    /** Local frames store particles local to the rank, sorted in ascending tag order.
+        Global frames store the entire system, sorted in ascending tag order.
+
+        Entries with 0 sized vectors should not be written to the file.
+
+        Note: In the first implementation, only particle data is local/global .
+        The bond/angle/dihedral/etc... data stored in the *local* frame is actually global.
+    */
+    struct GSDFrame
+        {
+        uint64_t timestep;
+        BoxDim global_box;
+        SnapshotParticleData<float> particle_data;
+        BondData::Snapshot bond_data;
+        AngleData::Snapshot angle_data;
+        DihedralData::Snapshot dihedral_data;
+        ImproperData::Snapshot improper_data;
+        ConstraintData::Snapshot constraint_data;
+        PairData::Snapshot pair_data;
+        };
+
     private:
     std::string m_fname;            //!< The file name we are writing to
     std::string m_mode;             //!< The file open mode
@@ -179,7 +203,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     hoomd::detail::SharedSignal<int(gsd_handle&)> m_write_signal;
 
-    SnapshotParticleData<float> m_snapshot;
+    GSDFrame m_local_frame;
+    GSDFrame m_global_frame;
 
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
@@ -188,16 +213,16 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     void initFileIO();
 
     //! Write frame header
-    void writeFrameHeader(uint64_t timestep);
+    void writeFrameHeader(const GSDFrame& frame);
 
     //! Write particle attributes
-    void writeAttributes(const SnapshotParticleData<float>& snapshot);
+    void writeAttributes(const GSDFrame& frame);
 
     //! Write particle properties
-    void writeProperties(const SnapshotParticleData<float>& snapshot);
+    void writeProperties(const GSDFrame& frame);
 
     //! Write particle momenta
-    void writeMomenta(const SnapshotParticleData<float>& snapshot);
+    void writeMomenta(const GSDFrame& frame);
 
     //! Write bond topology
     void writeTopology(BondData::Snapshot& bond,
@@ -207,14 +232,14 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                        ConstraintData::Snapshot& constraint,
                        PairData::Snapshot& pair);
 
-    //! Write user defined log data
-    void writeUser(uint64_t timestep, bool root);
-
     //! Check and raise an exception if an error occurs
     void checkError(int retval);
 
     //! Populate the non-default map
     void populateNonDefault();
+
+    /// Populate local frame with data.
+    void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
 
     friend void export_GSDDumpWriter(pybind11::module& m);
     };
