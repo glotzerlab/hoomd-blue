@@ -296,7 +296,9 @@ class State:
         Returns:
             Snapshot: The current simulation state
         """
+        print("Trying takeSnapshot_double in get_snapshot")
         cpp_snapshot = self._cpp_sys_def.takeSnapshot_double()
+        print("takeSnapshot_double completed")
         return Snapshot._from_cpp_snapshot(cpp_snapshot,
                                            self._simulation.device.communicator)
 

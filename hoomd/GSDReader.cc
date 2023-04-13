@@ -210,6 +210,13 @@ void GSDReader::readHeader()
         s << "Cannot read a file with 0 particles.";
         throw runtime_error(s.str());
         }
+
+    float sphere[1] = {1.0f};
+    readChunk(&sphere, m_frame, "configuration/sphere", 4);
+    cout << "we read sphere as " << sphere[0] << endl;
+    m_snapshot->sphere = std::make_shared<Sphere>(Sphere(sphere[0]));
+
+
     m_snapshot->particle_data.resize(N);
     }
 
@@ -233,11 +240,19 @@ void GSDReader::readParticles()
               N * 12,
               N);
     readChunk(&m_snapshot->particle_data.pos[0], m_frame, "particles/position", N * 12, N);
+    readChunk(&m_snapshot->particle_data.quat_pos[0], m_frame, "particles/quat_pos", N * 16, N);
     readChunk(&m_snapshot->particle_data.orientation[0],
               m_frame,
               "particles/orientation",
               N * 16,
               N);
+
+    unsigned int use_spherical_coord = 0;
+    readChunk(&use_spherical_coord, m_frame, "particles/use_spherical_coord", 8);
+    m_snapshot->particle_data.use_spherical_coord = use_spherical_coord;//true;
+    cout << "---------->>> we got it as " << use_spherical_coord << " damn what the hell" << endl;
+
+
     readChunk(&m_snapshot->particle_data.vel[0], m_frame, "particles/velocity", N * 12, N);
     readChunk(&m_snapshot->particle_data.angmom[0], m_frame, "particles/angmom", N * 16, N);
     readChunk(&m_snapshot->particle_data.image[0], m_frame, "particles/image", N * 12, N);
