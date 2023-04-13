@@ -236,7 +236,7 @@ public:
                 vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), vec3<Scalar>(dfi_dni()))) +
                 vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), vec3<Scalar>(dfi_dni())));
 
-            torque_div_energy_i *= Scalar(-1) * Modulatorj();
+            torque_div_energy_i *= Scalar(-1) * Modulatorj() / magdr;
 
             torque_div_energy_j =
                 vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), vec3<Scalar>(dfj_dnj()))) +
@@ -245,7 +245,7 @@ public:
             
             // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr)));
             
-            torque_div_energy_j *= Scalar(-1) * Modulatori();
+            torque_div_energy_j *= Scalar(-1) * Modulatori() / magdr;
 
             // term2 = self.iso.energy(magdr) * (
 
