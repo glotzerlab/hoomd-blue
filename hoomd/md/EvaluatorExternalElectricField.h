@@ -82,17 +82,6 @@ class EvaluatorExternalElectricField
         {
         }
 
-    //! External Periodic doesn't need diameters
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar di) { }
-
     //! ExternalElectricField needs charges
     DEVICE static bool needsCharge()
         {

@@ -102,8 +102,6 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepL
     \param group The group of particles this integration method is to work on
     \param manifold The manifold describing the constraint during the RATTLE integration method
     \param T Temperature set point as a function of time
-    \param use_alpha If true, gamma=alpha*diameter, otherwise use a per-type gamma via setGamma()
-    \param alpha Scale factor to convert diameter to gamma
     \param noiseless_t If set true, there will be no translational noise (random force)
     \param noiseless_r If set true, there will be no rotational noise (random torque)
     \param tolerance Tolerance for the RATTLE iteration algorithm
@@ -164,9 +162,6 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -217,13 +212,9 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64
                                       // Brownian force stays consistent
 
         Scalar gamma;
-        if (m_use_alpha)
-            gamma = m_alpha * h_diameter.data[j];
-        else
-            {
-            unsigned int type = __scalar_as_int(h_pos.data[j].w);
-            gamma = h_gamma.data[type];
-            }
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
+        gamma = h_gamma.data[type];
+
         Scalar deltaT_gamma = m_deltaT / gamma;
 
         Scalar3 vec_rand;
@@ -411,9 +402,6 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
 
     size_t net_virial_pitch = net_virial.getPitch();
 
@@ -433,13 +421,8 @@ template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint
                               hoomd::Counter(ptag, 2));
 
         Scalar gamma;
-        if (m_use_alpha)
-            gamma = m_alpha * h_diameter.data[j];
-        else
-            {
-            unsigned int type = __scalar_as_int(h_pos.data[j].w);
-            gamma = h_gamma.data[type];
-            }
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
+        gamma = h_gamma.data[type];
         Scalar deltaT_gamma = m_deltaT / gamma;
 
         Scalar3 next_pos;

@@ -133,7 +133,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     this->m_exec_conf->msg->notice(5) << "Constructing UpdaterClustersGPU" << std::endl;
 
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 

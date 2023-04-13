@@ -64,8 +64,8 @@ class PYBIND11_EXPORT CellListGPU : public CellList
     GlobalArray<unsigned int>
         m_cell_size_scratch; //!< Number of members in each cell, one list per GPU
     GlobalArray<unsigned int> m_cell_adj_scratch; //!< Cell adjacency list, one list per GPU
-    GlobalArray<Scalar4> m_xyzf_scratch; //!< Cell list with position and flags, one list per GPU
-    GlobalArray<Scalar4> m_tdb_scratch;  //!< Cell list with type,diameter,body, one list per GPU
+    GlobalArray<Scalar4> m_xyzf_scratch;    //!< Cell list with position and flags, one list per GPU
+    GlobalArray<uint2> m_type_body_scratch; //!< Cell list with type,body, one list per GPU
     GlobalArray<Scalar4> m_orientation_scratch; //!< Cell list with orientation, one list per GPU
     GlobalArray<unsigned int> m_idx_scratch;    //!< Cell list with index, one list per GPU
 

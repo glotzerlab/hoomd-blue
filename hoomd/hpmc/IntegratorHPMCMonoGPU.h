@@ -288,7 +288,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     : IntegratorHPMCMono<Shape>(sysdef), m_cl(cl), m_update_order(this->m_exec_conf)
     {
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 

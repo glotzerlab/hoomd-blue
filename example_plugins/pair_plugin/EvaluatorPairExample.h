@@ -85,23 +85,12 @@ class EvaluatorPairExample
         {
         }
 
-    //! Example doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Example doesn't use charge
     DEVICE static bool needsCharge()
         {
         return false;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge value
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

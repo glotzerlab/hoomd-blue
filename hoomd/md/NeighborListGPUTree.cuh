@@ -135,7 +135,6 @@ class LBVHTraverserWrapper
         // particle query
         Scalar4* positions;
         unsigned int* bodies;
-        Scalar* diams;
         unsigned int* order;
         unsigned int N;
         unsigned int Nown;

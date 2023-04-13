@@ -141,16 +141,29 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         return flags;
         }
 
+    /// Get the write_diameter flag
+    bool getWriteDiameter()
+        {
+        return m_write_diameter;
+        }
+
+    /// Set the write_diameter flag
+    void setWriteDiameter(bool write_diameter)
+        {
+        m_write_diameter = write_diameter;
+        }
+
     private:
-    std::string m_fname;    //!< The file name we are writing to
-    std::string m_mode;     //!< The file open mode
-    bool m_truncate;        //!< True if we should truncate the file on every analyze()
-    bool m_is_initialized;  //!< True if the file is open
-    bool m_write_attribute; //!< True if attributes should be written
-    bool m_write_property;  //!< True if properties should be written
-    bool m_write_momentum;  //!< True if momenta should be written
-    bool m_write_topology;  //!< True if topology should be written
-    gsd_handle m_handle;    //!< Handle to the file
+    std::string m_fname;            //!< The file name we are writing to
+    std::string m_mode;             //!< The file open mode
+    bool m_truncate = false;        //!< True if we should truncate the file on every analyze()
+    bool m_is_initialized = false;  //!< True if the file is open
+    bool m_write_attribute = false; //!< True if attributes should be written
+    bool m_write_property = false;  //!< True if properties should be written
+    bool m_write_momentum = false;  //!< True if momenta should be written
+    bool m_write_topology = false;  //!< True if topology should be written
+    bool m_write_diameter = false;  //!< True if the diameter attribute should be written
+    gsd_handle m_handle;            //!< Handle to the file
 
     static std::list<std::string> particle_chunks;
 

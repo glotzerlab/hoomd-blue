@@ -26,15 +26,6 @@ Compute::Compute(std::shared_ptr<SystemDefinition> sysdef)
     assert(m_exec_conf);
     }
 
-/*! \param num_iters Number of iterations to average for the benchmark
-    \returns Milliseconds of execution time per calculation
-    Derived classes can optionally implement this method. */
-double Compute::benchmark(unsigned int num_iters)
-    {
-    throw runtime_error("Benchmarking not supported.");
-    return 0.0;
-    }
-
 /*! \param timestep Current time step
     \returns true if computations should be performed, false if they have already been done
         at this \a timestep.
@@ -104,7 +95,6 @@ void export_Compute(pybind11::module& m)
     pybind11::class_<Compute, Action, std::shared_ptr<Compute>>(m, "Compute")
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("compute", &Compute::compute)
-        .def("benchmark", &Compute::benchmark)
         .def("notifyDetach", &Compute::notifyDetach);
     }
     } // end namespace detail

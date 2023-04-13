@@ -42,10 +42,6 @@ namespace md
     V_{\mathrm{ewald}}(r)  = q_i q_j \left[\mathrm{erfc}\left(\kappa r +
    \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+ \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2
    \kappa}\right) \exp(-\alpha r)\right] \f]
-
-    The Ewald potential does not need diameter. Two parameters is specified and stored in a Scalar2.
-    \a kappa is placed in \a params.x
-    \a alpha is placed in \a params.y
 */
 class EvaluatorPairEwald
     {
@@ -99,23 +95,12 @@ class EvaluatorPairEwald
         {
         }
 
-    //! Ewald doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-
     //! Ewald uses charge !!!
     DEVICE static bool needsCharge()
         {
         return true;
         }
-    //! Accept the optional diameter values
+    //! Accept the optional charge values.
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */

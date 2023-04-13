@@ -141,6 +141,9 @@ class GSD(Writer):
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers.
         dynamic (list[str]): Quantity categories to save in every frame.
+        write_diameter (bool): When `False`, do not write
+            ``particles/diameter``. Set to `True` to write non-default particle
+            diameters.
     """
 
     def __init__(self,
@@ -165,6 +168,7 @@ class GSD(Writer):
                           mode=str(mode),
                           truncate=bool(truncate),
                           dynamic=[dynamic_validation],
+                          write_diameter=False,
                           _defaults=dict(filter=filter, dynamic=dynamic)))
 
         self._logger = None if logger is None else _GSDLogWriter(logger)

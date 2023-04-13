@@ -94,18 +94,6 @@ class EvaluatorSpecialPairLJ
         {
         }
 
-    //! LJ doesn't use diameter
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter values
-    /*! \param da Diameter of particle a
-        \param db Diameter of particle b
-    */
-    DEVICE void setDiameter(Scalar da, Scalar db) { }
-
     //! LJ doesn't use charge
     DEVICE static bool needsCharge()
         {

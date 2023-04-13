@@ -96,9 +96,6 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
 
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
@@ -127,11 +124,6 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
 
         evaluator eval(X, box, h_params.data[type], *m_field);
 
-        if (evaluator::needsDiameter())
-            {
-            Scalar di = h_diameter.data[idx];
-            eval.setDiameter(di);
-            }
         if (evaluator::needsCharge())
             {
             Scalar qi = h_charge.data[idx];
