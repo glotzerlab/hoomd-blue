@@ -312,7 +312,7 @@ class PYBIND11_EXPORT CellList : public Compute
         return m_xyzf;
         }
 
-    //! Get the cell list containing t,d,b
+    //! Get the cell list containing t,b
     const GlobalArray<uint2>& getTypeBodyArray() const
         {
         return m_type_body;
