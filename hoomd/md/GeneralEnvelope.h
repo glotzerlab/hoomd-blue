@@ -120,8 +120,8 @@ public:
             rhat = dr/magdr;
 
             // cos(angle between dr and pointing vector)            
-            costhetai = -dot(vec3<Scalar>(dr), ni_world) / magdr; // negative because dr = dx = pi - pj
-            costhetaj = dot(vec3<Scalar>(dr), nj_world) / magdr;
+            costhetai = -dot(vec3<Scalar>(rhat), ni_world); // negative because dr = dx = pi - pj
+            costhetaj = dot(vec3<Scalar>(rhat), nj_world);
         }
 
     //! uses diameter
@@ -185,7 +185,7 @@ public:
             return vec_to_scalar3(rhat) * params.omega * fast::exp(params.omega * (params.cosalpha - costhetaj))  * fact * fact;
         }
     
-    DEVICE Scalar ModulatorPrimei()
+    DEVICE Scalar ModulatorPrimei() // TODO call it derivative with respect to costhetai
         {
             Scalar fact = Modulatori(); // TODO only calculate Modulatori once per instantiation
             // the -1 comes from doing the derivative with respect to ni
@@ -193,7 +193,7 @@ public:
             return params.omega * fast::exp(-params.omega*(costhetai-params.cosalpha)) * fact * fact;
         }
 
-    DEVICE Scalar ModulatorPrimej()
+    DEVICE Scalar ModulatorPrimej() // TODO name after derivative
         {
             Scalar fact = Modulatorj();
             return params.omega * fast::exp(-params.omega*(costhetaj-params.cosalpha)) * fact * fact;
@@ -236,7 +236,7 @@ public:
                 vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), vec3<Scalar>(dfi_dni()))) +
                 vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), vec3<Scalar>(dfi_dni())));
 
-            torque_div_energy_i *= Scalar(-1) * Modulatorj() / magdr;
+            torque_div_energy_i *= Scalar(-1) * Modulatorj();
 
             torque_div_energy_j =
                 vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), vec3<Scalar>(dfj_dnj()))) +
@@ -245,7 +245,7 @@ public:
             
             // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr)));
             
-            torque_div_energy_j *= Scalar(-1) * Modulatori() / magdr;
+            torque_div_energy_j *= Scalar(-1) * Modulatori();
 
             // term2 = self.iso.energy(magdr) * (
 
@@ -253,14 +253,19 @@ public:
             //     dfj_duj * duj_dr * self.patch.fi(dr, self.ni_world) + dfi_dui * dui_dr * self.patch.fj(dr, self.nj_world)
 
 
-            //quotient rule for derivative
+            // find df/dr = df/du * du/dr
+
+            // find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
+
             Scalar lo = magdr;
             Scalar3 dlo = vec_to_scalar3(rhat);
-            
+
+            //something wrong: this has to be a scalar
             Scalar3 dfi_dui = dfi_dni();
 
             Scalar hi = dot(dr, vec3<Scalar>(ni_world));
             Scalar3 dhi = vec_to_scalar3(ni_world);
+            // quotient rule
             Scalar3 dui_dr = (lo*dhi - hi*dlo) / (lo*lo);
 
 
@@ -270,17 +275,16 @@ public:
             // lo and dlo are the same
             Scalar3 duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
             
-            force = dfj_duj * duj_dr * fi() + dfi_dui*dui_dr * fj();
-            
-            //     )
+            // force = dfj_duj * duj_dr * fi() + dfi_dui*dui_dr * fj();
 
-            // negative here bc forcedivr has the implicit negative in PairModulator
-            // force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
-            //             + jPi*(nj_world.x - costhetaj*dr.x/magdr));
-            // force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
-            //             + jPi*(nj_world.y - costhetaj*dr.y/magdr));
-            // force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
-            //             + jPi*(nj_world.z - costhetaj*dr.z/magdr));
+
+            //negative here bc forcedivr has the implicit negative in PairModulator
+            force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
+                        + jPi*(nj_world.x - costhetaj*dr.x/magdr));
+            force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
+                        + jPi*(nj_world.y - costhetaj*dr.y/magdr));
+            force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
+                        + jPi*(nj_world.z - costhetaj*dr.z/magdr));
 
             return true;
         }
