@@ -1114,7 +1114,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                   else
 					continue;
 
-				  vec3<Scalar> r_ij = sphere.sphericalToCartesian(quat_pos_j);
+		    		  vec3<Scalar> pos_j = sphere.sphericalToCartesian(quat_pos_j);
+				  vec3<Scalar> r_ij = pos_j - pos_i;
 
 				  unsigned int typ_j = __scalar_as_int(postype_j.w);
                                   Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
@@ -1192,7 +1193,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 				 	        continue;
 
                                           // put particles in coordinate system of particle i
-				          vec3<Scalar> r_ij = sphere.sphericalToCartesian(quat_pos_j);
+		    		  	  vec3<Scalar> pos_j = sphere.sphericalToCartesian(quat_pos_j);
+				  	  vec3<Scalar> r_ij = pos_j - pos_i;
                                           unsigned int typ_j = __scalar_as_int(postype_j.w);
                                           Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
@@ -1470,7 +1472,8 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
 	                     quat<Scalar> quat_pos_j(h_quat_pos.data[j]);
 
                              // put particles in coordinate system of particle i
-                             vec3<Scalar> r_ij = sphere.sphericalToCartesian(quat_pos_j);
+		    	     vec3<Scalar> pos_j = sphere.sphericalToCartesian(quat_pos_j);
+			     vec3<Scalar> r_ij = pos_j - pos_i;
 
                              unsigned int typ_j = __scalar_as_int(postype_j.w);
                              Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
@@ -1478,8 +1481,8 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
                              if (h_tag.data[i] <= h_tag.data[j]
                                  && h_overlaps.data[m_overlap_idx(typ_i,typ_j)]
                                  && check_circumsphere_overlap(r_ij, shape_i, shape_j)
-                                 && test_overlap(r_ij, shape_i, shape_j, err_count)
-                                 && test_overlap(-r_ij, shape_j, shape_i, err_count))
+                                 && test_overlap(r_ij, shape_i, shape_j, err_count))
+                                 //&& test_overlap(-r_ij, shape_j, shape_i, err_count))
                                  {
                                  overlap_count++;
                                  if (early_exit)
@@ -1691,7 +1694,8 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
                              Scalar charge_j = h_charge.data[j];
 
                              // put particles in coordinate system of particle i
-                             vec3<Scalar> r_ij = sphere.sphericalToCartesian(quat_pos_j);
+		    	     vec3<Scalar> pos_j = sphere.sphericalToCartesian(quat_pos_j);
+			     vec3<Scalar> r_ij = pos_j - pos_i;
 
                              unsigned int typ_j = __scalar_as_int(postype_j.w);
                              Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
