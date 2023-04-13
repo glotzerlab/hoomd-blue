@@ -58,6 +58,9 @@ public:
                 // normalize
                 ni = ni * fast::rsqrt(dot(ni, ni));
                 nj = nj * fast::rsqrt(dot(nj, nj));
+
+                // std::cout << "nj local " << vecString(nj) << "\n";
+                // std::cout << "ni local " << vecString(ni) << "\n";
             }
 
         pybind11::dict asDict()
@@ -162,8 +165,6 @@ public:
     DEVICE inline Scalar fj() // called f(dr, nj) in the derivation
     // fj in python
         {
-            std::cout << "costhetaj: " << costhetaj << '\n';
-            std::cout << "cosalpha: " << params.cosalpha << '\n';
             return Scalar(1.0) / ( Scalar(1.0) + fast::exp(-params.omega*(costhetaj-params.cosalpha)) );
         }
 

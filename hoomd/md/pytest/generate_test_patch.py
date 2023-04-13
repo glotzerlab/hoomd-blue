@@ -120,16 +120,23 @@ class PatchPair:
         terms = np.array([0,0,0], dtype='float64')
         a = self.i.pointing
         for i in range(3):
+            # print("ni is", self.patch.ni[i])
+            # print("a i is", a[i])
+            # print("deriv is", self.patch.dfi_dni(self.dr, self.ni_world))
             new_term = self.patch.ni[i] * cross(a[i], self.patch.dfi_dni(self.dr, self.ni_world))
             # print("torque i term ", i, " ", new_term)
             terms += new_term
         return const * terms
 
     def torque_j(self):
+        # print("fi is", self.patch.fi(self.dr, self.ni_world))
         const = -self.iso.energy(self.magdr) * self.patch.fi(self.dr, self.ni_world) / self.magdr
         terms = np.array([0,0,0], dtype='float64')
         b = self.j.pointing
         for i in range(3):
+            # print("nj", self.patch.nj[i])
+            # print("b i is", b[i])
+            # print("deriv is", self.patch.dfj_dnj(self.dr, self.nj_world))
             new_term = self.patch.nj[i] * cross(b[i], self.patch.dfj_dnj(self.dr, self.nj_world))
             # print("torque j term ", i, " ", new_term)
             terms += new_term

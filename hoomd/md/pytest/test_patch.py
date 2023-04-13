@@ -199,8 +199,6 @@ def test_after_attaching(patchy_snapshot_factory, simulation_factory,
 def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
                                  patch_cls, patch_args, params, positions, orientations, force, energy, torques):
 
-    print("orientation j is", orientations[1])
-
     snapshot = patchy_snapshot_factory(position_i = positions[0],
                                        position_j = positions[1],
                                        orientation_i = orientations[0],
@@ -226,8 +224,6 @@ def test_forces_energies_torques(patchy_snapshot_factory, simulation_factory,
         
         numpy.testing.assert_allclose(sim_energy, energy, **TOLERANCES)
 
-        print(sim_forces)
-        print(force)
         numpy.testing.assert_allclose(sim_forces[0], force, **TOLERANCES)
 
         numpy.testing.assert_allclose(sim_forces[1],  [-force[0], -force[1], -force[2]], **TOLERANCES)
