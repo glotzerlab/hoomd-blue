@@ -191,7 +191,7 @@ class EvaluatorPairLJ1208
     Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJ1208_H__

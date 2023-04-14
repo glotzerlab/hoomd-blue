@@ -166,7 +166,7 @@ class EvaluatorPairExample
     Scalar sigma;  //!< Stored sigma from the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXAMPLE_H__

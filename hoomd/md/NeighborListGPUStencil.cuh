@@ -74,8 +74,8 @@ void gpu_compute_nlist_stencil_sort_types(unsigned int* d_pids,
                                           bool& swap,
                                           const unsigned int N);
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __NEIGHBORLOSTGPUSTENCIL_CUH__

@@ -194,7 +194,7 @@ class EvaluatorPairExpandedMie
     Scalar delta;      //!< shift in radial distance for use in Mie potential
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_EXPANDEDMIE_H__

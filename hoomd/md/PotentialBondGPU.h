@@ -219,9 +219,9 @@ template<class T> void export_PotentialMeshBondGPU(pybind11::module& m, const st
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<MeshDefinition>>());
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_GPU_H__

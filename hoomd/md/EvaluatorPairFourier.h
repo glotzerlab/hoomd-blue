@@ -210,7 +210,7 @@ class EvaluatorPairFourier
     const param_type& params; //!< Fourier component coefficents
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_FOURIER_H__

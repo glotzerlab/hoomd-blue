@@ -412,24 +412,24 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< GPU execution configuration
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
 
-    GPUArray<Scalar4> m_pos;                 //!< MPCD particle positions plus type
-    GPUArray<Scalar4> m_vel;                 //!< MPCD particle velocities plus cell list id
-    Scalar m_mass;                           //!< MPCD particle mass
-    GPUArray<unsigned int> m_tag;            //!< MPCD particle tags
-    std::vector<std::string> m_type_mapping; //!< Type name mapping
+    GPUArray<Scalar4> m_pos;                      //!< MPCD particle positions plus type
+    GPUArray<Scalar4> m_vel;                      //!< MPCD particle velocities plus cell list id
+    Scalar m_mass;                                //!< MPCD particle mass
+    GPUArray<unsigned int> m_tag;                 //!< MPCD particle tags
+    std::vector<std::string> m_type_mapping;      //!< Type name mapping
 #ifdef ENABLE_MPI
-    GPUArray<unsigned int> m_comm_flags; //!< MPCD particle communication flags
-#endif                                   // ENABLE_MPI
+    GPUArray<unsigned int> m_comm_flags;          //!< MPCD particle communication flags
+#endif                                            // ENABLE_MPI
 
-    GPUArray<Scalar4> m_pos_alt;      //!< Alternate position array
-    GPUArray<Scalar4> m_vel_alt;      //!< Alternate velocity array
-    GPUArray<unsigned int> m_tag_alt; //!< Alternate tag array
+    GPUArray<Scalar4> m_pos_alt;                  //!< Alternate position array
+    GPUArray<Scalar4> m_vel_alt;                  //!< Alternate velocity array
+    GPUArray<unsigned int> m_tag_alt;             //!< Alternate tag array
 #ifdef ENABLE_MPI
-    GPUArray<unsigned int> m_comm_flags_alt; //!< Alternate communication flags
-    GPUArray<unsigned int> m_remove_ids;     //!< Partitioned indexes of particles to keep
+    GPUArray<unsigned int> m_comm_flags_alt;      //!< Alternate communication flags
+    GPUArray<unsigned int> m_remove_ids;          //!< Partitioned indexes of particles to keep
 #ifdef ENABLE_HIP
-    GPUArray<unsigned char> m_remove_flags; //!< Temporary flag to mark keeping particle
-    GPUFlags<unsigned int> m_num_remove;    //!< Number of particles to remove
+    GPUArray<unsigned char> m_remove_flags;       //!< Temporary flag to mark keeping particle
+    GPUFlags<unsigned int> m_num_remove;          //!< Number of particles to remove
 
     std::shared_ptr<Autotuner<1>> m_mark_tuner;   //!< Tuner for marking particles
     std::shared_ptr<Autotuner<1>> m_remove_tuner; //!< Tuner for removing particles
@@ -437,8 +437,8 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
 #endif                                            // ENABLE_HIP
 #endif                                            // ENABLE_MPI
 
-    bool m_valid_cell_cache;               //!< Flag for validity of cell cache
-    SortSignal m_sort_signal;              //!< Signal triggered when particles are sorted
+    bool m_valid_cell_cache;                      //!< Flag for validity of cell cache
+    SortSignal m_sort_signal;                     //!< Signal triggered when particles are sorted
     Nano::Signal<void()> m_virtual_signal; //!< Signal for number of virtual particles changing
 
     //! Check for a valid snapshot
@@ -471,7 +471,7 @@ namespace detail
     {
 //! Export MPCD ParticleData to python
 void export_ParticleData(pybind11::module& m);
-    } // end namespace detail
+    }  // end namespace detail
 
     }  // end namespace mpcd
     }  // end namespace hoomd

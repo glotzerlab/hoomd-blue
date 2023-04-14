@@ -221,7 +221,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     GlobalArray<Scalar4> m_body_orientation; //!< Constituent particle orientations per type id (2D)
     GlobalArray<unsigned int> m_body_len;    //!< Length of body per type id
 
-    Index2D m_body_idx; //!< Indexer for body parameters
+    Index2D m_body_idx;                      //!< Indexer for body parameters
 
     std::vector<Scalar> m_d_max;       //!< Maximum body diameter per constituent particle type
     std::vector<bool> m_d_max_changed; //!< True if maximum body diameter changed (per type)

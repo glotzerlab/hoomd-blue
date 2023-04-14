@@ -491,9 +491,9 @@ class PYBIND11_EXPORT NeighborList : public Compute
     Scalar3 m_last_L;                    //!< Box lengths at last update
     Scalar3 m_last_L_local;              //!< Local Box lengths at last update
 
-    GlobalArray<size_t> m_head_list; //!< Indexes for particles to read from the neighbor list
+    GlobalArray<size_t> m_head_list;     //!< Indexes for particles to read from the neighbor list
     GlobalArray<unsigned int>
-        m_Nmax; //!< Holds the maximum number of neighbors for each particle type
+        m_Nmax;       //!< Holds the maximum number of neighbors for each particle type
     GlobalArray<unsigned int>
         m_conditions; //!< Holds the max number of computed particles by type for resizing
 
@@ -573,26 +573,26 @@ class PYBIND11_EXPORT NeighborList : public Compute
     private:
     Nano::Signal<void()> m_rcut_signal; //!< Signal that is triggered when the cutoff radius changes
 
-    bool m_rcut_changed; //!< Flag if the rcut array has changed
+    bool m_rcut_changed;                //!< Flag if the rcut array has changed
     //! Notify the NeighborList that the rcut has changed for delayed updating
     void slotRCutChange()
         {
         m_rcut_changed = true;
         }
 
-    uint64_t m_updates;           //!< Number of times the neighbor list has been updated
-    uint64_t m_forced_updates;    //!< Number of times the neighbor list has been forcibly updated
-    uint64_t m_dangerous_updates; //!< Number of dangerous builds counted
-    bool m_force_update;          //!< Flag to handle the forcing of neighborlist updates
-    bool m_dist_check;            //!< Set to false to disable distance checks (nlist always built
-                                  //!< m_rebuild_check_delay steps)
-    bool m_has_been_updated_once; //!< True if the neighbor list has been updated at least once
+    uint64_t m_updates;             //!< Number of times the neighbor list has been updated
+    uint64_t m_forced_updates;      //!< Number of times the neighbor list has been forcibly updated
+    uint64_t m_dangerous_updates;   //!< Number of dangerous builds counted
+    bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
+    bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built
+                                    //!< m_rebuild_check_delay steps)
+    bool m_has_been_updated_once;   //!< True if the neighbor list has been updated at least once
 
-    uint64_t m_last_updated_tstep;          //!< Track the last time step we were updated
-    uint64_t m_last_checked_tstep;          //!< Track the last time step we have checked
-    bool m_last_check_result;               //!< Last result of rebuild check
-    uint64_t m_rebuild_check_delay;         //!< No update checks will be performed until
-                                            //!< m_rebuild_check_delay steps after the last one
+    uint64_t m_last_updated_tstep;  //!< Track the last time step we were updated
+    uint64_t m_last_checked_tstep;  //!< Track the last time step we have checked
+    bool m_last_check_result;       //!< Last result of rebuild check
+    uint64_t m_rebuild_check_delay; //!< No update checks will be performed until
+                                    //!< m_rebuild_check_delay steps after the last one
     std::vector<uint64_t> m_update_periods; //!< Steps between updates
     std::set<std::string> m_exclusions;     //!< Exclusions that have been set
 

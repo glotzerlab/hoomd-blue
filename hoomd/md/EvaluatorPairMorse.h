@@ -174,7 +174,7 @@ class EvaluatorPairMorse
     Scalar r0;     //!< Offset, i.e., position of the potential minimum
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_MORSE_H__
