@@ -140,6 +140,7 @@ class EvaluatorPairLJGauss
             {
             return false;
             }
+
         Scalar r = fast::sqrt(rsq);
         Scalar sigma2 = sigma * sigma;
         Scalar rdiff = r - r0;
@@ -156,9 +157,11 @@ class EvaluatorPairLJGauss
             {
             Scalar rcut2inv = Scalar(1.0) / rcutsq;
             Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+            Scalar r_cut_minus_r0 = fast::sqrt(rcutsq) - r0;
+
             pair_eng
                 -= rcut6inv * (rcut6inv - Scalar(2.0))
-                   - (epsilon * fast::exp(-Scalar(1.0) / Scalar(2.0) * (rcutsq - r0) / sigma2));
+                   - (epsilon * fast::exp(-Scalar(0.5) * r_cut_minus_r0 * r_cut_minus_r0 / sigma2));
             }
 
         return true;
@@ -269,7 +272,7 @@ class EvaluatorPairLJGauss
     Scalar r0;      //!< r0 prarameter extracted from the params passed to the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_LJGAUSS_H__

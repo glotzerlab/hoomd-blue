@@ -398,8 +398,8 @@ void export_TwoStepRATTLELangevinGPU(pybind11::module& m, const std::string& nam
                             std::shared_ptr<Variant>,
                             Scalar>());
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP

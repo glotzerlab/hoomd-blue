@@ -213,8 +213,8 @@ hipError_t gpu_compute_potential_external_forces(
     };
 #endif // __HIPCC__
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_GPU_CUH__

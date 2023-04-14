@@ -625,7 +625,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
             // choose algorithm
             const cusolverRfFactorization_t fact_alg = CUSOLVERRF_FACTORIZATION_ALG0; // default
             const cusolverRfTriangularSolve_t solve_alg
-                = CUSOLVERRF_TRIANGULAR_SOLVE_ALG1; // default
+                = CUSOLVERRF_TRIANGULAR_SOLVE_ALG1;                                   // default
 
             cusolverRfSetAlgs(m_cusolver_rf_handle, fact_alg, solve_alg);
 

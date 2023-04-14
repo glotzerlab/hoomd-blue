@@ -808,8 +808,8 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar>>& verts1,
     overlap = (counter == max_num_points);
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __GJK_SV_H__

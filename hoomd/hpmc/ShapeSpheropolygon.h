@@ -156,7 +156,7 @@ struct ShapeSpheropolygon
         return false;
         }
 
-    quat<Scalar> orientation; //!< Orientation of the polygon
+    quat<Scalar> orientation;             //!< Orientation of the polygon
 
     const detail::PolygonVertices& verts; //!< Vertices
     };

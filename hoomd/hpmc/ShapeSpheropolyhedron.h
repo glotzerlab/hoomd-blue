@@ -153,7 +153,7 @@ struct ShapeSpheropolyhedron
         return true;
         }
 
-    quat<Scalar> orientation; //!< Orientation of the polyhedron
+    quat<Scalar> orientation;                //!< Orientation of the polyhedron
 
     const detail::PolyhedronVertices& verts; //!< Vertices
     };

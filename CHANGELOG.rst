@@ -7,8 +7,81 @@ Change Log
 v3.x
 ----
 
-v3.9.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.11.0 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* ``hoomd.md.Integrator.validate_groups`` verifies that MD integration methods are applied to
+  distinct subsets of the system and that those subsets consist of integrable particles
+  (automatically called when attached)
+  (`#1466 <https://github.com/glotzerlab/hoomd-blue/issues/1466>`__).
+
+Changed:
+
+* ``hoomd.hpmc.compute.SDF`` computes pressures for systems of concave and non-monotonic patch
+  interactions (`#1391 <https://github.com/glotzerlab/hoomd-blue/pull/1391>`__).
+* Reorganize documentation contents to fit in the sidebar, including landing pages for tutorials and
+  how-to guides (`#1526 <https://github.com/glotzerlab/hoomd-blue/pull/1526>`_).
+
+Fixed:
+
+* Improved readability of images in the documentation
+  (`#1521 <https://github.com/glotzerlab/hoomd-blue/issues/1521>`__).
+* ``hoomd.write.Table`` now raises a meaningful error when given incorrect logger categories
+  (`#1510 <https://github.com/glotzerlab/hoomd-blue/issues/1510>`__).
+* Correctly document the 1/2 scaling factor in the pairwise virial computation
+  (`#1525 <https://github.com/glotzerlab/hoomd-blue/pull/1525>`_).
+* ``thermalize_particle_momenta`` now sets 0 velocity and angular momentum for rigid constituent
+  particles  (`#1472 <https://github.com/glotzerlab/hoomd-blue/issues/1472>`__).
+* Reduce likelihood of data corruption when writing GSD files
+  (`#1531 <https://github.com/glotzerlab/hoomd-blue/pull/1531>`__).
+* Clarify migration process for ``hoomd.md.pair.ExpandedLJ``
+  (`#1501 <https://github.com/glotzerlab/hoomd-blue/pull/1501>`__).
+
+Deprecated:
+
+* The ``sdf`` attribute of ``hoomd.hpmc.compute.SDF`` - use ``sdf_compression``
+  (`#1391 <https://github.com/glotzerlab/hoomd-blue/pull/1391>`__).
+
+v3.10.0 (2023-03-14)
+^^^^^^^^^^^^^^^^^^^^
+
+Added:
+
+* The ``message_filename`` property and argument to ``Device``, ``CPU``, and ``GPU`` to replace
+  ``msg_file`` (`#1497 <https://github.com/glotzerlab/hoomd-blue/pull/1497>`_).
+* ``hoomd.md.pair.Gaussian`` to replace ``hoomd.md.pair.Gauss``
+  (`#1497 <https://github.com/glotzerlab/hoomd-blue/pull/1497>`_).
+* ``hoomd.md.pair.ExpandedGaussian`` - the expanded Gaussian pair force
+  (`#1493 <https://github.com/glotzerlab/hoomd-blue/pull/1493>`_).
+* Guide: How to apply arbitrary pair potentials in HPMC
+  (`#1505 <https://github.com/glotzerlab/hoomd-blue/issues/1505>`_).
+
+Changed:
+
+* Use ``furo`` style for HTML documentation
+  (`#1498 <https://github.com/glotzerlab/hoomd-blue/pull/1498>`_).
+
+Fixed:
+
+* The ``hoomd.md.pair`` potentials ``ExpandedLJ``, ``ExpandedMie``, ``LJGauss``, and ``TWF`` now
+  shift ``V(r_cut)`` to 0 properly when ``mode == 'shift'``
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issues/1504>`_).
+* Corrected errors in the pair potential documentation
+  (`#1504 <https://github.com/glotzerlab/hoomd-blue/issues/1504>`_).
+* Note that the ``'body'`` exclusion should be used with ``hoomd.md.constrain.Rigid``
+  (`#1465 <https://github.com/glotzerlab/hoomd-blue/issues/1465>`_).
+* Correctly identify the ``'xyz'`` mode in ``hoomd.md.methods.NPH``
+  (`#1509 <https://github.com/glotzerlab/hoomd-blue/pull/1509>`_).
+
+Deprecated:
+
+* The ``msg_file`` property and argument to ``Device``, ``CPU``, and ``GPU``.
+* ``hoomd.md.pair.Gauss``.
+
+v3.9.0 (2023-02-15)
+^^^^^^^^^^^^^^^^^^^
 
 Added:
 

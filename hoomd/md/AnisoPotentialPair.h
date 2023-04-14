@@ -227,11 +227,13 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
 
     protected:
     std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
-    energyShiftMode m_shift_mode;          //!< Store the mode with which to handle the energy shift at r_cut
-    Index2D m_typpair_idx;                 //!< Helper class for indexing per type pair arrays
-    GlobalArray<Scalar> m_rcutsq;          //!< Cutoff radius squared per type pair
-    std::vector<param_type, hoomd::detail::managed_allocator<param_type>> m_params;       //!< Pair parameters per type pair
-    std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>> m_shape_params; //!< Shape parameters per type
+    energyShiftMode m_shift_mode; //!< Store the mode with which to handle the energy shift at r_cut
+    Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
+    GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
+    std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
+        m_params;                 //!< Pair parameters per type pair
+    std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
+        m_shape_params;           //!< Shape parameters per type
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
@@ -757,8 +759,8 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def("getTypeShapesPy", &AnisoPotentialPair<T>::getTypeShapesPy);
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

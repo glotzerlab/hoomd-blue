@@ -63,7 +63,7 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
     std::shared_ptr<Autotuner<1>> m_tuner_angular_two; //!< Autotuner for angular step two
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_GPU_H__

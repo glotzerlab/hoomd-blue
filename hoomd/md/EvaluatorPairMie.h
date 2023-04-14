@@ -220,7 +220,7 @@ class EvaluatorPairMie
     Scalar mie4;   //!< mie4 parameter extracted from the params passed to the constructor
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_MIE_H__

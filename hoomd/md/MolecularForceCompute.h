@@ -124,7 +124,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     GlobalVector<unsigned int> m_molecule_tag; //!< Molecule tag per particle tag
     unsigned int m_n_molecules_global;         //!< Global number of molecules
 
-    bool m_rebuild_molecules; //!< True if we need to rebuild indices
+    bool m_rebuild_molecules;                  //!< True if we need to rebuild indices
 
     //! Helper function to check if particles have been sorted and rebuild indices if necessary
     virtual void checkParticlesSorted()

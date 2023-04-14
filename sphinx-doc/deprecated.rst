@@ -72,3 +72,15 @@ v3.x
 * ``log`` attribute and constructor parameter in `hoomd.write.GSD`.
 
   * Use ``logger``.
+
+* ``hoomd.md.pair.Gauss`` (since v3.10.0)
+
+  * Use `hoomd.md.pair.Gaussian`.
+
+* ``msg_file`` property and argument to ``Device`` and subclasses (since v3.10.0)
+
+  * Use `message_filename <hoomd.device.Device.message_filename>`.
+
+* ``sdf`` property of `hoomd.hpmc.compute.SDF` (since v3.11.0)
+
+  * Use `sdf_compression <hoomd.hpmc.compute.SDF>`

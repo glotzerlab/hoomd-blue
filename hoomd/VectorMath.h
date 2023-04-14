@@ -1246,6 +1246,6 @@ template<class Vec> DEVICE inline Vec project(const Vec& a, const Vec& b)
 
 #undef DEVICE
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif //__VECTOR_MATH_H__

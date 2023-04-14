@@ -915,8 +915,8 @@ void Communicator::GroupCommunicator<group_data, inMesh>::markGhostParticles(
                             }
                         } // end inner loop over group members
                     }
-                } // end outer loop over group members
-            }     // end loop over groups
+                }         // end outer loop over group members
+            }             // end loop over groups
         }
     }
 
@@ -2898,7 +2898,7 @@ void Communicator::updateNetForce(uint64_t timestep)
     // Set some global counters
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
     unsigned int num_tot_recv_ghosts_reverse
-        = 0; // total number of ghosts received in reverse direction
+        = 0;                              // total number of ghosts received in reverse direction
 
     // clear data in these arrays
     if (flags[comm_flag::net_force])
@@ -3423,7 +3423,7 @@ void export_Communicator(pybind11::module& m)
         .def("addMeshDefinition", &Communicator::addMeshDefinition)
         .def_property_readonly("domain_decomposition", &Communicator::getDomainDecomposition);
     }
-    } // end namespace detail
+    }  // end namespace detail
 
     }  // end namespace hoomd
 #endif // ENABLE_MPI
