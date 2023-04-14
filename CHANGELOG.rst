@@ -88,8 +88,8 @@ v4.0.0 (net yet released)
 v3.x
 ----
 
-v3.11.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.11.0 (2023-04-14)
+^^^^^^^^^^^^^^^^^^^^
 
 Added:
 
@@ -115,6 +115,10 @@ Fixed:
   (`#1525 <https://github.com/glotzerlab/hoomd-blue/pull/1525>`_).
 * ``thermalize_particle_momenta`` now sets 0 velocity and angular momentum for rigid constituent
   particles  (`#1472 <https://github.com/glotzerlab/hoomd-blue/issues/1472>`__).
+* Reduce likelihood of data corruption when writing GSD files
+  (`#1531 <https://github.com/glotzerlab/hoomd-blue/pull/1531>`__).
+* Clarify migration process for ``hoomd.md.pair.ExpandedLJ``
+  (`#1501 <https://github.com/glotzerlab/hoomd-blue/pull/1501>`__).
 
 Deprecated:
 

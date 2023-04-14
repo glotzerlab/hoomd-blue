@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Use jetstream2-admin/start
-      uses: glotzerlab/jetstream2-admin/start@v1.2.1
+      uses: glotzerlab/jetstream2-admin/start@v1.2.2
       with:
         OS_APPLICATION_CREDENTIAL_ID: ${{ secrets.OS_APPLICATION_CREDENTIAL_ID }}
         OS_APPLICATION_CREDENTIAL_SECRET: ${{ secrets.OS_APPLICATION_CREDENTIAL_SECRET }}
@@ -84,7 +84,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v3.5.2
       with:
         path: code
         submodules: true
@@ -192,7 +192,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v3.5.2
       with:
         path: code
         submodules: true
@@ -255,7 +255,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v3.5.2
       with:
         path: code
         submodules: true
@@ -305,7 +305,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v3.5.2
       with:
         path: code
         submodules: true
@@ -370,7 +370,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v3.5.2
       with:
         path: code
         submodules: true
@@ -487,7 +487,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v3.5.2
       with:
         path: code
         submodules: true
@@ -559,7 +559,7 @@ jobs:
       run: ( shopt -s dotglob nullglob; rm -rf ./* )
       shell: bash
     - name: Checkout
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v3.5.2
       with:
         path: code
         submodules: true
