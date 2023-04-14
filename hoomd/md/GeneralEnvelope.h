@@ -171,18 +171,18 @@ public:
     DEVICE inline Scalar Modulatorj() { return fj(); }
 
 
-    DEVICE Scalar3 dfi_dni()
+    DEVICE Scalar3 dfi_du()
         {
             //      rhat *    (-self.omega        * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
             Scalar fact = fi();
-            return vec_to_scalar3(rhat) * -params.omega * fast::exp(params.omega * (params.cosalpha - costhetai))  * fact * fact;
+            return -params.omega * fast::exp(params.omega * (params.cosalpha - costhetai))  * fact * fact;
         }
 
-    DEVICE Scalar3 dfj_dnj()
+    DEVICE Scalar3 dfj_du()
         {
             Scalar fact = fj();
             //     rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
-            return vec_to_scalar3(rhat) * params.omega * fast::exp(params.omega * (params.cosalpha - costhetaj))  * fact * fact;
+            return params.omega * fast::exp(params.omega * (params.cosalpha - costhetaj))  * fact * fact;
         }
     
     DEVICE Scalar ModulatorPrimei() // TODO call it derivative with respect to costhetai
@@ -231,17 +231,21 @@ public:
 
             // NEW way with Philipp Feb 9
 
+            vec3<Scalar> dfi_dni = dfi_du() * rhat; // TODO add -rhat here and take out above
+            
             torque_div_energy_i =
-                vec_to_scalar3( params.ni.x * cross( vec3<Scalar>(a1), vec3<Scalar>(dfi_dni()))) +
-                vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), vec3<Scalar>(dfi_dni()))) +
-                vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), vec3<Scalar>(dfi_dni())));
+                vec_to_scalar3( params.ni.x * cross( vec3<Scalar>(a1), dfi_dni)) +
+                vec_to_scalar3( params.ni.y * cross( vec3<Scalar>(a2), dfi_dni)) +
+                vec_to_scalar3( params.ni.z * cross( vec3<Scalar>(a3), dfi_dni));
 
             torque_div_energy_i *= Scalar(-1) * Modulatorj();
 
+            vec3<Scalar> dfj_dnj = dfj_du() * rhat; // still positive
+            
             torque_div_energy_j =
-                vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), vec3<Scalar>(dfj_dnj()))) +
-                vec_to_scalar3( params.nj.y * cross( vec3<Scalar>(b2), vec3<Scalar>(dfj_dnj()))) +
-                vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), vec3<Scalar>(dfj_dnj())));
+                vec_to_scalar3( params.nj.x * cross( vec3<Scalar>(b1), dfj_dnj)) +
+                vec_to_scalar3( params.nj.y * cross( vec3<Scalar>(b2), dfj_dnj)) +
+                vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dfj_dnj));
             
             // std::cout << "j term 3 / modulatorPrimej" << vecString(vec_to_scalar3( params.nj.z * cross( vec3<Scalar>(b3), dr)));
             
