@@ -177,6 +177,24 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         PairData::Snapshot pair_data;
         };
 
+    /// Flags for all_default bitset
+    struct gsd_flag
+        {
+        enum Enum
+            {
+            orientation,
+            type,
+            mass,
+            charge,
+            diameter,
+            body,
+            inertia,
+            velocity,
+            angmom,
+            image,
+            };
+        };
+
     private:
     std::string m_fname;            //!< The file name we are writing to
     std::string m_mode;             //!< The file open mode

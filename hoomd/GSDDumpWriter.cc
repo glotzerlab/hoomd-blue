@@ -191,11 +191,8 @@ void GSDDumpWriter::analyze(uint64_t timestep)
         if (m_exec_conf->isRoot())
             {
             writeFrameHeader(m_global_frame);
-            // if (m_write_attribute || m_nframes == 0)
             writeAttributes(m_global_frame);
-            // if (m_write_property || m_nframes == 0)
             writeProperties(m_global_frame);
-            // if (m_write_momentum || m_nframes == 0)
             writeMomenta(m_global_frame);
             }
         }
@@ -875,7 +872,6 @@ void GSDDumpWriter::populateNonDefault()
     gsd_close(&m_handle);
     }
 
-
 void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t timestep)
     {
     frame.timestep = timestep;
@@ -885,32 +881,26 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
     uint32_t N = m_group->getNumMembersGlobal();
 
+    // Assume values are all default to start, set flags to false when we find a non-default.
+    std::bitset<10> all_default;
+    all_default.set();
+
     // properties
     frame.particle_data.pos.resize(0);
     frame.particle_data.orientation.resize(0);
-    bool orientation_all_default = true;
 
     // attributes
     frame.particle_data.type.resize(0);
-    bool type_all_default = true;
     frame.particle_data.mass.resize(0);
-    bool mass_all_default = true;
     frame.particle_data.charge.resize(0);
-    bool charge_all_default = true;
     frame.particle_data.diameter.resize(0);
-    bool diameter_all_default = true;
     frame.particle_data.body.resize(0);
-    bool body_all_default = true;
     frame.particle_data.inertia.resize(0);
-    bool inertia_all_default = true;
 
     // momenta
     frame.particle_data.vel.resize(0);
-    bool velocity_all_default = true;
     frame.particle_data.angmom.resize(0);
-    bool angmom_all_default = true;
     frame.particle_data.image.resize(0);
-    bool image_all_default = true;
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
@@ -947,7 +937,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
                 || orientation.v.y != Scalar(0.0)
                 || orientation.v.z != Scalar(0.0))
                 {
-                orientation_all_default = false;
+                all_default[gsd_flag::orientation] = false;
                 }
 
             frame.particle_data.orientation.push_back(quat<float>(orientation));
@@ -956,7 +946,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
                 {
                 if (image.x != 0 || image.y != 0 || image.z != 0)
                     {
-                    image_all_default = false;
+                    all_default[gsd_flag::image] = false;
                     }
 
                 frame.particle_data.image.push_back(image);
@@ -966,7 +956,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
                 {
                 if (type != 0)
                     {
-                    type_all_default = false;
+                    all_default[gsd_flag::type] = false;
                     }
 
                 frame.particle_data.type.push_back(type);
@@ -999,35 +989,35 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (mass != 1.0f)
                 {
-                mass_all_default = false;
+                all_default[gsd_flag::mass] = false;
                 }
 
             frame.particle_data.mass.push_back(mass);
 
             if (charge != 0.0f)
                 {
-                charge_all_default = false;
+                all_default[gsd_flag::charge] = false;
                 }
 
             frame.particle_data.charge.push_back(charge);
 
             if (diameter != 1.0f)
                 {
-                diameter_all_default = false;
+                all_default[gsd_flag::diameter] = false;
                 }
 
             frame.particle_data.diameter.push_back(diameter);
 
             if (body != NO_BODY)
                 {
-                body_all_default = false;
+                all_default[gsd_flag::body] = false;
                 }
 
             frame.particle_data.body.push_back(body);
 
             if (inertia.x != 0.0f || inertia.y != 0.0f || inertia.z != 0.0f)
                 {
-                inertia_all_default = false;
+                all_default[gsd_flag::inertia] = false;
                 }
 
             frame.particle_data.inertia.push_back(inertia);
@@ -1055,14 +1045,14 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (velocity.x != 0.0f || velocity.y != 0.0f || velocity.z != 0.0f)
                 {
-                velocity_all_default = false;
+                all_default[gsd_flag::velocity] = false;
                 }
 
             frame.particle_data.vel.push_back(velocity);
 
             if (angmom.s != 0.0f || angmom.v.x != 0.0f || angmom.v.y != 0.0f || angmom.v.z != 0.0f)
                 {
-                angmom_all_default = false;
+                all_default[gsd_flag::angmom] = false;
                 }
 
             frame.particle_data.angmom.push_back(angmom);
@@ -1072,76 +1062,17 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
     #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
-        // TODO: combine into one bitwise or to reduce code and communication
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &orientation_all_default,
-                      1,
-                      MPI_CXX_BOOL,
-                      MPI_LAND,
-                      m_exec_conf->getMPICommunicator());
+        unsigned long v = all_default.to_ulong();
 
+        // All default only when all ranks are all default.
         MPI_Allreduce(MPI_IN_PLACE,
-                      &type_all_default,
-                      1,
-                      MPI_CXX_BOOL,
-                      MPI_LAND,
-                      m_exec_conf->getMPICommunicator());
-
-        MPI_Allreduce(MPI_IN_PLACE,
-                &mass_all_default,
+                &v,
                 1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
+                MPI_LONG,
+                MPI_BAND,
                 m_exec_conf->getMPICommunicator());
 
-        MPI_Allreduce(MPI_IN_PLACE,
-                &charge_all_default,
-                1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
-                m_exec_conf->getMPICommunicator());
-
-        MPI_Allreduce(MPI_IN_PLACE,
-                &diameter_all_default,
-                1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
-                m_exec_conf->getMPICommunicator());
-
-        MPI_Allreduce(MPI_IN_PLACE,
-                &body_all_default,
-                1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
-                m_exec_conf->getMPICommunicator());
-
-        MPI_Allreduce(MPI_IN_PLACE,
-                &inertia_all_default,
-                1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
-                m_exec_conf->getMPICommunicator());
-
-        MPI_Allreduce(MPI_IN_PLACE,
-                &velocity_all_default,
-                1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
-                m_exec_conf->getMPICommunicator());
-
-        MPI_Allreduce(MPI_IN_PLACE,
-                &angmom_all_default,
-                1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
-                m_exec_conf->getMPICommunicator());
-
-        MPI_Allreduce(MPI_IN_PLACE,
-                &image_all_default,
-                1,
-                MPI_CXX_BOOL,
-                MPI_LAND,
-                m_exec_conf->getMPICommunicator());
+        all_default = std::bitset<all_default.size()>(v);
         }
     #endif
 
@@ -1150,53 +1081,53 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
     // !(!all_default || (nframes > 0 && m_nondefault["value"])) <=>
     // (all_default && !(nframes > 0 && m_nondefault["value"])
 
-    if (orientation_all_default && !(m_nframes > 0 && m_nondefault["particles/orientation"]))
+    if (all_default[gsd_flag::orientation] && !(m_nframes > 0 && m_nondefault["particles/orientation"]))
         {
         frame.particle_data.orientation.resize(0);
         }
 
-    if (type_all_default && !(m_nframes > 0 && m_nondefault["particles/typeid"]))
+    if (all_default[gsd_flag::type] && !(m_nframes > 0 && m_nondefault["particles/typeid"]))
         {
         frame.particle_data.type.resize(0);
         }
 
-    if (mass_all_default && !(m_nframes > 0 && m_nondefault["particles/mass"]))
+    if (all_default[gsd_flag::mass] && !(m_nframes > 0 && m_nondefault["particles/mass"]))
         {
         frame.particle_data.mass.resize(0);
         }
 
-    if (charge_all_default && !(m_nframes > 0 && m_nondefault["particles/charge"]))
+    if (all_default[gsd_flag::charge] && !(m_nframes > 0 && m_nondefault["particles/charge"]))
         {
         frame.particle_data.charge.resize(0);
         }
 
-    if (diameter_all_default && !(m_nframes > 0 && m_nondefault["particles/diameter"]))
+    if (all_default[gsd_flag::diameter] && !(m_nframes > 0 && m_nondefault["particles/diameter"]))
         {
         frame.particle_data.diameter.resize(0);
         }
 
-    if (body_all_default && !(m_nframes > 0 && m_nondefault["particles/body"]))
+    if (all_default[gsd_flag::body] && !(m_nframes > 0 && m_nondefault["particles/body"]))
         {
         frame.particle_data.body.resize(0);
         }
 
-    if (inertia_all_default && !(m_nframes > 0 && m_nondefault["particles/moment_inertia"]))
+    if (all_default[gsd_flag::inertia] && !(m_nframes > 0 && m_nondefault["particles/moment_inertia"]))
         {
         frame.particle_data.inertia.resize(0);
         }
 
     // momenta
-    if (velocity_all_default && !(m_nframes > 0 && m_nondefault["particles/velocity"]))
+    if (all_default[gsd_flag::velocity] && !(m_nframes > 0 && m_nondefault["particles/velocity"]))
         {
         frame.particle_data.vel.resize(0);
         }
 
-    if (angmom_all_default && !(m_nframes > 0 && m_nondefault["particles/angmom"]))
+    if (all_default[gsd_flag::angmom] && !(m_nframes > 0 && m_nondefault["particles/angmom"]))
         {
         frame.particle_data.angmom.resize(0);
         }
 
-    if (image_all_default && !(m_nframes > 0 && m_nondefault["particles/image"]))
+    if (all_default[gsd_flag::image] && !(m_nframes > 0 && m_nondefault["particles/image"]))
         {
         frame.particle_data.image.resize(0);
         }
