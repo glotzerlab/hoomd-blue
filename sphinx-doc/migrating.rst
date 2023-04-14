@@ -262,7 +262,7 @@ HOOMD v3 removes old APIs, unused functionality, and features better served by o
    * - ``f_list`` and ``t_list`` parameters to ``md.force.active``
      - Per-type ``active_force`` and ``active_torque``
    * - ``md.pair.SLJ``
-     - `md.pair.ExpandedLJ`
+     - `md.pair.ExpandedLJ` with `hoomd.md.pair.Pair.r_cut` set to ``r_cut(for delta=0) + delta``
 
 ``hoomd.cgcmm``:
 

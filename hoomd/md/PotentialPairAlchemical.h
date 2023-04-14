@@ -117,7 +117,7 @@ class PotentialPairAlchemical : public PotentialPair<evaluator>
     Index2DUpperTriangular m_alchemy_index; //!< upper triangular typepair index
     std::vector<mask_type> m_alchemy_mask;  //!< Type pair mask for if alchemical forces are used
     std::vector<std::shared_ptr<alpha_particle_type>>
-        m_alchemical_particles; //!< 2D array (alchemy_index,alchemical param)
+        m_alchemical_particles;             //!< 2D array (alchemy_index,alchemical param)
 
     //! Method to be called when number of particles changes
     void slotNumParticlesChange()

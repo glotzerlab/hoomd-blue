@@ -343,9 +343,9 @@ template<class evaluator> class PotentialPair : public ForceCompute
 
             } // end if (compute_virial)
 
-        } // end void computeTailCorrection()
+        }     // end void computeTailCorrection()
 
-    }; // end class PotentialPair
+    };        // end class PotentialPair
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
@@ -1062,8 +1062,8 @@ template<class T> void export_PotentialPair(pybind11::module& m, const std::stri
         .def("connectGSDShapeSpec", &PotentialPair<T>::connectGSDShapeSpec);
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_H__

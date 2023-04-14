@@ -64,9 +64,9 @@ class PYBIND11_EXPORT VirtualParticleFiller : public Autotuned
     std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
     std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
 
-    Scalar m_density;             //!< Fill density
-    unsigned int m_type;          //!< Fill type
-    std::shared_ptr<Variant> m_T; //!< Temperature for filled particles
+    Scalar m_density;                                          //!< Fill density
+    unsigned int m_type;                                       //!< Fill type
+    std::shared_ptr<Variant> m_T;                              //!< Temperature for filled particles
 
     unsigned int m_N_fill;    //!< Number of particles to fill locally
     unsigned int m_first_tag; //!< First tag of locally held particles

@@ -181,7 +181,7 @@ class EvaluatorBondTether
     Scalar l_max; //!< l_max parameter
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __BOND_EVALUATOR_TETHER_H__

@@ -64,9 +64,9 @@ namespace detail
 //! Export the SFCPackTunerGPU class to python
 void export_SFCPackTunerGPU(pybind11::module& m);
 
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // __SFC_PACK_UPDATER_GPU_H_
 

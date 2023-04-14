@@ -136,8 +136,8 @@ class EvaluatorPairDipole
                                    Scalar4& _quat_j,
                                    Scalar _rcutsq,
                                    const param_type& _params)
-        : dr(_dr), rcutsq(_rcutsq), q_i(0), q_j(0), quat_i(_quat_i),
-          quat_j(_quat_j), mu_i {0, 0, 0}, mu_j {0, 0, 0}, A(_params.A), kappa(_params.kappa)
+        : dr(_dr), rcutsq(_rcutsq), q_i(0), q_j(0), quat_i(_quat_i), quat_j(_quat_j),
+          mu_i {0, 0, 0}, mu_j {0, 0, 0}, A(_params.A), kappa(_params.kappa)
         {
         }
 
@@ -342,7 +342,7 @@ class EvaluatorPairDipole
     // const param_type &params;   //!< The pair potential parameters
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __PAIR_EVALUATOR_DIPOLE_H__

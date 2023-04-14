@@ -467,8 +467,8 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4* d_pos,
 
 #endif
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__TWO_STEP_RATTLE_NVE_GPU_CUH__

@@ -139,7 +139,7 @@ class EvaluatorExternalElectricField
     Scalar3 m_E;   //!< the field vector
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

@@ -58,20 +58,20 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     std::shared_ptr<Autotuner<1>> m_build_tuner;    //!< Tuner for LBVH builds
     std::shared_ptr<Autotuner<1>> m_traverse_tuner; //!< Tuner for LBVH traversers
 
-    GPUArray<unsigned int> m_types;          //!< Particle types (for sorting)
-    GPUArray<unsigned int> m_sorted_types;   //!< Sorted particle types
-    GPUArray<unsigned int> m_indexes;        //!< Particle indexes (for sorting)
-    GPUArray<unsigned int> m_sorted_indexes; //!< Sorted particle indexes
+    GPUArray<unsigned int> m_types;                 //!< Particle types (for sorting)
+    GPUArray<unsigned int> m_sorted_types;          //!< Sorted particle types
+    GPUArray<unsigned int> m_indexes;               //!< Particle indexes (for sorting)
+    GPUArray<unsigned int> m_sorted_indexes;        //!< Sorted particle indexes
 
-    unsigned int m_type_bits;            //!< Number of bits to sort based on largest type index
-    GPUArray<unsigned int> m_type_first; //!< First index of each particle type in sorted list
-    GPUArray<unsigned int> m_type_last;  //!< Last index of each particle type in sorted list
+    unsigned int m_type_bits;             //!< Number of bits to sort based on largest type index
+    GPUArray<unsigned int> m_type_first;  //!< First index of each particle type in sorted list
+    GPUArray<unsigned int> m_type_last;   //!< Last index of each particle type in sorted list
 
     GPUFlags<unsigned int> m_lbvh_errors; //!< Error flags during particle marking (e.g., off rank)
     std::vector<std::unique_ptr<kernel::LBVHWrapper>> m_lbvhs; //!< Array of LBVHs per-type
     std::vector<std::unique_ptr<kernel::LBVHTraverserWrapper>>
-        m_traversers;                   //!< Array of LBVH traverers per-type
-    std::vector<hipStream_t> m_streams; //!< Array of CUDA streams per-type
+        m_traversers;                                          //!< Array of LBVH traverers per-type
+    std::vector<hipStream_t> m_streams;                        //!< Array of CUDA streams per-type
 
     GlobalVector<Scalar3> m_image_list;      //!< List of translation vectors for traversal
     unsigned int m_n_images;                 //!< Number of translation vectors for traversal
@@ -133,7 +133,7 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     // @}
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__NEIGHBORLISTGPUTREE_H__

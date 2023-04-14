@@ -73,14 +73,14 @@ struct pair_args_t
           threads_per_particle(_threads_per_particle), gpu_partition(_gpu_partition),
           devprop(_devprop) {};
 
-    Scalar4* d_force;          //!< Force to write out
-    Scalar* d_virial;          //!< Virial to write out
-    const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
-    const unsigned int N;      //!< number of particles
-    const unsigned int n_max;  //!< Max size of pdata arrays
-    const Scalar4* d_pos;      //!< particle positions
-    const Scalar* d_charge;    //!< particle charges
-    const BoxDim box;          //!< Simulation box in GPU format
+    Scalar4* d_force;             //!< Force to write out
+    Scalar* d_virial;             //!< Virial to write out
+    const size_t virial_pitch;    //!< The pitch of the 2D array of virial matrix elements
+    const unsigned int N;         //!< number of particles
+    const unsigned int n_max;     //!< Max size of pdata arrays
+    const Scalar4* d_pos;         //!< particle positions
+    const Scalar* d_charge;       //!< particle charges
+    const BoxDim box;             //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;                //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist;  //!< Device array listing the neighbors of each particle
@@ -661,8 +661,8 @@ gpu_compute_pair_forces(const pair_args_t& pair_args,
                         const typename evaluator::param_type* d_params);
 #endif
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_GPU_CUH__

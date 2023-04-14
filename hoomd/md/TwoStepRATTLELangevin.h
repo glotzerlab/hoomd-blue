@@ -99,8 +99,8 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLELangevin : public Tw
         m_box_changed = true;
         }
 
-    Manifold m_manifold;       //!< The manifold used for the RATTLE constraint
-    Scalar m_reservoir_energy; //!< The energy of the reservoir the system is coupled to.
+    Manifold m_manifold;           //!< The manifold used for the RATTLE constraint
+    Scalar m_reservoir_energy;     //!< The energy of the reservoir the system is coupled to.
     Scalar
         m_extra_energy_overdeltaT; //!< An energy packet that isn't added until the next time step
     bool m_tally;       //!< If true, changes to the energy of the reservoir are calculated
@@ -732,8 +732,8 @@ void export_TwoStepRATTLELangevin(pybind11::module& m, const std::string& name)
                       &TwoStepRATTLELangevin<Manifold>::getTolerance,
                       &TwoStepRATTLELangevin<Manifold>::setTolerance);
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLE_LANGEVIN_H__

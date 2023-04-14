@@ -1024,8 +1024,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         std::vector<std::vector<Scalar>> mass_proc;   // Particle masses array of every processor
         std::vector<std::vector<Scalar>> charge_proc; // Particle charges array of every processor
         std::vector<std::vector<Scalar>>
-            diameter_proc;                         // Particle diameters array of every processor
-        std::vector<std::vector<int3>> image_proc; // Particle images array of every processor
+            diameter_proc;                            // Particle diameters array of every processor
+        std::vector<std::vector<int3>> image_proc;    // Particle images array of every processor
         std::vector<std::vector<unsigned int>> body_proc;   // Body ids of every processor
         std::vector<std::vector<Scalar4>> orientation_proc; // Orientations of every processor
         std::vector<std::vector<Scalar4>> angmom_proc;      // Angular momenta of every processor
@@ -1450,8 +1450,8 @@ template<class Real> void ParticleData::takeSnapshot(SnapshotParticleData<Real>&
         std::vector<std::vector<Scalar>> mass_proc;   // Particle masses array of every processor
         std::vector<std::vector<Scalar>> charge_proc; // Particle charges array of every processor
         std::vector<std::vector<Scalar>>
-            diameter_proc;                         // Particle diameters array of every processor
-        std::vector<std::vector<int3>> image_proc; // Particle images array of every processor
+            diameter_proc;                            // Particle diameters array of every processor
+        std::vector<std::vector<int3>> image_proc;    // Particle images array of every processor
         std::vector<std::vector<unsigned int>> body_proc;   // Body ids of every processor
         std::vector<std::vector<Scalar4>> orientation_proc; // Orientations of every processor
         std::vector<std::vector<Scalar4>> angmom_proc;      // Angular momenta of every processor

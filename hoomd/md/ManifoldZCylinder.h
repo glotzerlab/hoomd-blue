@@ -121,7 +121,7 @@ class ManifoldZCylinder
     Scalar R_sq;
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __MANIFOLD_CLASS_Z_CYLINDER_H__

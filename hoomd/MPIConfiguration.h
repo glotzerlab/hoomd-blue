@@ -144,8 +144,8 @@ class PYBIND11_EXPORT MPIConfiguration
     MPI_Comm m_mpi_comm;    //!< The MPI communicator
     MPI_Comm m_hoomd_world; //!< The HOOMD world communicator
 #endif
-    unsigned int m_rank;   //!< Rank of this processor (0 if running in single-processor mode)
-    unsigned int m_n_rank; //!< Ranks per partition
+    unsigned int m_rank;    //!< Rank of this processor (0 if running in single-processor mode)
+    unsigned int m_n_rank;  //!< Ranks per partition
 
     /// Clock to provide rank synchronized walltime.
     ClockSource m_clock;
