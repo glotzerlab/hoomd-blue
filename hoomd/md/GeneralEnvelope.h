@@ -171,14 +171,14 @@ public:
     DEVICE inline Scalar Modulatorj() { return fj(); }
 
 
-    DEVICE Scalar3 dfi_du()
+    DEVICE Scalar dfi_du()
         {
             //      rhat *    (-self.omega        * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2)
             Scalar fact = fi();
             return -params.omega * fast::exp(params.omega * (params.cosalpha - costhetai))  * fact * fact;
         }
 
-    DEVICE Scalar3 dfj_du()
+    DEVICE Scalar dfj_du()
         {
             Scalar fact = fj();
             //     rhat * (self.omega * exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2)
@@ -264,31 +264,32 @@ public:
             Scalar lo = magdr;
             Scalar3 dlo = vec_to_scalar3(rhat);
 
-            //something wrong: this has to be a scalar
-            Scalar3 dfi_dui = dfi_dni();
+            // //something wrong: this has to be a scalar
+            // Scalar3 dfi_dui = dfi_dni();
+            Scalar dfi_dui = dfi_du();
 
             Scalar hi = dot(dr, vec3<Scalar>(ni_world));
             Scalar3 dhi = vec_to_scalar3(ni_world);
-            // quotient rule
-            Scalar3 dui_dr = (lo*dhi - hi*dlo) / (lo*lo);
+            // // quotient rule
+            Scalar3 dui_dr = vec_to_scalar3(rhat) * (lo*dhi - hi*dlo) / (lo*lo);
 
 
-            Scalar3 dfj_duj = dfj_dnj();
+            Scalar dfj_duj = dfj_du();
             hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
             dhi = vec_to_scalar3(nj_world);
-            // lo and dlo are the same
-            Scalar3 duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
+            // // lo and dlo are the same
+            Scalar3 duj_dr = vec_to_scalar3(rhat) * (lo*dhi - hi*dlo) / (lo*lo);
             
-            // force = dfj_duj * duj_dr * fi() + dfi_dui*dui_dr * fj();
+            force = dfj_duj * duj_dr * fi() + dfi_dui*dui_dr * fj();
 
 
             //negative here bc forcedivr has the implicit negative in PairModulator
-            force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
-                        + jPi*(nj_world.x - costhetaj*dr.x/magdr));
-            force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
-                        + jPi*(nj_world.y - costhetaj*dr.y/magdr));
-            force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
-                        + jPi*(nj_world.z - costhetaj*dr.z/magdr));
+            // force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
+            //             + jPi*(nj_world.x - costhetaj*dr.x/magdr));
+            // force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
+            //             + jPi*(nj_world.y - costhetaj*dr.y/magdr));
+            // force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
+            //             + jPi*(nj_world.z - costhetaj*dr.z/magdr));
 
             return true;
         }
