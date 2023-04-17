@@ -63,6 +63,13 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
         throw std::invalid_argument("Invalid GSD file mode: " + mode);
         }
     m_log_writer = pybind11::none();
+
+    #ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        m_gather_tag_order = GatherTagOrder(m_exec_conf->getMPICommunicator());
+        }
+    #endif
     }
 
 //! Initializes the output file for writing
@@ -186,7 +193,7 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
-        // TODO, reduce global frame in MPI
+        gatherGlobalFrame(m_local_frame);
 
         if (m_exec_conf->isRoot())
             {
@@ -886,6 +893,8 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
     all_default.set();
     frame.particle_data_present.reset();
 
+    frame.particle_tags.resize(0);
+
     // properties
     frame.particle_data.pos.resize(0);
     frame.particle_data.orientation.resize(0);
@@ -905,6 +914,25 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
+    #ifdef ENABLE_MPI
+    if (N > 0 && m_sysdef->isDomainDecomposed())
+        {
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+        for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
+            {
+            unsigned int tag = m_group->getMemberTag(group_tag_index);
+            unsigned int index = h_rtag.data[tag];
+            if (index == NOT_LOCAL)
+                {
+                continue;
+                }
+
+            frame.particle_tags.push_back(h_tag.data[index]);
+            }
+        }
+    #endif
+
     if (N > 0 && (m_write_property || m_nframes == 0))
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -915,6 +943,10 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         if (m_write_momentum || m_nframes == 0)
             {
             frame.particle_data_present[gsd_flag::image] = true;
+            }
+        if (m_write_attribute || m_nframes == 0)
+            {
+            frame.particle_data_present[gsd_flag::type] = true;
             }
 
         for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
@@ -1183,6 +1215,65 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         m_sysdef->getPairData()->takeSnapshot(frame.pair_data);
         }
     }
+
+#ifdef ENABLE_MPI
+
+/*! Gather per-particle data from the local frame and sort it into ascending tag order in
+    m_global_frame.
+*/
+void GSDDumpWriter::gatherGlobalFrame(const GSDFrame& local_frame)
+    {
+    m_global_frame.timestep = local_frame.timestep;
+    m_global_frame.global_box = local_frame.global_box;
+    m_global_frame.particle_data.type_mapping = local_frame.particle_data.type_mapping;
+    m_global_frame.particle_data_present = local_frame.particle_data_present;
+
+    m_gather_tag_order.setLocalTagsSorted(local_frame.particle_tags);
+    m_gather_tag_order.gatherArray(m_global_frame.particle_data.pos, local_frame.particle_data.pos);
+
+    if (local_frame.particle_data_present[gsd_flag::orientation])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.orientation, local_frame.particle_data.orientation);
+        }
+    if (local_frame.particle_data_present[gsd_flag::type])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.type, local_frame.particle_data.type);
+        }
+    if (local_frame.particle_data_present[gsd_flag::mass])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.mass, local_frame.particle_data.mass);
+        }
+    if (local_frame.particle_data_present[gsd_flag::charge])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.charge, local_frame.particle_data.charge);
+        }
+    if (local_frame.particle_data_present[gsd_flag::diameter])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.diameter, local_frame.particle_data.diameter);
+        }
+    if (local_frame.particle_data_present[gsd_flag::body])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.body, local_frame.particle_data.body);
+        }
+    if (local_frame.particle_data_present[gsd_flag::inertia])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.inertia, local_frame.particle_data.inertia);
+        }
+    if (local_frame.particle_data_present[gsd_flag::velocity])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.vel, local_frame.particle_data.vel);
+        }
+    if (local_frame.particle_data_present[gsd_flag::angmom])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.angmom, local_frame.particle_data.angmom);
+        }
+    if (local_frame.particle_data_present[gsd_flag::image])
+        {
+        m_gather_tag_order.gatherArray(m_global_frame.particle_data.image, local_frame.particle_data.image);
+        }
+    }
+
+#endif
 
 namespace detail
     {

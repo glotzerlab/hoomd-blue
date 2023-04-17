@@ -170,6 +170,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         {
         uint64_t timestep;
         BoxDim global_box;
+
+        std::vector<unsigned int> particle_tags;
+
         SnapshotParticleData<float> particle_data;
         BondData::Snapshot bond_data;
         AngleData::Snapshot angle_data;
@@ -226,8 +229,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     hoomd::detail::SharedSignal<int(gsd_handle&)> m_write_signal;
 
+    /// Copy of the state properties local to this rank, in ascending tag order.
     GSDFrame m_local_frame;
-    GSDFrame m_global_frame;
 
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
@@ -263,6 +266,14 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     /// Populate local frame with data.
     void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
+
+    #ifdef ENABLE_MPI
+    /// Copy of the state properties on all ranks, in ascending tag order globally.
+    GSDFrame m_global_frame;
+    GatherTagOrder m_gather_tag_order;
+
+    void gatherGlobalFrame(const GSDFrame& local_frame);
+    #endif
 
     friend void export_GSDDumpWriter(pybind11::module& m);
     };
