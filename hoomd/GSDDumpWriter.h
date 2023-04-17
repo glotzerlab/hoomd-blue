@@ -159,7 +159,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     /** Local frames store particles local to the rank, sorted in ascending tag order.
         Global frames store the entire system, sorted in ascending tag order.
 
-        Entries with 0 sized vectors should not be written to the file.
+        Entries with 0 sized vectors should not be written to the file. Some ranks may have
+        0 particles while others have N: track which fields are present with
+        `particle_data_present` to enable global communication.
 
         Note: In the first implementation, only particle data is local/global .
         The bond/angle/dihedral/etc... data stored in the *local* frame is actually global.
@@ -175,6 +177,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         ImproperData::Snapshot improper_data;
         ConstraintData::Snapshot constraint_data;
         PairData::Snapshot pair_data;
+
+        /// Bit flags indicating which particle data fields are present (index by gsd_flag)
+        std::bitset<10> particle_data_present;
         };
 
     /// Flags for all_default bitset
