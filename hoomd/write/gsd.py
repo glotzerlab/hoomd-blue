@@ -80,37 +80,37 @@ class GSD(Writer):
 
     * **property**
 
-        * particles/position
-        * particles/orientation (*only written when values are not the
-          default: [1,0,0,0]*)
+      * particles/position
+      * particles/orientation (*only written when values are not the
+        default: [1,0,0,0]*)
 
     * **momentum**
 
-        * particles/velocity
-        * particles/angmom (*only written when values are not the
-          default: [0,0,0,0]*)
-        * particles/image (*only written when values are not the
-          default: [0,0,0]*)
+      * particles/velocity
+      * particles/angmom (*only written when values are not the
+        default: [0,0,0,0]*)
+      * particles/image (*only written when values are not the
+        default: [0,0,0]*)
 
     * **attribute**
 
-        * particles/N
-        * particles/types
-        * particles/typeid
-        * particles/mass
-        * particles/charge
-        * particles/diameter
-        * particles/body
-        * particles/moment_inertia
+      * particles/N
+      * particles/types
+      * particles/typeid
+      * particles/mass
+      * particles/charge
+      * particles/diameter
+      * particles/body
+      * particles/moment_inertia
 
     * **topology**
 
-        * bonds/*
-        * angles/*
-        * dihedrals/*
-        * impropers/*
-        * constraints/*
-        * pairs/*
+      * bonds/*
+      * angles/*
+      * dihedrals/*
+      * impropers/*
+      * constraints/*
+      * pairs/*
 
     See Also:
         See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
