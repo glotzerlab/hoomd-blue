@@ -923,7 +923,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             {
             unsigned int tag = m_group->getMemberTag(group_tag_index);
             unsigned int index = h_rtag.data[tag];
-            if (index == NOT_LOCAL)
+            if (index >= m_pdata->getN())
                 {
                 continue;
                 }
@@ -953,7 +953,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             {
             unsigned int tag = m_group->getMemberTag(group_tag_index);
             unsigned int index = h_rtag.data[tag];
-            if (index == NOT_LOCAL)
+            if (index >= m_pdata->getN())
                 {
                 continue;
                 }
@@ -1022,7 +1022,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             {
             unsigned int tag = m_group->getMemberTag(group_tag_index);
             unsigned int index = h_rtag.data[tag];
-            if (index == NOT_LOCAL)
+            if (index >= m_pdata->getN())
                 {
                 continue;
                 }
@@ -1082,7 +1082,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             {
             unsigned int tag = m_group->getMemberTag(group_tag_index);
             unsigned int index = h_rtag.data[tag];
-            if (index == NOT_LOCAL)
+            if (index >= m_pdata->getN())
                 {
                 continue;
                 }

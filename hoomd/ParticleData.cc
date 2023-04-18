@@ -1577,7 +1577,7 @@ template<class Real> void ParticleData::takeSnapshot(SnapshotParticleData<Real>&
             unsigned int idx = h_rtag.data[tag];
 
             // skip ahead to the next tag when particles have been removed by removeParticle()
-            while (idx == NOT_LOCAL)
+            while (idx >= m_nparticles)
                 {
                 tag++;
                 idx = h_rtag.data[tag];
