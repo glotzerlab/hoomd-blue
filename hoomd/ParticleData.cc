@@ -1572,7 +1572,7 @@ template<class Real> void ParticleData::takeSnapshot(SnapshotParticleData<Real>&
         // however one needs to prepare an additional auxiliary array that maps from local index to
         // the monotonically increasing tag order in the snapshot.
         unsigned int tag = 0;
-        for (unsigned int snap_id = 0; snap_id < m_nparticles; snap_id++,tag++)
+        for (unsigned int snap_id = 0; snap_id < m_nparticles; snap_id++, tag++)
             {
             unsigned int idx = h_rtag.data[tag];
 
@@ -2745,8 +2745,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot
 template void
 ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double>& snapshot,
                                              bool ignore_bodies);
-template void
-ParticleData::takeSnapshot<double>(SnapshotParticleData<double>& snapshot);
+template void ParticleData::takeSnapshot<double>(SnapshotParticleData<double>& snapshot);
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                     const std::shared_ptr<const BoxDim> global_box,
@@ -2755,8 +2754,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
 template void
 ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float>& snapshot,
                                             bool ignore_bodies);
-template void
-ParticleData::takeSnapshot<float>(SnapshotParticleData<float>& snapshot);
+template void ParticleData::takeSnapshot<float>(SnapshotParticleData<float>& snapshot);
 
 namespace detail
     {

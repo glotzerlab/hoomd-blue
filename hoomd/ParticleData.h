@@ -1154,8 +1154,7 @@ class PYBIND11_EXPORT ParticleData
                                 bool ignore_bodies = false);
 
     //! Take a snapshot
-    template<class Real>
-    void takeSnapshot(SnapshotParticleData<Real>& snapshot);
+    template<class Real> void takeSnapshot(SnapshotParticleData<Real>& snapshot);
 
     //! Add ghost particles at the end of the local particle data
     void addGhostParticles(const unsigned int nghosts);

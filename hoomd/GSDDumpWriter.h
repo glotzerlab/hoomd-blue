@@ -154,7 +154,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         }
 
     protected:
-
     /// Store a GSD frame for writing.
     /** Local frames store particles local to the rank, sorted in ascending tag order.
         Global frames store the entire system, sorted in ascending tag order.
@@ -267,13 +266,13 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     /// Populate local frame with data.
     void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     /// Copy of the state properties on all ranks, in ascending tag order globally.
     GSDFrame m_global_frame;
     GatherTagOrder m_gather_tag_order;
 
     void gatherGlobalFrame(const GSDFrame& local_frame);
-    #endif
+#endif
 
     friend void export_GSDDumpWriter(pybind11::module& m);
     };
