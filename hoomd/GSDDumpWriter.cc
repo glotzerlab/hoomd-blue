@@ -920,7 +920,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
 #ifdef ENABLE_MPI
-    if (N > 0 && m_sysdef->isDomainDecomposed())
+    if (N > 0)
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
                                         access_location::host,
@@ -960,9 +960,9 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             frame.particle_data_present[gsd_flag::type] = true;
             }
 
-        for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
+        for (unsigned int group_index = 0; group_index < frame.particle_tags.size(); group_index++)
             {
-            unsigned int tag = m_group->getMemberTag(group_tag_index);
+            unsigned int tag = frame.particle_tags[group_index];
             unsigned int index = h_rtag.data[tag];
             if (index >= m_pdata->getN())
                 {
@@ -1038,9 +1038,9 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         frame.particle_data_present[gsd_flag::body] = true;
         frame.particle_data_present[gsd_flag::inertia] = true;
 
-        for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
+        for (unsigned int group_index = 0; group_index < frame.particle_tags.size(); group_index++)
             {
-            unsigned int tag = m_group->getMemberTag(group_tag_index);
+            unsigned int tag = frame.particle_tags[group_index];
             unsigned int index = h_rtag.data[tag];
             if (index >= m_pdata->getN())
                 {
@@ -1102,9 +1102,9 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         frame.particle_data_present[gsd_flag::velocity] = true;
         frame.particle_data_present[gsd_flag::angmom] = true;
 
-        for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
+        for (unsigned int group_index = 0; group_index < frame.particle_tags.size(); group_index++)
             {
-            unsigned int tag = m_group->getMemberTag(group_tag_index);
+            unsigned int tag = frame.particle_tags[group_index];
             unsigned int index = h_rtag.data[tag];
             if (index >= m_pdata->getN())
                 {
