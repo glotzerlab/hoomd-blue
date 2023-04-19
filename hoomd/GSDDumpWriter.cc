@@ -919,7 +919,6 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-#ifdef ENABLE_MPI
     if (N > 0)
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
@@ -941,7 +940,6 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             m_index.push_back(index);
             }
         }
-#endif
 
     if (N > 0 && (m_write_property || m_nframes == 0))
         {
