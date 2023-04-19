@@ -926,6 +926,8 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
                                         access_location::host,
                                         access_mode::read);
 
+        m_index.resize(0);
+
         for (unsigned int group_tag_index = 0; group_tag_index < N; group_tag_index++)
             {
             unsigned int tag = m_group->getMemberTag(group_tag_index);
@@ -936,6 +938,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
                 }
 
             frame.particle_tags.push_back(h_tag.data[index]);
+            m_index.push_back(index);
             }
         }
 #endif
@@ -960,15 +963,8 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             frame.particle_data_present[gsd_flag::type] = true;
             }
 
-        for (unsigned int group_index = 0; group_index < frame.particle_tags.size(); group_index++)
+        for (unsigned int index : m_index)
             {
-            unsigned int tag = frame.particle_tags[group_index];
-            unsigned int index = h_rtag.data[tag];
-            if (index >= m_pdata->getN())
-                {
-                continue;
-                }
-
             vec3<Scalar> position
                 = vec3<Scalar>(h_postype.data[index]) - vec3<Scalar>(m_pdata->getOrigin());
             unsigned int type = __scalar_as_int(h_postype.data[index].w);
@@ -1038,15 +1034,8 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         frame.particle_data_present[gsd_flag::body] = true;
         frame.particle_data_present[gsd_flag::inertia] = true;
 
-        for (unsigned int group_index = 0; group_index < frame.particle_tags.size(); group_index++)
+        for (unsigned int index : m_index)
             {
-            unsigned int tag = frame.particle_tags[group_index];
-            unsigned int index = h_rtag.data[tag];
-            if (index >= m_pdata->getN())
-                {
-                continue;
-                }
-
             float mass = static_cast<float>(h_velocity_mass.data[index].w);
             float charge = static_cast<float>(h_charge.data[index]);
             float diameter = static_cast<float>(h_diameter.data[index]);
@@ -1102,15 +1091,8 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         frame.particle_data_present[gsd_flag::velocity] = true;
         frame.particle_data_present[gsd_flag::angmom] = true;
 
-        for (unsigned int group_index = 0; group_index < frame.particle_tags.size(); group_index++)
+        for (unsigned int index : m_index)
             {
-            unsigned int tag = frame.particle_tags[group_index];
-            unsigned int index = h_rtag.data[tag];
-            if (index >= m_pdata->getN())
-                {
-                continue;
-                }
-
             vec3<float> velocity = vec3<float>(static_cast<float>(h_velocity_mass.data[index].x),
                                                static_cast<float>(h_velocity_mass.data[index].y),
                                                static_cast<float>(h_velocity_mass.data[index].z));

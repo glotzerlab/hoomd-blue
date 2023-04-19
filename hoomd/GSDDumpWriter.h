@@ -231,6 +231,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     /// Copy of the state properties local to this rank, in ascending tag order.
     GSDFrame m_local_frame;
 
+    /// Working array to sort local particles by tag
+    std::vector<unsigned int> m_index;
+
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
 
