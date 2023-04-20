@@ -80,9 +80,9 @@ For some functionalities, you will need to update your scripts to use a new API:
 
   * Use the ``gamma`` property.
 
-* The ``dynamic`` property and argument of `hoomd.write.GSD` no longer enforces `'property'` as
-  an always dynamic quantity. Users must opt in to `'property'`, `'particles/position'` and/or
-  `'particles/orientation'` as needed.
+* The ``dynamic`` property and argument of ``hoomd.write.GSD`` no longer enforces ``'property'`` as
+  an always dynamic quantity. Users must opt in to ``'property'``, ``'particles/position'`` and/or
+  ``'particles/orientation'`` as needed.
 
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
