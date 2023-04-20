@@ -43,24 +43,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                   std::string mode = "ab",
                   bool truncate = false);
 
-    //! Control attribute writes
-    void setWriteAttribute(bool b)
-        {
-        m_write_attribute = b;
-        }
-
-    //! Control property writes
-    void setWriteProperty(bool b)
-        {
-        m_write_property = b;
-        }
-
-    //! Control momentum writes
-    void setWriteMomentum(bool b)
-        {
-        m_write_momentum = b;
-        }
-
     //! Control topology writes
     void setWriteTopology(bool b)
         {
@@ -87,20 +69,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         return m_group;
         }
 
-    pybind11::tuple getDynamic()
-        {
-        pybind11::list result;
-        if (m_write_attribute)
-            result.append("attribute");
-        if (m_write_property)
-            result.append("property");
-        if (m_write_momentum)
-            result.append("momentum");
-        if (m_write_topology)
-            result.append("topology");
+    pybind11::tuple getDynamic();
 
-        return pybind11::tuple(result);
-        }
+    void setDynamic(pybind11::object dynamic);
 
     //! Destructor
     ~GSDDumpWriter();
@@ -154,6 +125,29 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         }
 
     protected:
+    /// Flags for dynamic/default bitsets.
+    struct gsd_flag
+        {
+        enum Enum
+            {
+            position,
+            orientation,
+            types,
+            type,
+            mass,
+            charge,
+            diameter,
+            body,
+            inertia,
+            velocity,
+            angmom,
+            image,
+            };
+        };
+
+    /// Number of entires in the gsd_flag enum.
+    static const unsigned int n_gsd_flags = 12;
+
     /// Store a GSD frame for writing.
     /** Local frames store particles local to the rank, sorted in ascending tag order.
         Global frames store the entire system, sorted in ascending tag order.
@@ -181,38 +175,20 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         PairData::Snapshot pair_data;
 
         /// Bit flags indicating which particle data fields are present (index by gsd_flag)
-        std::bitset<10> particle_data_present;
-        };
-
-    /// Flags for all_default bitset
-    struct gsd_flag
-        {
-        enum Enum
-            {
-            orientation,
-            type,
-            mass,
-            charge,
-            diameter,
-            body,
-            inertia,
-            velocity,
-            angmom,
-            image,
-            };
+        std::bitset<n_gsd_flags> particle_data_present;
         };
 
     private:
-    std::string m_fname;            //!< The file name we are writing to
-    std::string m_mode;             //!< The file open mode
-    bool m_truncate = false;        //!< True if we should truncate the file on every analyze()
-    bool m_is_initialized = false;  //!< True if the file is open
-    bool m_write_attribute = false; //!< True if attributes should be written
-    bool m_write_property = false;  //!< True if properties should be written
-    bool m_write_momentum = false;  //!< True if momenta should be written
-    bool m_write_topology = false;  //!< True if topology should be written
-    bool m_write_diameter = false;  //!< True if the diameter attribute should be written
-    gsd_handle m_handle;            //!< Handle to the file
+    std::string m_fname;           //!< The file name we are writing to
+    std::string m_mode;            //!< The file open mode
+    bool m_truncate = false;       //!< True if we should truncate the file on every analyze()
+    bool m_is_initialized = false; //!< True if the file is open
+    bool m_write_topology = false; //!< True if topology should be written
+    bool m_write_diameter = false; //!< True if the diameter attribute should be written
+    gsd_handle m_handle;           //!< Handle to the file
+
+    /// Flags indicating which particle fields are dynamic.
+    std::bitset<n_gsd_flags> m_particle_dynamic;
 
     /// Number of frames written to the file.
     uint64_t m_nframes = 0;

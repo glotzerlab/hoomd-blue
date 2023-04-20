@@ -157,9 +157,25 @@ class GSD(Writer):
 
         super().__init__(trigger)
 
-        dynamic_validation = OnlyFrom(
-            ['attribute', 'property', 'momentum', 'topology'],
-            preprocess=_array_to_strings)
+        dynamic_validation = OnlyFrom([
+            'attribute',
+            'property',
+            'momentum',
+            'topology',
+            'particles/position',
+            'particles/orientation',
+            'particles/velocity',
+            'particles/angmom',
+            'particles/image',
+            'particles/types',
+            'particles/typeid',
+            'particles/mass',
+            'particles/charge',
+            'particles/diameter',
+            'particles/body',
+            'particles/moment_inertia',
+        ],
+                                      preprocess=_array_to_strings)
 
         dynamic = ['property'] if dynamic is None else dynamic
         self._param_dict.update(
@@ -174,27 +190,11 @@ class GSD(Writer):
         self._logger = None if logger is None else _GSDLogWriter(logger)
 
     def _attach_hook(self):
-        # validate dynamic property
-        categories = ['attribute', 'property', 'momentum', 'topology']
-        dynamic_quantities = ['property']
-
-        if self.dynamic is not None:
-            for v in self.dynamic:
-                if v not in categories:
-                    raise RuntimeError(
-                        f"GSD: dynamic quantity {v} is not valid")
-
-            dynamic_quantities = ['property'] + self.dynamic
-
         self._cpp_obj = _hoomd.GSDDumpWriter(
             self._simulation.state._cpp_sys_def, self.trigger, self.filename,
             self._simulation.state._get_group(self.filter), self.mode,
             self.truncate)
 
-        self._cpp_obj.setWriteAttribute('attribute' in dynamic_quantities)
-        self._cpp_obj.setWriteProperty('property' in dynamic_quantities)
-        self._cpp_obj.setWriteMomentum('momentum' in dynamic_quantities)
-        self._cpp_obj.setWriteTopology('topology' in dynamic_quantities)
         self._cpp_obj.log_writer = self.logger
 
     @staticmethod
