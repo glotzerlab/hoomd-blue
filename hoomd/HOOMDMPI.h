@@ -561,10 +561,13 @@ class GatherTagOrder
         unsigned int* gathered_tags = nullptr;
         if (rank == m_root)
             {
-            std::exclusive_scan(m_recv_counts.begin(),
-                                m_recv_counts.end(),
-                                m_displacements.begin(),
-                                0);
+            // std::exclusive requires gcc10+:
+            // https://stackoverflow.com/questions/55771604/g-with-stdexclusive-scan-c17
+            m_displacements[0] = 0;
+            for (size_t i = 1; i < m_displacements.size(); i++)
+                {
+                m_displacements[i] = m_displacements[i-1] + m_recv_counts[i-1];
+                }
             m_n_global_tags = m_displacements[n_ranks - 1] + m_recv_counts[n_ranks - 1];
             gathered_tags = allocateGatherBuffer<unsigned int>(m_n_global_tags);
             }
