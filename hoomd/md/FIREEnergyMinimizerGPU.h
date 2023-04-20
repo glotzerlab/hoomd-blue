@@ -42,6 +42,9 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     protected:
     unsigned int m_block_size; //!< block size for partial sum memory
 
+    // autotuners for each integration method for each kernel
+    std::vector<std::shared_ptr<Autotuner<1>>> m_sum_pe_tuners;
+
     GPUVector<Scalar> m_partial_sum1; //!< memory space for partial sum over P and E
     GPUVector<Scalar> m_partial_sum2; //!< memory space for partial sum over vsq
     GPUVector<Scalar> m_partial_sum3; //!< memory space for partial sum over asq

@@ -240,9 +240,10 @@ hipError_t gpu_fire_compute_sum_pe(unsigned int* d_group_members,
                        d_net_force,
                        d_partial_sum_pe);
 
+    unsigned int num_threads_final = 32 * ((num_blocks / 32) + 1);
     hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
                        dim3(1, 1, 1),
-                       dim3(threads),
+                       dim3(num_threads_final),
                        block_size * sizeof(Scalar),
                        0,
                        d_sum_pe,
