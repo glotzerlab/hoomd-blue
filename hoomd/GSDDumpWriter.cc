@@ -1110,7 +1110,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (m_particle_dynamic[gsd_flag::position] || m_nframes == 0)
                 {
-                if (position != vec3<Scalar>(0,0,0))
+                if (position != vec3<Scalar>(0, 0, 0))
                     {
                     all_default[gsd_flag::position] = false;
                     }
@@ -1120,7 +1120,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (m_particle_dynamic[gsd_flag::image] || m_nframes == 0)
                 {
-                if (image != make_int3(0,0,0))
+                if (image != make_int3(0, 0, 0))
                     {
                     all_default[gsd_flag::image] = false;
                     }
@@ -1196,7 +1196,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (m_particle_dynamic[gsd_flag::velocity] || m_nframes == 0)
                 {
-                if (velocity != vec3<float>(0,0,0))
+                if (velocity != vec3<float>(0, 0, 0))
                     {
                     all_default[gsd_flag::velocity] = false;
                     }
@@ -1280,7 +1280,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             {
             vec3<float> inertia = vec3<float>(h_inertia.data[index]);
 
-            if (inertia != vec3<float>(0,0,0))
+            if (inertia != vec3<float>(0, 0, 0))
                 {
                 all_default[gsd_flag::inertia] = false;
                 }
@@ -1511,7 +1511,10 @@ void export_GSDDumpWriter(pybind11::module& m)
         .def_property_readonly("truncate", &GSDDumpWriter::getTruncate)
         .def_property_readonly("filter",
                                [](const std::shared_ptr<GSDDumpWriter> gsd)
-                               { return gsd->getGroup()->getFilter(); });
+                               { return gsd->getGroup()->getFilter(); })
+        .def_property("write_diameter",
+                      &GSDDumpWriter::getWriteDiameter,
+                      &GSDDumpWriter::setWriteDiameter);
     }
 
     } // end namespace detail

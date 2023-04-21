@@ -387,3 +387,106 @@ def test_write_gsd_log(create_md_sim, tmp_path):
                 e = traj[s].log[
                     'md/compute/ThermodynamicQuantities/kinetic_energy']
                 assert e == kinetic_energy_list[s]
+
+
+dynamic_fields = [
+    'particles/position',
+    'particles/orientation',
+    'particles/velocity',
+    'particles/angmom',
+    'particles/image',
+    'particles/typeid',
+    'particles/mass',
+    'particles/charge',
+    'particles/diameter',
+    'particles/body',
+    'particles/moment_inertia',
+]
+
+
+@pytest.mark.parametrize('dynamic_field', dynamic_fields)
+def test_write_gsd_finegrained_dynamic(simulation_factory, hoomd_snapshot,
+                                       tmp_path, dynamic_field):
+
+    filename = tmp_path / "test_finegrained_dynamic.gsd"
+
+    # make all fields in snapshot non-default
+    if hoomd_snapshot.communicator.rank == 0:
+        hoomd_snapshot.particles.orientation[:] = np.tile(
+            [0.707, 0, 0, 0.707], (hoomd_snapshot.particles.N, 1))
+        hoomd_snapshot.particles.image[:] = np.tile(
+            [0, 1, 2], (hoomd_snapshot.particles.N, 1))
+        hoomd_snapshot.particles.types = ['A', 'B']
+        hoomd_snapshot.particles.typeid[:] = np.tile(1,
+                                                     hoomd_snapshot.particles.N)
+        hoomd_snapshot.particles.mass[:] = np.tile(2,
+                                                   hoomd_snapshot.particles.N)
+        hoomd_snapshot.particles.diameter[:] = np.tile(
+            4, hoomd_snapshot.particles.N)
+        hoomd_snapshot.particles.body[:] = np.tile(4,
+                                                   hoomd_snapshot.particles.N)
+        hoomd_snapshot.particles.moment_inertia[:] = np.tile(
+            [1, 2, 3], [hoomd_snapshot.particles.N, 1])
+
+    sim = simulation_factory(hoomd_snapshot)
+
+    gsd_writer = hoomd.write.GSD(filename=filename,
+                                 trigger=hoomd.trigger.Periodic(1),
+                                 mode='wb',
+                                 dynamic=[dynamic_field])
+    gsd_writer.write_diameter = True
+    sim.operations.writers.append(gsd_writer)
+
+    sim.run(2)
+
+    if sim.device.communicator.rank == 0:
+        with gsd.fl.open(name=filename, mode='rb') as f:
+            for field in dynamic_fields:
+                if field == dynamic_field:
+                    assert f.chunk_exists(frame=1, name=field)
+                else:
+                    assert not f.chunk_exists(frame=1, name=field)
+
+            data = f.read_chunk(frame=1, name=dynamic_field)
+            np.testing.assert_allclose(data,
+                                       getattr(hoomd_snapshot.particles,
+                                               dynamic_field[10:]),
+                                       rtol=1e-07,
+                                       atol=1.5e-07)
+
+
+@pytest.mark.parametrize('dynamic_field', dynamic_fields)
+def test_write_gsd_finegrained_dynamic_alldefault(simulation_factory,
+                                                  hoomd_snapshot, tmp_path,
+                                                  dynamic_field):
+
+    filename = tmp_path / "test_finegrained_dynamic.gsd"
+
+    # make all fields in snapshot default
+    if hoomd_snapshot.communicator.rank == 0:
+        hoomd_snapshot.particles.position[:] = np.tile(
+            [0, 0, 0], [hoomd_snapshot.particles.N, 1])
+        hoomd_snapshot.particles.velocity[:] = np.tile(
+            [0, 0, 0], [hoomd_snapshot.particles.N, 1])
+        hoomd_snapshot.particles.angmom[:] = np.tile(
+            [0, 0, 0, 0], [hoomd_snapshot.particles.N, 1])
+        hoomd_snapshot.particles.typeid[:] = np.tile(0,
+                                                     hoomd_snapshot.particles.N)
+        hoomd_snapshot.particles.charge[:] = np.tile(0,
+                                                     hoomd_snapshot.particles.N)
+
+    sim = simulation_factory(hoomd_snapshot)
+
+    gsd_writer = hoomd.write.GSD(filename=filename,
+                                 trigger=hoomd.trigger.Periodic(1),
+                                 mode='wb',
+                                 dynamic=[dynamic_field])
+    gsd_writer.write_diameter = True
+    sim.operations.writers.append(gsd_writer)
+
+    sim.run(2)
+
+    if sim.device.communicator.rank == 0:
+        with gsd.fl.open(name=filename, mode='rb') as f:
+            for field in dynamic_fields:
+                assert not f.chunk_exists(frame=1, name=field)
