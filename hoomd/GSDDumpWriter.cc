@@ -1428,6 +1428,19 @@ void GSDDumpWriter::gatherGlobalFrame(const GSDFrame& local_frame)
     m_global_frame.particle_data.type_mapping = local_frame.particle_data.type_mapping;
     m_global_frame.particle_data_present = local_frame.particle_data_present;
 
+    m_global_frame.particle_tags.resize(0);
+    m_global_frame.particle_data.pos.resize(0);
+    m_global_frame.particle_data.orientation.resize(0);
+    m_global_frame.particle_data.type.resize(0);
+    m_global_frame.particle_data.mass.resize(0);
+    m_global_frame.particle_data.charge.resize(0);
+    m_global_frame.particle_data.diameter.resize(0);
+    m_global_frame.particle_data.body.resize(0);
+    m_global_frame.particle_data.inertia.resize(0);
+    m_global_frame.particle_data.vel.resize(0);
+    m_global_frame.particle_data.angmom.resize(0);
+    m_global_frame.particle_data.image.resize(0);
+
     m_gather_tag_order.setLocalTagsSorted(local_frame.particle_tags);
 
     if (local_frame.particle_data_present[gsd_flag::position])
