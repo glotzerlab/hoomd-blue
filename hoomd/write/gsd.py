@@ -39,8 +39,8 @@ class GSD(Writer):
         mode (str): The file open mode. Defaults to ``'ab'``.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers. Defaults to `False`.
-        dynamic (list[str]): Quantity categories to save in every frame.
-            Defaults to ``['property']``.
+        dynamic (list[str]): Field names and/or field categores to save in
+            all frames. Defaults to ``['property']``.
         logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
             to `None`.
 
@@ -49,8 +49,8 @@ class GSD(Writer):
     pair, and constraint data fields in every frame of the trajectory.  `GSD`
     can write trajectories where the number of particles, number of particle
     types, particle types, diameter, mass, charge, or other quantities change
-    over time. `GSD` can also store scalar, string, and array quantities
-    provided by a `hoomd.logging.Logger` instance.
+    over time. `GSD` can also store arbitrary, scalar, string, and array
+    quantities provided by a `hoomd.logging.Logger` instance in `logger`.
 
     Valid file open modes:
 
@@ -70,40 +70,37 @@ class GSD(Writer):
     To reduce file size, `GSD` does not write properties that are set to
     defaults. When masses, orientations, angular momenta, etc... are left
     default for all particles, these fields will not take up any space in the
-    file. Additionally, `GSD` only writes *dynamic* quantities to all frames. It
-    writes non-dynamic quantities only the first frame. When reading a GSD file,
+    file. Additionally, `GSD` only writes *dynamic* fields to all frames. It
+    writes non-dynamic fields only the first frame. When reading a GSD file,
     the data in frame 0 is read when a quantity is missing in frame *i*,
-    supplying data that is static over the entire trajectory.  Set the *dynamic*
+    supplying data that is static over the entire trajectory.
 
-    Specify the one or more of the following strings in **dynamic** to make the
-    corresponding quantities dynamic (**property** is always dynamic):
+    Provide one or more of the following strings in the `dynamic` list to make
+    the corresponding field dynamic (or all fields in a given category)
+    **dynamic**:
 
-    * **property**
+    * ``'property'``
 
-      * particles/position
-      * particles/orientation (*only written when values are not the
-        default: [1,0,0,0]*)
+      * ``'particles/position'``
+      * ``'particles/orientation'``
 
-    * **momentum**
+    * ``'momentum'``
 
-      * particles/velocity
-      * particles/angmom (*only written when values are not the
-        default: [0,0,0,0]*)
-      * particles/image (*only written when values are not the
-        default: [0,0,0]*)
+      * ``'particles/velocity'``
+      * ``'particles/angmom'``
+      * ``'particles/image'``
 
-    * **attribute**
+    * ``'attribute'``
 
-      * particles/N
-      * particles/types
-      * particles/typeid
-      * particles/mass
-      * particles/charge
-      * particles/diameter
-      * particles/body
-      * particles/moment_inertia
+      * ``'particles/types'``
+      * ``'particles/typeid'``
+      * ``'particles/mass'``
+      * ``'particles/charge'``
+      * ``'particles/diameter'``
+      * ``'particles/body'``
+      * ``'particles/moment_inertia'``
 
-    * **topology**
+    * ``'topology'``
 
       * bonds/*
       * angles/*
@@ -124,12 +121,12 @@ class GSD(Writer):
         **not** write out **topology**.
 
     Tip:
-        All logged data chunks must be present in the first frame in the gsd
+        All logged data fields must be present in the first frame in the gsd
         file to provide the default value. To achieve this, set the `logger`
         attribute before the operation is triggered to write the first frame
         in the file.
 
-        Some (or all) chunks may be omitted on later frames. You can set
+        Some (or all) fields may be omitted on later frames. You can set
         `logger` to `None` or remove specific quantities from the logger, but do
         not add additional quantities after the first frame.
 
@@ -140,7 +137,8 @@ class GSD(Writer):
         mode (str): The file open mode.
         truncate (bool): When `True`, truncate the file and write a new frame 0
             each time this operation triggers.
-        dynamic (list[str]): Quantity categories to save in every frame.
+        dynamic (list[str]): Field names and/or field categores to save in
+            all frames.
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
             diameters.
