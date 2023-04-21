@@ -237,7 +237,7 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
 
     sim = create_md_sim
 
-    # test default dynamic=['property', 'property']
+    # test default dynamic=['property']
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
                                  mode='wb')

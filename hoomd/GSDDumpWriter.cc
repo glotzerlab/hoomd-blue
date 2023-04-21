@@ -1110,8 +1110,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (m_particle_dynamic[gsd_flag::position] || m_nframes == 0)
                 {
-                if (position.x != Scalar(0.0) || position.y != Scalar(0.0)
-                    || position.z != Scalar(0.0))
+                if (position != vec3<Scalar>(0,0,0))
                     {
                     all_default[gsd_flag::position] = false;
                     }
@@ -1121,7 +1120,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (m_particle_dynamic[gsd_flag::image] || m_nframes == 0)
                 {
-                if (image.x != 0 || image.y != 0 || image.z != 0)
+                if (image != make_int3(0,0,0))
                     {
                     all_default[gsd_flag::image] = false;
                     }
@@ -1197,7 +1196,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 
             if (m_particle_dynamic[gsd_flag::velocity] || m_nframes == 0)
                 {
-                if (velocity.x != 0.0f || velocity.y != 0.0f || velocity.z != 0.0f)
+                if (velocity != vec3<float>(0,0,0))
                     {
                     all_default[gsd_flag::velocity] = false;
                     }
@@ -1281,7 +1280,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             {
             vec3<float> inertia = vec3<float>(h_inertia.data[index]);
 
-            if (inertia.x != 0.0f || inertia.y != 0.0f || inertia.z != 0.0f)
+            if (inertia != vec3<float>(0,0,0))
                 {
                 all_default[gsd_flag::inertia] = false;
                 }
