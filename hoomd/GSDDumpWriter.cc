@@ -1404,6 +1404,11 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         }
 
     // capture topology data
+    if (m_group->getNumMembersGlobal() != m_pdata->getNGlobal() && m_write_topology)
+        {
+        throw std::runtime_error("Cannot write topology for a portion of the system");
+        }
+
     if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal()
         && (m_write_topology || m_nframes == 0))
         {
