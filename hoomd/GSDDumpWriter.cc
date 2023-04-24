@@ -1027,26 +1027,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
     // Assume values are all default to start, set flags to false when we find a non-default.
     std::bitset<n_gsd_flags> all_default;
     all_default.set();
-    frame.particle_data_present.reset();
-
-    frame.particle_tags.resize(0);
-
-    // properties
-    frame.particle_data.pos.resize(0);
-    frame.particle_data.orientation.resize(0);
-
-    // attributes
-    frame.particle_data.type.resize(0);
-    frame.particle_data.mass.resize(0);
-    frame.particle_data.charge.resize(0);
-    frame.particle_data.diameter.resize(0);
-    frame.particle_data.body.resize(0);
-    frame.particle_data.inertia.resize(0);
-
-    // momenta
-    frame.particle_data.vel.resize(0);
-    frame.particle_data.angmom.resize(0);
-    frame.particle_data.image.resize(0);
+    frame.clear();
 
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
@@ -1428,23 +1409,12 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
 */
 void GSDDumpWriter::gatherGlobalFrame(const GSDFrame& local_frame)
     {
+    m_global_frame.clear();
+
     m_global_frame.timestep = local_frame.timestep;
     m_global_frame.global_box = local_frame.global_box;
     m_global_frame.particle_data.type_mapping = local_frame.particle_data.type_mapping;
     m_global_frame.particle_data_present = local_frame.particle_data_present;
-
-    m_global_frame.particle_tags.resize(0);
-    m_global_frame.particle_data.pos.resize(0);
-    m_global_frame.particle_data.orientation.resize(0);
-    m_global_frame.particle_data.type.resize(0);
-    m_global_frame.particle_data.mass.resize(0);
-    m_global_frame.particle_data.charge.resize(0);
-    m_global_frame.particle_data.diameter.resize(0);
-    m_global_frame.particle_data.body.resize(0);
-    m_global_frame.particle_data.inertia.resize(0);
-    m_global_frame.particle_data.vel.resize(0);
-    m_global_frame.particle_data.angmom.resize(0);
-    m_global_frame.particle_data.image.resize(0);
 
     m_gather_tag_order.setLocalTagsSorted(local_frame.particle_tags);
 

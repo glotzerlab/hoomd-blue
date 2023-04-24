@@ -176,6 +176,20 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
         /// Bit flags indicating which particle data fields are present (index by gsd_flag)
         std::bitset<n_gsd_flags> particle_data_present;
+
+        void clear()
+            {
+            particle_tags.resize(0);
+            particle_data.resize(0);
+            bond_data.resize(0);
+            angle_data.resize(0);
+            dihedral_data.resize(0);
+            improper_data.resize(0);
+            constraint_data.resize(0);
+            pair_data.resize(0);
+
+            particle_data_present.reset();
+            }
         };
 
     private:
