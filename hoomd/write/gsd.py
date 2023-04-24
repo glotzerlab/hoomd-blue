@@ -70,14 +70,16 @@ class GSD(Writer):
     To reduce file size, `GSD` does not write properties that are set to
     defaults. When masses, orientations, angular momenta, etc... are left
     default for all particles, these fields will not take up any space in the
-    file. Additionally, `GSD` only writes *dynamic* fields to all frames. It
-    writes non-dynamic fields only the first frame. When reading a GSD file,
-    the data in frame 0 is read when a quantity is missing in frame *i*,
-    supplying data that is static over the entire trajectory.
+    file, except on frame 1+ when the field is also non-default in frame 0.
+    `GSD` writes all non-default fields to frame 0 in the file.
 
-    Provide one or more of the following strings in the `dynamic` list to make
-    the corresponding field dynamic (or all fields in a given category)
-    **dynamic**:
+    To further reduce file sizes, `GSD` allows the user to select which specific
+    fields will be considered for writing to frame 1+ in the `dynamic` list.
+    When reading a GSD file, the data in frame 0 is read when a quantity is
+    missing in frame *i*, so any fields not in `dynamic` are fixed for the
+    entire trajectory.
+
+    The `dynamic` list can contain one or more of the following strings:
 
     * ``'property'``
 
@@ -108,6 +110,9 @@ class GSD(Writer):
       * impropers/*
       * constraints/*
       * pairs/*
+
+    When you set a category string (``'property'``, ``'momentum'``,
+    ``'attribute'``), `GSD` makes all the category member's fields dynamic.
 
     See Also:
         See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
