@@ -262,34 +262,62 @@ public:
             // find du/dr using quotient rule, where u = "hi" / "lo" = dot(dr,n) / magdr
 
             Scalar lo = magdr;
-            Scalar3 dlo = vec_to_scalar3(rhat);
+            vec3<Scalar> dlo = rhat;
 
             // //something wrong: this has to be a scalar
             // Scalar3 dfi_dui = dfi_dni();
             Scalar dfi_dui = dfi_du();
 
-            Scalar hi = dot(dr, vec3<Scalar>(ni_world));
-            Scalar3 dhi = vec_to_scalar3(ni_world);
+            Scalar hi = -dot(dr, vec3<Scalar>(ni_world));
+            vec3<Scalar> dhi = -ni_world;
             // // quotient rule
-            Scalar3 dui_dr = vec_to_scalar3(rhat) * (lo*dhi - hi*dlo) / (lo*lo);
-
-
+            vec3<Scalar> dui_dr = rhat * (lo*dhi - hi*dlo) / (lo*lo);
+            //           dui_dr = rhat * ( magdr* -ni_world - -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
+            
             Scalar dfj_duj = dfj_du();
             hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
-            dhi = vec_to_scalar3(nj_world);
+            dhi = nj_world;
             // // lo and dlo are the same
-            Scalar3 duj_dr = vec_to_scalar3(rhat) * (lo*dhi - hi*dlo) / (lo*lo);
+            vec3<Scalar> duj_dr = rhat * (lo*dhi - hi*dlo) / (lo*lo);
             
-            force = dfj_duj * duj_dr * fi() + dfi_dui*dui_dr * fj();
+            force = vec_to_scalar3(dfj_duj*duj_dr * fi() + dfi_dui*dui_dr * fj());
+            
+            // is     their      [1/magdr * (-ni_world - costhetai*rhat)] the same as my dui_dr?
+            // is     their      [-ni_world/magdr - costhetai*rhat/magdr] the same as my dui_dr?
 
+            // Problems
+            // 1. Extra fator of rhat on the whole term in mine
+            // 2. Extra factor of 1/magdr on the second term
 
-            //negative here bc forcedivr has the implicit negative in PairModulator
-            // force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
-            //             + jPi*(nj_world.x - costhetaj*dr.x/magdr));
-            // force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr)
-            //             + jPi*(nj_world.y - costhetaj*dr.y/magdr));
-            // force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr)
-            //             + jPi*(nj_world.z - costhetaj*dr.z/magdr));
+            //          dui_dr = rhat * ( (-ni_world)/ (magdr)  -   -dot(dr, vec3<Scalar>(ni_world)) * rhat/ (magdr*magdr) ) 
+            //                 ^ 
+            //                / \
+            //                 |
+            // copy from above |
+            //          dui_dr = rhat * ( magdr* (-ni_world)  -   -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
+            
+
+            // Josh is ok with this:
+            // force = -(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat))
+            
+            // rewrite with my notation:
+            // iPj = modPi*modj/magdr
+            // iPj = ModulatorPrimei() * Modulatorj() / magdr
+            // iPj = -dfi_du() * fj() / magdr
+
+            // jPi = modPj*modi/magdr
+            // jPi = ModulatorPrimej() * Modulatori() / magdr
+            // jPi = dfj_du() * fi() / magdr
+            // force_my_variables = -( -dfi_du() * fj() / magdr * (-ni_world - costhetai*rhat)
+            //                        + dfj_du() * fi() / magdr * (nj_world - costhetaj *rhat) )
+            
+            
+            
+            // //negative here bc forcedivr has the implicit negative in PairModulator
+            // iPj includes a factor of 1/magdr. costhetai includes factor of 1/magdr
+            // force.x = -(iPj*(-ni_world.x - costhetai*dr.x/magdr) + jPi*(nj_world.x - costhetaj*dr.x/magdr));
+            // force.y = -(iPj*(-ni_world.y - costhetai*dr.y/magdr) + jPi*(nj_world.y - costhetaj*dr.y/magdr));
+            // force.z = -(iPj*(-ni_world.z - costhetai*dr.z/magdr) + jPi*(nj_world.z - costhetaj*dr.z/magdr));
 
             return true;
         }

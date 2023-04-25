@@ -227,6 +227,7 @@ public:
             
             
             //        [term2         ]   [term1                 ]
+                               // TODO call this grad of modulators
             force.x = pair_eng*force.x + dr.x*force_divr*envelope;
             force.y = pair_eng*force.y + dr.y*force_divr*envelope;
             force.z = pair_eng*force.z + dr.z*force_divr*envelope;
