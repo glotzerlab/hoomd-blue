@@ -282,9 +282,9 @@ public:
             
             force = -vec_to_scalar3(dfj_duj*duj_dr * fi() + dfi_dui*dui_dr * fj());
 
-            std::cout << " my force " << vecString(vec3<Scalar>(force));
+            // std::cout << " my force " << vecString(vec3<Scalar>(force));
 
-            std::cout << "Old force " << vecString(-(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat)));
+            // std::cout << "Old force " << vecString(-(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat)));
             
             // is     their      [1/magdr * (-ni_world - costhetai*rhat)] the same as my dui_dr?
             // is     their      [-ni_world/magdr - costhetai*rhat/magdr] the same as my dui_dr?
