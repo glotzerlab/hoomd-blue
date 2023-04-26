@@ -231,7 +231,7 @@ public:
 
             // NEW way with Philipp Feb 9
 
-            vec3<Scalar> dfi_dni = dfi_du() * rhat; // TODO add -rhat here and take out above
+            vec3<Scalar> dfi_dni = dfi_du() * rhat; // TODO add -rhat here and take out above (afuyeaad)
             
             torque_div_energy_i =
                 vec_to_scalar3( params.ni.x * cross( vec3<Scalar>(a1), dfi_dni)) +
@@ -266,31 +266,41 @@ public:
 
             // //something wrong: this has to be a scalar
             // Scalar3 dfi_dui = dfi_dni();
-            Scalar dfi_dui = dfi_du();
+            Scalar dfi_dui = -dfi_du(); // TODO: remove this negative when I take out the one at afuyeaad
 
             Scalar hi = -dot(dr, vec3<Scalar>(ni_world));
             vec3<Scalar> dhi = -ni_world;
             // // quotient rule
-            vec3<Scalar> dui_dr = rhat * (lo*dhi - hi*dlo) / (lo*lo);
-            //           dui_dr = rhat * ( magdr* -ni_world - -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
+            vec3<Scalar> dui_dr = (lo*dhi - hi*dlo) / (lo*lo);
+            //           dui_dr = removedrhat * ( magdr* -ni_world - -dot(dr, vec3<Scalar>(ni_world)) * rhat ) / (magdr*magdr)
             
             Scalar dfj_duj = dfj_du();
             hi = dot(vec3<Scalar>(dr), vec3<Scalar>(nj_world));
             dhi = nj_world;
             // // lo and dlo are the same
-            vec3<Scalar> duj_dr = rhat * (lo*dhi - hi*dlo) / (lo*lo);
+            vec3<Scalar> duj_dr = (lo*dhi - hi*dlo) / (lo*lo);
             
-            force = vec_to_scalar3(dfj_duj*duj_dr * fi() + dfi_dui*dui_dr * fj());
+            force = -vec_to_scalar3(dfj_duj*duj_dr * fi() + dfi_dui*dui_dr * fj());
+
+            std::cout << " my force " << vecString(vec3<Scalar>(force));
+
+            std::cout << "Old force " << vecString(-(iPj * (-ni_world - costhetai*rhat) + jPi * (nj_world - costhetaj *rhat)));
             
             // is     their      [1/magdr * (-ni_world - costhetai*rhat)] the same as my dui_dr?
             // is     their      [-ni_world/magdr - costhetai*rhat/magdr] the same as my dui_dr?
+            //   Expand costhetai to dot product definition
+            // is     their      [-ni_world/magdr - -dot(vec3<Scalar>(rhat), ni_world) *rhat/magdr] the same as my dui_dr?
+            //   Expand rhat to dr/magdr
+            
+            // is     their      [-ni_world/magdr - -dot(dr, ni_world)/magdr * rhat/magdr] the same as my dui_dr?
+
+            //         ... yes but I also needed to add a negative sign to dfi_du()
 
             // Problems
-            // 1. Extra fator of rhat on the whole term in mine
-            // 2. Extra factor of 1/magdr on the second term
+            // 1. Extra factor of rhat on the whole term in mine, taken out April 25
 
             //          dui_dr = rhat * ( (-ni_world)/ (magdr)  -   -dot(dr, vec3<Scalar>(ni_world)) * rhat/ (magdr*magdr) ) 
-            //                 ^ 
+            //                 ^
             //                / \
             //                 |
             // copy from above |
