@@ -74,10 +74,10 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     void setDynamic(pybind11::object dynamic);
 
     //! Destructor
-    ~GSDDumpWriter();
+    virtual ~GSDDumpWriter();
 
     //! Write out the data for the current timestep
-    void analyze(uint64_t timestep);
+    virtual void analyze(uint64_t timestep);
 
     hoomd::detail::SharedSignal<int(gsd_handle&)>& getWriteSignal()
         {
@@ -201,6 +201,23 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     //! Write a frame to the GSD file buffer
     void write(GSDFrame& frame);
 
+    //! Check and raise an exception if an error occurs
+    void checkError(int retval);
+
+    //! Populate the non-default map
+    void populateNonDefault();
+
+    /// Populate local frame with data.
+    void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
+
+#ifdef ENABLE_MPI
+    /// Copy of the state properties on all ranks, in ascending tag order globally.
+    GSDFrame m_global_frame;
+    GatherTagOrder m_gather_tag_order;
+
+    void gatherGlobalFrame(const GSDFrame& local_frame);
+#endif
+
     private:
     std::string m_fname;           //!< The file name we are writing to
     std::string m_mode;            //!< The file open mode
@@ -255,23 +272,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                        ImproperData::Snapshot& improper,
                        ConstraintData::Snapshot& constraint,
                        PairData::Snapshot& pair);
-
-    //! Check and raise an exception if an error occurs
-    void checkError(int retval);
-
-    //! Populate the non-default map
-    void populateNonDefault();
-
-    /// Populate local frame with data.
-    void populateLocalFrame(GSDFrame& frame, uint64_t timestep);
-
-#ifdef ENABLE_MPI
-    /// Copy of the state properties on all ranks, in ascending tag order globally.
-    GSDFrame m_global_frame;
-    GatherTagOrder m_gather_tag_order;
-
-    void gatherGlobalFrame(const GSDFrame& local_frame);
-#endif
 
     friend void export_GSDDumpWriter(pybind11::module& m);
     };

@@ -68,6 +68,7 @@ set(_hoomd_sources Action.cc
                    ExecutionConfiguration.cc
                    ForceCompute.cc
                    ForceConstraint.cc
+                   GSDDequeWriter.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
                    HOOMDMath.cc
@@ -149,6 +150,7 @@ set(_hoomd_headers
     GPUPolymorph.cuh
     GPUVector.h
     GSD.h
+    GSDDequeWriter.h
     GSDDumpWriter.h
     GSDReader.h
     GSDShapeSpecWriter.h
