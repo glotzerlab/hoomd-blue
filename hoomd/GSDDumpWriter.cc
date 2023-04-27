@@ -326,6 +326,26 @@ void GSDDumpWriter::analyze(uint64_t timestep)
 
         if (m_exec_conf->isRoot())
             {
+            write(m_global_frame);
+            }
+        }
+    else
+#endif
+        {
+        write(m_local_frame);
+        }
+    }
+
+void GSDDumpWriter::write(GSDDumpWriter::GSDFrame& frame)
+    {
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        gatherGlobalFrame(frame);
+
+        if (m_exec_conf->isRoot())
+            {
+            write(m_global_frame);
             writeFrameHeader(m_global_frame);
             writeAttributes(m_global_frame);
             writeProperties(m_global_frame);
@@ -335,24 +355,23 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     else
 #endif
         {
-        writeFrameHeader(m_local_frame);
-        writeAttributes(m_local_frame);
-        writeProperties(m_local_frame);
-        writeMomenta(m_local_frame);
+        writeFrameHeader(frame);
+        writeAttributes(frame);
+        writeProperties(frame);
+        writeMomenta(frame);
         }
-
     // topology is only meaningful if this is the all group
     if (m_group->getNumMembersGlobal() == m_pdata->getNGlobal()
         && (m_write_topology || m_nframes == 0))
         {
         if (m_exec_conf->isRoot())
             {
-            writeTopology(m_local_frame.bond_data,
-                          m_local_frame.angle_data,
-                          m_local_frame.dihedral_data,
-                          m_local_frame.improper_data,
-                          m_local_frame.constraint_data,
-                          m_local_frame.pair_data);
+            writeTopology(frame.bond_data,
+                          frame.angle_data,
+                          frame.dihedral_data,
+                          frame.improper_data,
+                          frame.constraint_data,
+                          frame.pair_data);
             }
         }
 
@@ -367,7 +386,7 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     if (m_exec_conf->isRoot())
         {
         m_exec_conf->msg->notice(10) << "GSD: ending frame" << endl;
-        retval = gsd_end_frame(&m_handle);
+        int retval = gsd_end_frame(&m_handle);
         GSDUtils::checkError(retval, m_fname);
         }
 

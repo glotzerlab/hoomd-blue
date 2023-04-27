@@ -192,6 +192,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
             }
         };
 
+    void write(GSDFrame& frame);
+
     private:
     std::string m_fname;           //!< The file name we are writing to
     std::string m_mode;            //!< The file open mode
