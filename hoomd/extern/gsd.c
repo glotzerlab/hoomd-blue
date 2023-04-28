@@ -73,7 +73,7 @@ enum
 /// Default number of index entries to buffer
 enum
     {
-    GSD_DEFAULT_INDEX_ENTRIES_TO_BUFFER = 262144
+    GSD_DEFAULT_INDEX_ENTRIES_TO_BUFFER = 256 * 1024
     };
 
 /// Size of hash map
