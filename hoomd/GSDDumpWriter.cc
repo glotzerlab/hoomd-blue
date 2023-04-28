@@ -54,8 +54,7 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
                              std::string mode,
                              bool truncate)
-    : Analyzer(sysdef, trigger), m_fname(fname), m_mode(mode), m_truncate(truncate),
-      m_group(group)
+    : Analyzer(sysdef, trigger), m_fname(fname), m_mode(mode), m_truncate(truncate), m_group(group)
     {
     m_exec_conf->msg->notice(5) << "Constructing GSDDumpWriter: " << m_fname << " " << mode << " "
                                 << truncate << endl;
@@ -1519,8 +1518,8 @@ void export_GSDDumpWriter(pybind11::module& m)
                       &GSDDumpWriter::setWriteDiameter)
         .def("flush", &GSDDumpWriter::flush)
         .def_property("maximum_write_buffer_size",
-                &GSDDumpWriter::getMaximumWriteBufferSize,
-                &GSDDumpWriter::setMaximumWriteBufferSize);
+                      &GSDDumpWriter::getMaximumWriteBufferSize,
+                      &GSDDumpWriter::setMaximumWriteBufferSize);
     }
 
     } // end namespace detail
