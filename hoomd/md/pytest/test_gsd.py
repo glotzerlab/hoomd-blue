@@ -111,6 +111,7 @@ def test_write_gsd_trigger(create_md_sim, tmp_path):
     sim.operations.writers.append(gsd_writer)
 
     sim.run(30)
+    gsd_writer.flush()
 
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
@@ -182,6 +183,8 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
         if snap.communicator.rank == 0:
             snapshot_list.append(snap)
 
+    gsd_writer.flush()
+
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename_xb, mode='rb') as traj:
             assert len(traj) == len(snapshot_list)
@@ -252,6 +255,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
             velocity_list.append(snap.particles.velocity)
     N_particles = sim.state.N_particles
 
+    gsd_writer.flush()
+
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             for step in range(5):
@@ -285,6 +290,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
             velocity_list.append(snap.particles.velocity)
             angmom_list.append(snap.particles.angmom)
 
+    gsd_writer.flush()
+
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             for step in range(5):
@@ -316,6 +323,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
                                  dynamic=['property', 'attribute'])
     sim.operations.writers.append(gsd_writer)
     sim.run(5)
+
+    gsd_writer.flush()
 
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
@@ -353,6 +362,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     sim.operations.writers.append(gsd_writer)
     sim.run(1)
 
+    gsd_writer.flush()
+
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             assert traj[-1].bonds.N == 3
@@ -380,6 +391,8 @@ def test_write_gsd_log(create_md_sim, tmp_path):
     for _ in range(5):
         sim.run(1)
         kinetic_energy_list.append(thermo.kinetic_energy)
+
+    gsd_writer.flush()
 
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
@@ -439,6 +452,8 @@ def test_write_gsd_finegrained_dynamic(simulation_factory, hoomd_snapshot,
 
     sim.run(2)
 
+    gsd_writer.flush()
+
     if sim.device.communicator.rank == 0:
         with gsd.fl.open(name=filename, mode='rb') as f:
             for field in dynamic_fields:
@@ -486,7 +501,11 @@ def test_write_gsd_finegrained_dynamic_alldefault(simulation_factory,
 
     sim.run(2)
 
+    gsd_writer.flush()
+
     if sim.device.communicator.rank == 0:
         with gsd.fl.open(name=filename, mode='rb') as f:
+            assert f.nframes == 2
+
             for field in dynamic_fields:
                 assert not f.chunk_exists(frame=1, name=field)
