@@ -147,6 +147,8 @@ class GSD(Writer):
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
             diameters.
+        maximum_write_buffer_size (int): Size (in bytes) to buffer in memory
+           before writing to the file.
     """
 
     def __init__(self,
@@ -188,6 +190,7 @@ class GSD(Writer):
                           truncate=bool(truncate),
                           dynamic=[dynamic_validation],
                           write_diameter=False,
+                          maximum_write_buffer_size=64 * 1024 * 1024,
                           _defaults=dict(filter=filter, dynamic=dynamic)))
 
         self._logger = None if logger is None else _GSDLogWriter(logger)
