@@ -161,8 +161,8 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path,
                                      trigger=hoomd.trigger.Periodic(1),
                                      mode='xb',
                                      dynamic=['property', 'momentum'])
-        sim.operations.writers.append(gsd_writer)
         with pytest.raises(Exception):
+            sim.operations.writers.append(gsd_writer)
             sim.run(1)
 
     # test mode=xb creates a new file

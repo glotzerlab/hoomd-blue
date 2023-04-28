@@ -55,7 +55,7 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                              std::string mode,
                              bool truncate)
     : Analyzer(sysdef, trigger), m_fname(fname), m_mode(mode), m_truncate(truncate),
-      m_is_initialized(false), m_group(group)
+      m_group(group)
     {
     m_exec_conf->msg->notice(5) << "Constructing GSDDumpWriter: " << m_fname << " " << mode << " "
                                 << truncate << endl;
@@ -75,6 +75,8 @@ GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
     m_particle_dynamic.reset();
     m_particle_dynamic[gsd_flag::position] = true;
     m_particle_dynamic[gsd_flag::orientation] = true;
+
+    initFileIO();
     }
 
 pybind11::tuple GSDDumpWriter::getDynamic()
@@ -205,12 +207,27 @@ void GSDDumpWriter::flush()
     {
     if (m_exec_conf->isRoot())
         {
-        if (!m_is_initialized)
-            {
-            throw std::runtime_error("GSD file is not open.");
-            }
-
         gsd_flush(&m_handle);
+        }
+    }
+
+void GSDDumpWriter::setMaximumWriteBufferSize(uint64_t size)
+    {
+    if (m_exec_conf->isRoot())
+        {
+        gsd_set_maximum_write_buffer_size(&m_handle, size);
+        }
+    }
+
+uint64_t GSDDumpWriter::getMaximumWriteBufferSize()
+    {
+    if (m_exec_conf->isRoot())
+        {
+        return gsd_get_maximum_write_buffer_size(&m_handle);
+        }
+    else
+        {
+        return 0;
         }
     }
 
@@ -282,20 +299,13 @@ void GSDDumpWriter::initFileIO()
         bcast(m_nondefault, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
-
-    m_is_initialized = true;
     }
 
 GSDDumpWriter::~GSDDumpWriter()
     {
     m_exec_conf->msg->notice(5) << "Destroying GSDDumpWriter" << endl;
 
-    bool root = true;
-#ifdef ENABLE_MPI
-    root = m_exec_conf->isRoot();
-#endif
-
-    if (root && m_is_initialized)
+    if (m_exec_conf->isRoot())
         {
         m_exec_conf->msg->notice(5) << "GSD: close gsd file " << m_fname << endl;
         gsd_close(&m_handle);
@@ -312,10 +322,6 @@ void GSDDumpWriter::analyze(uint64_t timestep)
     {
     Analyzer::analyze(timestep);
     int retval;
-
-    // open the file if it is not yet opened
-    if (!m_is_initialized)
-        initFileIO();
 
     // truncate the file if requested
     if (m_truncate)
@@ -1516,7 +1522,10 @@ void export_GSDDumpWriter(pybind11::module& m)
         .def_property("write_diameter",
                       &GSDDumpWriter::getWriteDiameter,
                       &GSDDumpWriter::setWriteDiameter)
-        .def("flush", &GSDDumpWriter::flush);
+        .def("flush", &GSDDumpWriter::flush)
+        .def_property("maximum_write_buffer_size",
+                &GSDDumpWriter::getMaximumWriteBufferSize,
+                &GSDDumpWriter::setMaximumWriteBufferSize);
     }
 
     } // end namespace detail

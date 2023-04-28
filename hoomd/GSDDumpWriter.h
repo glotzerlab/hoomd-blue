@@ -127,6 +127,12 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     /// Flush the write buffer
     void flush();
 
+    /// Set the maximum write buffer size (in bytes)
+    void setMaximumWriteBufferSize(uint64_t size);
+
+    /// Get the maximum write buffer size (in bytes)
+    uint64_t getMaximumWriteBufferSize();
+
     protected:
     /// Flags for dynamic/default bitsets.
     struct gsd_flag
@@ -199,7 +205,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     std::string m_fname;           //!< The file name we are writing to
     std::string m_mode;            //!< The file open mode
     bool m_truncate = false;       //!< True if we should truncate the file on every analyze()
-    bool m_is_initialized = false; //!< True if the file is open
     bool m_write_topology = false; //!< True if topology should be written
     bool m_write_diameter = false; //!< True if the diameter attribute should be written
     gsd_handle m_handle;           //!< Handle to the file
