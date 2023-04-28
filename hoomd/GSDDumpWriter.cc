@@ -201,6 +201,19 @@ void GSDDumpWriter::setDynamic(pybind11::object dynamic)
         }
     }
 
+void GSDDumpWriter::flush()
+    {
+    if (m_exec_conf->isRoot())
+        {
+        if (!m_is_initialized)
+            {
+            throw std::runtime_error("GSD file is not open.");
+            }
+
+        gsd_flush(&m_handle);
+        }
+    }
+
 //! Initializes the output file for writing
 void GSDDumpWriter::initFileIO()
     {
@@ -1497,7 +1510,8 @@ void export_GSDDumpWriter(pybind11::module& m)
                                { return gsd->getGroup()->getFilter(); })
         .def_property("write_diameter",
                       &GSDDumpWriter::getWriteDiameter,
-                      &GSDDumpWriter::setWriteDiameter);
+                      &GSDDumpWriter::setWriteDiameter)
+        .def("flush", &GSDDumpWriter::flush);
     }
 
     } // end namespace detail
