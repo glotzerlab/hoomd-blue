@@ -192,6 +192,13 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
             }
         };
 
+    //! Initializes the output file for writing
+    void initFileIO();
+
+    //! Whether the file has been initialized or not
+    bool isInitialized() const;
+
+    //! Write a frame to the GSD file buffer
     void write(GSDFrame& frame);
 
     private:
@@ -228,9 +235,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     //! Write a type mapping out to the file
     void writeTypeMapping(std::string chunk, std::vector<std::string> type_mapping);
-
-    //! Initializes the output file for writing
-    void initFileIO();
 
     //! Write frame header
     void writeFrameHeader(const GSDFrame& frame);
