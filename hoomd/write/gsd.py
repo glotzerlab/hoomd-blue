@@ -225,6 +225,7 @@ class GSD(Writer):
         if logger is not None:
             writer.log_writer = _GSDLogWriter(logger)
         writer.analyze(state._simulation.timestep)
+        writer.flush()
 
     @property
     def logger(self):
