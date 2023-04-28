@@ -124,6 +124,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         m_write_diameter = write_diameter;
         }
 
+    /// Flush the write buffer
+    void flush();
+
     protected:
     /// Flags for dynamic/default bitsets.
     struct gsd_flag

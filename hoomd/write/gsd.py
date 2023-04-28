@@ -243,6 +243,14 @@ class GSD(Writer):
         self._logger = logger
         return self.logger
 
+    def flush(self):
+        """Flush the write buffer to the file."""
+        if not self._attached:
+            raise RuntimeError("The GSD file is unavailable until the"
+                               "simulation runs for 0 or more steps.")
+
+        self._cpp_obj.flush()
+
 
 def _iterable_is_incomplete(iterable):
     """Checks that any nested attribute has no instances of RequiredArg.
