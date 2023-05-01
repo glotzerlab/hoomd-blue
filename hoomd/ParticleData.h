@@ -42,7 +42,6 @@
 #include "DomainDecomposition.h"
 
 #include <bitset>
-#include <map>
 #include <stack>
 #include <stdlib.h>
 #include <string>
@@ -246,23 +245,23 @@ template<class Real> struct PYBIND11_EXPORT SnapshotParticleData
     //! Set the type names from python
     void setTypes(pybind11::list types);
 
-    std::vector<vec3<Real>> pos;         //!< positions
-    std::vector<vec3<Real>> vel;         //!< velocities
-    std::vector<vec3<Real>> accel;       //!< accelerations
-    std::vector<unsigned int> type;      //!< types
-    std::vector<Real> mass;              //!< masses
-    std::vector<Real> charge;            //!< charges
-    std::vector<Real> diameter;          //!< diameters
-    std::vector<int3> image;             //!< images
-    std::vector<unsigned int> body;      //!< body ids
-    std::vector<quat<Real>> orientation; //!< orientations
-    std::vector<quat<Real>> angmom;      //!< angular momentum quaternion
-    std::vector<vec3<Real>> inertia;     //!< principal moments of inertia
+    std::vector<vec3<Real>> pos;           //!< positions
+    std::vector<vec3<Real>> vel;           //!< velocities
+    std::vector<vec3<Real>> accel;         //!< accelerations
+    std::vector<unsigned int> type;        //!< types
+    std::vector<Real> mass;                //!< masses
+    std::vector<Real> charge;              //!< charges
+    std::vector<Real> diameter;            //!< diameters
+    std::vector<int3> image;               //!< images
+    std::vector<unsigned int> body;        //!< body ids
+    std::vector<quat<Real>> orientation;   //!< orientations
+    std::vector<quat<Real>> angmom;        //!< angular momentum quaternion
+    std::vector<vec3<Real>> inertia;       //!< principal moments of inertia
 
     unsigned int size;                     //!< number of particles in this snapshot
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
 
-    bool is_accel_set; //!< Flag indicating if accel is set
+    bool is_accel_set;                     //!< Flag indicating if accel is set
     };
 
 namespace detail
@@ -908,6 +907,12 @@ class PYBIND11_EXPORT ParticleData
     //! Gets the name of a given particle type index
     std::string getNameByType(unsigned int type) const;
 
+    /// Get the complete type mapping
+    const std::vector<std::string>& getTypeMapping() const
+        {
+        return m_type_mapping;
+        }
+
     //! Get the types for python
     pybind11::list getTypesPy()
         {
@@ -1149,8 +1154,7 @@ class PYBIND11_EXPORT ParticleData
                                 bool ignore_bodies = false);
 
     //! Take a snapshot
-    template<class Real>
-    std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real>& snapshot);
+    template<class Real> void takeSnapshot(SnapshotParticleData<Real>& snapshot);
 
     //! Add ghost particles at the end of the local particle data
     void addGhostParticles(const unsigned int nghosts);
@@ -1270,9 +1274,9 @@ class PYBIND11_EXPORT ParticleData
 #endif
 
     private:
-    std::shared_ptr<const BoxDim> m_box;                 //!< The simulation box
-    std::shared_ptr<const BoxDim> m_global_box;          //!< Global simulation box
-    std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+    std::shared_ptr<const BoxDim> m_box;                  //!< The simulation box
+    std::shared_ptr<const BoxDim> m_global_box;           //!< Global simulation box
+    std::shared_ptr<ExecutionConfiguration> m_exec_conf;  //!< The execution configuration
 #ifdef ENABLE_MPI
     std::shared_ptr<DomainDecomposition> m_decomposition; //!< Domain decomposition data
 #endif
@@ -1312,9 +1316,9 @@ class PYBIND11_EXPORT ParticleData
     GlobalArray<unsigned int> m_body;  //!< rigid body ids
     GlobalArray<Scalar4>
         m_orientation; //!< Orientation quaternion for each particle (ignored if not anisotropic)
-    GlobalArray<Scalar4> m_angmom;          //!< Angular momementum quaternion for each particle
-    GlobalArray<Scalar3> m_inertia;         //!< Principal moments of inertia for each particle
-    GlobalArray<unsigned int> m_comm_flags; //!< Array of communication flags
+    GlobalArray<Scalar4> m_angmom;            //!< Angular momementum quaternion for each particle
+    GlobalArray<Scalar3> m_inertia;           //!< Principal moments of inertia for each particle
+    GlobalArray<unsigned int> m_comm_flags;   //!< Array of communication flags
 
     std::stack<unsigned int> m_recycled_tags; //!< Global tags of removed particles
     std::set<unsigned int> m_tag_set;         //!< Lookup table for tags by active index
@@ -1347,19 +1351,19 @@ class PYBIND11_EXPORT ParticleData
     GlobalArray<Scalar> m_net_virial_alt;  //!< Net virial (swap-in)
     GlobalArray<Scalar4> m_net_torque_alt; //!< Net torque (swap-in)
 
-    GlobalArray<Scalar4> m_net_force;  //!< Net force calculated for each particle
+    GlobalArray<Scalar4> m_net_force;      //!< Net force calculated for each particle
     GlobalArray<Scalar> m_net_virial;  //!< Net virial calculated for each particle (2D GPU array of
                                        //!< dimensions 6*number of particles)
     GlobalArray<Scalar4> m_net_torque; //!< Net torque calculated for each particle
 
-    Scalar m_external_virial[6]; //!< External potential contribution to the virial
-    Scalar m_external_energy;    //!< External potential energy
+    Scalar m_external_virial[6];       //!< External potential contribution to the virial
+    Scalar m_external_energy;          //!< External potential energy
     const float
         m_resize_factor; //!< The numerical factor with which the particle data arrays are resized
     PDataFlags m_flags;  //!< Flags identifying which optional fields are valid
 
-    Scalar3 m_origin; //!< Tracks the position of the origin of the coordinate system
-    int3 m_o_image;   //!< Tracks the origin image
+    Scalar3 m_origin;    //!< Tracks the position of the origin of the coordinate system
+    int3 m_o_image;      //!< Tracks the origin image
 
     bool m_arrays_allocated; //!< True if arrays have been initialized
 

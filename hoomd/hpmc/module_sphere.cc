@@ -11,7 +11,6 @@
 #include "ShapeSphere.h"
 #include "ShapeUnion.h"
 
-#include "ExternalCallback.h"
 #include "ExternalField.h"
 #include "ExternalFieldComposite.h"
 #include "ExternalFieldHarmonic.h"
@@ -46,7 +45,6 @@ void export_sphere(pybind11::module& m)
     export_HarmonicField<ShapeSphere>(m, "ExternalFieldHarmonicSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
-    export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
 
 #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU<ShapeSphere>(m, "IntegratorHPMCMonoSphereGPU");

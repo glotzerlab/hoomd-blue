@@ -82,17 +82,6 @@ class EvaluatorExternalElectricField
         {
         }
 
-    //! External Periodic doesn't need diameters
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-
-    //! Accept the optional diameter value
-    /*! \param di Diameter of particle i
-     */
-    DEVICE void setDiameter(Scalar di) { }
-
     //! ExternalElectricField needs charges
     DEVICE static bool needsCharge()
         {
@@ -150,7 +139,7 @@ class EvaluatorExternalElectricField
     Scalar3 m_E;   //!< the field vector
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

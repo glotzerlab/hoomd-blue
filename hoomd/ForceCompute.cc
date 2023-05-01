@@ -522,41 +522,6 @@ void ForceCompute::compute(uint64_t timestep)
     m_computed_flags = m_pdata->getFlags();
     }
 
-/*! \param num_iters Number of iterations to average for the benchmark
-    \returns Milliseconds of execution time per calculation
-
-    Calls computeForces repeatedly to benchmark the force compute.
-*/
-
-double ForceCompute::benchmark(unsigned int num_iters)
-    {
-    ClockSource t;
-    // warm up run
-    computeForces(0);
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        hipDeviceSynchronize();
-        CHECK_CUDA_ERROR();
-        }
-#endif
-
-    // benchmark
-    uint64_t start_time = t.getTime();
-    for (unsigned int i = 0; i < num_iters; i++)
-        computeForces(0);
-
-#ifdef ENABLE_HIP
-    if (m_exec_conf->isCUDAEnabled())
-        hipDeviceSynchronize();
-#endif
-    uint64_t total_time_ns = t.getTime() - start_time;
-
-    // convert the run time to milliseconds
-    return double(total_time_ns) / 1e6 / double(num_iters);
-    }
-
 /*! \param tag Global particle tag
     \returns Torque of particle referenced by tag
  */

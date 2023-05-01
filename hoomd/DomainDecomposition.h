@@ -169,14 +169,14 @@ class PYBIND11_EXPORT DomainDecomposition
         }
 
     private:
-    unsigned int m_nx; //!< Number of processors along the x-axis
-    unsigned int m_ny; //!< Number of processors along the y-axis
-    unsigned int m_nz; //!< Number of processors along the z-axis
+    unsigned int m_nx;                                   //!< Number of processors along the x-axis
+    unsigned int m_ny;                                   //!< Number of processors along the y-axis
+    unsigned int m_nz;                                   //!< Number of processors along the z-axis
 
-    uint3 m_grid_pos;          //!< Position of this domain in the grid
-    Index3D m_index;           //!< Index to the 3D processor grid
-    Index3D m_node_grid;       //!< Indexer of the grid of nodes
-    Index3D m_intra_node_grid; //!< The grid in every node
+    uint3 m_grid_pos;                                    //!< Position of this domain in the grid
+    Index3D m_index;                                     //!< Index to the 3D processor grid
+    Index3D m_node_grid;                                 //!< Indexer of the grid of nodes
+    Index3D m_intra_node_grid;                           //!< The grid in every node
 
     std::set<std::string> m_nodes;                       //!< List of nodes
     std::multimap<std::string, unsigned int> m_node_map; //!< Map of ranks per node
@@ -237,7 +237,7 @@ namespace detail
 //! Export the domain decomposition information
 void export_DomainDecomposition(pybind11::module& m);
 #endif
-    } // end namespace detail
+    }  // end namespace detail
 
     }  // end namespace hoomd
 #endif // __DOMAIN_DECOMPOSITION_H

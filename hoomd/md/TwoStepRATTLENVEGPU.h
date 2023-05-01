@@ -373,9 +373,9 @@ void export_TwoStepRATTLENVEGPU(pybind11::module& m, const std::string& name)
                             Scalar>());
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // #ifndef __TWO_STEP_RATTLE_NVE_GPU_H__

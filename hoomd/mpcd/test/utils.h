@@ -50,6 +50,6 @@ class AllThermoRequest
     std::shared_ptr<mpcd::CellThermoCompute> m_thermo;
     };
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // MPCD_TEST_UTILS_H_

@@ -44,7 +44,6 @@ template<class Real> struct SnapshotSystemData
     unsigned int dimensions;                  //!< The dimensionality of the system
     std::shared_ptr<BoxDim> global_box;       //!< The dimensions of the simulation box
     SnapshotParticleData<Real> particle_data; //!< The particle data
-    std::map<unsigned int, unsigned int> map; //!< Lookup particle index by tag
     BondData::Snapshot bond_data;             //!< The bond data
     AngleData::Snapshot angle_data;           //!< The angle data
     DihedralData::Snapshot dihedral_data;     //!< The dihedral data

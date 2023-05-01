@@ -36,8 +36,11 @@ v4.0.0 (net yet released)
   (`#1440 <https://github.com/glotzerlab/hoomd-blue/pull/1440>`__).
 * Moved ``hoomd.mesh.Mesh.triangles`` to ``hoomd.mesh.Mesh.triangulation``
   (`#1464 <https://github.com/glotzerlab/hoomd-blue/pull/1464>`__).
+* ``hoomd.write.GSD`` does not write ``particles/diameter`` by default
+  (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
 * Updated tutorials to use HOOMD-blue v4 API, work with up to date releases of freud, gsd, and
   signac. Also make general improvements to the tutorials.
+* Document changes needed to migrate from v3 to v4 in the migration guide.
 
 *Deprecated*
 
@@ -77,12 +80,16 @@ v4.0.0 (net yet released)
   (`#1499 <https://github.com/glotzerlab/hoomd-blue/issues/1499>`__).
 * The ``sdf`` attribute of ``hoomd.hpmc.compute.SDF`` - use ``sdf_compression``
   (`#1523 <https://github.com/glotzerlab/hoomd-blue/pull/1523>`__).
+* ``alpha`` parameter and attribute in ``Langevin``, ``BD``, and ``OverdampedViscous`` integration
+  methods (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
+* ``needsDiameter`` and ``setDiameter`` API in C++ potential evaluators
+  (`#1266 <https://github.com/glotzerlab/hoomd-blue/issues/1266>`__).
 
 v3.x
 ----
 
-v3.11.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.11.0 (2023-04-14)
+^^^^^^^^^^^^^^^^^^^^
 
 Added:
 
@@ -108,6 +115,10 @@ Fixed:
   (`#1525 <https://github.com/glotzerlab/hoomd-blue/pull/1525>`_).
 * ``thermalize_particle_momenta`` now sets 0 velocity and angular momentum for rigid constituent
   particles  (`#1472 <https://github.com/glotzerlab/hoomd-blue/issues/1472>`__).
+* Reduce likelihood of data corruption when writing GSD files
+  (`#1531 <https://github.com/glotzerlab/hoomd-blue/pull/1531>`__).
+* Clarify migration process for ``hoomd.md.pair.ExpandedLJ``
+  (`#1501 <https://github.com/glotzerlab/hoomd-blue/pull/1501>`__).
 
 Deprecated:
 

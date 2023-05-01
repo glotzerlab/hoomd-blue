@@ -230,9 +230,9 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     Index2D m_typpair_idx;        //!< Helper class for indexing per type pair arrays
     GlobalArray<Scalar> m_rcutsq; //!< Cutoff radius squared per type pair
     std::vector<param_type, hoomd::detail::managed_allocator<param_type>>
-        m_params; //!< Pair parameters per type pair
+        m_params;                 //!< Pair parameters per type pair
     std::vector<shape_type, hoomd::detail::managed_allocator<shape_type>>
-        m_shape_params; //!< Shape paramters per type
+        m_shape_params;           //!< Shape paramters per type
 
     /// Track whether we have attached to the Simulation object
     bool m_attached = true;
@@ -518,9 +518,6 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                                     access_mode::read);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
                                        access_location::host,
@@ -554,11 +551,8 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
             // sanity check
             assert(typei < m_pdata->getNTypes());
 
-            // access diameter and charge (if needed)
-            Scalar di = Scalar(0.0);
+            // access charge (if needed)
             Scalar qi = Scalar(0.0);
-            if (aniso_evaluator::needsDiameter())
-                di = h_diameter.data[i];
             if (aniso_evaluator::needsCharge())
                 qi = h_charge.data[i];
 
@@ -595,11 +589,8 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
                 unsigned int typej = __scalar_as_int(h_pos.data[j].w);
                 assert(typej < m_pdata->getNTypes());
 
-                // access diameter and charge (if needed)
-                Scalar dj = Scalar(0.0);
+                // access charge (if needed)
                 Scalar qj = Scalar(0.0);
-                if (aniso_evaluator::needsDiameter())
-                    dj = h_diameter.data[j];
                 if (aniso_evaluator::needsCharge())
                     qj = h_charge.data[j];
 
@@ -626,8 +617,6 @@ void AnisoPotentialPair<aniso_evaluator>::computeForces(uint64_t timestep)
 
                 aniso_evaluator eval(dx, quat_i, quat_j, rcutsq, param);
 
-                if (aniso_evaluator::needsDiameter())
-                    eval.setDiameter(di, dj);
                 if (aniso_evaluator::needsCharge())
                     eval.setCharge(qi, qj);
                 if (aniso_evaluator::needsShape())
@@ -720,9 +709,6 @@ CommFlags AnisoPotentialPair<aniso_evaluator>::getRequestedCommFlags(uint64_t ti
     if (aniso_evaluator::needsCharge())
         flags[comm_flag::charge] = 1;
 
-    if (aniso_evaluator::needsDiameter())
-        flags[comm_flag::diameter] = 1;
-
     // with rigid bodies, include net torque
     flags[comm_flag::net_torque] = 1;
 
@@ -758,8 +744,8 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def("getTypeShapesPy", &AnisoPotentialPair<T>::getTypeShapesPy);
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

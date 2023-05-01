@@ -114,9 +114,6 @@ template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
                                access_location::device,
                                access_mode::read);
-    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                   access_location::device,
-                                   access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(),
                                  access_location::device,
                                  access_mode::read);
@@ -146,7 +143,6 @@ template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64
                             this->m_pdata->getN(),
                             this->m_pdata->getMaxN(),
                             d_pos.data,
-                            d_diameter.data,
                             d_charge.data,
                             box,
                             d_n_neigh.data,
@@ -189,9 +185,9 @@ template<class T> void export_PotentialPairGPU(pybind11::module& m, const std::s
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_GPU_H__

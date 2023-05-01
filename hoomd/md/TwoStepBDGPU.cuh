@@ -24,7 +24,6 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  Scalar4* d_vel,
                                  int3* d_image,
                                  const BoxDim& box,
-                                 const Scalar* d_diameter,
                                  const unsigned int* d_tag,
                                  const unsigned int* d_group_members,
                                  const unsigned int group_size,
@@ -42,8 +41,8 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  const bool d_noiseless_r,
                                  const GPUPartition& gpu_partition);
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__TWO_STEP_BD_GPU_CUH__

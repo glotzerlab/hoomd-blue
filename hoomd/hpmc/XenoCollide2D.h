@@ -79,7 +79,7 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc2D
     const SupportFuncA& sa; //!< Support function for shape A
     const SupportFuncB& sb; //!< Support function for shape B
     const vec2<ShortReal>&
-        ab_t; //!< Vector pointing from a's center to b's center, in the space frame
+        ab_t;               //!< Vector pointing from a's center to b's center, in the space frame
     const rotmat2<ShortReal> Ra; //!< Orientation of shape A
     const rotmat2<ShortReal> Rb; //!< Orientation of shape B
     };
@@ -249,9 +249,9 @@ DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
         }
     }
 
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hpmc
-    } // end namespace hoomd
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 
 #endif // __XENOCOLLIDE_2D_H__

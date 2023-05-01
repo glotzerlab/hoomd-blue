@@ -311,6 +311,6 @@ void mpcd::gpu::wrap_particles(const unsigned int n_recv,
     // Apply box wrap to input buffer
     thrust::transform(in_ptr, in_ptr + n_recv, in_ptr, mpcd::gpu::wrap_particle_op(box));
     }
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // ENABLE_MPI

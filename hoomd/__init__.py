@@ -29,10 +29,18 @@ methods, and variables in the API.
 
 See Also:
     Tutorial: :doc:`tutorial/00-Introducing-HOOMD-blue/00-index`
+
+.. rubric:: Signal handling
+
+On import, `hoomd` installs a ``SIGTERM`` signal handler that calls `sys.exit`
+so that open gsd files have a chance to flush write buffers
+(`hoomd.write.GSD.flush`) when a user's process is terminated. Use
+`signal.signal` to adjust this behavior as needed.
 """
 import sys
 import pathlib
 import os
+import signal
 
 if ((pathlib.Path(__file__).parent / 'CMakeLists.txt').exists()
         and 'SPHINX' not in os.environ):
@@ -92,3 +100,7 @@ def _hoomd_sys_excepthook(type, value, traceback):
 
 
 sys.excepthook = _hoomd_sys_excepthook
+
+# Install a SIGTERM handler that gracefully exits, allowing open files to flush
+# buffered writes and close.
+signal.signal(signal.SIGTERM, lambda n, f: sys.exit(1))

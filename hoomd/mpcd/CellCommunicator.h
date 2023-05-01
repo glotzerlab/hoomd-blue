@@ -89,35 +89,35 @@ class PYBIND11_EXPORT CellCommunicator : public Autotuned
         }
 
     private:
-    static unsigned int num_instances; //!< Number of communicator instances
-    const unsigned int m_id;           //!< Id for this communicator to use in tags
+    static unsigned int num_instances;            //!< Number of communicator instances
+    const unsigned int m_id;                      //!< Id for this communicator to use in tags
 
-    std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
-    std::shared_ptr<hoomd::ParticleData> m_pdata;              //!< HOOMD particle data
+    std::shared_ptr<SystemDefinition> m_sysdef;   //!< System definition
+    std::shared_ptr<hoomd::ParticleData> m_pdata; //!< HOOMD particle data
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
     const MPI_Comm m_mpi_comm;                                 //!< MPI Communicator
     std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
 
-    std::shared_ptr<mpcd::CellList> m_cl; //!< MPCD cell list
+    std::shared_ptr<mpcd::CellList> m_cl;                      //!< MPCD cell list
 
-    bool m_communicating;                //!< Flag if communication is occurring
-    GPUVector<unsigned char> m_send_buf; //!< Send buffer
-    GPUVector<unsigned char> m_recv_buf; //!< Receive buffer
-    GPUArray<unsigned int> m_send_idx;   //!< Indexes of cells in send buffer
-    std::vector<MPI_Request> m_reqs;     //!< MPI request objects
+    bool m_communicating;                  //!< Flag if communication is occurring
+    GPUVector<unsigned char> m_send_buf;   //!< Send buffer
+    GPUVector<unsigned char> m_recv_buf;   //!< Receive buffer
+    GPUArray<unsigned int> m_send_idx;     //!< Indexes of cells in send buffer
+    std::vector<MPI_Request> m_reqs;       //!< MPI request objects
 
     std::vector<unsigned int> m_neighbors; //!< Unique neighbor ranks
     std::vector<unsigned int> m_begin;     //!< Begin offset of every neighbor
     std::vector<unsigned int> m_num_send;  //!< Number of cells to send to every neighbor
 
-    unsigned int m_num_cells;       //!< Number of unique cells to receive
-    GPUArray<unsigned int> m_cells; //!< Unique cells to receive
+    unsigned int m_num_cells;              //!< Number of unique cells to receive
+    GPUArray<unsigned int> m_cells;        //!< Unique cells to receive
     GPUArray<unsigned int>
         m_recv; //!< Reordered mapping of buffer from ranks to group received cells together
     GPUArray<unsigned int> m_recv_begin; //!< Begin offset of every unique cell
     GPUArray<unsigned int> m_recv_end;   //!< End offset of every unique cell
 
-    bool m_needs_init; //!< Flag if grid needs to be initialized
+    bool m_needs_init;                   //!< Flag if grid needs to be initialized
     //! Slot that communicator needs to be reinitialized
     void slotInit()
         {
@@ -430,7 +430,7 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
     }
 #endif // ENABLE_HIP
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // MPCD_CELL_COMMUNICATOR_H_
 
