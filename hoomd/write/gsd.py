@@ -147,6 +147,8 @@ class GSD(Writer):
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
             diameters.
+        maximum_write_buffer_size (int): Size (in bytes) to buffer in memory
+           before writing to the file.
     """
 
     def __init__(self,
@@ -188,6 +190,7 @@ class GSD(Writer):
                           truncate=bool(truncate),
                           dynamic=[dynamic_validation],
                           write_diameter=False,
+                          maximum_write_buffer_size=64 * 1024 * 1024,
                           _defaults=dict(filter=filter, dynamic=dynamic)))
 
         self._logger = None if logger is None else _GSDLogWriter(logger)
@@ -222,6 +225,7 @@ class GSD(Writer):
         if logger is not None:
             writer.log_writer = _GSDLogWriter(logger)
         writer.analyze(state._simulation.timestep)
+        writer.flush()
 
     @property
     def logger(self):
@@ -242,6 +246,14 @@ class GSD(Writer):
             self._cpp_obj.log_writer = logger
         self._logger = logger
         return self.logger
+
+    def flush(self):
+        """Flush the write buffer to the file."""
+        if not self._attached:
+            raise RuntimeError("The GSD file is unavailable until the"
+                               "simulation runs for 0 or more steps.")
+
+        self._cpp_obj.flush()
 
 
 def _iterable_is_incomplete(iterable):

@@ -314,9 +314,18 @@ extern "C"
 
         /// Access the names in the namelist
         struct gsd_name_id_map name_map;
+
+        /// Number of index entries pending in the current frame.
+        uint64_t pending_index_entries;
+
+        /// Maximum write buffer size (bytes).
+        uint64_t maximum_write_buffer_size;
+
+        /// Number of index entries to buffer before flushing.
+        uint64_t index_entries_to_buffer;
         };
 
-    /** Specify a version
+    /** Specify a version.
 
         @param major major version
         @param minor minor version
@@ -325,7 +334,7 @@ extern "C"
     */
     uint32_t gsd_make_version(unsigned int major, unsigned int minor);
 
-    /** Create a GSD file
+    /** Create a GSD file.
 
         @param fname File name (UTF-8 encoded).
         @param application Generating application name (truncated to 63 chars).
@@ -347,7 +356,7 @@ extern "C"
                    const char* schema,
                    uint32_t schema_version);
 
-    /** Create and open a GSD file
+    /** Create and open a GSD file.
 
         @param handle Handle to open.
         @param fname File name (UTF-8 encoded).
@@ -381,7 +390,7 @@ extern "C"
                             enum gsd_open_flag flags,
                             int exclusive_create);
 
-    /** Open a GSD file
+    /** Open a GSD file.
 
         @param handle Handle to open.
         @param fname File name to open (UTF-8 encoded).
@@ -403,7 +412,7 @@ extern "C"
     */
     int gsd_open(struct gsd_handle* handle, const char* fname, enum gsd_open_flag flags);
 
-    /** Truncate a GSD file
+    /** Truncate a GSD file.
 
         @param handle Open GSD file to truncate.
 
@@ -422,17 +431,18 @@ extern "C"
     */
     int gsd_truncate(struct gsd_handle* handle);
 
-    /** Close a GSD file
+    /** Close a GSD file.
 
         @param handle GSD file to close.
 
         @pre *handle* was opened by gsd_open().
-        @pre gsd_end_frame() has been called since the last call to gsd_write_chunk().
 
+        @post Writable files: All data and index entries buffered before the previous call to
+              gsd_end_frame() is written to the file (see gsd_flush()).
         @post The file is closed.
         @post *handle* is freed and can no longer be used.
 
-        @warning Ensure that all gsd_write_chunk() calls are committed with gsd_end_frame() before
+        @warning Ensure that all gsd_write_chunk() calls are completed with gsd_end_frame() before
         closing the file.
 
         @return
@@ -442,14 +452,14 @@ extern "C"
     */
     int gsd_close(struct gsd_handle* handle);
 
-    /** Commit the current frame and increment the frame counter.
+    /** Complete the current frame.
 
         @param handle Handle to an open GSD file
 
         @pre *handle* was opened by gsd_open().
-        @pre gsd_write_chunk() has been called at least once since the last call to gsd_end_frame().
 
-        @post The current frame counter is increased by 1 and cached indexes are written to disk.
+        @post The current frame counter is increased by 1.
+        @post Flush the write buffer if it has overflowed. See gsd_flush().
 
         @return
           - GSD_SUCCESS (0) on success. Negative value on failure:
@@ -460,7 +470,26 @@ extern "C"
     */
     int gsd_end_frame(struct gsd_handle* handle);
 
-    /** Write a data chunk to the current frame
+    /** Flush the write buffer.
+
+        @param handle Handle to an open GSD file
+
+        @pre *handle* was opened by gsd_open().
+
+        @post All data buffered by gsd_write_chunk() are present in the file.
+        @post All index entries buffered by gsd_write_chunk() prior to the last call to
+              gsd_end_frame() are present in the file.
+
+        @return
+          - GSD_SUCCESS (0) on success. Negative value on failure:
+          - GSD_ERROR_IO: IO error (check errno).
+          - GSD_ERROR_INVALID_ARGUMENT: *handle* is NULL.
+          - GSD_ERROR_FILE_MUST_BE_WRITABLE: The file was opened read-only.
+          - GSD_ERROR_MEMORY_ALLOCATION_FAILED: Unable to allocate memory.
+    */
+    int gsd_flush(struct gsd_handle* handle);
+
+    /** Add a data chunk to the current frame.
 
         @param handle Handle to an open GSD file.
         @param name Name of the data chunk.
@@ -474,8 +503,9 @@ extern "C"
         @pre *name* is a unique name for data chunks in the given frame.
         @pre data is allocated and contains at least `N * M * gsd_sizeof_type(type)` bytes.
 
-        @post The given data chunk is written to the end of the file and its location is updated in
-        the in-memory index.
+        @post When there is space in the buffer: The given data is present in the write buffer.
+              Otherwise, the data is present at the end of the file.
+        @post The index is present in the buffer.
 
         @note If the GSD file is version 1.0, the chunk name is truncated to 63 bytes. GSD version
         2.0 files support arbitrarily long names.
@@ -499,7 +529,7 @@ extern "C"
                         uint8_t flags,
                         const void* data);
 
-    /** Find a chunk in the GSD file
+    /** Find a chunk in the GSD file.
 
         @param handle Handle to an open GSD file
         @param frame Frame to look for chunk
@@ -511,11 +541,13 @@ extern "C"
         read the data.
 
         @return A pointer to the found chunk, or NULL if not found.
+
+        @note gsd_find_chunk() calls gsd_flush() when the file is writable.
     */
     const struct gsd_index_entry*
     gsd_find_chunk(struct gsd_handle* handle, uint64_t frame, const char* name);
 
-    /** Read a chunk from the GSD file
+    /** Read a chunk from the GSD file.
 
         @param handle Handle to an open GSD file.
         @param data Data buffer to read into.
@@ -532,10 +564,12 @@ extern "C"
           - GSD_ERROR_INVALID_ARGUMENT: *handle* is NULL, *data* is NULL, or *chunk* is NULL.
           - GSD_ERROR_FILE_MUST_BE_READABLE: The file was opened in append mode.
           - GSD_ERROR_FILE_CORRUPT: The GSD file is corrupt.
+
+        @note gsd_read_chunk() calls gsd_flush() when the file is writable.
     */
     int gsd_read_chunk(struct gsd_handle* handle, void* data, const struct gsd_index_entry* chunk);
 
-    /** Get the number of frames in the GSD file
+    /** Get the number of frames in the GSD file.
 
         @param handle Handle to an open GSD file
 
@@ -568,6 +602,8 @@ extern "C"
 
         @return Pointer to a string, NULL if no more matching chunks are found found, or NULL if
         *prev* is invalid
+
+        @note  gsd_find_matching_chunk_name() calls gsd_flush() when the file is writable.
     */
     const char*
     gsd_find_matching_chunk_name(struct gsd_handle* handle, const char* match, const char* prev);
@@ -586,6 +622,59 @@ extern "C"
           - GSD_ERROR_FILE_MUST_BE_WRITABLE: The file was opened in read-only mode.
     */
     int gsd_upgrade(struct gsd_handle* handle);
+
+    /** Get the maximum write buffer size.
+
+        @param handle Handle to an open GSD file
+
+        @pre *handle* was opened by gsd_open().
+
+        @return The maximum write buffer size in bytes, or 0 on error.
+    */
+    uint64_t gsd_get_maximum_write_buffer_size(struct gsd_handle* handle);
+
+    /** Set the maximum write buffer size.
+
+        @param handle Handle to an open GSD file
+        @param size Maximum number of bytes to allocate in the write buffer (must be greater than
+        0).
+
+        @pre *handle* was opened by gsd_open().
+
+        @return
+          - GSD_SUCCESS (0) on success. Negative value on failure:
+          - GSD_ERROR_INVALID_ARGUMENT: *handle* is NULL
+          - GSD_ERROR_INVALID_ARGUMENT: size == 0
+    */
+    int gsd_set_maximum_write_buffer_size(struct gsd_handle* handle, uint64_t size);
+
+    /** Get the number of index entries to buffer.
+
+        @param handle Handle to an open GSD file
+
+        @pre *handle* was opened by gsd_open().
+
+        @return The number of index entries to buffer, or 0 on error.
+    */
+    uint64_t gsd_get_index_entries_to_buffer(struct gsd_handle* handle);
+
+    /** Set the number of index entries to buffer.
+
+        @param handle Handle to an open GSD file
+        @param number Number of index entries to buffer before automatically flushing in
+        `gsd_end_frame()` (must be greater than 0).
+
+        @pre *handle* was opened by gsd_open().
+
+        @note GSD may allocate more than this number of entries in the buffer, as needed to store
+        all index entries for the already buffered frames and the current frame.
+
+        @return
+          - GSD_SUCCESS (0) on success. Negative value on failure:
+          - GSD_ERROR_INVALID_ARGUMENT: *handle* is NULL
+          - GSD_ERROR_INVALID_ARGUMENT: number == 0
+    */
+    int gsd_set_index_entries_to_buffer(struct gsd_handle* handle, uint64_t number);
 
 #ifdef __cplusplus
     }
