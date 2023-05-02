@@ -7,6 +7,7 @@
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairYukawa.h"
+#include "EvaluatorPairExpandedGaussian.h"
 
 namespace hoomd
     {
@@ -14,12 +15,10 @@ namespace md
     {
 namespace detail
     {
-template void export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope>>(pybind11::module& m,
-                                                                                                      const std::string& name);
-template void export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope>>(pybind11::module& m,
-                                                                                                       const std::string& name);
-template void export_AnisoPotentialPair<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(pybind11::module& m,
-                                                                                                       const std::string& name);
+template void export_AnisoPotentialPair<PairModulator<EvaluatorPairLJ, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+template void export_AnisoPotentialPair<PairModulator<EvaluatorPairMie, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+template void export_AnisoPotentialPair<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
+template void export_AnisoPotentialPair<PairModulator<EvaluatorPairExpandedGaussian, GeneralEnvelope>>(pybind11::module& m, const std::string& name);
 
 void export_AnisoPotentialPairJanusLJ(pybind11::module& m)
     {
@@ -34,6 +33,11 @@ void export_AnisoPotentialPairJanusMie(pybind11::module& m)
 void export_AnisoPotentialPairJanusYukawa(pybind11::module& m)
     {
     export_AnisoPotentialPair<PairModulator<EvaluatorPairYukawa, GeneralEnvelope>>(m, "AnisoPotentialPairJanusYukawa");
+    }
+
+void export_AnisoPotentialPairPatchyExpandedGaussian(pybind11::module& m)
+    {
+    export_AnisoPotentialPair<PairModulator<EvaluatorPairExpandedGaussian, GeneralEnvelope>>(m, "AnisoPotentialPairPatchyExpandedGaussian");
     }
 
 

@@ -728,3 +728,45 @@ class PatchyYukawa(AnisotropicPair):
             A list of dictionaries, one for each particle type in the system.
         """
         return super()._return_type_shapes()
+
+
+class PatchyExpandedGaussian(AnisotropicPair):
+    _cpp_class_name = "AnisoPotentialPairPatchyExpandedGaussian"
+
+    @staticmethod
+    def _check_0_pi(input):
+        if 0 <= input <= np.pi:
+            return input
+        else:
+            raise ValueError(f"Value {input} is not between 0 and pi")
+        # can we get the keys here to check for A A being ni=nj
+
+    def __init__(self, nlist, default_r_cut=None, mode='none'):
+        super().__init__(nlist, default_r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict({
+                "pair_params": {"epsilon": float,
+                                "sigma": float,
+                                "delta": float},
+                "envelope_params": {"alpha": OnlyTypes(float,
+                                                       postprocess = self._check_0_pi),
+                                    "omega": float,
+                                    "ni": (float, float, float),
+                                    "nj": (float, float, float)}},
+                              len_keys=2))
+        self._add_typeparam(params)
+
+
+    @log(category="object")
+    def type_shapes(self):
+        """Get all the types of shapes in the current simulation.
+
+        Example:
+
+            >>> TODO
+
+        Returns:
+            A list of dictionaries, one for each particle type in the system.
+        """
+        return super()._return_type_shapes()
