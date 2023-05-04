@@ -84,6 +84,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         return m_write_signal;
         }
 
+    /// Get current logging dictionary
+    pybind11::dict getLogData() const;
+
     /// Write a logged quantities
     void writeLogQuantities(pybind11::dict dict);
 
@@ -199,7 +202,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     bool isInitialized() const;
 
     //! Write a frame to the GSD file buffer
-    void write(GSDFrame& frame);
+    void write(GSDFrame& frame, pybind11::dict log_data);
 
     //! Check and raise an exception if an error occurs
     void checkError(int retval);

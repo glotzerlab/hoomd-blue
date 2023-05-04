@@ -332,9 +332,6 @@ class _GSDLogWriter:
                 pass
         return log
 
-    def _write_frame(self, _gsd):
-        _gsd.writeLogQuantities(self.log())
-
     def _log_special(self, dict_, key, value):
         """Handles special keys such as type_shapes.
 
