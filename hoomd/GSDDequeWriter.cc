@@ -30,12 +30,6 @@ void GSDDequeWriter::analyze(uint64_t timestep)
 
 void GSDDequeWriter::dump()
     {
-    // open the file if it is not yet opened
-    if (!isInitialized())
-        {
-        initFileIO();
-        }
-
     for (auto i {static_cast<long int>(m_frame_queue.size()) - 1}; i >= 0; --i)
         {
         write(m_frame_queue[i], m_log_queue[i]);

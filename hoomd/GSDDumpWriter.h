@@ -198,9 +198,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     //! Initializes the output file for writing
     void initFileIO();
 
-    //! Whether the file has been initialized or not
-    bool isInitialized() const;
-
     //! Write a frame to the GSD file buffer
     void write(GSDFrame& frame, pybind11::dict log_data);
 

@@ -201,12 +201,6 @@ void GSDDumpWriter::setDynamic(pybind11::object dynamic)
         }
     }
 
-//! Whether the file has been initialized or not
-bool GSDDumpWriter::isInitialized() const
-    {
-    return m_is_initialized;
-    }
-
 //! Initializes the output file for writing
 void GSDDumpWriter::initFileIO()
     {
