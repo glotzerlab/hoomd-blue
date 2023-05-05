@@ -19,10 +19,12 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
 void GSDDequeWriter::analyze(uint64_t timestep)
     {
     m_frame_queue.emplace_front();
+    m_log_queue.push_front(getLogData());
     populateLocalFrame(m_frame_queue.front(), timestep);
     if (m_queue_size != -1 && m_frame_queue.size() > static_cast<size_t>(m_queue_size))
         {
         m_frame_queue.pop_back();
+        m_log_queue.pop_back();
         }
     }
 
@@ -33,11 +35,13 @@ void GSDDequeWriter::dump()
         {
         initFileIO();
         }
-    for (auto it {m_frame_queue.rbegin()}; it != m_frame_queue.rend(); ++it)
+
+    for (auto i {static_cast<long int>(m_frame_queue.size()) - 1}; i >= 0; --i)
         {
-        write(*it);
+        write(m_frame_queue[i], m_log_queue[i]);
         }
     m_frame_queue.clear();
+    m_log_queue.clear();
     }
 
 int GSDDequeWriter::getMaxQueueSize() const
@@ -55,6 +59,7 @@ void GSDDequeWriter::setMaxQueueSize(int new_max_size)
     while (static_cast<size_t>(m_queue_size) < m_frame_queue.size())
         {
         m_frame_queue.pop_back();
+        m_log_queue.pop_back();
         }
     }
 
