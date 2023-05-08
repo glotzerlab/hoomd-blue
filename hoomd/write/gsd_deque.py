@@ -59,7 +59,12 @@ class Deque(GSD):
                  logger=None,
                  max_deque_size=-1):
 
-        super().__init__(trigger, filename, filter, mode, dynamic, logger)
+        super().__init__(trigger=trigger,
+                         filename=filename,
+                         filter=filter,
+                         mode=mode,
+                         dynamic=dynamic,
+                         logger=logger)
         self._param_dict.pop("truncate")
         self._param_dict.update(
             ParameterDict(max_deque_size=int(max_deque_size)))
