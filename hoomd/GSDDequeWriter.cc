@@ -77,7 +77,7 @@ void export_GSDDequeWriter(pybind11::module& m)
                             std::shared_ptr<ParticleGroup>,
                             int,
                             std::string>())
-        .def_property("n_max_frames",
+        .def_property("max_burst_size",
                       &GSDDequeWriter::getMaxQueueSize,
                       &GSDDequeWriter::setMaxQueueSize)
         .def("dump", &GSDDequeWriter::dump);

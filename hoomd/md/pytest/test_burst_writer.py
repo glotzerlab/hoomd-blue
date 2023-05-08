@@ -107,72 +107,72 @@ def check_write(sim: hoomd.Simulation,
                 assert_equivalent_snapshots(gsd_snap, snap)
 
 
-def test_deque_dump(sim, tmp_path):
+def test_burst_dump(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
 
-    deque_trigger = hoomd.trigger.Periodic(period=10, phase=5)
-    deque_writer = hoomd.write.Deque(trigger=deque_trigger,
+    burst_trigger = hoomd.trigger.Periodic(period=10, phase=5)
+    burst_writer = hoomd.write.Burst(trigger=burst_trigger,
                                      filename=filename,
                                      mode='wb',
                                      dynamic=['property', 'momentum'],
-                                     max_deque_size=3)
-    sim.operations.writers.append(deque_writer)
+                                     max_burst_size=3)
+    sim.operations.writers.append(burst_writer)
 
     sim.run(50)
-    deque_writer.flush()
+    burst_writer.flush()
     if sim.device.communicator.rank == 0:
         assert Path(filename).exists()
         with gsd.hoomd.open(filename, "rb") as traj:
             # First frame is always written
             assert len(traj) == 1
 
-    deque_writer.dump()
-    deque_writer.flush()
+    burst_writer.dump()
+    burst_writer.flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             assert [frame.configuration.step for frame in traj
                     ] == [5, 25, 35, 45]
 
 
-def test_deque_max_size(sim, tmp_path):
+def test_burst_max_size(sim, tmp_path):
     filename = Path(tmp_path / "temporary_test_file.gsd")
-    deque_writer = hoomd.write.Deque(filename=str(filename),
+    burst_writer = hoomd.write.Burst(filename=str(filename),
                                      trigger=hoomd.trigger.Periodic(1),
                                      mode='wb',
                                      dynamic=['property', 'momentum'],
-                                     max_deque_size=N_RUN_STEPS)
-    sim.operations.writers.append(deque_writer)
-    # Run 1 extra step to fill the deque which does not include the first frame
+                                     max_burst_size=N_RUN_STEPS)
+    sim.operations.writers.append(burst_writer)
+    # Run 1 extra step to fill the burst which does not include the first frame
     sim.run(N_RUN_STEPS + 1)
     # Should write the last N_RUN_STEPS not any of the former.
     check_write(sim, filename, 1)
 
 
-def test_deque_mode_xb(sim, tmp_path):
+def test_burst_mode_xb(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
     if sim.device.communicator.rank == 0:
         Path(filename).touch()
-    deque_writer = hoomd.write.Deque(filename=filename,
+    burst_writer = hoomd.write.Burst(filename=filename,
                                      trigger=hoomd.trigger.Periodic(1),
                                      mode='xb',
                                      dynamic=['property', 'momentum'])
-    sim.operations.writers.append(deque_writer)
+    sim.operations.writers.append(burst_writer)
     with pytest.raises(RuntimeError):
         sim.run(0)
 
-    sim.operations.remove(deque_writer)
+    sim.operations.remove(burst_writer)
     # test mode=xb creates a new file
     filename_xb = tmp_path / "new_temporary_test_file.gsd"
 
-    deque_writer = hoomd.write.Deque(filename=filename_xb,
+    burst_writer = hoomd.write.Burst(filename=filename_xb,
                                      trigger=hoomd.trigger.Periodic(1),
                                      mode='xb',
                                      dynamic=['property', 'momentum'])
-    sim.operations.writers.append(deque_writer)
+    sim.operations.writers.append(burst_writer)
     check_write(sim, filename_xb, 1, skip_first=False)
 
 
-def test_write_deque_log(sim, tmp_path):
+def test_write_burst_log(sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
 
@@ -182,19 +182,19 @@ def test_write_deque_log(sim, tmp_path):
     logger = hoomd.logging.Logger()
     logger.add(thermo)
 
-    deque_writer = hoomd.write.Deque(filename=filename,
+    burst_writer = hoomd.write.Burst(filename=filename,
                                      trigger=hoomd.trigger.Periodic(1),
                                      filter=hoomd.filter.Null(),
                                      mode='wb',
                                      logger=logger)
-    sim.operations.writers.append(deque_writer)
+    sim.operations.writers.append(burst_writer)
 
     kinetic_energies = []
     for _ in range(N_RUN_STEPS):
         sim.run(1)
         kinetic_energies.append(thermo.kinetic_energy)
-    deque_writer.dump()
-    deque_writer.flush()
+    burst_writer.dump()
+    burst_writer.flush()
     if sim.device.communicator.rank == 0:
         key = "md/compute/ThermodynamicQuantities/kinetic_energy"
         with gsd.hoomd.open(name=filename, mode='rb') as traj:

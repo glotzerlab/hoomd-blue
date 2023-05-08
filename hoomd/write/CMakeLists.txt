@@ -2,7 +2,7 @@ set(files __init__.py
           custom_writer.py
           table.py
           gsd.py
-          gsd_deque.py
+          gsd_burst.py
           dcd.py
           )
 

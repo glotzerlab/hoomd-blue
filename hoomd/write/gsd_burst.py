@@ -9,7 +9,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.write.gsd import GSD
 
 
-class Deque(GSD):
+class Burst(GSD):
     r"""Write last :math:`N` stored frames at user trigger in the GSD format.
 
     This class stores the last :math:`N` frames in an interal deque
@@ -29,7 +29,7 @@ class Deque(GSD):
             all frames. Defaults to ``['property']``.
         logger (hoomd.logging.Logger): Provide log quantities to write. Defaults
             to `None`.
-        max_deque_frames (int): The maximum number of frames to store before
+        max_burst_frames (int): The maximum number of frames to store before
             between writes. -1 represents no limit. Defaults to -1.
 
     Note:
@@ -43,7 +43,7 @@ class Deque(GSD):
         mode (str): The file open mode.
         dynamic (list[str]): Field names and/or field categores to save in
             all frames.
-        max_deque_frames (int): The maximum number of frames to store before
+        max_burst_frames (int): The maximum number of frames to store before
             between writes. -1 represents no limit.
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
@@ -57,7 +57,7 @@ class Deque(GSD):
                  mode='ab',
                  dynamic=None,
                  logger=None,
-                 max_deque_size=-1):
+                 max_burst_size=-1):
 
         super().__init__(trigger=trigger,
                          filename=filename,
@@ -67,12 +67,12 @@ class Deque(GSD):
                          logger=logger)
         self._param_dict.pop("truncate")
         self._param_dict.update(
-            ParameterDict(max_deque_size=int(max_deque_size)))
+            ParameterDict(max_burst_size=int(max_burst_size)))
 
     def _attach_hook(self):
         self._cpp_obj = _hoomd.GSDDequeWriter(
             self._simulation.state._cpp_sys_def, self.trigger, self.filename,
-            self._simulation.state._get_group(self.filter), self.max_deque_size,
+            self._simulation.state._get_group(self.filter), self.max_burst_size,
             self.mode)
         self._cpp_obj.log_writer = self.logger
 
