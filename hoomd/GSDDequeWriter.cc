@@ -12,7 +12,8 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<ParticleGroup> group,
                                int queue_size,
                                std::string mode)
-    : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size)
+    : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size),
+      m_write_initial_frame(gsd_get_nframes(&m_handle) == 0)
     {
     }
 
@@ -21,6 +22,12 @@ void GSDDequeWriter::analyze(uint64_t timestep)
     m_frame_queue.emplace_front();
     m_log_queue.push_front(getLogData());
     populateLocalFrame(m_frame_queue.front(), timestep);
+    if (m_write_initial_frame)
+        {
+        dump();
+        m_write_initial_frame = false;
+        return;
+        }
     if (m_queue_size != -1 && m_frame_queue.size() > static_cast<size_t>(m_queue_size))
         {
         m_frame_queue.pop_back();

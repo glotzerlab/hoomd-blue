@@ -35,6 +35,7 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
 
     protected:
     int m_queue_size;
+    bool m_write_initial_frame;
     std::deque<GSDDumpWriter::GSDFrame> m_frame_queue;
     std::deque<pybind11::dict> m_log_queue;
     };
