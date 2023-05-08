@@ -137,6 +137,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     uint64_t getMaximumWriteBufferSize();
 
     protected:
+    gsd_handle m_handle; //!< Handle to the file
+
     /// Flags for dynamic/default bitsets.
     struct gsd_flag
         {
@@ -233,7 +235,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     bool m_truncate = false;       //!< True if we should truncate the file on every analyze()
     bool m_write_topology = false; //!< True if topology should be written
     bool m_write_diameter = false; //!< True if the diameter attribute should be written
-    gsd_handle m_handle;           //!< Handle to the file
 
     /// Flags indicating which particle fields are dynamic.
     std::bitset<n_gsd_flags> m_particle_dynamic;
