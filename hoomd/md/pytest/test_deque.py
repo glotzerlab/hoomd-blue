@@ -89,15 +89,21 @@ def sim(simulation_factory, device, hoomd_snapshot):
     return sim
 
 
-def check_write(sim: hoomd.Simulation, filename: str, trigger_period: int):
+def check_write(sim: hoomd.Simulation,
+                filename: str,
+                trigger_period: int,
+                skip_first: bool = True):
     snaps = []
     for _ in range(N_RUN_STEPS):
         sim.run(trigger_period)
         snaps.append(sim.state.get_snapshot())
     sim.operations.writers[0].dump()
+    sim.operations.writers[0].flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
-            for snap, gsd_snap in zip(snaps, traj):
+            # have to skip first frame which is from the first call.
+            sl_ = slice(1, None) if skip_first else slice(None)
+            for snap, gsd_snap in zip(snaps, traj[sl_]):
                 assert_equivalent_snapshots(gsd_snap, snap)
 
 
@@ -108,17 +114,24 @@ def test_deque_dump(sim, tmp_path):
     deque_writer = hoomd.write.Deque(trigger=deque_trigger,
                                      filename=filename,
                                      mode='wb',
-                                     dynamic=['property', 'momentum'])
+                                     dynamic=['property', 'momentum'],
+                                     max_deque_size=3)
     sim.operations.writers.append(deque_writer)
 
-    sim.run(30)
+    sim.run(50)
+    deque_writer.flush()
     if sim.device.communicator.rank == 0:
-        assert not Path(filename).exists()
+        assert Path(filename).exists()
+        with gsd.hoomd.open(filename, "rb") as traj:
+            # First frame is always written
+            assert len(traj) == 1
 
     deque_writer.dump()
+    deque_writer.flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
-            assert [frame.configuration.step for frame in traj] == [5, 15, 25]
+            assert [frame.configuration.step for frame in traj
+                    ] == [5, 25, 35, 45]
 
 
 def test_deque_max_size(sim, tmp_path):
@@ -129,8 +142,8 @@ def test_deque_max_size(sim, tmp_path):
                                      dynamic=['property', 'momentum'],
                                      max_deque_size=N_RUN_STEPS)
     sim.operations.writers.append(deque_writer)
-    sim.run(N_RUN_STEPS)
-    assert not filename.exists()
+    # Run 1 extra step to fill the deque which does not include the first frame
+    sim.run(N_RUN_STEPS + 1)
     # Should write the last N_RUN_STEPS not any of the former.
     check_write(sim, filename, 1)
 
@@ -144,9 +157,8 @@ def test_deque_mode_xb(sim, tmp_path):
                                      mode='xb',
                                      dynamic=['property', 'momentum'])
     sim.operations.writers.append(deque_writer)
-    sim.run(1)
     with pytest.raises(RuntimeError):
-        deque_writer.dump()
+        sim.run(0)
 
     sim.operations.remove(deque_writer)
     # test mode=xb creates a new file
@@ -157,10 +169,9 @@ def test_deque_mode_xb(sim, tmp_path):
                                      mode='xb',
                                      dynamic=['property', 'momentum'])
     sim.operations.writers.append(deque_writer)
-    check_write(sim, filename_xb, 1)
+    check_write(sim, filename_xb, 1, skip_first=False)
 
 
-@pytest.mark.xfail(reason="Still needs to be implemented.")
 def test_write_deque_log(sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
@@ -183,6 +194,7 @@ def test_write_deque_log(sim, tmp_path):
         sim.run(1)
         kinetic_energies.append(thermo.kinetic_energy)
     deque_writer.dump()
+    deque_writer.flush()
     if sim.device.communicator.rank == 0:
         key = "md/compute/ThermodynamicQuantities/kinetic_energy"
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
