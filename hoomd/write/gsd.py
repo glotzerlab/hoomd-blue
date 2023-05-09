@@ -44,6 +44,12 @@ def _array_to_strings(value):
         return value
 
 
+def _finalize_gsd(weak_writer, cpp_obj):
+    """Finalize a GSD writer."""
+    _open_gsd_writers.remove(weak_writer)
+    cpp_obj.flush()
+
+
 class GSD(Writer):
     r"""Write simulation trajectories in the GSD format.
 
@@ -222,8 +228,8 @@ class GSD(Writer):
         # Maintain a list of open gsd writers
         weak_writer = weakref.ref(self)
         _open_gsd_writers.append(weak_writer)
-        self._finalizer = weakref.finalize(self, _open_gsd_writers.remove,
-                                           weak_writer)
+        self._finalizer = weakref.finalize(self, _finalize_gsd, weak_writer,
+                                           self._cpp_obj),
 
     @staticmethod
     def write(state, filename, filter=All(), mode='wb', logger=None):
