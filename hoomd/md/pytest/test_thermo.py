@@ -2,7 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
-from hoomd.conftest import operation_pickling_check, logging_check
+from hoomd.conftest import operation_pickling_check, logging_check, autotuned_kernel_parameter_check
 from hoomd.error import DataAccessError
 from hoomd.logging import LoggerCategories
 import pytest
@@ -182,6 +182,24 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter_)
     sim = simulation_factory(two_particle_snapshot_factory())
     operation_pickling_check(thermo, sim)
+
+
+def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
+    filter_ = hoomd.filter.All()
+    thermo = hoomd.md.compute.ThermodynamicQuantities(filter_)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.add(thermo)
+
+    # add table writer so the thermo triggers every step
+    logger = hoomd.logging.Logger(categories=['scalar'])
+    logger.add(thermo)
+    w = hoomd.write.Table(trigger=1, logger=logger)
+    sim.operations.add(w)
+    sim.run(0)
+
+    # now check that kernels are autotuned
+    autotuned_kernel_parameter_check(instance=thermo,
+                                     activate=lambda: sim.run(1))
 
 
 def test_logging():

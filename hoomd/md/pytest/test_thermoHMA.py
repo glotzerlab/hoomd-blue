@@ -5,7 +5,7 @@ import hoomd
 import math
 from hoomd.logging import LoggerCategories
 from hoomd.error import DataAccessError
-from hoomd.conftest import logging_check
+from hoomd.conftest import logging_check, autotuned_kernel_parameter_check
 import pytest
 
 
@@ -48,6 +48,24 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
         thermoHMA.potential_energy
     with pytest.raises(DataAccessError):
         thermoHMA.pressure
+
+
+def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
+    filter_ = hoomd.filter.All()
+    thermo = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(filter_, 1.0)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.add(thermo)
+
+    # add table writer so the thermo triggers every step
+    logger = hoomd.logging.Logger(categories=['scalar'])
+    logger.add(thermo)
+    w = hoomd.write.Table(trigger=1, logger=logger)
+    sim.operations.add(w)
+    sim.run(0)
+
+    # now check that kernels are autotuned
+    autotuned_kernel_parameter_check(instance=thermo,
+                                     activate=lambda: sim.run(1))
 
 
 def test_logging():
