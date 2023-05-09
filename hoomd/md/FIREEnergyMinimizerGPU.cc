@@ -38,11 +38,6 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     m_partial_sum2 = GPUVector<Scalar>(m_exec_conf);
     m_partial_sum3 = GPUVector<Scalar>(m_exec_conf);
 
-    // initialize autotuners
-    for (unsigned int i=0; i < m_methods.size(); ++i)
-        {
-        m_sum_pe_tuners.emplace_back(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)}, m_exec_conf, "sum_pe_tuner"));
-        }
     reset();
     }
 
@@ -53,16 +48,15 @@ void FIREEnergyMinimizerGPU::resizePartialSumArrays()
     {
     // initialize the partial sum arrays
     unsigned int num_blocks = 0;
-    unsigned int i = 0;
-    for (auto method = m_methods.begin(); method != m_methods.end(); ++method, ++i)
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-        unsigned int group_size = current_group->getNumMembers();
 
-        auto tuner_sum_pe = m_sum_pe_tuners[i];
-        unsigned int num_blocks_sum_pe = group_size / tuner_sum_pe->getParam()[0] + 1;
-        num_blocks = std::max(num_blocks, num_blocks_sum_pe);
+        unsigned int group_size = current_group->getNumMembers();
+        num_blocks = std::max(num_blocks, group_size);
         }
+
+    num_blocks = num_blocks / m_block_size + 1;
 
     if (num_blocks != m_partial_sum1.size())
         {
@@ -97,8 +91,7 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     // CPU version is Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
     unsigned int total_group_size = 0;
 
-    unsigned int i = 0;
-    for (auto method = m_methods.begin(); method != m_methods.end(); ++method, ++i)
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
 
@@ -118,15 +111,13 @@ void FIREEnergyMinimizerGPU::update(uint64_t timestep)
                                                access_mode::overwrite);
             ArrayHandle<Scalar> d_sumE(m_sum, access_location::device, access_mode::overwrite);
 
-            std::shared_ptr<Autotuner<1>> sum_pe_tuner = m_sum_pe_tuners[i];
-            unsigned int block_size_sum_pe = sum_pe_tuner->getParam()[0];
-            unsigned int num_blocks = group_size / block_size_sum_pe + 1;
+            unsigned int num_blocks = group_size / m_block_size + 1;
             kernel::gpu_fire_compute_sum_pe(d_index_array.data,
                                             group_size,
                                             d_net_force.data,
                                             d_sumE.data,
                                             d_partial_sumE.data,
-                                            block_size_sum_pe,
+                                            m_block_size,
                                             num_blocks);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
