@@ -80,10 +80,12 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
     m_tuner_step_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                                             this->m_exec_conf,
                                             "rattle_bd_step_one"));
+    m_autotuners.push_back(m_tuner_step_one);
     m_tuner_rattle_force.reset(
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
                          "rattle_bd_force"));
+    m_autotuners.push_back(m_tuner_rattle_force);
     }
 
 template<class Manifold> void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)

@@ -39,6 +39,7 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                    m_exec_conf,
                                    "partial_reduction_tuner"));
+    m_autotuners.push_back(m_tuner);  // add to autotuner list
 
     hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }

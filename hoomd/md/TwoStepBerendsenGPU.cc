@@ -37,9 +37,11 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
     m_tuner_step_one.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                             m_exec_conf,
                                             "integrate_step_one"));
+    m_autotuners.push_back(m_tuner_step_one);
     m_tuner_step_two.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                             m_exec_conf,
                                             "integrate_step_two"));
+    m_autotuners.push_back(m_tuner_step_two);
     }
 
 /*! Perform the needed calculations to zero the system's velocity
