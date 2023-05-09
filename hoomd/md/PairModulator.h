@@ -7,7 +7,7 @@
 
 
 /*
-  This class aplies the directionalEnvelope to the pairEvaluator, turning the isotropic pair potential into an anisotropic potential.
+  This class aplies the DirectionalEnvelope to the PairEvaluator, turning the isotropic pair potential into an anisotropic potential.
 */
 
 #ifndef __PAIR_MODULATOR_H__
@@ -37,7 +37,7 @@ namespace md
     {
 
 //! Class to modulate an isotropic pair potential by an envelope to create an anisotropic pair potential.
-template <typename pairEvaluator, typename directionalEnvelope>
+template <typename PairEvaluator, typename DirectionalEnvelope>
 class PairModulator
 {
 public:
@@ -48,30 +48,76 @@ public:
             {
             }
 
-        param_type(typename pairEvaluator::param_type _pairP, typename directionalEnvelope::param_type _envelP)
-            : pairP(_pairP),
-              envelP(_envelP)
+        param_type(typename PairEvaluator::param_type _pairP, typename DirectionalEnvelope::param_type _envelP)
             {
+                // temporary width is 1
+                num_patches = 1;
+                pairP = ManagedArray<typename PairEvaluator::param_type>(1);
+                envelP = ManagedArray<typename DirectionalEnvelope::param_type>(1);
+                pairP[0] = _pairP;
+                envelP[0] = _envelP;
             }
 
         param_type(pybind11::dict params, bool managed)
-            : pairP(params["pair_params"], managed),
-              envelP(params["envelope_params"])
             {
+                // temporary width is 1
+                num_patches = 1;
+                pairP = ManagedArray<typename PairEvaluator::param_type>(1, managed);
+                envelP = ManagedArray<typename DirectionalEnvelope::param_type>(1, managed);
+                pairP[0] = typename PairEvaluator::param_type(params["pair_params"], managed);
+                envelP[0] = typename DirectionalEnvelope::param_type(params["envelope_params"]);
             }
 
         pybind11::dict asDict()
             {
                 pybind11::dict v;
 
-                v["pair_params"] = pairP.asDict();
-                v["envelope_params"] = envelP.asDict();
+                v["pair_params"] = pairP[0].asDict();
+                v["envelope_params"] = envelP[0].asDict();
 
                 return v;
             }
+        DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
+            {
+                // TODO: might have problem with Table potential?
+                pairP.load_shared(ptr, available_bytes);
+                envelP.load_shared(ptr, available_bytes);
+                for (unsigned int i = 0; i < pairP.size(); i++)
+                    {
+                        pairP[i].load_shared(ptr, available_bytes);
+                        // no envelopes with managed arrays in them
+                    }
+            }
 
-        typename pairEvaluator::param_type pairP;
-        typename directionalEnvelope::param_type envelP;
+        HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
+            {
+                // TODO: might have problem with Table potential?
+                pairP.load_shared(ptr, available_bytes);
+                envelP.load_shared(ptr, available_bytes);
+                for (unsigned int i = 0; i < pairP.size(); i++)
+                    {
+                        pairP[i].load_shared(ptr, available_bytes);
+                        // no envelopes with managed arrays in them
+                    }
+            }
+
+#ifdef ENABLE_HIP
+        //! Attach managed memory to CUDA stream
+        void set_memory_hint() const
+            {
+                // TODO: might have problem with Table potential?
+                pairP.set_memory_hint();
+                envelP.set_memory_hint();
+                for (unsigned int i = 0; i < pairP.size(); i++)
+                    {
+                        pairP[i].set_memory_hint();
+                        // no envelopes with managed arrays in them
+                    }
+            }
+#endif
+        ManagedArray<typename PairEvaluator::param_type> pairP;
+        ManagedArray<typename DirectionalEnvelope::param_type> envelP;
+        unsigned int num_patches;
     };
 
 // Nullary structure required by AnisoPotentialPair.
@@ -119,15 +165,15 @@ public:
         : dr(_dr),
           rsq(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z),
           rcutsq(_rcutsq),
-          pairEval(_dr.x*_dr.x + _dr.y*_dr.y + _dr.z*_dr.z, _rcutsq, _params.pairP),
-          envelEval(_dr, _quat_eye, _quat_jay, _rcutsq, _params.envelP) // make this format what it's looking for
-          // or add a blah::needsOrientation in the envelope
+          quat_i(_quat_eye),
+          quat_j(_quat_jay),
+          params(_params)
         { }
 
     //! If diameter is used
     DEVICE static bool needsDiameter()
         {
-            return (pairEvaluator::needsDiameter() || directionalEnvelope::needsDiameter());
+            return (PairEvaluator::needsDiameter() || DirectionalEnvelope::needsDiameter());
         }
 
     //! Accept the optional diameter values
@@ -137,16 +183,12 @@ public:
     */
     DEVICE void setDiameter(Scalar di, Scalar dj)
         {
-            if (pairEvaluator::needsDiameter())
-                pairEval.setDiameter(di, dj);
-            if (directionalEnvelope::needsDiameter())
-                envelEval.setDiameter(di, dj);
         }
 
     //! Whether pair potential requires charges
     DEVICE static bool needsCharge()
         {
-            return (pairEvaluator::needsCharge() || directionalEnvelope::needsCharge());
+            return (PairEvaluator::needsCharge() || DirectionalEnvelope::needsCharge());
         }
 
     //! Accept the optional charge values
@@ -156,10 +198,11 @@ public:
     */
     DEVICE void setCharge(Scalar qi, Scalar qj)
         {
-            if (pairEvaluator::needsCharge())
-                pairEval.setCharge(qi, qj);
-            if (directionalEnvelope::needsCharge())
-                envelEval.setCharge(qi, qj);
+            // store qi and qj for later
+            // if (PairEvaluator::needsCharge())
+            //     pairEval.setCharge(qi, qj);
+            // if (DirectionalEnvelope::needsCharge())
+            //     envelEval.setCharge(qi, qj);
         }
 
     //! Whether the pair potential uses shape.
@@ -204,47 +247,75 @@ public:
                          Scalar3& torque_i,
                          Scalar3& torque_j)
         {
-            // compute pair potential
-            Scalar force_divr(Scalar(0));
-            if (!pairEval.evalForceAndEnergy(force_divr, pair_eng, energy_shift))
+
+            force = make_scalar3(0,0,0);
+            pair_eng = Scalar(0);
+            torque_i = make_scalar3(0,0,0);
+            torque_j = make_scalar3(0,0,0);
+
+            //for loop over patchi and patchj
+            for (unsigned int patchi = 0; patchi < params.num_patches; patchi++)
                 {
-                    return false;
+                    for (unsigned int patchj = 0; patchj < params.num_patches; patchj++)
+                        {
+                            Scalar3 this_force = make_scalar3(0,0,0);
+                            Scalar this_pair_eng = Scalar(0);
+                            Scalar3 this_torque_i = make_scalar3(0,0,0);
+                            Scalar3 this_torque_j = make_scalar3(0,0,0);
+
+                            Index2D patch_indexer(params.num_patches, params.num_patches); // num_patches comes from width of square matrix of passed parameters
+                            PairEvaluator pair_eval(rsq, rcutsq, params.pairP[patch_indexer(patchi, patchj)]);
+                            // compute pair potential
+                            Scalar force_divr(Scalar(0));
+                            if (!pair_eval.evalForceAndEnergy(force_divr, this_pair_eng, energy_shift))
+                                {
+                                    return false;
+                                }
+
+                            DirectionalEnvelope envel_eval(dr, quat_i, quat_j, rcutsq, params.envelP[patch_indexer(patchi, patchj)]);
+                            // compute envelope
+                            Scalar envelope(Scalar(0));
+                            // here, this_torque_i and this_torque_j get populated with the
+                            // torque envelopes and are missing the factor of pair energy
+                            envel_eval.evaluate(this_force, envelope, this_torque_i, this_torque_j);
+
+                            // modulate forces
+                            // TODO check this math. yes.
+            
+                            // second term has the negative sign for force calculation in force_divr
+
+                            // term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
+
+
+            
+                            //        [term2         ]   [term1                 ]
+                            // TODO call this grad of modulators
+                            this_force.x = this_pair_eng*this_force.x + dr.x*force_divr*envelope;
+                            this_force.y = this_pair_eng*this_force.y + dr.y*force_divr*envelope;
+                            this_force.z = this_pair_eng*this_force.z + dr.z*force_divr*envelope;
+
+
+
+                            // modulate torques
+                            // TODO check this math. Finished checking Jan 4 2023
+                            // U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
+                            this_torque_i.x *= this_pair_eng; // here, the "anisotropic" part can't have distance dependence
+                            this_torque_i.y *= this_pair_eng;
+                            this_torque_i.z *= this_pair_eng;
+
+                            this_torque_j.x *= this_pair_eng;
+                            this_torque_j.y *= this_pair_eng;
+                            this_torque_j.z *= this_pair_eng;
+
+                            // modulate pair energy
+                            this_pair_eng *= envelope;
+
+                            force += this_force;
+                            pair_eng += this_pair_eng;
+                            torque_i += this_torque_i;
+                            torque_j += this_torque_j;
+                        }
                 }
-
-            // compute envelope
-            Scalar envelope(Scalar(0));
-            // here, torque_i and torque_j get populated with the
-            // torque envelopes and are missing the factor of pair energy
-            envelEval.evaluate(force, envelope, torque_i, torque_j);
-
-            // modulate forces
-            // TODO check this math. yes.
-            
-            // second term has the negative sign for force calculation in force_divr
-
-            // term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
-
-            
-            
-            //        [term2         ]   [term1                 ]
-                               // TODO call this grad of modulators
-            force.x = pair_eng*force.x + dr.x*force_divr*envelope;
-            force.y = pair_eng*force.y + dr.y*force_divr*envelope;
-            force.z = pair_eng*force.z + dr.z*force_divr*envelope;
-
-            // modulate torques
-            // TODO check this math. Finished checking Jan 4 2023
-            // U (pair_eng) is isotropic so it can be taken out of the derivatives that deal with orientation.
-            torque_i.x *= pair_eng; // here, the "anisotropic" part can't have distance dependence
-            torque_i.y *= pair_eng;
-            torque_i.z *= pair_eng;
-
-            torque_j.x *= pair_eng;
-            torque_j.y *= pair_eng;
-            torque_j.z *= pair_eng;
-
-            // modulate pair energy
-            pair_eng *= envelope;
 
             return true;
         }
@@ -257,7 +328,7 @@ public:
     */
     static std::string getName()
         {
-            return pairEvaluator::getName() + "_" + directionalEnvelope::getName();
+            return PairEvaluator::getName() + "_" + DirectionalEnvelope::getName();
         }
 
     std::string getShapeSpec() const
@@ -272,8 +343,12 @@ protected:
     Scalar3 dr;
     Scalar rsq;
     Scalar rcutsq;
-    pairEvaluator pairEval;           //!< An isotropic pair evaluator
-    directionalEnvelope envelEval;    //!< A directional envelope evaluator
+    const Scalar4& quat_i;
+    const Scalar4& quat_j;
+    const param_type& params;
+
+    // PairEvaluator pairEval;           //!< An isotropic pair evaluator
+    // DirectionalEnvelope envelEval;    //!< A directional envelope evaluator
 
 };
 

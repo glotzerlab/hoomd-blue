@@ -45,7 +45,7 @@ public:
             {
             }
 
-        param_type(pybind11::dict params)
+        param_type(pybind11::dict params) // param dict can take any python type
             {
                 cosalpha = fast::cos(params["alpha"].cast<Scalar>());
                 omega = params["omega"].cast<Scalar>();
