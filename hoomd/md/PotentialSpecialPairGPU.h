@@ -175,9 +175,9 @@ template<class T> void export_PotentialSpecialPairGPU(pybind11::module& m, const
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __POTENTIAL_SPECIAL_PAIR_GPU_H__

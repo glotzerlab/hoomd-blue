@@ -116,7 +116,7 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     typedef CommunicatorGridGPU<hipfftComplex> CommunicatorGridGPUComplex;
     std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
     std::shared_ptr<CommunicatorGridGPUComplex>
-        m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
+        m_gpu_grid_comm_reverse;   //!< Communicate fourier mesh
 
     dfft_plan m_dfft_plan_forward; //!< Forward distributed FFT
     dfft_plan m_dfft_plan_inverse; //!< Forward distributed FFT
@@ -128,15 +128,15 @@ class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     GlobalArray<hipfftComplex> m_inv_fourier_mesh_y; //!< The inverse-fourier transformed force mesh
     GlobalArray<hipfftComplex> m_inv_fourier_mesh_z; //!< The inverse-fourier transformed force mesh
 
-    GPUFlags<Scalar> m_sum;                   //!< Sum over fourier mesh values
-    GlobalArray<Scalar> m_sum_partial;        //!< Partial sums over fourier mesh values
-    GlobalArray<Scalar> m_sum_virial_partial; //!< Partial sums over virial mesh values
-    GlobalArray<Scalar> m_sum_virial;         //!< Final sum over virial mesh values
-    unsigned int m_block_size;                //!< Block size for fourier mesh reduction
+    GPUFlags<Scalar> m_sum;                          //!< Sum over fourier mesh values
+    GlobalArray<Scalar> m_sum_partial;               //!< Partial sums over fourier mesh values
+    GlobalArray<Scalar> m_sum_virial_partial;        //!< Partial sums over virial mesh values
+    GlobalArray<Scalar> m_sum_virial;                //!< Final sum over virial mesh values
+    unsigned int m_block_size;                       //!< Block size for fourier mesh reduction
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif // __PPPM_FORCE_COMPUTE_GPU_H__

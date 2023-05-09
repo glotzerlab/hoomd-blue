@@ -101,8 +101,8 @@ void export_ExampleUpdaterGPU(pybind11::module& m)
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>());
     }
 
-    } // end namespace detail
+    }  // end namespace detail
 
 #endif // ENABLE_HIP
 
-    } // end namespace hoomd
+    }  // end namespace hoomd

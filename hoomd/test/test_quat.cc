@@ -207,8 +207,8 @@ UP_TEST(multiplicative_norm)
 UP_TEST(rotation)
     {
     Scalar pi = M_PI;
-    Scalar alpha = pi / 2.0; // angle of rotation
-    vec3<Scalar> v(1, 1, 1); // test vector
+    Scalar alpha = pi / 2.0;                                           // angle of rotation
+    vec3<Scalar> v(1, 1, 1);                                           // test vector
     quat<Scalar> q1(cos(alpha / 2.0),
                     (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
     quat<Scalar> q2(cos(alpha / 2.0), (Scalar)sin(alpha / 2.0) * vec3<Scalar>(1, 0, 0));
@@ -253,8 +253,8 @@ UP_TEST(rotation_2)
     {
     // test rotating a vec2
     Scalar pi = M_PI;
-    Scalar alpha = pi / 2.0; // angle of rotation
-    vec2<Scalar> v(1, 1);    // test vector
+    Scalar alpha = pi / 2.0;                                           // angle of rotation
+    vec2<Scalar> v(1, 1);                                              // test vector
     quat<Scalar> q1(cos(alpha / 2.0),
                     (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
     vec2<Scalar> a;

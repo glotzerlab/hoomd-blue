@@ -306,7 +306,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator,
         avrT /= Scalar(count);
         Scalar avrP = Scalar(1. / 3.) * (avrPxx + avrPyy + avrPzz);
         Scalar rough_tol = 2.0;
-        if (i_mode == 0) // cubic
+        if (i_mode == 0)      // cubic
             MY_CHECK_CLOSE(avrP, P, rough_tol);
         else if (i_mode == 1) // orthorhombic
             {
@@ -774,7 +774,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator,
         avrT /= Scalar(count);
         Scalar avrP = Scalar(1. / 3.) * (avrPxx + avrPyy + avrPzz);
         Scalar rough_tol = 5.0;
-        if (i_mode == 0) // cubic
+        if (i_mode == 0)      // cubic
             MY_CHECK_CLOSE(avrP, P, rough_tol);
         else if (i_mode == 1) // orthorhombic
             {

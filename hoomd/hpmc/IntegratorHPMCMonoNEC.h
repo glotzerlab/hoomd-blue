@@ -29,7 +29,7 @@ namespace hpmc
 template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
     {
     protected:
-    Scalar m_chain_time; //!< the length of a chain, given in units of time
+    Scalar m_chain_time;      //!< the length of a chain, given in units of time
     unsigned int
         m_chain_probability;  //!< how often we do a chain. Replaces translation_move_probability
     Scalar m_update_fraction; //!< if we perform chains we update several particles as one move
@@ -917,7 +917,7 @@ inline void export_hpmc_nec_counters(pybind11::module& m)
         .def_readonly("distance_queries", &hpmc_nec_counters_t::distance_queries)
         .def_readonly("overlap_errors", &hpmc_nec_counters_t::overlap_err_count);
     }
-    } // end namespace hpmc
-    } // end namespace hoomd
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 
 #endif // __HPMC_MONO_EC__H__

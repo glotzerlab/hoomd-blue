@@ -57,6 +57,7 @@ The following people have contributed to the to HOOMD-blue:
 * James Antonaglia, University of Michigan
 * James Proctor, University of Michigan
 * James W. Swan, Massachusetts Institute of Technology
+* Jen Bradley, University of Michigan
 * Jenny Fothergill, Boise State University
 * Jens Glaser, Oak Ridge National Laboratory
 * Joseph Berleant, University of Michigan

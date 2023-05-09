@@ -42,8 +42,8 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  const bool d_noiseless_r,
                                  const GPUPartition& gpu_partition);
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif //__TWO_STEP_BD_GPU_CUH__

@@ -44,7 +44,7 @@ class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
     std::shared_ptr<Autotuner<1>> m_tuner_step_two; //!< step two kernel tuner
     };
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __BERENDSEN_GPU_H__

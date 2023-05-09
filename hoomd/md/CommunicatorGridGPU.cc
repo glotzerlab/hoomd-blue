@@ -218,7 +218,7 @@ template class PYBIND11_EXPORT CommunicatorGridGPU<unsigned int>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<hipfftComplex>;
 #endif // ENABLE_HIP
 
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_MPI

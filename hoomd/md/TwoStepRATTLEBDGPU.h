@@ -306,8 +306,8 @@ void export_TwoStepRATTLEBDGPU(pybind11::module& m, const std::string& name)
                             Scalar>());
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP

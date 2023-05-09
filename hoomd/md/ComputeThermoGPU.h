@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ComputeThermoGPU : public ComputeThermo
     protected:
     GlobalVector<Scalar4> m_scratch; //!< Scratch space for partial sums
     GlobalVector<Scalar>
-        m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
+        m_scratch_pressure_tensor;   //!< Scratch space for pressure tensor partial sums
     GlobalVector<Scalar>
         m_scratch_rot; //!< Scratch space for rotational kinetic energy partial sums
     std::shared_ptr<Autotuner<1>> m_tuner; //! kernel block size tuner

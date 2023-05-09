@@ -60,8 +60,8 @@ namespace detail
 //! Export the LoadBalancerGPU to python
 void export_LoadBalancerGPU(pybind11::module& m);
 
-    } // end namespace detail
+    }  // end namespace detail
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP

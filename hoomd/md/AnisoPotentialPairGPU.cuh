@@ -86,11 +86,11 @@ struct a_pair_args_t
     const unsigned int* d_tag;    //!< particle tags to compute forces over
     const BoxDim box;             //!< Simulation box in GPU format
     const unsigned int*
-        d_n_neigh;               //!< Device array listing the number of neighbors on each particle
-    const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
-    const size_t* d_head_list;   //!< Device array listing beginning of each particle's neighbors
-    const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
-    const unsigned int ntypes;   //!< Number of particle types in the simulation
+        d_n_neigh;                //!< Device array listing the number of neighbors on each particle
+    const unsigned int* d_nlist;  //!< Device array listing the neighbors of each particle
+    const size_t* d_head_list;    //!< Device array listing beginning of each particle's neighbors
+    const Scalar* d_rcutsq;       //!< Device array listing r_cut squared per particle type pair
+    const unsigned int ntypes;    //!< Number of particle types in the simulation
     const unsigned int block_size;           //!< Block size to execute
     const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
@@ -618,8 +618,8 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                          const typename evaluator::shape_type* d_shape_params);
 #endif
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __ANISO_POTENTIAL_PAIR_GPU_CUH__
