@@ -52,7 +52,8 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
 
 def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
     filter_ = hoomd.filter.All()
-    thermo = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(filter_, 1.0)
+    thermo = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+        filter_, 1.0)
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.add(thermo)
 
