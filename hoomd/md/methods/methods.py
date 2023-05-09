@@ -95,12 +95,15 @@ class ConstantVolume(Thermostatted):
 
     Examples::
 
-        nve=hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+        # NVE integration
+        nve = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
-        bussi=hoomd.md.methods.thermostats.Bussi(kT=1.0)
-        nvt=hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
+        # NVT integration using Bussi thermostat
+        bussi = hoomd.md.methods.thermostats.Bussi(kT=1.0)
+        nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
                                             thermostat=bussi)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
@@ -283,21 +286,35 @@ class ConstantPressure(Thermostatted):
 
     Examples::
 
+        # NPH integrator with cubic symmetry
         nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="xyz")
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nph], forces=[lj])
+
+        # NPT integrator with cubic symmetry
         npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="xyz",
         thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
-        # orthorhombic symmetry
-        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="none")
-        # tetragonal symmetry
-        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="xy")
-        # triclinic symmetry
-        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
-        tauS = 1.2, S=2.0, couple="none", rescale_all=True)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+
+        # NPT integrator with orthorhombic symmetry
+        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
+        tauS = 1.2, S=2.0, couple="none",
+        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+
+        # NPT integrator with tetragonal symmetry
+        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
+        tauS = 1.2, S=2.0, couple="xy",
+        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+
+        # NPT integrator with triclinic symmetry
+        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
+        tauS = 1.2, S=2.0, couple="none", rescale_all=True,
+        thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
+
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles on which to apply
