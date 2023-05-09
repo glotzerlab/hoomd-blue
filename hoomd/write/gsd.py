@@ -14,6 +14,22 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
+import atexit
+import weakref
+
+# Track open gsd writers to flush at exit.
+_open_gsd_writers = []
+
+
+def _flush_open_gsd_writers():
+    """Flush all open gsd writers at exit."""
+    for weak_writer in _open_gsd_writers:
+        writer = weak_writer()
+        if writer is not None:
+            writer.flush()
+
+
+atexit.register(_flush_open_gsd_writers)
 
 
 def _array_to_strings(value):
@@ -202,6 +218,12 @@ class GSD(Writer):
             self.truncate)
 
         self._cpp_obj.log_writer = self.logger
+
+        # Maintain a list of open gsd writers
+        weak_writer = weakref.ref(self)
+        _open_gsd_writers.append(weak_writer)
+        self._finalizer = weakref.finalize(self, _open_gsd_writers.remove,
+                                           weak_writer)
 
     @staticmethod
     def write(state, filename, filter=All(), mode='wb', logger=None):
