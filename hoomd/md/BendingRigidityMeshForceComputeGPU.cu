@@ -205,7 +205,7 @@ __global__ void gpu_compute_bending_rigidity_force_kernel(Scalar4* d_force,
             }
         else
             {
-            Fac *= -1;
+            Fac = -Fac;
             }
 
         force.x += Fac.x;
