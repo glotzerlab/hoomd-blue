@@ -3,6 +3,7 @@
 
 #include "hoomd/BondedGroupData.cuh"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 
 /*! \file HarmonicAngleForceGPU.cuh
