@@ -418,7 +418,7 @@ template<typename Real> class SpherePointGenerator
         do
             {
             u = UniformDistribution<Real>(Real(-1.0), Real(1.0))(rng);
-            one_minus_u2 = 1.0f - u * u;
+            one_minus_u2 = Real(1.0) - u * u;
             } while (one_minus_u2 < Real(0.0));
 
         // project onto the sphere surface
