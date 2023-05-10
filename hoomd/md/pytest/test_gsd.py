@@ -509,3 +509,33 @@ def test_write_gsd_finegrained_dynamic_alldefault(simulation_factory,
 
             for field in dynamic_fields:
                 assert not f.chunk_exists(frame=1, name=field)
+
+
+def test_write_gsd_no_dynamic(simulation_factory, hoomd_snapshot, tmp_path):
+    """Ensure that GSD files with no dynamic properties wite expected chunks."""
+    filename = tmp_path / "test_no_dynamic.gsd"
+
+    sim = simulation_factory(hoomd_snapshot)
+
+    gsd_writer = hoomd.write.GSD(filename=filename,
+                                 trigger=hoomd.trigger.Periodic(1),
+                                 mode='wb',
+                                 dynamic=[])
+    sim.operations.writers.append(gsd_writer)
+
+    sim.run(2)
+
+    gsd_writer.flush()
+
+    if sim.device.communicator.rank == 0:
+        with gsd.fl.open(name=filename, mode='rb') as f:
+            assert f.nframes == 2
+
+            assert f.chunk_exists(frame=0, name='configuration/step')
+            assert f.chunk_exists(frame=0, name='configuration/box')
+            assert f.chunk_exists(frame=0, name='particles/N')
+
+            assert f.chunk_exists(frame=1, name='configuration/step')
+            assert not f.chunk_exists(frame=1, name='configuration/box')
+            assert not f.chunk_exists(frame=1, name='particles/N')
+            assert not f.chunk_exists(frame=1, name='particles/position')
