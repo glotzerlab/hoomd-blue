@@ -17,6 +17,7 @@ See Also:
 
 from copy import copy
 import itertools
+import weakref
 
 import hoomd
 from hoomd.logging import Loggable
@@ -207,7 +208,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     _reserved_default_attrs = {
         **_HOOMDGetSetAttrBase._reserved_default_attrs,
         '_cpp_obj': None,
-        '_simulation': None,
+        '__simulation': None,
         '_dependents': list,
         '_dependencies': list,
         # Keeps track of the number of times _attach is called to avoid
@@ -220,7 +221,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     }
     # _use_count must be included or attaching and detaching won't work as
     # expected as _use_count may not equal 0.
-    _remove_for_pickling = ('_simulation', '_cpp_obj', "_use_count")
+    _remove_for_pickling = ('__simulation', '_cpp_obj', "_use_count")
 
     def _detach(self):
         """Decrement attach count and destroy C++ object if count == 0.
@@ -310,6 +311,21 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     @property
     def _attached(self):
         return self._cpp_obj is not None
+
+    @property
+    def _simulation(self):
+        """Get/set reference to weakly referenced simulation."""
+        sim = self.__simulation
+        if sim is not None:
+            sim = sim()  # grab weakref
+            if sim is not None:
+                return sim
+
+    @_simulation.setter
+    def _simulation(self, simulation):
+        if simulation is not None:
+            simulation = weakref.ref(simulation)
+        self.__simulation = simulation
 
     def _apply_param_dict(self):
         self._param_dict._attach(self._cpp_obj)
