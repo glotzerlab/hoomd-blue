@@ -5,6 +5,7 @@
 
 from collections.abc import MutableSequence
 from copy import copy
+import weakref
 
 from hoomd.data.typeconverter import _BaseConverter, TypeConverter
 
@@ -211,6 +212,20 @@ class SyncedList(MutableSequence):
         except ValueError as verr:
             raise ValueError(f"Validation failed: {verr.args[0]}") from verr
         return processed_value
+
+    @property
+    def _simulation(self):
+        sim = self.__simulation
+        if sim is not None:
+            sim = sim()
+            if sim is not None:
+                return sim
+
+    @_simulation.setter
+    def _simulation(self, simulation):
+        if simulation is not None:
+            simulation = weakref.ref(simulation)
+        self.__simulation = simulation
 
     def _sync(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""
