@@ -534,6 +534,8 @@ def test_write_gsd_no_dynamic(simulation_factory, hoomd_snapshot, tmp_path):
             assert f.chunk_exists(frame=0, name='configuration/step')
             assert f.chunk_exists(frame=0, name='configuration/box')
             assert f.chunk_exists(frame=0, name='particles/N')
+            # particles/positions is not default, so it is written to frame 0.
+            assert f.chunk_exists(frame=0, name='particles/position')
 
             assert f.chunk_exists(frame=1, name='configuration/step')
             assert not f.chunk_exists(frame=1, name='configuration/box')
