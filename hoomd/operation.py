@@ -52,8 +52,9 @@ class _HOOMDGetSetAttrBase:
 
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs:
-            default = self._reserved_default_attrs[attr]
-            value = default() if callable(default) else default
+            value = self._reserved_default_attrs[attr]
+            if callable(value):
+                value = value()
             object.__setattr__(self, attr, value)
             return value
         elif attr in self._param_dict:
