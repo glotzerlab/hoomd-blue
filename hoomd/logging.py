@@ -18,6 +18,8 @@ from copy import deepcopy
 from enum import Flag, auto
 from itertools import count
 from functools import reduce, wraps
+import weakref
+
 from hoomd.util import dict_map, _SafeNamespaceDict
 from hoomd.error import DataAccessError
 from collections.abc import Sequence
@@ -534,7 +536,26 @@ class _LoggerEntry:
                 "object.")
         return cls(entry[0], method, category)
 
+    @property
+    def obj(self):
+        if isinstance(self._obj, weakref.ReferenceType):
+            # We could optimize and check if this is None here or in __call__
+            # and switch to a function that just returns None or set self._obj
+            # to None, but hopefully users are not triggering this too often.
+            return self._obj()
+        return self._obj
+
+    @obj.setter
+    def obj(self, new_obj):
+        try:
+            self._obj = weakref.ref(new_obj)
+        except TypeError:
+            self._obj = new_obj
+
     def __call__(self):
+        obj = self.obj
+        if obj is None:
+            return (None, self.category.name)
         try:
             attr = getattr(self.obj, self.attr)
         except DataAccessError:
