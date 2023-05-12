@@ -21,10 +21,9 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
             {
             m_write_initial_frame = gsd_get_nframes(&m_handle) == 0;
             }
-        bcast(m_write_initial_frame,
-            0,
-            m_exec_conf->getMPICommunicator());
-        } else
+        bcast(m_write_initial_frame, 0, m_exec_conf->getMPICommunicator());
+        }
+    else
 #endif
         {
         m_write_initial_frame = gsd_get_nframes(&m_handle);
