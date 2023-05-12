@@ -60,12 +60,19 @@ _Volume_arg_list = [(hoomd.md.mesh.conservation.Volume,
                      dict(zip(_Volume_args, val)))
                     for val in zip(*_Volume_args.values())]
 
+_Helfrich_args = {
+    'k': [1.0, 20.0, 100.0],
+}
+_Helfrich_arg_list = [(hoomd.md.mesh.bending.Helfrich,
+                       dict(zip(_Helfrich_args, val)))
+                      for val in zip(*_Helfrich_args.values())]
+
 
 def get_mesh_potential_and_args():
     return (_harmonic_arg_list + _FENE_arg_list + _Tether_arg_list
             + _BendingRigidity_arg_list
             + _TriangleAreaConservation_arg_list + _AreaConservation_arg_list
-            + _Volume_arg_list)
+            + _Volume_arg_list + _Helfrich_arg_list)
 
 def get_mesh_potential_args_forces_and_energies():
     harmonic_forces = [[[37.86, 0., -26.771063], [-37.86, 0., -26.771063],
@@ -120,6 +127,18 @@ def get_mesh_potential_args_forces_and_energies():
                       [0, -107.5893328, -76.0771468],
                       [0, 107.5893328, -76.0771468]]]
     Volume_energies = [0, 19.92608051621174, 47.2656702899458]
+    Helfrich_forces = [[[-12.710842, 0., 8.987922], [12.710842, 0., 8.987922],
+                        [0., -12.710842, -8.987922], [0., 12.710842,
+                                                      -8.987922]],
+                       [[-254.216837, 0., 179.758449],
+                        [254.216837, 0., 179.758449],
+                        [0., -254.216837, -179.758449],
+                        [0., 254.216837, -179.758449]],
+                       [[-1271.084184, 0., 898.792246],
+                        [1271.084184, 0., 898.792246],
+                        [0., -1271.084184, -898.792246],
+                        [0., 1271.084184, -898.792246]]]
+    Helfrich_energies = [9.237604, 184.752086, 923.760431]
 
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
@@ -128,6 +147,7 @@ def get_mesh_potential_args_forces_and_energies():
     TriangleAreaConservation_args_and_vals = []
     AreaConservation_args_and_vals = []
     Volume_args_and_vals = []
+    Helfrich_args_and_vals = []
 
     for i in range(3):
         harmonic_args_and_vals.append(
@@ -147,12 +167,15 @@ def get_mesh_potential_args_forces_and_energies():
              AreaConservation_energies[i]))
         Volume_args_and_vals.append(
             (*_Volume_arg_list[i], Volume_forces[i], Volume_energies[i]))
+        Helfrich_args_and_vals.append(
+            (*_Helfrich_arg_list[i], Helfrich_forces[i], Helfrich_energies[i]))
     return (harmonic_args_and_vals + FENE_args_and_vals + Tether_args_and_vals
             + BendingRigidity_args_and_vals
             + AreaConservation_args_and_vals
             + TriangleAreaConservation_args_and_vals
             + AreaConservation_args_and_vals
-            + Volume_args_and_vals)
+            + Volume_args_and_vals
+            + Helfrich_args_and_vals)
 
 @pytest.fixture(scope='session')
 def tetrahedron_snapshot_factory(device):
@@ -398,7 +421,6 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
                                    rtol=1e-2,
                                    atol=1e-5)
         np.testing.assert_allclose(sim_forces, force, rtol=1e-2, atol=1e-5)
-
 
 
 def test_auto_detach_simulation(simulation_factory,

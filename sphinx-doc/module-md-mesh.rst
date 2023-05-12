@@ -26,3 +26,4 @@ md.mesh
 
    module-md-mesh-bond
    module-md-mesh-conservation
+   module-md-mesh-bending
