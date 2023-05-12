@@ -120,7 +120,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     integrator.methods.append(
         hoomd.md.methods.ConstantVolume(filterA, thermostat))
     integrator.methods.append(
-        hoomd.md.methods.Langevin(filterB, kT=1, alpha=0.00001))
+        hoomd.md.methods.Langevin(filterB, kT=1, default_gamma=0.00001))
     sim.operations.integrator = integrator
 
     sim.run(1)

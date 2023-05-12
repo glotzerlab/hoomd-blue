@@ -32,11 +32,11 @@ jobs:
     name: Build release tarball
     runs-on: ubuntu-latest
     container:
-      image: glotzerlab/ci:2023.02-ubuntu20.04
+      image: glotzerlab/ci:2023.03-ubuntu20.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3.5.2
         with:
           fetch-depth: 0
           submodules: true

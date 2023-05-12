@@ -281,9 +281,6 @@ void NeighborListTree::traverseTree()
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
                                      access_location::host,
                                      access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
 
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 
@@ -304,7 +301,6 @@ void NeighborListTree::traverseTree()
         const vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
         const unsigned int type_i = __scalar_as_int(postype_i.w);
         const unsigned int body_i = h_body.data[i];
-        const Scalar diam_i = h_diameter.data[i];
 
         const unsigned int Nmax_i = h_Nmax.data[type_i];
         const size_t nlist_head_i = h_head_list.data[i];
@@ -322,18 +318,10 @@ void NeighborListTree::traverseTree()
             if (r_cut <= Scalar(0.0))
                 continue;
 
-            // Determine the minimum r_cut_i (no diameter shifting, with buffer) for this particle
+            // Determine the minimum r_cut_i (with buffer) for this particle
             Scalar r_cut_i = r_cut + m_r_buff;
-
-            // we save the r_cutsq before diameter shifting, as we will shift later, and reuse the
-            // r_cut_i now
             Scalar r_cutsq_i = r_cut_i * r_cut_i;
-
-            // the rlist to use for the AABB search has to be at least as big as the biggest
-            // diameter
             Scalar r_list_i = r_cut_i;
-            if (m_diameter_shift)
-                r_list_i += m_d_max - Scalar(1.0);
 
             hoomd::detail::AABBTree* cur_aabb_tree = &m_aabb_trees[cur_pair_type];
 
@@ -368,19 +356,6 @@ void NeighborListTree::traverseTree()
 
                                 if (!excluded)
                                     {
-                                    // now we can trim down the actual particles based on diameter
-                                    // compute the shift for the cutoff if not excluded
-                                    Scalar sqshift = Scalar(0.0);
-                                    if (m_diameter_shift)
-                                        {
-                                        const Scalar delta
-                                            = (diam_i + h_diameter.data[j]) * Scalar(0.5)
-                                              - Scalar(1.0);
-                                        // r^2 < (r_list + delta)^2
-                                        // r^2 < r_listsq + delta^2 + 2*r_list*delta
-                                        sqshift = (delta + Scalar(2.0) * r_cut_i) * delta;
-                                        }
-
                                     // compute distance
                                     Scalar4 postype_j = h_postype.data[j];
                                     Scalar3 drij
@@ -388,7 +363,7 @@ void NeighborListTree::traverseTree()
                                           - vec_to_scalar3(pos_i_image);
                                     Scalar dr_sq = dot(drij, drij);
 
-                                    if (dr_sq <= (r_cutsq_i + sqshift))
+                                    if (dr_sq <= r_cutsq_i)
                                         {
                                         if (m_storage_mode == full || i < j)
                                             {
@@ -414,7 +389,7 @@ void NeighborListTree::traverseTree()
                 }     // end loop over images
             }         // end loop over pair types
         h_n_neigh.data[i] = n_neigh_i;
-        } // end loop over particles
+        }             // end loop over particles
     }
 
 namespace detail

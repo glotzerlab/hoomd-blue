@@ -394,7 +394,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     /// Descriptions of the active devices
     std::vector<std::string> m_active_device_descriptions;
 
-    bool m_concurrent; //!< True if all GPUs have concurrentManagedAccess flag
+    bool m_concurrent;                //!< True if all GPUs have concurrentManagedAccess flag
 
     mutable bool m_in_multigpu_block; //!< Tracks whether we are in a multi-GPU block
 

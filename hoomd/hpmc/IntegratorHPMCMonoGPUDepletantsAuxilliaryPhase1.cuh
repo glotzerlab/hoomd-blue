@@ -239,7 +239,7 @@ __launch_bounds__(max_threads)
         // extend by depletant radius
         Shape shape_test_a(quat<Scalar>(), s_params[depletant_type_a]);
 
-        OverlapReal r = 0.5 * shape_test_a.getCircumsphereDiameter();
+        ShortReal r = 0.5 * shape_test_a.getCircumsphereDiameter();
         obb_i.lengths.x += r;
         obb_i.lengths.y += r;
         obb_i.lengths.z += r;
@@ -539,7 +539,7 @@ __launch_bounds__(max_threads)
         if (active && master && s_overlap_group[group])
             {
             if ((new_config && !repulsive) || (!new_config && repulsive))
-                atomicAdd(&s_deltaF_int, 1); // numerator
+                atomicAdd(&s_deltaF_int, 1);  // numerator
             else
                 atomicAdd(&s_deltaF_int, -1); // denominator
             }

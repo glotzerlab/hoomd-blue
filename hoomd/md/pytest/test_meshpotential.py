@@ -160,7 +160,7 @@ def test_after_attaching(tetrahedron_snapshot_factory, simulation_factory,
 
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
-                                         alpha=0.1)
+                                         default_gamma=0.1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -197,7 +197,7 @@ def test_multiple_types(tetrahedron_snapshot_factory, simulation_factory,
 
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
-                                         alpha=0.1)
+                                         default_gamma=0.1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -239,7 +239,7 @@ def test_forces_and_energies(tetrahedron_snapshot_factory, simulation_factory,
 
     langevin = hoomd.md.methods.Langevin(kT=1,
                                          filter=hoomd.filter.All(),
-                                         alpha=0.1)
+                                         default_gamma=0.1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 

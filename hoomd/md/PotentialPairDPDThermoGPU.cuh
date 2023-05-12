@@ -69,15 +69,15 @@ struct dpd_pair_args_t
           compute_virial(_compute_virial), threads_per_particle(_threads_per_particle),
           devprop(_devprop) {};
 
-    Scalar4* d_force;          //!< Force to write out
-    Scalar* d_virial;          //!< Virial to write out
-    const size_t virial_pitch; //!< Pitch of 2D virial array
-    const unsigned int N;      //!< number of particles
-    const unsigned int n_max;  //!< Maximum size of particle data arrays
-    const Scalar4* d_pos;      //!< particle positions
-    const Scalar4* d_vel;      //!< particle velocities
-    const unsigned int* d_tag; //!< particle tags
-    const BoxDim box;          //!< Simulation box in GPU format
+    Scalar4* d_force;            //!< Force to write out
+    Scalar* d_virial;            //!< Virial to write out
+    const size_t virial_pitch;   //!< Pitch of 2D virial array
+    const unsigned int N;        //!< number of particles
+    const unsigned int n_max;    //!< Maximum size of particle data arrays
+    const Scalar4* d_pos;        //!< particle positions
+    const Scalar4* d_vel;        //!< particle velocities
+    const unsigned int* d_tag;   //!< particle tags
+    const BoxDim box;            //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
@@ -93,9 +93,9 @@ struct dpd_pair_args_t
     const unsigned int shift_mode;     //!< The potential energy shift mode
     const unsigned int compute_virial; //!< Flag to indicate if virials should be computed
     const unsigned int
-        threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
+        threads_per_particle;          //!< Number of threads per particle (maximum: 32==1 warp)
 
-    const hipDeviceProp_t& devprop; //!< Device properties
+    const hipDeviceProp_t& devprop;    //!< Device properties
     };
 
 #ifdef __HIPCC__
@@ -511,8 +511,8 @@ __attribute__((visibility("default"))) hipError_t
 gpu_compute_dpd_forces(const dpd_pair_args_t& args, const typename evaluator::param_type* d_params);
 #endif
 
-    } // end namespace kernel
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace kernel
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__

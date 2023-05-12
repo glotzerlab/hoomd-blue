@@ -170,9 +170,9 @@ template<class T> void export_PotentialTersoffGPU(pybind11::module& m, const std
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
     }
 
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP
 #endif

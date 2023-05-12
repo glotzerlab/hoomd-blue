@@ -239,21 +239,21 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     GlobalArray<int>
         m_deltaF_int;       //!< Free energy difference delta_F per particle for MH, rescaled to int
     unsigned int m_max_len; //!< Max length of shared memory allocation per group
-    GlobalArray<unsigned int> m_req_len; //!< Requested length of shared mem per group
+    GlobalArray<unsigned int> m_req_len;   //!< Requested length of shared mem per group
 
     detail::UpdateOrderGPU m_update_order; //!< Particle update order
     GlobalArray<unsigned int> m_condition; //!< Condition of convergence check
 
     //! For energy evaluation
-    GlobalArray<Scalar> m_additive_cutoff; //!< Per-type additive cutoffs from patch potential
+    GlobalArray<Scalar> m_additive_cutoff;   //!< Per-type additive cutoffs from patch potential
 
     GlobalArray<hpmc_counters_t> m_counters; //!< Per-device counters
     GlobalArray<hpmc_implicit_counters_t>
-        m_implicit_counters; //!< Per-device counters for depletants
+        m_implicit_counters;                 //!< Per-device counters for depletants
 
     std::vector<hipStream_t> m_narrow_phase_streams; //!< Stream for narrow phase kernel, per device
     std::vector<std::vector<hipStream_t>>
-        m_depletant_streams; //!< Stream for every particle type, and device
+        m_depletant_streams;                         //!< Stream for every particle type, and device
 
     // the phase1 and phase2 kernels are for ntrial > 0
     std::vector<std::vector<hipStream_t>> m_depletant_streams_phase1; //!< Streams for phase1 kernel
@@ -288,7 +288,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     : IntegratorHPMCMono<Shape>(sysdef), m_cl(cl), m_update_order(this->m_exec_conf)
     {
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 
@@ -2047,15 +2047,15 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
-        OverlapReal d_i(shape_i.getCircumsphereDiameter());
+        ShortReal d_i(shape_i.getCircumsphereDiameter());
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
             Shape shape_j(quat<Scalar>(), this->m_params[j_type]);
-            OverlapReal d_j(shape_j.getCircumsphereDiameter());
+            ShortReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            OverlapReal range = std::max(d_i, d_j);
+            ShortReal range = std::max(d_i, d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {
@@ -2099,8 +2099,8 @@ void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
         ;
     }
 
-    } // end namespace detail
-    } // end namespace hpmc
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP

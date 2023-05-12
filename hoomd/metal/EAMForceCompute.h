@@ -80,13 +80,13 @@ class EAMForceCompute : public ForceCompute
     std::vector<std::string> atomcomment; //!< atom comment
     std::vector<std::string> names;       //!< array names(type)
 
-    GPUArray<Scalar4> m_F;     //!< embedded function and its coefficients
-    GPUArray<Scalar4> m_rho;   //!< electron density and its coefficients
-    GPUArray<Scalar4> m_rphi;  //!< pair wise function and its coefficients
-    GPUArray<Scalar4> m_dF;    //!< derivative embedded function and its coefficients
-    GPUArray<Scalar4> m_drho;  //!< derivative electron density and its coefficients
-    GPUArray<Scalar4> m_drphi; //!< derivative pair wise function and its coefficients
-    GPUArray<Scalar> m_dFdP;   //!< derivative F / derivative P
+    GPUArray<Scalar4> m_F;                //!< embedded function and its coefficients
+    GPUArray<Scalar4> m_rho;              //!< electron density and its coefficients
+    GPUArray<Scalar4> m_rphi;             //!< pair wise function and its coefficients
+    GPUArray<Scalar4> m_dF;               //!< derivative embedded function and its coefficients
+    GPUArray<Scalar4> m_drho;             //!< derivative electron density and its coefficients
+    GPUArray<Scalar4> m_drphi;            //!< derivative pair wise function and its coefficients
+    GPUArray<Scalar> m_dFdP;              //!< derivative F / derivative P
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);

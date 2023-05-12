@@ -236,9 +236,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(),
                                      access_location::device,
                                      access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
-                                       access_location::device,
-                                       access_mode::read);
         ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(),
                                         access_location::device,
                                         access_mode::read);
@@ -249,8 +246,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         // perform the update on the GPU
         kernel::rattle_langevin_step_two_args args(d_gamma.data,
                                                    this->m_gamma.getNumElements(),
-                                                   this->m_use_alpha,
-                                                   this->m_alpha,
                                                    (*this->m_T)(timestep),
                                                    this->m_tolerance,
                                                    timestep,
@@ -267,7 +262,6 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(uint64_t timestep)
         kernel::gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
                                                        d_vel.data,
                                                        d_accel.data,
-                                                       d_diameter.data,
                                                        d_tag.data,
                                                        d_index_array.data,
                                                        group_size,
@@ -398,8 +392,8 @@ void export_TwoStepRATTLELangevinGPU(pybind11::module& m, const std::string& nam
                             std::shared_ptr<Variant>,
                             Scalar>());
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // ENABLE_HIP

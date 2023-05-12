@@ -99,8 +99,8 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLELangevin : public Tw
         m_box_changed = true;
         }
 
-    Manifold m_manifold;       //!< The manifold used for the RATTLE constraint
-    Scalar m_reservoir_energy; //!< The energy of the reservoir the system is coupled to.
+    Manifold m_manifold;           //!< The manifold used for the RATTLE constraint
+    Scalar m_reservoir_energy;     //!< The energy of the reservoir the system is coupled to.
     Scalar
         m_extra_energy_overdeltaT; //!< An energy packet that isn't added until the next time step
     bool m_tally;       //!< If true, changes to the energy of the reservoir are calculated
@@ -115,8 +115,6 @@ template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLELangevin : public Tw
     \param group The group of particles this integration method is to work on
     \param manifold The manifold describing the constraint during the RATTLE integration method
     \param T Temperature set point as a function of time
-    \param use_alpha If true, gamma=alpha*diameter, otherwise use a per-type gamma via setGamma()
-    \param alpha Scale factor to convert diameter to gamma
     \param noiseless_t If set true, there will be no translational noise (random force)
     \param noiseless_r If set true, there will be no rotational noise (random torque)
     \param tolerance Tolerance for the RATTLE iteration algorithm
@@ -350,9 +348,6 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
                                  access_mode::readwrite);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
@@ -398,13 +393,8 @@ template<class Manifold> void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(
         Scalar rx, ry, rz, coeff;
 
         Scalar gamma;
-        if (m_use_alpha)
-            gamma = m_alpha * h_diameter.data[j];
-        else
-            {
-            unsigned int type = __scalar_as_int(h_pos.data[j].w);
-            gamma = h_gamma.data[type];
-            }
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
+        gamma = h_gamma.data[type];
 
         Scalar3 normal = m_manifold.derivative(
             make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z));
@@ -742,8 +732,8 @@ void export_TwoStepRATTLELangevin(pybind11::module& m, const std::string& name)
                       &TwoStepRATTLELangevin<Manifold>::getTolerance,
                       &TwoStepRATTLELangevin<Manifold>::setTolerance);
     }
-    } // end namespace detail
-    } // end namespace md
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace md
+    }  // end namespace hoomd
 
 #endif // #ifndef __TWO_STEP_RATTLE_LANGEVIN_H__

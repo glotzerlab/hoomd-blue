@@ -487,8 +487,8 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                        d_comm_flags);
     }
 
-    } // end namespace kernel
+    }  // end namespace kernel
 
-    } // end namespace hoomd
+    }  // end namespace hoomd
 
 #endif // ENABLE_MPI

@@ -77,21 +77,21 @@ template<class Shape> class UpdaterClustersGPU : public UpdaterClusters<Shape>
     /// Autotuner for flipping clusters.
     std::shared_ptr<Autotuner<1>> m_tuner_flip;
 
-    GlobalArray<unsigned int> m_excell_idx;  //!< Particle indices in expanded cells
-    GlobalArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
-    Index2D m_excell_list_indexer;           //!< Indexer to access elements of the excell_idx list
+    GlobalArray<unsigned int> m_excell_idx;   //!< Particle indices in expanded cells
+    GlobalArray<unsigned int> m_excell_size;  //!< Number of particles in each expanded cell
+    Index2D m_excell_list_indexer;            //!< Indexer to access elements of the excell_idx list
 
     GlobalVector<unsigned int> m_nneigh;      //!< Number of neighbors
     GlobalVector<unsigned int> m_nneigh_scan; //!< Exclusive prefix sum over number of neighbors
     unsigned int m_maxn;                      //!< Max number of neighbors
     GlobalArray<unsigned int> m_overflow;     //!< Overflow condition for neighbor list
 
-    GPUPartition m_old_gpu_partition;          //!< The partition in the old configuration
-    GlobalVector<unsigned int> m_n_depletants; //!< List of number of depletants, per particle
+    GPUPartition m_old_gpu_partition;         //!< The partition in the old configuration
+    GlobalVector<unsigned int> m_n_depletants;   //!< List of number of depletants, per particle
 
     std::vector<hipStream_t> m_overlaps_streams; //!< Stream for overlaps kernel, per device
     std::vector<std::vector<hipStream_t>>
-        m_depletant_streams; //!< Stream for every particle type, and device
+        m_depletant_streams;                     //!< Stream for every particle type, and device
 
     //!< Variables for implicit depletants
     GlobalArray<Scalar> m_lambda; //!< Poisson means, per type pair
@@ -133,7 +133,7 @@ UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> 
     this->m_exec_conf->msg->notice(5) << "Constructing UpdaterClustersGPU" << std::endl;
 
     this->m_cl->setRadius(1);
-    this->m_cl->setComputeTDB(false);
+    this->m_cl->setComputeTypeBody(false);
     this->m_cl->setFlagType();
     this->m_cl->setComputeIdx(true);
 
@@ -366,15 +366,15 @@ template<class Shape> void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), params[i_type]);
-        OverlapReal d_i(shape_i.getCircumsphereDiameter());
+        ShortReal d_i(shape_i.getCircumsphereDiameter());
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
             Shape shape_j(quat<Scalar>(), params[j_type]);
-            OverlapReal d_j(shape_j.getCircumsphereDiameter());
+            ShortReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            OverlapReal range = std::max(d_i, d_j);
+            ShortReal range = std::max(d_i, d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {
@@ -1072,9 +1072,9 @@ template<class Shape> void export_UpdaterClustersGPU(pybind11::module& m, const 
                             std::shared_ptr<CellList>>());
     }
 
-    } // end namespace detail
-    } // end namespace hpmc
-    } // end namespace hoomd
+    }  // end namespace detail
+    }  // end namespace hpmc
+    }  // end namespace hoomd
 
 #endif // ENABLE_CUDA
 #endif // _UPDATER_HPMC_CLUSTERS_GPU_

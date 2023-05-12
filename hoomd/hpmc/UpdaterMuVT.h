@@ -153,16 +153,16 @@ template<class Shape> class UpdaterMuVT : public Updater
     protected:
     std::vector<std::shared_ptr<Variant>> m_fugacity; //!< Reservoir concentration per particle-type
     std::shared_ptr<IntegratorHPMCMono<Shape>>
-        m_mc;                  //!< The MC Integrator this Updater is associated with
-    unsigned int m_npartition; //!< The number of partitions to use for Gibbs ensemble
-    bool m_gibbs;              //!< True if we simulate a Gibbs ensemble
+        m_mc;                                //!< The MC Integrator this Updater is associated with
+    unsigned int m_npartition;               //!< The number of partitions to use for Gibbs ensemble
+    bool m_gibbs;                            //!< True if we simulate a Gibbs ensemble
 
-    GPUVector<Scalar4> m_postype_backup; //!< Backup of postype array
+    GPUVector<Scalar4> m_postype_backup;     //!< Backup of postype array
 
-    Scalar m_max_vol_rescale;         //!< Maximum volume ratio rescaling factor
-    Scalar m_volume_move_probability; //!< Ratio between exchange/transfer and volume moves
+    Scalar m_max_vol_rescale;                //!< Maximum volume ratio rescaling factor
+    Scalar m_volume_move_probability;        //!< Ratio between exchange/transfer and volume moves
 
-    unsigned int m_gibbs_other; //!< The root-rank of the other partition
+    unsigned int m_gibbs_other;              //!< The root-rank of the other partition
 
     hpmc_muvt_counters_t m_count_total;      //!< Accept/reject total count
     hpmc_muvt_counters_t m_count_run_start;  //!< Count saved at run() start
@@ -1942,12 +1942,12 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
 
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
-        OverlapReal r_cut_patch(0.0);
+        ShortReal r_cut_patch(0.0);
         Scalar r_cut_self(0.0);
 
         if (patch)
             {
-            r_cut_patch = OverlapReal(patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type));
+            r_cut_patch = ShortReal(patch->getRCut() + 0.5 * patch->getAdditiveCutoff(type));
             r_cut_self = r_cut_patch + 0.5 * patch->getAdditiveCutoff(type);
             }
 
@@ -2032,9 +2032,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep,
                                                  access_mode::read);
 
             Shape shape(orientation, params[type]);
-            OverlapReal R_query
-                = std::max(shape.getCircumsphereDiameter() / OverlapReal(2.0),
-                           r_cut_patch - m_mc->getMinCoreDiameter() / (OverlapReal)2.0);
+            ShortReal R_query = std::max(shape.getCircumsphereDiameter() / ShortReal(2.0),
+                                         r_cut_patch - m_mc->getMinCoreDiameter() / (ShortReal)2.0);
             hoomd::detail::AABB aabb_local = hoomd::detail::AABB(vec3<Scalar>(0, 0, 0), R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
