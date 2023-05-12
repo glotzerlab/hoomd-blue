@@ -82,10 +82,9 @@ def lj_integrator():
 
 
 @pytest.fixture(scope='function')
-def sim(simulation_factory, device, hoomd_snapshot):
+def sim(simulation_factory, hoomd_snapshot):
     sim = simulation_factory(hoomd_snapshot)
     sim.operations.integrator = lj_integrator()
-
     return sim
 
 
@@ -96,7 +95,9 @@ def check_write(sim: hoomd.Simulation,
     snaps = []
     for _ in range(N_RUN_STEPS):
         sim.run(trigger_period)
-        snaps.append(sim.state.get_snapshot())
+        snap = sim.state.get_snapshot()
+        if snap.communicator.rank == 0:
+            snaps.append(snap)
     sim.operations.writers[0].dump()
     sim.operations.writers[0].flush()
     if sim.device.communicator.rank == 0:
@@ -117,7 +118,6 @@ def test_burst_dump(sim, tmp_path):
                                      dynamic=['property', 'momentum'],
                                      max_burst_size=3)
     sim.operations.writers.append(burst_writer)
-
     sim.run(50)
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
@@ -157,8 +157,9 @@ def test_burst_mode_xb(sim, tmp_path):
                                      mode='xb',
                                      dynamic=['property', 'momentum'])
     sim.operations.writers.append(burst_writer)
-    with pytest.raises(RuntimeError):
-        sim.run(0)
+    if sim.device.communicator.rank == 0:
+        with pytest.raises(RuntimeError):
+            sim.run(0)
 
     sim.operations.remove(burst_writer)
     # test mode=xb creates a new file
