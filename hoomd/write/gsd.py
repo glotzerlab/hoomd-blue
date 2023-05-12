@@ -105,6 +105,8 @@ class GSD(Writer):
 
     * ``'property'``
 
+      * ``'configuration/box'``
+      * ``'particles/N'``
       * ``'particles/position'``
       * ``'particles/orientation'``
 
@@ -189,6 +191,8 @@ class GSD(Writer):
             'property',
             'momentum',
             'topology',
+            'configuration/box',
+            'particles/N',
             'particles/position',
             'particles/orientation',
             'particles/velocity',
