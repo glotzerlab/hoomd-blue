@@ -12,16 +12,30 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<ParticleGroup> group,
                                int queue_size,
                                std::string mode)
-    : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size),
-      m_write_initial_frame(gsd_get_nframes(&m_handle) == 0)
+    : GSDDumpWriter(sysdef, trigger, fname, group, mode), m_queue_size(queue_size)
     {
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        if (m_exec_conf->isRoot())
+            {
+            m_write_initial_frame = gsd_get_nframes(&m_handle) == 0;
+            }
+        bcast(m_write_initial_frame,
+            0,
+            m_exec_conf->getMPICommunicator());
+        } else
+#endif
+        {
+        m_write_initial_frame = gsd_get_nframes(&m_handle);
+        }
     }
 
 void GSDDequeWriter::analyze(uint64_t timestep)
     {
     m_frame_queue.emplace_front();
-    m_log_queue.push_front(getLogData());
     populateLocalFrame(m_frame_queue.front(), timestep);
+    m_log_queue.push_front(getLogData());
     if (m_write_initial_frame)
         {
         dump();
