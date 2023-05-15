@@ -306,7 +306,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             self._apply_param_dict()
             self._apply_typeparam_dict(self._cpp_obj, self._simulation)
         except Exception as err:
-            raise hoomd.error.SimulationDefinitionError(
+            raise type(err)(
                 f"Object of type {type(self)} could not be setup for "
                 f"simulating.") from err
         self._post_attach_hook()
