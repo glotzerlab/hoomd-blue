@@ -111,14 +111,14 @@ def check_write(sim: hoomd.Simulation,
 def test_burst_dump(sim, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
 
-    burst_trigger = hoomd.trigger.Periodic(period=10, phase=5)
+    burst_trigger = hoomd.trigger.Periodic(period=2, phase=1)
     burst_writer = hoomd.write.Burst(trigger=burst_trigger,
                                      filename=filename,
                                      mode='wb',
                                      dynamic=['property', 'momentum'],
                                      max_burst_size=3)
     sim.operations.writers.append(burst_writer)
-    sim.run(50)
+    sim.run(8)
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         assert Path(filename).exists()
@@ -130,8 +130,7 @@ def test_burst_dump(sim, tmp_path):
     burst_writer.flush()
     if sim.device.communicator.rank == 0:
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
-            assert [frame.configuration.step for frame in traj
-                    ] == [5, 25, 35, 45]
+            assert [frame.configuration.step for frame in traj] == [1, 3, 5, 7]
 
 
 def test_burst_max_size(sim, tmp_path):
