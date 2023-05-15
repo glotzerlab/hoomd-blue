@@ -14,13 +14,14 @@ See Also:
     Tutorial: :doc:`tutorial/04-Custom-Actions-In-Python/00-index`
 """
 
-from copy import deepcopy
+import copy
 from enum import Flag, auto
 from itertools import count
 from functools import reduce, wraps
 import weakref
 
-from hoomd.util import dict_map, _SafeNamespaceDict
+import hoomd
+from hoomd.util import _SafeNamespaceDict
 from hoomd.error import DataAccessError
 from collections.abc import Sequence
 
@@ -348,7 +349,7 @@ class Loggable(type):
             # or one of its subclasses.
             if issubclass(type(base_cls), Loggable):
                 inherited_loggables.update({
-                    name: deepcopy(quantity).update_cls(new_cls)
+                    name: copy.deepcopy(quantity).update_cls(new_cls)
                     for name, quantity in base_cls._export_dict.items()
                 })
         return inherited_loggables
@@ -480,6 +481,13 @@ def log(func=None,
         return helper(func)
 
 
+class _InvalidLogEntryType():
+    pass
+
+
+_InvalidLogEntry = _InvalidLogEntryType()
+
+
 class _LoggerEntry:
     """Stores the information for an entry in a `Logger`.
 
@@ -547,6 +555,10 @@ class _LoggerEntry:
 
     @obj.setter
     def obj(self, new_obj):
+        if not isinstance(new_obj,
+                          (hoomd.operation.Operation, hoomd.Simulation)):
+            self._obj = new_obj
+            return
         try:
             self._obj = weakref.ref(new_obj)
         except TypeError:
@@ -555,9 +567,9 @@ class _LoggerEntry:
     def __call__(self):
         obj = self.obj
         if obj is None:
-            return (None, self.category.name)
+            return _InvalidLogEntry
         try:
-            attr = getattr(self.obj, self.attr)
+            attr = getattr(obj, self.attr)
         except DataAccessError:
             attr = None
 
@@ -572,6 +584,12 @@ class _LoggerEntry:
         return all(
             getattr(self, attr) == getattr(other, attr)
             for attr in ['obj', 'attr', 'category'])
+
+    def __getstate__(self):
+        state = copy.copy(self.__dict__)
+        # Remove weak reference
+        state["_obj"] = self.obj
+        return state
 
 
 class Logger(_SafeNamespaceDict):
@@ -834,12 +852,25 @@ class Logger(_SafeNamespaceDict):
         Returns:
             dict: A nested dictionary of the current logged quantities. The end
             values are (value, category) pairs which hold the value along
-            with its associated `LoggerCategories` category
-            represented as a string (to get the
-            `LoggerCategories` enum value use
-            ``LoggerCategories[category]``.
+            with its associated `LoggerCategories` category represented as a
+            string (to get the `LoggerCategories` enum value use
+            ``LoggerCategories[category]``).
         """
-        return dict_map(self._dict, lambda x: x())
+        # Use namespace dict to correctly nest log values.
+        data = _SafeNamespaceDict()
+        # We remove all keys where the reference to the object has become
+        # invalid.
+        remove_keys = []
+        for key, entry in self.items():
+            log_value = entry()
+            if log_value is _InvalidLogEntry:
+                remove_keys.append(key)
+                continue
+            data[key] = log_value
+        if len(remove_keys) > 0:
+            for key in remove_keys:
+                del self[key]
+        return data._dict
 
     def _contains_obj(self, namespace, obj):
         """Evaluates based on identity."""
