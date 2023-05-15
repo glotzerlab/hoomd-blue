@@ -78,12 +78,10 @@ class Patch:
 
     def dfi_dni(self, dr, ni_world):
         """Derivative of fi with respect to ni. Note the negative sign."""
-        rhat = normalize(dr)
-        return rhat * -self.omega * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2
+        return -self.omega * exp(-self.omega * (self._costhetai(dr, ni_world) - self.cosalpha)) *  self.fi(dr, ni_world)**2
 
     def dfj_dnj(self, dr, nj_world):
-        rhat = normalize(dr)
-        return rhat * self.omega *  exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2
+        return self.omega *  exp(-self.omega * (self._costhetaj(dr, nj_world) - self.cosalpha)) * self.fj(dr, nj_world)**2
 
 
 class PatchPair:
@@ -123,7 +121,8 @@ class PatchPair:
             # print("ni is", self.patch.ni[i])
             # print("a i is", a[i])
             # print("deriv is", self.patch.dfi_dni(self.dr, self.ni_world))
-            new_term = self.patch.ni[i] * cross(a[i], self.patch.dfi_dni(self.dr, self.ni_world))
+            rhat = normalize(self.dr)
+            new_term = self.patch.ni[i] * cross(a[i],  rhat * self.patch.dfi_dni(self.dr, self.ni_world))
             # print("torque i term ", i, " ", new_term)
             terms += new_term
         return const * terms
@@ -137,7 +136,8 @@ class PatchPair:
             # print("nj", self.patch.nj[i])
             # print("b i is", b[i])
             # print("deriv is", self.patch.dfj_dnj(self.dr, self.nj_world))
-            new_term = self.patch.nj[i] * cross(b[i], self.patch.dfj_dnj(self.dr, self.nj_world))
+            rhat = normalize(self.dr)
+            new_term = self.patch.nj[i] * cross(b[i], rhat * self.patch.dfj_dnj(self.dr, self.nj_world))
             # print("torque j term ", i, " ", new_term)
             terms += new_term
         # print("torque j:")
@@ -153,7 +153,7 @@ class PatchPair:
         term1 = self.iso.force(magdr) * normalize(dr) * self.patch.fi(dr, self.ni_world) * self.patch.fj(dr, self.nj_world)
 
         # dfi/du
-        dfi_dui = self.patch.dfi_dni(dr, self.ni_world)
+        dfi_dui = -self.patch.dfi_dni(dr, self.ni_world)
 
         # dui/dr
         lo = magdr
