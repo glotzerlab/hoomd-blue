@@ -215,7 +215,7 @@ class SyncedList(MutableSequence):
 
     @property
     def _simulation(self):
-        sim = self.__simulation
+        sim = self._simulation_
         if sim is not None:
             sim = sim()
             if sim is not None:
@@ -225,7 +225,7 @@ class SyncedList(MutableSequence):
     def _simulation(self, simulation):
         if simulation is not None:
             simulation = weakref.ref(simulation)
-        self.__simulation = simulation
+        self._simulation_ = simulation
 
     def _sync(self, simulation, synced_list):
         """Attach all list items and update for automatic attachment."""
@@ -260,7 +260,7 @@ class SyncedList(MutableSequence):
     def __getstate__(self):
         """Get state for pickling."""
         state = copy(self.__dict__)
-        state['_simulation'] = None
+        state['_simulation_'] = None
         state.pop('_synced_list', None)
         return state
 
