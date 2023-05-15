@@ -26,7 +26,7 @@ GSDDequeWriter::GSDDequeWriter(std::shared_ptr<SystemDefinition> sysdef,
     else
 #endif
         {
-        m_write_initial_frame = gsd_get_nframes(&m_handle);
+        m_write_initial_frame = gsd_get_nframes(&m_handle) == 0;
         }
     }
 
