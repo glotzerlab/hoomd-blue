@@ -310,7 +310,7 @@ class ConstantPressure(Thermostatted):
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
         # NPT integrator with triclinic symmetry
-        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
+        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="none", rescale_all=True,
         thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
