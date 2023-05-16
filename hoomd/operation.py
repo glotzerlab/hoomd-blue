@@ -307,8 +307,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             self._apply_typeparam_dict(self._cpp_obj, self._simulation)
         except Exception as err:
             raise type(err)(
-                f"Object of type {type(self)} could not be setup for "
-                f"simulating.") from err
+                f"Error applying parameters for object of type {type(self)}."
+                ) from err
         self._post_attach_hook()
 
     @property
