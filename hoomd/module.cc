@@ -95,6 +95,10 @@ char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 //! Initialize the MPI environment
 int initialize_mpi()
     {
+    #ifdef ENABLE_HIP
+    hipInit(0);
+    #endif
+
     // initialize MPI if it has not been initialized by another program
     int external_init = 0;
     MPI_Initialized(&external_init);
