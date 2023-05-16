@@ -302,8 +302,13 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         except hoomd.error.SimulationDefinitionError as err:
             self._use_count -= 1
             raise err
-        self._apply_param_dict()
-        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        try:
+            self._apply_param_dict()
+            self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+        except Exception as err:
+            raise type(err)(
+                f"Error applying parameters for object of type {type(self)}."
+            ) from err
         self._post_attach_hook()
 
     @property
