@@ -308,7 +308,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         except Exception as err:
             raise type(err)(
                 f"Error applying parameters for object of type {type(self)}."
-                ) from err
+            ) from err
         self._post_attach_hook()
 
     @property
