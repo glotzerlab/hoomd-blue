@@ -80,7 +80,7 @@ class MTTK(Thermostat):
         MTTK = hoomd.md.methods.thermostats.Berendsen(kT=1.0, tau=dt*100)
         nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
                                             thermostat=MTTK)
-        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt], forces=[lj])
+        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt])
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point for the
@@ -168,7 +168,7 @@ class Bussi(Thermostat):
         bussi = hoomd.md.methods.thermostats.Bussi(kT=1.0)
         nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
                                             thermostat=bussi)
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt], forces=[lj])
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nvt])
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature set point
@@ -215,7 +215,7 @@ class Berendsen(Thermostat):
         berendsen = hoomd.md.methods.thermostats.Berendsen(kT=1.0, tau=dt*100)
         nvt = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All(),
                                             thermostat=berendsen)
-        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt], forces=[lj])
+        integrator = hoomd.md.Integrator(dt=dt, methods=[nvt])
 
     Attributes:
         kT (hoomd.variant.variant_like): Temperature of the simulation.
