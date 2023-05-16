@@ -298,13 +298,13 @@ class ConstantPressure(Thermostatted):
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
         # NPT integrator with orthorhombic symmetry
-        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
+        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="none",
         thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
 
         # NPT integrator with tetragonal symmetry
-        nph = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
+        npt = hoomd.md.methods.ConstantPressure(filter=hoomd.filter.All(),
         tauS = 1.2, S=2.0, couple="xy",
         thermostat=hoomd.md.methods.thermostats.Bussi(kT=1.0))
         integrator = hoomd.md.Integrator(dt=0.005, methods=[npt], forces=[lj])
