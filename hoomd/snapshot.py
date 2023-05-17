@@ -25,7 +25,6 @@ class _ConfigurationData:
 
     @box.setter
     def box(self, box):
-        print("set box")
         try:
             new_box = hoomd.Box.from_box(box)
         except Exception:
@@ -37,7 +36,7 @@ class _ConfigurationData:
 
     @property
     def sphere(self):
-        s = self._cpp_obj._global_sphere
+        s = self._cpp_obj._sphere_space
         R = s.getR()
         return R
 
@@ -49,7 +48,6 @@ class _ConfigurationData:
             raise ValueError(
                 f"{sphere} is not convertible to a hoomd.Sphere object using "
                 "hoomd.Sphere.from_sphere.")
-        print("set sphere", new_sphere._cpp_obj)
         self._cpp_obj._sphere_space = new_sphere._cpp_obj
 
 

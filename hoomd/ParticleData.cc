@@ -3004,7 +3004,7 @@ void export_BoxDim(pybind11::module& m)
 
 void export_Sphere(pybind11::module& m)
     {
-    pybind11::class_<Sphere>(m,"Sphere")
+    pybind11::class_<Sphere, std::shared_ptr<Sphere>>(m,"Sphere")
     .def(pybind11::init<Scalar>())
     .def("getR", &Sphere::getR)
     .def("setR", &Sphere::setR)
