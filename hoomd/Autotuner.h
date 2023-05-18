@@ -100,6 +100,23 @@ class PYBIND11_EXPORT AutotunerBase
         return range;
         }
 
+    // Build a block size range which is every power of two >= the warp size
+    // NOTE: this code assumes the warp size is already a power of 2
+    static std::vector<unsigned int>
+    makeBlockSizeRangePow2(const std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        {
+        std::vector<unsigned int> range;
+        unsigned int warp_size = exec_conf->dev_prop.warpSize;
+        unsigned int max_value = exec_conf->dev_prop.maxThreadsPerBlock;
+
+        for (unsigned int cur_size = warp_size; cur_size < max_value; cur_size *= 2)
+            {
+            range.push_back(cur_size);
+            }
+
+        return range;
+        }
+
     /// Build a list of thread per particle targets.
     /*! Defaults to powers of two within a warp size. Pass a value to force_size to choose powers
         of two up to and including force_size.
