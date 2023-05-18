@@ -223,16 +223,23 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
     # expected as _use_count may not equal 0.
     _remove_for_pickling = ('_simulation_', '_cpp_obj', "_use_count")
 
-    def _detach(self):
+    def _detach(self, force=False):
         """Decrement attach count and destroy C++ object if count == 0.
 
         This method is not designed to be overwritten, but handles the necessary
         detaching procedures for all `_HOOMDBaseObject` subclasses.
 
+        Args:
+            force (`bool`, optional): Whether to ignore ``_use_count`` or not.
+                Defaults to ``False``. When ``True`` the object will remove all
+                C++ connections regardless of usage elsewhere.
+
         Note:
             Use `~._detach_hook` in subclasses to provide custom detaching
             logic.
         """
+        if force:
+            self._use_count = 0
         if self._use_count == 0:
             return self
         self._use_count -= 1
@@ -320,6 +327,8 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
             sim = sim()  # grab weakref
             if sim is not None:
                 return sim
+            else:
+                self._detach(force=True)
 
     @_simulation.setter
     def _simulation(self, simulation):
