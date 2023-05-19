@@ -45,17 +45,15 @@ def type_param():
 def test_adding_typeparams(type_param, base_op):
     base_op._add_typeparam(type_param)
     assert 'type_param' in base_op._typeparam_dict.keys()
-    assert base_op._typeparam_dict['type_param']['A'] == \
-            {"foo": 1, "bar": RequiredArg}
+    expected_dict = {"foo": 1, "bar": RequiredArg}
+    assert base_op._typeparam_dict['type_param']['A'] == expected_dict
     return base_op
 
 
 def test_extending_typeparams(base_op):
-    type_params = (
-        TypeParameter('foo', 'particle', {"a": int}),
-        TypeParameter('bar', 'particle', {"a": str}),
-        TypeParameter('baz', 'particle', {"a": 2.5})
-    )
+    type_params = (TypeParameter('foo', 'particle', {"a": int}),
+                   TypeParameter('bar', 'particle', {"a": str}),
+                   TypeParameter('baz', 'particle', {"a": 2.5}))
 
     base_op._extend_typeparam(type_params)
     keys = set(base_op._typeparam_dict.keys())
@@ -94,8 +92,17 @@ def test_setattr_type_param(full_op):
 
 @pytest.fixture()
 def type_param_non_default():
-    return {"A": {"bar": "world"}, "B": {"bar": "hello"},
-            "C": {"bar": "hello world"}}
+    return {
+        "A": {
+            "bar": "world"
+        },
+        "B": {
+            "bar": "hello"
+        },
+        "C": {
+            "bar": "hello world"
+        }
+    }
 
 
 def test_apply_typeparam_dict(full_op, type_param_non_default):
@@ -156,6 +163,6 @@ def test_detach(attached, params, type_param_non_default):
 
 def test_pickling(full_op, attached):
     pickling_check(full_op)
-    sim = attached.__simulation
+    sim = attached.__simulation  # noqa: F841
     del attached.__simulation
     pickling_check(attached)
