@@ -71,6 +71,7 @@ class SyncedList(MutableSequence):
                  callable_class=False,
                  attach_members=True):
         self._attach_members = attach_members
+        self._simulation_ = None
         if to_synced_list is None:
             to_synced_list = identity
 
