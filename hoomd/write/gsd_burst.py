@@ -32,6 +32,12 @@ class Burst(GSD):
         max_burst_frames (int): The maximum number of frames to store before
             between writes. -1 represents no limit. Defaults to -1.
 
+    Warning:
+        On file creation, `Burst` objects always writes the first frame when
+        triggered. This is necessary to keep performance as expected. When
+        analyzing, this can mean the first frame may not be contiguous with the
+        second. Use the "configuration/step" attribute to check.
+
     Note:
         For more tips and qualifications see the `hoomd.write.GSD`
         documentation.
