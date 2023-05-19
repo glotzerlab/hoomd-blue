@@ -12,11 +12,11 @@ from hoomd.write.gsd import GSD
 class Burst(GSD):
     r"""Write last :math:`N` stored frames at user trigger in the GSD format.
 
-    This class stores the last :math:`N` frames in an interal deque
+    This class stores up to the last :math:`N` frames in an interal deque
     which only writes the frames out when `dump` is called. When the writer is
     triggered and the next frame would result in :math:`N + 1` frames being
-    stored, the oldest frame is popped off the deque and the new frame is
-    pushed to the front of the deque.
+    stored, the oldest frame is removed from the deque and the new frame is
+    added.
 
     Args:
         trigger (hoomd.trigger.trigger_like): Select the timesteps to store
