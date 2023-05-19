@@ -220,6 +220,8 @@ class SyncedList(MutableSequence):
             sim = sim()
             if sim is not None:
                 return sim
+            else:
+                self._unsync()
 
     @_simulation.setter
     def _simulation(self, simulation):
