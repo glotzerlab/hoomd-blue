@@ -7,8 +7,15 @@ Change Log
 v4.x
 ----
 
-v4.0.0 (net yet released)
+v4.0.0 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Fix error with ``MPI_Allreduce`` on OLCF Frontier
+  (`#1547 <https://github.com/glotzerlab/hoomd-blue/pull/1547>`__).
+* Correct equations in virial pressure documentation
+  (`#1548 <https://github.com/glotzerlab/hoomd-blue/pull/1548>`__).
 
 *Added*
 
@@ -21,6 +28,12 @@ v4.0.0 (net yet released)
   (`#1419 <https://github.com/glotzerlab/hoomd-blue/issues/1419>`__).
 * ``hoomd.md.external.wall.Gaussian``
   (`#1499 <https://github.com/glotzerlab/hoomd-blue/pull/1499>`__).
+* ``hoomd.write.GSD.maximum_write_buffer_size`` - Set the maximum size of the GSD write buffer
+  (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
+* ``hoomd.write.GSD.flush`` - flush the write buffer of an open GSD file
+  (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
+* On importing ``hoomd``, install a ``SIGTERM`` handler that calls ``sys.exit(1)``
+  (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
 
 *Changed*
 
@@ -41,6 +54,16 @@ v4.0.0 (net yet released)
 * Updated tutorials to use HOOMD-blue v4 API, work with up to date releases of freud, gsd, and
   signac. Also make general improvements to the tutorials.
 * Document changes needed to migrate from v3 to v4 in the migration guide.
+* More descriptive error messages when calling ``Simulation.run``
+  (`#1552 <https://github.com/glotzerlab/hoomd-blue/pull/1552>`__).
+* Increase performance of ``hoomd.write.GSD``
+  (`#1538 <https://github.com/glotzerlab/hoomd-blue/pull/1538>`__).
+* Increase performance of ``hoomd.State.get_snapshot`` in serial
+  (`#1538 <https://github.com/glotzerlab/hoomd-blue/pull/1538>`__).
+* `hoomd.write.GSD.dynamic` now allows fine grained control over individual particle fields
+  (`#1538 <https://github.com/glotzerlab/hoomd-blue/pull/1538>`__).
+* No longer test with GCC 7-8, Python 3.6-3.7, or Clang 6-9)
+  (`#1544 <https://github.com/glotzerlab/hoomd-blue/pull/1544>`__).
 
 *Deprecated*
 
