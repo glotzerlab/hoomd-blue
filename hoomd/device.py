@@ -27,6 +27,44 @@ import hoomd
 from hoomd import _hoomd
 
 
+class NoticeFile:
+    """Write a notice message to a file using `hoomd.Device`.
+
+    Args:
+        device (`hoomd.Device`): The `Device` object.
+    """
+
+    def __init__(self, device):
+        self._msg = device._cpp_msg
+        self._buff = ""
+        self._level = device.notice_level
+
+    def write(self, message, level=None):
+        """Writes the notice message to the device.
+
+        Args:
+            message (str): Message to write.
+            level (int): Message notice level.
+        """
+        if level is None:
+            level = self._level
+        self._buff += str(message)
+        lines = self._buff.split("\n")
+        for line in lines:
+
+            if "\n" == line[-2:]:
+                pass
+            else:
+                line += "\n"
+
+            self._msg.notice(level, line)
+        self._buff = ""
+
+    def flush(self):
+        """Flush the device."""
+        pass
+
+
 class Device:
     """Base class device object.
 
