@@ -151,7 +151,7 @@ def test_noticefile(device, tmp_path):
 
     if device.communicator.rank == 0:
         with open(device.message_filename) as fh:
-            assert msg + "\n" in fh.read()
+            assert fh.read() == str(msg) + "\n"
 
     # Test notice with a message that is not a string.
     msg = 123456
@@ -160,13 +160,13 @@ def test_noticefile(device, tmp_path):
 
     if device.communicator.rank == 0:
         with open(device.message_filename) as fh:
-            assert str(msg) + "\n" in fh.read()
+            assert fh.read() == str(msg) + "\n"
 
     # Test the level argument
     msg = "This message should not output."
     device.message_filename = str(tmp_path / "empty_notice")
-    notice_file = hoomd.device.NoticeFile(device)
-    notice_file.write(msg, level=5)
+    notice_file = hoomd.device.NoticeFile(device, level=5)
+    notice_file.write(msg)
 
     if device.communicator.rank == 0:
         with open(device.message_filename) as fh:

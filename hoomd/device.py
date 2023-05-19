@@ -32,22 +32,20 @@ class NoticeFile:
 
     Args:
         device (`hoomd.Device`): The `Device` object.
+        level (int): Message notice level. Default value is 1
     """
 
-    def __init__(self, device):
+    def __init__(self, device, level=1):
         self._msg = device._cpp_msg
         self._buff = ""
-        self._level = device.notice_level
+        self._level = level
 
-    def write(self, message, level=None):
+    def write(self, message):
         """Writes the notice message to the device.
 
         Args:
             message (str): Message to write.
-            level (int): Message notice level.
         """
-        if level is None:
-            level = self._level
         self._buff += str(message)
         lines = self._buff.split("\n")
         for line in lines:
@@ -57,7 +55,7 @@ class NoticeFile:
             else:
                 line += "\n"
 
-            self._msg.notice(level, line)
+            self._msg.notice(self._level, line)
         self._buff = ""
 
     def flush(self):
