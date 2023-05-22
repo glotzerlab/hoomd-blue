@@ -45,7 +45,7 @@ class NoticeFile:
         self._level = level
 
     def write(self, message):
-        """Writes the notice message to the device.
+        """Writes data to the associated devices notice stream.
 
         Args:
             message (str): Message to write.
