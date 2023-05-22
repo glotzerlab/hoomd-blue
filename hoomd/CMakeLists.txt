@@ -57,6 +57,7 @@ set(_hoomd_sources Action.cc
                    Analyzer.cc
                    BondedGroupData.cc
                    BoxResizeUpdater.cc
+                   SphereResizeUpdater.cc
                    CellList.cc
                    CellListStencil.cc
                    ClockSource.cc
@@ -124,6 +125,7 @@ set(_hoomd_headers
     BoxResizeUpdater.h
     BoxResizeUpdaterGPU.cuh
     BoxResizeUpdaterGPU.h
+    SphereResizeUpdater.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
     CellListGPU.cuh

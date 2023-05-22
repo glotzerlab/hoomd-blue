@@ -1004,24 +1004,23 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
              // loop through N particles in a shuffled order
              for (unsigned int cur_particle = 0; cur_particle < m_pdata->getN(); cur_particle++)
-                    {
+                 {
+                 unsigned int i = m_update_order[cur_particle];
 
-	            unsigned int i = m_update_order[cur_particle];
+		         Scalar4 postype_i = h_postype.data[i];
+                 Scalar4 orientation_i = h_orientation.data[i];
+		         quat<Scalar> quat_pos_i(h_quat_pos.data[i]);
 
-		    Scalar4 postype_i = h_postype.data[i];
-                    Scalar4 orientation_i = h_orientation.data[i];
-		    quat<Scalar> quat_pos_i(h_quat_pos.data[i]);
+		         vec3<Scalar> pos_i = sphere.sphericalToCartesian(quat_pos_i);
 
-		    vec3<Scalar> pos_i = sphere.sphericalToCartesian(quat_pos_i);
-
-		    #ifdef ENABLE_MPI
-                    if (m_comm)
-                        {
-                        // only move particle if active
-                        if (!isActive(make_scalar3(postype_i.x, postype_i.y, postype_i.z), box, ghost_fraction))
-                            continue;
-                        }
-                    #endif
+		         #ifdef ENABLE_MPI
+                 if (m_comm)
+                     {
+                     // only move particle if active
+                     if (!isActive(make_scalar3(postype_i.x, postype_i.y, postype_i.z), box, ghost_fraction))
+                         continue;
+                     }
+                 #endif
 
 		    // make a trial move for i
                     hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
@@ -1069,8 +1068,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                       move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
                       }
 
-		  bool overlap=false;
-                  OverlapReal r_cut_patch = 0;
+		         bool overlap=false;
+                 OverlapReal r_cut_patch = 0;
 
                  if (m_patch)
                      {
@@ -1481,8 +1480,8 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
                              if (h_tag.data[i] <= h_tag.data[j]
                                  && h_overlaps.data[m_overlap_idx(typ_i,typ_j)]
                                  && check_circumsphere_overlap(r_ij, shape_i, shape_j)
-                                 && test_overlap(r_ij, shape_i, shape_j, err_count))
-                                 //&& test_overlap(-r_ij, shape_j, shape_i, err_count))
+                                 && test_overlap(r_ij, shape_i, shape_j, err_count)//)
+                                 && test_overlap(-r_ij, shape_j, shape_i, err_count))
                                  {
                                  overlap_count++;
                                  if (early_exit)

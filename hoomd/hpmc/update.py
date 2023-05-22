@@ -877,18 +877,26 @@ class QuickCompress(Updater):
 
     def __init__(self,
                  trigger,
-                 target_box,
+                 target,
                  max_overlaps_per_particle=0.25,
-                 min_scale=0.99):
+                 min_scale=0.99, 
+                 coordinate_system='cartesian'):
         super().__init__(trigger)
 
-        param_dict = ParameterDict(max_overlaps_per_particle=float,
+        if(coordinate_system == 'spherical'):
+            param_dict = ParameterDict(max_overlaps_per_particle=float,
                                    min_scale=float,
-                                   target_box=hoomd.Box,
+                                   target=hoomd.Sphere,
+                                   instance=int)
+
+        else:
+            param_dict = ParameterDict(max_overlaps_per_particle=float,
+                                   min_scale=float,
+                                   target=hoomd.Box,
                                    instance=int)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
-        param_dict['target_box'] = target_box
+        param_dict['target'] = target
 
         self._param_dict.update(param_dict)
 
@@ -907,7 +915,8 @@ class QuickCompress(Updater):
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, self.trigger,
             integrator._cpp_obj, self.max_overlaps_per_particle, self.min_scale,
-            self.target_box._cpp_obj)
+            self.target._cpp_obj)
+
 
     @property
     def complete(self):

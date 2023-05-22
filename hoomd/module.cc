@@ -5,6 +5,7 @@
 #include "Analyzer.h"
 #include "BondedGroupData.h"
 #include "BoxResizeUpdater.h"
+#include "SphereResizeUpdater.h"
 #include "CellList.h"
 #include "CellListStencil.h"
 #include "ClockSource.h"
@@ -312,6 +313,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_PythonUpdater(m);
     export_Integrator(m);
     export_BoxResizeUpdater(m);
+    export_SphereResizeUpdater(m);
     export_UpdaterRemoveDrift(m);
 #ifdef ENABLE_HIP
     export_BoxResizeUpdaterGPU(m);

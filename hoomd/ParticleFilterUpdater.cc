@@ -31,7 +31,7 @@ void ParticleFilterUpdater::update(uint64_t timestep)
 
 namespace detail
     {
-/// Export the BoxResizeUpdater to python
+/// Export the ParticleFilterUpdater to python
 void export_ParticleFilterUpdater(pybind11::module& m)
     {
     pybind11::bind_vector<std::vector<std::shared_ptr<ParticleGroup>>>(m, "ParticleGroupList");

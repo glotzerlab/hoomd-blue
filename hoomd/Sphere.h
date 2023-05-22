@@ -86,6 +86,19 @@ struct
             return rotate(q_pos,vec3<Real>(m_R,0,0));
 
             }
+    HOSTDEVICE bool operator==(const Sphere& other) const
+        {
+        Scalar R1 = getR();
+        Scalar R2 = other.getR();
+
+        return R1 == R2;
+        }
+
+    HOSTDEVICE bool operator!=(const Sphere& other) const
+        {
+        return !((*this) == other);
+        }
+
 
     private:
         Scalar m_R;        //!< Sphere radius

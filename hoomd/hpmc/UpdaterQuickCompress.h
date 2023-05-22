@@ -41,6 +41,13 @@ class UpdaterQuickCompress : public Updater
                          double min_scale,
                          std::shared_ptr<BoxDim> target_box);
 
+    UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<Trigger> trigger,
+                         std::shared_ptr<IntegratorHPMC> mc,
+                         double max_overlaps_per_particle,
+                         double min_scale,
+                         std::shared_ptr<Sphere> target_sphere);
+
     /// Destructor
     virtual ~UpdaterQuickCompress();
 
@@ -100,6 +107,18 @@ class UpdaterQuickCompress : public Updater
         m_target_box = target_box;
         }
 
+    /// Get the target sphere
+    std::shared_ptr<Sphere> getTargetSphere()
+        {
+        return m_target_sphere;
+        }
+
+    /// Set the target box
+    void setTargetSphere(std::shared_ptr<Sphere> target_sphere)
+        {
+        m_target_sphere = target_sphere;
+        }
+
     /// Return true if the updater is complete and the simulation should end.
     virtual bool isComplete()
         {
@@ -131,6 +150,9 @@ class UpdaterQuickCompress : public Updater
     /// The target box dimensions
     std::shared_ptr<BoxDim> m_target_box;
 
+    /// The target sphere dimensions
+    std::shared_ptr<Sphere> m_target_sphere;
+
     /// Unique ID for RNG seeding
     unsigned int m_instance = 0;
 
@@ -142,6 +164,12 @@ class UpdaterQuickCompress : public Updater
 
     /// Get the new box to set
     BoxDim getNewBox(uint64_t timestep);
+
+    /// Perform the sphere scale move
+    void performSphereScale(uint64_t timestep);
+
+    /// Get the new sphere to set
+    Sphere getNewSphere(uint64_t timestep);
 
     /// Store the last HPMC counters
     hpmc_counters_t m_last_move_counters;

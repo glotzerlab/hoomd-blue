@@ -57,7 +57,7 @@ class PYBIND11_EXPORT ParticleFilterUpdater : public Updater
 
 namespace detail
     {
-/// Export the BoxResizeUpdater to python
+/// Export the ParticleFilterUpdater to python
 void export_ParticleFilterUpdater(pybind11::module& m);
 
     } // end namespace detail
