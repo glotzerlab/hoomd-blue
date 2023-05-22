@@ -426,7 +426,9 @@ def _check_obj_attr_compatibility(a, b):
     filtered_differences = set(different_keys)
     for key in different_keys:
         if key in a._reserved_default_attrs:
-            default = a._reserved_default_attrs[key]()
+            default = a._reserved_default_attrs[key]
+            if callable(default):
+                default = default()
             if getattr(a, key, default) == getattr(b, key, default):
                 filtered_differences.remove(key)
                 continue
