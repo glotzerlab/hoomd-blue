@@ -58,7 +58,7 @@ class NoticeFile:
             self._buff = lines[-1]
 
     def flush(self):
-        """Flush the device."""
+        """Flush the output."""
         pass
 
 
