@@ -16,6 +16,8 @@ v4.0.0 (not yet released)
   (`#1547 <https://github.com/glotzerlab/hoomd-blue/pull/1547>`__).
 * Correct equations in virial pressure documentation
   (`#1548 <https://github.com/glotzerlab/hoomd-blue/pull/1548>`__).
+* Work around cases where Python's garbage collector fails to collect ``Operation`` objects
+  (`#1457 <https://github.com/glotzerlab/hoomd-blue/issues/1457>`__).
 
 *Added*
 
@@ -34,6 +36,8 @@ v4.0.0 (not yet released)
   (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
 * On importing ``hoomd``, install a ``SIGTERM`` handler that calls ``sys.exit(1)``
   (`#1541 <https://github.com/glotzerlab/hoomd-blue/pull/1541>`__).
+* More descriptive error messages when calling ``Simulation.run``
+  (`#1552 <https://github.com/glotzerlab/hoomd-blue/pull/1552>`__).
 
 *Changed*
 
