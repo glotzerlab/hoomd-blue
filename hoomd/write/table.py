@@ -176,30 +176,24 @@ class _TableInternal(_InternalAction):
 
     def __init__(self,
                  logger,
-                 output=stdout or str,
+                 output=stdout,
                  header_sep='.',
                  delimiter=' ',
                  pretty=True,
                  max_precision=10,
                  max_header_len=None):
 
-        if output == 'notice':
-            output_type = str
-        else:
-            output_type = OnlyTypes(_OutputWriter, postprocess=_ensure_writable)
-
-        param_dict = ParameterDict(
-            header_sep=str,
-            delimiter=str,
-            min_column_width=int,
-            max_header_len=OnlyTypes(int, allow_none=True),
-            pretty=bool,
-            max_precision=int,
-            output=output_type,
-            #    output=OnlyTypes(
-            #         _OutputWriter,
-            #        postprocess=_ensure_writable),
-            logger=Logger)
+        param_dict = ParameterDict(header_sep=str,
+                                   delimiter=str,
+                                   min_column_width=int,
+                                   max_header_len=OnlyTypes(int,
+                                                            allow_none=True),
+                                   pretty=bool,
+                                   max_precision=int,
+                                   output=OnlyTypes(
+                                       _OutputWriter,
+                                       postprocess=_ensure_writable),
+                                   logger=Logger)
 
         param_dict.update(
             dict(header_sep=header_sep,
@@ -232,7 +226,6 @@ class _TableInternal(_InternalAction):
         self._cur_headers_with_width = dict()
         self._fmt = _Formatter(pretty, max_precision)
         self._comm = None
-        self._notice = None
 
     def _setattr_param(self, attr, value):
         """Makes self._param_dict attributes read only."""
@@ -240,11 +233,9 @@ class _TableInternal(_InternalAction):
 
     def attach(self, simulation):
         self._comm = simulation.device._comm
-        self._notice = simulation.device.notice
 
     def detach(self):
         self._comm = None
-        self._notice = None
 
     def _get_log_dict(self):
         """Get a flattened dict for writing to output."""
@@ -271,17 +262,10 @@ class _TableInternal(_InternalAction):
             header_dict[namespace] = column_size
             header_output_list.append((header, column_size))
         self._cur_headers_with_width = header_dict
-
-        if self.output == 'notice':
-
-            self._notice(
-                self.delimiter.join((self._fmt.format_str(hdr, width)
-                                     for hdr, width in header_output_list)))
-        else:
-            self.output.write(
-                self.delimiter.join((self._fmt.format_str(hdr, width)
-                                     for hdr, width in header_output_list)))
-            self.output.write('\n')
+        self.output.write(
+            self.delimiter.join((self._fmt.format_str(hdr, width)
+                                 for hdr, width in header_output_list)))
+        self.output.write('\n')
 
     @staticmethod
     def _determine_header(namespace, sep, max_len):
@@ -300,16 +284,10 @@ class _TableInternal(_InternalAction):
     def _write_row(self, data):
         """Write a row of data to output."""
         headers = self._cur_headers_with_width
-        if self.output == 'notice':
-            self._notice(
-                self.delimiter.join(
-                    (self._fmt(data[k], headers[k]) for k in headers)))
-
-        else:
-            self.output.write(
-                self.delimiter.join(
-                    (self._fmt(data[k], headers[k]) for k in headers)))
-            self.output.write('\n')
+        self.output.write(
+            self.delimiter.join(
+                (self._fmt(data[k], headers[k]) for k in headers)))
+        self.output.write('\n')
 
     def act(self, timestep=None):
         """Write row to designated output.
@@ -329,10 +307,7 @@ class _TableInternal(_InternalAction):
             # Write the data and flush. We must flush to ensure that the data
             # isn't merely stored in Python ready to be written later.
             self._write_row(output_dict)
-            if self.output == 'notice':
-                pass
-            else:
-                self.output.flush()
+            self.output.flush()
 
     def __getstate__(self):
         state = copy.copy(self.__dict__)
@@ -414,9 +389,9 @@ class Table(_InternalCustomWriter):
         logger (hoomd.logging.Logger): The logger to query for output. The
             'scalar' categories must be set on the logger, and the 'string'
             categories is optional.
-        output (``file-like`` object or str): Either a file-like object to
-            output the data from or the string 'notice'. The object must have
-            ``write`` and ``flush`` methods and a ``mode`` attribute.
+        output (``file-like`` object): A file-like object to output
+            the data from. The object must have ``write`` and ``flush`` methods
+            and a ``mode`` attribute.
         header_sep (str): String to use to separate names in
             the logger's namespace.'. For example, if logging the total energy
             of an `hoomd.md.pair.LJ` pair force object, the default header would
