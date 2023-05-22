@@ -5,7 +5,6 @@
 
 import io
 from collections.abc import Iterable, Mapping, MutableMapping
-from copy import deepcopy
 
 
 def _to_camel_case(string):
@@ -250,9 +249,6 @@ class _SafeNamespaceDict(_NamespaceDict):
                            "replacing.".format(namespace))
         else:
             super().__setitem__(namespace, value)
-
-    def __getitem__(self, namespace):
-        return deepcopy(super().__getitem__(namespace))
 
 
 class GPUNotAvailableError(NotImplementedError):
