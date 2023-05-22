@@ -33,6 +33,10 @@ class NoticeFile:
     Args:
         device (`hoomd.Device`): The `Device` object.
         level (int): Message notice level. Default value is 1.
+    Note:
+        Use this in combination with `Device.message_filename` to combine notice
+        messages with output from code that expects file-like objects (such as
+        `hoomd.write.Table`.
     """
 
     def __init__(self, device, level=1):
