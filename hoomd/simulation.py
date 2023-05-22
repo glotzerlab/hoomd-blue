@@ -210,8 +210,8 @@ class Simulation(metaclass=Loggable):
         """Create the simulation state from a `Snapshot`.
 
         Args:
-            snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
-                the state from. A `gsd.hoomd.Snapshot` will first be
+            snapshot (Snapshot or gsd.hoomd.Frame): Snapshot to initialize
+                the state from. A `gsd.hoomd.Frame` will first be
                 converted to a `hoomd.Snapshot`.
 
             domain_decomposition (tuple): Choose how to distribute the state
@@ -246,7 +246,12 @@ class Simulation(metaclass=Loggable):
             # snapshot is hoomd.Snapshot
             self._state = State(self, snapshot, domain_decomposition)
         elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
-            # snapshot is gsd.hoomd.Snapshot
+            # snapshot is gsd.hoomd.Snapshot (gsd 2.x)
+            snapshot = Snapshot.from_gsd_snapshot(snapshot,
+                                                  self._device.communicator)
+            self._state = State(self, snapshot, domain_decomposition)
+        elif _match_class_path(snapshot, 'gsd.hoomd.Frame'):
+            # snapshot is gsd.hoomd.Frame (gsd 3.x)
             snapshot = Snapshot.from_gsd_snapshot(snapshot,
                                                   self._device.communicator)
             self._state = State(self, snapshot, domain_decomposition)
