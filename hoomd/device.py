@@ -28,7 +28,7 @@ from hoomd import _hoomd
 
 
 class NoticeFile:
-    """Write a notice message to a file using `hoomd.Device`.
+    """A file-like object that writes to a `hoomd.Device` notice stream.
 
     Args:
         device (`hoomd.Device`): The `Device` object.
