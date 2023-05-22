@@ -4,8 +4,9 @@
 from hoomd.conftest import pickling_check
 from pytest import raises, fixture, mark
 from hoomd.logging import (_LoggerQuantity, _NamespaceFilter,
-                           _SafeNamespaceDict, Logger, dict_map, Loggable,
+                           _SafeNamespaceDict, Logger, Loggable,
                            LoggerCategories, log)
+from hoomd.util import dict_map
 
 
 class DummyNamespace:

@@ -461,6 +461,10 @@ class Simulation(metaclass=Loggable):
 
         self._cpp_sys.run(steps_int, write_at_start)
 
+    def __del__(self):
+        """Clean up dangling references to simulation."""
+        self._operations._unschedule()
+
 
 def _match_class_path(obj, *matches):
     return any(cls.__module__ + '.' + cls.__name__ in matches
