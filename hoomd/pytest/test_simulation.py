@@ -31,7 +31,7 @@ class SleepUpdater(hoomd.custom.Action):
 
 
 def make_gsd_snapshot(hoomd_snapshot):
-    s = gsd.hoomd.Snapshot()
+    s = gsd.hoomd.Frame()
     for attr in dir(hoomd_snapshot):
         if attr[0] != '_' and attr not in [
                 'exists', 'replicate', 'communicator'
@@ -206,7 +206,7 @@ def test_state_from_gsd(device, simulation_factory, lattice_snapshot_factory,
     d.mkdir()
     filename = d / "temporary_test_file.gsd"
     if device.communicator.rank == 0:
-        f = gsd.hoomd.open(name=filename, mode='wb+')
+        f = gsd.hoomd.open(name=filename, mode='w')
 
     sim = simulation_factory(
         lattice_snapshot_factory(n=snap_params[0],
@@ -256,7 +256,7 @@ def test_state_from_gsd_box_dims(device, simulation_factory,
     d.mkdir()
     filename = d / "temporary_test_file.gsd"
     if device.communicator.rank == 0:
-        f = gsd.hoomd.open(name=filename, mode='wb+')
+        f = gsd.hoomd.open(name=filename, mode='w')
 
     sim = simulation_factory(
         lattice_snapshot_factory(n=10, particle_types=["A", "B"], dimensions=2))
