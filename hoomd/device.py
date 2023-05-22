@@ -32,7 +32,7 @@ class NoticeFile:
 
     Args:
         device (`hoomd.Device`): The `Device` object.
-        level (int): Message notice level. Default value is 1
+        level (int): Message notice level. Default value is 1.
     """
 
     def __init__(self, device, level=1):
