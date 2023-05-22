@@ -48,15 +48,14 @@ class NoticeFile:
         """
         self._buff += str(message)
         lines = self._buff.split("\n")
-        for line in lines:
+        for line in lines[:-1]:
+            self._msg.notice(self._level, line + "\n")
 
-            if "\n" == line[-2:]:
-                pass
-            else:
-                line += "\n"
-
-            self._msg.notice(self._level, line)
-        self._buff = ""
+        if self._buff.endswith("\n"):
+            self._msg_notice(self._level, lines[-1] + "\n")
+            self._buff = ""
+        else:
+            self._buff = lines[-1]
 
     def flush(self):
         """Flush the device."""
