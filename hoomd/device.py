@@ -33,6 +33,7 @@ class NoticeFile:
     Args:
         device (`hoomd.Device`): The `Device` object.
         level (int): Message notice level. Default value is 1.
+
     Note:
         Use this in combination with `Device.message_filename` to combine notice
         messages with output from code that expects file-like objects (such as
@@ -50,13 +51,17 @@ class NoticeFile:
         Args:
             message (str): Message to write.
         """
-        self._buff += str(message)
+        if type(message) != str:
+            self._buff += str(message) + "\n"
+        else:
+            self._buff += message
+
         lines = self._buff.split("\n")
         for line in lines[:-1]:
             self._msg.notice(self._level, line + "\n")
 
         if self._buff.endswith("\n"):
-            self._msg_notice(self._level, lines[-1] + "\n")
+            self._msg.notice(self._level, lines[-1] + "\n")
             self._buff = ""
         else:
             self._buff = lines[-1]
