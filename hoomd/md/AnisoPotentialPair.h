@@ -97,13 +97,8 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     /// Set the rcut for a single type pair using a tuple of strings
     virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
 
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    int slotWriteGSDShapeSpec(gsd_handle&) const;
-
     /// Validate that types are within Ntypes
     virtual void validateTypes(unsigned int typ1, unsigned int typ2, std::string action);
-    //! Method that is called to connect to the gsd write state signal
-    void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
     //! Set the shape parameters for a single type
     virtual void setShape(unsigned int typ, const shape_type& shape_param);
@@ -243,27 +238,6 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
-
-template<class aniso_evaluator>
-void AnisoPotentialPair<aniso_evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
-    {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec,
-                          this,
-                          std::placeholders::_1);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
-    }
-
-template<class aniso_evaluator>
-int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
-    {
-    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
-    m_exec_conf->msg->notice(10) << "AnisoPotentialPair writing to GSD File to name: "
-                                 << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params, m_shape_params));
-    return retval;
-    }
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
@@ -739,8 +713,6 @@ template<class T> void export_AnisoPotentialPair(pybind11::module& m, const std:
         .def_property("mode",
                       &AnisoPotentialPair<T>::getShiftMode,
                       &AnisoPotentialPair<T>::setShiftModePython)
-        .def("slotWriteGSDShapeSpec", &AnisoPotentialPair<T>::slotWriteGSDShapeSpec)
-        .def("connectGSDShapeSpec", &AnisoPotentialPair<T>::connectGSDShapeSpec)
         .def("getTypeShapesPy", &AnisoPotentialPair<T>::getTypeShapesPy);
     }
 

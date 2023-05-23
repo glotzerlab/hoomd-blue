@@ -79,11 +79,6 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     //! Write out the data for the current timestep
     void analyze(uint64_t timestep);
 
-    hoomd::detail::SharedSignal<int(gsd_handle&)>& getWriteSignal()
-        {
-        return m_write_signal;
-        }
-
     /// Write a logged quantities
     void writeLogQuantities(pybind11::dict dict);
 

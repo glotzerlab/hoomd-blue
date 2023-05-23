@@ -397,21 +397,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
 
-        //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        int slotWriteGSDState(gsd_handle&, std::string name) const;
-
-        //! Method that is called whenever the GSD file is written if connected to a GSD file.
-        int slotWriteGSDShapeSpec(gsd_handle&) const;
-
-        //! Method that is called to connect to the gsd write state signal
-        void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
-
-        //! Method that is called to connect to the gsd write shape signal
-        void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
-
-        //! Method that is called to connect to the gsd write state signal
-        bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
-
         std::vector<std::string> getTypeShapeMapping(const std::vector<param_type, hoomd::detail::managed_allocator<param_type> > &params) const
             {
             quat<Scalar> q(make_scalar4(1,0,0,0));
@@ -1849,88 +1834,6 @@ std::vector<std::pair<unsigned int, unsigned int> > IntegratorHPMCMono<Shape>::m
     return overlap_vector;
     }
 
-template <class Shape>
-void IntegratorHPMCMono<Shape>::connectGSDStateSignal(
-                                                    std::shared_ptr<GSDDumpWriter> writer,
-                                                    std::string name)
-    {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDState, this, std::placeholders::_1, name);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
-    }
-
-template <class Shape>
-void IntegratorHPMCMono<Shape>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
-    {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
-    }
-
-template <class Shape>
-int IntegratorHPMCMono<Shape>::slotWriteGSDState( gsd_handle& handle, std::string name ) const
-    {
-    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
-    int retval = 0;
-    // create schema helpers
-    #ifdef ENABLE_MPI
-    bool mpi=(bool)m_pdata->getDomainDecomposition();
-    #else
-    bool mpi=false;
-    #endif
-    gsd_schema_hpmc schema(m_exec_conf, mpi);
-    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
-
-    // access parameters
-    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
-    schema.write(handle, "state/hpmc/integrate/d", m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
-    if(m_hasOrientation)
-        {
-        schema.write(handle, "state/hpmc/integrate/a", m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
-        }
-    retval |= schema_shape.write(handle, name, m_pdata->getNTypes(), m_params);
-
-    return retval;
-    }
-
-template <class Shape>
-int IntegratorHPMCMono<Shape>::slotWriteGSDShapeSpec(gsd_handle& handle) const
-    {
-    hoomd::detail::GSDShapeSpecWriter shapespec(m_exec_conf);
-    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: " << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
-    return retval;
-    }
-
-template <class Shape>
-bool IntegratorHPMCMono<Shape>::restoreStateGSD( std::shared_ptr<GSDReader> reader, std::string name)
-    {
-    bool success = true;
-    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono from GSD File to name: "<< name << std::endl;
-    uint64_t frame = reader->getFrame();
-    // create schemas
-    #ifdef ENABLE_MPI
-    bool mpi=(bool)m_pdata->getDomainDecomposition();
-    #else
-    bool mpi=false;
-    #endif
-    gsd_schema_hpmc schema(m_exec_conf, mpi);
-    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
-
-    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-    schema.read(reader, frame, "state/hpmc/integrate/d", m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
-    if(m_hasOrientation)
-        {
-        schema.read(reader, frame, "state/hpmc/integrate/a", m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
-        }
-    schema_shape.read(reader, frame, name, m_pdata->getNTypes(), m_params);
-    return success;
-    }
-
 /*! \param i The particle id in the list
     \param pos_i Particle position being tested
     \param shape_i Particle shape (including orientation) being tested
@@ -2759,9 +2662,6 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("getPatchEnergy", &IntegratorHPMCMono<Shape>::getPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
-          .def("connectGSDStateSignal", &IntegratorHPMCMono<Shape>::connectGSDStateSignal)
-          .def("connectGSDShapeSpec", &IntegratorHPMCMono<Shape>::connectGSDShapeSpec)
-          .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("getImplicitCounters", &IntegratorHPMCMono<Shape>::getImplicitCounters)
           .def("getDepletantNtrial", &IntegratorHPMCMono<Shape>::getNtrialPy)
           .def("setDepletantNtrial", &IntegratorHPMCMono<Shape>::setNtrialPy)
