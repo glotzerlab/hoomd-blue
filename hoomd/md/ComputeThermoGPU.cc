@@ -39,7 +39,7 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
     auto block_range = AutotunerBase::makeBlockSizeRangePow2(m_exec_conf);
     m_tuner.reset(new Autotuner<2>({block_range, block_range},
                                    m_exec_conf,
-                                   "partial_reduction_tuner"));
+                                   "reduction_tuner"));
     m_autotuners.push_back(m_tuner); // add to autotuner list
 
     hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
@@ -212,6 +212,10 @@ void ComputeThermoGPU::computeProperties()
         args.n_blocks = num_blocks_partial / block_size_final + 1;
 
         // perform the computation on GPU 0
+        // TODO adding num_blocks_partial fixes it for now, but in general the
+        // number of blocks for the partial sums now depend on the kernel, so the
+        // number of threads needed for the final kernel will also depend on
+        // the kernel. TODO
         gpu_compute_thermo_final(d_properties.data,
                                  d_vel.data,
                                  d_body.data,
@@ -221,7 +225,8 @@ void ComputeThermoGPU::computeProperties()
                                  box,
                                  args,
                                  flags[pdata_flag::pressure_tensor],
-                                 flags[pdata_flag::rotational_kinetic_energy]);
+                                 flags[pdata_flag::rotational_kinetic_energy],
+                                 num_blocks_partial);
         m_tuner->end();
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
