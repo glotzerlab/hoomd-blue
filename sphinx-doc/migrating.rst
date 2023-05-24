@@ -84,6 +84,10 @@ For some functionalities, you will need to update your scripts to use a new API:
   an always dynamic quantity. Users must include ``'property'``, ``'particles/position'`` and/or
   ``'particles/orientation'`` as needed in ``dynamic`` lists that contain other fields.
 
+* `hoomd.write.GSD` aggressively buffers output. Call `hoomd.write.GSD.flush` to write the buffer
+  to disk when opening a file for reading that is still open for writing. There is **no need** to
+  call ``flush`` in normal workflows when files are closed and then opened later for reading.
+
 Removed functionalities
 ^^^^^^^^^^^^^^^^^^^^^^^
 

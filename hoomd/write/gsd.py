@@ -14,6 +14,22 @@ from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
+import atexit
+import weakref
+
+# Track open gsd writers to flush at exit.
+_open_gsd_writers = []
+
+
+def _flush_open_gsd_writers():
+    """Flush all open gsd writers at exit."""
+    for weak_writer in _open_gsd_writers:
+        writer = weak_writer()
+        if writer is not None:
+            writer.flush()
+
+
+atexit.register(_flush_open_gsd_writers)
 
 
 def _array_to_strings(value):
@@ -26,6 +42,12 @@ def _array_to_strings(value):
         return string_list
     else:
         return value
+
+
+def _finalize_gsd(weak_writer, cpp_obj):
+    """Finalize a GSD writer."""
+    _open_gsd_writers.remove(weak_writer)
+    cpp_obj.flush()
 
 
 class GSD(Writer):
@@ -83,6 +105,8 @@ class GSD(Writer):
 
     * ``'property'``
 
+      * ``'configuration/box'``
+      * ``'particles/N'``
       * ``'particles/position'``
       * ``'particles/orientation'``
 
@@ -147,6 +171,8 @@ class GSD(Writer):
         write_diameter (bool): When `False`, do not write
             ``particles/diameter``. Set to `True` to write non-default particle
             diameters.
+        maximum_write_buffer_size (int): Size (in bytes) to buffer in memory
+           before writing to the file.
     """
 
     def __init__(self,
@@ -165,6 +191,8 @@ class GSD(Writer):
             'property',
             'momentum',
             'topology',
+            'configuration/box',
+            'particles/N',
             'particles/position',
             'particles/orientation',
             'particles/velocity',
@@ -188,6 +216,7 @@ class GSD(Writer):
                           truncate=bool(truncate),
                           dynamic=[dynamic_validation],
                           write_diameter=False,
+                          maximum_write_buffer_size=64 * 1024 * 1024,
                           _defaults=dict(filter=filter, dynamic=dynamic)))
 
         self._logger = None if logger is None else _GSDLogWriter(logger)
@@ -199,6 +228,12 @@ class GSD(Writer):
             self.truncate)
 
         self._cpp_obj.log_writer = self.logger
+
+        # Maintain a list of open gsd writers
+        weak_writer = weakref.ref(self)
+        _open_gsd_writers.append(weak_writer)
+        self._finalizer = weakref.finalize(self, _finalize_gsd, weak_writer,
+                                           self._cpp_obj),
 
     @staticmethod
     def write(state, filename, filter=All(), mode='wb', logger=None):
@@ -222,6 +257,7 @@ class GSD(Writer):
         if logger is not None:
             writer.log_writer = _GSDLogWriter(logger)
         writer.analyze(state._simulation.timestep)
+        writer.flush()
 
     @property
     def logger(self):
@@ -242,6 +278,14 @@ class GSD(Writer):
             self._cpp_obj.log_writer = logger
         self._logger = logger
         return self.logger
+
+    def flush(self):
+        """Flush the write buffer to the file."""
+        if not self._attached:
+            raise RuntimeError("The GSD file is unavailable until the"
+                               "simulation runs for 0 or more steps.")
+
+        self._cpp_obj.flush()
 
 
 def _iterable_is_incomplete(iterable):

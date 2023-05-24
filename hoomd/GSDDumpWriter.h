@@ -124,29 +124,40 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         m_write_diameter = write_diameter;
         }
 
+    /// Flush the write buffer
+    void flush();
+
+    /// Set the maximum write buffer size (in bytes)
+    void setMaximumWriteBufferSize(uint64_t size);
+
+    /// Get the maximum write buffer size (in bytes)
+    uint64_t getMaximumWriteBufferSize();
+
     protected:
     /// Flags for dynamic/default bitsets.
     struct gsd_flag
         {
         enum Enum
             {
-            position,
-            orientation,
-            types,
-            type,
-            mass,
-            charge,
-            diameter,
-            body,
-            inertia,
-            velocity,
-            angmom,
-            image,
+            configuration_box,
+            particles_N,
+            particles_position,
+            particles_orientation,
+            particles_types,
+            particles_type,
+            particles_mass,
+            particles_charge,
+            particles_diameter,
+            particles_body,
+            particles_inertia,
+            particles_velocity,
+            particles_angmom,
+            particles_image,
             };
         };
 
     /// Number of entires in the gsd_flag enum.
-    static const unsigned int n_gsd_flags = 12;
+    static const unsigned int n_gsd_flags = 14;
 
     /// Store a GSD frame for writing.
     /** Local frames store particles local to the rank, sorted in ascending tag order.
@@ -196,13 +207,12 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     std::string m_fname;           //!< The file name we are writing to
     std::string m_mode;            //!< The file open mode
     bool m_truncate = false;       //!< True if we should truncate the file on every analyze()
-    bool m_is_initialized = false; //!< True if the file is open
     bool m_write_topology = false; //!< True if topology should be written
     bool m_write_diameter = false; //!< True if the diameter attribute should be written
     gsd_handle m_handle;           //!< Handle to the file
 
     /// Flags indicating which particle fields are dynamic.
-    std::bitset<n_gsd_flags> m_particle_dynamic;
+    std::bitset<n_gsd_flags> m_dynamic;
 
     /// Number of frames written to the file.
     uint64_t m_nframes = 0;
