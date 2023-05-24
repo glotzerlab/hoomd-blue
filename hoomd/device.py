@@ -49,10 +49,7 @@ class NoticeFile:
         Args:
             message (str): Message to write.
         """
-        if type(message) != str:
-            self._buff += str(message) + "\n"
-        else:
-            self._buff += message
+        self._buff += message
 
         lines = self._buff.split("\n")
         for line in lines[:-1]:
