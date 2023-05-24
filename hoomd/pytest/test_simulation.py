@@ -279,7 +279,7 @@ def test_state_from_gsd_box_dims(device, simulation_factory,
 
 @skip_gsd
 def test_state_from_gsd_frame(simulation_factory, lattice_snapshot_factory,
-                                 device, state_args, tmp_path):
+                              device, state_args, tmp_path):
     snap_params, nsteps = state_args
 
     sim = simulation_factory(

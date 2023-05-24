@@ -17,4 +17,3 @@ documentation for more information on warning filters.
 * ``hoomd.snapshot.from_gsd_snapshot`` (since 4.0.0).
 
   * Use `hoomd.Snapshot.from_gsd_frame`.
-
